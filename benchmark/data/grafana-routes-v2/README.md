@@ -82,8 +82,8 @@ shasum -a 256 -c SHA256SUMS
 
 ## 실행기 연결 상태
 
-`grafana-routes-v2`는 현재 단일 벤치마크 데이터셋이다. [실행 계약](../grafana-execution-v1.json)이 3문항 × 6개 비교군 × 1회, 풀이 `gpt-6.1-sol / medium`, 채점 `gpt-6-astra / high`와 도구 기본값을 고정한다. `pnpm bench:ready`와 `pnpm bench:start`는 이 데이터셋을 검증하고 준비만 수행한다.
+`grafana-routes-v2`는 현재 단일 벤치마크 데이터셋이다. [실행 계약](../grafana-execution-v1.json)이 3문항 × 7개 비교군 × 1회와 도구 기본값을 고정한다. 풀이는 기본 `gpt-6.1-sol / medium` 또는 선택 `claude-opus-5-5 / medium`이며 각각 Codex와 Claude Code를 사용한다. 채점은 항상 `gpt-6-astra / high`다. `pnpm bench:ready`와 `pnpm bench:start`는 이 데이터셋을 검증하고 선택한 모델의 준비만 수행한다.
 
-현재 구현은 `route_contract.py`, `route_grading.py`, `route_metrics.py`와 `route_prepare.py`가 담당한다. 실행·사용량 수집에 필요한 공통 기능도 현재 `benchmark/` 모듈에서 제공한다. 실제 18회 실행 연결은 별도 작업이며 풀이·채점·보정 결과는 아직 없다. 절차와 현재 한계는 [벤치마크 안내](../../README.md), 실제 설치·색인 상태는 [최종 준비 기록](../../../docs/briefs/evidence/bench-ready/07-readiness.json)을 따른다.
+현재 구현은 `route_contract.py`, `route_grading.py`, `route_metrics.py`와 `route_prepare.py`가 담당한다. 실행·사용량 수집에 필요한 공통 기능도 현재 `benchmark/` 모듈에서 제공한다. 실제 21회 실행 연결은 별도 작업이며 풀이·채점·보정 결과는 아직 없다. 절차와 현재 한계는 [벤치마크 안내](../../README.md), 실제 설치·색인 상태는 [최종 준비 기록](../../../docs/briefs/evidence/bench-ready/07-readiness.json)을 따른다.
 
 `manifest.json`의 `predecessor`와 `execution_contract`는 내용 고정 당시의 출처·연결 상태다. 그 안의 과거 파일 경로는 현재 의존성이 아니며, 초기 데이터셋과 이전 실행기는 작업 트리에서 제거했다. 문항·근거·채점 JSON의 바이트는 유지한다. 운영 안내 README의 변경에 맞춰 manifest의 README 메타데이터와 연결 체크섬을 갱신했으며, manifest에 변경 사유를 기록한다.

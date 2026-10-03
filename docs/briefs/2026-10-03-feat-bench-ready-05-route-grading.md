@@ -82,7 +82,7 @@ feat
 
 ## Side Effect Checkpoints
 - [x] Grader and solver inputs remain separate even when source bundles share paths.
-- [x] Blinding removes six-arm identity wrappers without corrupting legitimate source identifiers.
+- [x] Blinding removes seven-arm identity wrappers without corrupting legitimate source identifiers.
 - [x] Alternative citations are checked against the same commit rather than rejected for differing from the answer-key path list.
 - [x] 현재 실행·기록 경로가 제거한 프로필이나 과거 결과를 읽지 않는다.
 - [x] Runtime-only claims and static-source limitations are not converted into new required facts.

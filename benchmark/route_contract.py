@@ -10,10 +10,10 @@ from .core import digest, file_digest, read_json, require, write_json
 
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c6fad8695a96577eb466d425e6ac4a759ca30f47"
-DATASET_MANIFEST_SHA256 = "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4"
-TARGET_LOCK_SHA256 = "ff93c37b8c6588a5830738132440194ab331488cd122b46e849ef5d885fe7a51"
+DATASET_MANIFEST_SHA256 = "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24"
+TARGET_LOCK_SHA256 = "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c"
 QUESTION_IDS = ("route-star", "route-save-existing", "route-live-receive")
-ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "rg")
+ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
 DATA = settings.ROOT / "data/grafana-routes-v2"
 TARGETS = settings.ROOT / "data/grafana-comparison-targets-v1"
 PROFILE_PATH = settings.ROOT / "data/grafana-execution-v1.json"
@@ -95,9 +95,13 @@ def solver_prompt(question_id: str, source: Path, arm: str | None = None) -> str
 def load_profile() -> dict:
     profile = read_json(PROFILE_PATH)
     require(profile["schema_version"] == 1 and profile["profile"] == PROFILE, "route 프로필 버전 오류")
-    require(tuple(profile["arm_ids"]) == ARM_IDS and profile["repetitions"] == 1, "18회 계획 변경")
+    require(tuple(profile["arm_ids"]) == ARM_IDS and profile["repetitions"] == 1, "문항별 1회 비교 계획 변경")
     require(profile["concurrency"] == 1 and type(profile["seed"]) is int, "route 격리/seed 변경")
     require(profile["solver"] == {"model": "gpt-6.1-sol", "reasoning_effort": "medium"}, "풀이 모델 계약 변경")
+    require(profile["solver_choices"] == [
+        {"model": "gpt-6.1-sol", "name": "GPT 6.1 Sol", "backend": "codex", "reasoning_effort": "medium"},
+        {"model": "claude-opus-5-5", "name": "Claude Opus 5.5", "backend": "claude_code", "reasoning_effort": "medium"},
+    ], "풀이 모델 선택 계약 변경")
     require(profile["grader"] == {"model": "gpt-6-astra", "reasoning_effort": "high"}, "채점 모델 계약 변경")
     require(profile["limits"] == {"elapsed_seconds": 300, "exploration_calls": 80, "total_tokens": 500000}
             and profile["execution_authorized"] is False,
@@ -111,6 +115,14 @@ def load_profile() -> dict:
         "automatic_pagination": False, "enrichment": False,
         "client_delivery": "record_observed_limits_and_unknowns_separately"}, "기본 응답 정책 변경")
     return profile
+
+
+def solver_model(model: str | None = None) -> dict:
+    profile = load_profile()
+    selected = profile["solver"]["model"] if model is None else model
+    choices = {item["model"]: item for item in profile["solver_choices"]}
+    require(selected in choices, f"지원하지 않는 풀이 모델: {selected}")
+    return {key: value for key, value in choices[selected].items() if key != "name"}
 
 
 def arm_contracts() -> list[dict]:
@@ -142,7 +154,7 @@ def schedule() -> list[dict]:
         rng.shuffle(arms)
         rows.extend({"id": f"{question}-{arm}-1", "question_id": question, "arm": arm,
                      "attempt": 1, "status": "planned"} for arm in arms)
-    require(len(rows) == len({r["id"] for r in rows}) == 18, "계획 슬롯 오류")
+    require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS), "계획 슬롯 오류")
     return rows
 
 
@@ -165,7 +177,8 @@ def publish_contract() -> dict:
     dataset = load_dataset()
     profile = value["profile"]
     return publish_handoff("01-contract.json", {
-        **value, "status": "verified", "solver": profile["solver"], "grader": profile["grader"],
+        **value, "status": "verified", "solver": profile["solver"], "solver_choices": profile["solver_choices"],
+        "grader": profile["grader"],
         "repetitions": 1, "planned_solver_runs": len(schedule()), "limits": profile["limits"],
         "policy_decisions": profile["policy_decisions"], "tool_access": profile["tool_access"],
         "contract_paths": {"profile": str(PROFILE_PATH.relative_to(settings.REPOSITORY)),
@@ -173,7 +186,7 @@ def publish_contract() -> dict:
                            "solver_questions": str((DATA / 'questions.json').relative_to(settings.REPOSITORY))},
         "fact_counts": {q["id"]: {level: sum(f["level"] == level for f in q["facts"])
                                    for level in ("core", "extended")} for q in dataset["questions"]},
-        "checks": {"bundle_hashes": "passed", "prompt_separation": "passed", "planned_unique_keys": 18,
+        "checks": {"bundle_hashes": "passed", "prompt_separation": "passed", "planned_unique_keys": len(schedule()),
                    "profiles": sorted(settings.profiles())},
         "solver_runs": 0, "grader_runs": 0,
         "limitations": ["Full source validation belongs to index preparation.",

@@ -80,26 +80,26 @@
     "-c",
     "features.goals=false"
   ],
-  "contract_hash": "ca85f15ddea7e0613d5eda580c1a92ec5f6ccbba484d10e3f9a6b61f57188e76",
+  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
   "dependency_hashes": {
-    "01-contract.json": "a609ec6bf2822103e9fb5514345e784c6eb18c95fe7229e4328819a4d4864e7a"
+    "01-contract.json": "8b1c09ffd116e4e2c6cde29b1ed17148b38a174727b4b3432684e386e41e6fa7"
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/route_transport.py": "385b4c5099852fcd7ff91b654774c2fde2b7bc4996f1a7ac115041558f94d88c",
-    "benchmark/runner.py": "d9f999b56ce0aeb52164b209a86a04399370c1892be828d14d2d474013b16487"
+    "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
+    "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "e1492dc94afb6923b4fb73ebcdf9a90dcd058834c0957501f92bfcc8ed67a0ce",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "513e8e9e16c545138fba3038e5c249d11240ef1259d3af8d40e02584391e77df",
-    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "55b8f32c055a57d3320d048b507a6bacbf5635f82fe37482a98b8557d7ba1e03",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "ff93c37b8c6588a5830738132440194ab331488cd122b46e849ef5d885fe7a51",
-    "benchmark/data/grafana-routes-v2/README.md": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
-    "benchmark/data/grafana-routes-v2/SHA256SUMS": "4d7719fb2c445df563b70c131c86e802faa93a4431b9bb795e83a947ea3147fa",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "6147358f35dd798f0290ec696211c0c383d440cd08277e32c941b48c691de0b3",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "c90d74aa870666a3db41848aec09b2f6d20240c215aa829ce1b7f131eee541e2",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c",
+    "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
+    "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
     "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
     "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
     "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
-    "benchmark/data/grafana-routes-v2/manifest.json": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
+    "benchmark/data/grafana-routes-v2/manifest.json": "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24",
     "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
   },
   "native_output_policy": {
@@ -118,11 +118,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 578,
+          "pgid": 15127,
           "stopped": true
         }
       ],
-      "pid": 578,
+      "pid": 15127,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -176,17 +176,17 @@
       }
     ],
     "probe": "rg over a copied harness source file",
-    "probe_source_sha256": "d49c74eefd24db6d9c4426659407a66ded25fcfe5d82ac114ec24036d1b237c4",
-    "protocol_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791006849802636000/protocol.jsonl",
-    "protocol_sha256": "ae0bdcdba3737a731a94d743120ff4a068b9953139ce0ad93316a0325bd26047",
-    "relay_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791006849802636000/relay.jsonl",
-    "relay_sha256": "4a8d341095d18e0a2dce36950ab534aa9061466d64a182bc385790b14d4640fe",
+    "probe_source_sha256": "9876faa155b436eb08321eeaaaecec67e39e02cca059cfbc891ea247dbb00b8c",
+    "protocol_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791020644199510000/protocol.jsonl",
+    "protocol_sha256": "31a51c14708808f1f265ac8f1341a33979c26fb540e5e20d1636ce86250d2c60",
+    "relay_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791020644199510000/relay.jsonl",
+    "relay_sha256": "3c3c5e9a9952ce978b741bc90a39e9c0b958e51ebec22edbb11e5c84c6afad27",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
-    "stdout_bytes": 57530,
-    "stdout_lines": 953
+    "stdout_bytes": 63456,
+    "stdout_lines": 1024
   },
-  "recorded_at": "2026-10-03T05:54:10.034322+00:00",
+  "recorded_at": "2026-10-03T09:44:04.410502+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",

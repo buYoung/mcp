@@ -156,8 +156,8 @@
       "actual_version": "0.11.0",
       "backend": "native_rust",
       "build": {
-        "binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/3c2bc4f2c13c49386e5569c615f862766362eab395a85bc095f6d3c64dcc4fb2/target/aarch64-apple-darwin/release/codemap-search",
-        "binary_sha256": "674724747b28fa643d9dabc91a53985109d303b62f0f32f144aacc0083535a5e",
+        "binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/target/aarch64-apple-darwin/release/codemap-search",
+        "binary_sha256": "a4b0f812531750133089d8118d5c80d291419e1a47f770eb1047e69133332b1e",
         "command": [
           "cargo",
           "build",
@@ -166,15 +166,15 @@
           "--target",
           "aarch64-apple-darwin",
           "--manifest-path",
-          "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/3c2bc4f2c13c49386e5569c615f862766362eab395a85bc095f6d3c64dcc4fb2/source/Cargo.toml",
+          "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/source/Cargo.toml",
           "--target-dir",
-          "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/3c2bc4f2c13c49386e5569c615f862766362eab395a85bc095f6d3c64dcc4fb2/target"
+          "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/target"
         ],
-        "elapsed_seconds": 156.3227263330482,
+        "elapsed_seconds": 138.55937237502076,
         "exit_code": 0,
         "identity": {
-          "commit": "8d1f8816131fd64ce4b3eb959d463214fbb2ef18",
-          "dirty": true,
+          "commit": "ff954945c881480d2805e46678c56f91f963e336",
+          "dirty": false,
           "files": {
             ".dockerignore": {
               "mode": 420,
@@ -206,11 +206,11 @@
             },
             "README.ko.md": {
               "mode": 420,
-              "sha256": "932196378845f5531fc1139e71ee8654d31be01a48515903da3ff21e18f016d6"
+              "sha256": "275edd0b119f3a810963deb93de3754b78709420c86759227d8aa16d51a990a2"
             },
             "README.md": {
               "mode": 420,
-              "sha256": "d5a34bef70e0960b3d3cc14623c7ac74c04a2e1cc6b70d057f5c92a9afa577bb"
+              "sha256": "d013af969b0b5e9a4326aa3dfbc9cd1fa7ec8a437998813b7a21cc2c442f5e12"
             },
             "build.rs": {
               "mode": 420,
@@ -254,11 +254,11 @@
             },
             "docs/configuration.ko.md": {
               "mode": 420,
-              "sha256": "647bcba64eef1206ad68678d51f3a14e8ccafd0853263e92520e86fac271efa2"
+              "sha256": "54e1088dcb2536801ff663010911bda460c2f0d8488a4fbc4aca071224736fd6"
             },
             "docs/configuration.md": {
               "mode": 420,
-              "sha256": "6d3cf7c30a592bf92d002e61cbe19d9bbd92f7222c74faab83a7b06d0377ec15"
+              "sha256": "57094a580b5508a80f63f2e6fe42ed7f1be2bdbf4f8dabb6325ad57b52dc861a"
             },
             "docs/development-language-commands.ko.md": {
               "mode": 420,
@@ -350,7 +350,7 @@
             },
             "docs/prompt-regression-runbook.ko.md": {
               "mode": 420,
-              "sha256": "6bc03792e302c22ec15079e4ce580e2a3fad6ed5aa534abdd49febff7745df6d"
+              "sha256": "221db3db72b96de87ddf5b884bd47dc262029d815fa2ab2e3644242782466679"
             },
             "docs/public-repository-validation.ko.md": {
               "mode": 420,
@@ -8678,7 +8678,7 @@
             },
             "src/callers/test_code.rs": {
               "mode": 420,
-              "sha256": "85ed7e38ae2f6138d4ce11d2143f5c4ede34b9ac78d6e0ed1466ca8f3e0c3aac"
+              "sha256": "6849cd10e1b13e7b1f7f11bf9dbed4634757d772e4bd614cc8d84b6eacc0997a"
             },
             "src/codemap/mod.rs": {
               "mode": 420,
@@ -8702,7 +8702,7 @@
             },
             "src/config.rs": {
               "mode": 420,
-              "sha256": "179cf854b47b087bc708401b631e07247c3f275e92ef7b47994e930f65aea6ad"
+              "sha256": "1de9713ce30fbb2deba436891d3e8daa699a908b9102c62da3d6270b63f016fe"
             },
             "src/config/auth.rs": {
               "mode": 420,
@@ -8718,7 +8718,7 @@
             },
             "src/config/jev.rs": {
               "mode": 420,
-              "sha256": "4a55a69e42699512fb0ac2efa846467e097f3c1ed1562e95c993d472b25b4942"
+              "sha256": "499db095271eb8dfd1ba9df38cbff671ce9ce6247d2ef8808e5ebf488671a677"
             },
             "src/config/layout.rs": {
               "mode": 420,
@@ -8770,7 +8770,7 @@
             },
             "src/declarations.rs": {
               "mode": 420,
-              "sha256": "7527ef0ec23b4ab58bc45ee1f4e360f3969f8c532875e7aeb19808234ad9e723"
+              "sha256": "af2276648bf89a30740b0d71ff995a25ff2834a058a0c16309c40534af9a43c6"
             },
             "src/events/extract.rs": {
               "mode": 420,
@@ -9338,11 +9338,11 @@
             },
             "src/mcp/jev.rs": {
               "mode": 420,
-              "sha256": "b95cd9e72bc448745819f6add903fe15f6f4023bb29d09b7fb437e8ba92652ea"
+              "sha256": "cf5ee68ff009cfca66c3bc7c0b34b4c29236a448813862674721227ea7b734d6"
             },
             "src/mcp/mod.rs": {
               "mode": 420,
-              "sha256": "ea9be970348d7252e9895334b56232cc39a448cd32d52aa76fc676ada93a3373"
+              "sha256": "093fb5af87feb222038e5cf9f8ed8d4c96c25519c59dc288b2a382f02017ba68"
             },
             "src/mcp/protocol.rs": {
               "mode": 420,
@@ -9556,14 +9556,6 @@
               "mode": 420,
               "sha256": "89548a41323bcafe76ee93ba12d5c567cc06a2b52128d1f903793d72ea42f6c8"
             },
-            "src/tools/instructions/tools/initial_instructions.jev.ko.md": {
-              "mode": 420,
-              "sha256": "68ba6756b91c5fbcf9659188f8536b13743912218f320090a09ea4fad62f6d67"
-            },
-            "src/tools/instructions/tools/initial_instructions.jev.md": {
-              "mode": 420,
-              "sha256": "e087ba08ea7981a3eefa0a4dd63fc049a875be7abe9a7f9c106d19b3f886fecb"
-            },
             "src/tools/instructions/tools/initial_instructions.ko.md": {
               "mode": 420,
               "sha256": "e323e39f5805e178c3c5315abeae260579684f902020bac162644f08bd109b61"
@@ -9599,6 +9591,14 @@
             "src/tools/instructions/tools/read.md": {
               "mode": 420,
               "sha256": "6f429c2644b30a7f8c6ffe7c44128d36fda293682bbc749f3d9d0bf26e970bf7"
+            },
+            "src/tools/instructions/tools/register_task.ko.md": {
+              "mode": 420,
+              "sha256": "23959ceab8d5c8190c6cd0828f11326e59cefb28841e3c5857e7b64661623d8e"
+            },
+            "src/tools/instructions/tools/register_task.md": {
+              "mode": 420,
+              "sha256": "4f84e31aa8e6ff7ee591c3d23466ab61a152bc2c6802416d245f6b81c4822c2a"
             },
             "src/tools/instructions/tools/search.jev.md": {
               "mode": 420,
@@ -9650,7 +9650,7 @@
             },
             "src/tools/live_symbols/references.rs": {
               "mode": 420,
-              "sha256": "47bc7f9b0aa185bf27f6f902e23fe152bcc067e80517fa3777322b0fd1ce8130"
+              "sha256": "022a50bf8df0b9ddb60a9a93b8ad65e8381bc8ebc3b170429e61b331d898351e"
             },
             "src/tools/live_symbols/references/declarations.rs": {
               "mode": 420,
@@ -9666,7 +9666,7 @@
             },
             "src/tools/mod.rs": {
               "mode": 420,
-              "sha256": "05fa5aebad8c8939a29b4dcc54fac3e53fa74be038868c5d4183214f340aed1e"
+              "sha256": "ff99d77369d3f924f48b77e298dca8e5061a070a2322e16ffef09e2b509f2f65"
             },
             "src/tools/overview.rs": {
               "mode": 420,
@@ -9686,7 +9686,7 @@
             },
             "src/tools/search/arguments.rs": {
               "mode": 420,
-              "sha256": "61b1ceb759f7eac1f081cba01746a02edbbba12cea71b34183f24dc92a2b63aa"
+              "sha256": "620fb66430204f0e42dea8ac54d89fb473b8226cecd5e8fcd4db616f44a12b4f"
             },
             "src/tools/search/display.rs": {
               "mode": 420,
@@ -9730,7 +9730,7 @@
             },
             "src/tools/task.rs": {
               "mode": 420,
-              "sha256": "f6dbea3f9f1e5a12309c045144e42f5973dbe7d3a45540d09c827b8b05dd9ff3"
+              "sha256": "989fae1018abd6d207d00f316300bc349ffb8e5042a795d380d11fe13c3611f7"
             },
             "src/workspace.rs": {
               "mode": 420,
@@ -9766,15 +9766,15 @@
             },
             "tests/e2e/helpers.rs": {
               "mode": 420,
-              "sha256": "c3ff0ec401a16294ff2e66fad5479b84545287861a590b8a176afdcd9680e553"
+              "sha256": "53c40bfb0c921d5fecb085c638849ca0641cf0dea71eb887cda977f796ad5923"
             },
             "tests/e2e/jev.rs": {
               "mode": 420,
-              "sha256": "534ccb6581d4d127e711d771ed053866c9180d752ede43f4d795b5da7555d63b"
+              "sha256": "7b20a361573a96f3bf96e50e7653fdaa9f74e289cb408fc452ee9509f8b64a78"
             },
             "tests/e2e/jev_live.rs": {
               "mode": 420,
-              "sha256": "11c0fc0e670e51102b540b1158896b9443ea38d06d664dbcc7b392ac8231e806"
+              "sha256": "c9f68ba38348b67e5d75802c22ef02f1f977c00013f8a8c5a16d360d33845ad7"
             },
             "tests/e2e/language_support.rs": {
               "mode": 420,
@@ -9782,7 +9782,7 @@
             },
             "tests/e2e/mcp.rs": {
               "mode": 420,
-              "sha256": "add2c86a103d5c8e96254190633e5a904df1401d2d3470ece26a76ef5dd3e172"
+              "sha256": "f8a409d16027e522f62935c2447bedf9f85360e7b396ef17c6ff1a0c75775133"
             },
             "tests/e2e/mod.rs": {
               "mode": 420,
@@ -9798,15 +9798,15 @@
             },
             "tests/e2e/redact/large_file.rs": {
               "mode": 420,
-              "sha256": "3a70c0067eefac206592cabdf00bd938b0efe31850b7a8109169732e9a31ea19"
+              "sha256": "0b576f3c3ea33eb83665b90be8753590643a354f0155389a63624592d1657bd8"
             },
             "tests/e2e/redact/pii.rs": {
               "mode": 420,
-              "sha256": "3446b1b0b4772e5f4ce23f9029adfab18d80e26d87e5e0fc346349814140a6a0"
+              "sha256": "2fd431abe44e33e917d7534e593277f69e3ace18994b86466a485bbcb3746527"
             },
             "tests/e2e/redact/pii_large_file.rs": {
               "mode": 420,
-              "sha256": "7332236c55e2fd093d963230382b82a61305124386c76c5c2b7424767a226615"
+              "sha256": "1054b57cb842e27c4c53b03fab1540ee27821ddf93f9ca6d4eca41068931da5e"
             },
             "tests/e2e/scenarios.rs": {
               "mode": 420,
@@ -9826,7 +9826,7 @@
             },
             "tests/e2e/watcher.rs": {
               "mode": 420,
-              "sha256": "ce3258b176621e1127d370c9419b702f560d4c0e7eadedd109698f5393cb7648"
+              "sha256": "867fac63d7fc08553d8f2a3b3664d7a196d7016ce4da6f8f3213b68c2ae28963"
             },
             "tests/e2e_tests.rs": {
               "mode": 420,
@@ -11451,34 +11451,34 @@
           },
           "kind": "worktree",
           "path": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
-          "source_sha256": "171ea7f322719cf9bc6d7d753c68ef2836564871af49e16f0a455fac40634298",
+          "source_sha256": "47904bf28fb15e039ca58178d01bb5bcbd36f428daa0f2e42f26ec35ac7ffffb",
           "version": "0.11.0"
         },
         "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8",
-        "source_snapshot": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/3c2bc4f2c13c49386e5569c615f862766362eab395a85bc095f6d3c64dcc4fb2/source"
+        "source_snapshot": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/source"
       },
       "dependencies": {
         "Cargo.lock": "97b6f3e9efa8b20cba1fb45fe621541559f6afa2f1ad3b3b8b3e5077e899b9a3"
       },
       "executables": [
         {
-          "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/3c2bc4f2c13c49386e5569c615f862766362eab395a85bc095f6d3c64dcc4fb2/target/aarch64-apple-darwin/release/codemap-search",
-          "sha256": "674724747b28fa643d9dabc91a53985109d303b62f0f32f144aacc0083535a5e"
+          "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/target/aarch64-apple-darwin/release/codemap-search",
+          "sha256": "a4b0f812531750133089d8118d5c80d291419e1a47f770eb1047e69133332b1e"
         }
       ],
       "id": "codemap-search",
-      "installation": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/3c2bc4f2c13c49386e5569c615f862766362eab395a85bc095f6d3c64dcc4fb2/source",
-      "installation_sha256": "171ea7f322719cf9bc6d7d753c68ef2836564871af49e16f0a455fac40634298",
+      "installation": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/source",
+      "installation_sha256": "47904bf28fb15e039ca58178d01bb5bcbd36f428daa0f2e42f26ec35ac7ffffb",
       "launch": [
-        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/3c2bc4f2c13c49386e5569c615f862766362eab395a85bc095f6d3c64dcc4fb2/target/aarch64-apple-darwin/release/codemap-search"
+        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/target/aarch64-apple-darwin/release/codemap-search"
       ],
       "model_assets": [],
       "runtime": {
         "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8"
       },
       "source_pin": {
-        "commit": "8d1f8816131fd64ce4b3eb959d463214fbb2ef18",
-        "dirty": true,
+        "commit": "ff954945c881480d2805e46678c56f91f963e336",
+        "dirty": false,
         "files": {
           ".dockerignore": {
             "mode": 420,
@@ -11510,11 +11510,11 @@
           },
           "README.ko.md": {
             "mode": 420,
-            "sha256": "932196378845f5531fc1139e71ee8654d31be01a48515903da3ff21e18f016d6"
+            "sha256": "275edd0b119f3a810963deb93de3754b78709420c86759227d8aa16d51a990a2"
           },
           "README.md": {
             "mode": 420,
-            "sha256": "d5a34bef70e0960b3d3cc14623c7ac74c04a2e1cc6b70d057f5c92a9afa577bb"
+            "sha256": "d013af969b0b5e9a4326aa3dfbc9cd1fa7ec8a437998813b7a21cc2c442f5e12"
           },
           "build.rs": {
             "mode": 420,
@@ -11558,11 +11558,11 @@
           },
           "docs/configuration.ko.md": {
             "mode": 420,
-            "sha256": "647bcba64eef1206ad68678d51f3a14e8ccafd0853263e92520e86fac271efa2"
+            "sha256": "54e1088dcb2536801ff663010911bda460c2f0d8488a4fbc4aca071224736fd6"
           },
           "docs/configuration.md": {
             "mode": 420,
-            "sha256": "6d3cf7c30a592bf92d002e61cbe19d9bbd92f7222c74faab83a7b06d0377ec15"
+            "sha256": "57094a580b5508a80f63f2e6fe42ed7f1be2bdbf4f8dabb6325ad57b52dc861a"
           },
           "docs/development-language-commands.ko.md": {
             "mode": 420,
@@ -11654,7 +11654,7 @@
           },
           "docs/prompt-regression-runbook.ko.md": {
             "mode": 420,
-            "sha256": "6bc03792e302c22ec15079e4ce580e2a3fad6ed5aa534abdd49febff7745df6d"
+            "sha256": "221db3db72b96de87ddf5b884bd47dc262029d815fa2ab2e3644242782466679"
           },
           "docs/public-repository-validation.ko.md": {
             "mode": 420,
@@ -19982,7 +19982,7 @@
           },
           "src/callers/test_code.rs": {
             "mode": 420,
-            "sha256": "85ed7e38ae2f6138d4ce11d2143f5c4ede34b9ac78d6e0ed1466ca8f3e0c3aac"
+            "sha256": "6849cd10e1b13e7b1f7f11bf9dbed4634757d772e4bd614cc8d84b6eacc0997a"
           },
           "src/codemap/mod.rs": {
             "mode": 420,
@@ -20006,7 +20006,7 @@
           },
           "src/config.rs": {
             "mode": 420,
-            "sha256": "179cf854b47b087bc708401b631e07247c3f275e92ef7b47994e930f65aea6ad"
+            "sha256": "1de9713ce30fbb2deba436891d3e8daa699a908b9102c62da3d6270b63f016fe"
           },
           "src/config/auth.rs": {
             "mode": 420,
@@ -20022,7 +20022,7 @@
           },
           "src/config/jev.rs": {
             "mode": 420,
-            "sha256": "4a55a69e42699512fb0ac2efa846467e097f3c1ed1562e95c993d472b25b4942"
+            "sha256": "499db095271eb8dfd1ba9df38cbff671ce9ce6247d2ef8808e5ebf488671a677"
           },
           "src/config/layout.rs": {
             "mode": 420,
@@ -20074,7 +20074,7 @@
           },
           "src/declarations.rs": {
             "mode": 420,
-            "sha256": "7527ef0ec23b4ab58bc45ee1f4e360f3969f8c532875e7aeb19808234ad9e723"
+            "sha256": "af2276648bf89a30740b0d71ff995a25ff2834a058a0c16309c40534af9a43c6"
           },
           "src/events/extract.rs": {
             "mode": 420,
@@ -20642,11 +20642,11 @@
           },
           "src/mcp/jev.rs": {
             "mode": 420,
-            "sha256": "b95cd9e72bc448745819f6add903fe15f6f4023bb29d09b7fb437e8ba92652ea"
+            "sha256": "cf5ee68ff009cfca66c3bc7c0b34b4c29236a448813862674721227ea7b734d6"
           },
           "src/mcp/mod.rs": {
             "mode": 420,
-            "sha256": "ea9be970348d7252e9895334b56232cc39a448cd32d52aa76fc676ada93a3373"
+            "sha256": "093fb5af87feb222038e5cf9f8ed8d4c96c25519c59dc288b2a382f02017ba68"
           },
           "src/mcp/protocol.rs": {
             "mode": 420,
@@ -20860,14 +20860,6 @@
             "mode": 420,
             "sha256": "89548a41323bcafe76ee93ba12d5c567cc06a2b52128d1f903793d72ea42f6c8"
           },
-          "src/tools/instructions/tools/initial_instructions.jev.ko.md": {
-            "mode": 420,
-            "sha256": "68ba6756b91c5fbcf9659188f8536b13743912218f320090a09ea4fad62f6d67"
-          },
-          "src/tools/instructions/tools/initial_instructions.jev.md": {
-            "mode": 420,
-            "sha256": "e087ba08ea7981a3eefa0a4dd63fc049a875be7abe9a7f9c106d19b3f886fecb"
-          },
           "src/tools/instructions/tools/initial_instructions.ko.md": {
             "mode": 420,
             "sha256": "e323e39f5805e178c3c5315abeae260579684f902020bac162644f08bd109b61"
@@ -20903,6 +20895,14 @@
           "src/tools/instructions/tools/read.md": {
             "mode": 420,
             "sha256": "6f429c2644b30a7f8c6ffe7c44128d36fda293682bbc749f3d9d0bf26e970bf7"
+          },
+          "src/tools/instructions/tools/register_task.ko.md": {
+            "mode": 420,
+            "sha256": "23959ceab8d5c8190c6cd0828f11326e59cefb28841e3c5857e7b64661623d8e"
+          },
+          "src/tools/instructions/tools/register_task.md": {
+            "mode": 420,
+            "sha256": "4f84e31aa8e6ff7ee591c3d23466ab61a152bc2c6802416d245f6b81c4822c2a"
           },
           "src/tools/instructions/tools/search.jev.md": {
             "mode": 420,
@@ -20954,7 +20954,7 @@
           },
           "src/tools/live_symbols/references.rs": {
             "mode": 420,
-            "sha256": "47bc7f9b0aa185bf27f6f902e23fe152bcc067e80517fa3777322b0fd1ce8130"
+            "sha256": "022a50bf8df0b9ddb60a9a93b8ad65e8381bc8ebc3b170429e61b331d898351e"
           },
           "src/tools/live_symbols/references/declarations.rs": {
             "mode": 420,
@@ -20970,7 +20970,7 @@
           },
           "src/tools/mod.rs": {
             "mode": 420,
-            "sha256": "05fa5aebad8c8939a29b4dcc54fac3e53fa74be038868c5d4183214f340aed1e"
+            "sha256": "ff99d77369d3f924f48b77e298dca8e5061a070a2322e16ffef09e2b509f2f65"
           },
           "src/tools/overview.rs": {
             "mode": 420,
@@ -20990,7 +20990,7 @@
           },
           "src/tools/search/arguments.rs": {
             "mode": 420,
-            "sha256": "61b1ceb759f7eac1f081cba01746a02edbbba12cea71b34183f24dc92a2b63aa"
+            "sha256": "620fb66430204f0e42dea8ac54d89fb473b8226cecd5e8fcd4db616f44a12b4f"
           },
           "src/tools/search/display.rs": {
             "mode": 420,
@@ -21034,7 +21034,7 @@
           },
           "src/tools/task.rs": {
             "mode": 420,
-            "sha256": "f6dbea3f9f1e5a12309c045144e42f5973dbe7d3a45540d09c827b8b05dd9ff3"
+            "sha256": "989fae1018abd6d207d00f316300bc349ffb8e5042a795d380d11fe13c3611f7"
           },
           "src/workspace.rs": {
             "mode": 420,
@@ -21070,15 +21070,15 @@
           },
           "tests/e2e/helpers.rs": {
             "mode": 420,
-            "sha256": "c3ff0ec401a16294ff2e66fad5479b84545287861a590b8a176afdcd9680e553"
+            "sha256": "53c40bfb0c921d5fecb085c638849ca0641cf0dea71eb887cda977f796ad5923"
           },
           "tests/e2e/jev.rs": {
             "mode": 420,
-            "sha256": "534ccb6581d4d127e711d771ed053866c9180d752ede43f4d795b5da7555d63b"
+            "sha256": "7b20a361573a96f3bf96e50e7653fdaa9f74e289cb408fc452ee9509f8b64a78"
           },
           "tests/e2e/jev_live.rs": {
             "mode": 420,
-            "sha256": "11c0fc0e670e51102b540b1158896b9443ea38d06d664dbcc7b392ac8231e806"
+            "sha256": "c9f68ba38348b67e5d75802c22ef02f1f977c00013f8a8c5a16d360d33845ad7"
           },
           "tests/e2e/language_support.rs": {
             "mode": 420,
@@ -21086,7 +21086,7 @@
           },
           "tests/e2e/mcp.rs": {
             "mode": 420,
-            "sha256": "add2c86a103d5c8e96254190633e5a904df1401d2d3470ece26a76ef5dd3e172"
+            "sha256": "f8a409d16027e522f62935c2447bedf9f85360e7b396ef17c6ff1a0c75775133"
           },
           "tests/e2e/mod.rs": {
             "mode": 420,
@@ -21102,15 +21102,15 @@
           },
           "tests/e2e/redact/large_file.rs": {
             "mode": 420,
-            "sha256": "3a70c0067eefac206592cabdf00bd938b0efe31850b7a8109169732e9a31ea19"
+            "sha256": "0b576f3c3ea33eb83665b90be8753590643a354f0155389a63624592d1657bd8"
           },
           "tests/e2e/redact/pii.rs": {
             "mode": 420,
-            "sha256": "3446b1b0b4772e5f4ce23f9029adfab18d80e26d87e5e0fc346349814140a6a0"
+            "sha256": "2fd431abe44e33e917d7534e593277f69e3ace18994b86466a485bbcb3746527"
           },
           "tests/e2e/redact/pii_large_file.rs": {
             "mode": 420,
-            "sha256": "7332236c55e2fd093d963230382b82a61305124386c76c5c2b7424767a226615"
+            "sha256": "1054b57cb842e27c4c53b03fab1540ee27821ddf93f9ca6d4eca41068931da5e"
           },
           "tests/e2e/scenarios.rs": {
             "mode": 420,
@@ -21130,7 +21130,7 @@
           },
           "tests/e2e/watcher.rs": {
             "mode": 420,
-            "sha256": "ce3258b176621e1127d370c9419b702f560d4c0e7eadedd109698f5393cb7648"
+            "sha256": "867fac63d7fc08553d8f2a3b3664d7a196d7016ce4da6f8f3213b68c2ae28963"
           },
           "tests/e2e_tests.rs": {
             "mode": 420,
@@ -22755,7 +22755,7 @@
         },
         "kind": "worktree",
         "path": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
-        "source_sha256": "171ea7f322719cf9bc6d7d753c68ef2836564871af49e16f0a455fac40634298",
+        "source_sha256": "47904bf28fb15e039ca58178d01bb5bcbd36f428daa0f2e42f26ec35ac7ffffb",
         "version": "0.11.0"
       }
     },
@@ -22887,6 +22887,123 @@
         "version": "15.2.0"
       }
     },
+    "serena": {
+      "actual_version": "Serena 1.7.0",
+      "backend": "local_lsp_go_typescript",
+      "commands": [
+        {
+          "command": [
+            "/opt/homebrew/bin/uv",
+            "sync",
+            "--locked",
+            "--no-dev",
+            "--python",
+            "3.12"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source",
+          "elapsed_seconds": 0.2780503339599818,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/install.log",
+          "log_sha256": "d44004c2f5837557fdbfa714d6e18b553528d2646c2719ced834ea8a11791bb8"
+        },
+        {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena",
+            "--version"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source",
+          "elapsed_seconds": 4.358335416996852,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/version.log",
+          "log_sha256": "500ef75bf36678e3fc00643f196fce863316a0f9031376dde79d880fa85b3a3e"
+        }
+      ],
+      "dependencies": {
+        "uv.lock": "48f88af6b9a7c942820b65d0321176b33b49f0012a8a0cd036ee1f5140cfe167"
+      },
+      "executables": [
+        {
+          "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena",
+          "sha256": "baa38de958ca2afdbc1db2a49f7344bfd299ea5c5a27eacbdfda06b925237cc3"
+        },
+        {
+          "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/python",
+          "sha256": "a395f264e5612a2819662ed3e37fd30d39ed61179b98e5f86c3c783a008d8623"
+        },
+        {
+          "path": "/opt/homebrew/Cellar/go/1.26.3/libexec/bin/go",
+          "sha256": "1b6e73b4f9eae9108e2e747f5cd29dc27ddfc1999a414fe11cd593072d607a84"
+        },
+        {
+          "path": "/Users/buyong/go/bin/gopls",
+          "sha256": "8d677803887d3da458a06ec4b296f2d46a9849325b2181ede8b68ccc6cffd6c2"
+        },
+        {
+          "path": "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+          "sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55"
+        },
+        {
+          "path": "/Users/buyong/.nvm/versions/node/v24.14.0/lib/node_modules/npm/bin/npm-cli.js",
+          "sha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7"
+        }
+      ],
+      "id": "serena",
+      "installation": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source",
+      "installation_sha256": "c8930abcd821e3d2e7d0f7756d48c7a3fefcee119279d5fcdd600c5ff64bca45",
+      "launch": [
+        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena"
+      ],
+      "model_assets": [],
+      "provenance": {
+        "archive": {
+          "bytes": 2252543,
+          "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/downloads/serena-949a27ef1e5fda1a6e7b561e777bcece345c6ffd.tar.gz",
+          "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
+          "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd"
+        },
+        "files_manifest": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source-files.json",
+        "source_sha256": "d936d91e4e29870baeb348560665e03ced947f868afd9e395fbc5616874da143"
+      },
+      "runtime": {
+        "go": {
+          "path": "/opt/homebrew/Cellar/go/1.26.3/libexec/bin/go",
+          "sha256": "1b6e73b4f9eae9108e2e747f5cd29dc27ddfc1999a414fe11cd593072d607a84",
+          "version": "go version go1.26.3 darwin/arm64"
+        },
+        "gopls": {
+          "path": "/Users/buyong/go/bin/gopls",
+          "sha256": "8d677803887d3da458a06ec4b296f2d46a9849325b2181ede8b68ccc6cffd6c2",
+          "version": "golang.org/x/tools/gopls v0.21.1"
+        },
+        "node": {
+          "path": "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+          "sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55",
+          "version": "v24.14.0"
+        },
+        "npm": {
+          "path": "/Users/buyong/.nvm/versions/node/v24.14.0/lib/node_modules/npm/bin/npm-cli.js",
+          "sha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+          "version": "11.9.0"
+        },
+        "python": "Python 3.12.13",
+        "python_sha256": "a395f264e5612a2819662ed3e37fd30d39ed61179b98e5f86c3c783a008d8623",
+        "uv": "uv 0.11.17 (Homebrew 2026-05-28 aarch64-apple-darwin)"
+      },
+      "source_pin": {
+        "commit": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+        "id": "serena",
+        "name": "Serena",
+        "repository": "oraios/serena",
+        "role": "comparison_tool",
+        "source_archive": {
+          "bytes": 2252543,
+          "format": "tar.gz",
+          "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
+          "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd"
+        },
+        "version": "1.7.0"
+      }
+    },
     "zvec-grep": {
       "actual_version": "0.2.0",
       "backend": "zvec_native_model2vec",
@@ -22983,9 +23100,9 @@
       }
     }
   },
-  "contract_hash": "ca85f15ddea7e0613d5eda580c1a92ec5f6ccbba484d10e3f9a6b61f57188e76",
+  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
   "dependency_hashes": {
-    "01-contract.json": "a609ec6bf2822103e9fb5514345e784c6eb18c95fe7229e4328819a4d4864e7a"
+    "01-contract.json": "8b1c09ffd116e4e2c6cde29b1ed17148b38a174727b4b3432684e386e41e6fa7"
   },
   "host": {
     "machine": "arm64",
@@ -22993,26 +23110,26 @@
     "system": "Darwin"
   },
   "implementation_hashes": {
-    "benchmark/resources.py": "0d3b0b8055d3f6c02a5c0c0b1daf06c683d9721f6224ccdedcf679eb0c8c2dac",
-    "benchmark/tool_artifacts.py": "56691deb9f6cc1162f4c59e82d6f2807ef20e55beffdfefff01408130578cfa7"
+    "benchmark/resources.py": "a0eefb21fe0e22ec2b36d628dc6429a8d3b6385ac3b5aa93467ae17ce0a35b6d",
+    "benchmark/tool_artifacts.py": "a0196d8ef5cc64203f188452f65fe99049b878281301568ad0efce0ac64ab9a8"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "e1492dc94afb6923b4fb73ebcdf9a90dcd058834c0957501f92bfcc8ed67a0ce",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "513e8e9e16c545138fba3038e5c249d11240ef1259d3af8d40e02584391e77df",
-    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "55b8f32c055a57d3320d048b507a6bacbf5635f82fe37482a98b8557d7ba1e03",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "ff93c37b8c6588a5830738132440194ab331488cd122b46e849ef5d885fe7a51",
-    "benchmark/data/grafana-routes-v2/README.md": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
-    "benchmark/data/grafana-routes-v2/SHA256SUMS": "4d7719fb2c445df563b70c131c86e802faa93a4431b9bb795e83a947ea3147fa",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "6147358f35dd798f0290ec696211c0c383d440cd08277e32c941b48c691de0b3",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "c90d74aa870666a3db41848aec09b2f6d20240c215aa829ce1b7f131eee541e2",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c",
+    "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
+    "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
     "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
     "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
     "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
-    "benchmark/data/grafana-routes-v2/manifest.json": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
+    "benchmark/data/grafana-routes-v2/manifest.json": "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24",
     "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
   },
   "limitations": [
     "No Grafana index or solver/grader inference was created by artifact preparation."
   ],
-  "recorded_at": "2026-10-03T05:54:09.689920+00:00",
+  "recorded_at": "2026-10-03T09:44:04.025081+00:00",
   "schema_version": 1,
   "status": "verified",
   "verification": {

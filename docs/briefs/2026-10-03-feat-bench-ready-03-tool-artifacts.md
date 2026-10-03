@@ -11,7 +11,7 @@ feat
 - [confirmed] 준비 산출물은 작업 전용 캐시에 보존하며 제품의 실제 버전과 1.0.0 출시 목표를 구분한다.
 
 ## Desired Outcome (To-Be)
-- Prepare reproducible local artifacts for all six selected arms with source-to-installed-artifact provenance, actual runtime versions, and no floating dependencies or release aliases in the recorded identity.
+- Prepare reproducible local artifacts for all seven selected arms with source-to-installed-artifact provenance, actual runtime versions, and no floating dependencies or release aliases in the recorded identity.
 - Freeze the actual codemap-search evaluation snapshot and binary without pretending its package version is already 1.0.0.
 - Hand exact launch artifacts and local model assets to indexing, without indexing Grafana or invoking any model in this child.
 
@@ -42,24 +42,25 @@ feat
 
 ## Execution Plan
 ### Stage 1 — Resolve each tool's reproducible preparation path
-- Starts when: `docs/briefs/evidence/bench-ready/01-contract.json` supplies the six target identities and preparation policies.
+- Starts when: `docs/briefs/evidence/bench-ready/01-contract.json` supplies the seven target identities and preparation policies.
 - Work: Revalidate the host and locked archive identities. Map each pinned package to its install/build command, runtime, optional extras, and native backend. Inspect zvec model files and Graphify's MCP dependency extra. Define package-tree hashing and exact source association before acquisition.
-- No-op when: all six artifacts already exist with matching source, dependency, runtime, platform, and content hashes and pass bounded version/import inspection.
+- No-op when: all seven artifacts already exist with matching source, dependency, runtime, platform, and content hashes and pass bounded version/import inspection.
 - No-op handoff: publish those verified artifacts at `docs/briefs/evidence/bench-ready/03-artifacts.json` for child 04 without rebuilding them.
-- Deliverable: a six-row acquisition/build map including the subject snapshot recipe, task-local destinations, required runtimes, and artifact hash method.
-- Verify: `Compare each acquisition map entry with its pinned upstream package metadata and the route target contract`; Inputs: all six target identities and current host metadata; Expected: one supported preparation path per arm with no floating version or unresolved source association.
+- Deliverable: a seven-row acquisition/build map including the subject snapshot recipe, task-local destinations, required runtimes, and artifact hash method.
+- Verify: `Compare each acquisition map entry with its pinned upstream package metadata and the route target contract`; Inputs: all seven target identities and current host metadata; Expected: one supported preparation path per arm with no floating version or unresolved source association.
 - Ends when:
   - [x] CodeGraph and zvec use compatible Node runtimes and native backend requirements are explicit.
+  - [x] Serena uses its pinned uv.lock, a verified Python environment and Go/gopls/Node runtime hashes; its archive version cannot inherit the harness Git identity.
   - [x] Graphify includes the MCP serving dependencies and a verified compatible Python runtime.
   - [x] codebase-memory-mcp and rg have platform-specific acquisition/build paths and actual feature/version recording.
-- Handoff: Stage 2 receives the bounded six-tool build map.
+- Handoff: Stage 2 receives the bounded seven-tool build map.
 - Replan when: a pinned version cannot run on the host without source changes. Stop that arm, report the exact incompatibility, and return to the parent rather than substitute another release.
 
 ### Stage 2 — Build or acquire isolated artifacts
 - Starts when: Stage 1 has established supported source-bound preparation paths.
 - Work: Prepare local artifacts from the locked sources. Snapshot the subject with its actual source and working-tree identity, use locked Cargo dependencies, and hash the resulting binary. Resolve external dependency graphs in isolated environments. Download and hash zvec's selected local model revision and tokenizer without executing inference. Record effective CodeGraph native-kernel availability and any documented fallback.
-- Deliverable: six task-owned launch artifacts with dependency records, runtime metadata, content hashes, build logs, and separately identified local model assets.
-- Verify: `Inspect version/help or import output and recompute every artifact/model hash against its preparation record`; Inputs: exact six launch paths, package environments, and zvec model assets; Expected: all identities match the pinned source map, no unknown fallback backend, and no model inference or Grafana index has run.
+- Deliverable: seven task-owned launch artifacts with dependency records, runtime metadata, content hashes, build logs, and separately identified local model assets.
+- Verify: `Inspect version/help or import output and recompute every artifact/model hash against its preparation record`; Inputs: exact seven launch paths, package environments, and zvec model assets; Expected: all identities match the pinned source map, no unknown fallback backend, and no model inference or Grafana index has run.
 - Ends when:
   - [x] No launch path accidentally resolves to a global unverified executable.
   - [x] Subject version, source snapshot, Cargo lock, toolchain, and binary hash are recorded independently of the 1.0.0 target label.
@@ -68,10 +69,10 @@ feat
 - Replan when: installation changes a locked product behavior or cannot resolve a source-bound artifact. Stop indexing for that arm and correct its preparation map before continuing.
 
 ### Stage 3 — Publish the artifact handoff
-- Starts when: all six artifacts have verified provenance and local launch prerequisites.
+- Starts when: all seven artifacts have verified provenance and local launch prerequisites.
 - Work: Integrate route artifact preparation with existing resources callers, remove retired campaign paths, and write the exact indexing input contract. Include start/stop ownership hints but do not launch persistent query daemons yet.
-- Deliverable: `docs/briefs/evidence/bench-ready/03-artifacts.json` with `schema_version`, `status`, `contract_hash`, `host`, and six `artifacts` containing source pin, package/binary hash, dependency lock/hash, runtime, launch path, actual version, backend, model assets, and verification evidence.
-- Verify: `Read all six artifact entries and resolve each recorded launch path and content hash on the host`; Inputs: `03-artifacts.json` and task-local artifacts; Expected: six verified entries and no source-only placeholder marked ready.
+- Deliverable: `docs/briefs/evidence/bench-ready/03-artifacts.json` with `schema_version`, `status`, `contract_hash`, `host`, and seven `artifacts` containing source pin, package/binary hash, dependency lock/hash, runtime, launch path, actual version, backend, model assets, and verification evidence.
+- Verify: `Read all seven artifact entries and resolve each recorded launch path and content hash on the host`; Inputs: `03-artifacts.json` and task-local artifacts; Expected: seven verified entries and no source-only placeholder marked ready.
 - Ends when:
   - [x] Each arm has enough data for child 04 to start its documented preparation command without resolving another version.
 - Handoff: child 04 consumes `docs/briefs/evidence/bench-ready/03-artifacts.json`.
@@ -84,8 +85,8 @@ feat
 - [x] Preparation durations are not presented as search latency or benchmark measurements.
 
 ## Acceptance Criteria
-- [x] `03-artifacts.json` resolves six usable launch artifacts with verified hashes and exact upstream source associations.
-- [x] CodeGraph 1.6.1, zvec-grep 0.2.0, Graphify 0.9.74, codebase-memory-mcp 0.11.0, and rg 15.2.0 match the frozen lock.
+- [x] `03-artifacts.json` resolves seven usable launch artifacts with verified hashes and exact upstream source associations.
+- [x] CodeGraph 1.6.1, zvec-grep 0.2.0, Graphify 0.9.74, codebase-memory-mcp 0.11.0, Serena 1.7.0, and rg 15.2.0 match the frozen lock.
 - [x] The subject record reports its actual version and snapshot, and all required runtime/model dependencies are recorded.
 - [x] No Grafana index, solver response, grader response, or benchmark result is produced by this child.
 

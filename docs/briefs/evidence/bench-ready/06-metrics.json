@@ -1,9 +1,9 @@
 {
   "aggregation_rules": "Fixed three-route macro denominator, separate core/extended fact denominators; no variance estimate.",
-  "contract_hash": "ca85f15ddea7e0613d5eda580c1a92ec5f6ccbba484d10e3f9a6b61f57188e76",
+  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
   "dependency_hashes": {
-    "02-delivery.json": "4b99ba0a12d4e2ac3d00a7a2bcb15642c9a3e4af83a4c403c6911703e0b400ba",
-    "05-grading.json": "db6188932f74e2f61a180a2c2ddf71f9570bb11ffbf4276e13e17f659c507f53"
+    "02-delivery.json": "63e827fa28057e7b186f9a9c37a252c5dc9c9f585063c851c3a3556b95e2c8b8",
+    "05-grading.json": "85d806d55f1099bce1cd8a50376c00ce5d6f80fc96af96924d93095a94db8a7f"
   },
   "field_provenance": {
     "client_delivery": {
@@ -67,25 +67,26 @@
     }
   },
   "implementation_hashes": {
-    "benchmark/execution.py": "25583ece6c3b573e63509654f7a5955848c2a5580bf6db0e9095b549cb091a2e",
-    "benchmark/route_metrics.py": "21fa2e7679f582d48f2255ebe8e862c9be3deff37329ea297e90473b711e5920",
-    "benchmark/runner.py": "d9f999b56ce0aeb52164b209a86a04399370c1892be828d14d2d474013b16487"
+    "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
+    "benchmark/execution.py": "0e83554d7dcafbb96aad231d9ec20a584f0c6af0c8350a29c73e854cbc395f86",
+    "benchmark/route_metrics.py": "0cc69cc4b4e7fc04d754a313568627ee6d69730cf3a448cb3e6ccf95c08694af",
+    "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "e1492dc94afb6923b4fb73ebcdf9a90dcd058834c0957501f92bfcc8ed67a0ce",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "513e8e9e16c545138fba3038e5c249d11240ef1259d3af8d40e02584391e77df",
-    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "55b8f32c055a57d3320d048b507a6bacbf5635f82fe37482a98b8557d7ba1e03",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "ff93c37b8c6588a5830738132440194ab331488cd122b46e849ef5d885fe7a51",
-    "benchmark/data/grafana-routes-v2/README.md": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
-    "benchmark/data/grafana-routes-v2/SHA256SUMS": "4d7719fb2c445df563b70c131c86e802faa93a4431b9bb795e83a947ea3147fa",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "6147358f35dd798f0290ec696211c0c383d440cd08277e32c941b48c691de0b3",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "c90d74aa870666a3db41848aec09b2f6d20240c215aa829ce1b7f131eee541e2",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c",
+    "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
+    "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
     "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
     "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
     "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
-    "benchmark/data/grafana-routes-v2/manifest.json": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
+    "benchmark/data/grafana-routes-v2/manifest.json": "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24",
     "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
   },
   "limitations": [
-    "Real gpt-6.1-sol usage and history delivery have not been measured."
+    "Real solver usage and history delivery have not been measured for either selectable model."
   ],
   "measurement_schema": {
     "client_delivery": {
@@ -156,30 +157,33 @@
   "offline_verification": {
     "actual_solver_delivery": "unobserved",
     "native_probe_calls": 1,
-    "planned_unique_slots": 18,
+    "planned_unique_slots": 21,
     "relay_loss": false
   },
-  "recorded_at": "2026-10-03T06:11:47.258688+00:00",
+  "recorded_at": "2026-10-03T10:17:39.408600+00:00",
   "result_schema": {
     "attempts_per_slot": 1,
     "preview": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/report-contract/report/summary.json",
-    "preview_sha256": "cb7993ea6b6b06ac987b4878bf05728f17f7463e3c94ad9df330031769ee289d",
+    "preview_sha256": "ff0a14cf37a9f5d53e63fa057dd9e0cfb2c3888ca1ebc1d6a690ef49a172defc",
     "slot_keys": [
       "route-save-existing-codemap-search-1",
       "route-save-existing-zvec-grep-1",
       "route-save-existing-rg-1",
+      "route-save-existing-serena-1",
       "route-save-existing-codebase-memory-mcp-1",
       "route-save-existing-codegraph-1",
       "route-save-existing-graphify-1",
       "route-live-receive-zvec-grep-1",
       "route-live-receive-graphify-1",
-      "route-live-receive-rg-1",
+      "route-live-receive-serena-1",
       "route-live-receive-codegraph-1",
       "route-live-receive-codemap-search-1",
       "route-live-receive-codebase-memory-mcp-1",
+      "route-live-receive-rg-1",
       "route-star-codegraph-1",
       "route-star-graphify-1",
       "route-star-codemap-search-1",
+      "route-star-serena-1",
       "route-star-rg-1",
       "route-star-zvec-grep-1",
       "route-star-codebase-memory-mcp-1"

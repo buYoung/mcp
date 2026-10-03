@@ -97,6 +97,9 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
 
 def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
     from .runner import delivered_leaves, output_blocks, read_live_jsonl
+    runtime_path = folder / "runtime.json"
+    if runtime_path.exists() and read_json(runtime_path).get("backend") == "claude_code":
+        return normalize_claude_calls(folder, write_delivery=write_delivery)
     if (folder / "native-agent.json").exists():
         return normalize_native_calls(folder, write_delivery=write_delivery)
     relay = read_live_jsonl(folder / "relay.jsonl")
@@ -187,17 +190,86 @@ def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], b
     return calls, complete, host_calls if rollout else None, violations
 
 
+def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
+    from .claude_client import NATIVE_TOOLS, tool_items
+    from .runner import read_live_jsonl
+    events = read_live_jsonl(folder / "events.jsonl")
+    runtime = read_json(folder / "runtime.json")
+    native = (folder / "native-agent.json").exists()
+    configured = read_json(folder / ("native-agent.json" if native else "relay-settings.json"))
+    items = [c for c in tool_items(events) if c.get("name") != "EndConversation"]
+    allowed = set(NATIVE_TOOLS) if native else {"ToolSearch", *["mcp__navigation__" + name for name in configured["enabled_tools"]]}
+    violations = [{"name": c.get("name"), "reason": "unapproved Claude capability"} for c in items if c.get("name") not in allowed]
+    complete = runtime.get("record_collection_complete", False) and all(c["completed"] for c in items)
+    calls, stream_bytes = [], 0
+    outputs = {}
+    for item in items:
+        content = (item.get("result") or {}).get("content")
+        text = content if isinstance(content, str) else "\n".join(b.get("text", "") for b in content if b.get("type") == "text") if isinstance(content, list) else None
+        outputs[item["id"]] = text
+        if text is not None:
+            stream_bytes += len(text.encode())
+        if native:
+            result = item.get("result")
+            calls.append({"id": item["id"], "arm": "rg", "tool": item.get("name"), "arguments": item.get("input"),
+                          "is_auxiliary": False, "status": "incomplete" if result is None else "error" if result.get("is_error") else "success",
+                          "completed": item["completed"], "native_item": item, "raw_result": None, "relay_result": None,
+                          "native_output_bytes": len(text.encode()) if text is not None else None,
+                          "raw_json_bytes": None, "relay_json_bytes": None, "relay_loss": None, "native_truncated": None,
+                          "delivered_lines": None, "duration_seconds": None,
+                          "client_delivery": {"status": "client_stream_observed" if text is not None else "unknown", "complete": None,
+                                              "reason": "CLI stream is observed; the complete provider input is not observed."}})
+    if not native:
+        relay = read_live_jsonl(folder / "relay.jsonl")
+        requests = {r["id"]: r for r in relay if r.get("event") == "request"}
+        results = {r["id"]: r for r in relay if r.get("event") == "result"}
+        errors = {r["id"] for r in relay if r.get("event") == "rpc_error"}
+        signature = lambda tool, args: (tool.removeprefix("mcp__navigation__"), json.dumps(args, sort_keys=True, ensure_ascii=False))
+        request_counts = collections.Counter(signature(r["tool"], r["arguments"]) for r in requests.values())
+        by_signature = collections.defaultdict(list)
+        for item in items:
+            by_signature[signature(item.get("name", ""), item.get("input", {}))].append(item)
+        for ident, request in requests.items():
+            result = results.get(ident)
+            raw, relayed = (result.get("raw_result"), result.get("relay_result")) if result else (None, None)
+            key = signature(request["tool"], request["arguments"])
+            matches = by_signature[key]
+            seen = outputs.get(matches[0]["id"]) if len(matches) == request_counts[key] == 1 else None
+            calls.append({**request, "status": "error" if ident in errors or raw and raw.get("isError") else "success" if result else "incomplete",
+                          "raw_result": raw, "relay_result": relayed,
+                          "raw_json_bytes": result.get("raw_json_bytes") if result else None,
+                          "relay_json_bytes": result.get("relay_json_bytes") if result else None,
+                          "relay_loss": raw != relayed if result else None, "native_truncated": None,
+                          "client_delivery": {"status": "client_stream_observed" if seen is not None else "unknown", "complete": None,
+                                              "observed_text_bytes": len(seen.encode()) if seen is not None else None,
+                                              "reason": "Unique native call matched in CLI stream; complete provider input remains unobserved."
+                                              if seen is not None else "No uniquely matched native client call."},
+                          "delivered_lines": None,
+                          "duration_seconds": result["finished_monotonic"] - request["started_monotonic"] if result else None})
+        complete = complete and set(requests) == set(results) and not errors
+    if write_delivery:
+        write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "client_stream_text_bytes": stream_bytes,
+            "missing_reason": "Claude CLI events do not expose the complete subsequent provider input.",
+            "complete_result_deliveries": None, "source": "events.jsonl", "backend": "claude_code"})
+    return calls, complete, len(items) if events else None, violations
+
+
 def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
     calls, complete, host_calls, violations = normalize_calls(folder)
-    usage = normalize_usage(read_jsonl(folder / "rollout.jsonl"),
-                            terminal_complete=execution.get("usage", {}).get("complete", execution.get("status") == "completed"))
     runtime = read_json(folder / "runtime.json")
+    if runtime.get("backend") == "claude_code":
+        from .claude_client import usage as claude_usage
+        usage = claude_usage(read_jsonl(folder / "events.jsonl"),
+                            terminal_complete=execution.get("usage", {}).get("complete", False), evidence=str(folder / "events.jsonl"))
+    else:
+        usage = normalize_usage(read_jsonl(folder / "rollout.jsonl"),
+                                terminal_complete=execution.get("usage", {}).get("complete", execution.get("status") == "completed"))
     access = read_json(folder / ("native-agent.json" if (folder / "native-agent.json").exists() else "relay-settings.json"))
     error = execution.get("error") or runtime.get("launch_error")
     if not error and execution.get("status") == "environment_error":
         events = read_jsonl(folder / "events.jsonl")
         reported = [e.get("error") or e.get("message") or e for e in events if e.get("type") in {"turn.failed", "error"}]
-        error = reported[-1] if reported else f"Codex exit_code={runtime.get('exit_code')}; see stderr.log and events.jsonl."
+        error = reported[-1] if reported else f"{runtime.get('backend', 'codex')} exit_code={runtime.get('exit_code')}; see stderr.log and events.jsonl."
     exited, started = runtime.get("model_exited_monotonic"), runtime.get("started_monotonic")
     lifetime = exited - started if exited is not None and started is not None else None
     total = execution.get("elapsed_seconds")
@@ -209,7 +281,8 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
     return {**entry, **execution, "error": error, "calls": calls, "host_calls": host_calls, "usage": usage, "timing": timing,
             "source_snapshot": access["source"],
             "artifacts": {name: str(folder / name) for name in ("execution.json", "runtime.json", "events.jsonl", "rollout.jsonl",
-                           "relay.jsonl", "native-agent.json", "relay-settings.json", "delivery.json", "stderr.log", "command.json") if (folder / name).exists()},
+                           "relay.jsonl", "native-agent.json", "relay-settings.json", "delivery.json", "stderr.log", "command.json",
+                           "claude-settings.json", "mcp-config.json") if (folder / name).exists()},
             "call_log_complete": complete, "boundary_violations": violations,
             "conditions_valid": execution.get("conditions_valid", False) and not violations,
             "tool_call_counts": dict(collections.Counter(("auxiliary:" if c.get("is_auxiliary") else "native:") + c["tool"] for c in calls))}
@@ -245,6 +318,8 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     for slot in planned:
         row = by_id.get(slot["id"])
         judgment = judgments.get(slot["id"])
+        require(not row or row.get("model") == manifest["models"]["solver"]["model"], "선택한 풀이 모델과 다른 실행 결과")
+        require(not row or row.get("backend") == manifest["models"]["solver"]["backend"], "선택한 실행기와 다른 실행 결과")
         require(judgment is None or row.get("conditions_valid") is True, "유효한 실행 조건이 확인되지 않은 결과에 채점이 연결되었습니다")
         require(not row or not row.get("reused_from"), "route 프로필은 기존 A 답변을 재사용하지 않습니다")
         require(not row or all(row[key] == slot[key] for key in ("question_id", "arm", "attempt")), "결과 슬롯 식별 불일치")
@@ -256,7 +331,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                             **{key: row.get(key) if row else None for key in (
                                 "conditions_valid", "error", "failure_reason", "condition_errors", "boundary_violations",
                                 "call_log_complete", "host_calls", "artifact", "artifacts", "shutdown", "budget", "native_call_budget",
-                                "usage_collection", "codex_version", "thread_id", "provenance")}})
+                                "usage_collection", "model", "backend", "agent_version", "effort_observation", "codex_version", "thread_id", "provenance")}})
     for arm in routes.ARM_IDS:
         selected = [r for r in result_rows if r["arm"] == arm]
         graded = [r["judgment"] for r in selected if r["judgment"] is not None]
@@ -265,13 +340,18 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                      "unconfirmed_conditions": sum(r["status"] != "planned" and r["conditions_valid"] is None for r in selected),
                      "quality": quality_counts(graded, dataset["questions"]),
                      "tool_condition": manifest.get("arms", {}).get(arm, {}).get("tool_condition")}
-    result = {"schema_version": 1, "profile": routes.PROFILE, "planned_solver_runs": 18,
+    result = {"schema_version": 1, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
               "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions")},
               "observed_solver_runs": sum(r["status"] != "planned" for r in result_rows),
               "arms": arms, "rows": result_rows, "scope": "Three fixed routes, one attempt per arm. Descriptive observations only.",
               "variance_estimated": False}
     write_json(root / "report/summary.json", result)
-    lines = ["# Grafana 경로 벤치마크", "", "| 도구 | 도구 구성 | 예정 | 관측 | 핵심 완전 충족 | 미채점 |", "|---|---|---:|---:|---:|---:|"]
+    lines = ["# Grafana 경로 벤치마크", ""]
+    if manifest.get("models"):
+        models = manifest["models"]
+        lines += [f"풀이: {models['solver']['model']} / {models['solver']['reasoning_effort']}; "
+                  f"채점: {models['grader']['model']} / {models['grader']['reasoning_effort']}", ""]
+    lines += ["| 도구 | 도구 구성 | 예정 | 관측 | 핵심 완전 충족 | 미채점 |", "|---|---|---:|---:|---:|---:|"]
     for arm, value in arms.items():
         complete = value["quality"]["core_complete"]
         condition = {"assisted": "필수 보조 도구 포함", "native_only": "자체 도구", "native_agent_baseline": "기본 에이전트 · 추가 MCP 없음"}.get(value["tool_condition"], "미연결")
@@ -310,9 +390,9 @@ def publish_metrics() -> dict:
                             "delivery": "CLI output is retained separately; model delivery is unknown without rollout evidence"},
         "aggregation_rules": "Fixed three-route macro denominator, separate core/extended fact denominators; no variance estimate.",
         "offline_verification": {"native_probe_calls": len(calls), "relay_loss": False,
-                                 "actual_solver_delivery": "unobserved", "planned_unique_slots": 18},
-        "observed_solver_runs": 0, "limitations": ["Real gpt-6.1-sol usage and history delivery have not been measured."]},
-        implementation=["benchmark/route_metrics.py", "benchmark/runner.py", "benchmark/execution.py"],
+                                 "actual_solver_delivery": "unobserved", "planned_unique_slots": len(routes.schedule())},
+        "observed_solver_runs": 0, "limitations": ["Real solver usage and history delivery have not been measured for either selectable model."]},
+        implementation=["benchmark/route_metrics.py", "benchmark/runner.py", "benchmark/execution.py", "benchmark/claude_client.py"],
         dependencies=["02-delivery.json", "05-grading.json"])
 
 

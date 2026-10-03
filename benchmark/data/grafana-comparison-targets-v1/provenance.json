@@ -444,15 +444,92 @@
         ],
         "method": "소스 아카이브를 내려받아 전체 바이트 SHA-256을 계산하고, 나열한 루트 파일의 내용이 커밋의 Git blob과 대조한 원문과 같은지 확인했다."
       }
+    },
+    "serena": {
+      "verified_at": "2026-10-03T07:52:46.904456+00:00",
+      "repository": {
+        "query_url": "https://api.github.com/repos/oraios/serena",
+        "response_sha256": "a96052021ea759436ee4562b6194c42dfd2bc5769e60931e861f3694948c2d8c",
+        "id": 953683578,
+        "full_name": "oraios/serena",
+        "html_url": "https://github.com/oraios/serena",
+        "fork": false,
+        "archived": false,
+        "default_branch_at_observation": "main"
+      },
+      "release": {
+        "selection_query_url": "https://api.github.com/repos/oraios/serena/releases/latest",
+        "response_sha256": "9e04466423e3d37e26eaa94d9333511ce23576fe568a377517ad8f7c97d601a8",
+        "id": 367549941,
+        "url": "https://api.github.com/repos/oraios/serena/releases/367549941",
+        "html_url": "https://github.com/oraios/serena/releases/tag/v1.7.0",
+        "tag_name": "v1.7.0",
+        "target_commitish": "main",
+        "published_at": "2026-08-09T18:38:06Z",
+        "draft": false,
+        "prerelease": false
+      },
+      "tag_ref": {
+        "query_url": "https://api.github.com/repos/oraios/serena/git/ref/tags/v1.7.0",
+        "response_sha256": "bffdd371a9efeabb7db9c1c78876bcb0955cf36973397a5cdc18bf4fa9354638",
+        "ref": "refs/tags/v1.7.0",
+        "object": {
+          "sha": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+          "type": "commit",
+          "url": "https://api.github.com/repos/oraios/serena/git/commits/949a27ef1e5fda1a6e7b561e777bcece345c6ffd"
+        }
+      },
+      "annotated_tag_objects": [],
+      "commit": {
+        "url": "https://api.github.com/repos/oraios/serena/commits/949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+        "response_sha256": "ec2c2e1a51d20814f305c26b8eb448a1782ec96f8f12cebe45da90738ecc9d5f",
+        "sha": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+        "tree": {
+          "sha": "6daa0fe28c2be66ed2462e02871426098ddecb69",
+          "url": "https://api.github.com/repos/oraios/serena/git/trees/6daa0fe28c2be66ed2462e02871426098ddecb69"
+        },
+        "committed_at": "2026-08-09T18:14:37Z"
+      },
+      "source_file_api_verification": [
+        {
+          "query_url": "https://api.github.com/repos/oraios/serena/contents/README.md?ref=949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+          "response_sha256": "19906c2fe588825efb7e00855214e1643c448face353bf86fbca627a35f2d331",
+          "path": "README.md",
+          "sha": "6e16380f712b3a5a71d917d45fa4ad18e93da412"
+        },
+        {
+          "query_url": "https://api.github.com/repos/oraios/serena/contents/pyproject.toml?ref=949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+          "response_sha256": "2329bd02acb009e1c414576489152b4eac2c56cec754bac8ed40b0d19ff36dc3",
+          "path": "pyproject.toml",
+          "sha": "b6bc9e586019250fc4c1586b77dcb2f3c6566228"
+        },
+        {
+          "query_url": "https://api.github.com/repos/oraios/serena/contents/uv.lock?ref=949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+          "response_sha256": "f9fc7e4f2305889b728605a497795c2f03aeb7d98a6c893fe3685f8af15e79ed",
+          "path": "uv.lock",
+          "sha": "c5d1ab52d59ff37687f824017be234e878abe1f0"
+        }
+      ],
+      "archive_verification": {
+        "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+        "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
+        "bytes": 2252543,
+        "verified_source_files": [
+          "README.md",
+          "pyproject.toml",
+          "uv.lock"
+        ],
+        "method": "고정 커밋의 contents API Git blob SHA-1을 소스 아카이브의 원본 파일 바이트와 대조했다."
+      }
     }
   },
   "verification": {
-    "official_repositories": 5,
-    "stable_releases": 5,
-    "resolved_tag_commits": 5,
-    "downloaded_source_archives": 5,
-    "source_archive_total_bytes": 130276368,
-    "verified_source_files": 13,
+    "official_repositories": 6,
+    "stable_releases": 6,
+    "resolved_tag_commits": 6,
+    "downloaded_source_archives": 6,
+    "source_archive_total_bytes": 132528911,
+    "verified_source_files": 16,
     "source_blob_or_archive_file_mismatches": 0,
     "preserved_dataset_files": 14,
     "scope": "태그·커밋·루트 파일의 Git blob과 소스 아카이브의 바이트를 확인했다. 전체 소스 아카이브로 Git tree를 재구성하거나 실행 바이너리를 빌드·검증하지 않았다."

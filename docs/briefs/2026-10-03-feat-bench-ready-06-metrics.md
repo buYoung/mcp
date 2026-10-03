@@ -13,7 +13,7 @@ feat
 ## Desired Outcome (To-Be)
 - Capture enough provenance to attribute future quality and resource results to the correct arm, model, native response, client delivery, and source state.
 - Preserve the frozen route rubric's known/false/unknown dimensions through reports, with separate core and extended diagnostics.
-- Prepare target-aware result/report contracts for 18 single-attempt slots without producing fabricated observations or statistical claims.
+- Prepare target-aware result/report contracts for 21 single-attempt slots without producing fabricated observations or statistical claims.
 
 ## Scope
 ### In Scope
@@ -30,13 +30,13 @@ feat
 ## Constraints
 - A response has separate product-native, relay, and client-observed stages. Record content/hash/byte counts at observable stages and use null plus reason where client-visible extent is unknown.
 - Preserve all supported native result fields in raw logs. Derived text and source-line counts must not replace the raw record or invent source ranges from summaries.
-- Namespaced target/tool identity is authoritative; literal names such as `read` or `search` alone are not enough across six products.
+- Namespaced target/tool identity is authoritative; literal names such as `read` or `search` alone are not enough across seven products.
 - Optional auxiliary rg/reader usage must be separately attributable, including the predeclared necessity reason and native-only/assisted arm label. An answer obtained with no product-specific calls cannot be presented as evidence of that product's retrieval contribution. Report assisted and native-only conditions transparently rather than claiming they expose identical tool sets.
 - Keep raw provider usage fields alongside normalized totals, cached input, reasoning/output, and unknown indicators. Do not infer token counts from bytes or silently substitute a model when usage metadata differs.
 - Report per-question results first. A three-route macro aggregate is descriptive of these routes only; expose any fact-weighted aggregate as a distinct denominator. Unknown dimensions must not disappear or become false in either view.
 - One solver attempt means no automatic re-solve after a quality failure. Operational interruption/resume must preserve the same slot identity and clearly record whether a model invocation occurred. This profile does not reuse answers.
-- 기본 에이전트의 탐색 호출은 `command_execution` item ID로 세고 started/completed를 중복 합산하지 않는다. 명령 선택과 후속 탐색은 LLM에 맡기며 특정 검색 도구 호출을 강제하거나 미사용을 품질 실패로 바꾸지 않는다. CLI 출력과 모델 전달 관측은 분리한다.
-- JSON과 결과표에 `conditions_valid`, 구체적 오류·실패 사유, 경계 위반, 호출 로그 완결성, 원자료 경로를 보존한다. 무효 조건과 미관측 조건을 구별하고 모든 18개 슬롯을 유지한다.
+- 기본 에이전트의 탐색 호출은 Codex의 `command_execution` item ID 또는 Claude의 기본 탐색 도구 `tool_use` ID로 세고 시작·완료·부분 메시지를 중복 합산하지 않는다. 명령 선택과 후속 탐색은 LLM에 맡기며 특정 검색 도구 호출을 강제하거나 미사용을 품질 실패로 바꾸지 않는다. CLI 출력과 모델 전달 관측은 분리한다.
+- JSON과 결과표에 `conditions_valid`, 구체적 오류·실패 사유, 경계 위반, 호출 로그 완결성, 원자료 경로를 보존한다. 무효 조건과 미관측 조건을 구별하고 모든 21개 슬롯을 유지한다.
 
 ## Related Files / Entry Points
 - `benchmark/route_metrics.py`
@@ -65,7 +65,7 @@ feat
 - Starts when: Stage 1 has defined units, provenance, and failure semantics.
 - Work: Add target-aware call/usage normalization and route grading aggregation. Preserve partial known judgments, per-dimension reasons, raw events, output-limit ownership, and environment/index identity. Bind every future result to the exact question/arm/attempt key. Disable old A-result reuse for the route profile and make timeouts/cutoffs/errors operationally explicit.
 - Deliverable: route result/report implementation and a schema-only report preview with all observed values absent and clearly marked unexecuted.
-- Verify: `Inspect the route normalization and report derivations against every field in the delivery and grading contracts`; Inputs: new metric schema, existing captured-event helpers, all dimension combinations, and the 18 planned keys; Expected: units and unknowns preserved, no synthetic scored result, no answer reuse, and one stable attempt slot per key.
+- Verify: `Inspect the route normalization and report derivations against every field in the delivery and grading contracts`; Inputs: new metric schema, existing captured-event helpers, all dimension combinations, and the 21 planned keys; Expected: units and unknowns preserved, no synthetic scored result, no answer reuse, and one stable attempt slot per key.
 - Ends when:
   - [x] Core and extended counts remain independent and all unknown dimensions retain their reasons.
   - [x] Single-trial reports make no variance or significance claim.
@@ -79,7 +79,7 @@ feat
 - Deliverable: `docs/briefs/evidence/bench-ready/06-metrics.json` with `schema_version`, `status`, `input_hashes`, `measurement_schema`, `result_schema`, `field_provenance`, `unknown_rules`, `aggregation_rules`, `offline_verification`, `observed_solver_runs: 0`, and limitations.
 - Verify: `python3 -m unittest benchmark.checks benchmark.cui_checks`; Inputs: existing repository suites plus bounded inspection of route report derivations; Expected: existing checks pass, no model calls occur, and the handoff contains schemas/evidence rather than fabricated trial results.
 - Ends when:
-  - [x] Child 07 can validate a planned 18-row report without materializing any completed result.
+  - [x] Child 07 can validate a planned 21-row report without materializing any completed result.
 - Handoff: child 07 consumes `docs/briefs/evidence/bench-ready/06-metrics.json`.
 - Replan when: existing checks fail or a report treats unknown as zero. Stop the final gate, correct the affected route path, and regenerate the measurement evidence.
 
@@ -94,8 +94,8 @@ feat
 - [x] Every route metric has an explicit event origin, unit, availability rule, and aggregation rule in `06-metrics.json`.
 - [x] Native product truncation, harness/relay loss, client clipping, and unknown delivery are separately representable.
 - [x] Per-fact true/false/indeterminate counts and reasons survive through per-route and aggregate reports without denominator manipulation.
-- [x] The route result contract has exactly 18 planned keys, no reused A results, no completed observations, and no repeated-sample statistical claims.
-- [x] Existing offline checks pass and real gpt-6.1-sol usage/delivery remains explicitly unmeasured.
+- [x] The route result contract has exactly 21 planned keys, no reused A results, no completed observations, and no repeated-sample statistical claims.
+- [x] Existing offline checks pass and real GPT/Claude usage and delivery remain explicitly unmeasured.
 
 ## Open Questions
 - None — native-output policy, one-attempt count, and the frozen grading contract determine this child's measurement boundary.

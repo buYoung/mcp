@@ -1,14 +1,16 @@
 {
   "schema_version": 1,
   "status": "verified_offline",
-  "recorded_at": "2026-10-03T06:14:43.332Z",
+  "recorded_at": "2026-10-03T10:31:07.699Z",
   "method": "Existing interactive dependency injection, actual catalog and projection of the actual prepared manifest; no solver or grader backend supplied.",
+  "solver_model": "gpt-6.1-sol",
+  "backend": "codex",
   "readiness": "/Users/buyong/workspace/private/buyong-mcp/docs/briefs/evidence/bench-ready/07-readiness.json",
-  "readiness_sha256": "9bb18c7ec0a7fd151f10095cc50edaacc54aa827c17b15450bf64cf1a0de37a6",
+  "readiness_sha256": "510fb910b28168b5391ccab21b90094be92ac7dcf3a1bb06c6e2c067d002af2a",
   "implementation": "benchmark/start.mjs",
-  "implementation_sha256": "13a01c495519c7ffa19bd4dcb19114befaa758ecb7a4e4c07d9630b8932cd7de",
-  "planned_slots": 18,
-  "required_arms": 6,
+  "implementation_sha256": "832e1df95857b1bab37121c62fd7eeca96e4ac2b3fe7e3ac02b3a6ed667894f1",
+  "planned_slots": 21,
+  "required_arms": 7,
   "actions": [
     {
       "action": "catalog",
@@ -24,23 +26,27 @@
           "zvec-grep",
           "graphify",
           "codebase-memory-mcp",
+          "serena",
           "rg"
-        ]
+        ],
+        "solver_model": "gpt-6.1-sol"
       }
     }
   ],
   "selections": [
-    "평가 유형을 선택하세요."
+    "평가 유형을 선택하세요.",
+    "측정에 사용할 풀이 모델을 선택하세요."
   ],
   "output": [
-    "\nGrafana 3개 경로 · 6개 비교군 · 준비 전용: 3문항 × 6개 비교군 × 1회 = 18회 예정",
+    "\nGrafana 3개 경로 · 7개 비교군 · 준비 전용: 3문항 × 7개 비교군 × 1회 = 21회 예정",
     "풀이 gpt-6.1-sol / medium, 채점 gpt-6-astra / high",
-    "도구 조건: codebase-memory-mcp (native_only), codegraph (native_only), codemap-search (native_only), graphify (assisted), 기본 에이전트 (검색 제품 없음) (native_agent_baseline), zvec-grep (native_only)",
+    "풀이 실행기: Codex · 채점 실행기: Codex",
+    "도구 조건: codebase-memory-mcp (native_only), codegraph (native_only), codemap-search (native_only), graphify (assisted), 기본 에이전트 (검색 제품 없음) (native_agent_baseline), serena (native_only), zvec-grep (native_only)",
     "codemap-search 실제 버전: 0.11.0",
     "한도: 300초 · 탐색 80회 · 500,000토큰, 순차 실행",
     "응답은 제품 기본값, 색인은 로컬 조건입니다. 문항마다 동일 경로의 조회 전 상태를 복원하도록 준비했습니다.",
-    "준비 기록: /Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/3fe9544b5f99bda2f0586a670925f77f/readiness.json",
-    "실행 직전 준비가 완료됐습니다. 실제 18회 실행 연결은 별도 작업이며 풀이·채점은 실행하지 않았습니다."
+    "준비 기록: /Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/72289ccd12d8411efd130e90058cf058/readiness.json",
+    "실행 직전 준비가 완료됐습니다. 실제 21회 실행 연결은 별도 작업이며 풀이·채점은 실행하지 않았습니다."
   ],
   "execution_backend_calls": 0
 }

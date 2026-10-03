@@ -7,8 +7,8 @@ feat
 
 ## Current State (As-Is)
 - [confirmed] `benchmark/tool_indexes.py`가 22,898개 추적 파일과 고정 근거 파일·발췌를 대조하고 제품별 색인·홈·복원용 상태를 분리한다.
-- [confirmed] 색인을 사용하는 제품은 5개이며 기본 에이전트 기준군에는 색인이나 검색 MCP가 없다. 기준군은 기본 셸의 원문 읽기와 정답 접근·쓰기 차단을 확인한다.
-- [confirmed] 조회 근거는 코드·명령·환경·권한·Codex 버전과 조회 후 노출 도구·정리·복원 기록의 해시에 결합한다. 현재 상태와 일치하지 않는 조회를 재인증하지 않는다.
+- [confirmed] 색인을 사용하는 제품은 6개이며 기본 에이전트 기준군에는 색인이나 검색 MCP가 없다. 기준군은 기본 셸의 원문 읽기와 정답 접근·쓰기 차단을 확인한다.
+- [confirmed] 조회 근거는 코드·명령·환경·권한·선택한 CLI 버전과 조회 후 노출 도구·정리·복원 기록의 해시에 결합한다. 현재 상태와 일치하지 않는 조회를 재인증하지 않는다.
 
 ## Desired Outcome (To-Be)
 - Prepare the same full Grafana commit for all arms with verified tracked source content and separate product-generated state.
@@ -18,7 +18,7 @@ feat
 ## Scope
 ### In Scope
 - Full source materialization, source-manifest validation, generated-source availability, per-product index preparation, model-cache ownership, and query server lifecycle.
-- Preparation readiness and environment evidence for all six arms, including the unindexed rg baseline.
+- Preparation readiness and environment evidence for all seven arms, including the unindexed rg baseline.
 - Define clean per-question launch state and cache semantics; record index preparation costs separately from future solver measurements.
 - Exercise initialization, tool discovery, one neutral search/read capability probe, and cleanup with no solver/grader process.
 ### Out of Scope
@@ -37,23 +37,24 @@ feat
 - Native tools are the default query surface. Demonstrate any unavoidable missing operation with a neutral probe before enabling the minimum rg/read exception. A product's sparse response, native cap, or weak retrieval remains its own limitation and cannot trigger an exception.
 - Implement route-specific source manifest/copy behavior in resources/tool_indexes. Treat runner.py as read-only in this child so child 06 can own normalization concurrently.
 - Serialize query daemons when their ownership rules demand it. Track process IDs, ports, cache roots, source roots, and shutdown confirmation. Never stop an unrelated user's process to make a check pass.
-- 중립 조회 근거에 실제 어댑터 코드·명령·환경·권한·계약·Codex 버전을 결합한다. `ready.json` 존재만으로 재사용하지 않으며 변경 시 기준 상태 복원 후 다시 조회한다. 최종 게시와 준비 검증에서도 동일한 결합을 확인한다. 기준군은 색인/MCP 없이 기본 셸의 원문 접근·정답 차단·쓰기 차단을 모델 호출 없이 점검한다.
+- 중립 조회 근거에 실제 어댑터 코드·명령·환경·권한·계약·선택한 CLI 버전을 결합한다. `ready.json` 존재만으로 재사용하지 않으며 변경 시 기준 상태 복원 후 다시 조회한다. 최종 게시와 준비 검증에서도 동일한 결합을 확인한다. 기준군은 색인/MCP 없이 준비한다. Codex는 원문 접근·정답 차단·쓰기 차단을 모델 없이 점검한다. Claude는 restricted 및 Bash sandbox 설정과 init-only 시작을 확인하며, 실제 도구 권한 집행은 미관측으로 기록한다. 실행기별 중립 조회와 인계 기록은 분리한다.
 
 ## Related Files / Entry Points
 - `benchmark/tool_indexes.py`
 - `benchmark/tool_artifacts.py`
+- `benchmark/serena_support.py`
 - `benchmark/runner.py`
 - `benchmark/native_baseline.py`
 - `docs/briefs/evidence/bench-ready/04-indexes.json`
 
 ## Execution Plan
 ### Stage 1 — Bind full source and product lifecycle contracts
-- Starts when: `docs/briefs/evidence/bench-ready/02-delivery.json` supplies route transport interfaces and `docs/briefs/evidence/bench-ready/03-artifacts.json` supplies six verified launch artifacts.
+- Starts when: `docs/briefs/evidence/bench-ready/02-delivery.json` supplies route transport interfaces and `docs/briefs/evidence/bench-ready/03-artifacts.json` supplies seven verified launch artifacts.
 - Work: Materialize the fixed source, verify its tracked manifest, and enumerate product-created paths separately. Specify readiness, query launch, reset, and shutdown for each tool from its pinned documentation. Check whether real Git metadata is required before choosing copy/worktree/export strategy.
-- No-op when: six matching fresh preparation states already exist with full source hashes, exact artifact hashes, non-question probe evidence, and verified cleanup/reset behavior.
+- No-op when: seven matching fresh preparation states already exist with full source hashes, exact artifact hashes, non-question probe evidence, and verified cleanup/reset behavior.
 - No-op handoff: publish those verified states through `docs/briefs/evidence/bench-ready/04-indexes.json` for child 07, with no reused solver answer or query history.
-- Deliverable: full-source manifest and six lifecycle recipes bound to artifact and delivery-contract hashes.
-- Verify: `Compare all tracked source hashes and inspect the required generated TypeScript and TestData JSON paths in every arm`; Inputs: fixed Grafana source inventory, six source roots, and frozen evidence paths; Expected: identical tracked content, zero answer-key files inside source roots, and product state kept distinguishable.
+- Deliverable: full-source manifest and seven lifecycle recipes bound to artifact and delivery-contract hashes.
+- Verify: `Compare all tracked source hashes and inspect the required generated TypeScript and TestData JSON paths in every arm`; Inputs: fixed Grafana source inventory, seven source roots, and frozen evidence paths; Expected: identical tracked content, zero answer-key files inside source roots, and product state kept distinguishable.
 - Ends when:
   - [x] Source identity is independent of index output, process caches, and path relocation.
   - [x] Each lifecycle recipe names its owning processes, cache paths, readiness signal, reset condition, and cleanup proof.
@@ -68,9 +69,10 @@ feat
   - zvec-grep: prepare the selected local model/index under isolated ZVEC_GREP_HOME, use its documented ready check, and retain the default search-only MCP toolset.
   - Graphify: use a new empty output directory with code-only extraction, then point serving at that exact graph.json.
   - codebase-memory-mcp: follow canonical cache/daemon rules with explicit indexing and record actual auto-watch configuration.
+  - Serena: isolate its source/home below a task-owned temporary root without ancestor node_modules; register the complete Grafana root in task-local SERENA_HOME with Go and TypeScript, run native project index, retain native output/time defaults, verify both language caches and neutral symbol queries, and restore project registration plus language-server/Go caches before each question. Disable editing, shell, memory and project/mode switching.
   - rg: prepare source-only state without an index.
-- Deliverable: six prepared states with index hashes where applicable, source and artifact bindings, inclusion/exclusion summaries, model hashes, startup commands, and preparation logs.
-- Verify: `Inspect each native index/status artifact and compare it with the six lifecycle recipes`; Inputs: product state directories, native readiness output, source manifest, and artifact hashes; Expected: ready indexes for five indexed arms, no index required for rg, and no inherited semantic layer or foreign query state.
+- Deliverable: seven prepared states with index hashes where applicable, source and artifact bindings, inclusion/exclusion summaries, model hashes, startup commands, and preparation logs.
+- Verify: `Inspect each native index/status artifact and compare it with the seven lifecycle recipes`; Inputs: product state directories, native readiness output, source manifest, and artifact hashes; Expected: ready indexes for six indexed arms, no index required for rg, and no inherited semantic layer or foreign query state.
 - Ends when:
   - [x] Graphify's fresh output cannot retain a prior semantic extraction layer.
   - [x] zvec's model revision/cache and HTTP port ownership are explicit.
@@ -82,8 +84,8 @@ feat
 ### Stage 3 — Probe transport readiness and publish reset evidence
 - Starts when: all prepared states have native readiness signals and matching identities.
 - Work: Initialize each product through child 02's transport, inspect tools and instructions, perform a neutral capability search/read unrelated to the frozen questions, and verify shutdown. Classify product arms as native-only or necessarily assisted using the recorded functional gate; classify the no-product coding-agent baseline separately as native_agent_baseline and inspect its native shell permission boundary. Add only the required rg/read capability when native operations cannot perform a required step, and record the evidence without testing gold-question quality. Confirm source relocation and fresh per-question state retain index validity or rebuild when the native format requires it. Record cache reuse versus reset explicitly and remove probe query state before declaring the baseline prepared.
-- Deliverable: `docs/briefs/evidence/bench-ready/04-indexes.json` with `schema_version`, `status`, `input_hashes`, `source_manifest`, and six `prepared_states` containing index/model hashes, effective modes/defaults, native/assisted condition, auxiliary necessity evidence, query tool surface, process/cache ownership, reset recipe, readiness probes, cleanup evidence, and limitations.
-- Verify: `Inspect six startup/discovery/probe/shutdown transcripts and recheck tracked source hashes after cleanup`; Inputs: six prepared states and transport transcripts; Expected: every arm is locally usable, owned processes are cleaned up, source hashes are unchanged, and solver/grader invocation counts are zero.
+- Deliverable: `docs/briefs/evidence/bench-ready/04-indexes.json` with `schema_version`, `status`, `input_hashes`, `source_manifest`, and seven `prepared_states` containing index/model hashes, effective modes/defaults, native/assisted condition, auxiliary necessity evidence, query tool surface, process/cache ownership, reset recipe, readiness probes, cleanup evidence, and limitations.
+- Verify: `Inspect seven startup/discovery/probe/shutdown transcripts and recheck tracked source hashes after cleanup`; Inputs: seven prepared states and transport transcripts; Expected: every arm is locally usable, owned processes are cleaned up, source hashes are unchanged, and solver/grader invocation counts are zero.
 - Ends when:
   - [x] Every arm has a query-ready recipe and an explicit fresh-state policy for the future one-attempt schedule.
   - [x] Native tool defaults and actual initialization instructions are recorded without output-budget overrides.
@@ -98,7 +100,7 @@ feat
 - [x] Index build duration and artifact size remain preparation evidence, not solver performance claims.
 
 ## Acceptance Criteria
-- [x] `04-indexes.json` provides verified readiness and reset evidence for six arms on the same source commit.
+- [x] `04-indexes.json` provides verified readiness and reset evidence for seven arms on the same source commit.
 - [x] Full tracked-source hash comparison passes before and after all preparation probes.
 - [x] No required source evidence is removed by the harness, and each product's own coverage limitations are visible.
 - [x] Every daemon/cache has a task owner and an observed cleanup result or an explicit blocker; blockers cannot coexist with a ready status.

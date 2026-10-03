@@ -1,0 +1,2691 @@
+{
+  "actual_versions": {
+    "codebase-memory-mcp": "codebase-memory-mcp 0.11.0",
+    "codegraph": "1.6.1",
+    "codemap-search": "0.11.0",
+    "graphify": "graphify 0.9.74",
+    "rg": "ripgrep 15.2.0 (rev e89fff89ac)\n\nfeatures:+pcre2\nsimd(compile):+NEON\nsimd(runtime):+NEON\n\nPCRE2 10.45 is available (JIT is available)",
+    "serena": "Serena 1.7.0",
+    "zvec-grep": "0.2.0"
+  },
+  "arms": {
+    "codebase-memory-mcp": {
+      "agent_backend": "claude_code",
+      "artifact_sha256": "b202e51f36e33b29fbb6e50165e2b36ef465429df2c9c70fea5260ec582a0174",
+      "auxiliary_necessity": [],
+      "baseline": {
+        "artifact_sha256": "b202e51f36e33b29fbb6e50165e2b36ef465429df2c9c70fea5260ec582a0174",
+        "id": "codebase-memory-mcp",
+        "paths": {
+          "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codebase-memory-mcp/home",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codebase-memory-mcp/source"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+        "state_sha256": {
+          "home": "e8afc854aaf705196e90cae1de5341992b1667df4e4b227c087253b407eefc6d",
+          "source": "86595523eb87da193ea109188ef007b1c444610da6cb46db1185a65b6aca8b16"
+        }
+      },
+      "cleanup": {
+        "daemon": {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp",
+            "daemon",
+            "stop"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "daemon: not running (nothing to stop)\n",
+          "stopped": true
+        },
+        "frontend": {
+          "complete": true,
+          "daemon": {
+            "command": [
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp",
+              "daemon",
+              "stop"
+            ],
+            "exit_code": 0,
+            "stderr": "",
+            "stdout": "daemon: not running (nothing to stop)\n",
+            "stopped": true
+          },
+          "exit_code": 0,
+          "frontend_stopped": true,
+          "owned_process_groups": [
+            {
+              "pgid": 43813,
+              "stopped": true
+            }
+          ],
+          "pid": 43813,
+          "shared_daemon_stopped": null
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp",
+            "cli",
+            "--json",
+            "index_repository",
+            "--repo-path",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source",
+          "elapsed_seconds": 15.937193958088756,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/index.log",
+          "log_sha256": "e1dc555b0fffde6e2c5a597363459e655bf40e51ea61cf246e876005c8454532"
+        },
+        {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp",
+            "cli",
+            "--json",
+            "list_projects"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source",
+          "elapsed_seconds": 6.837870207848027,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/index-status.log",
+          "log_sha256": "50c53df9bdaf572c2af99d4506aa3570e6e377bfa32a067d758200846c13b929"
+        }
+      ],
+      "env": {
+        "CBM_ALLOWED_ROOT": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source",
+        "CBM_CACHE_DIR": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/home"
+      },
+      "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/home",
+      "id": "codebase-memory-mcp",
+      "index_paths": [
+        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/home"
+      ],
+      "limitations": [
+        "Native indexing exclusions and output limits are retained.",
+        "OS page cache is not controlled."
+      ],
+      "modes": {
+        "auto_index": "native default false",
+        "auto_watch": "native default true",
+        "cache": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/home",
+        "native_readiness": {
+          "adr_hint": "Project indexed. Consider creating an Architecture Decision Record: explore the codebase with get_architecture(aspects=['all']), then use manage_adr(mode='update') to persist architectural insights across sessions.",
+          "adr_present": false,
+          "artifact_present": false,
+          "edges": 1354861,
+          "excluded": {
+            "count": 13,
+            "dirs": [
+              ".yarn",
+              ".claude",
+              "local",
+              ".git",
+              ".vscode"
+            ],
+            "truncated": true
+          },
+          "nodes": 496308,
+          "not_indexed_files": {
+            "count": 1867,
+            "files": [
+              {
+                "path": "pkg/services/store/testdata/image.svg",
+                "reason": "ignored-suffix"
+              },
+              {
+                "path": "pkg/services/store/testdata/image.jpg",
+                "reason": "ignored-suffix"
+              },
+              {
+                "path": "pkg/services/provisioning/dashboards/testdata/test-dashboards/symlink",
+                "reason": "symlink"
+              },
+              {
+                "path": "pkg/extensions/enterprise_imports_test.go",
+                "reason": "gitignore"
+              },
+              {
+                "path": "pkg/tests/apis/provisioning/testdata/timeline-demo.json",
+                "reason": "symlink"
+              }
+            ],
+            "note": "Excluded by design (gitignore/.cbmignore/skip-lists); examples only — full list in 'logfile'.",
+            "truncated": true
+          },
+          "not_indexed_files_count": 1867,
+          "parse_partial": {
+            "count": 439,
+            "files": [
+              {
+                "error_ranges": "19-19,20-20",
+                "path": ".github/workflows/scripts/determine-npm-tag.sh"
+              },
+              {
+                "error_ranges": "6-6",
+                "path": ".vale.ini"
+              },
+              {
+                "error_ranges": "83-83,272-272,273-273,284-304,334-334,335-335,346-377,387-387,388-388",
+                "path": "Dockerfile"
+              },
+              {
+                "error_ranges": "294-294",
+                "path": "apps/alerting/rules/pkg/app/app_test.go"
+              },
+              {
+                "error_ranges": "113-113",
+                "path": "apps/alerting/rules/pkg/app/validation/openapi_test.go"
+              }
+            ],
+            "note": "Indexed, but constructs in these line ranges may be missing (best-effort signal); examples only — full list via index_status or 'logfile'.",
+            "truncated": true
+          },
+          "parse_partial_count": 439,
+          "parse_unusable": {
+            "count": 61,
+            "files": [
+              {
+                "path": "devenv/docker/blocks/auth/apache_proxy/ports.conf",
+                "range_end": 1,
+                "whole_file": true
+              },
+              {
+                "path": "devenv/docker/blocks/auth/apache_proxy/proxy.conf",
+                "range_end": 4,
+                "whole_file": true
+              },
+              {
+                "path": "devenv/docker/blocks/auth/apache_proxy_mac/ports.conf",
+                "range_end": 1,
+                "whole_file": true
+              },
+              {
+                "path": "devenv/docker/blocks/auth/apache_proxy_mac/proxy.conf",
+                "range_end": 4,
+                "whole_file": true
+              },
+              {
+                "path": "devenv/docker/blocks/auth/authentik/cloak.sql",
+                "range_end": 17960,
+                "whole_file": true
+              }
+            ],
+            "note": "Indexed, but the parse failed across nearly the whole file, so line ranges are not useful here — read the source directly.",
+            "truncated": true
+          },
+          "parse_unusable_count": 61,
+          "project": "Users-buyong-workspace-private-buyong-mcp-benchmark-.cache-route-preparation-workspaces-codebase-memory-mcp-source",
+          "skipped_count": 0,
+          "status": "indexed"
+        },
+        "watcher_enabled": "native default true"
+      },
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/probes/1791022297714234000/inventory.json",
+      "native_inventory_sha256": "1217ae7f685117c292a27bfb3780d4f50bd1aba9e717c0a1f21b2cc0a70bc597",
+      "probe_identity": "0abf9f5776188a99ebc531758fbc380d605391999b2f2d11c23ad72db320d173",
+      "probe_inputs": {
+        "agent_backend": "claude_code",
+        "agent_version": "2.1.288 (Claude Code)",
+        "artifact_sha256": "b202e51f36e33b29fbb6e50165e2b36ef465429df2c9c70fea5260ec582a0174",
+        "baseline": {
+          "artifact_sha256": "b202e51f36e33b29fbb6e50165e2b36ef465429df2c9c70fea5260ec582a0174",
+          "id": "codebase-memory-mcp",
+          "paths": {
+            "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codebase-memory-mcp/home",
+            "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codebase-memory-mcp/source"
+          },
+          "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+          "state_sha256": {
+            "home": "e8afc854aaf705196e90cae1de5341992b1667df4e4b227c087253b407eefc6d",
+            "source": "86595523eb87da193ea109188ef007b1c444610da6cb46db1185a65b6aca8b16"
+          }
+        },
+        "codex_version": "codex-cli 0.160.0",
+        "configuration": {
+          "arm": "codebase-memory-mcp",
+          "auxiliaries": [],
+          "client": {
+            "env": {
+              "CBM_ALLOWED_ROOT": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source",
+              "CBM_CACHE_DIR": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/home"
+            },
+            "launch": [
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp"
+            ],
+            "shutdown_command": [
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp",
+              "daemon",
+              "stop"
+            ],
+            "transport": "stdio"
+          },
+          "log": "<per-run directory>/relay.jsonl",
+          "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+          "schema": "grafana-route-relay-v1",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source"
+        },
+        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "implementation_hashes": {
+          "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
+          "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
+          "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
+          "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
+          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
+          "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
+          "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
+          "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7",
+          "benchmark/tool_artifacts.py": "a0196d8ef5cc64203f188452f65fe99049b878281301568ad0efce0ac64ab9a8",
+          "benchmark/tool_indexes.py": "b403cee2900e6f7d4c0ced0b79b74347d5a0b2913f1c0bb5c2428f81a2cac9ce",
+          "benchmark/usage.py": "f84faa3cec1fa0581ba8b73e6c9e8969fc431c32d530b7925a5d4abb282bc3b0"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
+      },
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/probes/1791022297714234000/relay.jsonl",
+      "probe_log_sha256": "b86a93dd63350c4299d9955355f4eb3ee56fadb5b8c9b977cbd260caa4068773",
+      "probe_output_sha256": "1be93b826d9f2a38df48ba6dc9bf931c8e7fd165b9236973a0e5b643a0d5bcfd",
+      "probes": [
+        {
+          "arguments": {
+            "pattern": "package setting",
+            "project": "Users-buyong-workspace-private-buyong-mcp-benchmark-.cache-route-preparation-workspaces-codebase-memory-mcp-source"
+          },
+          "isError": false,
+          "result_sha256": "51bc850807ecff8c4c47237239ec07df4ea52589999f8c5859f7f0a271a6dce4",
+          "tool": "search_code"
+        }
+      ],
+      "relay_settings": {
+        "arm": "codebase-memory-mcp",
+        "auxiliaries": [],
+        "auxiliary_necessity": [],
+        "client": {
+          "env": {
+            "CBM_ALLOWED_ROOT": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source",
+            "CBM_CACHE_DIR": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/home"
+          },
+          "launch": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp"
+          ],
+          "shutdown_command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp",
+            "daemon",
+            "stop"
+          ],
+          "transport": "stdio"
+        },
+        "enabled_tools": [
+          "search_graph",
+          "query_graph",
+          "trace_path",
+          "get_code_snippet",
+          "get_file_outline",
+          "get_graph_schema",
+          "compare_graphs",
+          "get_architecture",
+          "search_code",
+          "list_projects",
+          "index_status",
+          "check_index_coverage",
+          "detect_changes"
+        ],
+        "excluded_tools": [
+          {
+            "name": "index_repository",
+            "reason": "administration"
+          },
+          {
+            "name": "delete_project",
+            "reason": "administration"
+          },
+          {
+            "name": "manage_adr",
+            "reason": "administration"
+          },
+          {
+            "name": "ingest_traces",
+            "reason": "administration"
+          }
+        ],
+        "log": "<per-run directory>/relay.jsonl",
+        "query_tools": [
+          "search_graph",
+          "query_graph",
+          "trace_path",
+          "get_code_snippet",
+          "get_file_outline",
+          "get_graph_schema",
+          "compare_graphs",
+          "get_architecture",
+          "search_code",
+          "list_projects",
+          "index_status",
+          "check_index_coverage",
+          "detect_changes"
+        ],
+        "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+        "schema": "grafana-route-relay-v1",
+        "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source"
+      },
+      "reset": {
+        "application_state": "fresh pre-query baseline",
+        "os_page_cache": "uncontrolled, not claimed cold",
+        "probe_state_removed": true,
+        "same_absolute_paths": true,
+        "status": "verified"
+      },
+      "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source",
+      "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+      "status": "ready",
+      "tool_condition": "native_only"
+    },
+    "codegraph": {
+      "agent_backend": "claude_code",
+      "artifact_sha256": "9a4d050232fa6f15590c09bfa55104430f39f3091dfd02216f335b5db230829e",
+      "auxiliary_necessity": [],
+      "baseline": {
+        "artifact_sha256": "9a4d050232fa6f15590c09bfa55104430f39f3091dfd02216f335b5db230829e",
+        "id": "codegraph",
+        "paths": {
+          "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codegraph/home",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codegraph/source"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+        "state_sha256": {
+          "home": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "source": "7b5bfbda5b92bfe48250913abf1b5f2b783009970e9780c984fbcb7f6c81a6cf"
+        }
+      },
+      "cleanup": {
+        "daemon": {
+          "mode": "task-owned foreground or no process",
+          "shared_daemon": false
+        },
+        "frontend": {
+          "complete": true,
+          "exit_code": 0,
+          "frontend_stopped": true,
+          "owned_process_groups": [
+            {
+              "pgid": 18062,
+              "stopped": true
+            }
+          ],
+          "pid": 18062,
+          "shared_daemon_stopped": null
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source/dist/bin/codegraph.js",
+            "init",
+            "--yes",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source",
+          "elapsed_seconds": 156.19495216710493,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/index.log",
+          "log_sha256": "307ab6aefdc0eb0d9a8155d7d245111c240556b822ae9ca28801fe7d526e153f"
+        },
+        {
+          "command": [
+            "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source/dist/bin/codegraph.js",
+            "status",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source",
+          "elapsed_seconds": 2.251521290978417,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/index-status.log",
+          "log_sha256": "4c9282f36cb93a32a6134ddc5711da43a65682a801db9c3618f2d7ab7ff57d41"
+        }
+      ],
+      "env": {
+        "CODEGRAPH_NO_DAEMON": "1",
+        "DO_NOT_TRACK": "1"
+      },
+      "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/home",
+      "id": "codegraph",
+      "index_paths": [
+        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source/.codegraph"
+      ],
+      "limitations": [
+        "Native indexing exclusions and output limits are retained.",
+        "OS page cache is not controlled."
+      ],
+      "modes": {
+        "daemon": "direct task-owned process",
+        "output": "native default",
+        "telemetry": "DO_NOT_TRACK=1",
+        "watch": "native default"
+      },
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/probes/1791021833223547000/inventory.json",
+      "native_inventory_sha256": "bc9ce39fb87e8b5c96f516b2eb1f0b3c73972cfb0ed0039c5a5669db5f9be433",
+      "probe_identity": "2b3229948624aac3e02bbf2ed05a9ed04d8cef7ef09755dfcd19e3efbf28891f",
+      "probe_inputs": {
+        "agent_backend": "claude_code",
+        "agent_version": "2.1.288 (Claude Code)",
+        "artifact_sha256": "9a4d050232fa6f15590c09bfa55104430f39f3091dfd02216f335b5db230829e",
+        "baseline": {
+          "artifact_sha256": "9a4d050232fa6f15590c09bfa55104430f39f3091dfd02216f335b5db230829e",
+          "id": "codegraph",
+          "paths": {
+            "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codegraph/home",
+            "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codegraph/source"
+          },
+          "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+          "state_sha256": {
+            "home": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "source": "7b5bfbda5b92bfe48250913abf1b5f2b783009970e9780c984fbcb7f6c81a6cf"
+          }
+        },
+        "codex_version": "codex-cli 0.160.0",
+        "configuration": {
+          "arm": "codegraph",
+          "auxiliaries": [],
+          "client": {
+            "env": {
+              "CODEGRAPH_NO_DAEMON": "1",
+              "DO_NOT_TRACK": "1"
+            },
+            "launch": [
+              "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source/dist/bin/codegraph.js",
+              "serve",
+              "--mcp"
+            ],
+            "transport": "stdio"
+          },
+          "log": "<per-run directory>/relay.jsonl",
+          "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+          "schema": "grafana-route-relay-v1",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source"
+        },
+        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "implementation_hashes": {
+          "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
+          "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
+          "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
+          "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
+          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
+          "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
+          "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
+          "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7",
+          "benchmark/tool_artifacts.py": "a0196d8ef5cc64203f188452f65fe99049b878281301568ad0efce0ac64ab9a8",
+          "benchmark/tool_indexes.py": "b403cee2900e6f7d4c0ced0b79b74347d5a0b2913f1c0bb5c2428f81a2cac9ce",
+          "benchmark/usage.py": "f84faa3cec1fa0581ba8b73e6c9e8969fc431c32d530b7925a5d4abb282bc3b0"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
+      },
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/probes/1791021833223547000/relay.jsonl",
+      "probe_log_sha256": "fe491ad991c649ef9154fddad1ca0e429d11c35095423de5f7e56037ff01451e",
+      "probe_output_sha256": "5b73be523f91563b79a91e09383ea69be55dce82419ac4df0271f4840388660b",
+      "probes": [
+        {
+          "arguments": {
+            "projectPath": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source",
+            "query": "configuration settings"
+          },
+          "isError": false,
+          "result_sha256": "e8fd3149cec869e8cd3453974424d70594ed277d0510ad26316528cec6cbc74a",
+          "tool": "codegraph_explore"
+        }
+      ],
+      "relay_settings": {
+        "arm": "codegraph",
+        "auxiliaries": [],
+        "auxiliary_necessity": [],
+        "client": {
+          "env": {
+            "CODEGRAPH_NO_DAEMON": "1",
+            "DO_NOT_TRACK": "1"
+          },
+          "launch": [
+            "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source/dist/bin/codegraph.js",
+            "serve",
+            "--mcp"
+          ],
+          "transport": "stdio"
+        },
+        "enabled_tools": [
+          "codegraph_explore"
+        ],
+        "excluded_tools": [],
+        "log": "<per-run directory>/relay.jsonl",
+        "query_tools": [
+          "codegraph_explore"
+        ],
+        "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+        "schema": "grafana-route-relay-v1",
+        "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source"
+      },
+      "reset": {
+        "application_state": "fresh pre-query baseline",
+        "os_page_cache": "uncontrolled, not claimed cold",
+        "probe_state_removed": true,
+        "same_absolute_paths": true,
+        "status": "verified"
+      },
+      "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source",
+      "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+      "status": "ready",
+      "tool_condition": "native_only"
+    },
+    "codemap-search": {
+      "agent_backend": "claude_code",
+      "artifact_sha256": "4bf7dc0c358fd477c728906fc4911136ea3e14abf64f0899987ed14311c48ec5",
+      "auxiliary_necessity": [],
+      "baseline": {
+        "artifact_sha256": "4bf7dc0c358fd477c728906fc4911136ea3e14abf64f0899987ed14311c48ec5",
+        "id": "codemap-search",
+        "paths": {
+          "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codemap-search/home",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codemap-search/source"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+        "state_sha256": {
+          "home": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "source": "04213a6441a78b4370f2881ff6d22843bdabe982befc20fbb32a217804256f65"
+        }
+      },
+      "cleanup": {
+        "daemon": {
+          "mode": "task-owned foreground or no process",
+          "shared_daemon": false
+        },
+        "frontend": {
+          "complete": true,
+          "exit_code": -15,
+          "frontend_stopped": true,
+          "owned_process_groups": [
+            {
+              "pgid": 84883,
+              "stopped": true
+            }
+          ],
+          "pid": 84883,
+          "shared_daemon_stopped": null
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/target/aarch64-apple-darwin/release/codemap-search",
+            "index",
+            "."
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/source",
+          "elapsed_seconds": 83.14837316703051,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/index.log",
+          "log_sha256": "2c5cb1ef3a2d7081a117c450ae5cd8ae1b902bac5957ee6cad265db1fb84cdcd"
+        }
+      ],
+      "env": {
+        "CODEMAP_HOME": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/home"
+      },
+      "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/home",
+      "id": "codemap-search",
+      "index_paths": [
+        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/source/.codemap"
+      ],
+      "limitations": [
+        "Native indexing exclusions and output limits are retained.",
+        "OS page cache is not controlled."
+      ],
+      "modes": {
+        "Jev": "native default disabled",
+        "external_ai": false
+      },
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/probes/1791021681721874000/inventory.json",
+      "native_inventory_sha256": "8ebecd0b60176c45b7bdddb883eb7f800c937f79b49c924e5a5064fe31f1474b",
+      "probe_identity": "93f600b808650555afbb50d9033afc8004230fb6566e94d80a529a956d69c3ab",
+      "probe_inputs": {
+        "agent_backend": "claude_code",
+        "agent_version": "2.1.288 (Claude Code)",
+        "artifact_sha256": "4bf7dc0c358fd477c728906fc4911136ea3e14abf64f0899987ed14311c48ec5",
+        "baseline": {
+          "artifact_sha256": "4bf7dc0c358fd477c728906fc4911136ea3e14abf64f0899987ed14311c48ec5",
+          "id": "codemap-search",
+          "paths": {
+            "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codemap-search/home",
+            "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/codemap-search/source"
+          },
+          "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+          "state_sha256": {
+            "home": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "source": "04213a6441a78b4370f2881ff6d22843bdabe982befc20fbb32a217804256f65"
+          }
+        },
+        "codex_version": "codex-cli 0.160.0",
+        "configuration": {
+          "arm": "codemap-search",
+          "auxiliaries": [],
+          "client": {
+            "env": {
+              "CODEMAP_HOME": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/home"
+            },
+            "launch": [
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/target/aarch64-apple-darwin/release/codemap-search",
+              "mcp"
+            ],
+            "transport": "stdio"
+          },
+          "log": "<per-run directory>/relay.jsonl",
+          "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+          "schema": "grafana-route-relay-v1",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/source"
+        },
+        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "implementation_hashes": {
+          "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
+          "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
+          "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
+          "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
+          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
+          "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
+          "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
+          "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7",
+          "benchmark/tool_artifacts.py": "a0196d8ef5cc64203f188452f65fe99049b878281301568ad0efce0ac64ab9a8",
+          "benchmark/tool_indexes.py": "b403cee2900e6f7d4c0ced0b79b74347d5a0b2913f1c0bb5c2428f81a2cac9ce",
+          "benchmark/usage.py": "f84faa3cec1fa0581ba8b73e6c9e8969fc431c32d530b7925a5d4abb282bc3b0"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
+      },
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/probes/1791021681721874000/relay.jsonl",
+      "probe_log_sha256": "14a42174cb330ceaafca94d3b3d954d8d9c78ba04d8b423c2301fe47b575659a",
+      "probe_output_sha256": "fcca37bf8837b13400dd162ef67ddef34e259ae34bef01e384f71061e61e9cc3",
+      "probes": [
+        {
+          "arguments": {},
+          "isError": false,
+          "result_sha256": "09f7609e6ee0d7614f930e392eed5c0c5f3b3723e0c00283e0369c56c8efad86",
+          "tool": "initial_instructions"
+        },
+        {
+          "arguments": {
+            "file_path": "README.md"
+          },
+          "isError": false,
+          "result_sha256": "ab79622acb7a771cb88c2697672908695c1d937d44c18421ef65bfe7514edca0",
+          "tool": "read"
+        }
+      ],
+      "relay_settings": {
+        "arm": "codemap-search",
+        "auxiliaries": [],
+        "auxiliary_necessity": [],
+        "client": {
+          "env": {
+            "CODEMAP_HOME": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/home"
+          },
+          "launch": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/products/5c83f31b5ffc27c2fece13936af69888e197bc355b0ec40033ef437b2f094704/target/aarch64-apple-darwin/release/codemap-search",
+            "mcp"
+          ],
+          "transport": "stdio"
+        },
+        "enabled_tools": [
+          "initial_instructions",
+          "register_task",
+          "overview",
+          "search",
+          "read",
+          "find",
+          "grep",
+          "analyze"
+        ],
+        "excluded_tools": [],
+        "log": "<per-run directory>/relay.jsonl",
+        "query_tools": [
+          "initial_instructions",
+          "register_task",
+          "overview",
+          "search",
+          "read",
+          "find",
+          "grep",
+          "analyze"
+        ],
+        "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+        "schema": "grafana-route-relay-v1",
+        "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/source"
+      },
+      "reset": {
+        "application_state": "fresh pre-query baseline",
+        "os_page_cache": "uncontrolled, not claimed cold",
+        "probe_state_removed": true,
+        "same_absolute_paths": true,
+        "status": "verified"
+      },
+      "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/source",
+      "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+      "status": "ready",
+      "tool_condition": "native_only"
+    },
+    "graphify": {
+      "agent_backend": "claude_code",
+      "artifact_sha256": "3386d20b171a2663d49c5ba86a38d57cd18da2d5fb2d6ad30542e5230ff2e22b",
+      "auxiliary_necessity": [
+        {
+          "added": "read",
+          "native_inventory_sha256": "6a642daabfc87276cee94367bbc689abbd1c7f938344946b1be668b85d398378",
+          "operation": "inspect original source body at a discovered file/line location",
+          "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791022152136591000/relay.jsonl",
+          "quality_based": false,
+          "reason": "Native graph queries/get_node return graph metadata and locations; the native surface has no raw-source reader."
+        }
+      ],
+      "baseline": {
+        "artifact_sha256": "3386d20b171a2663d49c5ba86a38d57cd18da2d5fb2d6ad30542e5230ff2e22b",
+        "id": "graphify",
+        "paths": {
+          "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/graphify/home",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/graphify/source"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+        "state_sha256": {
+          "home": "3e93729fed569c1fafb1127799d801c08cbbb61d77f0b1b503ac2efdad21c9d2",
+          "source": "86595523eb87da193ea109188ef007b1c444610da6cb46db1185a65b6aca8b16"
+        }
+      },
+      "cleanup": {
+        "daemon": {
+          "mode": "task-owned foreground or no process",
+          "shared_daemon": false
+        },
+        "frontend": {
+          "complete": true,
+          "exit_code": 0,
+          "frontend_stopped": true,
+          "owned_process_groups": [
+            {
+              "pgid": 3568,
+              "stopped": true
+            }
+          ],
+          "pid": 3568,
+          "shared_daemon_stopped": null
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/source/.venv/bin/python",
+            "-m",
+            "graphify",
+            "extract",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/source",
+            "--code-only",
+            "--out",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/home/graphify-out"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/source",
+          "elapsed_seconds": 536.1435168331955,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/index.log",
+          "log_sha256": "b7cec5c3d5540960b3e594ce39231a9f7c44e3765da9720c080a27a507bbec9c"
+        }
+      ],
+      "env": {},
+      "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/home",
+      "id": "graphify",
+      "index_paths": [
+        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/home/graphify-out"
+      ],
+      "limitations": [
+        "Native indexing exclusions and output limits are retained.",
+        "OS page cache is not controlled."
+      ],
+      "modes": {
+        "clustering": "native default",
+        "external_ai": false,
+        "extraction": "fresh code-only",
+        "graph_path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/home/graphify-out/graphify-out/graph.json",
+        "native_warnings": [
+          "  warning: 1199 .sql file(s) contributed nothing to the graph because a dependency is missing: tree_sitter_sql not installed. Install it with: pip install \"graphifyy[sql]\" (#1745)",
+          "  warning: 11 .hcl file(s) contributed nothing to the graph because a dependency is missing: tree_sitter_hcl not installed. Install it with: pip install \"graphifyy[terraform]\" (#1745)",
+          "  warning: 8 file(s) had syntax errors and may be partially extracted: pkg/plugins/pluginassets/testdata/module-hash-no-manifest-txt/module.js (first error at line 1, no symbols extracted), pkg/plugins/pluginassets/testdata/module-hash-no-module-js/something.js (first error at line 1, no symbols extracted), pkg/plugins/pluginassets/testdata/module-hash-valid-deeply-nested/datasource/module.js (first error at line 1, no symbols extracted), pkg/plugins/pluginassets/testdata/module-hash-valid-deeply-nested/datasource/panels/one/module.js (first error at line 1, no symbols extracted), pkg/plugins/pluginassets/testdata/module-hash-valid-deeply-nested/module.js (first error at line 1, no symbols extracted) (+3 more)"
+        ]
+      },
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791022152136591000/inventory.json",
+      "native_inventory_sha256": "0cdc52d18f3268e11f44563f6676bb35f7f40273b0759657ef59ca887f437393",
+      "probe_identity": "e9e2fcc8d288233de7705a0ac71432c1eb844a7246c42f5c46a2056af384e595",
+      "probe_inputs": {
+        "agent_backend": "claude_code",
+        "agent_version": "2.1.288 (Claude Code)",
+        "artifact_sha256": "3386d20b171a2663d49c5ba86a38d57cd18da2d5fb2d6ad30542e5230ff2e22b",
+        "baseline": {
+          "artifact_sha256": "3386d20b171a2663d49c5ba86a38d57cd18da2d5fb2d6ad30542e5230ff2e22b",
+          "id": "graphify",
+          "paths": {
+            "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/graphify/home",
+            "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/graphify/source"
+          },
+          "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+          "state_sha256": {
+            "home": "3e93729fed569c1fafb1127799d801c08cbbb61d77f0b1b503ac2efdad21c9d2",
+            "source": "86595523eb87da193ea109188ef007b1c444610da6cb46db1185a65b6aca8b16"
+          }
+        },
+        "codex_version": "codex-cli 0.160.0",
+        "configuration": {
+          "arm": "graphify",
+          "auxiliaries": [],
+          "client": {
+            "env": {},
+            "launch": [
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/source/.venv/bin/python",
+              "-m",
+              "graphify.serve",
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/home/graphify-out/graphify-out/graph.json"
+            ],
+            "transport": "stdio"
+          },
+          "log": "<per-run directory>/relay.jsonl",
+          "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+          "schema": "grafana-route-relay-v1",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/source"
+        },
+        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "implementation_hashes": {
+          "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
+          "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
+          "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
+          "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
+          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
+          "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
+          "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
+          "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7",
+          "benchmark/tool_artifacts.py": "a0196d8ef5cc64203f188452f65fe99049b878281301568ad0efce0ac64ab9a8",
+          "benchmark/tool_indexes.py": "b403cee2900e6f7d4c0ced0b79b74347d5a0b2913f1c0bb5c2428f81a2cac9ce",
+          "benchmark/usage.py": "f84faa3cec1fa0581ba8b73e6c9e8969fc431c32d530b7925a5d4abb282bc3b0"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
+      },
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791022152136591000/relay.jsonl",
+      "probe_log_sha256": "81e924e07342fdaa68d83604d4ec2ae146c8f2adc053d29095009b320c51f381",
+      "probe_output_sha256": "dca2605ce2bef8397b1f695dfa29f81323c4a9fc2dbd386f9eb53b601b4140c6",
+      "probes": [
+        {
+          "arguments": {
+            "question": "configuration settings"
+          },
+          "isError": false,
+          "result_sha256": "0ca649819c6b97c7c0a44471bdd63abb172d1061aceb1e9d8aa461278154a53e",
+          "tool": "query_graph"
+        }
+      ],
+      "relay_settings": {
+        "arm": "graphify",
+        "auxiliaries": [
+          "read"
+        ],
+        "auxiliary_necessity": [
+          {
+            "added": "read",
+            "native_inventory_sha256": "6a642daabfc87276cee94367bbc689abbd1c7f938344946b1be668b85d398378",
+            "operation": "inspect original source body at a discovered file/line location",
+            "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791022152136591000/relay.jsonl",
+            "quality_based": false,
+            "reason": "Native graph queries/get_node return graph metadata and locations; the native surface has no raw-source reader."
+          }
+        ],
+        "client": {
+          "env": {},
+          "launch": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/source/.venv/bin/python",
+            "-m",
+            "graphify.serve",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/home/graphify-out/graphify-out/graph.json"
+          ],
+          "transport": "stdio"
+        },
+        "enabled_tools": [
+          "query_graph",
+          "get_node",
+          "get_neighbors",
+          "get_community",
+          "god_nodes",
+          "graph_stats",
+          "shortest_path",
+          "read"
+        ],
+        "excluded_tools": [
+          {
+            "name": "list_prs",
+            "reason": "external GitHub PR data outside the fixed corpus"
+          },
+          {
+            "name": "get_pr_impact",
+            "reason": "external GitHub PR data outside the fixed corpus"
+          },
+          {
+            "name": "triage_prs",
+            "reason": "external GitHub PR data outside the fixed corpus"
+          }
+        ],
+        "log": "<per-run directory>/relay.jsonl",
+        "query_tools": [
+          "query_graph",
+          "get_node",
+          "get_neighbors",
+          "get_community",
+          "god_nodes",
+          "graph_stats",
+          "shortest_path"
+        ],
+        "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+        "schema": "grafana-route-relay-v1",
+        "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/source"
+      },
+      "reset": {
+        "application_state": "fresh pre-query baseline",
+        "os_page_cache": "uncontrolled, not claimed cold",
+        "probe_state_removed": true,
+        "same_absolute_paths": true,
+        "status": "verified"
+      },
+      "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/source",
+      "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+      "status": "ready",
+      "tool_condition": "assisted"
+    },
+    "rg": {
+      "agent_backend": "claude_code",
+      "artifact_sha256": "49924e931eb6e91533e34dfd372a03e08f87441a42242e00c23b7a6a7b7f9cac",
+      "auxiliary_necessity": [],
+      "baseline": {
+        "artifact_sha256": "49924e931eb6e91533e34dfd372a03e08f87441a42242e00c23b7a6a7b7f9cac",
+        "id": "rg",
+        "paths": {
+          "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/rg/home",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/rg/source"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+        "state_sha256": {
+          "home": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "source": "86595523eb87da193ea109188ef007b1c444610da6cb46db1185a65b6aca8b16"
+        }
+      },
+      "cleanup": {
+        "daemon": {
+          "mode": "init-only exited",
+          "shared_daemon": false
+        },
+        "frontend": {
+          "complete": true
+        }
+      },
+      "commands": [],
+      "env": {},
+      "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/home",
+      "id": "rg",
+      "index_paths": [],
+      "limitations": [
+        "Actual model inventory and delivery are unobserved.",
+        "Claude native tool permissions are configured but not exercised by init-only."
+      ],
+      "modes": {
+        "index": "none",
+        "output": "native CLI defaults"
+      },
+      "native_agent": {
+        "backend": "claude_code",
+        "call_unit": "native exploration tool_use ID; a compound Bash command is one call",
+        "config": {
+          "env": {
+            "PATH": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin"
+          },
+          "permissions": {
+            "blockReadsOutsideWorkingDirectories": true,
+            "defaultMode": "dontAsk",
+            "deny": [
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "WebSearch",
+              "Agent",
+              "Cd"
+            ]
+          },
+          "sandbox": {
+            "allowUnsandboxedCommands": false,
+            "autoAllowBashIfSandboxed": true,
+            "enabled": true,
+            "excludedCommands": [],
+            "filesystem": {
+              "allowRead": [
+                "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source",
+                "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin",
+                "/bin",
+                "/sbin",
+                "/usr",
+                "/System",
+                "/Library",
+                "/dev",
+                "/opt/homebrew"
+              ],
+              "denyRead": [
+                "/"
+              ],
+              "denyWrite": [
+                "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source"
+              ]
+            },
+            "network": {
+              "allowedDomains": [],
+              "strictAllowlist": true
+            }
+          }
+        },
+        "env": {
+          "PATH": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin"
+        },
+        "mode": "native_agent",
+        "native_tools": "Claude Code native Bash/Read/Glob/Grep; no search product MCP",
+        "output_policy": "native tool and client defaults; no harness clipping",
+        "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+        "rg_sha256": "a326a1fb48074202e9ad41e4cd1e389eeea372c8c6f7d7e80da81176d5d9430e",
+        "schema": "grafana-native-agent-v1",
+        "search_product_mcp": false,
+        "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source",
+        "tools": [
+          "Bash",
+          "Read",
+          "Glob",
+          "Grep"
+        ]
+      },
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/probes/1791022419334699000/inventory.json",
+      "native_inventory_sha256": "229f6a2391521b0ff0ffb941b36d77e49f1e335eb6b915225a4670be69dbaed7",
+      "probe_identity": "8fc1e22d7f225b9bd661840dcc1611e48a40361f07af69b5c5b2a054c31b49b4",
+      "probe_inputs": {
+        "agent_backend": "claude_code",
+        "agent_version": "2.1.288 (Claude Code)",
+        "artifact_sha256": "49924e931eb6e91533e34dfd372a03e08f87441a42242e00c23b7a6a7b7f9cac",
+        "baseline": {
+          "artifact_sha256": "49924e931eb6e91533e34dfd372a03e08f87441a42242e00c23b7a6a7b7f9cac",
+          "id": "rg",
+          "paths": {
+            "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/rg/home",
+            "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/rg/source"
+          },
+          "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+          "state_sha256": {
+            "home": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "source": "86595523eb87da193ea109188ef007b1c444610da6cb46db1185a65b6aca8b16"
+          }
+        },
+        "codex_version": "codex-cli 0.160.0",
+        "configuration": {
+          "backend": "claude_code",
+          "call_unit": "native exploration tool_use ID; a compound Bash command is one call",
+          "config": {
+            "env": {
+              "PATH": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin"
+            },
+            "permissions": {
+              "blockReadsOutsideWorkingDirectories": true,
+              "defaultMode": "dontAsk",
+              "deny": [
+                "Edit",
+                "Write",
+                "NotebookEdit",
+                "WebFetch",
+                "WebSearch",
+                "Agent",
+                "Cd"
+              ]
+            },
+            "sandbox": {
+              "allowUnsandboxedCommands": false,
+              "autoAllowBashIfSandboxed": true,
+              "enabled": true,
+              "excludedCommands": [],
+              "filesystem": {
+                "allowRead": [
+                  "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source",
+                  "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin",
+                  "/bin",
+                  "/sbin",
+                  "/usr",
+                  "/System",
+                  "/Library",
+                  "/dev",
+                  "/opt/homebrew"
+                ],
+                "denyRead": [
+                  "/"
+                ],
+                "denyWrite": [
+                  "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source"
+                ]
+              },
+              "network": {
+                "allowedDomains": [],
+                "strictAllowlist": true
+              }
+            }
+          },
+          "env": {
+            "PATH": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin"
+          },
+          "mode": "native_agent",
+          "native_tools": "Claude Code native Bash/Read/Glob/Grep; no search product MCP",
+          "output_policy": "native tool and client defaults; no harness clipping",
+          "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+          "rg_sha256": "a326a1fb48074202e9ad41e4cd1e389eeea372c8c6f7d7e80da81176d5d9430e",
+          "schema": "grafana-native-agent-v1",
+          "search_product_mcp": false,
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source",
+          "tools": [
+            "Bash",
+            "Read",
+            "Glob",
+            "Grep"
+          ]
+        },
+        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "implementation_hashes": {
+          "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
+          "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
+          "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
+          "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
+          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
+          "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
+          "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
+          "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7",
+          "benchmark/tool_artifacts.py": "a0196d8ef5cc64203f188452f65fe99049b878281301568ad0efce0ac64ab9a8",
+          "benchmark/tool_indexes.py": "b403cee2900e6f7d4c0ced0b79b74347d5a0b2913f1c0bb5c2428f81a2cac9ce",
+          "benchmark/usage.py": "f84faa3cec1fa0581ba8b73e6c9e8969fc431c32d530b7925a5d4abb282bc3b0"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
+      },
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/probes/1791022419334699000/probe.json",
+      "probe_log_sha256": "ac0483c1378698fc907fee9312b1531cc35ffe007dd7618813c325f087c1387f",
+      "probe_output_sha256": "bed74c879e4dcbeee0ffa4f639bbb0ca11ef3174d1a80b3d96106b01995ddce5",
+      "probes": [
+        {
+          "exit_code": 0,
+          "name": "claude_init_only"
+        }
+      ],
+      "relay_settings": null,
+      "reset": {
+        "application_state": "fresh pre-query baseline",
+        "os_page_cache": "uncontrolled, not claimed cold",
+        "probe_state_removed": true,
+        "same_absolute_paths": true,
+        "status": "verified"
+      },
+      "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source",
+      "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+      "status": "ready",
+      "tool_condition": "native_agent_baseline"
+    },
+    "serena": {
+      "agent_backend": "claude_code",
+      "artifact_sha256": "0da060875fbde3c59a0eae4b572ead81f1d7bb545009b2be1eedc77c25e0e62b",
+      "auxiliary_necessity": [],
+      "baseline": {
+        "artifact_sha256": "0da060875fbde3c59a0eae4b572ead81f1d7bb545009b2be1eedc77c25e0e62b",
+        "id": "serena",
+        "paths": {
+          "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/serena/home",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/serena/source"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+        "state_sha256": {
+          "home": "6d80939cdc885a15c4902e156be153d52ae4cb57f70a51582d35be53aec0b629",
+          "source": "91e6886fb1b0dd5a0157da87f266a8abf76f42746ed67a4a2e13a6a82e4b97eb"
+        }
+      },
+      "cleanup": {
+        "daemon": {
+          "mode": "task-owned foreground or no process",
+          "shared_daemon": false
+        },
+        "frontend": {
+          "complete": true,
+          "exit_code": 0,
+          "frontend_stopped": true,
+          "owned_process_groups": [
+            {
+              "pgid": 17673,
+              "stopped": true
+            }
+          ],
+          "pid": 17673,
+          "shared_daemon_stopped": null
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena",
+            "project",
+            "create",
+            "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source",
+            "--name",
+            "grafana",
+            "--language",
+            "go",
+            "--language",
+            "typescript"
+          ],
+          "cwd": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source",
+          "elapsed_seconds": 3.134020166937262,
+          "exit_code": 0,
+          "log": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/project-create.log",
+          "log_sha256": "7d77d6fe204ef93e49e6a6326354faa31823dc82ea362f71fb6ac2fc44f98ce1"
+        },
+        {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/python",
+            "-c",
+            "\nimport json, sys\nfrom pathlib import Path\nfrom ruamel.yaml import YAML\nsource, home = map(Path, sys.argv[1:])\nyaml = YAML()\nproject = source / '.serena/project.yml'\nconfig = home / 'serena/serena_config.yml'\nfor path, overrides in [(project, {'read_only': True, 'excluded_tools': ['activate_project', 'remove_project', 'switch_modes']}),\n                        (config, {'base_modes': [], 'default_modes': ['one-shot', 'no-memories'],\n                                  'web_dashboard': False, 'web_dashboard_open_on_launch': False, 'gui_log_window': False})]:\n    data = yaml.load(path)\n    data.update(overrides)\n    yaml.dump(data, path)\nproject_data, config_data = yaml.load(project), yaml.load(config)\nassert project_data['language_servers'] == ['go', 'typescript']\nassert project_data['ls_workspace_folders'] == ['.']\nassert config_data['projects'] == [str(source)]\nprint(json.dumps({'project': str(project), 'registered_projects': config_data['projects'],\n                  'languages': project_data['language_servers'], 'read_only': project_data['read_only'],\n                  'default_max_tool_answer_chars': config_data['default_max_tool_answer_chars'],\n                  'tool_timeout_seconds': config_data['tool_timeout'],\n                  'symbol_info_budget_seconds': config_data['symbol_info_budget']}))\n",
+            "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source",
+            "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home"
+          ],
+          "cwd": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source",
+          "elapsed_seconds": 0.18776045879349113,
+          "exit_code": 0,
+          "log": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/project-config.log",
+          "log_sha256": "ae6f7f4e1c0927dabb1bdf97589b5137c4f876a98e2b62d28bcb781a417b47a9"
+        },
+        {
+          "command": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena",
+            "project",
+            "index",
+            "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source"
+          ],
+          "cwd": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source",
+          "elapsed_seconds": 3021.103155167075,
+          "exit_code": 0,
+          "log": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/index.log",
+          "log_sha256": "0e06b16112ab240027c993646b8c57ccf9eb2d7a0cce5755741162b6272d80b4"
+        }
+      ],
+      "env": {
+        "GIT_CEILING_DIRECTORIES": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts",
+        "GOCACHE": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/go-build",
+        "GOPATH": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/go",
+        "GOPLSCACHE": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/gopls",
+        "GOTELEMETRY": "off",
+        "PATH": "/Users/buyong/go/bin:/opt/homebrew/Cellar/go/1.26.3/libexec/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.nvm/versions/node/v24.14.0/lib/node_modules/npm/bin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin",
+        "SERENA_HOME": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/serena",
+        "XDG_CACHE_HOME": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/cache"
+      },
+      "home": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home",
+      "id": "serena",
+      "index_paths": [
+        "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source/.serena",
+        "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home"
+      ],
+      "limitations": [
+        "Native indexing exclusions and output limits are retained.",
+        "OS page cache is not controlled."
+      ],
+      "modes": {
+        "backend": "LSP",
+        "configuration": {
+          "default_max_tool_answer_chars": 150000,
+          "languages": [
+            "go",
+            "typescript"
+          ],
+          "project": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source/.serena/project.yml",
+          "read_only": true,
+          "registered_projects": [
+            "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source"
+          ],
+          "symbol_info_budget_seconds": 10,
+          "tool_timeout_seconds": 240
+        },
+        "context": "desktop-app (native default; full product read tools)",
+        "excluded_operations": [
+          "editing",
+          "shell",
+          "memory",
+          "project activation/removal",
+          "mode switching"
+        ],
+        "external_ai": false,
+        "failed_files": 0,
+        "indexed_files_per_language": {
+          "go": 6411,
+          "typescript": 9349
+        },
+        "language_server_dependencies": [
+          {
+            "manifest": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/serena/language_servers/static/TypeScriptLanguageServer/ts-lsp/node_modules/typescript/package.json",
+            "package": "typescript",
+            "sha256": "822ef7ca6452205657b6288b066481ecf508bfbf43455d715cf7d3ec457561e6",
+            "version": "5.9.3"
+          },
+          {
+            "manifest": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/serena/language_servers/static/TypeScriptLanguageServer/ts-lsp/node_modules/typescript-language-server/package.json",
+            "package": "typescript-language-server",
+            "sha256": "386a8823cccc982bb58e2c0f407017b039ee2aa41005947e168bcdeff2f52490",
+            "version": "5.1.3"
+          }
+        ],
+        "modes": [
+          "one-shot",
+          "no-memories"
+        ],
+        "native_failure_log": null,
+        "output": "native defaults",
+        "project": "grafana",
+        "read_only": true,
+        "runtime": {
+          "go": {
+            "path": "/opt/homebrew/Cellar/go/1.26.3/libexec/bin/go",
+            "sha256": "1b6e73b4f9eae9108e2e747f5cd29dc27ddfc1999a414fe11cd593072d607a84",
+            "version": "go version go1.26.3 darwin/arm64"
+          },
+          "gopls": {
+            "path": "/Users/buyong/go/bin/gopls",
+            "sha256": "8d677803887d3da458a06ec4b296f2d46a9849325b2181ede8b68ccc6cffd6c2",
+            "version": "golang.org/x/tools/gopls v0.21.1"
+          },
+          "node": {
+            "path": "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+            "sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55",
+            "version": "v24.14.0"
+          },
+          "npm": {
+            "path": "/Users/buyong/.nvm/versions/node/v24.14.0/lib/node_modules/npm/bin/npm-cli.js",
+            "sha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+            "version": "11.9.0"
+          },
+          "python": "Python 3.12.13",
+          "python_sha256": "a395f264e5612a2819662ed3e37fd30d39ed61179b98e5f86c3c783a008d8623",
+          "uv": "uv 0.11.17 (Homebrew 2026-05-28 aarch64-apple-darwin)"
+        },
+        "symbol_caches": [
+          {
+            "path": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source/.serena/cache/go/raw_document_symbols.pkl",
+            "sha256": "61e67d5100f0915dc77d04554d9955b8ee36ec19a0ee1a9d846b4598989ea533"
+          },
+          {
+            "path": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source/.serena/cache/typescript/raw_document_symbols.pkl",
+            "sha256": "f35f6b0c026e5ca1e1e80c421869f0e08298324465891ef32448da97dcc89be2"
+          }
+        ],
+        "workspace_folders": [
+          "."
+        ]
+      },
+      "native_inventory": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/probes/1791020060886948000/inventory.json",
+      "native_inventory_sha256": "5da2621ea2fed4efb60ad7bb343a9efad5e6e88329c79d938fcf6878b60ca8cd",
+      "probe_identity": "0f54a4347ba5005f90b3debf697760a14517d12d3223766f886510e12b2aed30",
+      "probe_inputs": {
+        "agent_backend": "claude_code",
+        "agent_version": "2.1.288 (Claude Code)",
+        "artifact_sha256": "0da060875fbde3c59a0eae4b572ead81f1d7bb545009b2be1eedc77c25e0e62b",
+        "baseline": {
+          "artifact_sha256": "0da060875fbde3c59a0eae4b572ead81f1d7bb545009b2be1eedc77c25e0e62b",
+          "id": "serena",
+          "paths": {
+            "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/serena/home",
+            "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/serena/source"
+          },
+          "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+          "state_sha256": {
+            "home": "6d80939cdc885a15c4902e156be153d52ae4cb57f70a51582d35be53aec0b629",
+            "source": "91e6886fb1b0dd5a0157da87f266a8abf76f42746ed67a4a2e13a6a82e4b97eb"
+          }
+        },
+        "codex_version": "codex-cli 0.160.0",
+        "configuration": {
+          "arm": "serena",
+          "auxiliaries": [],
+          "client": {
+            "env": {
+              "GIT_CEILING_DIRECTORIES": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts",
+              "GOCACHE": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/go-build",
+              "GOPATH": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/go",
+              "GOPLSCACHE": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/gopls",
+              "GOTELEMETRY": "off",
+              "PATH": "/Users/buyong/go/bin:/opt/homebrew/Cellar/go/1.26.3/libexec/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.nvm/versions/node/v24.14.0/lib/node_modules/npm/bin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin",
+              "SERENA_HOME": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/serena",
+              "XDG_CACHE_HOME": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/cache"
+            },
+            "launch": [
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena",
+              "start-mcp-server",
+              "--project",
+              "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source"
+            ],
+            "timeout_seconds": 300,
+            "transport": "stdio"
+          },
+          "log": "<per-run directory>/relay.jsonl",
+          "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+          "schema": "grafana-route-relay-v1",
+          "source": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source"
+        },
+        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "implementation_hashes": {
+          "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
+          "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
+          "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
+          "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
+          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
+          "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
+          "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
+          "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7",
+          "benchmark/tool_artifacts.py": "a0196d8ef5cc64203f188452f65fe99049b878281301568ad0efce0ac64ab9a8",
+          "benchmark/tool_indexes.py": "b403cee2900e6f7d4c0ced0b79b74347d5a0b2913f1c0bb5c2428f81a2cac9ce",
+          "benchmark/usage.py": "f84faa3cec1fa0581ba8b73e6c9e8969fc431c32d530b7925a5d4abb282bc3b0"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
+      },
+      "probe_log": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/probes/1791020060886948000/relay.jsonl",
+      "probe_log_sha256": "256d06a8b887c2454b600982b11a8bdd666c15cda8952cd5deb323f2da618513",
+      "probe_output_sha256": "190abf7f4fd1c7911d64cb050dacdbb881e69313528507d9464d4fe3e433446b",
+      "probes": [
+        {
+          "arguments": {},
+          "isError": false,
+          "result_sha256": "2cc20fc8d80998012ba2fa888c3abac268d599d0f07b8d7264398075c9f3d8b0",
+          "tool": "initial_instructions"
+        },
+        {
+          "arguments": {},
+          "isError": false,
+          "result_sha256": "ec6f3178c02d020852aa15f1093799b9306a4ffe3da746530b8678394af34178",
+          "tool": "get_current_config"
+        },
+        {
+          "arguments": {
+            "relative_path": "README.md"
+          },
+          "isError": false,
+          "result_sha256": "d55e2384def9fa223097ac14cb06e7a349a39638860f7e65c9ea96ab7da5ffbf",
+          "tool": "read_file"
+        },
+        {
+          "arguments": {
+            "relative_path": "pkg/setting/setting.go"
+          },
+          "isError": false,
+          "result_sha256": "9cf89180f5ca1b58b77712ef5cb4b70adaca6284cdd84a440a31a781807ffd75",
+          "tool": "get_symbols_overview"
+        },
+        {
+          "arguments": {
+            "relative_path": "packages/grafana-data/src/utils/uuid.ts"
+          },
+          "isError": false,
+          "result_sha256": "f8c37e21eae800c24159f1b59312869d87fe6f3fc6625b8c7c29e6b4a5a6f92c",
+          "tool": "get_symbols_overview"
+        }
+      ],
+      "relay_settings": {
+        "arm": "serena",
+        "auxiliaries": [],
+        "auxiliary_necessity": [],
+        "client": {
+          "env": {
+            "GIT_CEILING_DIRECTORIES": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts",
+            "GOCACHE": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/go-build",
+            "GOPATH": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/go",
+            "GOPLSCACHE": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/gopls",
+            "GOTELEMETRY": "off",
+            "PATH": "/Users/buyong/go/bin:/opt/homebrew/Cellar/go/1.26.3/libexec/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.nvm/versions/node/v24.14.0/lib/node_modules/npm/bin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin",
+            "SERENA_HOME": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/serena",
+            "XDG_CACHE_HOME": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/home/cache"
+          },
+          "launch": [
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena",
+            "start-mcp-server",
+            "--project",
+            "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source"
+          ],
+          "timeout_seconds": 300,
+          "transport": "stdio"
+        },
+        "enabled_tools": [
+          "read_file",
+          "list_dir",
+          "find_file",
+          "search_for_pattern",
+          "get_symbols_overview",
+          "find_symbol",
+          "find_referencing_symbols",
+          "find_implementations",
+          "find_declaration",
+          "get_diagnostics_for_file",
+          "get_current_config",
+          "initial_instructions"
+        ],
+        "excluded_tools": [
+          {
+            "name": "create_text_file",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "replace_content",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "replace_in_files",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "replace_symbol_body",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "insert_after_symbol",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "insert_before_symbol",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "rename_symbol",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "safe_delete_symbol",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "write_memory",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "read_memory",
+            "reason": "project control or memory outside source retrieval"
+          },
+          {
+            "name": "list_memories",
+            "reason": "project control or memory outside source retrieval"
+          },
+          {
+            "name": "delete_memory",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "rename_memory",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "edit_memory",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "execute_shell_command",
+            "reason": "native editing or shell operation"
+          },
+          {
+            "name": "activate_project",
+            "reason": "project control or memory outside source retrieval"
+          },
+          {
+            "name": "onboarding",
+            "reason": "project control or memory outside source retrieval"
+          }
+        ],
+        "log": "<per-run directory>/relay.jsonl",
+        "query_tools": [
+          "read_file",
+          "list_dir",
+          "find_file",
+          "search_for_pattern",
+          "get_symbols_overview",
+          "find_symbol",
+          "find_referencing_symbols",
+          "find_implementations",
+          "find_declaration",
+          "get_diagnostics_for_file",
+          "get_current_config",
+          "initial_instructions"
+        ],
+        "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+        "schema": "grafana-route-relay-v1",
+        "source": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source"
+      },
+      "reset": {
+        "application_state": "fresh pre-query baseline",
+        "os_page_cache": "uncontrolled, not claimed cold",
+        "probe_state_removed": true,
+        "same_absolute_paths": true,
+        "status": "verified"
+      },
+      "source": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source",
+      "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+      "status": "ready",
+      "tool_condition": "native_only"
+    },
+    "zvec-grep": {
+      "agent_backend": "claude_code",
+      "artifact_sha256": "cba3b15187c6ef79608c950d850044fcdc9c6ad57f59a44b2abd37a9de8aec16",
+      "auxiliary_necessity": [],
+      "baseline": {
+        "artifact_sha256": "cba3b15187c6ef79608c950d850044fcdc9c6ad57f59a44b2abd37a9de8aec16",
+        "id": "zvec-grep",
+        "paths": {
+          "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/zvec-grep/home",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/zvec-grep/source"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+        "state_sha256": {
+          "home": "06442a66ebde5dac35c6d088ff0d61b882d51cd4277b06b6d9945d4142521dc0",
+          "source": "601c561d6a72bd3717ea392ac846d1f6cb448e2bc602e427607c7337f75b9525"
+        }
+      },
+      "cleanup": {
+        "daemon": {
+          "exit_code": 0,
+          "pid": 61888,
+          "stopped": true
+        },
+        "frontend": {
+          "complete": true,
+          "frontend_stopped": true,
+          "http_server": {
+            "exit_code": 0,
+            "pid": 61888,
+            "stopped": true
+          },
+          "owned_process_groups": [
+            {
+              "pgid": 61888,
+              "stopped": true
+            }
+          ],
+          "session_delete_status": 200,
+          "shared_daemon_stopped": null
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source/dist/cli/index.js",
+            "index",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source",
+            "--embedding",
+            "local/potion-code-16m-v2",
+            "--mode",
+            "direct",
+            "--model-cache",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/home/model-cache"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source",
+          "elapsed_seconds": 326.7662029170897,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/index.log",
+          "log_sha256": "36e0a24c414feed1178d3ea47dfc38795b751821191d32c78defa52a984b6818"
+        },
+        {
+          "command": [
+            "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source/dist/cli/index.js",
+            "status",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source",
+            "--mode",
+            "direct",
+            "--check-ready"
+          ],
+          "cwd": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source",
+          "elapsed_seconds": 27.240992459002882,
+          "exit_code": 0,
+          "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/index-status.log",
+          "log_sha256": "5760274a9379e54449d7a02dc8b96ef0c5c410c61af27ef0d6b193e93c22c59d"
+        }
+      ],
+      "env": {
+        "ZVEC_GREP_HOME": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/home",
+        "ZVEC_GREP_SERVER_URL": "http://127.0.0.1:18999/mcp"
+      },
+      "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/home",
+      "id": "zvec-grep",
+      "index_paths": [
+        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source/.zvec-grep",
+        "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/home/model-cache"
+      ],
+      "limitations": [
+        "Native indexing exclusions and output limits are retained.",
+        "OS page cache is not controlled."
+      ],
+      "modes": {
+        "embedding": "local/potion-code-16m-v2",
+        "embedding_workers": "native default",
+        "model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b",
+        "toolset": "native agent default"
+      },
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/probes/1791022004486423000/inventory.json",
+      "native_inventory_sha256": "da09292da4ef9ea3746fea2fed2fc12a6d24ea9fccd7dad9aba520d03b8f19b1",
+      "probe_identity": "aded3dd22a60ee8af1c6c8a80c4767be30a558758a5b3865f06e914174054193",
+      "probe_inputs": {
+        "agent_backend": "claude_code",
+        "agent_version": "2.1.288 (Claude Code)",
+        "artifact_sha256": "cba3b15187c6ef79608c950d850044fcdc9c6ad57f59a44b2abd37a9de8aec16",
+        "baseline": {
+          "artifact_sha256": "cba3b15187c6ef79608c950d850044fcdc9c6ad57f59a44b2abd37a9de8aec16",
+          "id": "zvec-grep",
+          "paths": {
+            "home": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/zvec-grep/home",
+            "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/baselines/zvec-grep/source"
+          },
+          "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+          "state_sha256": {
+            "home": "06442a66ebde5dac35c6d088ff0d61b882d51cd4277b06b6d9945d4142521dc0",
+            "source": "601c561d6a72bd3717ea392ac846d1f6cb448e2bc602e427607c7337f75b9525"
+          }
+        },
+        "codex_version": "codex-cli 0.160.0",
+        "configuration": {
+          "arm": "zvec-grep",
+          "auxiliaries": [],
+          "client": {
+            "env": {
+              "ZVEC_GREP_HOME": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/home",
+              "ZVEC_GREP_SERVER_URL": "http://127.0.0.1:18999/mcp"
+            },
+            "server_launch": [
+              "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+              "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source/dist/cli/index.js",
+              "server",
+              "run",
+              "--listen",
+              "127.0.0.1:18999"
+            ],
+            "transport": "http",
+            "url": "http://127.0.0.1:18999/mcp"
+          },
+          "log": "<per-run directory>/relay.jsonl",
+          "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+          "schema": "grafana-route-relay-v1",
+          "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source"
+        },
+        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "implementation_hashes": {
+          "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
+          "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
+          "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
+          "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
+          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
+          "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
+          "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
+          "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7",
+          "benchmark/tool_artifacts.py": "a0196d8ef5cc64203f188452f65fe99049b878281301568ad0efce0ac64ab9a8",
+          "benchmark/tool_indexes.py": "b403cee2900e6f7d4c0ced0b79b74347d5a0b2913f1c0bb5c2428f81a2cac9ce",
+          "benchmark/usage.py": "f84faa3cec1fa0581ba8b73e6c9e8969fc431c32d530b7925a5d4abb282bc3b0"
+        },
+        "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
+      },
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/probes/1791022004486423000/relay.jsonl",
+      "probe_log_sha256": "d6328804baac16aac14e756c14895c0300f781eeb632e23ea83ce0c543d0fb2c",
+      "probe_output_sha256": "0e8f1df784373acbc19b0a9443d3edcff3c62a6f5adc9ff696449013a5a50559",
+      "probes": [
+        {
+          "arguments": {
+            "query": "configuration settings",
+            "root": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source"
+          },
+          "isError": false,
+          "result_sha256": "b81062d3b3708ddaaa0be94ff52d4d0d11e657f64066f59eff86541c335bd839",
+          "tool": "zvec_grep_search"
+        }
+      ],
+      "relay_settings": {
+        "arm": "zvec-grep",
+        "auxiliaries": [],
+        "auxiliary_necessity": [],
+        "client": {
+          "env": {
+            "ZVEC_GREP_HOME": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/home",
+            "ZVEC_GREP_SERVER_URL": "http://127.0.0.1:18999/mcp"
+          },
+          "server_launch": [
+            "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source/dist/cli/index.js",
+            "server",
+            "run",
+            "--listen",
+            "127.0.0.1:18999"
+          ],
+          "transport": "http",
+          "url": "http://127.0.0.1:18999/mcp"
+        },
+        "enabled_tools": [
+          "zvec_grep_search"
+        ],
+        "excluded_tools": [],
+        "log": "<per-run directory>/relay.jsonl",
+        "query_tools": [
+          "zvec_grep_search"
+        ],
+        "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+        "schema": "grafana-route-relay-v1",
+        "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source"
+      },
+      "reset": {
+        "application_state": "fresh pre-query baseline",
+        "os_page_cache": "uncontrolled, not claimed cold",
+        "probe_state_removed": true,
+        "same_absolute_paths": true,
+        "status": "verified"
+      },
+      "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source",
+      "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59",
+      "status": "ready",
+      "tool_condition": "native_only"
+    }
+  },
+  "calibration_runs": 0,
+  "checks": {
+    "component_evidence": "verified",
+    "offline_commands": [
+      {
+        "command": [
+          "/opt/homebrew/opt/python@3.14/bin/python3.14",
+          "-m",
+          "unittest",
+          "benchmark.checks",
+          "benchmark.cui_checks"
+        ],
+        "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+        "elapsed_seconds": 3.075373958097771,
+        "exit_code": 0,
+        "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/validation/1791023036425732000/existing-suites.log",
+        "log_sha256": "dcfeeda03a0983e39bc0fb4bd3e2c4418d3b7a64dc83191fcb555bfc9fa54526"
+      },
+      {
+        "command": [
+          "node",
+          "--check",
+          "benchmark/start.mjs"
+        ],
+        "cwd": "/Users/buyong/workspace/private/buyong-mcp",
+        "elapsed_seconds": 0.04126149998046458,
+        "exit_code": 0,
+        "log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/validation/1791023036425732000/cui-syntax.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "planned_slots": 21
+  },
+  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+  "dependency_hashes": {
+    "01-contract.json": "8b1c09ffd116e4e2c6cde29b1ed17148b38a174727b4b3432684e386e41e6fa7",
+    "02-delivery.json": "63e827fa28057e7b186f9a9c37a252c5dc9c9f585063c851c3a3556b95e2c8b8",
+    "03-artifacts.json": "f479fe7404fe78507d459c68c92a2e32a7a3b1d32269184e7f7b073c61c4ea75",
+    "04-indexes-claude.json": "10a67a07059adfb7b1707b5c3433f39c7075ed1f177b2855b6bc6b50b697b106",
+    "05-grading.json": "85d806d55f1099bce1cd8a50376c00ce5d6f80fc96af96924d93095a94db8a7f",
+    "06-metrics.json": "d7147b73a5bea49e3999f3c75a244c2f027efef94fdf1e3dc16a810cc46c25b7"
+  },
+  "execution_authorized": false,
+  "execution_specs": {
+    "codebase-memory-mcp": {
+      "batch_limits": {
+        "bytes": 163840
+      },
+      "concurrency": 1,
+      "grader_backend": "codex",
+      "grader_model": "gpt-6-astra",
+      "grader_reasoning_effort": "high",
+      "index_mode": {
+        "codemap_jev": false,
+        "external_ai": false,
+        "graphify": "fresh_code_only",
+        "serena": "registered_project_local_lsp_go_typescript_preindexed",
+        "zvec_model": "local/potion-code-16m-v2",
+        "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+      },
+      "limits": {
+        "elapsed_seconds": 300,
+        "exploration_calls": 80,
+        "total_tokens": 500000
+      },
+      "model": "claude-opus-5-5",
+      "native_output_policy": {
+        "automatic_pagination": false,
+        "client_delivery": "record_observed_limits_and_unknowns_separately",
+        "enrichment": false,
+        "harness_byte_limit": null,
+        "harness_line_limit": null,
+        "product_defaults": true
+      },
+      "preparation_only": true,
+      "profile": "grafana-routes",
+      "reasoning_effort": "medium",
+      "seed": 20260907,
+      "solver_backend": "claude_code",
+      "tool_access": {
+        "allowed_auxiliaries": [
+          "rg",
+          "read"
+        ],
+        "default": "native_only",
+        "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+        "quality_based_fallback": false
+      }
+    },
+    "codegraph": {
+      "batch_limits": {
+        "bytes": 163840
+      },
+      "concurrency": 1,
+      "grader_backend": "codex",
+      "grader_model": "gpt-6-astra",
+      "grader_reasoning_effort": "high",
+      "index_mode": {
+        "codemap_jev": false,
+        "external_ai": false,
+        "graphify": "fresh_code_only",
+        "serena": "registered_project_local_lsp_go_typescript_preindexed",
+        "zvec_model": "local/potion-code-16m-v2",
+        "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+      },
+      "limits": {
+        "elapsed_seconds": 300,
+        "exploration_calls": 80,
+        "total_tokens": 500000
+      },
+      "model": "claude-opus-5-5",
+      "native_output_policy": {
+        "automatic_pagination": false,
+        "client_delivery": "record_observed_limits_and_unknowns_separately",
+        "enrichment": false,
+        "harness_byte_limit": null,
+        "harness_line_limit": null,
+        "product_defaults": true
+      },
+      "preparation_only": true,
+      "profile": "grafana-routes",
+      "reasoning_effort": "medium",
+      "seed": 20260907,
+      "solver_backend": "claude_code",
+      "tool_access": {
+        "allowed_auxiliaries": [
+          "rg",
+          "read"
+        ],
+        "default": "native_only",
+        "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+        "quality_based_fallback": false
+      }
+    },
+    "codemap-search": {
+      "batch_limits": {
+        "bytes": 163840
+      },
+      "concurrency": 1,
+      "grader_backend": "codex",
+      "grader_model": "gpt-6-astra",
+      "grader_reasoning_effort": "high",
+      "index_mode": {
+        "codemap_jev": false,
+        "external_ai": false,
+        "graphify": "fresh_code_only",
+        "serena": "registered_project_local_lsp_go_typescript_preindexed",
+        "zvec_model": "local/potion-code-16m-v2",
+        "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+      },
+      "limits": {
+        "elapsed_seconds": 300,
+        "exploration_calls": 80,
+        "total_tokens": 500000
+      },
+      "model": "claude-opus-5-5",
+      "native_output_policy": {
+        "automatic_pagination": false,
+        "client_delivery": "record_observed_limits_and_unknowns_separately",
+        "enrichment": false,
+        "harness_byte_limit": null,
+        "harness_line_limit": null,
+        "product_defaults": true
+      },
+      "preparation_only": true,
+      "profile": "grafana-routes",
+      "reasoning_effort": "medium",
+      "seed": 20260907,
+      "solver_backend": "claude_code",
+      "tool_access": {
+        "allowed_auxiliaries": [
+          "rg",
+          "read"
+        ],
+        "default": "native_only",
+        "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+        "quality_based_fallback": false
+      }
+    },
+    "graphify": {
+      "batch_limits": {
+        "bytes": 163840
+      },
+      "concurrency": 1,
+      "grader_backend": "codex",
+      "grader_model": "gpt-6-astra",
+      "grader_reasoning_effort": "high",
+      "index_mode": {
+        "codemap_jev": false,
+        "external_ai": false,
+        "graphify": "fresh_code_only",
+        "serena": "registered_project_local_lsp_go_typescript_preindexed",
+        "zvec_model": "local/potion-code-16m-v2",
+        "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+      },
+      "limits": {
+        "elapsed_seconds": 300,
+        "exploration_calls": 80,
+        "total_tokens": 500000
+      },
+      "model": "claude-opus-5-5",
+      "native_output_policy": {
+        "automatic_pagination": false,
+        "client_delivery": "record_observed_limits_and_unknowns_separately",
+        "enrichment": false,
+        "harness_byte_limit": null,
+        "harness_line_limit": null,
+        "product_defaults": true
+      },
+      "preparation_only": true,
+      "profile": "grafana-routes",
+      "reasoning_effort": "medium",
+      "seed": 20260907,
+      "solver_backend": "claude_code",
+      "tool_access": {
+        "allowed_auxiliaries": [
+          "rg",
+          "read"
+        ],
+        "default": "native_only",
+        "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+        "quality_based_fallback": false
+      }
+    },
+    "rg": {
+      "batch_limits": {
+        "bytes": 163840
+      },
+      "concurrency": 1,
+      "grader_backend": "codex",
+      "grader_model": "gpt-6-astra",
+      "grader_reasoning_effort": "high",
+      "index_mode": {
+        "codemap_jev": false,
+        "external_ai": false,
+        "graphify": "fresh_code_only",
+        "serena": "registered_project_local_lsp_go_typescript_preindexed",
+        "zvec_model": "local/potion-code-16m-v2",
+        "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+      },
+      "limits": {
+        "elapsed_seconds": 300,
+        "exploration_calls": 80,
+        "total_tokens": 500000
+      },
+      "model": "claude-opus-5-5",
+      "native_agent": {
+        "backend": "claude_code",
+        "call_unit": "native exploration tool_use ID; a compound Bash command is one call",
+        "config": {
+          "env": {
+            "PATH": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin"
+          },
+          "permissions": {
+            "blockReadsOutsideWorkingDirectories": true,
+            "defaultMode": "dontAsk",
+            "deny": [
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "WebSearch",
+              "Agent",
+              "Cd"
+            ]
+          },
+          "sandbox": {
+            "allowUnsandboxedCommands": false,
+            "autoAllowBashIfSandboxed": true,
+            "enabled": true,
+            "excludedCommands": [],
+            "filesystem": {
+              "allowRead": [
+                "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source",
+                "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin",
+                "/bin",
+                "/sbin",
+                "/usr",
+                "/System",
+                "/Library",
+                "/dev",
+                "/opt/homebrew"
+              ],
+              "denyRead": [
+                "/"
+              ],
+              "denyWrite": [
+                "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source"
+              ]
+            },
+            "network": {
+              "allowedDomains": [],
+              "strictAllowlist": true
+            }
+          }
+        },
+        "env": {
+          "PATH": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.unity/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.bun/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.local/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/buyong/.codex/tmp/arg0/codex-arg0lAEGuP:/Users/buyong/.codex/packages/app-server-daemon/releases/0.160.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0gS4irS:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.3-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0AYO1vI:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.2-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg00UG49t:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg07ekG6i:/Users/buyong/.codex/packages/app-server-daemon/releases/0.159.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0aGRmgG:/Users/buyong/.codex/packages/app-server-daemon/releases/0.158.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0vu7OdK:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.1-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0qtALS4:/Users/buyong/.codex/packages/app-server-daemon/releases/0.157.0-aarch64-apple-darwin/codex-path:/Users/buyong/.codex/tmp/arg0/codex-arg0YAri9h:/Users/buyong/Library/pnpm/global/5/.pnpm/@openai+codex@0.157.0-darwin-arm64/node_modules/@openai/codex/vendor/aarch64-apple-darwin/codex-path:/Users/buyong/Library/Java/JavaVirtualMachines/graalvm-ce-21.0.2/Contents/Home/bin:/opt/homebrew/opt/mysql-client/bin:/Users/buyong/.grok/bin:/Users/buyong/.opencode/bin:/Users/buyong/.local/bin:/Users/buyong/.antigravity-ide/antigravity-ide/bin:/Users/buyong/.bun/bin:/Users/buyong/.atuin/bin:/Users/buyong/.antigravity/antigravity/bin:/Users/buyong/.codeium/windsurf/bin:/Users/buyong/.nvm/versions/node/v24.14.0/bin:/Users/buyong/Library/pnpm:/Users/buyong/.cargo/bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin:/Users/buyong/workspace/private/json-helper2/node_modules/.bin:/Users/buyong/Library/Application Support/JetBrains/Toolbox/scripts:/Users/buyong/.lmstudio/bin"
+        },
+        "mode": "native_agent",
+        "native_tools": "Claude Code native Bash/Read/Glob/Grep; no search product MCP",
+        "output_policy": "native tool and client defaults; no harness clipping",
+        "rg_binary": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+        "rg_sha256": "a326a1fb48074202e9ad41e4cd1e389eeea372c8c6f7d7e80da81176d5d9430e",
+        "schema": "grafana-native-agent-v1",
+        "search_product_mcp": false,
+        "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source",
+        "tools": [
+          "Bash",
+          "Read",
+          "Glob",
+          "Grep"
+        ]
+      },
+      "native_output_policy": {
+        "automatic_pagination": false,
+        "client_delivery": "record_observed_limits_and_unknowns_separately",
+        "enrichment": false,
+        "harness_byte_limit": null,
+        "harness_line_limit": null,
+        "product_defaults": true
+      },
+      "preparation_only": true,
+      "profile": "grafana-routes",
+      "reasoning_effort": "medium",
+      "seed": 20260907,
+      "solver_backend": "claude_code",
+      "tool_access": {
+        "allowed_auxiliaries": [
+          "rg",
+          "read"
+        ],
+        "default": "native_only",
+        "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+        "quality_based_fallback": false
+      }
+    },
+    "serena": {
+      "batch_limits": {
+        "bytes": 163840
+      },
+      "concurrency": 1,
+      "grader_backend": "codex",
+      "grader_model": "gpt-6-astra",
+      "grader_reasoning_effort": "high",
+      "index_mode": {
+        "codemap_jev": false,
+        "external_ai": false,
+        "graphify": "fresh_code_only",
+        "serena": "registered_project_local_lsp_go_typescript_preindexed",
+        "zvec_model": "local/potion-code-16m-v2",
+        "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+      },
+      "limits": {
+        "elapsed_seconds": 300,
+        "exploration_calls": 80,
+        "total_tokens": 500000
+      },
+      "model": "claude-opus-5-5",
+      "native_output_policy": {
+        "automatic_pagination": false,
+        "client_delivery": "record_observed_limits_and_unknowns_separately",
+        "enrichment": false,
+        "harness_byte_limit": null,
+        "harness_line_limit": null,
+        "product_defaults": true
+      },
+      "preparation_only": true,
+      "profile": "grafana-routes",
+      "reasoning_effort": "medium",
+      "seed": 20260907,
+      "solver_backend": "claude_code",
+      "tool_access": {
+        "allowed_auxiliaries": [
+          "rg",
+          "read"
+        ],
+        "default": "native_only",
+        "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+        "quality_based_fallback": false
+      }
+    },
+    "zvec-grep": {
+      "batch_limits": {
+        "bytes": 163840
+      },
+      "concurrency": 1,
+      "grader_backend": "codex",
+      "grader_model": "gpt-6-astra",
+      "grader_reasoning_effort": "high",
+      "index_mode": {
+        "codemap_jev": false,
+        "external_ai": false,
+        "graphify": "fresh_code_only",
+        "serena": "registered_project_local_lsp_go_typescript_preindexed",
+        "zvec_model": "local/potion-code-16m-v2",
+        "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+      },
+      "limits": {
+        "elapsed_seconds": 300,
+        "exploration_calls": 80,
+        "total_tokens": 500000
+      },
+      "model": "claude-opus-5-5",
+      "native_output_policy": {
+        "automatic_pagination": false,
+        "client_delivery": "record_observed_limits_and_unknowns_separately",
+        "enrichment": false,
+        "harness_byte_limit": null,
+        "harness_line_limit": null,
+        "product_defaults": true
+      },
+      "preparation_only": true,
+      "profile": "grafana-routes",
+      "reasoning_effort": "medium",
+      "seed": 20260907,
+      "solver_backend": "claude_code",
+      "tool_access": {
+        "allowed_auxiliaries": [
+          "rg",
+          "read"
+        ],
+        "default": "native_only",
+        "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+        "quality_based_fallback": false
+      }
+    }
+  },
+  "grader_runs": 0,
+  "handoff_hashes": {
+    "01-contract.json": "8b1c09ffd116e4e2c6cde29b1ed17148b38a174727b4b3432684e386e41e6fa7",
+    "02-delivery.json": "63e827fa28057e7b186f9a9c37a252c5dc9c9f585063c851c3a3556b95e2c8b8",
+    "03-artifacts.json": "f479fe7404fe78507d459c68c92a2e32a7a3b1d32269184e7f7b073c61c4ea75",
+    "04-indexes-claude.json": "10a67a07059adfb7b1707b5c3433f39c7075ed1f177b2855b6bc6b50b697b106",
+    "05-grading.json": "85d806d55f1099bce1cd8a50376c00ce5d6f80fc96af96924d93095a94db8a7f",
+    "06-metrics.json": "d7147b73a5bea49e3999f3c75a244c2f027efef94fdf1e3dc16a810cc46c25b7"
+  },
+  "harness_sha256": "515cdc63a514d4288850646e54dd49d0abf20ea1e27d4d6652cfabb8bffe5c0d",
+  "host": {
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "claude": {
+      "backend": "claude_code",
+      "login_available": true,
+      "required_flags": [
+        "--restricted",
+        "--model",
+        "--effort",
+        "--tools",
+        "--settings",
+        "--setting-sources",
+        "--strict-mcp-config",
+        "--mcp-config",
+        "--disable-slash-commands",
+        "--include-partial-messages",
+        "--output-format",
+        "--no-session-persistence"
+      ],
+      "version": "2.1.288 (Claude Code)"
+    },
+    "codex_version": "codex-cli 0.160.0",
+    "machine": "arm64",
+    "node": "v24.14.0",
+    "processors": 14,
+    "python": "3.14.5",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8",
+    "solver_backend": "claude_code",
+    "system": "macOS-15.7.1-arm64-arm-64bit-Mach-O"
+  },
+  "implementation_hashes": {
+    "benchmark/cli.py": "5c8d6b124dec202f6c656877ea76363f678eb4daaf9079f2c40f63eed27667e5",
+    "benchmark/execution.py": "0e83554d7dcafbb96aad231d9ec20a584f0c6af0c8350a29c73e854cbc395f86",
+    "benchmark/ready.py": "4e8094997c6854301bc9d517523dbf929295faf0e52f2e62904590618d1ece20",
+    "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+    "benchmark/start.mjs": "832e1df95857b1bab37121c62fd7eeca96e4ac2b3fe7e3ac02b3a6ed667894f1"
+  },
+  "input_hashes": {
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "6147358f35dd798f0290ec696211c0c383d440cd08277e32c941b48c691de0b3",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "c90d74aa870666a3db41848aec09b2f6d20240c215aa829ce1b7f131eee541e2",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c",
+    "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
+    "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
+    "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
+    "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
+    "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
+    "benchmark/data/grafana-routes-v2/manifest.json": "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24",
+    "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
+  },
+  "invalidation_rules": [
+    "frozen inputs",
+    "source bytes",
+    "profile/models/effort/limits",
+    "harness code",
+    "binaries and installed dependencies",
+    "embedding weights",
+    "native index state",
+    "native tool schema/default record",
+    "Codex/Claude Code versions"
+  ],
+  "limitations": [
+    "Subject build retains its actual version; it is not relabeled 1.0.0.",
+    "Real solver delivery, account model availability, judge calibration and empirical difficulty are untested.",
+    "OS page cache is uncontrolled; native index coverage and response limits are retained.",
+    "Claude init-only checks startup and settings; actual native-tool enforcement, effective shell PATH and server-applied effort remain unobserved."
+  ],
+  "models": {
+    "grader": {
+      "model": "gpt-6-astra",
+      "reasoning_effort": "high"
+    },
+    "solver": {
+      "backend": "claude_code",
+      "model": "claude-opus-5-5",
+      "reasoning_effort": "medium"
+    }
+  },
+  "plan_id": "a6e97553cb58c03a34d6881e451eec59",
+  "planned_runs": [
+    {
+      "arm": "codemap-search",
+      "attempt": 1,
+      "id": "route-save-existing-codemap-search-1",
+      "question_id": "route-save-existing",
+      "status": "planned"
+    },
+    {
+      "arm": "zvec-grep",
+      "attempt": 1,
+      "id": "route-save-existing-zvec-grep-1",
+      "question_id": "route-save-existing",
+      "status": "planned"
+    },
+    {
+      "arm": "rg",
+      "attempt": 1,
+      "id": "route-save-existing-rg-1",
+      "question_id": "route-save-existing",
+      "status": "planned"
+    },
+    {
+      "arm": "serena",
+      "attempt": 1,
+      "id": "route-save-existing-serena-1",
+      "question_id": "route-save-existing",
+      "status": "planned"
+    },
+    {
+      "arm": "codebase-memory-mcp",
+      "attempt": 1,
+      "id": "route-save-existing-codebase-memory-mcp-1",
+      "question_id": "route-save-existing",
+      "status": "planned"
+    },
+    {
+      "arm": "codegraph",
+      "attempt": 1,
+      "id": "route-save-existing-codegraph-1",
+      "question_id": "route-save-existing",
+      "status": "planned"
+    },
+    {
+      "arm": "graphify",
+      "attempt": 1,
+      "id": "route-save-existing-graphify-1",
+      "question_id": "route-save-existing",
+      "status": "planned"
+    },
+    {
+      "arm": "zvec-grep",
+      "attempt": 1,
+      "id": "route-live-receive-zvec-grep-1",
+      "question_id": "route-live-receive",
+      "status": "planned"
+    },
+    {
+      "arm": "graphify",
+      "attempt": 1,
+      "id": "route-live-receive-graphify-1",
+      "question_id": "route-live-receive",
+      "status": "planned"
+    },
+    {
+      "arm": "serena",
+      "attempt": 1,
+      "id": "route-live-receive-serena-1",
+      "question_id": "route-live-receive",
+      "status": "planned"
+    },
+    {
+      "arm": "codegraph",
+      "attempt": 1,
+      "id": "route-live-receive-codegraph-1",
+      "question_id": "route-live-receive",
+      "status": "planned"
+    },
+    {
+      "arm": "codemap-search",
+      "attempt": 1,
+      "id": "route-live-receive-codemap-search-1",
+      "question_id": "route-live-receive",
+      "status": "planned"
+    },
+    {
+      "arm": "codebase-memory-mcp",
+      "attempt": 1,
+      "id": "route-live-receive-codebase-memory-mcp-1",
+      "question_id": "route-live-receive",
+      "status": "planned"
+    },
+    {
+      "arm": "rg",
+      "attempt": 1,
+      "id": "route-live-receive-rg-1",
+      "question_id": "route-live-receive",
+      "status": "planned"
+    },
+    {
+      "arm": "codegraph",
+      "attempt": 1,
+      "id": "route-star-codegraph-1",
+      "question_id": "route-star",
+      "status": "planned"
+    },
+    {
+      "arm": "graphify",
+      "attempt": 1,
+      "id": "route-star-graphify-1",
+      "question_id": "route-star",
+      "status": "planned"
+    },
+    {
+      "arm": "codemap-search",
+      "attempt": 1,
+      "id": "route-star-codemap-search-1",
+      "question_id": "route-star",
+      "status": "planned"
+    },
+    {
+      "arm": "serena",
+      "attempt": 1,
+      "id": "route-star-serena-1",
+      "question_id": "route-star",
+      "status": "planned"
+    },
+    {
+      "arm": "rg",
+      "attempt": 1,
+      "id": "route-star-rg-1",
+      "question_id": "route-star",
+      "status": "planned"
+    },
+    {
+      "arm": "zvec-grep",
+      "attempt": 1,
+      "id": "route-star-zvec-grep-1",
+      "question_id": "route-star",
+      "status": "planned"
+    },
+    {
+      "arm": "codebase-memory-mcp",
+      "attempt": 1,
+      "id": "route-star-codebase-memory-mcp-1",
+      "question_id": "route-star",
+      "status": "planned"
+    }
+  ],
+  "policy_decisions": {
+    "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
+    "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
+    "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
+    "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
+    "index_mode": "로컬 검색·색인으로 준비 (권장)",
+    "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
+    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 3문항 = 21회 예정.",
+    "solver_selection": "기본 gpt-6.1-sol 또는 claude-opus-5-5 중 하나를 선택하며 Codex / Claude Code 각각 사용",
+    "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
+    "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
+  },
+  "profile": "grafana-routes",
+  "recorded_at": "2026-10-03T10:30:44.737019+00:00",
+  "schema_version": 1,
+  "solver_inputs": {
+    "route-live-receive-codebase-memory-mcp-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-live-receive-codebase-memory-mcp-1.txt",
+      "question_id": "route-live-receive",
+      "sha256": "65c7734e99c6ef39af161e408409289b306f764169992ff0b4e7c6287634c560"
+    },
+    "route-live-receive-codegraph-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-live-receive-codegraph-1.txt",
+      "question_id": "route-live-receive",
+      "sha256": "00c38e70af4980e6e840ddbd139acb7b09baa81cee583c721d64edd2e380cb1d"
+    },
+    "route-live-receive-codemap-search-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-live-receive-codemap-search-1.txt",
+      "question_id": "route-live-receive",
+      "sha256": "d1843138324b4bd68cb6cd32b35407a94bb83380a59cc0659b572338d5c10dfc"
+    },
+    "route-live-receive-graphify-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-live-receive-graphify-1.txt",
+      "question_id": "route-live-receive",
+      "sha256": "5b53aca4c2e8ed01171c33b123d25577e24f13dc27a86648b07a55df72dbb5a4"
+    },
+    "route-live-receive-rg-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-live-receive-rg-1.txt",
+      "question_id": "route-live-receive",
+      "sha256": "b29fc145e7d8d923e3f9c6b7c16981d4e94e070a61049980ba3ca42aef99e5d4"
+    },
+    "route-live-receive-serena-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-live-receive-serena-1.txt",
+      "question_id": "route-live-receive",
+      "sha256": "d3019ed5ea0c95b42108acdb3c20ad29e4baac92d3b33c42dbc93725c5b3986d"
+    },
+    "route-live-receive-zvec-grep-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-live-receive-zvec-grep-1.txt",
+      "question_id": "route-live-receive",
+      "sha256": "b05869d59abe79b95729ff71381022c62931a09511c11dff75522274721c4cc6"
+    },
+    "route-save-existing-codebase-memory-mcp-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-save-existing-codebase-memory-mcp-1.txt",
+      "question_id": "route-save-existing",
+      "sha256": "27ca3fbc4fe3209e13663edfc724ec7e29471c48207f482e68988de54630534a"
+    },
+    "route-save-existing-codegraph-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-save-existing-codegraph-1.txt",
+      "question_id": "route-save-existing",
+      "sha256": "5a612aa15f36e0cbecb3ee7ed27ccf02b0573092bb1090f8007f6395a57a1435"
+    },
+    "route-save-existing-codemap-search-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-save-existing-codemap-search-1.txt",
+      "question_id": "route-save-existing",
+      "sha256": "a0fd089a1367396c02796815d08dfd5d51f5350e39d53fd14335d05031aa1224"
+    },
+    "route-save-existing-graphify-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-save-existing-graphify-1.txt",
+      "question_id": "route-save-existing",
+      "sha256": "e468e2f91de06e5cf5d26f56cb887420892f196048b11349346876eb9b9192f7"
+    },
+    "route-save-existing-rg-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-save-existing-rg-1.txt",
+      "question_id": "route-save-existing",
+      "sha256": "b10ce3cfb86c0ea72a5525ef5e93f26427dda796e3cf9d3de536ec4861f9813e"
+    },
+    "route-save-existing-serena-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-save-existing-serena-1.txt",
+      "question_id": "route-save-existing",
+      "sha256": "660be881d05af1e0696a5804a919eb85e3a190861466dcdfdfc0b5361a08657f"
+    },
+    "route-save-existing-zvec-grep-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-save-existing-zvec-grep-1.txt",
+      "question_id": "route-save-existing",
+      "sha256": "01e6bec26c877d15d4359c55ed83c5e096ded6fb87483bc112f04f626614cbb7"
+    },
+    "route-star-codebase-memory-mcp-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-star-codebase-memory-mcp-1.txt",
+      "question_id": "route-star",
+      "sha256": "c19b26e650b2fe08b58c6ec471365e90ce66e8d681d134a9fe5d2901a89a5002"
+    },
+    "route-star-codegraph-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-star-codegraph-1.txt",
+      "question_id": "route-star",
+      "sha256": "9bcfcf0843384d383611a2e23a974782c5ed4e6bd041ee57a060d74f290bfe37"
+    },
+    "route-star-codemap-search-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-star-codemap-search-1.txt",
+      "question_id": "route-star",
+      "sha256": "2571d12e7c46b42bf1b38654004642a8f8eb55f7d0dcaac1ac685ae539493d59"
+    },
+    "route-star-graphify-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-star-graphify-1.txt",
+      "question_id": "route-star",
+      "sha256": "7a862cee26399a2a3e9af818b64cb5a245846f57e95e459ff482c0ce6a7cfac3"
+    },
+    "route-star-rg-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-star-rg-1.txt",
+      "question_id": "route-star",
+      "sha256": "d041e94c2311b714e2ce66b29483e0d250e51292d6c117f4a1619cdc16abbd57"
+    },
+    "route-star-serena-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-star-serena-1.txt",
+      "question_id": "route-star",
+      "sha256": "b4d66fe8cbe839aa45d4d69987801e02dd7f5d27a9a885c0707f44c61d027153"
+    },
+    "route-star-zvec-grep-1": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/solver-inputs/route-star-zvec-grep-1.txt",
+      "question_id": "route-star",
+      "sha256": "50810e81c633095ebbe8a32656613962d1510a9f8001584fa787c66d69b52d87"
+    }
+  },
+  "solver_runs": 0,
+  "source_manifest_sha256": "6c779687f9cc79a49fc45fb9a14d9ef46a98b59367164b4c71de5334b5f1171b",
+  "status": "prepared_not_executed",
+  "technical_ready": true
+}

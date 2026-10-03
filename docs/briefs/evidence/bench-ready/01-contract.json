@@ -65,6 +65,20 @@
       "version": "0.11.0"
     },
     {
+      "commit": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+      "id": "serena",
+      "name": "Serena",
+      "repository": "oraios/serena",
+      "role": "comparison_tool",
+      "source_archive": {
+        "bytes": 2252543,
+        "format": "tar.gz",
+        "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
+        "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd"
+      },
+      "version": "1.7.0"
+    },
+    {
       "commit": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
       "id": "rg",
       "name": "기본 에이전트 (검색제품 없음)",
@@ -81,13 +95,13 @@
   ],
   "checks": {
     "bundle_hashes": "passed",
-    "planned_unique_keys": 18,
+    "planned_unique_keys": 21,
     "profiles": [
       "grafana-routes"
     ],
     "prompt_separation": "passed"
   },
-  "contract_hash": "ca85f15ddea7e0613d5eda580c1a92ec5f6ccbba484d10e3f9a6b61f57188e76",
+  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
   "contract_paths": {
     "private_dataset": "benchmark/data/grafana-routes-v2/dataset.json",
     "profile": "benchmark/data/grafana-execution-v1.json",
@@ -114,23 +128,23 @@
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/data/grafana-execution-v1.json": "47a355a36b3e00fbd06a2356efc3ddc57b9eb903d8b591a600ff436b144af674",
-    "benchmark/execution.py": "25583ece6c3b573e63509654f7a5955848c2a5580bf6db0e9095b549cb091a2e",
-    "benchmark/route_contract.py": "618d85fef56d10d273e8752dc25e9f0463e91443e5211a78acc7008a314b2b64",
-    "benchmark/runner.py": "d9f999b56ce0aeb52164b209a86a04399370c1892be828d14d2d474013b16487",
-    "benchmark/settings.py": "bd10dfbc54b0ed5dc30955960c0e20c94206b7e2e83c9528e6665d8f62bcf411"
+    "benchmark/data/grafana-execution-v1.json": "777ba727589e295e7309a39bb6dd7e17064c5c725b043db7ea709abf22209031",
+    "benchmark/execution.py": "0e83554d7dcafbb96aad231d9ec20a584f0c6af0c8350a29c73e854cbc395f86",
+    "benchmark/route_contract.py": "9ff65e8c1d666860c7d158b2250c4c7710cc3a753892d4742422f263b3b21074",
+    "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
+    "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "e1492dc94afb6923b4fb73ebcdf9a90dcd058834c0957501f92bfcc8ed67a0ce",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "513e8e9e16c545138fba3038e5c249d11240ef1259d3af8d40e02584391e77df",
-    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "55b8f32c055a57d3320d048b507a6bacbf5635f82fe37482a98b8557d7ba1e03",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "ff93c37b8c6588a5830738132440194ab331488cd122b46e849ef5d885fe7a51",
-    "benchmark/data/grafana-routes-v2/README.md": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
-    "benchmark/data/grafana-routes-v2/SHA256SUMS": "4d7719fb2c445df563b70c131c86e802faa93a4431b9bb795e83a947ea3147fa",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "6147358f35dd798f0290ec696211c0c383d440cd08277e32c941b48c691de0b3",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "c90d74aa870666a3db41848aec09b2f6d20240c215aa829ce1b7f131eee541e2",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c",
+    "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
+    "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
     "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
     "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
     "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
-    "benchmark/data/grafana-routes-v2/manifest.json": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
+    "benchmark/data/grafana-routes-v2/manifest.json": "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24",
     "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
   },
   "limitations": [
@@ -142,13 +156,16 @@
     "exploration_calls": 80,
     "total_tokens": 500000
   },
-  "planned_solver_runs": 18,
+  "planned_solver_runs": 21,
   "policy_decisions": {
     "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
     "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
     "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
+    "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
     "index_mode": "로컬 검색·색인으로 준비 (권장)",
     "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
+    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 3문항 = 21회 예정.",
+    "solver_selection": "기본 gpt-6.1-sol 또는 claude-opus-5-5 중 하나를 선택하며 Codex / Claude Code 각각 사용",
     "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
     "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
   },
@@ -159,16 +176,17 @@
       "zvec-grep",
       "graphify",
       "codebase-memory-mcp",
+      "serena",
       "rg"
     ],
     "baseline": {
       "arm": "rg",
-      "call_unit": "native command_execution items, counted once by item ID",
+      "call_unit": "Codex command_execution item ID or Claude native exploration tool_use ID; deduplicate partial/completed events",
       "mode": "native_agent",
       "rg_version": "15.2.0",
       "search_product_mcp": false,
       "source_access": "read-only fixed corpus and minimal runtime; no reference/report access",
-      "tools": "Codex native defaults; shell and filesystem navigation remain available"
+      "tools": "Selected coding-agent native shell and filesystem navigation; no search product MCP"
     },
     "comparison_lock_id": "grafana-comparison-targets-v1",
     "concurrency": 1,
@@ -182,6 +200,7 @@
       "codemap_jev": false,
       "external_ai": false,
       "graphify": "fresh_code_only",
+      "serena": "registered_project_local_lsp_go_typescript_preindexed",
       "zvec_model": "local/potion-code-16m-v2",
       "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
     },
@@ -190,7 +209,7 @@
       "exploration_calls": 80,
       "total_tokens": 500000
     },
-    "name": "Grafana 3개 경로 · 6개 비교군 · 준비 전용",
+    "name": "Grafana 3개 경로 · 7개 비교군 · 준비 전용",
     "native_output_policy": {
       "automatic_pagination": false,
       "client_delivery": "record_observed_limits_and_unknowns_separately",
@@ -203,8 +222,11 @@
       "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
       "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
       "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
+      "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
       "index_mode": "로컬 검색·색인으로 준비 (권장)",
       "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
+      "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 3문항 = 21회 예정.",
+      "solver_selection": "기본 gpt-6.1-sol 또는 claude-opus-5-5 중 하나를 선택하며 Codex / Claude Code 각각 사용",
       "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
       "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
     },
@@ -216,6 +238,20 @@
       "model": "gpt-6.1-sol",
       "reasoning_effort": "medium"
     },
+    "solver_choices": [
+      {
+        "backend": "codex",
+        "model": "gpt-6.1-sol",
+        "name": "GPT 6.1 Sol",
+        "reasoning_effort": "medium"
+      },
+      {
+        "backend": "claude_code",
+        "model": "claude-opus-5-5",
+        "name": "Claude Opus 5.5",
+        "reasoning_effort": "medium"
+      }
+    ],
     "tool_access": {
       "allowed_auxiliaries": [
         "rg",
@@ -231,13 +267,27 @@
     "route-save-existing",
     "route-live-receive"
   ],
-  "recorded_at": "2026-10-03T05:50:56.655692+00:00",
+  "recorded_at": "2026-10-03T09:43:42.907224+00:00",
   "repetitions": 1,
   "schema_version": 1,
   "solver": {
     "model": "gpt-6.1-sol",
     "reasoning_effort": "medium"
   },
+  "solver_choices": [
+    {
+      "backend": "codex",
+      "model": "gpt-6.1-sol",
+      "name": "GPT 6.1 Sol",
+      "reasoning_effort": "medium"
+    },
+    {
+      "backend": "claude_code",
+      "model": "claude-opus-5-5",
+      "name": "Claude Opus 5.5",
+      "reasoning_effort": "medium"
+    }
+  ],
   "solver_runs": 0,
   "source_commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47",
   "status": "verified",

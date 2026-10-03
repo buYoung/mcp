@@ -12,11 +12,14 @@ CACHE = ROOT / ".cache"
 RUNS = ROOT / "runs"
 
 
-def execution_settings() -> dict:
-    from .route_contract import load_profile
+def execution_settings(solver_model: str | None = None) -> dict:
+    from .route_contract import load_profile, solver_model as resolve_solver
     profile = load_profile()
+    solver = resolve_solver(solver_model)
     return {"profile": profile["profile"], "preparation_only": True,
-            "model": profile["solver"]["model"], "reasoning_effort": profile["solver"]["reasoning_effort"],
+            "model": solver["model"], "reasoning_effort": solver["reasoning_effort"],
+            "solver_backend": solver["backend"],
+            "grader_backend": "codex",
             "grader_model": profile["grader"]["model"], "grader_reasoning_effort": profile["grader"]["reasoning_effort"],
             "seed": profile["seed"], "concurrency": profile["concurrency"], "limits": copy.deepcopy(profile["limits"]),
             "batch_limits": {"bytes": 160 * 1024},

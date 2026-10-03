@@ -21,7 +21,7 @@ class CUI:
         plan = {"plan_id": "fixture", "profile_name": "검증", "preparation_only": True, "status": "prepared_not_executed",
                 "targets": [{**item, "tool_condition": "native_agent_baseline" if item["id"] == "rg" else "native_only",
                              "actual_version": "fixture"} for item in catalog["route_targets"]],
-                "questions": 3, "repeats": 1, "runs": 18, "spec": settings.execution_settings(),
+                "questions": 3, "repeats": 1, "runs": len(routes.schedule()), "spec": settings.execution_settings(),
                 "readiness": str(root / "readiness.json")}
         script = root / "fixture.mjs"
         script.write_text(f"""
@@ -31,9 +31,10 @@ import * as prompts from {json.dumps((settings.REPOSITORY/'node_modules/@inquire
 requireTerminal();
 const catalog={json.dumps(catalog,ensure_ascii=False)};
 const plan={json.dumps(plan,ensure_ascii=False)};
+const specs={json.dumps({item['model']: settings.execution_settings(item['model']) for item in catalog['solver_choices']},ensure_ascii=False)};
 const call=async(action,request)=>{{
   appendFileSync({json.dumps(str(self.log))},JSON.stringify({{action,request}})+'\\n');
-  return action==='catalog'?catalog:action==='prepare'?plan:{{status:'complete'}};
+  return action==='catalog'?catalog:action==='prepare'?{{...plan,spec:specs[request.solver_model]}}:{{status:'complete'}};
 }};
 try {{ await interactive({{prompts,call}}); }}
 catch(error) {{ if(['ExitPromptError','AbortPromptError'].includes(error.name)) process.exitCode=130; else throw error; }}
@@ -127,16 +128,22 @@ class CUIChecks(unittest.TestCase):
         def run(cui):
             cui.wait("평가 유형을 선택하세요.")
             cui.send("\r")
+            cui.wait("측정에 사용할 풀이 모델을 선택하세요.")
+            cui.send("\r")
             self.assertEqual(cui.finish(), 0)
             self.assertEqual([c["action"] for c in cui.calls()], ["catalog", "prepare"])
+            self.assertEqual(cui.calls()[1]["request"]["solver_model"], "gpt-6.1-sol")
         self.exercise(run)
 
     def test_fixed_profile_and_targets_are_forwarded(self):
         def run(cui):
             cui.wait("평가 유형을 선택하세요.")
             cui.send("\r")
+            cui.wait("측정에 사용할 풀이 모델을 선택하세요.")
+            cui.send("\x1b[B\r")
             self.assertEqual(cui.finish(), 0)
-            self.assertEqual(cui.calls()[1]["request"], {"profile": routes.PROFILE, "targets": list(routes.ARM_IDS)})
+            self.assertEqual(cui.calls()[1]["request"], {"profile": routes.PROFILE, "targets": list(routes.ARM_IDS),
+                                                       "solver_model": "claude-opus-5-5"})
         self.exercise(run)
 
     def test_ctrl_c_before_preparation(self):

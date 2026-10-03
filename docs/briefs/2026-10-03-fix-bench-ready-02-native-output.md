@@ -25,7 +25,7 @@ fix
 ### In Scope
 - Correct the new route transport path and Codex caller chain, using only the current execution contract.
 - Preserve MCP content blocks, structured content, errors, annotations, instructions, and tool schemas where supported. Record unsupported client modalities explicitly instead of flattening them silently.
-- Replace the six-name assumption with per-product native discovery and an explicit query-phase tool policy. Preparation mutations run outside solver access.
+- Replace the seven-name assumption with per-product native discovery and an explicit query-phase tool policy. Preparation mutations run outside solver access.
 - Remove the artificial rg 250-line cap and host 32000-byte cap on the route path. Preserve CLI exit codes and raw stdout/stderr, including no-match semantics.
 - Record initialization identity, actual tool schemas/defaults, response units, raw/delivered fingerprints, and unresolved client-delivery limits for metrics consumers.
 ### Out of Scope
@@ -41,7 +41,7 @@ fix
 - Audit the route-specific `65536` override and code-mode budgets. Do not claim that deleting an override yields unlimited history. Preserve actual client limits, record where content becomes unobservable, and attribute client clipping separately from product detail.
 - Product-native narrow responses remain narrow. Ordinary solver-chosen follow-up searches remain normal behavior, but the harness must not fetch extra content on the solver's behalf.
 - Classify auxiliary necessity before any scored run, using native schemas/documentation and a neutral capability probe. Sparse output, empty results, lower coverage, response caps, or a README recommendation alone do not justify assistance. Record the missing operation, why native tools cannot perform it, the smallest auxiliary set, and the resulting assisted-arm label.
-- 기준군 `rg`는 추가 검색 제품이 없는 기본 에이전트다. 전용 rg MCP 대신 Codex 기본 셸·파일 탐색을 제공하고 명령 선택은 LLM에 맡긴다. 출력·셸·code mode의 기본값을 유지하고 고정 rg를 명령 PATH에 둔다. 최소 실행 경로와 Grafana 원문만 읽을 수 있도록 권한을 제한한다. 제품군의 read 예외는 같은 원문 reader를 사용하며 zvec의 후속 rg 안내는 무시한다.
+- 기준군 `rg`는 추가 검색 제품이 없는 기본 에이전트다. 전용 rg MCP 대신 선택한 CLI의 기본 셸·파일 탐색을 제공하고 명령 선택은 LLM에 맡긴다. 출력·셸·code mode의 기본값을 유지하고 고정 rg를 명령 PATH에 둔다. 최소 실행 경로와 Grafana 원문만 읽을 수 있도록 권한을 제한한다. 제품군의 read 예외는 같은 원문 reader를 사용하며 zvec의 후속 rg 안내는 무시한다.
 - Use the contract from child 01. Allow query operations inside the frozen source root; do not rely only on parameter names `path/file/file_path` when a product uses `root` or `projectPath`.
 
 ## Related Files / Entry Points
@@ -98,7 +98,7 @@ fix
 ## Acceptance Criteria
 - [x] Inspect the active route code path and verify zero harness byte/line truncation or injected output-size tuning; the scan population includes transport, baseline, runner options, and code-mode delivery.
 - [x] Inspect raw and relay envelopes from offline verification and find all supported fields preserved with separately recorded client limitations.
-- [x] Existing harness checks pass and the new route no longer assumes six codemap tool names or one stdio command shape.
+- [x] Existing harness checks pass and the new route no longer assumes seven codemap tool names or one stdio command shape.
 - [x] `02-delivery.json` is sufficient for product startup probes and metric attribution without implying that real solver delivery has been measured.
 
 ## Open Questions

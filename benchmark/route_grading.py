@@ -66,8 +66,9 @@ REFERENCE = re.compile(r"(?P<path>[^\s`<>\[\]()\"',;]+?\.[A-Za-z0-9]+)(?::L?|#L)
 IDENTITY_MENTION = re.compile(
     r"(?i)(?<![A-Za-z0-9_])(?:mcp[_:.-]+)?(?:codemap[-_\s]*search(?:_[A-Za-z0-9_]+)?|"
     r"codegraph(?:_[A-Za-z0-9_]+)?|zvec[-_\s]*grep(?:_[A-Za-z0-9_]+)?|"
-    r"graphify(?:_[A-Za-z0-9_]+)?|codebase[-_\s]*memory(?:[-_\s]*mcp)?(?:_[A-Za-z0-9_]+)?|plain[-_\s]+rg|ripgrep|rg|"
-    r"gpt[-_\s]*\d[A-Za-z0-9_.\-]*)(?![A-Za-z0-9_])")
+    r"graphify(?:_[A-Za-z0-9_]+)?|codebase[-_\s]*memory(?:[-_\s]*mcp)?(?:_[A-Za-z0-9_]+)?|serena(?:_[A-Za-z0-9_]+)?|plain[-_\s]+rg|ripgrep|rg|"
+    r"gpt[-_\s]*\d[A-Za-z0-9_.\-]*|claude(?:[-_\s]+(?:opus|code))?(?:[-_\s]*\d[\d.\-]*)?|"
+    r"opus[-_\s]*\d[\d.\-]*)(?![A-Za-z0-9_])")
 
 
 def citation_index(answer: str) -> list[dict]:

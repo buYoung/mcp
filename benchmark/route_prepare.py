@@ -15,11 +15,10 @@ from .core import ContractError, command, digest, file_digest, read_json, requir
 HANDOFFS = ("01-contract.json", "02-delivery.json", "03-artifacts.json", "04-indexes.json", "05-grading.json", "06-metrics.json")
 
 
-def execution_spec(state: dict | None = None) -> dict:
+def execution_spec(state: dict | None = None, *, solver_model: str | None = None) -> dict:
     profile = routes.load_profile()
-    spec = settings.execution_settings()
+    spec = settings.execution_settings(solver_model)
     spec.update(profile=routes.PROFILE, preparation_only=True, concurrency=1, seed=profile["seed"],
-                model=profile["solver"]["model"], reasoning_effort=profile["solver"]["reasoning_effort"],
                 grader_model=profile["grader"]["model"], grader_reasoning_effort=profile["grader"]["reasoning_effort"],
                 limits=profile["limits"],
                 native_output_policy=profile["native_output_policy"], tool_access=profile["tool_access"],
@@ -29,10 +28,21 @@ def execution_spec(state: dict | None = None) -> dict:
     return spec
 
 
-def check_handoffs() -> dict:
+def readiness_path(solver_model: str | None = None) -> Path:
+    solver = routes.solver_model(solver_model)
+    suffix = "" if solver["model"] == routes.load_profile()["solver"]["model"] else "-" + solver["model"]
+    return routes.EVIDENCE / f"07-readiness{suffix}.json"
+
+
+def handoff_names(solver_model: str | None = None) -> tuple[str, ...]:
+    backend = routes.solver_model(solver_model)["backend"]
+    return tuple(tool_indexes.index_handoff(backend) if name == "04-indexes.json" else name for name in HANDOFFS)
+
+
+def check_handoffs(solver_model: str | None = None) -> dict:
     identity = routes.contract()["contract_hash"]
     hashes = {}
-    for name in HANDOFFS:
+    for name in handoff_names(solver_model):
         path = routes.EVIDENCE / name
         value = read_json(path)
         require(value["contract_hash"] == identity, f"공유 계약 변경: {name}")
@@ -58,15 +68,21 @@ def verify_readiness(record: dict) -> None:
     require(record["execution_authorized"] is False, "준비 전용 경계 변경")
     require(record["contract_hash"] == routes.contract()["contract_hash"], "route 실행 계약 변경")
     require(record["harness_sha256"] == settings.harness_identity(), "준비 이후 하네스 변경")
-    require(record["handoff_hashes"] == check_handoffs(), "준비 근거 변경")
+    solver = routes.solver_model(record["models"]["solver"]["model"])
+    require(record["handoff_hashes"] == check_handoffs(solver["model"]), "준비 근거 변경")
+    require(record["models"] == {"solver": solver, "grader": routes.load_profile()["grader"]}, "모델 선택 또는 고정 채점 조건 변경")
     for check in record["checks"]["offline_commands"]:
         require(check["exit_code"] == 0 and file_digest(Path(check["log"])) == check["log_sha256"], "오프라인 검증 근거 변경")
     require(record["host"]["codex_version"] == command(["codex", "--version"]).strip(), "Codex 버전 변경")
+    require(record["host"]["solver_backend"] == solver["backend"], "풀이 실행기 변경")
+    if solver["backend"] == "claude_code":
+        require(record["host"]["claude"]["version"] == command(["claude", "--version"]).strip(), "Claude Code 버전 변경")
     artifacts = tool_artifacts.load_artifacts()
     corpus = read_json(tool_indexes.CORPUS)
     require(file_digest(tool_indexes.CORPUS) == record["source_manifest_sha256"], "source manifest 변경")
     for ident in routes.ARM_IDS:
         state = record["arms"][ident]
+        require(state["agent_backend"] == solver["backend"], "선택한 실행기와 조회 준비 기록 불일치")
         tool_indexes.verify_probe(state, artifacts)
         require(state["artifact_sha256"] == digest(artifacts[ident]), "실행 artifact 변경")
         require(digest(tool_indexes.tracked_manifest(Path(state["source"]), corpus["files"])) == corpus["source_sha256"], "source 변경")
@@ -76,19 +92,21 @@ def verify_readiness(record: dict) -> None:
                     "복원용 native baseline 변경")
         require(file_digest(Path(state["native_inventory"])) == state["native_inventory_sha256"], "native tools/defaults 기록 변경")
         require(file_digest(Path(state["probe_log"])) == state["probe_log_sha256"], "native 중립 조회 로그 변경")
-    require(record["planned_runs"] == routes.schedule() and len(record["planned_runs"]) == 18, "계획 슬롯 변경")
+    require(record["planned_runs"] == routes.schedule() and len(record["planned_runs"]) == len(routes.QUESTION_IDS) * len(routes.ARM_IDS), "계획 슬롯 변경")
     require(set(record["solver_inputs"]) == {row["id"] for row in record["planned_runs"]}, "풀이 입력 슬롯 누락")
     for row in record["planned_runs"]:
         item = record["solver_inputs"][row["id"]]
         prompt = routes.solver_prompt(row["question_id"], Path(record["arms"][row["arm"]]["source"]), row["arm"])
         require(Path(item["path"]).read_text() == prompt and file_digest(Path(item["path"])) == item["sha256"], "풀이 입력 변경")
-    require(record["execution_specs"] == {ident: execution_spec(state) for ident, state in record["arms"].items()}, "비교군별 실행 설정 변경")
+    require(record["execution_specs"] == {ident: execution_spec(state, solver_model=solver["model"])
+                                          for ident, state in record["arms"].items()}, "비교군별 실행 설정 변경")
     require(all(record[name] == 0 for name in ("solver_runs", "grader_runs", "calibration_runs")), "준비에 실행 결과 혼입")
 
 
-def build_plan(emit=print) -> dict:
+def build_plan(emit=print, *, solver_model: str | None = None) -> dict:
     """Validate existing prepared evidence and create only a reviewable, unexecuted plan."""
-    handoffs = check_handoffs()
+    solver = routes.solver_model(solver_model)
+    handoffs = check_handoffs(solver["model"])
     validation = routes.PREPARATION / "validation" / str(time.time_ns())
     offline_commands = []
     for name, args in (
@@ -97,12 +115,13 @@ def build_plan(emit=print) -> dict:
     ):
         emit(f"오프라인 검증 ({settings.REPOSITORY}): {' '.join(args)}")
         offline_commands.append(tool_artifacts.run_logged(args, settings.REPOSITORY, validation / f"{name}.log", timeout=180))
-    indexes = read_json(routes.EVIDENCE / "04-indexes.json")
+    indexes = read_json(routes.EVIDENCE / tool_indexes.index_handoff(solver["backend"]))
     artifacts = read_json(routes.EVIDENCE / "03-artifacts.json")["artifacts"]
-    host = resources.environment()
+    host = resources.environment(solver["backend"])
     host.update(system=platform.platform(), machine=platform.machine(), processors=__import__("os").cpu_count())
     profile = routes.load_profile()
     condition = {"contract_hash": routes.contract()["contract_hash"], "harness_sha256": settings.harness_identity(),
+                 "models": {"solver": solver, "grader": profile["grader"]},
                  "artifacts": {ident: value["artifact_sha256"] for ident, value in indexes["prepared_states"].items()},
                  "source_sha256": indexes["source_manifest"]["source_sha256"], "host": host,
                  "native_conditions": {ident: {"inventory": s["native_inventory_sha256"], "baseline": s["baseline"]["state_sha256"],
@@ -120,45 +139,52 @@ def build_plan(emit=print) -> dict:
               "execution_authorized": False, "plan_id": plan_id, "contract_hash": condition["contract_hash"],
               "harness_sha256": condition["harness_sha256"], "handoff_hashes": handoffs,
               "input_hashes": routes.contract()["input_hashes"], "source_manifest_sha256": file_digest(tool_indexes.CORPUS),
-              "host": host, "models": {"solver": profile["solver"], "grader": profile["grader"]},
+              "host": host, "models": condition["models"],
               "actual_versions": {ident: artifact["actual_version"] for ident, artifact in artifacts.items()},
               "arms": indexes["prepared_states"], "planned_runs": routes.schedule(),
-              "execution_specs": {ident: execution_spec(state) for ident, state in indexes["prepared_states"].items()},
+              "execution_specs": {ident: execution_spec(state, solver_model=solver["model"])
+                                   for ident, state in indexes["prepared_states"].items()},
               "solver_inputs": solver_inputs,
               "policy_decisions": profile["policy_decisions"],
-              "checks": {"component_evidence": "verified", "planned_slots": 18, "offline_commands": offline_commands},
+              "checks": {"component_evidence": "verified", "planned_slots": len(routes.schedule()), "offline_commands": offline_commands},
               "invalidation_rules": ["frozen inputs", "source bytes", "profile/models/effort/limits", "harness code",
                                      "binaries and installed dependencies", "embedding weights", "native index state",
-                                     "native tool schema/default record", "Codex version"],
+                                     "native tool schema/default record", "Codex/Claude Code versions"],
               "solver_runs": 0, "grader_runs": 0, "calibration_runs": 0,
               "limitations": ["Subject build retains its actual version; it is not relabeled 1.0.0.",
                               "Real solver delivery, account model availability, judge calibration and empirical difficulty are untested.",
                               "OS page cache is uncontrolled; native index coverage and response limits are retained."]}
+    if solver["backend"] == "claude_code":
+        record["limitations"].append("Claude init-only checks startup and settings; actual native-tool enforcement, effective shell PATH and server-applied effort remain unobserved.")
     verify_readiness(record)
     write_json(root / "readiness.json", record)
     route_metrics.report(root, record, [], {})
-    spec = execution_spec()
+    spec = execution_spec(solver_model=solver["model"])
     write_json(settings.CACHE / "plans" / f"{plan_id}.json", {
         "profile": routes.PROFILE, "preparation_only": True, "readiness": str(root / "readiness.json"),
         "harness_sha256": condition["harness_sha256"], "spec": spec, "execution_specs": record["execution_specs"],
         "planned_runs": record["planned_runs"]})
-    routes.publish_handoff("07-readiness.json", record,
+    routes.publish_handoff(readiness_path(solver["model"]).name, record,
         implementation=["benchmark/route_prepare.py", "benchmark/cli.py", "benchmark/start.mjs", "benchmark/ready.py", "benchmark/execution.py"],
-        dependencies=list(HANDOFFS))
-    emit(f"준비 완료: 3문항 × 6개 도구 × 1회 = 18회 예정. 실제 풀이·채점 0회.")
+        dependencies=list(handoff_names(solver["model"])))
+    emit(f"준비 완료: {len(routes.QUESTION_IDS)}문항 × {len(routes.ARM_IDS)}개 비교군 × 1회 = {len(routes.schedule())}회 예정. 실제 풀이·채점 0회.")
     return {"plan_id": plan_id, "profile_name": profile["name"], "preparation_only": True,
             "status": record["status"], "technical_ready": True,
             "targets": [{"id": ident, "name": "기본 에이전트 (검색 제품 없음)" if ident == "rg" else ident,
                          "source_sha256": s["source_sha256"], "tool_condition": s["tool_condition"],
                          "actual_version": artifacts[ident]["actual_version"]}
                         for ident, s in record["arms"].items()],
-            "questions": 3, "repeats": 1, "runs": 18, "spec": spec, "codex_version": host["codex_version"],
+            "questions": len(routes.QUESTION_IDS), "repeats": 1, "runs": len(routes.schedule()), "spec": spec, "codex_version": host["codex_version"],
             "output_root": str(root), "readiness": str(root / "readiness.json"),
             "report": str(root / "report/results.md"), "solver_runs": 0, "grader_runs": 0}
 
 
-def prepare_all(emit=print) -> dict:
+def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
     """Cache-aware local preparation; no implicit start/resume or model launch."""
+    solver = routes.solver_model(solver_model)
+    if solver["backend"] == "claude_code":
+        from .claude_client import capabilities
+        capabilities()
     with resources.lease(routes.PREPARATION / ".prepare.lock"):
         harness_at_start = settings.harness_identity()
         routes.publish_contract()
@@ -170,26 +196,28 @@ def prepare_all(emit=print) -> dict:
         tool_indexes.prepare_source(emit)
         for ident in routes.ARM_IDS:
             tool_indexes.prepare_index(ident, emit)
-            if not tool_indexes.probe_is_current(ident):
-                tool_indexes.probe_index(ident, emit)
-        tool_indexes.publish_indexes()
+            if not tool_indexes.probe_is_current(ident, solver["backend"]):
+                tool_indexes.probe_index(ident, emit, backend=solver["backend"])
+        tool_indexes.publish_indexes(solver["backend"])
         route_metrics.publish_metrics()
         require(settings.harness_identity() == harness_at_start,
                 "준비 중 하네스 파일이 변경되었습니다. 현재 코드로 prepare를 다시 수행하세요")
-        return build_plan(emit)
+        return build_plan(emit, solver_model=solver["model"])
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Grafana 18회 계획의 준비 전용 게이트; 실제 모델 실행 없음")
+    parser = argparse.ArgumentParser(description="Grafana 비교 계획의 준비 전용 게이트; 실제 모델 실행 없음")
     parser.add_argument("action", choices=["prepare", "finalize", "verify"], nargs="?", default="prepare")
+    parser.add_argument("--solver-model", choices=[item["model"] for item in routes.load_profile()["solver_choices"]],
+                        help="풀이 모델; 생략하면 gpt-6.1-sol, 채점은 항상 gpt-6-astra")
     args = parser.parse_args()
     try:
         if args.action == "prepare":
-            value = prepare_all(lambda message: print(message, flush=True))
+            value = prepare_all(lambda message: print(message, flush=True), solver_model=args.solver_model)
         elif args.action == "finalize":
-            value = build_plan(lambda message: print(message, flush=True))
+            value = build_plan(lambda message: print(message, flush=True), solver_model=args.solver_model)
         else:
-            record = read_json(routes.EVIDENCE / "07-readiness.json")
+            record = read_json(readiness_path(args.solver_model))
             verify_readiness(record)
             value = {"status": "prepared_not_executed", "plan_id": record["plan_id"]}
         print(f"{value['status']}: {value['plan_id']}")

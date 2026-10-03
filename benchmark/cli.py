@@ -23,7 +23,8 @@ def main() -> int:
         if args.action == "catalog":
             result = execution.catalog()
         elif args.action == "prepare":
-            result = execution.prepare_plan(request["profile"], request["targets"], emit)
+            result = execution.prepare_plan(request["profile"], request["targets"], emit,
+                                            solver_model=request.get("solver_model"))
         print(json.dumps({"event": "result", "value": result}, ensure_ascii=False), flush=True)
         return 0
     except (ContractError, OSError, KeyError, TypeError, ValueError, subprocess.SubprocessError) as exc:

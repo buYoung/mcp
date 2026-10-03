@@ -13,12 +13,17 @@ def answer_prompt(spec: dict, question: dict) -> str:
 
 
 def catalog() -> dict:
-    return {"profiles": settings.profiles(), "route_targets": settings.targets()}
+    from .route_contract import load_profile
+    profile = load_profile()
+    return {"profiles": settings.profiles(), "route_targets": settings.targets(),
+            "solver_choices": profile["solver_choices"], "default_solver_model": profile["solver"]["model"],
+            "grader": profile["grader"]}
 
 
-def prepare_plan(profile: str, selected: list[str], emit=print) -> dict:
+def prepare_plan(profile: str, selected: list[str], emit=print, *, solver_model: str | None = None) -> dict:
     from . import route_contract as routes, route_prepare
     require(profile == routes.PROFILE, "지원하는 벤치마크는 grafana-routes뿐입니다")
-    require(len(selected) == len(set(selected)) == 6 and set(selected) == set(routes.ARM_IDS),
-            "고정된 6개 비교군을 모두 준비합니다")
-    return route_prepare.prepare_all(emit)
+    require(len(selected) == len(set(selected)) == len(routes.ARM_IDS) and set(selected) == set(routes.ARM_IDS),
+            "고정된 비교군을 모두 준비합니다")
+    routes.solver_model(solver_model)
+    return route_prepare.prepare_all(emit, solver_model=solver_model)
