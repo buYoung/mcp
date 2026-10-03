@@ -8,18 +8,18 @@
 
 ## 1.0.0 비교 대상
 
-2026-10-03 사용자 지정에 따라 아래 5개 도구를 **모두** codemap-search의 비교 대상으로 선정했다. codemap-search를 포함하면 총 6개 비교군이며, 각각 같은 Grafana 고정 소스와 `grafana-routes-v2`의 3문항을 사용한다.
+2026-10-03 사용자 지정에 따라 아래 5개 도구를 **모두** codemap-search의 비교 대상으로 선정하고 [비교 대상 소스 고정 명세](data/grafana-comparison-targets-v1/README.md)에 출처·버전·전체 커밋·소스 아카이브 SHA-256을 보존했다. codemap-search를 포함하면 총 6개 비교군이며, 각각 같은 Grafana 고정 소스와 `grafana-routes-v2`의 3문항을 사용한다.
 
-| 역할 | 도구 |
-| --- | --- |
-| 평가 제품 | codemap-search 1.0.0 |
-| 비교 대상 | CodeGraph |
-| 비교 대상 | zvec-grep |
-| 비교 대상 | Graphify |
-| 비교 대상 | codebase-memory-mcp |
-| 기본 검색 비교 대상 | plain rg |
+| 역할 | 도구 | 고정 버전 |
+| --- | --- | --- |
+| 평가 제품 | codemap-search | 1.0.0 목표, 평가 빌드는 별도 고정 |
+| 비교 대상 | CodeGraph (`colbymchenry/codegraph`) | 1.6.1 |
+| 비교 대상 | zvec-grep | 0.2.0 |
+| 비교 대상 | Graphify | 0.9.74 |
+| 비교 대상 | codebase-memory-mcp | 0.11.0 |
+| 기본 검색 비교 대상 | plain rg | 15.2.0 |
 
-비교 대상 선정은 확정했으며, 도구별 배포 출처·버전 또는 커밋, 실행 명령·노출 도구·보조 파일 읽기 허용 범위, 색인 조건은 실행 계약에서 별도로 고정한다. 특히 현재 A의 `rg`·`grep`·`find`·`read` 묶음과 plain rg는 도구 구성이 다르므로 기존 A 결과를 plain rg의 측정값으로 재사용하지 않는다.
+비교 도구의 소스 식별은 [targets.lock.json](data/grafana-comparison-targets-v1/targets.lock.json)으로 고정하며, 버전을 바꾸면 새 개정으로 관리한다. 실행 바이너리·의존성·모델·설정·명령·노출 도구·보조 파일 읽기 허용 범위·색인 조건은 실행 계약에서 별도로 고정한다. 현재 A의 `rg`·`grep`·`find`·`read` 묶음과 plain rg는 도구 구성이 다르므로 기존 A 결과를 plain rg의 측정값으로 재사용하지 않는다.
 
 현재 `config.json`의 `candidates`는 codemap-search 소스 후보 전용이다. 이 목록에 외부 도구를 등록하는 것만으로 실행할 수 없으며, 5개 비교 도구와 새 3문항 데이터셋의 하네스 연결·실측은 대기 상태다. 아래 실행 안내는 기존 하네스의 동작을 설명한다.
 

@@ -1,0 +1,301 @@
+{
+  "schema_version": 1,
+  "lock_id": "grafana-comparison-targets-v1",
+  "revision": 1,
+  "status": "source_identities_frozen",
+  "frozen_at": "2026-10-03T01:33:05Z",
+  "target_release": "1.0.0",
+  "scope": "외부 비교 도구 5개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
+  "selection_policy": "2026-10-03 조회 당시 각 공식 GitHub 저장소의 latest 정식 릴리스를 선택하고 실제 태그 객체를 전체 커밋 해시로 해석했다. 선택 이후 latest나 기본 브랜치를 다시 조회해 자동 갱신하지 않는다.",
+  "dataset": {
+    "id": "grafana-routes-v2",
+    "manifest_path": "../grafana-routes-v2/manifest.json",
+    "manifest_sha256": "f477a2ebea472c2cd46a9ef739ab181b30fdd522e92a27632799d1a47f94216b",
+    "source": {
+      "repository": "grafana/grafana",
+      "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+    }
+  },
+  "subject": {
+    "id": "codemap-search",
+    "target_release": "1.0.0",
+    "source_and_binary_pin_status": "pending_evaluation_build"
+  },
+  "required_comparison_ids": [
+    "codegraph",
+    "zvec-grep",
+    "graphify",
+    "codebase-memory-mcp",
+    "rg"
+  ],
+  "comparison_count": 5,
+  "total_arm_count_including_subject": 6,
+  "comparisons": [
+    {
+      "id": "codegraph",
+      "name": "CodeGraph",
+      "role": "comparison_tool",
+      "status": "source_identity_frozen",
+      "repository": "colbymchenry/codegraph",
+      "repository_url": "https://github.com/colbymchenry/codegraph",
+      "upstream_repository_id": 1137078255,
+      "version": "1.6.1",
+      "release_tag": "v1.6.1",
+      "release_url": "https://github.com/colbymchenry/codegraph/releases/tag/v1.6.1",
+      "release_id": 398839286,
+      "release_published_at": "2026-09-29T05:08:55Z",
+      "commit": "f4ddf508516332419ea3c95702810765936cf679",
+      "commit_url": "https://github.com/colbymchenry/codegraph/commit/f4ddf508516332419ea3c95702810765936cf679",
+      "git_tree_sha1": "159eeae963c8177368016ea00e0182bc43c1f3d6",
+      "implementation": "공식 npm 패키지에 해당하는 루트 Node.js 구현",
+      "package_name": "@colbymchenry/codegraph",
+      "source_archive": {
+        "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/f4ddf508516332419ea3c95702810765936cf679",
+        "format": "tar.gz",
+        "sha256": "d29baa1fe9ad5811af414a77f1e7d6fb050145e15791c5416c0ecefe046a3daa",
+        "bytes": 14414079
+      },
+      "source_files": [
+        {
+          "path": "README.md",
+          "git_blob_sha1": "17efcad3d5b3d980e270f146893fb63802aeeb70",
+          "sha256": "9691494a34b8ca4ba2bc0dec1d85d43f7291c106e750b922a31e9da136fa59df",
+          "bytes": 69261,
+          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/f4ddf508516332419ea3c95702810765936cf679/README.md"
+        },
+        {
+          "path": "package-lock.json",
+          "git_blob_sha1": "e6a232af46e81105b84e53d6f78be0dd84aabd9b",
+          "sha256": "e706c33ca91c2181c2e987c033a00689a8cdee2e7ee4b4933863ea7fd577368d",
+          "bytes": 123579,
+          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/f4ddf508516332419ea3c95702810765936cf679/package-lock.json"
+        },
+        {
+          "path": "package.json",
+          "git_blob_sha1": "92d1aa6c7fef11b4df30618a0de96f4a41882ee0",
+          "sha256": "8b66a1a9bd9cc5eef26988f56b8a79b9c98128a3b5c6e4a8454cc6a5d3f01fb4",
+          "bytes": 2396,
+          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/f4ddf508516332419ea3c95702810765936cf679/package.json"
+        }
+      ],
+      "provenance_record": "codegraph",
+      "repository_selection": "2026-10-03 사용자가 colbymchenry/codegraph를 명시적으로 선택했다."
+    },
+    {
+      "id": "zvec-grep",
+      "name": "zvec-grep",
+      "role": "comparison_tool",
+      "status": "source_identity_frozen",
+      "repository": "zvec-ai/zvec-grep",
+      "repository_url": "https://github.com/zvec-ai/zvec-grep",
+      "upstream_repository_id": 1295987763,
+      "version": "0.2.0",
+      "release_tag": "v0.2.0",
+      "release_url": "https://github.com/zvec-ai/zvec-grep/releases/tag/v0.2.0",
+      "release_id": 377962112,
+      "release_published_at": "2026-08-27T16:15:11Z",
+      "commit": "38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
+      "commit_url": "https://github.com/zvec-ai/zvec-grep/commit/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
+      "git_tree_sha1": "4579e198b7bc1b93469c39a61025caa8e61b0611",
+      "implementation": "공식 npm 패키지에 해당하는 루트 Node.js 구현",
+      "package_name": "@zvec/zvec-grep",
+      "source_archive": {
+        "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
+        "format": "tar.gz",
+        "sha256": "5f638640792f5c73252705392c75a519149bd8b90814083187099dd01b3784a5",
+        "bytes": 5168268
+      },
+      "source_files": [
+        {
+          "path": "README.md",
+          "git_blob_sha1": "729067001bd5ae1cc0c89e1787439086f5accb6d",
+          "sha256": "c5e5bc4d661eb1830f400e96146fcc51f390a41f5ddc7ef765ab89e8ff03ece2",
+          "bytes": 10482,
+          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/README.md"
+        },
+        {
+          "path": "package-lock.json",
+          "git_blob_sha1": "4cf17378c9a0bbd16333bb20dfd0e099af1d31c9",
+          "sha256": "1da88d81fce71ceb506071df1f43b59f538a942871a945de267d2f5463861f0a",
+          "bytes": 211896,
+          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/package-lock.json"
+        },
+        {
+          "path": "package.json",
+          "git_blob_sha1": "55ef65cb577018a21828809e75c80e4b4460fd3a",
+          "sha256": "3d881e4e2342122876661690117b982497711ee86c2b8aac197b20be54d8e7db",
+          "bytes": 3189,
+          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/package.json"
+        }
+      ],
+      "provenance_record": "zvec-grep"
+    },
+    {
+      "id": "graphify",
+      "name": "Graphify",
+      "role": "comparison_tool",
+      "status": "source_identity_frozen",
+      "repository": "Graphify-Labs/graphify",
+      "repository_url": "https://github.com/Graphify-Labs/graphify",
+      "upstream_repository_id": 1200597263,
+      "version": "0.9.74",
+      "release_tag": "v0.9.74",
+      "release_url": "https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.74",
+      "release_id": 401973658,
+      "release_published_at": "2026-10-02T16:20:43Z",
+      "commit": "e10df08877f8819a625a1afa38c3297a31fda296",
+      "commit_url": "https://github.com/Graphify-Labs/graphify/commit/e10df08877f8819a625a1afa38c3297a31fda296",
+      "git_tree_sha1": "843c3334371ce08384445b77390b866ea2411178",
+      "implementation": "공식 graphifyy Python 패키지에 해당하는 구현",
+      "package_name": "graphifyy",
+      "source_archive": {
+        "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/e10df08877f8819a625a1afa38c3297a31fda296",
+        "format": "tar.gz",
+        "sha256": "6c59f4a4f4714da7654985007ab9138859365d90bcf270f0de8534c0683f034b",
+        "bytes": 12220877
+      },
+      "source_files": [
+        {
+          "path": "README.md",
+          "git_blob_sha1": "0be5e5481e8ce1050d3de7d9961ebfe483402416",
+          "sha256": "7114a21d3908df873af9040a722211c77acd1f5a0c9f198272caaa2932b5e179",
+          "bytes": 63285,
+          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/e10df08877f8819a625a1afa38c3297a31fda296/README.md"
+        },
+        {
+          "path": "pyproject.toml",
+          "git_blob_sha1": "709c73818a0c8b5a2045dbf38f87078eb6947ed0",
+          "sha256": "b0ed717989396b776b26f64cc54ff85504ad04c1c54cbd3d50cdb3cae52afb13",
+          "bytes": 8159,
+          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/e10df08877f8819a625a1afa38c3297a31fda296/pyproject.toml"
+        },
+        {
+          "path": "uv.lock",
+          "git_blob_sha1": "8ed6ea82c8194ce5b57aeec42784321f95b2744e",
+          "sha256": "eb376f7dcde03a0fa8b57f469285ee4d38d7075c2a0e6385780e5717be4d4896",
+          "bytes": 1035465,
+          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/e10df08877f8819a625a1afa38c3297a31fda296/uv.lock"
+        }
+      ],
+      "provenance_record": "graphify",
+      "previous_repository_url": "https://github.com/safishamsi/graphify",
+      "repository_selection": "기존 safishamsi/graphify 주소가 이동한 공식 Graphify-Labs/graphify 저장소를 사용한다."
+    },
+    {
+      "id": "codebase-memory-mcp",
+      "name": "codebase-memory-mcp",
+      "role": "comparison_tool",
+      "status": "source_identity_frozen",
+      "repository": "DeusData/codebase-memory-mcp",
+      "repository_url": "https://github.com/DeusData/codebase-memory-mcp",
+      "upstream_repository_id": 1166102148,
+      "version": "0.11.0",
+      "release_tag": "v0.11.0",
+      "release_url": "https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.11.0",
+      "release_id": 389354981,
+      "release_published_at": "2026-09-15T23:40:39Z",
+      "commit": "8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
+      "commit_url": "https://github.com/DeusData/codebase-memory-mcp/commit/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
+      "git_tree_sha1": "e5a5586de0bd58ddf59b73cbf1baa70ea0427fe8",
+      "implementation": "공식 codebase-memory-mcp 서버 구현",
+      "package_name": null,
+      "source_archive": {
+        "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
+        "format": "tar.gz",
+        "sha256": "f4df6a6fd005fb1f8b8b65408338580604eca228568602a834ee265aa439322d",
+        "bytes": 97865712
+      },
+      "source_files": [
+        {
+          "path": "README.md",
+          "git_blob_sha1": "c6ab67ee254a614b66c167f104a69a93fb6aaf89",
+          "sha256": "17eed3516a3170db5c4b3d6b446084fb1e4d20e5e35c198880643fc646dba7e4",
+          "bytes": 75222,
+          "url": "https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/README.md"
+        }
+      ],
+      "provenance_record": "codebase-memory-mcp"
+    },
+    {
+      "id": "rg",
+      "name": "plain rg",
+      "role": "lexical_baseline",
+      "status": "source_identity_frozen",
+      "repository": "BurntSushi/ripgrep",
+      "repository_url": "https://github.com/BurntSushi/ripgrep",
+      "upstream_repository_id": 53631945,
+      "version": "15.2.0",
+      "release_tag": "15.2.0",
+      "release_url": "https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0",
+      "release_id": 354558678,
+      "release_published_at": "2026-07-15T16:26:10Z",
+      "commit": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+      "commit_url": "https://github.com/BurntSushi/ripgrep/commit/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+      "git_tree_sha1": "c743701524f65f036cf174d6551918be7dfc0d40",
+      "implementation": "ripgrep rg CLI",
+      "package_name": "ripgrep",
+      "source_archive": {
+        "url": "https://codeload.github.com/BurntSushi/ripgrep/tar.gz/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+        "format": "tar.gz",
+        "sha256": "af40d0f4cb7a55994906c009a7ba865047f0d487c95bceb8db59ffc4f2173d20",
+        "bytes": 607432
+      },
+      "source_files": [
+        {
+          "path": "Cargo.lock",
+          "git_blob_sha1": "55893348fd8d6ce440e2451df9ca8edd1ec0d7ce",
+          "sha256": "7a7d39cda8a03930e578f1dbb724e055771901842eca239e03b01e19da946a64",
+          "bytes": 12745,
+          "url": "https://raw.githubusercontent.com/BurntSushi/ripgrep/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/Cargo.lock"
+        },
+        {
+          "path": "Cargo.toml",
+          "git_blob_sha1": "0fce84126309ea25aff97ebac377d8d875f61b82",
+          "sha256": "c7918574de41825502c6e6e923cd26c88e3f5a07bf42106406af8f5277c939ab",
+          "bytes": 3198,
+          "url": "https://raw.githubusercontent.com/BurntSushi/ripgrep/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/Cargo.toml"
+        },
+        {
+          "path": "README.md",
+          "git_blob_sha1": "73868ac5c3a6974ef57a325c9b3d655400ebc85b",
+          "sha256": "a69c389a49ae653616c0cac76b803ddca9ca5df98fd77c62d5677d4c1bd5916f",
+          "bytes": 21615,
+          "url": "https://raw.githubusercontent.com/BurntSushi/ripgrep/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/README.md"
+        }
+      ],
+      "provenance_record": "rg"
+    }
+  ],
+  "integrity_policy": {
+    "source_checkout": "commit과 git_tree_sha1을 일치시킨다. 태그명이나 버전 문자열만 같은 소스를 대신 사용하지 않는다.",
+    "source_archive": "고정 URL에서 받은 바이트의 SHA-256과 크기를 대조한다. 불일치하면 준비를 중단하고 원인을 확인한다. 임의로 새 해시를 덮어쓰지 않는다.",
+    "updates": "프로젝트·구현·버전·커밋·아카이브를 바꾸면 기존 개정을 보존하고 이유와 새 개정을 남긴다. 다른 개정의 결과를 같은 고정 조건으로 합산하지 않는다.",
+    "availability": "다운로드 실패나 설치 실패를 이유로 다른 포크·버전·비교 도구로 조용히 교체하거나 필수 비교군을 제외하지 않는다.",
+    "plain_rg": "rg는 독립된 비교군이다. 기존 A의 rg·grep·find·read 묶음이나 codemap-search의 grep으로 대체하지 않는다. 파일 열람 등 보조 도구의 허용 범위는 공통 실행 계약에서 별도로 고정한다."
+  },
+  "execution_contract": {
+    "status": "not_frozen",
+    "harness_adapter_status": "pending",
+    "is_consumed_by_current_harness": false,
+    "is_ready_for_formal_execution": false,
+    "source_lock_enforcement": "새 하네스의 준비 단계가 이 파일과 데이터셋 manifest의 해시를 검증하고 동일 lock_id·해시를 실행 기록에 남겨야 한다. 현재 하네스에는 아직 연결하지 않았다.",
+    "unfixed_fields": [
+      "codemap_search_source_and_binary",
+      "operating_system_architecture_and_hardware",
+      "runtime_compiler_and_dependency_resolution",
+      "binary_or_distribution_artifact_sha256",
+      "install_start_commands_and_environment",
+      "embedding_or_reranker_models_revisions_and_weights",
+      "llm_assisted_indexing_backend_if_enabled",
+      "configuration_and_index_build_options",
+      "index_snapshot_and_readiness",
+      "exposed_tools_schemas_and_instructions",
+      "common_file_reading_and_auxiliary_tool_policy",
+      "solver_grader_models_repetitions_limits_and_aggregation"
+    ],
+    "tool_installations_or_builds_performed": 0,
+    "solver_runs": 0,
+    "grader_runs": 0
+  },
+  "provenance_file": "provenance.json"
+}
