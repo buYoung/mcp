@@ -27,7 +27,7 @@
     "reasoning_effort": "high"
   },
   "repetitions": 1,
-  "concurrency": 1,
+  "concurrency": 4,
   "seed": 20260907,
   "limits": {
     "elapsed_seconds": 300,
@@ -85,6 +85,7 @@
     "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
     "index_mode": "로컬 검색·색인으로 준비 (권장)",
     "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
+    "concurrency": "사전 색인을 사용해 측정을 최대 4개 병렬로 진행한다. 같은 비교군의 문항은 색인·홈 복원 충돌을 막기 위해 순차 실행한다.",
     "solver_selection": "기본 gpt-6.1-sol 또는 claude-opus-5-5 중 하나를 선택하며 Codex / Claude Code 각각 사용",
     "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
     "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",

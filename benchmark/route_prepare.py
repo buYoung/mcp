@@ -18,7 +18,7 @@ HANDOFFS = ("01-contract.json", "02-delivery.json", "03-artifacts.json", "04-ind
 def execution_spec(state: dict | None = None, *, solver_model: str | None = None) -> dict:
     profile = routes.load_profile()
     spec = settings.execution_settings(solver_model)
-    spec.update(profile=routes.PROFILE, preparation_only=True, concurrency=1, seed=profile["seed"],
+    spec.update(profile=routes.PROFILE, preparation_only=True, seed=profile["seed"],
                 grader_model=profile["grader"]["model"], grader_reasoning_effort=profile["grader"]["reasoning_effort"],
                 limits=profile["limits"],
                 native_output_policy=profile["native_output_policy"], tool_access=profile["tool_access"],
@@ -153,6 +153,7 @@ def build_plan(emit=print, *, solver_model: str | None = None) -> dict:
               "solver_runs": 0, "grader_runs": 0, "calibration_runs": 0,
               "limitations": ["Subject build retains its actual version; it is not relabeled 1.0.0.",
                               "Real solver delivery, account model availability, judge calibration and empirical difficulty are untested.",
+                              "Parallel campaign dispatch and per-arm serialization remain outside preparation and have not been exercised.",
                               "OS page cache is uncontrolled; native index coverage and response limits are retained."]}
     if solver["backend"] == "claude_code":
         record["limitations"].append("Claude init-only checks startup and settings; actual native-tool enforcement, effective shell PATH and server-applied effort remain unobserved.")

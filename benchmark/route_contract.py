@@ -96,7 +96,7 @@ def load_profile() -> dict:
     profile = read_json(PROFILE_PATH)
     require(profile["schema_version"] == 1 and profile["profile"] == PROFILE, "route 프로필 버전 오류")
     require(tuple(profile["arm_ids"]) == ARM_IDS and profile["repetitions"] == 1, "문항별 1회 비교 계획 변경")
-    require(profile["concurrency"] == 1 and type(profile["seed"]) is int, "route 격리/seed 변경")
+    require(profile["concurrency"] == 4 and type(profile["seed"]) is int, "route 동시 실행 수/seed 변경")
     require(profile["solver"] == {"model": "gpt-6.1-sol", "reasoning_effort": "medium"}, "풀이 모델 계약 변경")
     require(profile["solver_choices"] == [
         {"model": "gpt-6.1-sol", "name": "GPT 6.1 Sol", "backend": "codex", "reasoning_effort": "medium"},
