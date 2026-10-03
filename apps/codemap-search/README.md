@@ -76,6 +76,19 @@ This is the configuration form in the [OpenCode MCP guide](https://opencode.ai/d
 
 If the binary cannot be found, check the client's `PATH`. If the wrong repository appears, correct its working directory. Read stderr diagnostics for startup/config errors; stdout is reserved for MCP JSON-RPC frames.
 
+## Optional global instructions
+
+To keep a navigation reminder in your client's global instruction file, add this to `~/.codemap/config.toml` (or `$CODEMAP_HOME/config.toml`):
+
+```toml
+[global_instructions]
+enabled = true
+```
+
+The default is `false`. MCP `initialize.clientInfo.name` selects Codex, Claude Code, pi or OpenCode automatically; no `clients` setting is needed. The server adds one managed line asking the agent to call `initial_instructions` and follow its guidance. Set `enabled = false` to remove previously managed lines while keeping your own instructions. This preference is global-only; repo settings cannot override it, and the repo schema version remains independent.
+
+Synchronization runs on MCP initialization, or the next request after a reloaded toggle. Start a new agent session to load the updated file. See [global instruction paths and removal behavior](./docs/configuration.md#global-instructions) for client overrides, existing-file precedence and limitations.
+
 ## Use the navigation tools
 
 | Tool | Use | Main arguments |
@@ -103,7 +116,7 @@ For compact grep source, use `view="source_grouped"` with `expand="none"`: file 
 
 Relevant results can also show event maps and `Source routes` connecting storage to callback, argument or data consumers. These are static candidates, not proof of runtime delivery; stale dependencies are withheld. `debug` does not change the output. See the [navigation output reference](./docs/value-navigation.ko.md) and [source-route contract](./docs/source-routes.ko.md) for supported relationships and limits.
 
-Tools are read-only over their configured filesystem scope. The server itself writes its index, file-content response records and, when enabled, repo configuration. No MCP resources or prompts are registered.
+Tools are read-only over their configured filesystem scope. The server itself writes its index, file-content response records and, when enabled, repo configuration and the managed global instruction line. No MCP resources or prompts are registered.
 
 ## Configure exclusions and output
 
