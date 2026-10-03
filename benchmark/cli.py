@@ -3,12 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import subprocess
 import sys
 
-from . import execution, settings
-from .v2.core import ContractError, require
+from . import execution
+from .core import ContractError
 
 
 def emit(value):
@@ -17,7 +16,7 @@ def emit(value):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="bench:start 내부 JSON 어댑터")
-    parser.add_argument("action", choices=["catalog", "prepare", "start", "resume"])
+    parser.add_argument("action", choices=["catalog", "prepare"])
     args = parser.parse_args()
     try:
         request = json.load(sys.stdin)
@@ -25,19 +24,8 @@ def main() -> int:
             result = execution.catalog()
         elif args.action == "prepare":
             result = execution.prepare_plan(request["profile"], request["targets"], emit)
-        else:
-            require(request.get("confirmed") is True, "실행 확인이 필요합니다")
-            if args.action == "start":
-                root = execution.create_run(request["plan_id"], request.get("reuse"))
-            else:
-                ident = request["run_id"]
-                require(isinstance(ident, str) and re.fullmatch(r"[a-zA-Z0-9_-]+", ident), "실행 ID 오류")
-                root = settings.RUNS / ident
-                require((root / "manifest.json").is_file(), "저장된 실행이 없습니다")
-            emit(f"실행 원자료: {root}")
-            result = execution.execute(root, emit)
         print(json.dumps({"event": "result", "value": result}, ensure_ascii=False), flush=True)
-        return 130 if result.get("status") == "interrupted" else 1 if result.get("status") == "finished_with_errors" else 0
+        return 0
     except (ContractError, OSError, KeyError, TypeError, ValueError, subprocess.SubprocessError) as exc:
         print(json.dumps({"event": "error", "message": str(exc)}, ensure_ascii=False), flush=True)
         return 1

@@ -1,6 +1,6 @@
 # Grafana 기능 경로 3문항 고정 계약
 
-codemap-search 1.0.0 벤치마크용 문항의 개정본이다. 식별자는 `grafana-routes-v2`, 개정 번호는 `2`, 상태는 `content_frozen`이다. 2026-10-03 사용자 개선 요청에 따라 근거와 채점 경계를 보완했으며, [v1](../grafana-routes-v1/README.md)은 그대로 보존한다. Grafana 기준 소스는 `grafana/grafana`의 `c6fad8695a96577eb466d425e6ac4a759ca30f47`이다.
+codemap-search 1.0.0 벤치마크용 문항의 개정본이다. 식별자는 `grafana-routes-v2`, 개정 번호는 `2`, 상태는 `content_frozen`이다. 2026-10-03 사용자 개선 요청에 따라 근거와 채점 경계를 보완했다. 현재 작업 트리에는 이 개정만 유지하며 초기 개정은 Git 이력에서 확인할 수 있다. Grafana 기준 소스는 `grafana/grafana`의 `c6fad8695a96577eb466d425e6ac4a759ca30f47`이다.
 
 | 문항 ID | 난도 | 고정 질문 | 필수 핵심 | 확장 진단 |
 | --- | --- | --- | ---: | ---: |
@@ -82,8 +82,8 @@ shasum -a 256 -c SHA256SUMS
 
 ## 실행기 연결 상태
 
-이번 고정 대상은 **문항 내용과 채점 계약**이다. 현재 `benchmark/settings.py`와 `benchmark/data/profiles.json`은 기존 `benchmark/v2/data/dataset.json`의 30문항 계약을 읽는다. `pnpm bench:ready`와 `pnpm bench:start`는 아직 이 고정본을 사용하지 않는다. `grafana-routes-v2`는 데이터셋 개정 이름이며 기존 `benchmark/v2` 실행기와 호환된다는 의미가 아니다.
+`grafana-routes-v2`는 현재 단일 벤치마크 데이터셋이다. [실행 계약](../grafana-execution-v1.json)이 3문항 × 6개 비교군 × 1회, 풀이 `gpt-6.1-sol / medium`, 채점 `gpt-6-astra / high`와 도구 기본값을 고정한다. `pnpm bench:ready`와 `pnpm bench:start`는 이 데이터셋을 검증하고 준비만 수행한다.
 
-새 실행기에는 3문항·복수 언어·핵심/확장/비채점 참고 사항 구분과 사실·차원별 판정 지원이 필요하다. 기존 `benchmark/v2/grading.py`의 문항 단위 보류나 `major_errors`에 따른 일괄 오답 처리를 그대로 적용하면 이 계약과 달라진다.
+현재 구현은 `route_contract.py`, `route_grading.py`, `route_metrics.py`와 `route_prepare.py`가 담당한다. 실행·사용량 수집에 필요한 공통 기능도 현재 `benchmark/` 모듈에서 제공한다. 실제 18회 실행 연결은 별도 작업이며 풀이·채점·보정 결과는 아직 없다. 절차와 현재 한계는 [벤치마크 안내](../../README.md), 실제 설치·색인 상태는 [최종 준비 기록](../../../docs/briefs/evidence/bench-ready/07-readiness.json)을 따른다.
 
-채점 대조 자료, 단계별 프로파일, 모델·반복수·한도·일정·집계 방식과 제품·색인 식별 정보는 실행 계약에서 별도로 고정해야 한다. 기존 3/10/30문항 단계나 반복수를 자동 적용하지 않는다. 현재 상태는 `manifest.json`의 `execution_contract`에 기록한다.
+`manifest.json`의 `predecessor`와 `execution_contract`는 내용 고정 당시의 출처·연결 상태다. 그 안의 과거 파일 경로는 현재 의존성이 아니며, 초기 데이터셋과 이전 실행기는 작업 트리에서 제거했다. 문항·근거·채점 JSON의 바이트는 유지한다. 운영 안내 README의 변경에 맞춰 manifest의 README 메타데이터와 연결 체크섬을 갱신했으며, manifest에 변경 사유를 기록한다.

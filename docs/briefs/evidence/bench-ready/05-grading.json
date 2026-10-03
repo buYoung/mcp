@@ -1,0 +1,122 @@
+{
+  "blinding_policy": "Tool/model self-identification blocks packet sealing; review-required retains exact spans outside grader input.",
+  "calibration_runs": 0,
+  "calibration_status": "not_executed",
+  "citation_policy": "Parser and source-access labels are advisory; supported is the LLM's judgment of the original answer and fixed source.",
+  "contract_hash": "ca85f15ddea7e0613d5eda580c1a92ec5f6ccbba484d10e3f9a6b61f57188e76",
+  "dependency_hashes": {
+    "01-contract.json": "a609ec6bf2822103e9fb5514345e784c6eb18c95fe7229e4328819a4d4864e7a"
+  },
+  "fact_counts": {
+    "core": 21,
+    "extended": 8
+  },
+  "grader": {
+    "model": "gpt-6-astra",
+    "reasoning_effort": "high"
+  },
+  "grader_runs": 0,
+  "implementation_hashes": {
+    "benchmark/grading_support.py": "5217b9442cb9b9a1d20fdb698e1bfdb0ed84dd53a57e1aea1027c58cf4a01f88",
+    "benchmark/route_grading.py": "cd8e2b1a5986a5a19a00257b0abf458c70c0448732aa438e18c4d94daf088f56"
+  },
+  "input_hashes": {
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "e1492dc94afb6923b4fb73ebcdf9a90dcd058834c0957501f92bfcc8ed67a0ce",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "513e8e9e16c545138fba3038e5c249d11240ef1259d3af8d40e02584391e77df",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "55b8f32c055a57d3320d048b507a6bacbf5635f82fe37482a98b8557d7ba1e03",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "ff93c37b8c6588a5830738132440194ab331488cd122b46e849ef5d885fe7a51",
+    "benchmark/data/grafana-routes-v2/README.md": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
+    "benchmark/data/grafana-routes-v2/SHA256SUMS": "4d7719fb2c445df563b70c131c86e802faa93a4431b9bb795e83a947ea3147fa",
+    "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
+    "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
+    "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
+    "benchmark/data/grafana-routes-v2/manifest.json": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
+    "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
+  },
+  "judgment_schema": {
+    "route-live-receive": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-live-receive/schema.json",
+      "sha256": "371effcaa83c45d1eab8af24f1ee5b5c515ec60db3e6cdb6710ef64f6e34b0da"
+    },
+    "route-save-existing": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-save-existing/schema.json",
+      "sha256": "86ee490fc1b4fa573769bcec414bcdd25b83848145902864eb0107f98b6b03fa"
+    },
+    "route-star": {
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-star/schema.json",
+      "sha256": "de4e71adf5882f3e3d3cb403fd949dac67f6b626a1fc54b1b03f2e64edd38698"
+    }
+  },
+  "limitations": [
+    "No judge calibration or real answer grading has run.",
+    "Alternative citations require the fixed full source inventory."
+  ],
+  "packet_contract": {
+    "route-live-receive": {
+      "answers": 0,
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-live-receive/packet-contract.json",
+      "sha256": "7df5a2cf6782359959e4d64cc7f0d3aee77e7e8cd701117637a166e3baef8eba"
+    },
+    "route-save-existing": {
+      "answers": 0,
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-save-existing/packet-contract.json",
+      "sha256": "fcd25c449a81b4f5e7df7568b186a202c89b1f746a65539793e4063df929d078"
+    },
+    "route-star": {
+      "answers": 0,
+      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-star/packet-contract.json",
+      "sha256": "e7850d9a995ba7db75ce61ec50d4c9641de65628ee5141f198a1cbe77b329c58"
+    }
+  },
+  "recorded_at": "2026-10-03T05:54:10.049507+00:00",
+  "rubric_hash": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
+  "schema_version": 1,
+  "status": "verified_offline",
+  "truth_table_evidence": [
+    {
+      "correct": true,
+      "state": "fulfilled",
+      "supported": true
+    },
+    {
+      "correct": true,
+      "state": "not_fulfilled",
+      "supported": false
+    },
+    {
+      "correct": true,
+      "state": "indeterminate",
+      "supported": "indeterminate"
+    },
+    {
+      "correct": false,
+      "state": "not_fulfilled",
+      "supported": true
+    },
+    {
+      "correct": false,
+      "state": "not_fulfilled",
+      "supported": false
+    },
+    {
+      "correct": false,
+      "state": "not_fulfilled",
+      "supported": "indeterminate"
+    },
+    {
+      "correct": "indeterminate",
+      "state": "indeterminate",
+      "supported": true
+    },
+    {
+      "correct": "indeterminate",
+      "state": "not_fulfilled",
+      "supported": false
+    },
+    {
+      "correct": "indeterminate",
+      "state": "indeterminate",
+      "supported": "indeterminate"
+    }
+  ]
+}

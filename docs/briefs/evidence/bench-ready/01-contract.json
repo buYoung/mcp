@@ -1,0 +1,253 @@
+{
+  "arms": [
+    {
+      "id": "codemap-search",
+      "name": "codemap-search",
+      "path": "apps/codemap-search",
+      "pin_status": "snapshot_at_preparation",
+      "role": "subject",
+      "version": null
+    },
+    {
+      "commit": "f4ddf508516332419ea3c95702810765936cf679",
+      "id": "codegraph",
+      "name": "CodeGraph",
+      "repository": "colbymchenry/codegraph",
+      "role": "comparison_tool",
+      "source_archive": {
+        "bytes": 14414079,
+        "format": "tar.gz",
+        "sha256": "d29baa1fe9ad5811af414a77f1e7d6fb050145e15791c5416c0ecefe046a3daa",
+        "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/f4ddf508516332419ea3c95702810765936cf679"
+      },
+      "version": "1.6.1"
+    },
+    {
+      "commit": "38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
+      "id": "zvec-grep",
+      "name": "zvec-grep",
+      "repository": "zvec-ai/zvec-grep",
+      "role": "comparison_tool",
+      "source_archive": {
+        "bytes": 5168268,
+        "format": "tar.gz",
+        "sha256": "5f638640792f5c73252705392c75a519149bd8b90814083187099dd01b3784a5",
+        "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8"
+      },
+      "version": "0.2.0"
+    },
+    {
+      "commit": "e10df08877f8819a625a1afa38c3297a31fda296",
+      "id": "graphify",
+      "name": "Graphify",
+      "repository": "Graphify-Labs/graphify",
+      "role": "comparison_tool",
+      "source_archive": {
+        "bytes": 12220877,
+        "format": "tar.gz",
+        "sha256": "6c59f4a4f4714da7654985007ab9138859365d90bcf270f0de8534c0683f034b",
+        "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/e10df08877f8819a625a1afa38c3297a31fda296"
+      },
+      "version": "0.9.74"
+    },
+    {
+      "commit": "8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
+      "id": "codebase-memory-mcp",
+      "name": "codebase-memory-mcp",
+      "repository": "DeusData/codebase-memory-mcp",
+      "role": "comparison_tool",
+      "source_archive": {
+        "bytes": 97865712,
+        "format": "tar.gz",
+        "sha256": "f4df6a6fd005fb1f8b8b65408338580604eca228568602a834ee265aa439322d",
+        "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798"
+      },
+      "version": "0.11.0"
+    },
+    {
+      "commit": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+      "id": "rg",
+      "name": "기본 에이전트 (검색제품 없음)",
+      "repository": "BurntSushi/ripgrep",
+      "role": "native_agent_baseline",
+      "source_archive": {
+        "bytes": 607432,
+        "format": "tar.gz",
+        "sha256": "af40d0f4cb7a55994906c009a7ba865047f0d487c95bceb8db59ffc4f2173d20",
+        "url": "https://codeload.github.com/BurntSushi/ripgrep/tar.gz/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f"
+      },
+      "version": "15.2.0"
+    }
+  ],
+  "checks": {
+    "bundle_hashes": "passed",
+    "planned_unique_keys": 18,
+    "profiles": [
+      "grafana-routes"
+    ],
+    "prompt_separation": "passed"
+  },
+  "contract_hash": "ca85f15ddea7e0613d5eda580c1a92ec5f6ccbba484d10e3f9a6b61f57188e76",
+  "contract_paths": {
+    "private_dataset": "benchmark/data/grafana-routes-v2/dataset.json",
+    "profile": "benchmark/data/grafana-execution-v1.json",
+    "solver_questions": "benchmark/data/grafana-routes-v2/questions.json"
+  },
+  "dependency_hashes": {},
+  "fact_counts": {
+    "route-live-receive": {
+      "core": 8,
+      "extended": 3
+    },
+    "route-save-existing": {
+      "core": 7,
+      "extended": 3
+    },
+    "route-star": {
+      "core": 6,
+      "extended": 2
+    }
+  },
+  "grader": {
+    "model": "gpt-6-astra",
+    "reasoning_effort": "high"
+  },
+  "grader_runs": 0,
+  "implementation_hashes": {
+    "benchmark/data/grafana-execution-v1.json": "47a355a36b3e00fbd06a2356efc3ddc57b9eb903d8b591a600ff436b144af674",
+    "benchmark/execution.py": "25583ece6c3b573e63509654f7a5955848c2a5580bf6db0e9095b549cb091a2e",
+    "benchmark/route_contract.py": "618d85fef56d10d273e8752dc25e9f0463e91443e5211a78acc7008a314b2b64",
+    "benchmark/runner.py": "d9f999b56ce0aeb52164b209a86a04399370c1892be828d14d2d474013b16487",
+    "benchmark/settings.py": "bd10dfbc54b0ed5dc30955960c0e20c94206b7e2e83c9528e6665d8f62bcf411"
+  },
+  "input_hashes": {
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "e1492dc94afb6923b4fb73ebcdf9a90dcd058834c0957501f92bfcc8ed67a0ce",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "513e8e9e16c545138fba3038e5c249d11240ef1259d3af8d40e02584391e77df",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "55b8f32c055a57d3320d048b507a6bacbf5635f82fe37482a98b8557d7ba1e03",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "ff93c37b8c6588a5830738132440194ab331488cd122b46e849ef5d885fe7a51",
+    "benchmark/data/grafana-routes-v2/README.md": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
+    "benchmark/data/grafana-routes-v2/SHA256SUMS": "4d7719fb2c445df563b70c131c86e802faa93a4431b9bb795e83a947ea3147fa",
+    "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
+    "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
+    "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
+    "benchmark/data/grafana-routes-v2/manifest.json": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
+    "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
+  },
+  "limitations": [
+    "Full source validation belongs to index preparation.",
+    "Exact model account availability has not been exercised."
+  ],
+  "limits": {
+    "elapsed_seconds": 300,
+    "exploration_calls": 80,
+    "total_tokens": 500000
+  },
+  "planned_solver_runs": 18,
+  "policy_decisions": {
+    "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
+    "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
+    "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
+    "index_mode": "로컬 검색·색인으로 준비 (권장)",
+    "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
+    "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
+    "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
+  },
+  "profile": {
+    "arm_ids": [
+      "codemap-search",
+      "codegraph",
+      "zvec-grep",
+      "graphify",
+      "codebase-memory-mcp",
+      "rg"
+    ],
+    "baseline": {
+      "arm": "rg",
+      "call_unit": "native command_execution items, counted once by item ID",
+      "mode": "native_agent",
+      "rg_version": "15.2.0",
+      "search_product_mcp": false,
+      "source_access": "read-only fixed corpus and minimal runtime; no reference/report access",
+      "tools": "Codex native defaults; shell and filesystem navigation remain available"
+    },
+    "comparison_lock_id": "grafana-comparison-targets-v1",
+    "concurrency": 1,
+    "dataset_id": "grafana-routes-v2",
+    "execution_authorized": false,
+    "grader": {
+      "model": "gpt-6-astra",
+      "reasoning_effort": "high"
+    },
+    "index_mode": {
+      "codemap_jev": false,
+      "external_ai": false,
+      "graphify": "fresh_code_only",
+      "zvec_model": "local/potion-code-16m-v2",
+      "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+    },
+    "limits": {
+      "elapsed_seconds": 300,
+      "exploration_calls": 80,
+      "total_tokens": 500000
+    },
+    "name": "Grafana 3개 경로 · 6개 비교군 · 준비 전용",
+    "native_output_policy": {
+      "automatic_pagination": false,
+      "client_delivery": "record_observed_limits_and_unknowns_separately",
+      "enrichment": false,
+      "harness_byte_limit": null,
+      "harness_line_limit": null,
+      "product_defaults": true
+    },
+    "policy_decisions": {
+      "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
+      "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
+      "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
+      "index_mode": "로컬 검색·색인으로 준비 (권장)",
+      "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
+      "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
+      "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
+    },
+    "profile": "grafana-routes",
+    "repetitions": 1,
+    "schema_version": 1,
+    "seed": 20260907,
+    "solver": {
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "medium"
+    },
+    "tool_access": {
+      "allowed_auxiliaries": [
+        "rg",
+        "read"
+      ],
+      "default": "native_only",
+      "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+      "quality_based_fallback": false
+    }
+  },
+  "question_ids": [
+    "route-star",
+    "route-save-existing",
+    "route-live-receive"
+  ],
+  "recorded_at": "2026-10-03T05:50:56.655692+00:00",
+  "repetitions": 1,
+  "schema_version": 1,
+  "solver": {
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "solver_runs": 0,
+  "source_commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47",
+  "status": "verified",
+  "tool_access": {
+    "allowed_auxiliaries": [
+      "rg",
+      "read"
+    ],
+    "default": "native_only",
+    "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+    "quality_based_fallback": false
+  }
+}

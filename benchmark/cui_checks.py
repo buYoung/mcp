@@ -11,20 +11,18 @@ import time
 import unittest
 from pathlib import Path
 
-from . import settings
+from . import execution, route_contract as routes, settings
 
 
 class CUI:
-    def __init__(self, root: Path, pending=False, reuse=False, running_backend=False):
+    def __init__(self, root: Path, running_backend=False):
         self.log = root / "calls.jsonl"
-        catalog = {"profiles": settings.profiles(), "targets": [
-            {"id": "A", "name": "A"}, {"id": "current", "name": "현재 버전"},
-            {"id": "candidate_one", "name": "후보 공백 이름"}],
-            "pending": [{"id": "saved-run", "status": "interrupted"}] if pending else []}
-        plan = {"plan_id": "fixture", "profile_name": "검증", "targets": [{"name": "현재 버전", "id": "current"}],
-                "questions": 3, "repeats": 3, "runs": 18, "spec": settings.execution_settings(settings.load_config()),
-                "codex_version": "codex-cli any-version", "output_root": str(root),
-                "reuse_choices": [{"id": "old-A", "runs": 9}] if reuse else []}
+        catalog = execution.catalog()
+        plan = {"plan_id": "fixture", "profile_name": "검증", "preparation_only": True, "status": "prepared_not_executed",
+                "targets": [{**item, "tool_condition": "native_agent_baseline" if item["id"] == "rg" else "native_only",
+                             "actual_version": "fixture"} for item in catalog["route_targets"]],
+                "questions": 3, "repeats": 1, "runs": 18, "spec": settings.execution_settings(),
+                "readiness": str(root / "readiness.json")}
         script = root / "fixture.mjs"
         script.write_text(f"""
 import {{ appendFileSync }} from 'node:fs';
@@ -59,7 +57,7 @@ while True: time.sleep(.02)
             stub.chmod(0o755)
             script.write_text(f"""
 import {{ backend }} from {json.dumps((settings.ROOT/'start.mjs').as_uri())};
-try {{ await backend('start',{{confirmed:true}}); }}
+try {{ await backend('prepare',{{profile:'grafana-routes'}}); }}
 catch(error) {{ process.exitCode=error.name==='BenchCancelled'?130:1; }}
 """)
             env["PATH"] = str(root) + os.pathsep + env["PATH"]
@@ -125,30 +123,20 @@ class CUIChecks(unittest.TestCase):
             finally:
                 cui.close()
 
-    def test_default_enter_declines_without_start_even_with_CI(self):
+    def test_default_enter_prepares_without_start_even_with_CI(self):
         def run(cui):
             cui.wait("평가 유형을 선택하세요.")
-            cui.send("\r")
-            cui.wait("비교할 대상을 선택하세요.")
-            cui.send("\r")
-            cui.wait("이 조건으로 풀이와 채점을 시작할까요?")
             cui.send("\r")
             self.assertEqual(cui.finish(), 0)
             self.assertEqual([c["action"] for c in cui.calls()], ["catalog", "prepare"])
         self.exercise(run)
 
-    def test_type_targets_and_confirmation_are_forwarded(self):
+    def test_fixed_profile_and_targets_are_forwarded(self):
         def run(cui):
             cui.wait("평가 유형을 선택하세요.")
-            cui.send("\x1b[B\x1b[B\r")
-            cui.wait("비교할 대상을 선택하세요.")
-            cui.send(" \x1b[B\x1b[B \r")  # deselect A, select registered candidate
-            cui.wait("이 조건으로 풀이와 채점을 시작할까요?")
-            cui.send("y\r")
+            cui.send("\r")
             self.assertEqual(cui.finish(), 0)
-            calls = cui.calls()
-            self.assertEqual(calls[1]["request"], {"profile": "formal", "targets": ["current", "candidate_one"]})
-            self.assertEqual(calls[2], {"action": "start", "request": {"plan_id": "fixture", "reuse": None, "confirmed": True}})
+            self.assertEqual(cui.calls()[1]["request"], {"profile": routes.PROFILE, "targets": list(routes.ARM_IDS)})
         self.exercise(run)
 
     def test_ctrl_c_before_preparation(self):
@@ -158,28 +146,6 @@ class CUIChecks(unittest.TestCase):
             self.assertEqual(cui.finish(), 130)
             self.assertEqual([c["action"] for c in cui.calls()], ["catalog"])
         self.exercise(run)
-
-    def test_resume_and_reuse_require_a_selection(self):
-        def resume(cui):
-            cui.wait("새 벤치를 시작하거나")
-            cui.send("\x1b[B\r")
-            cui.wait("남은 풀이·채점을 진행할까요?")
-            cui.send("y\r")
-            self.assertEqual(cui.finish(), 0)
-            self.assertEqual(cui.calls()[-1], {"action": "resume", "request": {"run_id": "saved-run", "confirmed": True}})
-        self.exercise(resume, pending=True)
-        def reuse(cui):
-            cui.wait("평가 유형을 선택하세요.")
-            cui.send("\r")
-            cui.wait("비교할 대상을 선택하세요.")
-            cui.send("\r")
-            cui.wait("조건이 같은 A 풀이를 재사용할 수 있습니다.")
-            cui.send("\x1b[B\r")
-            cui.wait("이 조건으로 풀이와 채점을 시작할까요?")
-            cui.send("y\r")
-            self.assertEqual(cui.finish(), 0)
-            self.assertEqual(cui.calls()[-1]["request"]["reuse"], "old-A")
-        self.exercise(reuse, reuse=True)
 
     def test_non_tty_entry_refuses_without_backend(self):
         result = subprocess.run(["node", "benchmark/start.mjs"], cwd=settings.REPOSITORY, input="y\ny\n", text=True,

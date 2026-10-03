@@ -16,8 +16,7 @@ import tomllib
 from pathlib import Path
 
 from . import settings
-from .v2.core import SPEC, ContractError, command, digest, file_digest, read_json, require, write_json
-from .v2.runner import copy_source, source_manifest
+from .core import ContractError, command, digest, file_digest, read_json, require, write_json
 
 
 @contextlib.contextmanager
@@ -34,7 +33,7 @@ def lease(path: Path):
 def environment() -> dict:
     require(sys.version_info >= (3, 12), "Python 3.12 이상이 필요합니다")
     require(os.name == "posix", "이 벤치 하네스는 macOS/Linux를 지원합니다")
-    for executable in ("git", "cargo", "rustc", "rg", "grep", "find", "codex", "node"):
+    for executable in ("git", "cargo", "rustc", "codex", "node"):
         require(shutil.which(executable) is not None, f"실행 파일이 없습니다: {executable}")
     version = command(["codex", "--version"]).strip()
     help_text = command(["codex", "exec", "--help"])
@@ -69,7 +68,7 @@ def product_files(root: Path) -> dict:
         require(path.resolve().is_relative_to(root.resolve()), f"제품 소스 밖을 가리키는 경로: {name}")
         require(path.is_file(), f"제품 입력 파일이 아닙니다: {name}")
         result[name] = {"sha256": file_digest(path), "mode": path.stat().st_mode & 0o777}
-    require("Cargo.toml" in result and "Cargo.lock" in result, "후보 경로에는 Cargo.toml과 Cargo.lock이 필요합니다")
+    require("Cargo.toml" in result and "Cargo.lock" in result, "제품 경로에는 Cargo.toml과 Cargo.lock이 필요합니다")
     return result
 
 
@@ -89,7 +88,7 @@ def snapshot_product(target: dict, output: Path) -> dict:
         identity = {"kind": "git", "commit": commit, "git_ref": target["git_ref"], "dirty": False}
     else:
         root = (settings.REPOSITORY / target["path"]).resolve()
-        require(root.is_dir(), f"후보 소스 경로가 없습니다: {root}")
+        require(root.is_dir(), f"제품 소스 경로가 없습니다: {root}")
         files = product_files(root)
         try:
             commit = command(["git", "rev-parse", "HEAD"], root).strip()
@@ -151,89 +150,3 @@ def build_product(target: dict, emit=print) -> dict:
 def verify_product(build: dict):
     require(file_digest(Path(build["binary"])) == build["binary_sha256"], "제품 바이너리 변경")
     require(digest(product_files(Path(build["source_snapshot"]))) == build["identity"]["source_sha256"], "제품 스냅샷 변경")
-
-
-def prepare_source(emit=print) -> dict:
-    from .ready import prepare_grafana, validate_grafana
-    checkout = settings.CACHE / "grafana"
-    with lease(settings.CACHE / ".grafana.lock"):
-        prepare_grafana(checkout, emit=emit)
-        validate_grafana(checkout)
-        settings.dataset_for("formal", checkout)
-        output = settings.CACHE / "sources" / SPEC["source_commit"]
-        record = output / "source.json"
-        if record.exists():
-            result = read_json(record)
-            require(digest(source_manifest(Path(result["snapshot"]))) == result["source_sha256"], "고정 소스 캐시 변경")
-            return result
-        output.parent.mkdir(parents=True, exist_ok=True)
-        require(not output.exists(), f"미완료 소스 캐시를 먼저 보존·정리하세요: {output}")
-        with tempfile.TemporaryDirectory(dir=output.parent) as temporary:
-            stage = Path(temporary)
-            archive = stage / "source.tar"
-            subprocess.run(["git", "archive", "--format=tar", "--output", str(archive), "HEAD"], cwd=checkout, check=True)
-            snapshot = stage / "source"
-            snapshot.mkdir()
-            with tarfile.open(archive) as stream:
-                stream.extractall(snapshot, filter="data")
-            archive.unlink()
-            (snapshot / ".git").mkdir()
-            result = {"snapshot": str(output / "source"), "source_commit": SPEC["source_commit"],
-                      "source_sha256": digest(source_manifest(snapshot))}
-            write_json(stage / "source.json", result)
-            stage.rename(output)
-        return result
-
-
-def prepare_index(source: dict, build: dict, emit=print) -> dict:
-    key = digest({"source": source["source_sha256"], "binary": build["binary_sha256"], "config": "isolated-defaults-v1"})
-    output = settings.CACHE / "indexes" / key
-    with lease(output.parent / f"{key}.lock"):
-        record = output / "index.json"
-        if record.exists():
-            result = read_json(record)
-            verify_index(result)
-            return result
-        if output.exists():
-            previous = output.with_name(f"{key}.incomplete-{time.time_ns()}")
-            output.rename(previous)
-            emit(f"미완료 색인 로그 보존: {previous}")
-        output.mkdir(parents=True)
-        snapshot = output / "source"
-        copy_source(Path(source["snapshot"]), snapshot)
-        home = output / "product-home"
-        home.mkdir()
-        emit(f"Grafana 색인 생성: {build['identity']['source_sha256'][:12]}")
-        started = time.monotonic()
-        with (output / "index.stdout.log").open("w") as stdout, (output / "index.stderr.log").open("w") as stderr:
-            result = subprocess.run([build["binary"], "index", "."], cwd=snapshot,
-                                    env={**os.environ, "CODEMAP_HOME": str(home)}, stdout=stdout, stderr=stderr, timeout=900)
-        require(result.returncode == 0 and (snapshot / ".codemap").is_dir(), f"색인 생성 실패: {output / 'index.stderr.log'}")
-        record_value = {"snapshot": str(snapshot), "source_sha256": source["source_sha256"],
-                        "binary_sha256": build["binary_sha256"], "index_sha256": digest(source_manifest(snapshot / ".codemap")),
-                        "elapsed_seconds": time.monotonic() - started}
-        verify_index(record_value)
-        write_json(record, record_value, exclusive=True)
-        return record_value
-
-
-def verify_index(index: dict):
-    snapshot = Path(index["snapshot"])
-    require(digest(source_manifest(snapshot)) == index["source_sha256"], "색인 원문 캐시 변경")
-    require(digest(source_manifest(snapshot / ".codemap")) == index["index_sha256"], "색인 캐시 변경")
-
-
-def prepare_targets(config: dict, selected: list[str], emit=print) -> dict:
-    choices = {target["id"]: target for target in settings.targets(config)}
-    require(selected and len(set(selected)) == len(selected) and set(selected) <= choices.keys(), "비교 대상 선택 오류")
-    source = prepare_source(emit)
-    prepared = {}
-    for ident in selected:
-        target = choices[ident]
-        if ident == "A":
-            prepared[ident] = {**target, "snapshot": source["snapshot"]}
-        else:
-            build = build_product(target, emit)
-            index = prepare_index(source, build, emit)
-            prepared[ident] = {**target, "build": build, "index": index, "snapshot": index["snapshot"]}
-    return {"source": source, "targets": prepared}

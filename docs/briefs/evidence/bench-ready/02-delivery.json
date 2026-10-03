@@ -1,0 +1,201 @@
+{
+  "auxiliary_exception_contract": {
+    "allowed_auxiliaries": [
+      "rg",
+      "read"
+    ],
+    "default": "native_only",
+    "exception": "documented_missing_required_operation_with_neutral_probe_evidence",
+    "quality_based_fallback": false
+  },
+  "client_identity": "forward the actual initialize clientInfo and capabilities",
+  "client_limits": {
+    "code_mode_budget": "Native server guidance is forwarded unchanged.",
+    "codex_version": "codex-cli 0.160.0",
+    "harness_override": null,
+    "history_limit": null,
+    "history_limit_reason": "Client default has not been measured with a live model."
+  },
+  "codex_options": [
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "-c",
+    "web_search=\"disabled\"",
+    "-c",
+    "approval_policy=\"never\"",
+    "-c",
+    "sandbox_mode=\"read-only\"",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-c",
+    "suppress_unstable_features_warning=true",
+    "-c",
+    "tools.view_image=false",
+    "-c",
+    "model_auto_compact_token_limit=500000",
+    "-c",
+    "features.code_mode_host=true",
+    "-c",
+    "features.code_mode.enabled=true",
+    "-c",
+    "features.code_mode.excluded_tool_namespaces=[\"functions\",\"agents\",\"multi_agent_v1\",\"multi_agent_v2\",\"web\",\"image_gen\",\"clock\"]",
+    "-c",
+    "features.shell_tool=false",
+    "-c",
+    "features.unified_exec=false",
+    "-c",
+    "features.apps=false",
+    "-c",
+    "features.plugins=false",
+    "-c",
+    "features.multi_agent=false",
+    "-c",
+    "features.multi_agent_v2=false",
+    "-c",
+    "features.browser_use=false",
+    "-c",
+    "features.browser_use_external=false",
+    "-c",
+    "features.computer_use=false",
+    "-c",
+    "features.image_generation=false",
+    "-c",
+    "features.view_image=false",
+    "-c",
+    "features.hooks=false",
+    "-c",
+    "features.shell_snapshot=false",
+    "-c",
+    "features.skill_search=false",
+    "-c",
+    "features.tool_suggest=false",
+    "-c",
+    "features.memories=false",
+    "-c",
+    "features.in_app_browser=false",
+    "-c",
+    "features.in_app_chat=false",
+    "-c",
+    "features.workspace_dependencies=false",
+    "-c",
+    "features.goals=false"
+  ],
+  "contract_hash": "ca85f15ddea7e0613d5eda580c1a92ec5f6ccbba484d10e3f9a6b61f57188e76",
+  "dependency_hashes": {
+    "01-contract.json": "a609ec6bf2822103e9fb5514345e784c6eb18c95fe7229e4328819a4d4864e7a"
+  },
+  "grader_runs": 0,
+  "implementation_hashes": {
+    "benchmark/route_transport.py": "385b4c5099852fcd7ff91b654774c2fde2b7bc4996f1a7ac115041558f94d88c",
+    "benchmark/runner.py": "d9f999b56ce0aeb52164b209a86a04399370c1892be828d14d2d474013b16487"
+  },
+  "input_hashes": {
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "e1492dc94afb6923b4fb73ebcdf9a90dcd058834c0957501f92bfcc8ed67a0ce",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "513e8e9e16c545138fba3038e5c249d11240ef1259d3af8d40e02584391e77df",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "55b8f32c055a57d3320d048b507a6bacbf5635f82fe37482a98b8557d7ba1e03",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "ff93c37b8c6588a5830738132440194ab331488cd122b46e849ef5d885fe7a51",
+    "benchmark/data/grafana-routes-v2/README.md": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
+    "benchmark/data/grafana-routes-v2/SHA256SUMS": "4d7719fb2c445df563b70c131c86e802faa93a4431b9bb795e83a947ea3147fa",
+    "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
+    "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
+    "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
+    "benchmark/data/grafana-routes-v2/manifest.json": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
+    "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
+  },
+  "native_output_policy": {
+    "automatic_pagination": false,
+    "client_delivery": "record_observed_limits_and_unknowns_separately",
+    "enrichment": false,
+    "harness_byte_limit": null,
+    "harness_line_limit": null,
+    "product_defaults": true
+  },
+  "raw_relay_checks": {
+    "byte_identical": true,
+    "cleanup": {
+      "complete": true,
+      "exit_code": 0,
+      "frontend_stopped": true,
+      "owned_process_groups": [
+        {
+          "pgid": 578,
+          "stopped": true
+        }
+      ],
+      "pid": 578,
+      "shared_daemon_stopped": null
+    },
+    "fields_preserved": true,
+    "initialize": {
+      "capabilities": {
+        "tools": {}
+      },
+      "protocolVersion": "2025-03-26",
+      "serverInfo": {
+        "name": "rg",
+        "version": "15.2.0"
+      }
+    },
+    "inventory": [
+      {
+        "annotations": {
+          "destructiveHint": false,
+          "readOnlyHint": true
+        },
+        "description": "Run the pinned ripgrep CLI in the fixed source. Return its full stdout/stderr and exit code. Output options are opt-in; native defaults apply.",
+        "inputSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "case_insensitive": {
+              "type": "boolean"
+            },
+            "context_lines": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "files": {
+              "type": "boolean"
+            },
+            "glob": {
+              "type": "string"
+            },
+            "line_number": {
+              "type": "boolean"
+            },
+            "path": {
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [],
+          "type": "object"
+        },
+        "name": "rg"
+      }
+    ],
+    "probe": "rg over a copied harness source file",
+    "probe_source_sha256": "d49c74eefd24db6d9c4426659407a66ded25fcfe5d82ac114ec24036d1b237c4",
+    "protocol_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791006849802636000/protocol.jsonl",
+    "protocol_sha256": "ae0bdcdba3737a731a94d743120ff4a068b9953139ce0ad93316a0325bd26047",
+    "relay_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791006849802636000/relay.jsonl",
+    "relay_sha256": "4a8d341095d18e0a2dce36950ab534aa9061466d64a182bc385790b14d4640fe",
+    "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
+    "status": "passed",
+    "stdout_bytes": 57530,
+    "stdout_lines": 953
+  },
+  "recorded_at": "2026-10-03T05:54:10.034322+00:00",
+  "schema_version": 1,
+  "solver_runs": 0,
+  "status": "verified_offline",
+  "transport_interfaces": {
+    "http": "Streamable HTTP JSON/SSE",
+    "stdio": "MCPClient"
+  },
+  "unobserved_stages": [
+    "Real solver history and code-mode printing",
+    "Native product startup probes are recorded in 04-indexes.json"
+  ]
+}
