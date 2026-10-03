@@ -80,9 +80,9 @@
     "-c",
     "features.goals=false"
   ],
-  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+  "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
   "dependency_hashes": {
-    "01-contract.json": "8b1c09ffd116e4e2c6cde29b1ed17148b38a174727b4b3432684e386e41e6fa7"
+    "01-contract.json": "ae6a1e82e2cc63a2a5ae88cf8189d72551f90c6ce0be56a3e1e0d9d15d067f22"
   },
   "grader_runs": 0,
   "implementation_hashes": {
@@ -118,11 +118,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 15127,
+          "pgid": 56768,
           "stopped": true
         }
       ],
-      "pid": 15127,
+      "pid": 56768,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -177,16 +177,16 @@
     ],
     "probe": "rg over a copied harness source file",
     "probe_source_sha256": "9876faa155b436eb08321eeaaaecec67e39e02cca059cfbc891ea247dbb00b8c",
-    "protocol_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791020644199510000/protocol.jsonl",
+    "protocol_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791024758452974000/protocol.jsonl",
     "protocol_sha256": "31a51c14708808f1f265ac8f1341a33979c26fb540e5e20d1636ce86250d2c60",
-    "relay_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791020644199510000/relay.jsonl",
-    "relay_sha256": "3c3c5e9a9952ce978b741bc90a39e9c0b958e51ebec22edbb11e5c84c6afad27",
+    "relay_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791024758452974000/relay.jsonl",
+    "relay_sha256": "784bdee75482975666714b1dffabdaa31e09f888c40961579502ce35b30af323",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
     "stdout_bytes": 63456,
     "stdout_lines": 1024
   },
-  "recorded_at": "2026-10-03T09:44:04.410502+00:00",
+  "recorded_at": "2026-10-03T10:52:38.860407+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",

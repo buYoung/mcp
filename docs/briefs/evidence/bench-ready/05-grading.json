@@ -3,9 +3,9 @@
   "calibration_runs": 0,
   "calibration_status": "not_executed",
   "citation_policy": "Parser and source-access labels are advisory; supported is the LLM's judgment of the original answer and fixed source.",
-  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+  "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
   "dependency_hashes": {
-    "01-contract.json": "8b1c09ffd116e4e2c6cde29b1ed17148b38a174727b4b3432684e386e41e6fa7"
+    "01-contract.json": "ae6a1e82e2cc63a2a5ae88cf8189d72551f90c6ce0be56a3e1e0d9d15d067f22"
   },
   "fact_counts": {
     "core": 21,
@@ -68,7 +68,7 @@
       "sha256": "e7850d9a995ba7db75ce61ec50d4c9641de65628ee5141f198a1cbe77b329c58"
     }
   },
-  "recorded_at": "2026-10-03T09:44:04.426068+00:00",
+  "recorded_at": "2026-10-03T10:52:38.890962+00:00",
   "rubric_hash": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
   "schema_version": 1,
   "status": "verified_offline",

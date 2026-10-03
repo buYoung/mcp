@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "status": "verified_offline",
-  "recorded_at": "2026-10-03T10:31:07.717Z",
+  "recorded_at": "2026-10-03T12:11:37.032Z",
   "method": "Existing interactive dependency injection, actual catalog and projection of the actual prepared manifest; no solver or grader backend supplied.",
   "solver_model": "claude-opus-5-5",
   "backend": "claude_code",
   "readiness": "/Users/buyong/workspace/private/buyong-mcp/docs/briefs/evidence/bench-ready/07-readiness-claude-opus-5-5.json",
-  "readiness_sha256": "6f961fdd67c39ae76f9610b29b5e16234ff9f86d82017a2e42ceedd42bb39b49",
+  "readiness_sha256": "dae78b5c37728e15045e2b6b5ec3e2d737b8b2a29c9c45fb36f5b2c200c83491",
   "implementation": "benchmark/start.mjs",
-  "implementation_sha256": "832e1df95857b1bab37121c62fd7eeca96e4ac2b3fe7e3ac02b3a6ed667894f1",
+  "implementation_sha256": "578084ebba6bd6f9c12a44dce27ca5a5cb39b4414b3a4b4ffaea202cfe1042eb",
   "planned_slots": 21,
   "required_arms": 7,
   "actions": [
@@ -43,9 +43,9 @@
     "풀이 실행기: Claude Code · 채점 실행기: Codex",
     "도구 조건: codebase-memory-mcp (native_only), codegraph (native_only), codemap-search (native_only), graphify (assisted), 기본 에이전트 (검색 제품 없음) (native_agent_baseline), serena (native_only), zvec-grep (native_only)",
     "codemap-search 실제 버전: 0.11.0",
-    "한도: 300초 · 탐색 80회 · 500,000토큰, 순차 실행",
+    "한도: 300초 · 탐색 80회 · 500,000토큰, 최대 4개 병렬 실행",
     "응답은 제품 기본값, 색인은 로컬 조건입니다. 문항마다 동일 경로의 조회 전 상태를 복원하도록 준비했습니다.",
-    "준비 기록: /Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/a6e97553cb58c03a34d6881e451eec59/readiness.json",
+    "준비 기록: /Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/42ccac257591c82a5ddc40dee3176955/readiness.json",
     "실행 직전 준비가 완료됐습니다. 실제 21회 실행 연결은 별도 작업이며 풀이·채점은 실행하지 않았습니다."
   ],
   "execution_backend_calls": 0

@@ -1,9 +1,9 @@
 {
   "agent_backend": "codex",
-  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+  "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
   "dependency_hashes": {
-    "02-delivery.json": "63e827fa28057e7b186f9a9c37a252c5dc9c9f585063c851c3a3556b95e2c8b8",
-    "03-artifacts.json": "f479fe7404fe78507d459c68c92a2e32a7a3b1d32269184e7f7b073c61c4ea75"
+    "02-delivery.json": "bac7da987cbf846ba696a31ee70169833f23c6e5a622d7aff13e064b532f7b0d",
+    "03-artifacts.json": "6aec908d4914e1e0114e628ad463ac2e46850fef6a7b7ea0bc28ae16c2888c7d"
   },
   "grader_runs": 0,
   "implementation_hashes": {
@@ -72,11 +72,11 @@
           "frontend_stopped": true,
           "owned_process_groups": [
             {
-              "pgid": 94730,
+              "pgid": 5974,
               "stopped": true
             }
           ],
-          "pid": 94730,
+          "pid": 5974,
           "shared_daemon_stopped": null
         }
       },
@@ -239,9 +239,9 @@
         },
         "watcher_enabled": "native default true"
       },
-      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/probes/1791021295489403000/inventory.json",
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/probes/1791025312468423000/inventory.json",
       "native_inventory_sha256": "1217ae7f685117c292a27bfb3780d4f50bd1aba9e717c0a1f21b2cc0a70bc597",
-      "probe_identity": "7f808a9b875735745297b8422aa46042ab8c959ca5bfbfc157f03b5678788f2e",
+      "probe_identity": "95f8c7c03a527d8e3262d4cd3bcf171535b4f0e792ebd120fdcc4e970dfe351c",
       "probe_inputs": {
         "agent_backend": "codex",
         "agent_version": "codex-cli 0.160.0",
@@ -283,13 +283,13 @@
           "schema": "grafana-route-relay-v1",
           "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/source"
         },
-        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
         "implementation_hashes": {
           "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
           "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
           "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
           "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
-          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_prepare.py": "c7d841d5219a994bb0fad57fe5dc9ff238006d1e026dd47c09bc80e7d282575d",
           "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
           "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
           "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
@@ -300,9 +300,9 @@
         },
         "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
       },
-      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/probes/1791021295489403000/relay.jsonl",
-      "probe_log_sha256": "ab884dcce2e0c5194235c48ddac761d28040ecb595cc008b2514d468e22c4319",
-      "probe_output_sha256": "116724ed4c913badf789e852c96aae1d07abe01c48d5bc24e331be7e497d54d8",
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codebase-memory-mcp/probes/1791025312468423000/relay.jsonl",
+      "probe_log_sha256": "a571bc75c9dc9e53459c2b6e3e84180dd178d55b2a93e242247ebfb53d46cf28",
+      "probe_output_sha256": "a8b0dd060ad988244501dbc8fb2e35f15a09c625beadc64bf5bccef8cbeaf52c",
       "probes": [
         {
           "arguments": {
@@ -310,7 +310,7 @@
             "project": "Users-buyong-workspace-private-buyong-mcp-benchmark-.cache-route-preparation-workspaces-codebase-memory-mcp-source"
           },
           "isError": false,
-          "result_sha256": "2a322ba6935e6121d61468c5e39832d5e3be864347124533788e9c427bf7d521",
+          "result_sha256": "ad7202924648a220a71917459cb293056a6c6726bbb4d10456b4babb39318db4",
           "tool": "search_code"
         }
       ],
@@ -426,11 +426,11 @@
           "frontend_stopped": true,
           "owned_process_groups": [
             {
-              "pgid": 75573,
+              "pgid": 2374,
               "stopped": true
             }
           ],
-          "pid": 75573,
+          "pid": 2374,
           "shared_daemon_stopped": null
         }
       },
@@ -482,9 +482,9 @@
         "telemetry": "DO_NOT_TRACK=1",
         "watch": "native default"
       },
-      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/probes/1791020852327015000/inventory.json",
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/probes/1791024926190677000/inventory.json",
       "native_inventory_sha256": "bc9ce39fb87e8b5c96f516b2eb1f0b3c73972cfb0ed0039c5a5669db5f9be433",
-      "probe_identity": "d846f15a2adca9d0c556555f405e76c24ab07959614183288304dbb1785f5d02",
+      "probe_identity": "9d7269e3c8add6f8318c7001b764c433eb676126a2594aca823abbc4ec413cf2",
       "probe_inputs": {
         "agent_backend": "codex",
         "agent_version": "codex-cli 0.160.0",
@@ -524,13 +524,13 @@
           "schema": "grafana-route-relay-v1",
           "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/source"
         },
-        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
         "implementation_hashes": {
           "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
           "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
           "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
           "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
-          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_prepare.py": "c7d841d5219a994bb0fad57fe5dc9ff238006d1e026dd47c09bc80e7d282575d",
           "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
           "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
           "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
@@ -541,9 +541,9 @@
         },
         "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
       },
-      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/probes/1791020852327015000/relay.jsonl",
-      "probe_log_sha256": "8c288aa6c2dee9cb55a74d77a056c83ed4b8ebc3778f18f5f375b6fc235af71f",
-      "probe_output_sha256": "b96358d435d7f29f6adb8a7dc02196cd791db36727b10e6dc2004a871f260842",
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codegraph/probes/1791024926190677000/relay.jsonl",
+      "probe_log_sha256": "5ab780393b472f990f667b39d523af488ba41a309dbcfae0805e57d24b02d316",
+      "probe_output_sha256": "0b0d7d142e6c3463b409e81bc354463d34f11ac39cde556c42b28bd16056c9c6",
       "probes": [
         {
           "arguments": {
@@ -624,11 +624,11 @@
           "frontend_stopped": true,
           "owned_process_groups": [
             {
-              "pgid": 32535,
+              "pgid": 68271,
               "stopped": true
             }
           ],
-          "pid": 32535,
+          "pid": 68271,
           "shared_daemon_stopped": null
         }
       },
@@ -662,9 +662,9 @@
         "Jev": "native default disabled",
         "external_ai": false
       },
-      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/probes/1791020705894732000/inventory.json",
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/probes/1791024802210327000/inventory.json",
       "native_inventory_sha256": "4f3a13c27005d2821cdd571a5f962d4024438947cb4a39f7b349689f6c2cbc79",
-      "probe_identity": "40fd5d3bab139386033f9c12597f98e1ab857c023ecbc267b06799a06cabe2af",
+      "probe_identity": "a645141486d74fb318ad2eb6c1b6f2b53c6de1ee4f28a85e5c0f0c9a2554c5f0",
       "probe_inputs": {
         "agent_backend": "codex",
         "agent_version": "codex-cli 0.160.0",
@@ -701,13 +701,13 @@
           "schema": "grafana-route-relay-v1",
           "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/source"
         },
-        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
         "implementation_hashes": {
           "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
           "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
           "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
           "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
-          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_prepare.py": "c7d841d5219a994bb0fad57fe5dc9ff238006d1e026dd47c09bc80e7d282575d",
           "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
           "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
           "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
@@ -718,9 +718,9 @@
         },
         "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
       },
-      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/probes/1791020705894732000/relay.jsonl",
-      "probe_log_sha256": "12033e35892abd161683635fec37488f0fed3f6eb3d36982fd1e7501ac30855d",
-      "probe_output_sha256": "f87a3865e4a8d6b5a546d043a7dfae2261d6bce3f44c7d89967c1894b6129cee",
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/codemap-search/probes/1791024802210327000/relay.jsonl",
+      "probe_log_sha256": "ca28e70075434f44256e8326844558e6200ca1a98e5fbeb8574b88a47af508c1",
+      "probe_output_sha256": "0a6e9753a88a936171186ca403e5e026bc0e84f99480cb53e11ba3c6bd4202be",
       "probes": [
         {
           "arguments": {},
@@ -797,7 +797,7 @@
           "added": "read",
           "native_inventory_sha256": "6a642daabfc87276cee94367bbc689abbd1c7f938344946b1be668b85d398378",
           "operation": "inspect original source body at a discovered file/line location",
-          "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791021140541615000/relay.jsonl",
+          "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791025184071708000/relay.jsonl",
           "quality_based": false,
           "reason": "Native graph queries/get_node return graph metadata and locations; the native surface has no raw-source reader."
         }
@@ -826,11 +826,11 @@
           "frontend_stopped": true,
           "owned_process_groups": [
             {
-              "pgid": 55145,
+              "pgid": 70962,
               "stopped": true
             }
           ],
-          "pid": 55145,
+          "pid": 70962,
           "shared_daemon_stopped": null
         }
       },
@@ -874,9 +874,9 @@
           "  warning: 8 file(s) had syntax errors and may be partially extracted: pkg/plugins/pluginassets/testdata/module-hash-no-manifest-txt/module.js (first error at line 1, no symbols extracted), pkg/plugins/pluginassets/testdata/module-hash-no-module-js/something.js (first error at line 1, no symbols extracted), pkg/plugins/pluginassets/testdata/module-hash-valid-deeply-nested/datasource/module.js (first error at line 1, no symbols extracted), pkg/plugins/pluginassets/testdata/module-hash-valid-deeply-nested/datasource/panels/one/module.js (first error at line 1, no symbols extracted), pkg/plugins/pluginassets/testdata/module-hash-valid-deeply-nested/module.js (first error at line 1, no symbols extracted) (+3 more)"
         ]
       },
-      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791021140541615000/inventory.json",
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791025184071708000/inventory.json",
       "native_inventory_sha256": "0cdc52d18f3268e11f44563f6676bb35f7f40273b0759657ef59ca887f437393",
-      "probe_identity": "469e6b7a1545d6a362f55303fb0ab9447de1277ced0aa5bc071b0c7f56dbd314",
+      "probe_identity": "30dd529820017b50fbf3e3cdaf89ef83bcf1d582f5307c2e4d032c4c762b00e8",
       "probe_inputs": {
         "agent_backend": "codex",
         "agent_version": "codex-cli 0.160.0",
@@ -913,13 +913,13 @@
           "schema": "grafana-route-relay-v1",
           "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/source"
         },
-        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
         "implementation_hashes": {
           "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
           "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
           "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
           "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
-          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_prepare.py": "c7d841d5219a994bb0fad57fe5dc9ff238006d1e026dd47c09bc80e7d282575d",
           "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
           "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
           "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
@@ -930,9 +930,9 @@
         },
         "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
       },
-      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791021140541615000/relay.jsonl",
-      "probe_log_sha256": "88c98d0641854d297d99f99e1bd0ed66f176cf7e0a94a28a2f3428461fd37d32",
-      "probe_output_sha256": "be385dafb99915324b96981b744d6f845d1c958dba99f6cb5b3695207f61c21d",
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791025184071708000/relay.jsonl",
+      "probe_log_sha256": "fa398f9c41015b137fa696c602e681ef70023a86b6a9c50c39a9bd96390c25ba",
+      "probe_output_sha256": "ebbf7dedff979940f467b5064876bd0b41a41172f634e8d6ff61ae5ecb970c77",
       "probes": [
         {
           "arguments": {
@@ -953,7 +953,7 @@
             "added": "read",
             "native_inventory_sha256": "6a642daabfc87276cee94367bbc689abbd1c7f938344946b1be668b85d398378",
             "operation": "inspect original source body at a discovered file/line location",
-            "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791021140541615000/relay.jsonl",
+            "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/graphify/probes/1791025184071708000/relay.jsonl",
             "quality_based": false,
             "reason": "Native graph queries/get_node return graph metadata and locations; the native surface has no raw-source reader."
           }
@@ -1082,9 +1082,9 @@
         "search_product_mcp": false,
         "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source"
       },
-      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/probes/1791021435246484000/inventory.json",
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/probes/1791026505085910000/inventory.json",
       "native_inventory_sha256": "31dc2f6498f195cb17f5c057c9e1edd29c43adbb34e1a59a6a104f592ee884fb",
-      "probe_identity": "32603f849f56d2cb0c21146e20279e6a2b423d6f6ba8e2cb4dfab8eca174abfb",
+      "probe_identity": "325084730cf5f0bf83cd51ec759688cd738d972871fc25b85c41ac86e91a7f45",
       "probe_inputs": {
         "agent_backend": "codex",
         "agent_version": "codex-cli 0.160.0",
@@ -1128,13 +1128,13 @@
           "search_product_mcp": false,
           "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/source"
         },
-        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
         "implementation_hashes": {
           "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
           "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
           "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
           "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
-          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_prepare.py": "c7d841d5219a994bb0fad57fe5dc9ff238006d1e026dd47c09bc80e7d282575d",
           "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
           "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
           "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
@@ -1145,7 +1145,7 @@
         },
         "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
       },
-      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/probes/1791021435246484000/probe.json",
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/rg/probes/1791026505085910000/probe.json",
       "probe_log_sha256": "d434685e03926017ce4a8a4f83ba14d7053e1093d908ca581568573ccbff1523",
       "probe_output_sha256": "f0c6cd01fc6aa5c34b76a79124285d46c64257200a4ab49bb350c63c30e79fea",
       "probes": [
@@ -1221,11 +1221,11 @@
           "frontend_stopped": true,
           "owned_process_groups": [
             {
-              "pgid": 16754,
+              "pgid": 25496,
               "stopped": true
             }
           ],
-          "pid": 16754,
+          "pid": 25496,
           "shared_daemon_stopped": null
         }
       },
@@ -1388,9 +1388,9 @@
           "."
         ]
       },
-      "native_inventory": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/probes/1791019050444266000/inventory.json",
+      "native_inventory": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/probes/1791025826467203000/inventory.json",
       "native_inventory_sha256": "5da2621ea2fed4efb60ad7bb343a9efad5e6e88329c79d938fcf6878b60ca8cd",
-      "probe_identity": "0bd1eaf4b8ea252721d543f119e4c4520e37e8adbb2160c047b086d033b96135",
+      "probe_identity": "70085dd0b34f93dd2545b4ed806c72cf01e61fa42407ca48c1999d10cc5c5b6c",
       "probe_inputs": {
         "agent_backend": "codex",
         "agent_version": "codex-cli 0.160.0",
@@ -1437,13 +1437,13 @@
           "schema": "grafana-route-relay-v1",
           "source": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/source"
         },
-        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
         "implementation_hashes": {
           "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
           "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
           "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
           "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
-          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_prepare.py": "c7d841d5219a994bb0fad57fe5dc9ff238006d1e026dd47c09bc80e7d282575d",
           "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
           "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
           "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
@@ -1454,9 +1454,9 @@
         },
         "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
       },
-      "probe_log": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/probes/1791019050444266000/relay.jsonl",
-      "probe_log_sha256": "6b2127c178646785ca29f530f3f27c6982279893d54871f9f251c50912f11be7",
-      "probe_output_sha256": "6947136ea6a2c3251d00ac3d69ecba87611806b69a5e6f01d21e6524d0b34d8a",
+      "probe_log": "/Users/buyong/tmp/codemap-benchmark-dacd1e2124b7/serena/probes/1791025826467203000/relay.jsonl",
+      "probe_log_sha256": "a9f94990ddf5f5520cbad488249a348beb04f0208a679c7c04f92e2f74b0da96",
+      "probe_output_sha256": "7f1d709f2394743dc3e00b75b459b6c99cbdb77c70fa4d6610f8e275cf7d8a02",
       "probes": [
         {
           "arguments": {},
@@ -1654,7 +1654,7 @@
       "cleanup": {
         "daemon": {
           "exit_code": 0,
-          "pid": 14404,
+          "pid": 35585,
           "stopped": true
         },
         "frontend": {
@@ -1662,12 +1662,12 @@
           "frontend_stopped": true,
           "http_server": {
             "exit_code": 0,
-            "pid": 14404,
+            "pid": 35585,
             "stopped": true
           },
           "owned_process_groups": [
             {
-              "pgid": 14404,
+              "pgid": 35585,
               "stopped": true
             }
           ],
@@ -1732,9 +1732,9 @@
         "model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b",
         "toolset": "native agent default"
       },
-      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/probes/1791020992781312000/inventory.json",
+      "native_inventory": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/probes/1791025048205483000/inventory.json",
       "native_inventory_sha256": "da09292da4ef9ea3746fea2fed2fc12a6d24ea9fccd7dad9aba520d03b8f19b1",
-      "probe_identity": "71371bb110b8aed98a3d1c72a8b109e612ac487657789f19d82c4a16a3a7f5b2",
+      "probe_identity": "22edef803f66b4c9891d304428d4faecc08995599a3a118c1240f48795cb29c9",
       "probe_inputs": {
         "agent_backend": "codex",
         "agent_version": "codex-cli 0.160.0",
@@ -1777,13 +1777,13 @@
           "schema": "grafana-route-relay-v1",
           "source": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/source"
         },
-        "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+        "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
         "implementation_hashes": {
           "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
           "benchmark/core.py": "2026fdd61b5358b2cb4bc162b32ea3d93c4549b4c40a073f521edb4f2f199b9b",
           "benchmark/native_baseline.py": "87ab8479e5fcfb4e6f79cda017924bef8b379132b967d67522d971d6a95b0573",
           "benchmark/responses.py": "184cc12afc25ca3f6ce0fad9b2a7d8a0c2b94dc65f5397206f6f1ac5ec214f9e",
-          "benchmark/route_prepare.py": "129062a344820da77d9a8ed3f5fc80deea3326ca41a6068e44bbb4be27702f5e",
+          "benchmark/route_prepare.py": "c7d841d5219a994bb0fad57fe5dc9ff238006d1e026dd47c09bc80e7d282575d",
           "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
           "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
           "benchmark/serena_support.py": "3f8e52c27ce3693fde436f69569400544e8c633b05cef333e048c27f8786e7e6",
@@ -1794,9 +1794,9 @@
         },
         "source_sha256": "50f14b4d0560946a324fcc5d157b7636472bc7e3f3ae3b0305a9e3e68d45fc59"
       },
-      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/probes/1791020992781312000/relay.jsonl",
-      "probe_log_sha256": "74c28ad76118571f2399291853d944c32223f3a0342b31c248433d16983efae8",
-      "probe_output_sha256": "d452dd4a078c0806424945b8c97c14a811b57bc8bfbb031b4727dd4a8cb53b92",
+      "probe_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/workspaces/zvec-grep/probes/1791025048205483000/relay.jsonl",
+      "probe_log_sha256": "9a99836a7d50f69e78bc02dc3de771e2a504628777fff7a5604cd8c50efef6cb",
+      "probe_output_sha256": "42b6a3e00a5ce241df79e720487f6fa7fe91ed83717c79d740a7ccfdd2ddad72",
       "probes": [
         {
           "arguments": {
@@ -1853,7 +1853,7 @@
       "tool_condition": "native_only"
     }
   },
-  "recorded_at": "2026-10-03T10:00:23.943732+00:00",
+  "recorded_at": "2026-10-03T11:25:52.373516+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "source_manifest": {

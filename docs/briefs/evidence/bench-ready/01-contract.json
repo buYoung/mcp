@@ -101,7 +101,7 @@
     ],
     "prompt_separation": "passed"
   },
-  "contract_hash": "f6b1a8b645acff485d2426f23d858da268bb77a01b116d2f2f010aaa52f3a20d",
+  "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
   "contract_paths": {
     "private_dataset": "benchmark/data/grafana-routes-v2/dataset.json",
     "profile": "benchmark/data/grafana-execution-v1.json",
@@ -128,9 +128,9 @@
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/data/grafana-execution-v1.json": "777ba727589e295e7309a39bb6dd7e17064c5c725b043db7ea709abf22209031",
+    "benchmark/data/grafana-execution-v1.json": "cc06392960911afa7bb6f0cfeb28fe0da0e5807feb3be01ee69d3aa338749551",
     "benchmark/execution.py": "0e83554d7dcafbb96aad231d9ec20a584f0c6af0c8350a29c73e854cbc395f86",
-    "benchmark/route_contract.py": "9ff65e8c1d666860c7d158b2250c4c7710cc3a753892d4742422f263b3b21074",
+    "benchmark/route_contract.py": "8c2f16ef12a6076c2fbb3e5f680ac065831350a258cf2050e0e5963479625a26",
     "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
     "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7"
   },
@@ -160,6 +160,7 @@
   "policy_decisions": {
     "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
     "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
+    "concurrency": "사전 색인을 사용해 측정을 최대 4개 병렬로 진행한다. 같은 비교군의 문항은 색인·홈 복원 충돌을 막기 위해 순차 실행한다.",
     "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
     "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
     "index_mode": "로컬 검색·색인으로 준비 (권장)",
@@ -189,7 +190,7 @@
       "tools": "Selected coding-agent native shell and filesystem navigation; no search product MCP"
     },
     "comparison_lock_id": "grafana-comparison-targets-v1",
-    "concurrency": 1,
+    "concurrency": 4,
     "dataset_id": "grafana-routes-v2",
     "execution_authorized": false,
     "grader": {
@@ -221,6 +222,7 @@
     "policy_decisions": {
       "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
       "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
+      "concurrency": "사전 색인을 사용해 측정을 최대 4개 병렬로 진행한다. 같은 비교군의 문항은 색인·홈 복원 충돌을 막기 위해 순차 실행한다.",
       "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
       "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
       "index_mode": "로컬 검색·색인으로 준비 (권장)",
@@ -267,7 +269,7 @@
     "route-save-existing",
     "route-live-receive"
   ],
-  "recorded_at": "2026-10-03T09:43:42.907224+00:00",
+  "recorded_at": "2026-10-03T10:52:29.093988+00:00",
   "repetitions": 1,
   "schema_version": 1,
   "solver": {

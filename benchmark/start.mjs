@@ -92,7 +92,7 @@ export async function interactive({ prompts, call = backend, output = console })
   output.info(`풀이 실행기: ${plan.spec.solver_backend === 'claude_code' ? 'Claude Code' : 'Codex'} · 채점 실행기: Codex`);
   output.info(`도구 조건: ${plan.targets.map((item) => `${item.name} (${item.tool_condition})`).join(', ')}`);
   output.info(`codemap-search 실제 버전: ${plan.targets.find((item) => item.id === 'codemap-search')?.actual_version}`);
-  output.info(`한도: ${plan.spec.limits.elapsed_seconds}초 · 탐색 ${plan.spec.limits.exploration_calls}회 · ${plan.spec.limits.total_tokens.toLocaleString()}토큰, 순차 실행`);
+  output.info(`한도: ${plan.spec.limits.elapsed_seconds}초 · 탐색 ${plan.spec.limits.exploration_calls}회 · ${plan.spec.limits.total_tokens.toLocaleString()}토큰, 최대 ${plan.spec.concurrency}개 병렬 실행`);
   output.info('응답은 제품 기본값, 색인은 로컬 조건입니다. 문항마다 동일 경로의 조회 전 상태를 복원하도록 준비했습니다.');
   output.info(`준비 기록: ${plan.readiness}`);
   output.info(`실행 직전 준비가 완료됐습니다. 실제 ${plan.runs}회 실행 연결은 별도 작업이며 풀이·채점은 실행하지 않았습니다.`);

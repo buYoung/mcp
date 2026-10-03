@@ -31,7 +31,7 @@ feat
 - Dataset manifest SHA256 is `ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24`; target lock SHA256 is `b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c`; Grafana commit is `c6fad8695a96577eb466d425e6ac4a759ca30f47`.
 - Required arms are `codemap-search`, `codegraph`, `zvec-grep`, `graphify`, `codebase-memory-mcp`, and `rg`. `codegraph` means the user-selected `colbymchenry/codegraph`.
 - 현재 실행 계약만 유지한다. 이전 SPEC·프로필·데이터셋·결과·답변 재사용 코드는 제거하며 고정한 현재 문항과 비교 대상 핀은 보존한다.
-- Retain current overall runtime limits and seed unless a concrete incompatibility requires replanning. These are separate from product response limits. Use sequential product execution for this preparation profile to avoid daemon and resource interference.
+- 기존 회차별 시간·호출·토큰 한도와 seed를 유지하며 제품 응답 기본값과 구분한다. 사용자 요청에 따라 기본 동시 실행 수는 4로 고정하고 준비 설정·비교군별 실행 설정·메뉴까지 같은 값을 전달한다. 사전 색인을 재사용하며 같은 비교군의 문항은 색인·홈 복원 충돌을 막기 위해 순차 실행하는 계약이다. 실제 병렬 실행은 이 준비 브리프의 범위에 포함하지 않는다.
 - Native response policy forbids harness byte/line caps, result enrichment, automatic follow-up fetching, and injected output-size overrides. It does not equate every product's defaults to codemap-search's 100000 setting.
 - 제품군은 각 제품의 자체 도구를 우선하며 불가피한 경우에만 최소 보조 도구를 제공한다. `rg` 기준군은 추가 검색 제품이 없는 기본 코딩 에이전트로, 기본 셸·파일 탐색과 고정 rg 실행 파일을 제공하고 명령 선택은 LLM에 맡긴다. Graphify의 read 예외를 유지하고 zvec의 후속 rg 안내는 보조 도구 추가 근거로 쓰지 않는다.
 - The user chose local search/indexing: Jev disabled, fresh Graphify code-only extraction, and zvec's documented local code embedding. External-AI tool modes are excluded. Solver/grader execution remains outside this briefset.
