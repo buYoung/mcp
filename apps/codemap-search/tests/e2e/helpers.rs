@@ -122,7 +122,7 @@ impl McpClient {
     /// poll through the initial background-index warm-up: the server answers immediately
     /// while indexing, tagging search/overview output as "warming up", and tests want the
     /// post-index result. Other methods return on the first response.
-    pub async fn send_request(&mut self, method: &str, params: Value) -> Result<Value, String> {
+    pub async fn send_request(&mut self, method: &str, mut params: Value) -> Result<Value, String> {
         let start = Instant::now();
         loop {
             let response = self.send_request_once(method, params.clone()).await?;
@@ -131,6 +131,27 @@ impl McpClient {
                     || overview_response_is_waiting_for_index(&params, &response))
                 && start.elapsed() < Duration::from_secs(10)
             {
+                // Restore source from discarded warm-up responses on retries.
+                // Keep explicit caller choices, including supported key aliases.
+                let is_source_tool = matches!(
+                    params.get("name").and_then(Value::as_str),
+                    Some("search" | "read" | "grep")
+                );
+                if let Some(arguments) = params
+                    .get_mut("arguments")
+                    .and_then(Value::as_object_mut)
+                    .filter(|arguments| {
+                        is_source_tool
+                            && !arguments.keys().any(|key| {
+                                key.chars()
+                                    .filter(|c| *c != '_' && *c != '-')
+                                    .flat_map(char::to_lowercase)
+                                    .eq("includeseen".chars())
+                            })
+                    })
+                {
+                    arguments.insert("include_seen".into(), Value::Bool(true));
+                }
                 sleep(Duration::from_millis(50)).await;
                 continue;
             }
@@ -278,7 +299,7 @@ impl InProcessClient {
             .call(
                 "tools/call",
                 serde_json::json!({
-                    "name": "initial_instructions", "arguments": { "task_query": task, "questions": [
+                    "name": "register_task", "arguments": { "task_query": task, "questions": [
                         {"id":"budget", "question":"Does this function implement or concretely support the requested output-budget behavior?", "when_true":"It computes, reserves, caps, renders or passes the requested output budget.", "when_false":"Supplied code establishes a separate behavior with no concrete budget role."},
                         {"id":"flow", "question":"Does the same function participate in the requested output-budget flow?", "when_true":"The body or supplied call evidence connects it to that output-budget flow.", "when_false":"Supplied evidence establishes an unrelated flow; missing links alone are uncertain."}
                     ], "match":"all" }

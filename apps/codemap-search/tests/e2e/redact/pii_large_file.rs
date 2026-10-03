@@ -4,6 +4,9 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::time::Instant;
 
+const READ_WINDOW_LINES: usize = 500;
+const GREP_PAGE_ROWS: usize = 250;
+
 struct Fixture {
     path: &'static str,
     source: &'static str,
@@ -107,6 +110,7 @@ fn expected_lines(source: &str, manifest: &FixtureManifest) -> Vec<String> {
 }
 
 fn assert_source_window(response: &Value, expected: &[String], first_line: usize, count: usize) {
+    assert!(response["result"]["isError"] != true, "{}", text(response));
     let rendered: Vec<_> = text(response)
         .lines()
         .filter_map(|line| line.split_once('→'))
@@ -160,18 +164,21 @@ async fn check_fixture(fixture: &Fixture) {
     let repo = create_mock_repo(&[(file_path, source), (".codemap/config.toml", &config)]).unwrap();
     let mut client = McpClient::spawn(repo.path()).await.unwrap();
     let started = Instant::now();
-    let response = call(
-        &mut client,
-        "read",
-        json!({"file_path":file_path,"offset":1,"limit":manifest.line_count,"view":"source"}),
-    )
-    .await;
+    for offset in (1..=manifest.line_count).step_by(READ_WINDOW_LINES) {
+        let count = READ_WINDOW_LINES.min(manifest.line_count - offset + 1);
+        let response = call(
+            &mut client,
+            "read",
+            json!({"file_path":file_path,"offset":offset,"limit":count,"view":"source"}),
+        )
+        .await;
+        assert_source_window(&response, &expected, offset, count);
+    }
     eprintln!(
-        "{file_path}: 10000 lines, 90 PII types, 900 values, {} bytes, full read={}ms",
+        "{file_path}: 10000 lines, 90 PII types, 900 values, {} bytes, source windows={}ms",
         source.len(),
         started.elapsed().as_millis()
     );
-    assert_source_window(&response, &expected, 1, manifest.line_count);
 
     // Windows begin directly on values, without the enclosing factory or request DTO.
     for span in manifest.spans.iter().rev().step_by(89).take(10) {
@@ -206,34 +213,51 @@ async fn check_fixture(fixture: &Fixture) {
         text(&response).contains(&format!("{file_path}:900")),
         "{response}"
     );
-    for expand in ["none", "callable"] {
-        let started = Instant::now();
-        let response = call(&mut client, "grep", json!({"path":file_path,"pattern":pattern,"head_limit":1000,"expand":expand,"view":"source"})).await;
-        eprintln!(
-            "{file_path}: grep {expand}={}ms",
-            started.elapsed().as_millis()
-        );
-        let output = text(&response);
-        for span in &manifest.spans {
-            assert!(
-                output.contains(&format!("{file_path}:{}:", span.line)),
-                "missing {} ({}) at line {}",
-                span.entity,
-                span.field,
-                span.line
-            );
-            assert!(
-                output.contains(&format!(
-                    "{file_path}:{}:{}",
-                    span.line,
-                    expected[span.line - 1]
-                )),
-                "wrong {} output at line {}",
-                span.entity,
-                span.line
-            );
-        }
+    let started = Instant::now();
+    let mut output = String::new();
+    for offset in (0..manifest.pii_occurrences).step_by(GREP_PAGE_ROWS) {
+        let response = call(&mut client, "grep", json!({"path":file_path,"pattern":pattern,"head_limit":GREP_PAGE_ROWS,"offset":offset,"expand":"none","view":"source"})).await;
+        assert!(response["result"]["isError"] != true, "{}", text(&response));
+        output.push_str(text(&response));
+        output.push('\n');
     }
+    eprintln!(
+        "{file_path}: grep none pages={}ms",
+        started.elapsed().as_millis()
+    );
+    for span in &manifest.spans {
+        assert!(
+            output.contains(&format!("{file_path}:{}:", span.line)),
+            "missing {} ({}) at line {}",
+            span.entity,
+            span.field,
+            span.line
+        );
+        assert!(
+            output.contains(&format!(
+                "{file_path}:{}:{}",
+                span.line,
+                expected[span.line - 1]
+            )),
+            "wrong {} output at line {}",
+            span.entity,
+            span.line
+        );
+    }
+
+    // Whole callable bodies exceed the delivery limit; source windows/pages above
+    // still verify the masking of every value against the independent manifest.
+    let started = Instant::now();
+    let response = call(&mut client, "grep", json!({"path":file_path,"pattern":pattern,"head_limit":1000,"expand":"callable","view":"source"})).await;
+    eprintln!(
+        "{file_path}: grep callable={}ms",
+        started.elapsed().as_millis()
+    );
+    assert_eq!(response["result"]["isError"], true, "{response}");
+    assert!(
+        text(&response).contains("exceeds the output.client delivery limit of 100000 bytes"),
+        "{response}"
+    );
 
     let factory_line = source
         .lines()
@@ -294,7 +318,16 @@ async fn check_fixture(fixture: &Fixture) {
         }
     }
     let response = call(&mut client, "overview", json!({"path":file_path})).await;
-    assert!(text(&response).contains(fixture.overview), "{response}");
+    if fixture.path.ends_with(".html") {
+        // Thousands of tag declarations cannot fit in a single client result.
+        assert_eq!(response["result"]["isError"], true, "{response}");
+        assert!(
+            text(&response).contains("exceeds the output.client delivery limit of 100000 bytes"),
+            "{response}"
+        );
+    } else {
+        assert!(text(&response).contains(fixture.overview), "{response}");
+    }
     assert_eq!(
         std::fs::read_to_string(repo.path().join(file_path)).unwrap(),
         source

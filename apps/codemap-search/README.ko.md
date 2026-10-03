@@ -72,9 +72,9 @@ args = ["mcp"]
 
 ## 첫 연결 확인
 
-1. 클라이언트에서 `initial_instructions`를 한 번 호출합니다. 탐색 안내와 루트 개요를 반환하며, 모노레포에서는 선택 가능한 범위와 언어를 표시합니다. [Jev 단계](#선택적-jev-판단-단계)를 하나라도 켰다면 `task_query`와 집중된 `questions`를 아래 계약에 맞춰 등록합니다.
+1. 클라이언트에서 `initial_instructions({})`를 한 번 호출합니다. Jev 설정과 관계없이 인자를 받지 않으며 탐색 안내와 루트 개요를 반환합니다. 모노레포에서는 선택 가능한 범위와 언어를 표시합니다.
 2. 표시된 경로가 원하는 저장소인지 확인합니다. 색인 준비 중 안내가 나오면 완료 후 `overview`를 다시 호출합니다.
-3. 알고 있는 소스 파일을 `find`로 찾고 `read`로 읽습니다. 색인이 완료된 뒤 알려진 심볼을 `search`로 검색해 같은 파일이 나오는지 확인합니다.
+3. 알고 있는 소스 파일을 `find`로 찾습니다. `read`나 `search`의 활성화된 [Jev 필터](#선택적-jev-판단-단계)를 쓰기 전에는 아래 계약에 맞춰 `register_task`를 한 번 호출합니다. 그다음 파일을 `read`로 읽고, 색인이 완료된 뒤 알려진 심볼을 `search`로 검색해 같은 파일이 나오는지 확인합니다.
 
 바이너리를 찾지 못하면 클라이언트의 `PATH`를, 다른 저장소가 나오면 작업 디렉터리를 확인하세요. 시작·설정 오류는 stderr 로그에 표시하며 stdout은 MCP JSON-RPC 전용입니다.
 
@@ -95,7 +95,8 @@ MCP 초기화 시 또는 설정 변경을 다시 읽은 뒤 다음 요청에서 
 
 | 도구 | 용도 | 주요 인자 |
 |---|---|---|
-| `initial_instructions` | 탐색 안내와 Jev 작업 목적 등록 | `task_query`, `questions`, `match` (Jev search를 켜면 목적·질문은 필수) |
+| `initial_instructions` | 등록한 작업을 바꾸지 않고 탐색 안내 반환 | 없음; `{}`로 호출 |
+| `register_task` | 켜진 Jev 필터를 쓰기 전에 작업 등록 | `task_query`, `questions`(필수), `match` |
 | `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
@@ -148,9 +149,9 @@ MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 �
 
 Jev는 search·read·grep의 완전한 함수 본문을 등록한 작업 질문으로 판단하며 기본으로 꺼져 있습니다. `output.jev.enabled=true`로 켜고 `scope`로 적용 도구를 선택합니다(기본 `["overview", "search", "read", "grep"]`). `enabled=false`이면 모든 필터를 끄고, `scope=[]`이면 아무 도구에도 적용하지 않습니다. API 키는 `.codemap/auth.toml`의 `[jev].api_key`에 저장합니다. 전역 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)도 지원하며, 저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수 순서로 읽습니다. 인증 파일은 색인과 기본 find/grep에서 제외합니다.
 
-주 에이전트는 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `initial_instructions`에 한 번 등록합니다. 질문마다 `question`, `when_true`, `when_false`를 넣습니다. ID는 서버가 생성하며 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 켜진 상태에서는 텍스트만 등록하면 인수 오류를 반환합니다.
+주 에이전트는 켜진 필터를 쓰기 전에 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `register_task`에 한 번 등록합니다. 질문마다 `question`, `when_true`, `when_false`를 넣습니다. ID는 서버가 생성하며 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 텍스트만 등록하면 인수 오류를 반환합니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다.
 
-켜진 search·read·grep 필터는 마스킹한 목적·질문·함수 근거를 TypeSafe에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. 루트 외 overview는 같은 기준으로 선언 목록을 걸러내며, 판정용 본문은 응답과 중복 제거 이력에 넣지 않습니다. 루트 overview·find는 로컬 도구로 유지합니다. Jev 생략 없이 read로 복구하려면 `output.jev.scope`에서 `"read"`를 빼거나 `output.jev.enabled=false`로 끕니다. `include_seen=true`는 공통 중복 제거만 우회합니다. 제공자 실패 시 일반 선택 결과를 유지하며, 독립적인 MCP 중복 전달 규칙은 그대로 적용됩니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
+켜진 search·read·grep 필터는 마스킹한 목적·질문·함수 근거를 TypeSafe에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. 루트 외 overview는 같은 기준으로 선언 목록을 걸러내며, 판정용 본문은 응답과 중복 제거 이력에 넣지 않습니다. `initial_instructions`·루트 overview·find는 로컬 도구로 유지하며 작업 등록이 필요하지 않습니다. Jev 생략 없이 read로 복구하려면 `output.jev.scope`에서 `"read"`를 빼거나 `output.jev.enabled=false`로 끕니다. `include_seen=true`는 공통 중복 제거만 우회합니다. 제공자 실패 시 일반 선택 결과를 유지하며, 독립적인 MCP 중복 전달 규칙은 그대로 적용됩니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
 
 ## 지원 언어와 형식
 

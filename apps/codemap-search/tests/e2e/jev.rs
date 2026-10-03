@@ -104,7 +104,9 @@ async fn with_in_process_server<F, Fut>(
     Fut: std::future::Future<Output = ()>,
 {
     run_server(root, evaluator, |mut client| async move {
-        client.register_task(TASK).await;
+        if codemap_search::config::get().jev.is_any_enabled() {
+            client.register_task(TASK).await;
+        }
         script(client).await;
     })
     .await;
