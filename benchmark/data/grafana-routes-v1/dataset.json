@@ -1,0 +1,459 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v1",
+  "revision": 1,
+  "status": "content_frozen",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+  },
+  "target_release": "1.0.0",
+  "evidence_file": "evidence.json",
+  "grading_file": "grading.json",
+  "solver_questions_file": "questions.json",
+  "question_order": [
+    "route-star",
+    "route-save-existing",
+    "route-live-receive"
+  ],
+  "is_difficulty_empirically_validated": false,
+  "questions": [
+    {
+      "id": "route-star",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "prompt": "대시보드 상단의 즐겨찾기를 추가하거나 해제할 때 화면과 서버가 연결되는 구간 다 확인해줘.",
+      "scope": "로그인 사용자가 저장된 대시보드 상단 버튼에서 추가·해제하는 경로. 폴더 즐겨찾기, 다른 UI 진입점, 목록 전체 동기화는 필수 범위에서 제외한다.",
+      "cross_language_binding": "PUT 또는 DELETE /apis/collections.grafana.app/v1alpha1/namespaces/{namespace}/stars/user-{userUID}/update/dashboard.grafana.app/Dashboard/{dashboardUID}",
+      "facts": [
+        {
+          "id": "S1",
+          "level": "core",
+          "statement": "상단 StarButton은 dashboard.grafana.app / Dashboard / 대시보드 UID를 공통 버튼에 전달한다. 버튼은 현재 조회 결과의 포함 여부를 반전한다.",
+          "evidence_ids": [
+            "s-ui",
+            "s-toggle"
+          ]
+        },
+        {
+          "id": "S2",
+          "level": "core",
+          "statement": "useStarItem이 현재 사용자 UID로 Stars 리소스 이름을 구성한다. 사용자 UID와 대시보드 UID, namespace는 서로 다른 식별자다.",
+          "evidence_ids": [
+            "s-hook",
+            "s-base",
+            "s-ns"
+          ]
+        },
+        {
+          "id": "S3",
+          "level": "core",
+          "statement": "추가는 PUT, 해제는 DELETE이며 동일한 update 하위 경로를 사용한다. Go 등록부가 그 하위 경로를 starsREST에 연결한다.",
+          "evidence_ids": [
+            "s-http",
+            "s-register",
+            "s-update"
+          ]
+        },
+        {
+          "id": "S4",
+          "level": "core",
+          "statement": "Go는 StarsSpec의 group/kind/name 항목을 추가·제거하고 비었으면 삭제, ResourceVersion이 없으면 생성, 나머지는 수정한다. 없는 리소스의 해제는 204로 끝난다.",
+          "evidence_ids": [
+            "s-update",
+            "s-spec"
+          ]
+        },
+        {
+          "id": "S5",
+          "level": "core",
+          "statement": "클라이언트는 Stars 태그를 무효화하며 조회 결과가 버튼 상태를 결정한다. 성공한 변경은 setStarred로 탐색 메뉴에 반영된다.",
+          "evidence_ids": [
+            "s-http",
+            "s-hook",
+            "s-toggle",
+            "s-nav"
+          ]
+        },
+        {
+          "id": "S6",
+          "level": "core",
+          "statement": "서버 변경 실패를 useStarItem이 잡으면 setStarred를 호출하지 않는다. 성공·실패 알림 경로는 별도의 endpoint lifecycle에 있다.",
+          "evidence_ids": [
+            "s-hook",
+            "s-notify"
+          ]
+        },
+        {
+          "id": "SX1",
+          "level": "extended",
+          "statement": "서버 authorizer의 일반 사용자 소유자 비교 앞에는 명시 서비스 권한과 조직 관리자 허용 분기가 있다. 소유자만 절대 허용된다고 일반화하지 않는다.",
+          "evidence_ids": [
+            "s-authorizer-binding",
+            "s-auth"
+          ]
+        },
+        {
+          "id": "SX2",
+          "level": "extended",
+          "statement": "useStarItem의 실패는 재던지지 않고 반환된다. 호출자의 선택형 onStarChange와 분석 이벤트는 계속 실행될 수 있다. 상단 StarButton에는 onStarChange를 전달하지 않는다.",
+          "evidence_ids": [
+            "s-ui",
+            "s-hook",
+            "s-toggle"
+          ]
+        }
+      ],
+      "wrong_claims": [
+        "현재 상단 버튼이 legacy POST /api/user/stars/dashboard/uid/:uid로 직접 요청한다.",
+        "Stars 리소스 이름의 사용자 UID와 마지막 경로의 대시보드 UID가 같다.",
+        "서버 거절에도 useStarItem이 메뉴 상태를 성공으로 바꾼다.",
+        "실패하면 버튼 호출자 안의 모든 후속 처리가 중단된다."
+      ],
+      "limitations": [
+        "저장소의 구체 백엔드는 구성에 따라 달라진다. SQL 단독 경로를 무조건 필수로 두지 않는다.",
+        "쉬움은 세 후보 내 상대적 분류이며 실측 난도가 아니다."
+      ],
+      "core_fact_count": 6,
+      "extended_fact_count": 2,
+      "evidence_ids": [
+        "s-auth",
+        "s-authorizer-binding",
+        "s-base",
+        "s-hook",
+        "s-http",
+        "s-nav",
+        "s-notify",
+        "s-ns",
+        "s-register",
+        "s-spec",
+        "s-toggle",
+        "s-ui",
+        "s-update"
+      ],
+      "difficulty": "simple",
+      "difficulty_status": "structural_not_empirical"
+    },
+    {
+      "id": "route-save-existing",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "prompt": "기존 일반 대시보드를 수정해서 저장할 때 화면과 서버가 연결되는 구간 다 확인해줘.",
+      "scope": "프로비저닝·Git 관리·템플릿이 아닌 기존 대시보드의 일반 저장. 신규 생성, 복사, import, 복원은 별도 문제로 확대하지 않는다. V1/V2 저장 모델의 분기는 유지한다.",
+      "cross_language_binding": "PUT /apis/dashboard.grafana.app/{discovered-version}/namespaces/{namespace}/dashboards/{metadata.name}; body.spec 및 metadata.annotations",
+      "facts": [
+        {
+          "id": "M1",
+          "level": "core",
+          "statement": "일반 기존 대시보드는 SaveDashboardForm을 사용한다. 신규·복사·프로비저닝은 drawer의 다른 분기로 연결된다.",
+          "evidence_ids": [
+            "m-form-selector",
+            "m-form"
+          ]
+        },
+        {
+          "id": "M2",
+          "level": "core",
+          "statement": "폼의 changedSaveModel과 최신 metadata/annotations가 useSaveDashboard로 전달된다. 저장 호출에 dashboard, folderUid, message, k8s 등의 값이 연결된다.",
+          "evidence_ids": [
+            "m-form",
+            "m-hook"
+          ]
+        },
+        {
+          "id": "M3",
+          "level": "core",
+          "statement": "mutation은 저장 모델에 따라 V1/V2 클라이언트를 선택한다. API 버전은 discovery로 결정하며 실패하면 beta fallback을 사용하고 이후 재탐색할 수 있다.",
+          "evidence_ids": [
+            "m-client-select",
+            "m-resolve",
+            "m-discover"
+          ]
+        },
+        {
+          "id": "M4",
+          "level": "core",
+          "statement": "기존 V1은 dashboard.uid를 metadata.name으로, V2는 k8s metadata.name을 사용해 공통 클라이언트의 PUT에 연결한다. spec 및 메타데이터가 요청 본문으로 전달된다.",
+          "evidence_ids": [
+            "m-v1",
+            "m-v2",
+            "m-http",
+            "m-url"
+          ]
+        },
+        {
+          "id": "M5",
+          "level": "core",
+          "statement": "Go는 버전별 dashboards 리소스를 RegistryStore에 등록한다. 일반 내장 서버는 dashboardStorageWrapper를 사용한다. 구성된 저장소로 모델이 전달되며 resource 저장 경로에서는 apistore가 변환한 req.Value와 키를 resource client Update에 넘긴다.",
+          "evidence_ids": [
+            "m-store-bind",
+            "m-generic",
+            "m-storage-select",
+            "m-adapter",
+            "m-consume",
+            "m-wrapper",
+            "m-api-versions",
+            "m-api-v1",
+            "m-api-v2"
+          ]
+        },
+        {
+          "id": "M6",
+          "level": "core",
+          "statement": "응답의 metadata.name과 generation이 uid와 version으로 정규화된다. saveCompleted가 UID·버전·dirty·overlay·편집 기준 상태에 적용된 후 저장 완료 이벤트와 알림 경로가 실행된다.",
+          "evidence_ids": [
+            "m-v1",
+            "m-v2",
+            "m-hook",
+            "m-final-state"
+          ]
+        },
+        {
+          "id": "M7",
+          "level": "core",
+          "statement": "성공 후 별도 mutation lifecycle에서 권한 재조회, 폴더 목록 갱신, 즐겨찾기 표시 이름 갱신이 수행된다. 이동하지 않은 경우 이전 폴더 추가 갱신은 발생하지 않는다.",
+          "evidence_ids": [
+            "m-client-side-effects"
+          ]
+        },
+        {
+          "id": "MX1",
+          "level": "extended",
+          "statement": "두 저장 클라이언트는 수정 요청에서 metadata.resourceVersion을 제거한다. overwrite를 받는 상위 UI만 보고 전송 플래그로 적용된다고 결론 내릴 수 없다. 두 saveDashboard 구현은 options.overwrite를 읽지 않는다.",
+          "evidence_ids": [
+            "m-form",
+            "m-hook",
+            "m-v1",
+            "m-v2"
+          ]
+        },
+        {
+          "id": "MX2",
+          "level": "extended",
+          "statement": "Live 저장 알림은 저장 성공·유효 조직·live 객체 등의 조건에서 발생한다. 알림 오류는 로그를 남기며 이미 수행한 저장을 롤백하는 흐름으로 작성하지 않는다. standalone은 해당 wrapper를 사용하지 않는다.",
+          "evidence_ids": [
+            "m-store-bind",
+            "m-wrapper"
+          ]
+        },
+        {
+          "id": "MX3",
+          "level": "extended",
+          "statement": "저장소 선택에는 etcd 분기도 있다. 모든 설치가 동일 SQL 저장이나 resource 경로로 고정됐다고 채점하지 않는다.",
+          "evidence_ids": [
+            "m-storage-select"
+          ]
+        }
+      ],
+      "wrong_claims": [
+        "현재 화면의 직접 저장 요청은 항상 POST /api/dashboards/db다.",
+        "기존 대시보드 저장도 매번 새로운 리소스를 생성한다.",
+        "UI의 overwrite=true가 서버의 전용 강제 덮어쓰기 신호로 전달된다.",
+        "서버 성공 응답의 UID·버전이 화면 상태에 반영되지 않는다.",
+        "Live 알림 실패가 저장 결과를 롤백한다."
+      ],
+      "limitations": [
+        "브라우저와 Grafana 서버를 실행하여 저장 성공·충돌을 관측하지 않았다.",
+        "물리 DB 드라이버와 외부 Kubernetes 프레임워크 내부를 필수 정답 경계로 삼지 않았다."
+      ],
+      "core_fact_count": 7,
+      "extended_fact_count": 3,
+      "evidence_ids": [
+        "m-adapter",
+        "m-api-v1",
+        "m-api-v2",
+        "m-api-versions",
+        "m-client-select",
+        "m-client-side-effects",
+        "m-consume",
+        "m-discover",
+        "m-final-state",
+        "m-form",
+        "m-form-selector",
+        "m-generic",
+        "m-hook",
+        "m-http",
+        "m-resolve",
+        "m-storage-select",
+        "m-store-bind",
+        "m-url",
+        "m-v1",
+        "m-v2",
+        "m-wrapper"
+      ],
+      "difficulty": "medium",
+      "difficulty_status": "structural_not_empirical"
+    },
+    {
+      "id": "route-live-receive",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "prompt": "TestData의 Grafana Live 스트림을 구독하고 데이터를 받는 구간 다 확인해줘.",
+      "scope": "GrafanaLiveEditor에서 고르는 내장 랜덤 채널의 구독·생산·수신과 정리. streaming_client, simulation 전용 구현, 사용자 지정 pipeline의 상세 처리, 외부 SceneQueryRunner의 패널 렌더링 구현은 필수 범위 밖이다. 관련 우회 분기는 구분한다.",
+      "cross_language_binding": "GET /api/live/ws; {namespace}/plugin/testdata/{channel}; testdata alias => grafana-testdata-datasource; publication payload => TypeScript channel stream",
+      "facts": [
+        {
+          "id": "L1",
+          "level": "core",
+          "statement": "live 시나리오는 runGrafanaLiveQuery를 통해 Plugin scope, testdata stream, 선택한 channel path를 구성한다. streaming_client는 다른 분기다.",
+          "evidence_ids": [
+            "l-options",
+            "l-query",
+            "l-address"
+          ]
+        },
+        {
+          "id": "L2",
+          "level": "core",
+          "statement": "TS는 /api/live/ws에 연결하고 namespace가 붙은 채널을 구독한다. Go는 같은 WebSocket 경로를 로그인 조건으로 등록하고 구독 namespace와 사용자 namespace를 대조한다.",
+          "evidence_ids": [
+            "l-client-ws",
+            "l-client-channel",
+            "l-server-ws",
+            "l-subscribe"
+          ]
+        },
+        {
+          "id": "L3",
+          "level": "core",
+          "statement": "매칭 pipeline 규칙이 없는 경로에서는 Plugin scope의 handler가 선택되며 플러그인 존재·스트리밍 지원을 확인한다. testdata 별칭은 grafana-testdata-datasource에 등록되고 코어 플러그인의 StreamHandler가 실제 TestData Service에 연결된다.",
+          "evidence_ids": [
+            "l-router",
+            "l-subscribe",
+            "l-alias",
+            "l-alias-register",
+            "l-core-bind",
+            "l-manager-dispatch"
+          ]
+        },
+        {
+          "id": "L4",
+          "level": "core",
+          "statement": "PluginPathRunner는 SubscribeStream을 호출하고 성공한 스트림을 manager에 제출한다. 구독 응답의 InitialData와 장기 생산 RunStream은 다른 역할이다. 네트워크 전달 순서를 소스 호출 순서만으로 단정하지 않는다.",
+          "evidence_ids": [
+            "l-plugin-runner",
+            "l-stream-schema",
+            "l-run"
+          ]
+        },
+        {
+          "id": "L5",
+          "level": "core",
+          "statement": "TestData RunStream은 채널별 주기·drop·label 설정으로 ticker 기반 프레임을 생산하고 StreamSender.SendFrame으로 넘긴다. 취소 신호는 생산 루프를 종료한다.",
+          "evidence_ids": [
+            "l-stream-produce"
+          ]
+        },
+        {
+          "id": "L6",
+          "level": "core",
+          "statement": "StreamSender packet은 같은 채널의 PublishLocal로 전달된다. 처리 규칙이 입력을 소비하면 해당 경로로 끝나고, 그렇지 않으면 local hub BroadcastPublication으로 전달된다. HTTP publish API 호출을 모든 프레임의 경로로 넣지 않는다.",
+          "evidence_ids": [
+            "l-run",
+            "l-packet",
+            "l-publish"
+          ]
+        },
+        {
+          "id": "L7",
+          "level": "core",
+          "statement": "TS channel은 subscribed의 초기 데이터와 publication의 메시지를 stream으로 전달한다. LiveDataStream은 프레임 버퍼·schema 변경·값 추가를 구분해 FullFrame 또는 NewValuesSameSchema 질의 응답을 observable 구독자에게 전달한다.",
+          "evidence_ids": [
+            "l-receive",
+            "l-process",
+            "l-deliver"
+          ]
+        },
+        {
+          "id": "L8",
+          "level": "core",
+          "statement": "구독 종료는 즉시 모든 생산자를 중단시키지 않는다. 프런트는 마지막 observer 이후 지연 정리하고 재구독 시 타이머를 취소한다. 서버는 로컬 구독자 부재 확인을 누적해 스트림을 종료한다.",
+          "evidence_ids": [
+            "l-client-ws",
+            "l-deliver",
+            "l-reuse",
+            "l-channel-close",
+            "l-server-close",
+            "l-stop"
+          ]
+        },
+        {
+          "id": "LX1",
+          "level": "extended",
+          "statement": "통상 랜덤 채널의 구독 응답은 schema-only 초기 프레임이며 labeled 채널은 별도 스키마를 쓴다. invalid path는 RunStream에서 거절될 수 있어 모든 거절을 구독 시점 오류로 일반화하지 않는다.",
+          "evidence_ids": [
+            "l-stream-schema",
+            "l-stream-produce"
+          ]
+        },
+        {
+          "id": "LX2",
+          "level": "extended",
+          "statement": "Live 비활성은 TS에서 즉시 채널 오류가 되고, 연결 대기는 timeout으로 끝날 수 있다. 서버 namespace 불일치는 권한 오류다.",
+          "evidence_ids": [
+            "l-client-channel",
+            "l-subscribe"
+          ]
+        },
+        {
+          "id": "LX3",
+          "level": "extended",
+          "statement": "기존 대시보드 Scene 경로는 외부 @grafana/scenes의 SceneQueryRunner/SceneDataTransformer에 의존한다. PanelQueryRunner라는 별도 구현이 존재한다는 이유로 현재 모든 패널의 실제 소비자로 연결하지 않는다.",
+          "evidence_ids": [
+            "l-scenes-boundary"
+          ]
+        }
+      ],
+      "wrong_claims": [
+        "TestData의 모든 스트리밍은 Go 서버를 거친다.",
+        "testdata 채널 이름과 실제 플러그인 ID가 달라 연결되지 않는다.",
+        "랜덤 스트림의 매 프레임이 /api/ds/query 또는 /api/live/publish HTTP 요청으로 전달된다.",
+        "SubscribeStream이 계속 루프를 돌며 모든 데이터를 생산한다.",
+        "구독을 하나 해제하면 서버 스트림이 즉시 무조건 종료된다.",
+        "수신 경로 확인만으로 현재 패널 렌더러까지 모두 검증됐다고 본다."
+      ],
+      "limitations": [
+        "WebSocket 연결·실제 메시지 순서·재연결 성공을 실행으로 검증하지 않았다.",
+        "서버 및 외부 패키지의 실행 구성을 고정하지 않아 분기별 런타임 활성 여부는 주장하지 않는다."
+      ],
+      "core_fact_count": 8,
+      "extended_fact_count": 3,
+      "evidence_ids": [
+        "l-address",
+        "l-alias",
+        "l-alias-register",
+        "l-channel-close",
+        "l-client-channel",
+        "l-client-ws",
+        "l-core-bind",
+        "l-deliver",
+        "l-manager-dispatch",
+        "l-options",
+        "l-packet",
+        "l-plugin-runner",
+        "l-process",
+        "l-publish",
+        "l-query",
+        "l-receive",
+        "l-reuse",
+        "l-router",
+        "l-run",
+        "l-scenes-boundary",
+        "l-server-close",
+        "l-server-ws",
+        "l-stop",
+        "l-stream-produce",
+        "l-stream-schema",
+        "l-subscribe"
+      ],
+      "difficulty": "complex",
+      "difficulty_status": "structural_not_empirical"
+    }
+  ]
+}

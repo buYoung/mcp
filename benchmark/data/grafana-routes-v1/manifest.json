@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v1",
+  "revision": 1,
+  "status": "content_frozen",
+  "frozen_at": "2026-10-03T00:56:47Z",
+  "approval": {
+    "request": "그럼 이 상태로 고정해줘.",
+    "scope": "검증한 세 질의·범위·핵심 21개·확장 8개·근거의 내용 고정"
+  },
+  "target_release": "1.0.0",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+  },
+  "question_order": [
+    "route-star",
+    "route-save-existing",
+    "route-live-receive"
+  ],
+  "counts": {
+    "questions": 3,
+    "core_facts": 21,
+    "extended_facts": 8,
+    "source_files": 81,
+    "evidence_ranges": 60
+  },
+  "files": {
+    "README.md": {
+      "sha256": "229689d14cc99d6e8f5c990208d640cdefd7ca4c5b06cbf62242735939346f1c",
+      "bytes": 6222
+    },
+    "dataset.json": {
+      "sha256": "6889ce46bb9c8c385c9ed314e5f2139b003a31378cd07d80121bb150e5d739c6",
+      "bytes": 19000
+    },
+    "evidence.json": {
+      "sha256": "bdb5834ff080922ef991978ce537b5d24848ba9d4863a4184b113f76bcd26495",
+      "bytes": 134485
+    },
+    "grading.json": {
+      "sha256": "f2a0b4085be7489a81754e33181d07e0f835a966eaa4b2ff96cb111f6588f331",
+      "bytes": 2997
+    },
+    "questions.json": {
+      "sha256": "1bfbf89bba641d04cd04bbc9f2ec7a1db7ed57c041ee4ae8fbb7b0812a97731e",
+      "bytes": 587
+    }
+  },
+  "provenance": {
+    "reviewed_audit_sha256": "226155d0a402a2bf0cfb21dd7c333170dff423baf4d09b234c43a0168f907eba",
+    "source_identity": "Git blob SHA-1 against the pinned recursive tree, plus original-byte SHA-256",
+    "source_mismatches": 0,
+    "invalid_ranges_or_excerpt_hashes": 0,
+    "broken_evidence_references": 0
+  },
+  "execution_contract": {
+    "status": "not_frozen",
+    "harness_adapter_status": "pending",
+    "is_compatible_with_current_v2_dataset_validator": false,
+    "legacy_dataset_path": "benchmark/v2/data/dataset.json",
+    "legacy_dataset_sha256": "eccfce8aca14c1c064e1ea481229ef5eeed01e5f37adca38a5834adcda447f67",
+    "legacy_profiles_path": "benchmark/data/profiles.json",
+    "unfixed_fields": [
+      "stage_profiles_and_subsets",
+      "repetitions",
+      "model_and_reasoning_effort",
+      "grader_model_and_calibration",
+      "execution_limits",
+      "schedule",
+      "result_aggregation",
+      "harness_and_tools_identity",
+      "product_source_and_binary",
+      "source_copy_and_index_state"
+    ],
+    "solver_runs": 0,
+    "grader_runs": 0,
+    "runtime_scenarios_executed": 0
+  },
+  "preservation": "문항·정답·범위·채점 의미를 변경하면 이 고정본을 보존하고 별도 개정과 변경 이유를 기록한다."
+}

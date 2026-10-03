@@ -1,0 +1,17 @@
+{
+  "dataset_id": "grafana-routes-v1",
+  "questions": [
+    {
+      "id": "route-star",
+      "prompt": "대시보드 상단의 즐겨찾기를 추가하거나 해제할 때 화면과 서버가 연결되는 구간 다 확인해줘."
+    },
+    {
+      "id": "route-save-existing",
+      "prompt": "기존 일반 대시보드를 수정해서 저장할 때 화면과 서버가 연결되는 구간 다 확인해줘."
+    },
+    {
+      "id": "route-live-receive",
+      "prompt": "TestData의 Grafana Live 스트림을 구독하고 데이터를 받는 구간 다 확인해줘."
+    }
+  ]
+}

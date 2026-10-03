@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v1",
+  "status": "content_frozen",
+  "core": {
+    "required_fact_count": 21,
+    "fact_counts_by_question": {
+      "route-star": 6,
+      "route-save-existing": 7,
+      "route-live-receive": 8
+    },
+    "correct": "파일명이나 표현 일치가 아니라 사실의 방향·전달값·적용 조건이 정확한지 판정한다. 복합 사실에 명시된 필수 연결이나 조건이 빠지면 충족으로 처리하지 않는다.",
+    "supported": "답변이 인용한 고정 커밋의 원문이 해당 사실을 입증해야 한다. TypeScript 호출과 Go 처리의 연결은 양쪽 근거 및 같은 URL·식별자·메시지 계약의 대응을 확인한다.",
+    "complete": "문항의 모든 핵심 사실이 correct=true 및 supported=true이고 핵심 경로를 모순되게 설명한 주장이 없어야 핵심 완전 충족이다.",
+    "missing_or_wrong": "미언급·필수 조건 누락·잘못된 연결은 해당 핵심 사실 미충족으로 기록한다. 참인 다른 사실의 판정을 함께 지우지 않는다.",
+    "indeterminate": "근거를 검증할 수 없으면 사유와 함께 판정을 보류한다. 보류를 오답·0점·확정 평균으로 대체하지 않는다."
+  },
+  "extended": {
+    "diagnostic_fact_count": 8,
+    "fact_counts_by_question": {
+      "route-star": 2,
+      "route-save-existing": 3,
+      "route-live-receive": 3
+    },
+    "role": "별도 진단 전용. 누락·오답·근거 부족을 각각 기록하되 핵심 사실의 분모나 핵심 완전 충족률에 더하지 않는다.",
+    "core_contradictions": "확장 설명이 핵심 사실 자체와 모순되면 영향을 받은 핵심 사실도 독립적으로 판정한다. 확장 항목이라는 이유로 핵심 모순을 무시하지 않는다."
+  },
+  "evidence_policy": [
+    "필수 정답과 근거는 풀이 모델에게 제공하지 않는다. 풀이 입력은 questions.json의 prompt와 동일 조건의 공통 실행 안내다.",
+    "dataset.json의 scope는 질문 의미의 해석 범위다. 함수명·근거 경로·cross_language_binding을 풀이 모델의 검색 힌트로 추가하지 않는다.",
+    "같은 고정 소스에서 확인되는 대체 인용과 동등한 설명을 허용한다. 하나의 파일 순서나 유일한 탐색 전략을 강제하지 않는다.",
+    "설정 의존 경로는 조건을 보존한다. 정적으로 가능한 경로와 실제 런타임 실행을 구분한다.",
+    "wrong_claims는 오해 사례다. 문자열 일치로 감점하지 말고 원문과 대조하여 영향을 받은 핵심·확장 사실에 귀속한다.",
+    "핵심 충족도와 확장 진단을 각각 보고한다. 이 세 경로의 결과를 전체 코드 탐색 정확도로 일반화하지 않는다."
+  ],
+  "evaluation_status": {
+    "source_review": "completed",
+    "is_difficulty_empirically_validated": false,
+    "grader_calibration_runs": 0,
+    "solver_runs": 0
+  }
+}

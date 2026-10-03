@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v2",
+  "revision": 2,
+  "status": "content_frozen",
+  "frozen_at": "2026-10-03T01:18:09Z",
+  "approval": {
+    "request": "개선진행해줘.",
+    "scope": "하위 에이전트 검토 결과를 반영한 근거·사실 표현·채점 계약 개선. 기존 v1과 세 질문·범위·핵심 21개·확장 8개 구성 보존."
+  },
+  "target_release": "1.0.0",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+  },
+  "question_order": [
+    "route-star",
+    "route-save-existing",
+    "route-live-receive"
+  ],
+  "counts": {
+    "questions": 3,
+    "core_facts": 21,
+    "extended_facts": 8,
+    "source_files": 81,
+    "source_files_with_excerpts": 45,
+    "evidence_ranges": 73,
+    "non_scoring_notes": 4
+  },
+  "files": {
+    "README.md": {
+      "sha256": "0cf11af50c2760d3a3cd44d29c8d6bf2615b0dfb92484a6601bab3f3a72232e4",
+      "bytes": 10795
+    },
+    "dataset.json": {
+      "sha256": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
+      "bytes": 22408
+    },
+    "evidence.json": {
+      "sha256": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
+      "bytes": 153647
+    },
+    "grading.json": {
+      "sha256": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
+      "bytes": 7126
+    },
+    "questions.json": {
+      "sha256": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e",
+      "bytes": 587
+    }
+  },
+  "provenance": {
+    "predecessor_reviewed_audit_sha256": "226155d0a402a2bf0cfb21dd7c333170dff423baf4d09b234c43a0168f907eba",
+    "source_identity": "Git blob SHA-1 against the pinned recursive tree, plus original-byte SHA-256",
+    "source_files_checked": 81,
+    "evidence_ranges_checked": 73,
+    "source_mismatches": 0,
+    "invalid_ranges_or_excerpt_hashes": 0,
+    "broken_evidence_references": 0,
+    "unused_evidence_ranges": 0,
+    "verification_boundary": "패키지 해시는 저장된 파일의 무결성을 확인한다. 고정 커밋 원본과의 재대조에는 해당 소스와 Git tree가 별도로 필요하다. source_manifest의 81개 파일 전체 원문을 패키지에 포함하지 않는다.",
+    "followup_reviews": {
+      "source_and_connections": "지적한 사실·연결의 수정 및 추가 13개·확장 2개 근거 대조 완료. 재검토 범위에서 추가 수정 필요 사항 없음.",
+      "grading_contract": "근거 부족/검증 불가, 판정 전파, 비채점 참고 분리의 일관성 검토 완료. 재검토 범위에서 추가 수정 필요 사항 없음."
+    }
+  },
+  "execution_contract": {
+    "status": "not_frozen",
+    "harness_adapter_status": "pending",
+    "is_compatible_with_current_v2_dataset_validator": false,
+    "legacy_dataset_path": "benchmark/v2/data/dataset.json",
+    "legacy_dataset_sha256": "eccfce8aca14c1c064e1ea481229ef5eeed01e5f37adca38a5834adcda447f67",
+    "legacy_profiles_path": "benchmark/data/profiles.json",
+    "unfixed_fields": [
+      "stage_profiles_and_subsets",
+      "repetitions",
+      "model_and_reasoning_effort",
+      "grader_model_and_calibration",
+      "execution_limits",
+      "schedule",
+      "result_aggregation",
+      "harness_and_tools_identity",
+      "product_source_and_binary",
+      "source_copy_and_index_state"
+    ],
+    "solver_runs": 0,
+    "grader_runs": 0,
+    "runtime_scenarios_executed": 0
+  },
+  "preservation": "문항·정답·범위·채점 의미를 변경하면 이 고정본을 보존하고 별도 개정과 변경 이유를 기록한다.",
+  "predecessor": {
+    "dataset_id": "grafana-routes-v1",
+    "revision": 1,
+    "manifest_path": "../grafana-routes-v1/manifest.json",
+    "manifest_sha256": "3c27e2eee4b2ac0debe53f72d2159f9dccf9411755d39ef8d1a13bd4ce5ac387",
+    "preserved_file_count": 7,
+    "is_byte_identical_to_pre_improvement_snapshot": true
+  },
+  "changes": {
+    "statement_fact_ids": [
+      "M2",
+      "M3",
+      "L4",
+      "L6"
+    ],
+    "added_evidence_ids": [
+      "l-channel-disconnect",
+      "l-data-stream-binding",
+      "l-data-stream-lifecycle",
+      "l-manager-binding",
+      "l-plugin-ids",
+      "l-plugin-support",
+      "l-publisher-binding",
+      "l-response-shapes",
+      "l-stream-register",
+      "l-stream-submit",
+      "m-resource-key-parser",
+      "m-storage-client-binding",
+      "m-update-key"
+    ],
+    "expanded_evidence_ids": [
+      "l-alias-register",
+      "m-discover"
+    ],
+    "non_scoring_note_ids": [
+      "M2-merge-precedence",
+      "M3-discovery-retry",
+      "L4-delivery-order",
+      "L6-publish-transport"
+    ],
+    "grading": "인용 부족과 검증 불가를 구분하고 사실·차원별 판정, 핵심/확장 분리, 비채점 참고 사항의 역할을 명시했다.",
+    "are_solver_questions_unchanged": true
+  }
+}

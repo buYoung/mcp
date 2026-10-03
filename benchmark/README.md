@@ -1,6 +1,27 @@
 # Grafana 벤치마크 실행
 
+**2026-10-03 문항 내용 개정:** codemap-search 1.0.0을 위한 [Grafana 기능 경로 3문항](data/grafana-routes-v2/README.md)의 현재 고정본은 `grafana-routes-v2`다. 세 문항 모두 Go·TypeScript 연결을 평가하며 핵심 21개는 필수 정답, 확장 8개는 별도 진단이다. 중간 연결 근거와 채점 경계를 보완했고 [이전 v1](data/grafana-routes-v1/README.md)은 보존했다.
+
+**실행기 연결은 대기 상태다.** 아래 명령과 3/10/30문항 표는 기존 하네스에 해당한다. 현재 `bench:ready`·`bench:start`는 새 고정본을 읽지 않으며, 새 데이터셋의 실행 조건·반복수는 아직 동결하지 않았다. [고정 명세와 연결 상태](data/grafana-routes-v2/manifest.json)를 기준으로 구분한다.
+
 저장소 루트에서 `pnpm bench:ready`로 준비하고 `pnpm bench:start`에서 평가 유형과 비교 대상을 선택한다. 정식 대상은 **Grafana만**이다. 현재 제품은 **B-4 + grep/read 멤버 범위·둘 다 + 하위 폴더 범위 보존·정규식 안내**이며, 현재 작업 파일의 미커밋 변경도 평가 소스에 포함한다.
+
+## 1.0.0 비교 대상
+
+2026-10-03 사용자 지정에 따라 아래 5개 도구를 **모두** codemap-search의 비교 대상으로 선정했다. codemap-search를 포함하면 총 6개 비교군이며, 각각 같은 Grafana 고정 소스와 `grafana-routes-v2`의 3문항을 사용한다.
+
+| 역할 | 도구 |
+| --- | --- |
+| 평가 제품 | codemap-search 1.0.0 |
+| 비교 대상 | CodeGraph |
+| 비교 대상 | zvec-grep |
+| 비교 대상 | Graphify |
+| 비교 대상 | codebase-memory-mcp |
+| 기본 검색 비교 대상 | plain rg |
+
+비교 대상 선정은 확정했으며, 도구별 배포 출처·버전 또는 커밋, 실행 명령·노출 도구·보조 파일 읽기 허용 범위, 색인 조건은 실행 계약에서 별도로 고정한다. 특히 현재 A의 `rg`·`grep`·`find`·`read` 묶음과 plain rg는 도구 구성이 다르므로 기존 A 결과를 plain rg의 측정값으로 재사용하지 않는다.
+
+현재 `config.json`의 `candidates`는 codemap-search 소스 후보 전용이다. 이 목록에 외부 도구를 등록하는 것만으로 실행할 수 없으며, 5개 비교 도구와 새 3문항 데이터셋의 하네스 연결·실측은 대기 상태다. 아래 실행 안내는 기존 하네스의 동작을 설명한다.
 
 ## 준비
 

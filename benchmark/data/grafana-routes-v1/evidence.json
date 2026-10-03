@@ -1,0 +1,1042 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+  },
+  "hash_encoding": {
+    "source_sha256": "SHA-256 of original file bytes",
+    "git_blob_sha1": "SHA-1 of Git blob header plus original file bytes",
+    "excerpt_sha256": "SHA-256 of UTF-8 text: selected splitlines() joined with LF, without trailing LF"
+  },
+  "source_manifest": {
+    "apps/collections/pkg/apis/collections/v1alpha1/stars.go": {
+      "git_blob_sha1": "79bff8a6513fa8ef447dbdcf9d38de92138b0a04",
+      "sha256": "32cadf8e7fcd837ccd1f32b0e5e798b2acebd513126c245c87f56f0735fbad03",
+      "bytes": 1912,
+      "lines": 86
+    },
+    "packages/grafana-api-clients/src/clients/rtkq/collections/v1alpha1/baseAPI.ts": {
+      "git_blob_sha1": "9e637edb29539fe670537d9416d6de3a69217107",
+      "sha256": "05f3282a03c0def779283b31fb24d7a8a6958d429d7ac1ab9e14ada83d9e738f",
+      "bytes": 508,
+      "lines": 16
+    },
+    "packages/grafana-api-clients/src/clients/rtkq/collections/v1alpha1/endpoints.gen.ts": {
+      "git_blob_sha1": "099cb071b654797f3093b953a61e4f2d7ebbbb9c",
+      "sha256": "b086bfc5d4cb581ace9afed48fd683cdf34553bcafe01ab463dd6c2e87574a0b",
+      "bytes": 38122,
+      "lines": 440
+    },
+    "packages/grafana-api-clients/src/clients/rtkq/createBaseQuery.ts": {
+      "git_blob_sha1": "a24f49644e80e514df67c2340af59230dce66ca8",
+      "sha256": "161d80f2492aa8641e0f2f5de6f79be212043b0e0deb3693ce099fd5ca726f52",
+      "bytes": 2259,
+      "lines": 60
+    },
+    "packages/grafana-api-clients/src/utils/utils.ts": {
+      "git_blob_sha1": "48086cc3333f3e99e067aae9793cacd36f69de99",
+      "sha256": "954dabdaa50de9f006e0bb911217ac6a8e1f3d5b4e273cadb3aa8e153f28ee3b",
+      "bytes": 1743,
+      "lines": 62
+    },
+    "packages/grafana-data/src/dataframe/StreamingDataFrame.ts": {
+      "git_blob_sha1": "890c002b4832d712c016afc0194a7f732563bd70",
+      "sha256": "bb24ae923c323e73dfbe6352fdf7a1a570d75ccf174c08ae478e55638e5635f2",
+      "bytes": 17862,
+      "lines": 610
+    },
+    "packages/grafana-data/src/dataframe/processDataFrame.ts": {
+      "git_blob_sha1": "2d13ebfe62e8dde5ed463fe542aed8fee46ecfd3",
+      "sha256": "d1d61843f87ee48a227852fde8b070d8043b9bbd1ebd6350b7a66f6e9699d68a",
+      "bytes": 12746,
+      "lines": 493
+    },
+    "packages/grafana-data/src/index.ts": {
+      "git_blob_sha1": "d88d1783876e41659c255c03b42f914dabcfbf8a",
+      "sha256": "57381c8c1e5477e3160a4db74266e00118ba7fa0424fdb78ceac6945d194e2f5",
+      "bytes": 29118,
+      "lines": 960
+    },
+    "pkg/api/api.go": {
+      "git_blob_sha1": "bf858cde0029d31f66afbdfaf5ad642787e1e6c2",
+      "sha256": "38e7fcd5688c74042b1c6912fd14a1164ae3ed69872613a3b3019091cd92e99c",
+      "bytes": 40506,
+      "lines": 632
+    },
+    "pkg/api/dashboard.go": {
+      "git_blob_sha1": "74fa723a4afba0669199ab538bf423d1d96bded0",
+      "sha256": "4fa85fcaed4521f9da463ca3fa3d4183635f82b80d9838180eaf359c8419e28b",
+      "bytes": 42698,
+      "lines": 1288
+    },
+    "pkg/api/http_server.go": {
+      "git_blob_sha1": "65285237600fa86ab4ba9c032e44520c281985ae",
+      "sha256": "524f304ff611288930cc96fe98b6f2ff074aad726c66df806e4cc91333cc98d1",
+      "bytes": 42984,
+      "lines": 1123
+    },
+    "pkg/apiserver/registry/generic/storage.go": {
+      "git_blob_sha1": "8893886206a278e91b46cffa7ad6975efb69cc14",
+      "sha256": "5ddf0a675d70be55611ca754742603e51474f1b98a753c06544e3cce108a6a65",
+      "bytes": 3651,
+      "lines": 92
+    },
+    "pkg/apiserver/registry/generic/store.go": {
+      "git_blob_sha1": "e73ce698ab6af17593a46b19e339953b14dc1e89",
+      "sha256": "29a030d7633091f50736c0bca07ddf4ca59380655149d6f2310ab0b25c4ae60b",
+      "bytes": 2263,
+      "lines": 60
+    },
+    "pkg/apiserver/registry/generic/strategy.go": {
+      "git_blob_sha1": "b521438ed7f5460307c8843444c8646411e0b14f",
+      "sha256": "e206021e617eb9bb35ec3ff72e5492def58508fbe8d98f4f9e5ffa2b1bdd1905",
+      "bytes": 7941,
+      "lines": 274
+    },
+    "pkg/plugins/manager/client/client.go": {
+      "git_blob_sha1": "5acd96e873595481025484d38ebd33d164b9d8c1",
+      "sha256": "d2050ed04e369ca2714135167e1d6b67c66f54bbbc1bb952fbafcff0098d1aa9",
+      "bytes": 11281,
+      "lines": 399
+    },
+    "pkg/plugins/manager/registry/in_memory.go": {
+      "git_blob_sha1": "af3652e5d6cd209388947dd386a23eb12de8dd26",
+      "sha256": "5aaae7d733d4ccd444be192c188f7fdc43ad34e6ed140033eac25871ec1d7c2e",
+      "bytes": 1877,
+      "lines": 98
+    },
+    "pkg/registry/apis/collections/admission.go": {
+      "git_blob_sha1": "0811099b27465830c96f890a7b3640bbf3dab7cc",
+      "sha256": "04aee5000a8e359f7aca379ae27ffbd0d3e9168a474ee6275a7aaacfe2aed0df",
+      "bytes": 711,
+      "lines": 35
+    },
+    "pkg/registry/apis/collections/legacy/stars.go": {
+      "git_blob_sha1": "056224727d63c19d6d273c8f043fb026ed92d34a",
+      "sha256": "aa2a07c1ccc8caeba10d2dc048d6213dd663c61498dabce60dbe6f245b436806",
+      "bytes": 9123,
+      "lines": 318
+    },
+    "pkg/registry/apis/collections/register.go": {
+      "git_blob_sha1": "7240b9abf3dda1c051345ca33b473489a2bcaffd",
+      "sha256": "6a14190c0f223c7e34f27ebdbc4028ec6c34c5905f5ef878d8e7e535c10ddb2e",
+      "bytes": 5214,
+      "lines": 172
+    },
+    "pkg/registry/apis/collections/stars.go": {
+      "git_blob_sha1": "d79dba8c6ac3fc76c8af31d27b265411cd0834db",
+      "sha256": "47158084e5b75a575f0176ceb66e3630412060a5bdc28a974ab7cfd7a7f460d9",
+      "bytes": 1294,
+      "lines": 50
+    },
+    "pkg/registry/apis/collections/stars_update.go": {
+      "git_blob_sha1": "333030dcf172ee17f53660be7e93fcdc6d85e243",
+      "sha256": "102194876f9828f428abafd4b2df11def51a85a58a6e19baa7651aa7e0401087",
+      "bytes": 3856,
+      "lines": 147
+    },
+    "pkg/registry/apis/collections/stars_update_test.go": {
+      "git_blob_sha1": "aee38397ada6fe7bfbc59e016c233b2606ea5925",
+      "sha256": "07b1b6bc6e76c7ad8e45f228b99be8dbd89b0f849f9641fb557f21c37baaf164",
+      "bytes": 1395,
+      "lines": 49
+    },
+    "pkg/registry/apis/dashboard/dashboard_storage.go": {
+      "git_blob_sha1": "e7cb85244fa3a6cc1a7d16bd99516e5aa712dd9f",
+      "sha256": "f378df3596ecb01eb39a3a2066ed49789642baf2debe0044fe28415ba69517fc",
+      "bytes": 3444,
+      "lines": 90
+    },
+    "pkg/registry/apis/dashboard/register.go": {
+      "git_blob_sha1": "884a2a590f2b48557d5e5716ecb71653c28b88b8",
+      "sha256": "1f32128b33e19396e997df0e050e4ac3b5a00ac026712df796bb5864ee4738f8",
+      "bytes": 63047,
+      "lines": 1723
+    },
+    "pkg/registry/apis/preferences/utils/authorizer.go": {
+      "git_blob_sha1": "733358c2bcf56c2add27f1794f547b81830824e9",
+      "sha256": "6cc51beff210883f54b0549317f5ed962fd868da20e34cea7e775b2a0059c6d2",
+      "bytes": 3619,
+      "lines": 119
+    },
+    "pkg/services/apiserver/service.go": {
+      "git_blob_sha1": "a3db43b4d988a5b7ee535f77da58237f24b1efd0",
+      "sha256": "5747f6c4924ba2dd889451751fcabc06753f2d18a2401fae8c55367bc71d1b4d",
+      "bytes": 25038,
+      "lines": 713
+    },
+    "pkg/services/dashboards/service/dashboard_service.go": {
+      "git_blob_sha1": "ad154c04b1b75b948a9812b58f05eee3f7d95d79",
+      "sha256": "84a41ff8cb11363dd1836d20dd65de2807a06a308d63298ac5fefdd96417f73f",
+      "bytes": 80879,
+      "lines": 2446
+    },
+    "pkg/services/live/features/dashboard.go": {
+      "git_blob_sha1": "612c87e5c0bf7582b75833a02b34df5874c27b20",
+      "sha256": "1968ddcd705ca9dc01555c1915ab3d3e22462d5189907a47aa097a9f699db230",
+      "bytes": 4223,
+      "lines": 123
+    },
+    "pkg/services/live/features/plugin.go": {
+      "git_blob_sha1": "7bc04c727660b7853e52fcaa721a503dfd52bd87",
+      "sha256": "72908c51cf573ffda2f8e9766b584c43d66a4d64af38053af319fcce6e1c1c45",
+      "bytes": 5098,
+      "lines": 135
+    },
+    "pkg/services/live/live.go": {
+      "git_blob_sha1": "f81653919b8d74a5b04925e03c03ee72ed61011e",
+      "sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "bytes": 56131,
+      "lines": 1536
+    },
+    "pkg/services/live/liveplugin/plugin.go": {
+      "git_blob_sha1": "95b95688aab3860595ec6e073608dd7b89c64af4",
+      "sha256": "ed0feaa7342ddfd7b9d0ceabc0c0ff103f193e91b8dd20369e69683144545849",
+      "bytes": 2666,
+      "lines": 86
+    },
+    "pkg/services/live/orgchannel/orgchannel.go": {
+      "git_blob_sha1": "db2aedd9ed55823a39e3e48d875c63f099aad803",
+      "sha256": "cb21faa77a675d46180797e5528d1ac7bd96b075da02bcfd397d05fb4bf29fd4",
+      "bytes": 1214,
+      "lines": 40
+    },
+    "pkg/services/live/runstream/manager.go": {
+      "git_blob_sha1": "7fcb6d34a606f267fbecea3234de547de232e1f2",
+      "sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "bytes": 14284,
+      "lines": 468
+    },
+    "pkg/services/pluginsintegration/coreplugin/coreplugins.go": {
+      "git_blob_sha1": "81088da1502d38ac0d13cf338a030900973b01ab",
+      "sha256": "26fa0fb143ff4fa851cd77e8d852ef863e86a032a555852e740a9b9cf24dbac2",
+      "bytes": 6111,
+      "lines": 211
+    },
+    "pkg/services/pluginsintegration/pluginstore/canonical.go": {
+      "git_blob_sha1": "b64fc07d78aa4c85082b6b3ce8e5561807117724",
+      "sha256": "f4dc6eaf40a7b9ec4952a78d55a3068ef7136a07fece212e47adec7e1767d9c3",
+      "bytes": 846,
+      "lines": 25
+    },
+    "pkg/services/pluginsintegration/pluginstore/store.go": {
+      "git_blob_sha1": "130a68173cc64ce1edfa9c1812678703a76c8668",
+      "sha256": "ed2713db1a062aeee24baacd6aaa85705adcf18b34d32549b7c20fc25e18eb69",
+      "bytes": 7043,
+      "lines": 243
+    },
+    "pkg/services/star/api/api.go": {
+      "git_blob_sha1": "dc516a40f6a1e526ba99151b06ae52eb52f619a3",
+      "sha256": "5192f1021aa03193b350a782d3cd2efa6233ae4a1b27b5a44b598b474833764f",
+      "bytes": 3941,
+      "lines": 136
+    },
+    "pkg/services/star/starimpl/star.go": {
+      "git_blob_sha1": "6b3b7691f5c5b55c1569606596a66d5291df0d15",
+      "sha256": "46e1be633c3f591a2328d57ccdfb8a49570dc4b7e5ef19043c64728c39855dca",
+      "bytes": 1128,
+      "lines": 52
+    },
+    "pkg/services/star/starimpl/xorm_store.go": {
+      "git_blob_sha1": "f3faf2585c92c3acb336f1c20819e87031f8435c",
+      "sha256": "eb62dcc16331c62012346294c41949a490b19b10dc38b77460455c71ea486ebb",
+      "bytes": 3136,
+      "lines": 94
+    },
+    "pkg/storage/unified/apistore/restoptions.go": {
+      "git_blob_sha1": "eac16a244691d5e5963346985c4e82999cfe513b",
+      "sha256": "ff4941b036d3085c7e8357433d9c7ec3399bd6e43d47aae7d30b7d4111b05750",
+      "bytes": 6517,
+      "lines": 198
+    },
+    "pkg/storage/unified/apistore/store.go": {
+      "git_blob_sha1": "4927eab414e169f957b1a5b5e78877baf471c02d",
+      "sha256": "ecdc02b051ac358e8c76b911aed05d29a8a04eb47b36f270216b5b29c16b6da8",
+      "bytes": 31625,
+      "lines": 897
+    },
+    "pkg/tsdb/grafana-testdata-datasource/scenarios.go": {
+      "git_blob_sha1": "a37fd202dd3670581deeb0c87d2718e5ade85f4f",
+      "sha256": "fd4ae8c7d010a3315951706a88a6a814013a6e5041f249a713110f6293f82f21",
+      "bytes": 47063,
+      "lines": 1659
+    },
+    "pkg/tsdb/grafana-testdata-datasource/stream_handler.go": {
+      "git_blob_sha1": "f34d56afceeeedd4e3e15e92059bcfc5926bb045",
+      "sha256": "39a73cebbea1951bccbe88286af615246eb770706af80f82108175243595163c",
+      "bytes": 4234,
+      "lines": 150
+    },
+    "pkg/tsdb/grafana-testdata-datasource/testdata.go": {
+      "git_blob_sha1": "3ec47f72e1b5316e0bd8ad203f9119413c2bd350",
+      "sha256": "da85e6d4a1995d944799f741eb15016fe323c96022c55519dd600e85e54bccaa",
+      "bytes": 3034,
+      "lines": 90
+    },
+    "public/app/api/clients/collections/v1alpha1/index.ts": {
+      "git_blob_sha1": "ffa09e5f7d9d204287579089c27eb10c86fa613e",
+      "sha256": "6e48fd93c6f920ac58ce15d374998f58a79134b6480d3c6288463fab554c29db",
+      "bytes": 1318,
+      "lines": 33
+    },
+    "public/app/core/reducers/navBarTree.ts": {
+      "git_blob_sha1": "aab0ac4c32768ce157daa0470f76b7bb3e64a2e1",
+      "sha256": "43b322d6d2a0e72cdf1fd865bfac64e933dfcc446a7931c168f81209704645e9",
+      "bytes": 5768,
+      "lines": 146
+    },
+    "public/app/features/apiserver/client.ts": {
+      "git_blob_sha1": "5fa478c73dfdddb081725a5099c078ddc983ef33",
+      "sha256": "2c3bdc8a441745b91581f010e7cc76713d0435d78a211ace408622bd6040799b",
+      "bytes": 12290,
+      "lines": 347
+    },
+    "public/app/features/browse-dashboards/api/browseDashboardsAPI.ts": {
+      "git_blob_sha1": "23deba41b254a07202c310e1a83afa3bfdcd8dc9",
+      "sha256": "d4fc1b69410bdbfd92dc780a359f10a887cfb0fe14b9f9a728257c033d8061dc",
+      "bytes": 22448,
+      "lines": 599
+    },
+    "public/app/features/dashboard/api/DashboardAPIVersionResolver.ts": {
+      "git_blob_sha1": "194c72241285ff7a460365ca35c2b9bce5278e6e",
+      "sha256": "9bc0f6050cba2bf95db63bca5b8e190bb275c4cc4ca15cfd98c33725c2aab10a",
+      "bytes": 3135,
+      "lines": 100
+    },
+    "public/app/features/dashboard/api/UnifiedDashboardAPI.ts": {
+      "git_blob_sha1": "e4f65b1fefff1defbfab7372fc5d817fe0a18456",
+      "sha256": "0e18ae5528232c93c0e23a91142adf50afab306de73384f42c1a0957a783fa49",
+      "bytes": 6260,
+      "lines": 180
+    },
+    "public/app/features/dashboard/api/dashboard_api.ts": {
+      "git_blob_sha1": "f2838ff9fa5e2706f8613ca9942de3ffe7d010f9",
+      "sha256": "b4b8b35c30bf6e8fe97e14c4a25f63ce33b2d3cd6add5b4a114d95e677176201",
+      "bytes": 2428,
+      "lines": 59
+    },
+    "public/app/features/dashboard/api/utils.ts": {
+      "git_blob_sha1": "1aebf44c17cae630b64f81fb099df30aea38c80d",
+      "sha256": "d844a28b0e973fd6aeb6e6a74e8c7b83087ada8058eb0210efc9e90c665b8877",
+      "bytes": 5110,
+      "lines": 137
+    },
+    "public/app/features/dashboard/api/v1.ts": {
+      "git_blob_sha1": "d8e18163096009af4d5d848cd2a6557dceadc208",
+      "sha256": "407d97fbfd52d87cb5dd0a61ec93d2d4659ca7b68bc410b76cadaf81e23ecc0a",
+      "bytes": 12265,
+      "lines": 325
+    },
+    "public/app/features/dashboard/api/v2.ts": {
+      "git_blob_sha1": "f73a14e2245ce233b0ad86b01d04097af4c43243",
+      "sha256": "8be5ff8f3214b5e90ce13c4447bbb101a77af27a61c6ff80f94f6a2e11019a58",
+      "bytes": 10376,
+      "lines": 271
+    },
+    "public/app/features/dashboard-scene/saving/SaveDashboardDrawer.tsx": {
+      "git_blob_sha1": "cf98c9bf4000558719297f20f2f3115d51e629fa",
+      "sha256": "beb904359604ddfccfec1dd98898fa0e468cb42a7fe15577dcfdea57194af7da",
+      "bytes": 7086,
+      "lines": 181
+    },
+    "public/app/features/dashboard-scene/saving/SaveDashboardForm.tsx": {
+      "git_blob_sha1": "350da1d2618bd78bcad6aaba52da5ed3cd6d08b1",
+      "sha256": "90a9625ca38d782b185a6270a36bbf5d1b91c4ea54f123640a3863bd8e0d010e",
+      "bytes": 10630,
+      "lines": 305
+    },
+    "public/app/features/dashboard-scene/saving/useSaveDashboard.ts": {
+      "git_blob_sha1": "60d06d196706669a1a221a355dc1f06a454068ae",
+      "sha256": "cfb146ee66e7c7c8542c5c5f5561317b72854079abcb665ae13861dbe7054d91",
+      "bytes": 4268,
+      "lines": 115
+    },
+    "public/app/features/dashboard-scene/scene/DashboardScene.tsx": {
+      "git_blob_sha1": "53dfbedc47e86922c7f0671139761d3e2be5f0f4",
+      "sha256": "306b002c8fbed80ad83b80cd65b00817874172fe089039aaa0534f7874836b97",
+      "bytes": 55869,
+      "lines": 1613
+    },
+    "public/app/features/dashboard-scene/scene/new-toolbar/actions/StarButton.tsx": {
+      "git_blob_sha1": "9040e80c16286d89baf19d8610544b46762dc226",
+      "sha256": "030f52ebb18a945d47823f3b1af41d7eba87725fd4d9a1cd9a1193e755521902",
+      "bytes": 383,
+      "lines": 12
+    },
+    "public/app/features/dashboard-scene/utils/createPanelDataProvider.ts": {
+      "git_blob_sha1": "cd28e69c1b9f33189f3da2003dbb763a26f99300",
+      "sha256": "b1ec5d468848b8839be4797fa43006a8c612b537d46c598b5837b70f0b044ce9",
+      "bytes": 2024,
+      "lines": 58
+    },
+    "public/app/features/dashboard-scene/utils/utils.ts": {
+      "git_blob_sha1": "f0c5d40f8d0df439240efb86ea854a7c527ca60b",
+      "sha256": "8f29f104db17895438bc17d7c62eba523ff79e06f23857bfa497080409739886",
+      "bytes": 17780,
+      "lines": 556
+    },
+    "public/app/features/live/centrifuge/LiveDataStream.ts": {
+      "git_blob_sha1": "ccf10b54643206e02109ca6cb515b3a4c0bda97f",
+      "sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "bytes": 11754,
+      "lines": 391
+    },
+    "public/app/features/live/centrifuge/channel.ts": {
+      "git_blob_sha1": "4dc250a0ae406839519b82e9dd8f0854b47676a3",
+      "sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "bytes": 6017,
+      "lines": 212
+    },
+    "public/app/features/live/centrifuge/service.ts": {
+      "git_blob_sha1": "32f32db046987876b9ebb3581a18f18623b6306f",
+      "sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "bytes": 10286,
+      "lines": 302
+    },
+    "public/app/features/live/dashboard/dashboardWatcher.ts": {
+      "git_blob_sha1": "78646dd8b420fb40fd00d6290f82bba17c53bd73",
+      "sha256": "5f351adb138c4b2466e8686e9abb176926124ecf8e52125410bbc3408a450c22",
+      "bytes": 5719,
+      "lines": 190
+    },
+    "public/app/features/live/data/utils.ts": {
+      "git_blob_sha1": "c7067a168b5ba2aa1231c8612266839a149801ac",
+      "sha256": "7ba50d6f64c30d9e71507b42b5eaaf5399e941bd535b82d00024afe3408e13e4",
+      "bytes": 1168,
+      "lines": 44
+    },
+    "public/app/features/query/state/PanelQueryRunner.ts": {
+      "git_blob_sha1": "a0b9f5779b9445ab3ff070077c922233d2f54972",
+      "sha256": "7d8ee91b1bc354303f8283249d125051e6ab7a261e839406df823361acfc5855",
+      "bytes": 17287,
+      "lines": 529
+    },
+    "public/app/features/query/state/runRequest.ts": {
+      "git_blob_sha1": "d47e6dc9db9ee12957cd3e18effd808f43f79139",
+      "sha256": "c2d1b2814b7ba1788f718490c042871f94da2fdc070d4908740259f7755db192",
+      "bytes": 7544,
+      "lines": 237
+    },
+    "public/app/features/stars/StarToolbarButton.test.tsx": {
+      "git_blob_sha1": "df8e92d3595320e55dd28ae7850783896c3bcf60",
+      "sha256": "a85981236f60f6f73f561925d7b40f711b772f35f0c8b9a9e726ebdff533723b",
+      "bytes": 5724,
+      "lines": 178
+    },
+    "public/app/features/stars/StarToolbarButton.tsx": {
+      "git_blob_sha1": "63ccd6f73673d6b452953cd970988c39e0945a38",
+      "sha256": "bd5f3e3c22a968f412330039eeb7e83f5477a520be5ba3e27c8047671e1e229c",
+      "bytes": 2378,
+      "lines": 77
+    },
+    "public/app/features/stars/hooks.test.tsx": {
+      "git_blob_sha1": "2485eb739f8447cbbe6d7d4a801be97ad3cf21b9",
+      "sha256": "674107bf4f1b2b3b6359e5ad375f35fff80953b16481a2bfbb9d2378f34a293a",
+      "bytes": 15223,
+      "lines": 404
+    },
+    "public/app/features/stars/hooks.ts": {
+      "git_blob_sha1": "fc40f80547c4e007333e776b08918a5e4dacec81",
+      "sha256": "a64d38beeaaf0e97c3d293b6d095ca8d09395111cf28201f5c31535ef2371783",
+      "bytes": 8016,
+      "lines": 213
+    },
+    "public/app/features/stars/utils.ts": {
+      "git_blob_sha1": "e6e8cc828acef1bef46cc97ea801816d5bab5442",
+      "sha256": "ac761a9fe3b540607900de3f97d53140bee354a76490db6ae442404373bb5961",
+      "bytes": 656,
+      "lines": 12
+    },
+    "public/app/plugins/datasource/grafana-testdata-datasource/components/GrafanaLiveEditor.tsx": {
+      "git_blob_sha1": "028c2d6cb3f7cfbbdeed29dfb5f951057d3141a5",
+      "sha256": "e056cdfdae5ac2fb391c459007f495ebd26dcdc083e84e027cd05d253e890563",
+      "bytes": 1303,
+      "lines": 47
+    },
+    "public/app/plugins/datasource/grafana-testdata-datasource/datasource.ts": {
+      "git_blob_sha1": "7e3f11e4868c7a478871f77d64761dc2bfecb95c",
+      "sha256": "e9ef22ebd6f24e6e4b2f708b38c2d78005da7b9fa6605687f489d3fb4b6736d8",
+      "bytes": 17288,
+      "lines": 523
+    },
+    "public/app/plugins/datasource/grafana-testdata-datasource/plugin.json": {
+      "git_blob_sha1": "36f230b383763426e8eee1de0f288acefc6424c9",
+      "sha256": "551a11bb4723d26e302131706ee60636e03cdeef6d2b5dcdd75c2bb0d86c86e4",
+      "bytes": 1044,
+      "lines": 48
+    },
+    "public/app/plugins/datasource/grafana-testdata-datasource/runStreams.ts": {
+      "git_blob_sha1": "8594cd1831e107c989aa2471e1d1700b2a4e5fc4",
+      "sha256": "4a2f64376e4ba9107814f6aa2bfa48273d851c4957a79702aed82a7f2f62fb1f",
+      "bytes": 11925,
+      "lines": 415
+    },
+    "apps/dashboard/pkg/apis/dashboard/v1/constants.go": {
+      "git_blob_sha1": "0e832a216cb8e454704352fd5e3ba5130a58b431",
+      "sha256": "4ea0998361c84cff7f361f0db55a5f2b94228ed114f48be978b2653dd1f8696b",
+      "bytes": 456,
+      "lines": 18
+    },
+    "apps/dashboard/pkg/apis/dashboard/v1/register.go": {
+      "git_blob_sha1": "b50b67e14b8e2c2b6df5d7d474835738c68a6498",
+      "sha256": "f4dc10a83ef43bc268ec644c681ffac6d75a936bdafc78407fe9f633babad5f5",
+      "bytes": 2135,
+      "lines": 78
+    },
+    "apps/dashboard/pkg/apis/dashboard/v2/constants.go": {
+      "git_blob_sha1": "c37c99e3c6cc87ffb290ece7c59f966be1471271",
+      "sha256": "31a30daaa05b60507cdd7e516ccfc1f249937f5b361b748e38aac9ad35dc4f61",
+      "bytes": 456,
+      "lines": 18
+    },
+    "apps/dashboard/pkg/apis/dashboard/v2/register.go": {
+      "git_blob_sha1": "e17a4ca837d97b11bb6ea3b33e1fdb0c85779622",
+      "sha256": "14410703ce0bae9ddeea6e5d59d972175b444fc40229e41a979f5cfe882cbc27",
+      "bytes": 1894,
+      "lines": 72
+    }
+  },
+  "evidence": {
+    "s-ui": {
+      "path": "public/app/features/dashboard-scene/scene/new-toolbar/actions/StarButton.tsx",
+      "start_line": 1,
+      "end_line": 12,
+      "excerpt_sha256": "e50acaf1a66a9b3533d2f68ff41b93e7cd11d09799a223359adb93a4836ddd6f",
+      "source_sha256": "030f52ebb18a945d47823f3b1af41d7eba87725fd4d9a1cd9a1193e755521902",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard-scene/scene/new-toolbar/actions/StarButton.tsx#L1-L12",
+      "text": "import { StarToolbarButton } from 'app/features/stars/StarToolbarButton';\n\nimport { type ToolbarActionProps } from '../types';\n\nexport const StarButton = ({ dashboard }: ToolbarActionProps) => {\n  const { uid, title } = dashboard.useState();\n  if (!uid) {\n    return null;\n  }\n\n  return <StarToolbarButton group=\"dashboard.grafana.app\" kind=\"Dashboard\" id={uid} title={title} />;\n};"
+    },
+    "s-toggle": {
+      "path": "public/app/features/stars/StarToolbarButton.tsx",
+      "start_line": 25,
+      "end_line": 75,
+      "excerpt_sha256": "b2cdda83a1e413302e7802c445dc42a94bfdc1a27bea7e0783134c646a96005f",
+      "source_sha256": "bd5f3e3c22a968f412330039eeb7e83f5477a520be5ba3e27c8047671e1e229c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/stars/StarToolbarButton.tsx#L25-L75",
+      "text": "export function StarToolbarButton({ title, group, kind, id, onStarChange }: Props) {\n  const tooltips = getStarTooltips(title);\n\n  const handleItemStar = useStarItem(group, kind);\n\n  const { data: stars, isLoading } = useStarredItems(group, kind);\n\n  const isStarred = useMemo(() => {\n    const starredItems = stars || [];\n\n    return starredItems.includes(id);\n  }, [id, stars]);\n\n  const handleStarToggle = async () => {\n    await handleItemStar({ id, title }, !isStarred);\n    onStarChange?.(id, !isStarred);\n    itemStarred({\n      group,\n      kind,\n      status: !isStarred ? 'starred' : 'unstarred',\n      origin: 'StarToolbarButton',\n    });\n  };\n\n  const iconProps = useMemo(() => {\n    if (isLoading) {\n      return { name: 'spinner', type: 'default' } as const;\n    }\n    if (isStarred) {\n      return { name: 'favorite', type: 'mono' } as const;\n    }\n    return { name: 'star', type: 'default' } as const;\n  }, [isLoading, isStarred]);\n\n  const tooltipAndLabel = (() => {\n    return isStarred\n      ? { tooltip: tooltips.unstar, label: isLoading ? undefined : tooltips.unstarWithTitle }\n      : { tooltip: tooltips.star, label: isLoading ? undefined : tooltips.starWithTitle };\n  })();\n\n  const icon = <Icon {...iconProps} size=\"lg\" key={`${isLoading}-${isStarred}`} />;\n  return (\n    <ToolbarButton\n      disabled={isLoading}\n      tooltip={tooltipAndLabel.tooltip}\n      aria-label={tooltipAndLabel.label}\n      aria-pressed={isStarred}\n      icon={icon}\n      data-testid={selectors.components.NavToolbar.markAsFavorite}\n      onClick={handleStarToggle}\n    />"
+    },
+    "s-hook": {
+      "path": "public/app/features/stars/hooks.ts",
+      "start_line": 47,
+      "end_line": 108,
+      "excerpt_sha256": "01af738dfed10b1c4a3cc7cfb1b49125fe4669d250627a95a5d6c2c3da1760b6",
+      "source_sha256": "a64d38beeaaf0e97c3d293b6d095ca8d09395111cf28201f5c31535ef2371783",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/stars/hooks.ts#L47-L108",
+      "text": "export const useStarItem = (group: string, kind: string) => {\n  const [addStar] = useAddStarMutation();\n  const [removeStar] = useRemoveStarMutation();\n\n  return async ({ id, title }: StarItemArgs, newStarredState: boolean) => {\n    const name = `user-${contextSrv.user.uid}`;\n    const mutationArgs = { id, name, group, kind };\n    try {\n      if (newStarredState) {\n        await addStar(mutationArgs).unwrap();\n      } else {\n        await removeStar(mutationArgs).unwrap();\n      }\n    } catch {\n      // Server rejected the change — leave the nav as-is rather than showing state that didn't persist\n      return;\n    }\n\n    const entry = starredNavEntry(group, kind, id);\n    if (entry) {\n      dispatch(\n        setStarred({\n          id,\n          title,\n          url: entry.url,\n          icon: entry.icon,\n          sortWeight: entry.sortWeight,\n          isStarred: newStarredState,\n        })\n      );\n    }\n  };\n};\n\n/**\n * Get starred items from the app platform API\n */\nexport const useStarredItems = (group: string, kind: string, options?: { skip?: boolean }) => {\n  const skip = options?.skip ?? false;\n  const response = useListStarsQuery(skip ? skipToken : { fieldSelector: userStarsFieldSelector() });\n\n  const starredItems = useMemo(() => {\n    const { data, isLoading, isUninitialized } = response;\n\n    // If query hasn't been initiated yet or is still loading, return undefined to show loading state\n    if (isUninitialized || isLoading) {\n      return undefined;\n    }\n\n    // If query completed but no data, return empty array\n    if (!data) {\n      return [];\n    }\n\n    return findStarredNames(data, group, kind);\n  }, [response, group, kind]);\n\n  return {\n    ...response,\n    data: starredItems,\n    // Ensure isLoading is true when data is undefined (still loading or uninitialized)\n    isLoading: starredItems === undefined ? true : response.isLoading,"
+    },
+    "s-base": {
+      "path": "packages/grafana-api-clients/src/clients/rtkq/collections/v1alpha1/baseAPI.ts",
+      "start_line": 1,
+      "end_line": 16,
+      "excerpt_sha256": "80308ebde8d75e6c9f3296a5cbadc1d860b9d5b510eb9b302cb902b90cc9e8e7",
+      "source_sha256": "05f3282a03c0def779283b31fb24d7a8a6958d429d7ac1ab9e14ada83d9e738f",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/packages/grafana-api-clients/src/clients/rtkq/collections/v1alpha1/baseAPI.ts#L1-L16",
+      "text": "import { createApi } from '@reduxjs/toolkit/query/react';\n\nimport { getAPIBaseURL } from '../../../../utils/utils';\nimport { createBaseQuery } from '../../createBaseQuery';\n\nexport const API_GROUP = 'collections.grafana.app' as const;\nexport const API_VERSION = 'v1alpha1' as const;\nexport const BASE_URL = getAPIBaseURL(API_GROUP, API_VERSION);\n\nexport const api = createApi({\n  reducerPath: 'collectionsAPIv1alpha1',\n  baseQuery: createBaseQuery({\n    baseURL: BASE_URL,\n  }),\n  endpoints: () => ({}),\n});"
+    },
+    "s-ns": {
+      "path": "packages/grafana-api-clients/src/utils/utils.ts",
+      "start_line": 1,
+      "end_line": 13,
+      "excerpt_sha256": "888b8b575bddcb276ec9fa6786f3aeab58fd33f4e2ad3d1b51264f9ead7ce71c",
+      "source_sha256": "954dabdaa50de9f006e0bb911217ac6a8e1f3d5b4e273cadb3aa8e153f28ee3b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/packages/grafana-api-clients/src/utils/utils.ts#L1-L13",
+      "text": "import { config, isFetchError } from '@grafana/runtime';\n\nexport const getAPINamespace = () => config.namespace;\n\n/**\n * Get a base URL for a k8s API endpoint with parameterised namespace given it's group and version\n * @param group the k8s group, e.g. dashboard.grafana.app\n * @param version e.g. v0alpha1\n * @returns\n */\nexport const getAPIBaseURL = (group: string, version: string) => {\n  return `/apis/${group}/${version}/namespaces/${getAPINamespace()}` as const;\n};"
+    },
+    "s-http": {
+      "path": "packages/grafana-api-clients/src/clients/rtkq/collections/v1alpha1/endpoints.gen.ts",
+      "start_line": 96,
+      "end_line": 109,
+      "excerpt_sha256": "bc2b6809b71d3d77e519997f68e6e9b787867634b83db85b419aca7691df025f",
+      "source_sha256": "b086bfc5d4cb581ace9afed48fd683cdf34553bcafe01ab463dd6c2e87574a0b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/packages/grafana-api-clients/src/clients/rtkq/collections/v1alpha1/endpoints.gen.ts#L96-L109",
+      "text": "      addStar: build.mutation<AddStarApiResponse, AddStarApiArg>({\n        query: (queryArg) => ({\n          url: `/stars/${queryArg.name}/update/${queryArg.group}/${queryArg.kind}/${queryArg.id}`,\n          method: 'PUT',\n        }),\n        invalidatesTags: ['Stars'],\n      }),\n      removeStar: build.mutation<RemoveStarApiResponse, RemoveStarApiArg>({\n        query: (queryArg) => ({\n          url: `/stars/${queryArg.name}/update/${queryArg.group}/${queryArg.kind}/${queryArg.id}`,\n          method: 'DELETE',\n        }),\n        invalidatesTags: ['Stars'],\n      }),"
+    },
+    "s-register": {
+      "path": "pkg/registry/apis/collections/register.go",
+      "start_line": 88,
+      "end_line": 108,
+      "excerpt_sha256": "d504355f95d5e8abe3aceafa04aa78afa3f71ba6e8cdd8af931d4d1c864485af",
+      "source_sha256": "6a14190c0f223c7e34f27ebdbc4028ec6c34c5905f5ef878d8e7e535c10ddb2e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/registry/apis/collections/register.go#L88-L108",
+      "text": "func (b *APIBuilder) UpdateAPIGroupInfo(apiGroupInfo *genericapiserver.APIGroupInfo, opts builder.APIGroupOptions) error {\n\tstorage := map[string]rest.Storage{}\n\n\t// Configure Stars Dual writer\n\tresource := collections.StarsResourceInfo\n\tvar stars grafanarest.Storage\n\tstars, err := grafanaregistry.NewRegistryStore(opts.Scheme, resource, opts.OptsGetter)\n\tif err != nil {\n\t\treturn err\n\t}\n\tif b.legacyStars != nil && opts.DualWriteBuilder != nil {\n\t\tstars, err = opts.DualWriteBuilder(resource.GroupResource(), b.legacyStars, stars)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t}\n\tstorage[resource.StoragePath()] = &starStorage{Storage: stars} // wrap List so we only return one value\n\tstorage[resource.StoragePath(\"update\")] = &starsREST{store: stars}\n\n\tapiGroupInfo.VersionedResourcesStorageMap[collections.APIVersion] = storage\n\treturn nil"
+    },
+    "s-update": {
+      "path": "pkg/registry/apis/collections/stars_update.go",
+      "start_line": 57,
+      "end_line": 128,
+      "excerpt_sha256": "778449e8ba9b05b7d8296da994ef752a61d2d74f0efd9783019f8566c1692a18",
+      "source_sha256": "102194876f9828f428abafd4b2df11def51a85a58a6e19baa7651aa7e0401087",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/registry/apis/collections/stars_update.go#L57-L128",
+      "text": "// NOTE: the authorizer has already verified that the user is allowed to modify this resource\nfunc (r *starsREST) Connect(ctx context.Context, name string, _ runtime.Object, responder rest.Responder) (http.Handler, error) {\n\tnamespace, ok := request.NamespaceFrom(ctx)\n\tif !ok {\n\t\treturn nil, fmt.Errorf(\"stars must belong to a namespace\")\n\t}\n\tparsed, found := utils.ParseOwnerFromName(name)\n\tif !found || parsed.Owner != utils.UserResourceOwner {\n\t\treturn nil, fmt.Errorf(\"only works with user stars\")\n\t}\n\n\treturn http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {\n\t\titem, err := itemFromPath(req.URL.Path, fmt.Sprintf(\"/%s/update\", name))\n\t\tif err != nil {\n\t\t\tresponder.Error(err)\n\t\t\treturn\n\t\t}\n\n\t\tremove := false\n\t\tswitch req.Method {\n\t\tcase \"DELETE\":\n\t\t\tremove = true\n\t\tcase \"PUT\":\n\t\t\tremove = false\n\t\tdefault:\n\t\t\tresponder.Error(apierrors.NewMethodNotSupported(collections.StarsResourceInfo.GroupResource(), req.Method))\n\t\t\treturn\n\t\t}\n\n\t\tcurrent, err := r.store.Get(ctx, name, &v1.GetOptions{})\n\t\tif err != nil {\n\t\t\tif apierrors.IsNotFound(err) {\n\t\t\t\tif remove {\n\t\t\t\t\tresponder.Object(http.StatusNoContent, &v1.Status{\n\t\t\t\t\t\tCode: http.StatusNoContent,\n\t\t\t\t\t})\n\t\t\t\t\treturn\n\t\t\t\t}\n\t\t\t\tcurrent = &collections.Stars{\n\t\t\t\t\tObjectMeta: v1.ObjectMeta{\n\t\t\t\t\t\tName:      name,\n\t\t\t\t\t\tNamespace: namespace,\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tobj, ok := current.(*collections.Stars)\n\t\tif !ok {\n\t\t\tresponder.Error(fmt.Errorf(\"expected stars object\"))\n\t\t\treturn\n\t\t}\n\n\t\tif remove {\n\t\t\tobj.Spec.Remove(item.group, item.kind, item.id)\n\t\t} else {\n\t\t\tobj.Spec.Add(item.group, item.kind, item.id)\n\t\t}\n\n\t\tif len(obj.Spec.Resource) == 0 {\n\t\t\t_, _, err = r.store.Delete(ctx, name, rest.ValidateAllObjectFunc, &v1.DeleteOptions{})\n\t\t} else if obj.ResourceVersion == \"\" {\n\t\t\t_, err = r.store.Create(ctx, obj, rest.ValidateAllObjectFunc, &v1.CreateOptions{})\n\t\t} else {\n\t\t\t_, _, err = r.store.Update(ctx, name, rest.DefaultUpdatedObjectInfo(obj), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc, true, &v1.UpdateOptions{})\n\t\t}\n\t\tif err != nil {\n\t\t\tresponder.Error(err)\n\t\t\treturn\n\t\t}\n\t\tresponder.Object(http.StatusOK, &v1.Status{Code: http.StatusOK})\n\t}), nil"
+    },
+    "s-spec": {
+      "path": "apps/collections/pkg/apis/collections/v1alpha1/stars.go",
+      "start_line": 8,
+      "end_line": 67,
+      "excerpt_sha256": "c28dbbf18e49418af63a1e8fc230b6c2de087d38924c82047ee8b565f57713b6",
+      "source_sha256": "32cadf8e7fcd837ccd1f32b0e5e798b2acebd513126c245c87f56f0735fbad03",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/apps/collections/pkg/apis/collections/v1alpha1/stars.go#L8-L67",
+      "text": "func (stars *StarsSpec) Add(group, kind, name string) {\n\tfor i, r := range stars.Resource {\n\t\tif r.Group == group && r.Kind == kind {\n\t\t\tstars.Resource[i].Names = append(r.Names, name)\n\t\t\tstars.Normalize()\n\t\t\treturn\n\t\t}\n\t}\n\n\t// Add the resource kind\n\tstars.Resource = append(stars.Resource, StarsResource{\n\t\tGroup: group,\n\t\tKind:  kind,\n\t\tNames: []string{name},\n\t})\n\tstars.Normalize()\n}\n\nfunc (stars *StarsSpec) Remove(group, kind, name string) {\n\tfor i, r := range stars.Resource {\n\t\tif r.Group == group && r.Kind == kind {\n\t\t\tidx := slices.Index(r.Names, name)\n\t\t\tif idx < 0 {\n\t\t\t\treturn // does not exist\n\t\t\t}\n\t\t\tr.Names = append(r.Names[:idx], r.Names[idx+1:]...)\n\t\t\tstars.Resource[i].Names = r.Names\n\t\t\tif len(r.Names) == 0 {\n\t\t\t\tstars.Normalize()\n\t\t\t}\n\t\t\treturn\n\t\t}\n\t}\n}\n\n// Makes sure everything is in sorted order\nfunc (stars *StarsSpec) Normalize() {\n\tresources := make([]StarsResource, 0, len(stars.Resource))\n\tfor _, r := range stars.Resource {\n\t\tif len(r.Names) > 0 {\n\t\t\tunique := make([]string, 0, len(r.Names))\n\t\t\tfound := make(map[string]bool, len(r.Names))\n\t\t\tfor _, name := range r.Names {\n\t\t\t\tif !found[name] {\n\t\t\t\t\tunique = append(unique, name)\n\t\t\t\t\tfound[name] = true\n\t\t\t\t}\n\t\t\t}\n\t\t\tr.Names = unique\n\t\t\tresources = append(resources, r)\n\t\t}\n\t}\n\tslices.SortFunc(resources, func(a StarsResource, b StarsResource) int {\n\t\treturn strings.Compare(a.Group+a.Kind, b.Group+b.Kind)\n\t})\n\tif len(resources) == 0 {\n\t\tresources = nil\n\t}\n\tstars.Resource = resources\n}"
+    },
+    "s-nav": {
+      "path": "public/app/core/reducers/navBarTree.ts",
+      "start_line": 43,
+      "end_line": 67,
+      "excerpt_sha256": "83c49eea6b190d7639b4f95e6d225ebf5faaa7a96d2e0733a673a55d02757cd3",
+      "source_sha256": "43b322d6d2a0e72cdf1fd865bfac64e933dfcc446a7931c168f81209704645e9",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/core/reducers/navBarTree.ts#L43-L67",
+      "text": "    setStarred: (state, action: PayloadAction<StarredNavItem & { isStarred: boolean }>) => {\n      const starredItems = state.find((navItem) => navItem.id === 'starred');\n      const { id, title, url, icon, sortWeight, isStarred } = action.payload;\n      if (starredItems) {\n        if (isStarred) {\n          if (!starredItems.children) {\n            starredItems.children = [];\n          }\n          const newStarredItem: NavModelItem = {\n            id: ID_PREFIX + id,\n            text: title,\n            url,\n            icon,\n            sortWeight,\n          };\n          starredItems.children.push(newStarredItem);\n          starredItems.children.sort(compareStarredChildren);\n        } else {\n          const index = starredItems.children?.findIndex((item) => item.id === ID_PREFIX + id) ?? -1;\n          if (index > -1) {\n            starredItems?.children?.splice(index, 1);\n          }\n        }\n      }\n    },"
+    },
+    "s-notify": {
+      "path": "public/app/api/clients/collections/v1alpha1/index.ts",
+      "start_line": 7,
+      "end_line": 30,
+      "excerpt_sha256": "d504f4be193f0cdd00dd091d116ec2f729f639f92e01144072e6987937cef547",
+      "source_sha256": "6e48fd93c6f920ac58ce15d374998f58a79134b6480d3c6288463fab554c29db",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/api/clients/collections/v1alpha1/index.ts#L7-L30",
+      "text": "export const collectionsAPIv1alpha1 = generatedAPI.enhanceEndpoints({\n  endpoints: {\n    addStar: {\n      onQueryStarted: async (_, { queryFulfilled, dispatch }) => {\n        try {\n          await queryFulfilled;\n          dispatch(notifyApp(createSuccessNotification(t('dashboard.toolbar.star-added', 'Added to starred'))));\n        } catch (e) {\n          handleError(e, dispatch, t('dashboard.toolbar.star-add-error', 'Failed to add to starred'));\n        }\n      },\n    },\n    removeStar: {\n      onQueryStarted: async (_, { queryFulfilled, dispatch }) => {\n        try {\n          await queryFulfilled;\n          dispatch(notifyApp(createSuccessNotification(t('dashboard.toolbar.star-removed', 'Removed from starred'))));\n        } catch (e) {\n          handleError(e, dispatch, t('dashboard.toolbar.star-remove-error', 'Failed to remove from starred'));\n        }\n      },\n    },\n  },\n});"
+    },
+    "s-authorizer-binding": {
+      "path": "pkg/registry/apis/collections/register.go",
+      "start_line": 41,
+      "end_line": 62,
+      "excerpt_sha256": "ea6600626ea8b3a4e4367e71286fba073135c395b1bfa549591b2041a32d689f",
+      "source_sha256": "6a14190c0f223c7e34f27ebdbc4028ec6c34c5905f5ef878d8e7e535c10ddb2e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/registry/apis/collections/register.go#L41-L62",
+      "text": "func RegisterAPIService(\n\tcfg *setting.Cfg,\n\tfeatures featuremgmt.FeatureToggles,\n\tdb db.DB,\n\tstars star.Service,\n\tusers user.Service,\n\tapiregistration builder.APIRegistrar,\n) *APIBuilder {\n\tsql := legacy.NewLegacySQL(legacysql.NewDatabaseProvider(db))\n\tbuilder := &APIBuilder{\n\t\tauthorizer: &utils.AuthorizeFromName{\n\t\t\tAllowOrgAdmin: true,\n\t\t\tResource: map[string][]utils.ResourceOwner{\n\t\t\t\t\"stars\": {utils.UserResourceOwner},\n\t\t\t},\n\t\t},\n\t}\n\n\tnamespacer := request.GetNamespaceMapper(cfg)\n\tif stars != nil {\n\t\tbuilder.legacyStars = legacy.NewDashboardStarsStorage(stars, users, namespacer, sql)\n\t}"
+    },
+    "s-auth": {
+      "path": "pkg/registry/apis/preferences/utils/authorizer.go",
+      "start_line": 22,
+      "end_line": 90,
+      "excerpt_sha256": "6e8e13790ab61778c5b8791f53668c269a68e58714a549985d9654ca9ea59e6c",
+      "source_sha256": "6cc51beff210883f54b0549317f5ed962fd868da20e34cea7e775b2a0059c6d2",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/registry/apis/preferences/utils/authorizer.go#L22-L90",
+      "text": "func (a *AuthorizeFromName) Authorize(ctx context.Context, attr authorizer.Attributes) (authorizer.Decision, string, error) {\n\tuser, err := identity.GetRequester(ctx)\n\tif err != nil || user == nil {\n\t\treturn authorizer.DecisionDeny, \"valid user is required\", err\n\t}\n\n\tif !attr.IsResourceRequest() {\n\t\treturn authorizer.DecisionNoOpinion, \"\", nil\n\t}\n\n\towners, ok := a.Resource[attr.GetResource()]\n\tif !ok {\n\t\treturn authorizer.DecisionDeny, \"missing resource name\", nil\n\t}\n\n\t// Check if the request includes explicit permissions\n\tres := authz.CheckServicePermissions(user, attr.GetAPIGroup(), attr.GetResource(), attr.GetVerb())\n\tif !res.Allowed {\n\t\tlog := logging.FromContext(ctx)\n\t\tlog.Info(\"calling service lacks required permissions\",\n\t\t\t\"isServiceCall\", res.ServiceCall,\n\t\t\t\"apiGroup\", attr.GetAPIGroup(),\n\t\t\t\"resource\", attr.GetResource(),\n\t\t\t\"verb\", attr.GetVerb(),\n\t\t\t\"permissions\", len(res.Permissions),\n\t\t)\n\t\treturn authorizer.DecisionDeny, \"calling service lacks required permissions\", nil\n\t}\n\tif res.ServiceCall { // request is from an access policy with explicit permissions\n\t\treturn authorizer.DecisionAllow, \"\", nil\n\t}\n\n\tif a.AllowOrgAdmin && user.GetOrgRole() == identity.RoleAdmin {\n\t\treturn authorizer.DecisionAllow, \"\", nil\n\t}\n\n\tif attr.GetName() == \"\" {\n\t\tif attr.IsReadOnly() {\n\t\t\treturn authorizer.DecisionAllow, \"\", nil\n\t\t}\n\t\treturn authorizer.DecisionDeny, \"mutating request without a name\", nil\n\t}\n\n\t// the pseudo sub-resource\n\tif a.OKNames != nil && slices.Contains(a.OKNames, attr.GetName()) {\n\t\treturn authorizer.DecisionAllow, \"\", nil\n\t}\n\n\tinfo, _ := ParseOwnerFromName(attr.GetName())\n\tif !slices.Contains(owners, info.Owner) {\n\t\treturn authorizer.DecisionDeny, \"unsupported owner type\", nil\n\t}\n\n\tswitch info.Owner {\n\tcase NamespaceResourceOwner:\n\t\tif attr.IsReadOnly() {\n\t\t\t// Everyone can see the namespace\n\t\t\treturn authorizer.DecisionAllow, \"\", nil\n\t\t}\n\t\tif user.GetOrgRole() == identity.RoleAdmin {\n\t\t\treturn authorizer.DecisionAllow, \"\", nil\n\t\t}\n\t\treturn authorizer.DecisionDeny, \"must be an org admin to edit\", nil\n\n\tcase UserResourceOwner:\n\t\tif user.GetIdentifier() == info.Identifier {\n\t\t\treturn authorizer.DecisionAllow, \"\", nil\n\t\t}\n\t\treturn authorizer.DecisionDeny, \"your are not the owner of the resource\", nil"
+    },
+    "m-form-selector": {
+      "path": "public/app/features/dashboard-scene/saving/SaveDashboardDrawer.tsx",
+      "start_line": 122,
+      "end_line": 156,
+      "excerpt_sha256": "3e7078837c3134dd74bafedb7c55acc0ff3fdc3bbcc8450e5a16a681e9801e99",
+      "source_sha256": "beb904359604ddfccfec1dd98898fa0e468cb42a7fe15577dcfdea57194af7da",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard-scene/saving/SaveDashboardDrawer.tsx#L122-L156",
+      "text": "  const renderForm = () => {\n    if (saveDashboardTemplate) {\n      const SaveDashboardTemplateForm = getSaveDashboardTemplateForm();\n      if (SaveDashboardTemplateForm) {\n        return <SaveDashboardTemplateForm dashboard={dashboard} drawer={model} changeInfo={changeInfo} />;\n      }\n    }\n\n    if (saveAsDashboardTemplate) {\n      const SaveAsTemplateForm = getSaveAsTemplateForm();\n      if (SaveAsTemplateForm) {\n        return <SaveAsTemplateForm dashboard={dashboard} />;\n      }\n    }\n\n    if (isProvisionedNG) {\n      return (\n        <SaveProvisionedDashboard\n          dashboard={dashboard}\n          changeInfo={changeInfo}\n          drawer={model}\n          saveAsCopy={saveAsCopy}\n        />\n      );\n    }\n\n    if (saveAsCopy || changeInfo.isNew) {\n      return <SaveDashboardAsForm dashboard={dashboard} changeInfo={changeInfo} onCancel={model.onClose} />;\n    }\n\n    if (isProvisioned || managedResourceCannotBeEdited) {\n      return <SaveProvisionedDashboardForm dashboard={dashboard} changeInfo={changeInfo} drawer={model} />;\n    }\n\n    return <SaveDashboardForm dashboard={dashboard} changeInfo={changeInfo} drawer={model} />;"
+    },
+    "m-form": {
+      "path": "public/app/features/dashboard-scene/saving/SaveDashboardForm.tsx",
+      "start_line": 27,
+      "end_line": 66,
+      "excerpt_sha256": "241a1ad4ec777019bbff29a7bd739f4b0cc7af6f1968c349be39f5de9461fea6",
+      "source_sha256": "90a9625ca38d782b185a6270a36bbf5d1b91c4ea54f123640a3863bd8e0d010e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard-scene/saving/SaveDashboardForm.tsx#L27-L66",
+      "text": "export function SaveDashboardForm({ dashboard, drawer, changeInfo }: Props) {\n  const { hasChanges, hasMigratedToV2, changedSaveModel } = changeInfo;\n\n  const { state, onSaveDashboard } = useSaveDashboard(false);\n  const k8sMeta = dashboard.serializer.getK8SMetadata();\n  const [options, setOptions] = useState<SaveDashboardOptions>({\n    folderUid: dashboard.state.meta.folderUid,\n    // we need to set the uid here in order to save the dashboard\n    // in schema v2 we don't have the uid in the spec\n    // meta.k8s.annotations is the editor source of truth for the denylist / other client annotations\n    k8s: {\n      ...k8sMeta,\n      annotations: {\n        ...k8sMeta?.annotations,\n        ...dashboard.state.meta.k8s?.annotations,\n      },\n    },\n  });\n\n  const onSave = async (overwrite: boolean) => {\n    // Re-merge annotations at save time so denylist edits after the form mounted still persist.\n    const latestK8s = dashboard.serializer.getK8SMetadata();\n    const result = await onSaveDashboard(dashboard, {\n      ...options,\n      k8s: {\n        ...latestK8s,\n        ...options.k8s,\n        annotations: {\n          ...latestK8s?.annotations,\n          ...options.k8s?.annotations,\n          ...dashboard.state.meta.k8s?.annotations,\n        },\n      },\n      rawDashboardJSON: changedSaveModel,\n      overwrite,\n    });\n    if (result.status === 'success') {\n      dashboard.closeModal();\n      drawer.state.onSaveSuccess?.();\n    }"
+    },
+    "m-hook": {
+      "path": "public/app/features/dashboard-scene/saving/useSaveDashboard.ts",
+      "start_line": 26,
+      "end_line": 108,
+      "excerpt_sha256": "6aa3e2154ba1b6df332028ea127bf23359f951bf4284b76c1c77d5781269cd4c",
+      "source_sha256": "cfb146ee66e7c7c8542c5c5f5561317b72854079abcb665ae13861dbe7054d91",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard-scene/saving/useSaveDashboard.ts#L26-L108",
+      "text": "  const [state, onSaveDashboard] = useAsyncFn(\n    async (\n      scene: DashboardScene,\n      options: SaveDashboardOptions &\n        SaveDashboardAsOptions & {\n          // When provided, will take precedence over the scene's save model\n          rawDashboardJSON?: Dashboard | DashboardV2Spec;\n        }\n    ) => {\n      {\n        let saveModel = options.rawDashboardJSON ?? scene.getSaveModel();\n\n        if (options.saveAsCopy) {\n          saveModel = scene.getSaveAsModel({\n            isNew: options.isNew,\n            title: options.title,\n            description: options.description,\n            copyTags: options.copyTags,\n          });\n        }\n\n        const result = await saveDashboardRtkQuery({\n          dashboard: saveModel,\n          folderUid: options.folderUid,\n          message: options.message,\n          overwrite: options.overwrite,\n          showErrorAlert: false,\n          k8s: options.k8s,\n        });\n\n        if ('error' in result) {\n          throw result.error;\n        }\n\n        // result.data is readonly so spreading to allow for slug edits\n        const resultData: typeof result.data = { ...result.data };\n\n        // TODO: use slug from response once implemented\n        // reuse existing slug to avoid \"Unsaved changes\" modal after save\n        //   due to slugify logic difference between frontend and backend\n        if (!result.data.slug && scene.state.meta.slug) {\n          const slug = scene.state.meta.slug;\n          resultData.slug = slug;\n          resultData.url = `${result.data.url}/${slug}`;\n        }\n\n        // Capture before saveCompleted re-snapshots the baseline (which would make this report ~0).\n        const diffCount = scene.getDashboardChanges().diffCount;\n\n        await scene.saveCompleted(saveModel, resultData, options.folderUid);\n\n        // important that these happen before location redirect below\n        appEvents.publish(new DashboardSavedEvent());\n        notifyApp.success(t('dashboard-scene.use-save-dashboard.message-dashboard-saved', 'Dashboard saved'));\n\n        updateDashboardUidLastUsedDatasource(resultData.uid);\n\n        if (isCopy) {\n          DashboardInteractions.dashboardCopied({\n            name: saveModel.title || '',\n            url: resultData.url,\n            diff_count: diffCount,\n          });\n        } else {\n          trackDashboardSceneCreatedOrSaved(!!options.isNew, scene, {\n            name: saveModel.title || '',\n            url: resultData.url || '',\n            diff_count: diffCount,\n            transformation_counts: scene.getTransformationCounts(saveModel),\n            expression_counts: scene.getExpressionCounts(saveModel),\n          });\n        }\n\n        const currentLocation = locationService.getLocation();\n        const newUrl = locationUtil.stripBaseFromUrl(resultData.url);\n\n        if (newUrl !== currentLocation.pathname) {\n          setTimeout(() => {\n            locationService.push({ pathname: newUrl, search: currentLocation.search });\n          });\n        }\n\n        return result.data;"
+    },
+    "m-client-select": {
+      "path": "public/app/features/browse-dashboards/api/browseDashboardsAPI.ts",
+      "start_line": 462,
+      "end_line": 479,
+      "excerpt_sha256": "4c11be0c3bbcb5a8ba3faa7238fd3545de267546300e727eaa9fcfc903182890",
+      "source_sha256": "d4fc1b69410bdbfd92dc780a359f10a887cfb0fe14b9f9a728257c033d8061dc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/browse-dashboards/api/browseDashboardsAPI.ts#L462-L479",
+      "text": "    saveDashboard: builder.mutation<SaveDashboardResponseDTO, SaveDashboardCommand<Dashboard | DashboardV2Spec>>({\n      queryFn: async (cmd) => {\n        try {\n          if (isV2DashboardCommand(cmd)) {\n            const api = await getDashboardAPI('v2');\n            const response = await api.saveDashboard(cmd);\n            return { data: response };\n          }\n\n          if (isV1DashboardCommand(cmd)) {\n            const api = await getDashboardAPI('v1');\n            const rsp = await api.saveDashboard(cmd);\n            return { data: rsp };\n          }\n          throw new Error('Invalid dashboard version');\n        } catch (error) {\n          return handleRequestError(error);\n        }"
+    },
+    "m-client-side-effects": {
+      "path": "public/app/features/browse-dashboards/api/browseDashboardsAPI.ts",
+      "start_line": 482,
+      "end_line": 525,
+      "excerpt_sha256": "73fca074a193aff14ca8d3df687b982469a5471db6bb014b57b2b036514907cb",
+      "source_sha256": "d4fc1b69410bdbfd92dc780a359f10a887cfb0fe14b9f9a728257c033d8061dc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/browse-dashboards/api/browseDashboardsAPI.ts#L482-L525",
+      "text": "      onQueryStarted: (cmd, { queryFulfilled, dispatch }) => {\n        const { folderUid, dashboard } = cmd;\n        dashboardWatcher.ignoreNextSave();\n        const dashboardUid = isV1DashboardCommand(cmd) ? cmd.dashboard.uid : cmd.k8s?.name;\n\n        // Capture the dashboard's previous folder from the cache before save, so that\n        // if the user is moving it to a different folder we can invalidate the source\n        // folder's children cache. Without this, childrenByParentUID[previousFolderUid]\n        // stays stale and folder-select cascades in the list view incorrectly include\n        // the moved-out dashboard.\n        const previousFolderUid = getDashboardFolder(dashboardUid);\n\n        queryFulfilled.then(async ({ data }) => {\n          try {\n            await contextSrv.fetchUserPermissions();\n          } catch (err) {\n            console.error('Failed to refresh user permissions after save', err);\n          }\n          dispatch(\n            refetchChildren({\n              parentUID: folderUid,\n              pageSize: PAGE_SIZE,\n            })\n          );\n          // If the dashboard was moved, also refetch old parent folder\n          if (previousFolderUid !== undefined && previousFolderUid !== folderUid) {\n            dispatch(\n              refetchChildren({\n                parentUID: previousFolderUid,\n                pageSize: PAGE_SIZE,\n              })\n            );\n          }\n          // version 1 means a newly created dashboard — only then does the resource count change\n          if (data.version === 1) {\n            invalidateQuotaUsage(dispatch);\n          }\n          // Update starred dashboard name in nav sidebar (no-ops if dashboard isn't starred)\n          const title = dashboard.title;\n          if (title && data.url) {\n            const url = locationUtil.stripBaseFromUrl(data.url);\n            dispatch(updateDashboardName({ id: data.uid, title, url }));\n          }\n        });"
+    },
+    "m-resolve": {
+      "path": "public/app/features/dashboard/api/dashboard_api.ts",
+      "start_line": 35,
+      "end_line": 59,
+      "excerpt_sha256": "7795f07a90a1d31e985878190cadf075ba91eab7f23217a710915baa0a1bdc92",
+      "source_sha256": "b4b8b35c30bf6e8fe97e14c4a25f63ce33b2d3cd6add5b4a114d95e677176201",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard/api/dashboard_api.ts#L35-L59",
+      "text": "export async function getDashboardAPI(\n  responseFormat?: 'v1' | 'v2'\n): Promise<DashboardAPI<DashboardDTO | DashboardWithAccessInfo<DashboardV2Spec>, Dashboard | DashboardV2Spec>> {\n  // Ensure API versions are resolved before creating clients.\n  // The resolver caches internally — only the first call does a network request.\n  // On failure it returns beta fallbacks without caching, so we rebuild\n  // clients on next call to avoid locking them to stale beta URLs.\n  await dashboardAPIVersionResolver.resolve();\n\n  const v = getDashboardsApiVersion(responseFormat);\n\n  if (!clients || !dashboardAPIVersionResolver.isResolved) {\n    clients = {\n      v1: new K8sDashboardAPI(),\n      v2: new K8sDashboardV2API(),\n      unified: new UnifiedDashboardAPI(),\n    };\n  }\n\n  if (!clients[v]) {\n    throw new Error(`Unknown Dashboard API version: ${v}`);\n  }\n\n  return clients[v];\n}"
+    },
+    "m-discover": {
+      "path": "public/app/features/dashboard/api/DashboardAPIVersionResolver.ts",
+      "start_line": 33,
+      "end_line": 85,
+      "excerpt_sha256": "751a4b3ed868b3fc77f990f97897ebd85723c28c7aad330327a31097025deceb",
+      "source_sha256": "9bc0f6050cba2bf95db63bca5b8e190bb275c4cc4ca15cfd98c33725c2aab10a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard/api/DashboardAPIVersionResolver.ts#L33-L85",
+      "text": "      this.resolving = this.discover()\n        .then((versions) => {\n          this.resolved = versions;\n          return versions;\n        })\n        .catch((error) => {\n          debugLog('Version discovery failed, falling back to beta versions. Will retry on next call.', error);\n          const fallback: ResolvedDashboardVersions = { v1: BETA_V1, v2: BETA_V2 };\n          return fallback;\n        })\n        .finally(() => {\n          this.resolving = null;\n        });\n    }\n\n    return this.resolving;\n  }\n\n  /** Whether discovery has succeeded and versions are cached. */\n  get isResolved(): boolean {\n    return this.resolved !== null;\n  }\n\n  getV1(): DashboardV1Version {\n    if (!this.resolved) {\n      debugLog('getV1() called before resolve() — falling back to beta version');\n    }\n    return this.resolved?.v1 ?? BETA_V1;\n  }\n\n  getV2(): DashboardV2Version {\n    if (!this.resolved) {\n      debugLog('getV2() called before resolve() — falling back to beta version');\n    }\n    return this.resolved?.v2 ?? BETA_V2;\n  }\n\n  private async discover(): Promise<ResolvedDashboardVersions> {\n    const group = await getAPIGroupVersions(DASHBOARD_API_GROUP);\n    const versions = group?.versions ?? new Set<string>();\n    const preferred = group?.preferred;\n\n    const v1: DashboardV1Version =\n      preferred === 'v1' || preferred === 'v1beta1' ? preferred : versions.has('v1') ? 'v1' : BETA_V1;\n\n    const v2: DashboardV2Version =\n      preferred === 'v2' || preferred === 'v2beta1' ? preferred : versions.has('v2') ? 'v2' : BETA_V2;\n\n    debugLog(\n      `Version negotiation: v1=${v1}, v2=${v2}, preferred=${preferred ?? 'none'} (available: ${Array.from(versions).join(', ')})`\n    );\n\n    return { v1, v2 };"
+    },
+    "m-v1": {
+      "path": "public/app/features/dashboard/api/v1.ts",
+      "start_line": 41,
+      "end_line": 130,
+      "excerpt_sha256": "a0c52c031bfea21fdea32629821291560763a75cada3a80ea065067d64f63e7d",
+      "source_sha256": "407d97fbfd52d87cb5dd0a61ec93d2d4659ca7b68bc410b76cadaf81e23ecc0a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard/api/v1.ts#L41-L130",
+      "text": "import { buildRestorePayload, fetchDeletedDashboard, isV2StoredVersion } from './utils';\n\nexport function getK8sV1DashboardApiConfig() {\n  return {\n    group: 'dashboard.grafana.app',\n    version: dashboardAPIVersionResolver.getV1(),\n    resource: 'dashboards',\n  };\n}\n\nexport class K8sDashboardAPI implements DashboardAPI<DashboardDTO, Dashboard> {\n  private client: ResourceClient<DashboardDataDTO, Status>;\n\n  constructor() {\n    this.client = new ScopedResourceClient<DashboardDataDTO>(getK8sV1DashboardApiConfig());\n  }\n\n  saveDashboard(options: SaveDashboardCommand<Dashboard>): Promise<SaveDashboardResponseDTO> {\n    const dashboard = options.dashboard;\n    const obj: ResourceForCreate<DashboardDataDTO> = {\n      metadata: {\n        ...options?.k8s,\n      },\n      spec: {\n        ...dashboard,\n        title: dashboard.title ?? '',\n        uid: dashboard.uid ?? '',\n      },\n    };\n\n    if (options.message) {\n      obj.metadata.annotations = {\n        ...obj.metadata.annotations,\n        [AnnoKeyMessage]: options.message,\n      };\n    } else if (obj.metadata.annotations) {\n      delete obj.metadata.annotations[AnnoKeyMessage];\n    }\n\n    if (options.folderUid !== undefined) {\n      obj.metadata.annotations = {\n        ...obj.metadata.annotations,\n        [AnnoKeyFolder]: options.folderUid,\n      };\n    }\n\n    // remove resource version because it's not allowed to be set\n    // and the api server will throw an error\n    delete obj.metadata.resourceVersion;\n\n    obj.metadata.annotations = {\n      ...obj.metadata.annotations,\n      [AnnoKeyGrantPermissions]: 'default',\n    };\n\n    // for v1 in g12, we will ignore the schema version validation from all default clients,\n    // as we implement the necessary backend conversions, we will drop this query param\n    if (dashboard.uid) {\n      obj.metadata.name = dashboard.uid;\n      delete obj.metadata.labels?.[DeprecatedInternalId];\n\n      return this.client.update(obj, { fieldValidation: 'Ignore' }).then((v) => this.asSaveDashboardResponseDTO(v));\n    }\n\n    // non-scene dashboard will have obj.metadata.name when trying to save a dashboard copy\n    delete obj.metadata.name;\n    // on create, always clear the id to prevent duplicate ids\n    delete obj.spec.id;\n    delete obj.metadata.labels?.[DeprecatedInternalId];\n    return this.client.create(obj, { fieldValidation: 'Ignore' }).then((v) => this.asSaveDashboardResponseDTO(v));\n  }\n\n  asSaveDashboardResponseDTO(v: Resource<DashboardDataDTO>): SaveDashboardResponseDTO {\n    //TODO: use slug from response once implemented\n    const slug = '';\n\n    const url = locationUtil.assureBaseUrl(\n      getDashboardUrl({\n        uid: v.metadata.name,\n        currentQueryParams: '',\n        slug,\n      })\n    );\n\n    return {\n      uid: v.metadata.name,\n      version: v.metadata.generation ?? 0,\n      status: 'success',\n      url,\n      slug,"
+    },
+    "m-v2": {
+      "path": "public/app/features/dashboard/api/v2.ts",
+      "start_line": 118,
+      "end_line": 188,
+      "excerpt_sha256": "e36fe25cdddac27ab88190c2079d312abaadc430ef9270882b05c89ae13d4a67",
+      "source_sha256": "8be5ff8f3214b5e90ce13c4447bbb101a77af27a61c6ff80f94f6a2e11019a58",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard/api/v2.ts#L118-L188",
+      "text": "  async saveDashboard(options: SaveDashboardCommand<DashboardV2Spec>): Promise<SaveDashboardResponseDTO> {\n    const dashboard = convertSpecToWireFormat(options.dashboard);\n\n    const obj: ResourceForCreate<DashboardV2Spec> = {\n      // the metadata will have the name that's the uid\n      metadata: {\n        ...options?.k8s,\n      },\n      spec: {\n        ...dashboard,\n      },\n    };\n\n    // add annotations\n    if (options.message) {\n      obj.metadata.annotations = {\n        ...obj.metadata.annotations,\n        [AnnoKeyMessage]: options.message,\n      };\n    } else if (obj.metadata.annotations) {\n      delete obj.metadata.annotations[AnnoKeyMessage];\n    }\n\n    // add folder annotation\n    if (options.folderUid !== undefined) {\n      // remove frontend folder annotations\n      delete obj.metadata.annotations?.[AnnoKeyFolderTitle];\n      delete obj.metadata.annotations?.[AnnoKeyFolderUrl];\n\n      obj.metadata.annotations = {\n        ...obj.metadata.annotations,\n        [AnnoKeyFolder]: options.folderUid,\n      };\n    }\n\n    obj.metadata.annotations = {\n      ...obj.metadata.annotations,\n      [AnnoKeyGrantPermissions]: 'default',\n    };\n\n    if (obj.metadata.name) {\n      // remove resource version when updating\n      delete obj.metadata.resourceVersion;\n      delete obj.metadata.labels?.[DeprecatedInternalId];\n      return this.client.update(obj).then((v) => this.asSaveDashboardResponseDTO(v));\n    }\n\n    // clear the deprecated id label so the backend generates a new unique id to prevent duplicate ids.\n    delete obj.metadata.labels?.[DeprecatedInternalId];\n    return await this.client.create(obj).then((v) => this.asSaveDashboardResponseDTO(v));\n  }\n\n  asSaveDashboardResponseDTO(v: Resource<DashboardV2Spec>): SaveDashboardResponseDTO {\n    //TODO: use slug from response once implemented\n    const slug = '';\n\n    const url = locationUtil.assureBaseUrl(\n      getDashboardUrl({\n        uid: v.metadata.name,\n        currentQueryParams: '',\n        slug,\n      })\n    );\n\n    return {\n      uid: v.metadata.name,\n      version: v.metadata.generation ?? 0,\n      status: 'success',\n      url,\n      slug,\n    };"
+    },
+    "m-http": {
+      "path": "public/app/features/apiserver/client.ts",
+      "start_line": 139,
+      "end_line": 160,
+      "excerpt_sha256": "0add12281117d0185816a3e39891df9d963021ecbb558ed10dcd18e3b674d8bc",
+      "source_sha256": "2c3bdc8a441745b91581f010e7cc76713d0435d78a211ace408622bd6040799b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/apiserver/client.ts#L139-L160",
+      "text": "  public async create(obj: ResourceForCreate<T, K>, params?: ResourceClientWriteParams): Promise<Resource<T, S, K>> {\n    if (!obj.metadata.name && !obj.metadata.generateName) {\n      const login = contextSrv.user.login;\n      // GenerateName lets the apiserver create a unique name by appending random characters to the prefix.\n      // This strips out special characters, numbers, and symbols to ensure a valid prefix.\n      const alphabeticChars = login ? login.replace(/[^a-zA-Z]/g, '').slice(0, 2) : '';\n      obj.metadata.generateName = alphabeticChars || 'g';\n    }\n    setSavedFromUIAnnotation(obj.metadata);\n    return getBackendSrv().post(this.url, obj, {\n      params,\n    });\n  }\n\n  public async update(obj: Resource<T, S, K>, params?: ResourceClientWriteParams): Promise<Resource<T, S, K>> {\n    const { name } = obj.metadata;\n    if (!name) {\n      return Promise.reject(new Error('update requires metadata.name'));\n    }\n    setSavedFromUIAnnotation(obj.metadata);\n    return getBackendSrv().put<Resource<T, S, K>>(`${this.url}/${name}`, obj, { params });\n  }"
+    },
+    "m-url": {
+      "path": "public/app/features/apiserver/client.ts",
+      "start_line": 20,
+      "end_line": 36,
+      "excerpt_sha256": "71ff61afeeb061b5ee723fcee4e34772287c480f18991a9922c2c0681eacb664",
+      "source_sha256": "2c3bdc8a441745b91581f010e7cc76713d0435d78a211ace408622bd6040799b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/apiserver/client.ts#L20-L36",
+      "text": "  type K8sAPIGroupList,\n  AnnoKeySavedFromUI,\n  type ResourceEvent,\n  type ResourceClientWriteParams,\n  type GroupVersionResource,\n  type TableResponse,\n} from './types';\n\nexport class ScopedResourceClient<T = object, S = object, K = string> implements ResourceClient<T, S, K> {\n  readonly url: string;\n  readonly gvr: GroupVersionResource;\n\n  constructor(gvr: GroupVersionResource, namespaced = true) {\n    const ns = namespaced ? `namespaces/${getAPINamespace()}/` : '';\n    this.gvr = gvr;\n    this.url = `/apis/${gvr.group}/${gvr.version}/${ns}${gvr.resource}`;\n  }"
+    },
+    "m-store-bind": {
+      "path": "pkg/registry/apis/dashboard/register.go",
+      "start_line": 1173,
+      "end_line": 1233,
+      "excerpt_sha256": "6a83f4e8f38eaf6e75733cc8a8e096960d7aa75f3edb7bcec3b975469dc5bff0",
+      "source_sha256": "1f32128b33e19396e997df0e050e4ac3b5a00ac026712df796bb5864ee4738f8",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/registry/apis/dashboard/register.go#L1173-L1233",
+      "text": "func (b *DashboardsAPIBuilder) storageForVersion(\n\tapiGroupInfo *genericapiserver.APIGroupInfo,\n\topts builder.APIGroupOptions,\n\tdashboards utils.ResourceInfo,\n\tlibraryPanels *utils.ResourceInfo,\n\tsnapshots *utils.ResourceInfo,\n\tnewDTOFunc dtoBuilder,\n) error {\n\t// Register the versioned storage\n\tstorage := map[string]rest.Storage{}\n\n\tapiVersion := dashboards.GroupVersion().Version\n\tapiGroupInfo.VersionedResourcesStorageMap[apiVersion] = storage\n\n\tunified, err := grafanaregistry.NewRegistryStore(opts.Scheme, dashboards, opts.OptsGetter)\n\tif err != nil {\n\t\treturn err\n\t}\n\tunified.AfterDelete = b.afterDelete\n\n\tif b.isStandalone {\n\t\tstorage[dashboards.StoragePath()] = unified\n\t\tstorage[dashboards.StoragePath(\"dto\")], err = NewDTOConnector(\n\t\t\tunified,\n\t\t\tb.unified,\n\t\t\tb.accessClient,\n\t\t\tnewDTOFunc,\n\t\t\tnil, // no publicDashboardService in standalone mode\n\t\t)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\n\t\t// Standalone mode has no legacy SQL, so library panels are served from\n\t\t// unified storage directly (no dual writer).\n\t\tif libraryPanels != nil {\n\t\t\t// status.missing preserves legacy model fields that have no typed spec field.\n\t\t\tunifiedLibraryStore, storeErr := grafanaregistry.NewCompleteRegistryStore(opts.Scheme, *libraryPanels, opts.OptsGetter)\n\t\t\tif storeErr != nil {\n\t\t\t\treturn storeErr\n\t\t\t}\n\t\t\tstorage[libraryPanels.StoragePath()] = newLibraryPanelAccessStorage(\n\t\t\t\tunifiedLibraryStore,\n\t\t\t\tb.authorizeLibraryPanel,\n\t\t\t\tb.authorizeLibraryPanelUpdate,\n\t\t\t\tb.validateLibraryPanelDelete,\n\t\t\t\tb.validateLibraryPanelFolder,\n\t\t\t)\n\t\t}\n\n\t\treturn nil\n\t}\n\n\tstorage[dashboards.StoragePath()] = dashboardStorageWrapper{\n\t\tStorage:                 unified,\n\t\thomeDashboard:           b.homeDashboard,\n\t\tapiVersion:              apiVersion,\n\t\tdashboardPermissionsSvc: b.dashboardPermissionsSvc,\n\t\tlive:                    b.dashboardActivityChannel,\n\t\tfeatures:                b.features,\n\t}"
+    },
+    "m-generic": {
+      "path": "pkg/apiserver/registry/generic/storage.go",
+      "start_line": 23,
+      "end_line": 73,
+      "excerpt_sha256": "7b1a168cdb437fa75c34dba3b4bc04bb009a2f0e487abf266e16a21c9ed6c0b1",
+      "source_sha256": "5ddf0a675d70be55611ca754742603e51474f1b98a753c06544e3cce108a6a65",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/apiserver/registry/generic/storage.go#L23-L73",
+      "text": "func NewRegistryStore(scheme *runtime.Scheme, resourceInfo utils.ResourceInfo, optsGetter generic.RESTOptionsGetter) (*registry.Store, error) {\n\treturn NewRegistryStoreWithSelectableFields(scheme, resourceInfo, optsGetter, SelectableFieldsOptions{})\n}\n\n// NewRegistryStoreWithSelectableFields creates a registry store with custom selectable fields support.\n// Use this when you need to filter resources by custom fields like spec.connection.name.\nfunc NewRegistryStoreWithSelectableFields(scheme *runtime.Scheme, resourceInfo utils.ResourceInfo, optsGetter generic.RESTOptionsGetter, fieldOpts SelectableFieldsOptions) (*registry.Store, error) {\n\tgv := resourceInfo.GroupVersion()\n\tgv.Version = runtime.APIVersionInternal\n\tstrategy := NewStrategy(scheme, gv)\n\tif resourceInfo.IsClusterScoped() {\n\t\tstrategy = strategy.WithClusterScope()\n\t}\n\n\t// Use custom GetAttrs if provided, otherwise use default\n\tvar attrFunc storage.AttrFunc\n\tvar predicateFunc func(label labels.Selector, field fields.Selector) storage.SelectionPredicate\n\tif fieldOpts.GetAttrs != nil {\n\t\tattrFunc = fieldOpts.GetAttrs\n\t\t// Pass nil predicateFunc to use default behavior with custom attrFunc\n\t\tpredicateFunc = nil\n\t} else {\n\t\tattrFunc = GetAttrs\n\t\tpredicateFunc = Matcher\n\t}\n\n\tvar keyFunc func(ctx context.Context, name string) (string, error)\n\tif resourceInfo.IsClusterScoped() {\n\t\tkeyFunc = ClusterScopedKeyFunc(resourceInfo.GroupResource())\n\t} else {\n\t\tkeyFunc = NamespaceKeyFunc(resourceInfo.GroupResource())\n\t}\n\n\tstore := &registry.Store{\n\t\tNewFunc:                   resourceInfo.NewFunc,\n\t\tNewListFunc:               resourceInfo.NewListFunc,\n\t\tKeyRootFunc:               KeyRootFunc(resourceInfo.GroupResource()),\n\t\tKeyFunc:                   keyFunc,\n\t\tPredicateFunc:             predicateFunc,\n\t\tDefaultQualifiedResource:  resourceInfo.GroupResource(),\n\t\tSingularQualifiedResource: resourceInfo.SingularGroupResource(),\n\t\tTableConvertor:            resourceInfo.TableConverter(),\n\t\tCreateStrategy:            strategy,\n\t\tUpdateStrategy:            strategy,\n\t\tDeleteStrategy:            strategy,\n\t}\n\toptions := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: attrFunc}\n\tif err := store.CompleteWithOptions(options); err != nil {\n\t\treturn nil, err\n\t}\n\treturn store, nil"
+    },
+    "m-storage-select": {
+      "path": "pkg/services/apiserver/service.go",
+      "start_line": 375,
+      "end_line": 403,
+      "excerpt_sha256": "143bfc4d88a583300ad5cdeaa85d06f7dcc5d255993031145c5a2f3758864f88",
+      "source_sha256": "5747f6c4924ba2dd889451751fcabc06753f2d18a2401fae8c55367bc71d1b4d",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/apiserver/service.go#L375-L403",
+      "text": "\tvar optsregister apistore.StorageOptionsRegister\n\n\tif o.StorageOptions.StorageType == grafanaapiserveroptions.StorageTypeEtcd {\n\t\tif err := o.RecommendedOptions.Etcd.Validate(); len(err) > 0 {\n\t\t\treturn err[0]\n\t\t}\n\t\tif err := o.RecommendedOptions.Etcd.ApplyTo(&serverConfig.Config); err != nil {\n\t\t\treturn err\n\t\t}\n\t} else {\n\t\tif s.cfg.EnableVersionPolicy {\n\t\t\tversionPolicyIni, err := buildVersionPolicyIniLayer(s.cfg)\n\t\t\tif err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\t\t\ts.vpRegistry = versionpolicy.NewVersionPolicyRegistry(\n\t\t\t\tversionpolicy.NewResolver(naturalOrder),\n\t\t\t\tversionPolicyIni,\n\t\t\t)\n\t\t\tif err := s.vpRegistry.Validate(apiResourceConfig); err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\t\t}\n\n\t\tgetter := apistore.NewRESTOptionsGetterForClient(s.unified, s.secrets, o.RecommendedOptions.Etcd.StorageConfig, s.restConfigProvider, s.vpRegistry)\n\n\t\toptsregister = getter.RegisterOptions\n\t\tserverConfig.RESTOptionsGetter = getter\n\t}"
+    },
+    "m-adapter": {
+      "path": "pkg/storage/unified/apistore/restoptions.go",
+      "start_line": 171,
+      "end_line": 197,
+      "excerpt_sha256": "0ee83eee90333447817a8e2102752640c625c8d216f82c58324f0b815d78be3b",
+      "source_sha256": "ff4941b036d3085c7e8357433d9c7ec3399bd6e43d47aae7d30b7d4111b05750",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/storage/unified/apistore/restoptions.go#L171-L197",
+      "text": "\tret := generic.RESTOptions{\n\t\tStorageConfig: storageConfig,\n\t\tDecorator: func(\n\t\t\tconfig *storagebackend.ConfigForResource,\n\t\t\tresourcePrefix string,\n\t\t\tkeyFunc func(obj runtime.Object) (string, error),\n\t\t\tnewFunc func() runtime.Object,\n\t\t\tnewListFunc func() runtime.Object,\n\t\t\tgetAttrsFunc storage.AttrFunc,\n\t\t\ttrigger storage.IndexerFuncs,\n\t\t\tindexers *cache.Indexers,\n\t\t) (storage.Interface, factory.DestroyFunc, error) {\n\t\t\topts := r.options[resource.String()]\n\t\t\topts.SecureValues = r.secrets\n\t\t\topts.VersionPolicy = r.versionPolicy\n\t\t\treturn NewStorage(config, r.client, keyFunc, nil, newFunc, newListFunc, getAttrsFunc,\n\t\t\t\ttrigger, indexers, r.configProvider, opts)\n\t\t},\n\t\tDeleteCollectionWorkers: 0,\n\t\tEnableGarbageCollection: false,\n\t\t// k8s expects forward slashes here, we'll convert them to os path separators in the storage\n\t\tResourcePrefix:            \"/group/\" + resource.Group + \"/resource/\" + resource.Resource,\n\t\tCountMetricPollPeriod:     1 * time.Second,\n\t\tStorageObjectCountTracker: storageConfig.StorageObjectCountTracker,\n\t}\n\n\treturn ret, nil"
+    },
+    "m-consume": {
+      "path": "pkg/storage/unified/apistore/store.go",
+      "start_line": 771,
+      "end_line": 815,
+      "excerpt_sha256": "13e88bec1ef3bdd1532e5b6fafb673f444531dfceb6009b896a8a51ea465eacf",
+      "source_sha256": "ecdc02b051ac358e8c76b911aed05d29a8a04eb47b36f270216b5b29c16b6da8",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/storage/unified/apistore/store.go#L771-L815",
+      "text": "\t\tupdatedObj, _, err = tryUpdate(existingObj, res)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\n\t\tv, err := s.prepareObjectForUpdate(ctx, updatedObj, existingObj)\n\t\tif err != nil {\n\t\t\t// Re-route managed resources; clean up any secrets preparation created if the write failed.\n\t\t\tcleanupSafe, err := s.handleManagedResourceRouting(ctx, err, resourcepb.WatchEvent_MODIFIED, key, updatedObj, destination)\n\t\t\treturn s.cleanupSecretsAfterFailedPreparation(ctx, v, cleanupSafe, err)\n\t\t}\n\n\t\treq.Value = v.raw.Bytes()\n\t\treq.ResourceVersion = readResponse.ResourceVersion\n\t\tupdateResponse, err := s.store.Update(ctx, req) // Also does RBAC check\n\t\tif err = resource.ErrorFromResponse(updateResponse.GetError(), err); err != nil {\n\t\t\t// Classify before normalization so attached gRPC status details remain available.\n\t\t\tretryable := isRetryableStorageError(err)\n\t\t\terr = resource.GetError(resource.AsErrorResult(err))\n\t\t\tif retryable {\n\t\t\t\t// Delete the secure values this attempt created; the next attempt recreates them.\n\t\t\t\t// finish only echoes the conflict back and logs any cleanup failure itself, so we\n\t\t\t\t// discard its return and retry instead of surfacing it.\n\t\t\t\t_ = v.finish(ctx, err, s.opts.SecureValues)\n\t\t\t\tlastErr = err\n\t\t\t\tbo.Wait()\n\t\t\t\tcontinue\n\t\t\t}\n\t\t}\n\t\t// Cleanup secure values\n\t\tif err = v.finish(ctx, err, s.opts.SecureValues); err != nil {\n\t\t\treturn err\n\t\t}\n\n\t\tif _, err := s.convertToObject(ctx, req.Value, destination); err != nil {\n\t\t\treturn err\n\t\t}\n\n\t\tif updateResponse.ResourceVersion > 0 {\n\t\t\trv := uint64(updateResponse.ResourceVersion)\n\t\t\tif err := s.versioner.UpdateObject(destination, rv); err != nil {\n\t\t\t\treturn err\n\t\t\t}\n\t\t}\n\t\treturn nil"
+    },
+    "m-wrapper": {
+      "path": "pkg/registry/apis/dashboard/dashboard_storage.go",
+      "start_line": 41,
+      "end_line": 57,
+      "excerpt_sha256": "42df7614ec86ef19c314f07f84b5407555fe93a4519d41e9bf73dcc9a40ec3aa",
+      "source_sha256": "f378df3596ecb01eb39a3a2066ed49789642baf2debe0044fe28415ba69517fc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/registry/apis/dashboard/dashboard_storage.go#L41-L57",
+      "text": "func (d dashboardStorageWrapper) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {\n\tns, err := request.NamespaceInfoFrom(ctx, true)\n\tif err != nil {\n\t\treturn nil, false, err\n\t}\n\n\tobj, created, err := d.Storage.Update(ctx, name, objInfo, createValidation, updateValidation, forceAllowCreate, options)\n\tif err == nil && ns.OrgID > 0 && d.live != nil {\n\t\tm, err := utils.MetaAccessor(obj)\n\t\tif err == nil {\n\t\t\tif err := d.live.DashboardSaved(ns.Value, name, m.GetResourceVersion()); err != nil {\n\t\t\t\tlogging.FromContext(ctx).Info(\"live dashboard update failed\", \"err\", err)\n\t\t\t}\n\t\t}\n\t}\n\treturn obj, created, err\n}"
+    },
+    "m-final-state": {
+      "path": "public/app/features/dashboard-scene/scene/DashboardScene.tsx",
+      "start_line": 474,
+      "end_line": 513,
+      "excerpt_sha256": "2084f92c5a72a0a637f4e2ff1a33787e6454d848ccc639c4be8d4e0b6c47151a",
+      "source_sha256": "306b002c8fbed80ad83b80cd65b00817874172fe089039aaa0534f7874836b97",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard-scene/scene/DashboardScene.tsx#L474-L513",
+      "text": "  public async saveCompleted(\n    saveModel: Dashboard | DashboardV2Spec,\n    result: SaveDashboardResponseDTO,\n    folderUid?: string\n  ) {\n    this.serializer.onSaveComplete(saveModel, result);\n\n    this._changeTracker.stopTrackingChanges();\n\n    // Save As / first save mint a new uid; skip the refresh await below so redirect isn't delayed.\n    const isNewResource = result.uid !== this.state.uid;\n\n    this.setState({\n      version: result.version,\n      isDirty: false,\n      uid: result.uid,\n      meta: {\n        ...this.state.meta,\n        uid: result.uid,\n        url: result.url,\n        slug: result.slug,\n        folderUid: folderUid,\n        version: result.version,\n      },\n      overlay: undefined,\n    });\n\n    this.state.editPanel?.dashboardSaved();\n\n    // Re-apply denylist before re-baselining on in-place saves. Skip awaiting on Save As —\n    // we're about to navigate away.\n    if (!isNewResource) {\n      await this.refreshPredefinedVariables();\n    }\n\n    this._initialState = sceneUtils.cloneSceneObjectState(this.state);\n    this._initialUrlState = locationService.getLocation();\n\n    this._changeTracker.startTrackingChanges();\n  }"
+    },
+    "l-query": {
+      "path": "public/app/plugins/datasource/grafana-testdata-datasource/datasource.ts",
+      "start_line": 96,
+      "end_line": 114,
+      "excerpt_sha256": "11da4f44e85c25a8a5ed9a74d0ca11ec011f4b70a68d40cc84b48d4db6f8af19",
+      "source_sha256": "e9ef22ebd6f24e6e4b2f708b38c2d78005da7b9fa6605687f489d3fb4b6736d8",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/plugins/datasource/grafana-testdata-datasource/datasource.ts#L96-L114",
+      "text": "  query(options: DataQueryRequest<TestDataDataQuery>): Observable<DataQueryResponse> {\n    const backendQueries: TestDataDataQuery[] = [];\n    const streams: Array<Observable<DataQueryResponse>> = [];\n\n    // Start streams and prepare queries\n    for (let target of options.targets) {\n      if (target.hide) {\n        continue;\n      }\n\n      target = this.resolveTemplateVariables(target, options.scopedVars);\n\n      switch (target.scenarioId) {\n        case 'live':\n          streams.push(runGrafanaLiveQuery(target, options));\n          break;\n        case 'streaming_client':\n          streams.push(runStream(target, options));\n          break;"
+    },
+    "l-address": {
+      "path": "public/app/plugins/datasource/grafana-testdata-datasource/datasource.ts",
+      "start_line": 508,
+      "end_line": 522,
+      "excerpt_sha256": "999c081e4ef522513d9e80e6d55a31d72bfa07e440c63e6c74629de14d61263d",
+      "source_sha256": "e9ef22ebd6f24e6e4b2f708b38c2d78005da7b9fa6605687f489d3fb4b6736d8",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/plugins/datasource/grafana-testdata-datasource/datasource.ts#L508-L522",
+      "text": "function runGrafanaLiveQuery(\n  target: TestDataDataQuery,\n  req: DataQueryRequest<TestDataDataQuery>\n): Observable<DataQueryResponse> {\n  if (!target.channel) {\n    throw new Error(`Missing channel config`);\n  }\n  return getGrafanaLiveSrv().getDataStream({\n    addr: {\n      scope: LiveChannelScope.Plugin,\n      stream: 'testdata',\n      path: target.channel,\n    },\n    key: `testStream.${liveQueryCounter++}`,\n  });"
+    },
+    "l-options": {
+      "path": "public/app/plugins/datasource/grafana-testdata-datasource/components/GrafanaLiveEditor.tsx",
+      "start_line": 6,
+      "end_line": 32,
+      "excerpt_sha256": "65b2c2e27d85cd59a15e1e58e2889392c41f1852640793df22df640dce6b3bcf",
+      "source_sha256": "e056cdfdae5ac2fb391c459007f495ebd26dcdc083e84e027cd05d253e890563",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/plugins/datasource/grafana-testdata-datasource/components/GrafanaLiveEditor.tsx#L6-L32",
+      "text": "const liveTestDataChannels = [\n  {\n    label: 'random-2s-stream',\n    value: 'random-2s-stream',\n    description: 'Random stream with points every 2s',\n  },\n  {\n    label: 'random-flakey-stream',\n    value: 'random-flakey-stream',\n    description: 'Stream that returns data in random intervals',\n  },\n  {\n    label: 'random-labeled-stream',\n    value: 'random-labeled-stream',\n    description: 'Value with moving labels',\n  },\n  {\n    label: 'random-20Hz-stream',\n    value: 'random-20Hz-stream',\n    description: 'Random stream with points in 20Hz',\n  },\n];\n\nexport const GrafanaLiveEditor = ({ onChange, query }: EditorProps) => {\n  const onChannelChange = ({ value }: SelectableValue<string>) => {\n    onChange({ ...query, channel: value });\n  };"
+    },
+    "l-client-ws": {
+      "path": "public/app/features/live/centrifuge/service.ts",
+      "start_line": 65,
+      "end_line": 88,
+      "excerpt_sha256": "946aba1d7674eb2ba8b07bbad4d11099b4b1527378341a6845ca8cdd511e1837",
+      "source_sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/service.ts#L65-L88",
+      "text": "};\n\nconst dataStreamShutdownDelayInMs = 5000;\n\nexport class CentrifugeService implements CentrifugeSrv {\n  readonly open = new Map<string, CentrifugeLiveChannel>();\n  private readonly liveDataStreamByChannelId: Record<LiveChannelId, LiveDataStream> = {};\n  readonly centrifuge: Centrifuge;\n  readonly connectionState: BehaviorSubject<boolean>;\n  readonly connectionBlocker: Promise<void>;\n  private readonly dataStreamSubscriberReadiness: Observable<boolean>;\n  private lastAuthCheck = 0;\n  private static CONNECTION_TIMEOUT_MS = 10_000;\n\n  constructor(private deps: CentrifugeSrvDeps) {\n    this.dataStreamSubscriberReadiness = deps.dataStreamSubscriberReadiness.pipe(share(), startWith(true));\n\n    let liveUrl = `${deps.appUrl.replace(/^http/, 'ws')}/api/live/ws`;\n\n    const token = deps.grafanaAuthToken;\n    if (token !== null && token !== '') {\n      liveUrl += '?auth_token=' + token;\n    }\n"
+    },
+    "l-client-channel": {
+      "path": "public/app/features/live/centrifuge/service.ts",
+      "start_line": 157,
+      "end_line": 216,
+      "excerpt_sha256": "963caabab1a2f6bdfa8d9bf1694aa1a8ce9bba8936e292e1bb10d6a5df097c53",
+      "source_sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/service.ts#L157-L216",
+      "text": "  private getChannel<TMessage>(addr: LiveChannelAddress): CentrifugeLiveChannel<TMessage> {\n    // Use toLiveChannelId so addresses from plugins still using the legacy\n    // `namespace` field (pre-rename) resolve to the same channel id as ones\n    // using `stream`. Without this, subscriptions get an id with `undefined`\n    // in place of the stream segment and silently never receive data.\n    const id = `${this.deps.namespace}/${toLiveChannelId(addr)}`;\n    let channel = this.open.get(id);\n    if (channel != null) {\n      return channel;\n    }\n\n    channel = new CentrifugeLiveChannel(id, addr);\n    if (channel.currentStatus.state === LiveChannelConnectionState.Invalid) {\n      return channel;\n    }\n    // If Live is disabled, fail the channel immediately rather than waiting\n    // for the connection timeout.\n    if (!this.deps.liveEnabled) {\n      channel.shutdownWithError('Grafana Live is disabled');\n      return channel;\n    }\n\n    channel.shutdownCallback = () => {\n      this.open.delete(id);\n\n      // without a call to `removeSubscription`, the subscription will remain in centrifuge's internal registry\n      this.centrifuge.removeSubscription(this.centrifuge.getSubscription(id));\n    };\n    this.open.set(id, channel);\n\n    // Initialize the channel in the background\n    this.initChannel(channel).catch((err) => {\n      if (channel) {\n        channel.currentStatus.state = LiveChannelConnectionState.Invalid;\n        channel.shutdownWithError(err);\n      }\n      this.open.delete(id);\n    });\n\n    // return the not-yet initialized channel\n    return channel;\n  }\n\n  private async initChannel(channel: CentrifugeLiveChannel): Promise<void> {\n    if (this.centrifuge.state !== State.Connected) {\n      // Wait for centrifuge to connect, but bail out after the timeout\n      // so the channel can fall back to polling instead of hanging forever.\n      await Promise.race([\n        this.connectionBlocker,\n        new Promise<never>((_, reject) =>\n          setTimeout(() => reject('Grafana Live connection timeout'), CentrifugeService.CONNECTION_TIMEOUT_MS)\n        ),\n      ]);\n    }\n    const subscription = this.centrifuge.newSubscription(channel.id, {\n      data: channel.addr.data,\n    });\n    channel.subscription = subscription;\n    channel.initalize();\n    subscription.subscribe();"
+    },
+    "l-server-ws": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 348,
+      "end_line": 400,
+      "excerpt_sha256": "e30eeb2e0e4984203d68b1048dbf0e91abd812f7f2167037d89bc8c28d856560",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L348-L400",
+      "text": "\twsCfg := centrifuge.WebsocketConfig{\n\t\tReadBufferSize:   1024,\n\t\tWriteBufferSize:  1024,\n\t\tCheckOrigin:      checkOrigin,\n\t\tMessageSizeLimit: cfg.LiveMessageSizeLimit,\n\t}\n\t// Use a pure websocket transport.\n\twsHandler := centrifuge.NewWebsocketHandler(node, wsCfg)\n\n\tpushWSHandler := pushws.NewHandler(g.ManagedStreamRunner, pushws.Config{\n\t\tReadBufferSize:  1024,\n\t\tWriteBufferSize: 1024,\n\t\tCheckOrigin:     checkOrigin,\n\t})\n\n\tpushPipelineWSHandler := pushws.NewPipelinePushHandler(g.Pipeline, pushws.Config{\n\t\tReadBufferSize:  1024,\n\t\tWriteBufferSize: 1024,\n\t\tCheckOrigin:     checkOrigin,\n\t})\n\n\tg.websocketHandler = func(ctx *contextmodel.ReqContext) {\n\t\tuser := ctx.SignedInUser\n\t\tid, _ := user.GetInternalID()\n\t\t// Centrifuge expects Credentials in context with a current user ID.\n\t\tcred := &centrifuge.Credentials{\n\t\t\tUserID: strconv.FormatInt(id, 10),\n\t\t}\n\t\tnewCtx := centrifuge.SetCredentials(ctx.Req.Context(), cred)\n\t\tnewCtx = identity.WithRequester(newCtx, user)\n\t\tr := ctx.Req.WithContext(newCtx)\n\t\twsHandler.ServeHTTP(ctx.Resp, r)\n\t}\n\n\tg.pushWebsocketHandler = func(ctx *contextmodel.ReqContext) {\n\t\tuser := ctx.SignedInUser\n\t\tnewCtx := identity.WithRequester(ctx.Req.Context(), user)\n\t\tnewCtx = livecontext.SetContextStreamID(newCtx, web.Params(ctx.Req)[\":streamId\"])\n\t\tr := ctx.Req.WithContext(newCtx)\n\t\tpushWSHandler.ServeHTTP(ctx.Resp, r)\n\t}\n\n\tg.pushPipelineWebsocketHandler = func(ctx *contextmodel.ReqContext) {\n\t\tuser := ctx.SignedInUser\n\t\tnewCtx := identity.WithRequester(ctx.Req.Context(), user)\n\t\tnewCtx = livecontext.SetContextChannelID(newCtx, web.Params(ctx.Req)[\"*\"])\n\t\tr := ctx.Req.WithContext(newCtx)\n\t\tpushPipelineWSHandler.ServeHTTP(ctx.Resp, r)\n\t}\n\n\trouteRegister.Group(\"/api/live\", func(group routing.RouteRegister) {\n\t\tgroup.Get(\"/ws\", g.websocketHandler)\n\t}, middleware.ReqSignedIn, requestmeta.SetSLOGroup(requestmeta.SLOGroupNone))"
+    },
+    "l-subscribe": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 723,
+      "end_line": 829,
+      "excerpt_sha256": "5511cbd56bb7fc77083538a80d7ce3cd02ba102a83d11842604827e3649fea12",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L723-L829",
+      "text": "func (g *GrafanaLive) handleOnSubscribe(clientContextWithSpan context.Context, client *centrifuge.Client, e centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {\n\tlogger.Debug(\"Client wants to subscribe\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\n\tuser, err := identity.GetRequester(clientContextWithSpan)\n\tif err != nil {\n\t\tlogger.Error(\"No user found in context\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t}\n\n\t// Check if ID token is expired and trigger refresh if needed\n\tif expired := g.checkIDTokenExpirationAndRefresh(user, client); expired {\n\t\treturn centrifuge.SubscribeReply{}, errorExpiredTemporary\n\t}\n\n\t// See a detailed comment for StripK8sNamespace about orgID management in Live.\n\tinfo, channel, err := orgchannel.StripK8sNamespace(e.Channel)\n\tif err != nil {\n\t\tlogger.Error(\"Error parsing channel\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t}\n\n\tns := user.GetNamespace()\n\tif ns != info.Value {\n\t\tlogger.Info(\"Error subscribing: wrong orgId\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied\n\t}\n\n\tvar reply model.SubscribeReply\n\tvar status backend.SubscribeStreamStatus\n\tvar ruleFound bool\n\n\tif g.Pipeline != nil {\n\t\trule, ok, err := g.Pipeline.Get(ns, channel)\n\t\tif err != nil {\n\t\t\tlogger.Error(\"Error getting channel rule\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t\t}\n\t\truleFound = ok\n\t\tif ok {\n\t\t\tif rule.SubscribeAuth != nil {\n\t\t\t\tok, err := rule.SubscribeAuth.CanSubscribe(clientContextWithSpan, user)\n\t\t\t\tif err != nil {\n\t\t\t\t\tlogger.Error(\"Error checking subscribe permissions\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\t\t\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t\t\t\t}\n\t\t\t\tif !ok {\n\t\t\t\t\t// using HTTP error codes for WS errors too.\n\t\t\t\t\tcode, text := subscribeStatusToHTTPError(backend.SubscribeStreamStatusPermissionDenied)\n\t\t\t\t\treturn centrifuge.SubscribeReply{}, &centrifuge.Error{Code: uint32(code), Message: text}\n\t\t\t\t}\n\t\t\t}\n\t\t\tif len(rule.Subscribers) > 0 {\n\t\t\t\tvar err error\n\t\t\t\tfor _, sub := range rule.Subscribers {\n\t\t\t\t\treply, status, err = sub.Subscribe(clientContextWithSpan, pipeline.Vars{\n\t\t\t\t\t\tNS:      ns,\n\t\t\t\t\t\tChannel: channel,\n\t\t\t\t\t}, e.Data)\n\t\t\t\t\tif err != nil {\n\t\t\t\t\t\tlogger.Error(\"Error channel rule subscribe\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\t\t\t\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t\t\t\t\t}\n\t\t\t\t\tif status != backend.SubscribeStreamStatusOK {\n\t\t\t\t\t\tbreak\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\tif !ruleFound {\n\t\thandler, addr, err := g.GetChannelHandler(clientContextWithSpan, user, channel)\n\t\tif err != nil {\n\t\t\tif errors.Is(err, live.ErrInvalidChannelID) {\n\t\t\t\tlogger.Info(\"Invalid channel ID\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\t\t\t\treturn centrifuge.SubscribeReply{}, &centrifuge.Error{Code: uint32(http.StatusBadRequest), Message: \"invalid channel ID\"}\n\t\t\t}\n\t\t\tlogger.Error(\"Error getting channel handler\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t\t}\n\t\treply, status, err = handler.OnSubscribe(clientContextWithSpan, user, model.SubscribeEvent{\n\t\t\tChannel: channel,\n\t\t\tPath:    addr.Path,\n\t\t\tData:    e.Data,\n\t\t})\n\t\tif err != nil {\n\t\t\tlogger.Error(\"Error calling channel handler subscribe\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\t\tif status != backend.SubscribeStreamStatusOK {\n\t\t\t\treturn centrifuge.SubscribeReply{}, subscribeStatusToCentrifugeError(status)\n\t\t\t}\n\t\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t\t}\n\t}\n\tif status != backend.SubscribeStreamStatusOK {\n\t\t// using HTTP error codes for WS errors too.\n\t\tcode, text := subscribeStatusToHTTPError(status)\n\t\tlogger.Debug(\"Return custom subscribe error\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"code\", code)\n\t\treturn centrifuge.SubscribeReply{}, &centrifuge.Error{Code: uint32(code), Message: text}\n\t}\n\tlogger.Debug(\"Client subscribed\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\treturn centrifuge.SubscribeReply{\n\t\tOptions: centrifuge.SubscribeOptions{\n\t\t\tEmitPresence:   reply.Presence,\n\t\t\tEmitJoinLeave:  reply.JoinLeave,\n\t\t\tPushJoinLeave:  reply.JoinLeave,\n\t\t\tEnableRecovery: reply.Recover,\n\t\t\tData:           reply.Data,\n\t\t},"
+    },
+    "l-router": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 1017,
+      "end_line": 1059,
+      "excerpt_sha256": "6971831962cd69d22d776b2e69689810188b7567b20de254fb74eb7bbc380c1e",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L1017-L1059",
+      "text": "func (g *GrafanaLive) GetChannelHandlerFactory(ctx context.Context, user identity.Requester, scope string, namespace string) (model.ChannelHandlerFactory, error) {\n\tswitch scope {\n\tcase live.ScopeGrafana:\n\t\treturn g.handleGrafanaScope(user, namespace)\n\tcase live.ScopeWatch:\n\t\treturn g.handleWatchScope()\n\tcase live.ScopePlugin:\n\t\treturn g.handlePluginScope(ctx, user, namespace)\n\tcase live.ScopeDatasource:\n\t\treturn g.handleDatasourceScope(ctx, user, namespace)\n\tcase live.ScopeStream:\n\t\treturn g.handleStreamScope(user, namespace)\n\tdefault:\n\t\treturn nil, fmt.Errorf(\"invalid scope: %q\", scope)\n\t}\n}\n\nfunc (g *GrafanaLive) handleGrafanaScope(_ identity.Requester, namespace string) (model.ChannelHandlerFactory, error) {\n\tif p, ok := g.GrafanaScope.Features[namespace]; ok {\n\t\treturn p, nil\n\t}\n\treturn nil, fmt.Errorf(\"unknown feature: %q\", namespace)\n}\n\nfunc (g *GrafanaLive) handleWatchScope() (model.ChannelHandlerFactory, error) {\n\tif p, ok := g.GrafanaScope.Features[\"watch\"]; ok {\n\t\treturn p, nil\n\t}\n\treturn nil, fmt.Errorf(\"watch not registered\")\n}\n\nfunc (g *GrafanaLive) handlePluginScope(ctx context.Context, _ identity.Requester, namespace string) (model.ChannelHandlerFactory, error) {\n\tstreamHandler, err := g.getStreamPlugin(ctx, namespace)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"can't find stream plugin: %s\", namespace)\n\t}\n\treturn features.NewPluginRunner(\n\t\tnamespace,\n\t\t\"\", // No instance uid for non-datasource plugins.\n\t\tg.runStreamManager,\n\t\tg.contextGetter,\n\t\tstreamHandler,\n\t), nil"
+    },
+    "l-alias": {
+      "path": "public/app/plugins/datasource/grafana-testdata-datasource/plugin.json",
+      "start_line": 1,
+      "end_line": 14,
+      "excerpt_sha256": "98c74ec0290a254c275c770511bf91ad3f64dd97258dffa34178279205485c15",
+      "source_sha256": "551a11bb4723d26e302131706ee60636e03cdeef6d2b5dcdd75c2bb0d86c86e4",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/plugins/datasource/grafana-testdata-datasource/plugin.json#L1-L14",
+      "text": "{\n  \"type\": \"datasource\",\n  \"name\": \"TestData\",\n  \"id\": \"grafana-testdata-datasource\",\n  \"aliasIDs\": [\"testdata\"],\n  \"executable\": \"gpx_testdata\",\n\n  \"metrics\": true,\n  \"logs\": true,\n  \"alerting\": true,\n  \"annotations\": true,\n  \"backend\": true,\n\n  \"queryOptions\": {"
+    },
+    "l-alias-register": {
+      "path": "pkg/plugins/manager/registry/in_memory.go",
+      "start_line": 44,
+      "end_line": 86,
+      "excerpt_sha256": "8aaff0856c3672009921fdc6145ccd78d7772502335f9636f3553a59c4c5c50b",
+      "source_sha256": "5aaae7d733d4ccd444be192c188f7fdc43ad34e6ed140033eac25871ec1d7c2e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/manager/registry/in_memory.go#L44-L86",
+      "text": "\nfunc (i *InMemory) Add(_ context.Context, p *plugins.Plugin) error {\n\tif i.isRegistered(p.ID) {\n\t\treturn fmt.Errorf(\"plugin %s is already registered\", p.ID)\n\t}\n\n\ti.mu.Lock()\n\ti.store[p.ID] = p\n\tfor _, a := range p.AliasIDs {\n\t\ti.alias[a] = p\n\t}\n\ti.mu.Unlock()\n\n\treturn nil\n}\n\nfunc (i *InMemory) Remove(_ context.Context, pluginID, _ string) error {\n\tp, ok := i.plugin(pluginID)\n\tif !ok {\n\t\treturn fmt.Errorf(\"plugin %s is not registered\", pluginID)\n\t}\n\n\ti.mu.Lock()\n\tdelete(i.store, pluginID)\n\tif p != nil {\n\t\tfor _, a := range p.AliasIDs {\n\t\t\tdelete(i.alias, a)\n\t\t}\n\t}\n\ti.mu.Unlock()\n\n\treturn nil\n}\n\nfunc (i *InMemory) plugin(pluginID string) (*plugins.Plugin, bool) {\n\ti.mu.RLock()\n\tdefer i.mu.RUnlock()\n\tp, exists := i.store[pluginID]\n\n\tif !exists {\n\t\tp, exists = i.alias[pluginID]\n\t\tif !exists {\n\t\t\treturn nil, false"
+    },
+    "l-core-bind": {
+      "path": "pkg/services/pluginsintegration/coreplugin/coreplugins.go",
+      "start_line": 73,
+      "end_line": 125,
+      "excerpt_sha256": "f29924e1f7ac40d18c018ee86a3e32d80b8c4f0548ca62e092d24f035c39d430",
+      "source_sha256": "26fa0fb143ff4fa851cd77e8d852ef863e86a032a555852e740a9b9cf24dbac2",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/pluginsintegration/coreplugin/coreplugins.go#L73-L125",
+      "text": "func ProvideCoreRegistry(tracer trace.Tracer, am *azuremonitor.Service, cw *cloudwatch.Service,\n\tgrap *graphite.Service, td *testdatasource.Service, graf *grafanads.Service) *Registry {\n\t// Non-optimal global solution to replace plugin SDK default tracer for core plugins.\n\tsdktracing.InitDefaultTracer(tracer)\n\n\treturn NewRegistry(map[string]backendplugin.PluginFactoryFunc{\n\t\tCloudWatch:   asBackendPlugin(cw),\n\t\tAzureMonitor: asBackendPlugin(am),\n\t\tGraphite:     asBackendPlugin(grap),\n\t\tTestData:     asBackendPlugin(td),\n\t\tGrafana:      asBackendPlugin(graf),\n\t})\n}\n\nfunc (cr *Registry) Get(pluginID string) backendplugin.PluginFactoryFunc {\n\treturn cr.store[pluginID]\n}\n\nfunc (cr *Registry) BackendFactoryProvider() func(_ context.Context, p *plugins.Plugin) backendplugin.PluginFactoryFunc {\n\treturn func(_ context.Context, p *plugins.Plugin) backendplugin.PluginFactoryFunc {\n\t\tif !p.IsCorePlugin() {\n\t\t\treturn nil\n\t\t}\n\n\t\treturn cr.Get(p.ID)\n\t}\n}\n\nfunc asBackendPlugin(svc any) backendplugin.PluginFactoryFunc {\n\topts := backend.ServeOpts{}\n\tif queryHandler, ok := svc.(backend.QueryDataHandler); ok {\n\t\topts.QueryDataHandler = queryHandler\n\t}\n\tif handler, ok := svc.(backend.QueryChunkedDataHandler); ok {\n\t\topts.QueryChunkedDataHandler = handler\n\t}\n\tif resourceHandler, ok := svc.(backend.CallResourceHandler); ok {\n\t\topts.CallResourceHandler = resourceHandler\n\t}\n\tif streamHandler, ok := svc.(backend.StreamHandler); ok {\n\t\topts.StreamHandler = streamHandler\n\t}\n\tif healthHandler, ok := svc.(backend.CheckHealthHandler); ok {\n\t\topts.CheckHealthHandler = healthHandler\n\t}\n\tif storageHandler, ok := svc.(backend.AdmissionHandler); ok {\n\t\topts.AdmissionHandler = storageHandler\n\t}\n\n\tif opts.QueryDataHandler != nil || opts.QueryChunkedDataHandler != nil ||\n\t\topts.CheckHealthHandler != nil || opts.StreamHandler != nil ||\n\t\topts.CallResourceHandler != nil {\n\t\treturn coreplugin.New(opts)"
+    },
+    "l-manager-dispatch": {
+      "path": "pkg/plugins/manager/client/client.go",
+      "start_line": 216,
+      "end_line": 256,
+      "excerpt_sha256": "66b48e49dcc23870a61634a64d72b9638ea20da85beceed28f5ee77c8b078657",
+      "source_sha256": "d2050ed04e369ca2714135167e1d6b67c66f54bbbc1bb952fbafcff0098d1aa9",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/manager/client/client.go#L216-L256",
+      "text": "func (s *Service) SubscribeStream(ctx context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {\n\tif req == nil {\n\t\treturn nil, errNilRequest\n\t}\n\n\tplugin, exists := s.plugin(ctx, req.PluginContext.PluginID, req.PluginContext.PluginVersion)\n\tif !exists {\n\t\treturn nil, plugins.ErrPluginNotRegistered\n\t}\n\n\treturn plugin.SubscribeStream(ctx, req)\n}\n\nfunc (s *Service) PublishStream(ctx context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {\n\tif req == nil {\n\t\treturn nil, errNilRequest\n\t}\n\n\tplugin, exists := s.plugin(ctx, req.PluginContext.PluginID, req.PluginContext.PluginVersion)\n\tif !exists {\n\t\treturn nil, plugins.ErrPluginNotRegistered\n\t}\n\n\treturn plugin.PublishStream(ctx, req)\n}\n\nfunc (s *Service) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {\n\tif req == nil {\n\t\treturn errNilRequest\n\t}\n\n\tif sender == nil {\n\t\treturn errNilSender\n\t}\n\n\tplugin, exists := s.plugin(ctx, req.PluginContext.PluginID, req.PluginContext.PluginVersion)\n\tif !exists {\n\t\treturn plugins.ErrPluginNotRegistered\n\t}\n\n\treturn plugin.RunStream(ctx, req, sender)"
+    },
+    "l-plugin-runner": {
+      "path": "pkg/services/live/features/plugin.go",
+      "start_line": 68,
+      "end_line": 108,
+      "excerpt_sha256": "7f6d4ea3cfb00e51dbb66b113abc04689c1e47c9e243d543e5a5851b42edacfb",
+      "source_sha256": "72908c51cf573ffda2f8e9766b584c43d66a4d64af38053af319fcce6e1c1c45",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/features/plugin.go#L68-L108",
+      "text": "func (r *PluginPathRunner) OnSubscribe(ctx context.Context, user identity.Requester, e model.SubscribeEvent) (model.SubscribeReply, backend.SubscribeStreamStatus, error) {\n\tpCtx, err := r.pluginContextGetter.GetPluginContext(ctx, user, r.pluginID, r.datasourceUID, false)\n\tif err != nil {\n\t\tif errors.Is(err, plugins.ErrPluginNotRegistered) {\n\t\t\tlogger.Error(\"Plugin context not found\", \"path\", r.path)\n\t\t\treturn model.SubscribeReply{}, 0, centrifuge.ErrorInternal\n\t\t}\n\t\tlogger.Error(\"Get plugin context error\", \"error\", err, \"path\", r.path)\n\t\treturn model.SubscribeReply{}, 0, err\n\t}\n\tresp, err := r.handler.SubscribeStream(ctx, &backend.SubscribeStreamRequest{\n\t\tPluginContext: pCtx,\n\t\tPath:          r.path,\n\t\tData:          e.Data,\n\t})\n\tif err != nil {\n\t\tlogger.Error(\"Plugin OnSubscribe call error\", \"error\", err, \"path\", r.path)\n\t\treturn model.SubscribeReply{}, 0, err\n\t}\n\tif resp.Status != backend.SubscribeStreamStatusOK {\n\t\treturn model.SubscribeReply{}, resp.Status, nil\n\t}\n\n\tsubmitResult, err := r.runStreamManager.SubmitStream(ctx, user, orgchannel.PrependK8sNamespace(user.GetNamespace(), e.Channel), r.path, e.Data, pCtx, r.handler, false)\n\tif err != nil {\n\t\tlogger.Error(\"Error submitting stream to manager\", \"error\", err, \"path\", r.path)\n\t\treturn model.SubscribeReply{}, 0, centrifuge.ErrorInternal\n\t}\n\tif submitResult.StreamExists {\n\t\tlogger.Debug(\"Skip running new stream (already exists)\", \"path\", r.path)\n\t} else {\n\t\tlogger.Debug(\"Running a new unidirectional stream\", \"path\", r.path)\n\t}\n\n\treply := model.SubscribeReply{\n\t\tPresence: true,\n\t}\n\tif resp.InitialData != nil {\n\t\treply.Data = resp.InitialData.Data()\n\t}\n\treturn reply, backend.SubscribeStreamStatusOK, nil"
+    },
+    "l-stream-schema": {
+      "path": "pkg/tsdb/grafana-testdata-datasource/stream_handler.go",
+      "start_line": 17,
+      "end_line": 40,
+      "excerpt_sha256": "d56a9b434946a1e3d302d69f0148017a951a9f4b09e3adc1961174a9516cb7b5",
+      "source_sha256": "39a73cebbea1951bccbe88286af615246eb770706af80f82108175243595163c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/tsdb/grafana-testdata-datasource/stream_handler.go#L17-L40",
+      "text": "func (s *Service) SubscribeStream(ctx context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {\n\tctxLogger := s.logger.FromContext(ctx)\n\tctxLogger.Debug(\"Allowing access to stream\", \"path\", req.Path, \"user\", req.PluginContext.User)\n\n\tif strings.HasPrefix(req.Path, \"sim/\") {\n\t\treturn s.sims.SubscribeStream(ctx, req)\n\t}\n\n\tinitialData, err := backend.NewInitialFrame(s.frame, data.IncludeSchemaOnly)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\tif strings.Contains(req.Path, \"-labeled\") {\n\t\tinitialData, err = backend.NewInitialFrame(s.labelFrame, data.IncludeSchemaOnly)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t}\n\n\treturn &backend.SubscribeStreamResponse{\n\t\tStatus:      backend.SubscribeStreamStatusOK,\n\t\tInitialData: initialData,\n\t}, nil"
+    },
+    "l-stream-produce": {
+      "path": "pkg/tsdb/grafana-testdata-datasource/stream_handler.go",
+      "start_line": 56,
+      "end_line": 150,
+      "excerpt_sha256": "5c7008209e780dcb75dfc92474d0daeb120d9dfb5f9e2be04d71c2e0f8081e37",
+      "source_sha256": "39a73cebbea1951bccbe88286af615246eb770706af80f82108175243595163c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/tsdb/grafana-testdata-datasource/stream_handler.go#L56-L150",
+      "text": "func (s *Service) RunStream(ctx context.Context, request *backend.RunStreamRequest, sender *backend.StreamSender) error {\n\tctxLogger := s.logger.FromContext(ctx)\n\tctxLogger.Debug(\"New stream call\", \"path\", request.Path)\n\n\tif strings.HasPrefix(request.Path, \"sim/\") {\n\t\treturn s.sims.RunStream(ctx, request, sender)\n\t}\n\n\tvar conf testStreamConfig\n\tswitch {\n\tcase request.Path == \"random-2s-stream\":\n\t\tconf = testStreamConfig{\n\t\t\tInterval: 2 * time.Second,\n\t\t}\n\tcase request.Path == \"random-flakey-stream\":\n\t\tconf = testStreamConfig{\n\t\t\tInterval: 100 * time.Millisecond,\n\t\t\tDrop:     0.90, // keep 10%\n\t\t}\n\tcase request.Path == \"random-labeled-stream\":\n\t\tconf = testStreamConfig{\n\t\t\tInterval: 200 * time.Millisecond,\n\t\t\tDrop:     0.2, // keep 80%\n\t\t\tLabeled:  true,\n\t\t}\n\tcase random20HzStreamRegex.MatchString(request.Path):\n\t\tconf = testStreamConfig{\n\t\t\tInterval: 50 * time.Millisecond,\n\t\t}\n\tdefault:\n\t\treturn fmt.Errorf(\"testdata plugin does not support path: %s\", request.Path)\n\t}\n\treturn s.runTestStream(ctx, request.Path, conf, sender)\n}\n\ntype testStreamConfig struct {\n\tInterval time.Duration\n\tDrop     float64\n\tLabeled  bool\n}\n\nfunc (s *Service) runTestStream(ctx context.Context, path string, conf testStreamConfig, sender *backend.StreamSender) error {\n\tctxLogger := s.logger.FromContext(ctx)\n\tspread := 50.0\n\twalker := rand.Float64() * 100\n\n\tticker := time.NewTicker(conf.Interval)\n\tdefer ticker.Stop()\n\n\tlabelFrame := data.NewFrame(\"labeled\",\n\t\tdata.NewField(\"labels\", nil, make([]string, 2)),\n\t\tdata.NewField(\"Time\", nil, make([]time.Time, 2)),\n\t\tdata.NewField(\"Value\", nil, make([]float64, 2)),\n\t)\n\n\tfor {\n\t\tselect {\n\t\tcase <-ctx.Done():\n\t\t\tctxLogger.Debug(\"Stop streaming data for path\", \"path\", path)\n\t\t\treturn ctx.Err()\n\t\tcase t := <-ticker.C:\n\t\t\tif rand.Float64() < conf.Drop {\n\t\t\t\tcontinue\n\t\t\t}\n\n\t\t\tmode := data.IncludeDataOnly\n\t\t\tdelta := rand.Float64() - 0.5\n\t\t\twalker += delta\n\n\t\t\tif conf.Labeled {\n\t\t\t\tsecA := t.Second() / 3\n\t\t\t\tsecB := t.Second() / 7\n\n\t\t\t\tlabelFrame.Fields[0].Set(0, fmt.Sprintf(\"s=A,s=p%d,x=X\", secA))\n\t\t\t\tlabelFrame.Fields[1].Set(0, t)\n\t\t\t\tlabelFrame.Fields[2].Set(0, walker)\n\n\t\t\t\tlabelFrame.Fields[0].Set(1, fmt.Sprintf(\"s=B,s=p%d,x=X\", secB))\n\t\t\t\tlabelFrame.Fields[1].Set(1, t)\n\t\t\t\tlabelFrame.Fields[2].Set(1, walker+10)\n\t\t\t\tif err := sender.SendFrame(labelFrame, mode); err != nil {\n\t\t\t\t\treturn err\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\ts.frame.Fields[0].Set(0, t)\n\t\t\t\ts.frame.Fields[1].Set(0, walker)                                // Value\n\t\t\t\ts.frame.Fields[2].Set(0, walker-((rand.Float64()*spread)+0.01)) // Min\n\t\t\t\ts.frame.Fields[3].Set(0, walker+((rand.Float64()*spread)+0.01)) // Max\n\t\t\t\tif err := sender.SendFrame(s.frame, mode); err != nil {\n\t\t\t\t\treturn err\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}"
+    },
+    "l-run": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 307,
+      "end_line": 322,
+      "excerpt_sha256": "07d92f7c6d0d2b42a42725f06f59a6373fe066373b4a307b69a7671fefcba161",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L307-L322",
+      "text": "\t\terr := sr.StreamRunner.RunStream(\n\t\t\tctx,\n\t\t\t&backend.RunStreamRequest{\n\t\t\t\tPluginContext: pluginCtx,\n\t\t\t\tPath:          sr.Path,\n\t\t\t\tData:          sr.Data,\n\t\t\t},\n\t\t\tbackend.NewStreamSender(&packetSender{channelLocalPublisher: s.channelSender, channel: sr.Channel}),\n\t\t)\n\t\tif err != nil {\n\t\t\tif errors.Is(ctx.Err(), context.Canceled) {\n\t\t\t\tlogger.Debug(\"Stream cleanly finished\", \"path\", sr.Path)\n\t\t\t\treturn\n\t\t\t}\n\t\t\tlogger.Error(\"Error running stream, re-establishing\", \"path\", sr.Path, \"error\", err, \"wait\", delay)\n\t\t\tisReconnect = true"
+    },
+    "l-packet": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 42,
+      "end_line": 49,
+      "excerpt_sha256": "442f4257ed9ec1099120c4daa37ef353c836d0532b01bfa67ab951b8fa842d23",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L42-L49",
+      "text": "type packetSender struct {\n\tchannelLocalPublisher ChannelLocalPublisher\n\tchannel               string\n}\n\nfunc (p *packetSender) Send(packet *backend.StreamPacket) error {\n\treturn p.channelLocalPublisher.PublishLocal(p.channel, packet.Data)\n}"
+    },
+    "l-publish": {
+      "path": "pkg/services/live/liveplugin/plugin.go",
+      "start_line": 27,
+      "end_line": 49,
+      "excerpt_sha256": "c38a9fb1cf73b034bd2b7a86b112b1b0a1b3f6fe486c06614bc841a3d6485570",
+      "source_sha256": "ed0feaa7342ddfd7b9d0ceabc0c0ff103f193e91b8dd20369e69683144545849",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/liveplugin/plugin.go#L27-L49",
+      "text": "func (p *ChannelLocalPublisher) PublishLocal(channel string, data []byte) error {\n\tif p.pipeline != nil {\n\t\tns, channelID, err := orgchannel.StripK8sNamespace(channel)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t\tok, err := p.pipeline.ProcessInput(context.Background(), ns.Value, channelID, data)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t\tif ok {\n\t\t\t// if rule found – we are done here. If not - fall through and process as usual.\n\t\t\treturn nil\n\t\t}\n\t}\n\tpub := &centrifuge.Publication{\n\t\tData: data,\n\t}\n\terr := p.node.Hub().BroadcastPublication(channel, pub, centrifuge.StreamPosition{})\n\tif err != nil {\n\t\treturn fmt.Errorf(\"error publishing %s: %w\", string(data), err)\n\t}\n\treturn nil"
+    },
+    "l-receive": {
+      "path": "public/app/features/live/centrifuge/channel.ts",
+      "start_line": 58,
+      "end_line": 104,
+      "excerpt_sha256": "19fd3ba59500d35c7e5e365756b3c0f162d2e27374b67cf8dd8718fc068a253f",
+      "source_sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/channel.ts#L58-L104",
+      "text": "  initalize(): void {\n    if (this.initalized) {\n      throw new Error('Channel already initalized: ' + this.id);\n    }\n    this.initalized = true;\n\n    this.subscription!.on('publication', (ctx: PublicationContext) => {\n      try {\n        if (ctx.data) {\n          if (ctx.data.schema) {\n            this.lastMessageWithSchema = ctx.data;\n          }\n\n          this.stream.next({\n            type: LiveChannelEventType.Message,\n            message: ctx.data,\n          });\n        }\n\n        // Clear any error messages\n        if (this.currentStatus.error) {\n          this.currentStatus.timestamp = Date.now();\n          delete this.currentStatus.error;\n          this.sendStatus();\n        }\n      } catch (err) {\n        console.log('publish error', this.addr, err);\n        this.currentStatus.error = err;\n        this.currentStatus.timestamp = Date.now();\n        this.sendStatus();\n      }\n    })\n      .on('error', (ctx: SubscriptionErrorContext) => {\n        this.currentStatus.timestamp = Date.now();\n        this.currentStatus.error = ctx.error.message;\n        this.sendStatus();\n      })\n      .on('subscribed', (ctx: SubscribedContext) => {\n        this.currentStatus.timestamp = Date.now();\n        this.currentStatus.state = LiveChannelConnectionState.Connected;\n        delete this.currentStatus.error;\n\n        if (ctx.data?.schema) {\n          this.lastMessageWithSchema = ctx.data;\n        }\n        this.sendStatus(ctx.data);\n      })"
+    },
+    "l-process": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 170,
+      "end_line": 209,
+      "excerpt_sha256": "b5c739b890e7b8ae45d2fcebd0c1731aaa256bcb079b3c9848e483b69347e8a6",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L170-L209",
+      "text": "  private onNext = (evt: LiveChannelEvent) => {\n    if (isLiveChannelMessageEvent(evt)) {\n      this.process(evt.message);\n      return;\n    }\n\n    const liveChannelStatusEvent = isLiveChannelStatusEvent(evt);\n    if (liveChannelStatusEvent && evt.error) {\n      const err = toDataQueryError(evt.error);\n      this.stream.next({\n        type: InternalStreamMessageType.Error,\n        error: {\n          ...err,\n          message: `Streaming channel error: ${err.message}`,\n        },\n      });\n    }\n\n    if (\n      liveChannelStatusEvent &&\n      (evt.state === LiveChannelConnectionState.Connected || evt.state === LiveChannelConnectionState.Pending) &&\n      evt.message\n    ) {\n      this.process(evt.message);\n    }\n  };\n\n  private process = (msg: DataFrameJSON) => {\n    const packetInfo = this.frameBuffer.push(msg);\n\n    if (packetInfo.schemaChanged) {\n      this.stream.next({\n        type: InternalStreamMessageType.ChangedSchema,\n      });\n    } else {\n      this.stream.next({\n        type: InternalStreamMessageType.NewValuesSameSchema,\n        values: this.frameBuffer.getValuesFromLastPacket(),\n      });\n    }"
+    },
+    "l-deliver": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 335,
+      "end_line": 388,
+      "excerpt_sha256": "d3cc18d1bc1da99733ad3352f9ba7c523da59b9f793877058bbf409f4a180675",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L335-L388",
+      "text": "\n    let shouldSendFullFrame = true;\n    const transformedInternalStream = this.stream.pipe(\n      bufferIfNot(this.deps.subscriberReadiness),\n      map((messages, i) => {\n        const errors = filterMessages(messages, InternalStreamMessageType.Error);\n        const lastError = errors.length ? errors[errors.length - 1].error : undefined;\n\n        if (shouldSendFullFrame) {\n          shouldSendFullFrame = false;\n          return getFullFrameResponseData(messages, lastError);\n        }\n\n        if (errors.length) {\n          // send the latest frame with the last error, discard everything else\n          return getFullFrameResponseData(messages, lastError);\n        }\n\n        const schemaChanged = messages.some((n) => n.type === InternalStreamMessageType.ChangedSchema);\n        if (schemaChanged) {\n          // send the latest frame, discard intermediate appends\n          return getFullFrameResponseData(messages, undefined);\n        }\n\n        const newValueSameSchemaMessages = filterMessages(messages, InternalStreamMessageType.NewValuesSameSchema);\n        if (newValueSameSchemaMessages.length !== messages.length) {\n          console.warn(`unsupported message type ${messages.map(({ type }) => type)}`);\n        }\n\n        return getNewValuesSameSchemaResponseData(newValueSameSchemaMessages);\n      })\n    );\n\n    return new Observable<StreamingDataQueryResponse>((subscriber) => {\n      const sub = transformedInternalStream.subscribe({\n        next: (n) => {\n          subscriber.next(n);\n        },\n        error: (err) => {\n          subscriber.error(err);\n        },\n        complete: () => {\n          subscriber.complete();\n        },\n      });\n\n      return () => {\n        // TODO: potentially resize (downsize) the buffer on unsubscribe\n        sub.unsubscribe();\n        if (!this.stream.observed) {\n          this.clearShutdownTimeout();\n          this.shutdownTimeoutId = setTimeout(this.shutdownIfNoSubscribers, this.deps.shutdownDelayInMs);\n        }\n      };"
+    },
+    "l-reuse": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 218,
+      "end_line": 239,
+      "excerpt_sha256": "3051c98a4e2f4c758f7443ca43086a582aa59df2ce1f459609d2ab7bab7bd64e",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L218-L239",
+      "text": "  private prepareInternalStreamForNewSubscription = (options: LiveDataStreamOptions): void => {\n    if (!this.frameBuffer.hasAtLeastOnePacket() && options.frame) {\n      // will skip initial frames from subsequent subscribers\n      this.process(options.frame);\n    }\n  };\n\n  private clearShutdownTimeout = () => {\n    if (this.shutdownTimeoutId) {\n      clearTimeout(this.shutdownTimeoutId);\n      this.shutdownTimeoutId = undefined;\n    }\n  };\n\n  get = (options: LiveDataStreamOptions, subKey: DataStreamSubscriptionKey): Observable<StreamingDataQueryResponse> => {\n    this.clearShutdownTimeout();\n    const buffer = getStreamingFrameOptions(options.buffer);\n\n    this.resizeBuffer(buffer);\n    this.prepareInternalStreamForNewSubscription(options);\n\n    const shouldSendLastPacketOnly = options?.buffer?.action === StreamingFrameAction.Replace;"
+    },
+    "l-server-close": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 210,
+      "end_line": 225,
+      "excerpt_sha256": "25fa49df389a94600d5178dab5eb8d14ff63e9b421426f255471e55bb34ba83d",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L210-L225",
+      "text": "\t\tcase <-presenceTicker.C:\n\t\t\tnumSubscribers, err := s.presenceGetter.GetNumLocalSubscribers(sr.Channel)\n\t\t\tif err != nil {\n\t\t\t\tlogger.Error(\"Error checking num subscribers\", \"channel\", sr.Channel, \"path\", sr.Path, \"error\", err)\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tif numSubscribers > 0 {\n\t\t\t\t// reset counter since channel has active subscribers.\n\t\t\t\tnumNoSubscribersChecks = 0\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tnumNoSubscribersChecks++\n\t\t\tif numNoSubscribersChecks >= s.maxChecks {\n\t\t\t\tlogger.Debug(\"Stop stream since no active subscribers\", \"channel\", sr.Channel, \"path\", sr.Path)\n\t\t\t\ts.stopStream(sr, cancelFn)\n\t\t\t\treturn"
+    },
+    "l-channel-close": {
+      "path": "public/app/features/live/centrifuge/channel.ts",
+      "start_line": 134,
+      "end_line": 164,
+      "excerpt_sha256": "be486c1b9812cf6f88eb2a52b57b07fb98d0915468bfcce00211dfcf937be1b5",
+      "source_sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/channel.ts#L134-L164",
+      "text": "  disconnectIfNoListeners = () => {\n    const count = this.stream.observers.length;\n    if (count === 0) {\n      this.disconnect();\n    }\n  };\n\n  /**\n   * Get the stream of events and\n   */\n  getStream() {\n    return new Observable<LiveChannelEvent<T>>((subscriber) => {\n      const initialMessage = { ...this.currentStatus };\n      if (this.lastMessageWithSchema?.schema) {\n        // send just schema instead of schema+data to avoid having data gaps\n        initialMessage.message = { schema: this.lastMessageWithSchema?.schema };\n      }\n\n      subscriber.next({ ...this.currentStatus, message: this.lastMessageWithSchema });\n\n      const sub = this.stream.subscribe(subscriber);\n      return () => {\n        sub.unsubscribe();\n        const count = this.stream.observers.length;\n\n        // Wait 1/4 second to fully disconnect\n        if (count === 0) {\n          setTimeout(this.disconnectIfNoListeners, 250);\n        }\n      };\n    });"
+    },
+    "l-scenes-boundary": {
+      "path": "public/app/features/dashboard-scene/utils/createPanelDataProvider.ts",
+      "start_line": 1,
+      "end_line": 43,
+      "excerpt_sha256": "d975e3884c1515ecc54cde2e13684a8e2f3921395a7912f313858322bc2af32b",
+      "source_sha256": "b1ec5d468848b8839be4797fa43006a8c612b537d46c598b5837b70f0b044ce9",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/dashboard-scene/utils/createPanelDataProvider.ts#L1-L43",
+      "text": "import { getPanelPluginMetasMapSync, type PanelPluginMetas } from '@grafana/runtime/internal';\nimport { type SceneDataProvider, SceneDataTransformer, SceneQueryRunner } from '@grafana/scenes';\nimport { type DataQuery, type DataSourceRef } from '@grafana/schema';\nimport { type PanelModel } from 'app/features/dashboard/state/PanelModel';\n\nimport { DashboardDatasourceBehaviour } from '../scene/DashboardDatasourceBehaviour';\n\nexport function createPanelDataProvider(\n  panel: PanelModel,\n  panelMetas: PanelPluginMetas = getPanelPluginMetasMapSync()\n): SceneDataProvider | undefined {\n  // Skip setting query runner for panels without queries\n  if (!panel.targets?.length) {\n    return undefined;\n  }\n\n  // Skip setting query runner for panel plugins with skipDataQuery\n  if (panelMetas[panel.type]?.skipDataQuery) {\n    return undefined;\n  }\n\n  let dataProvider: SceneDataProvider | undefined = undefined;\n\n  dataProvider = new SceneQueryRunner({\n    // If panel.datasource is not defined, we use the first datasource from the targets (queries)\n    datasource: panel.datasource ?? findFirstDatasource(panel.targets),\n    queries: panel.targets,\n    maxDataPoints: panel.maxDataPoints ?? undefined,\n    maxDataPointsFromWidth: true,\n    cacheTimeout: panel.cacheTimeout,\n    queryCachingTTL: panel.queryCachingTTL,\n    minInterval: panel.interval ?? undefined,\n    dataLayerFilter: {\n      panelId: panel.id,\n    },\n    $behaviors: [new DashboardDatasourceBehaviour({})],\n  });\n\n  // Wrap inner data provider in a data transformer\n  return new SceneDataTransformer({\n    $data: dataProvider,\n    transformations: panel.transformations || [],\n  });"
+    },
+    "l-stop": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 160,
+      "end_line": 176,
+      "excerpt_sha256": "60cf1c36b9f6ec7ea14b26de1ef86614d3bd34f1ebbf650e73b77f5b47468ab5",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L160-L176",
+      "text": "func (s *Manager) stopStream(sr streamRequest, cancelFn func()) {\n\ts.mu.Lock()\n\tdefer s.mu.Unlock()\n\tstreamCtx, ok := s.streams[sr.Channel]\n\tif !ok {\n\t\treturn\n\t}\n\tcloseCh := streamCtx.CloseCh\n\tdelete(s.streams, sr.Channel)\n\tif sr.PluginContext.DataSourceInstanceSettings != nil {\n\t\tdsUID := sr.PluginContext.DataSourceInstanceSettings.UID\n\t\tdsKey := datasourceKey(sr.PluginContext.OrgID, dsUID) // nolint:staticcheck\n\t\tdelete(s.datasourceStreams[dsKey], sr.Channel)\n\t}\n\tcancelFn()\n\tclose(closeCh)\n}"
+    },
+    "m-api-versions": {
+      "path": "pkg/registry/apis/dashboard/register.go",
+      "start_line": 1008,
+      "end_line": 1119,
+      "excerpt_sha256": "977f3727dcce7e29e166d7f04a1f1fcfb0bf64809a563f9c459a65a2a1e132b3",
+      "source_sha256": "1f32128b33e19396e997df0e050e4ac3b5a00ac026712df796bb5864ee4738f8",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/registry/apis/dashboard/register.go#L1008-L1119",
+      "text": "\t// v0alpha1\n\tif err := b.storageForVersion(apiGroupInfo, opts,\n\t\tdashv0.DashboardResourceInfo,\n\t\t&dashv0.LibraryPanelResourceInfo,\n\t\t&dashv0.SnapshotResourceInfo,\n\t\tfunc(obj runtime.Object, access *internal.DashboardAccess) (v runtime.Object, err error) {\n\t\t\tdto := &dashv0.DashboardWithAccessInfo{}\n\t\t\tdash, ok := obj.(*dashv0.Dashboard)\n\t\t\tif ok {\n\t\t\t\tdto.Dashboard = *dash\n\t\t\t}\n\t\t\tif access != nil {\n\t\t\t\terr = b.scheme.Convert(access, &dto.Access, nil)\n\t\t\t}\n\t\t\treturn dto, err\n\t\t}); err != nil {\n\t\treturn err\n\t}\n\n\t// v1beta1\n\tif err := b.storageForVersion(apiGroupInfo, opts,\n\t\tdashv1beta1.DashboardResourceInfo,\n\t\tnil, // do not register library panel\n\t\tnil,\n\t\tfunc(obj runtime.Object, access *internal.DashboardAccess) (v runtime.Object, err error) {\n\t\t\tdto := &dashv1beta1.DashboardWithAccessInfo{}\n\t\t\tdash, ok := obj.(*dashv1beta1.Dashboard)\n\t\t\tif ok {\n\t\t\t\tdto.Dashboard = *dash\n\t\t\t}\n\t\t\tif access != nil {\n\t\t\t\terr = b.scheme.Convert(access, &dto.Access, nil)\n\t\t\t}\n\t\t\treturn dto, err\n\t\t}); err != nil {\n\t\treturn err\n\t}\n\n\t// v1 (identical schema to v1beta1, thin wrapper)\n\tif err := b.storageForVersion(apiGroupInfo, opts,\n\t\tdashv1.DashboardResourceInfo,\n\t\tnil, // do not register library panel\n\t\tnil,\n\t\tfunc(obj runtime.Object, access *internal.DashboardAccess) (v runtime.Object, err error) {\n\t\t\tdto := &dashv1.DashboardWithAccessInfo{}\n\t\t\tdash, ok := obj.(*dashv1.Dashboard)\n\t\t\tif ok {\n\t\t\t\tdto.Dashboard = *dash\n\t\t\t}\n\t\t\tif access != nil {\n\t\t\t\terr = b.scheme.Convert(access, &dto.Access, nil)\n\t\t\t}\n\t\t\treturn dto, err\n\t\t}); err != nil {\n\t\treturn err\n\t}\n\n\t// v2alpha1\n\tif err := b.storageForVersion(apiGroupInfo, opts,\n\t\tdashv2alpha1.DashboardResourceInfo,\n\t\tnil, // do not register library panel\n\t\tnil,\n\t\tfunc(obj runtime.Object, access *internal.DashboardAccess) (v runtime.Object, err error) {\n\t\t\tdto := &dashv2alpha1.DashboardWithAccessInfo{}\n\t\t\tdash, ok := obj.(*dashv2alpha1.Dashboard)\n\t\t\tif ok {\n\t\t\t\tdto.Dashboard = *dash\n\t\t\t}\n\t\t\tif access != nil {\n\t\t\t\terr = b.scheme.Convert(access, &dto.Access, nil)\n\t\t\t}\n\t\t\treturn dto, err\n\t\t}); err != nil {\n\t\treturn err\n\t}\n\n\tif err := b.storageForVersion(apiGroupInfo, opts,\n\t\tdashv2beta1.DashboardResourceInfo,\n\t\tnil, // do not register library panel\n\t\tnil,\n\t\tfunc(obj runtime.Object, access *internal.DashboardAccess) (v runtime.Object, err error) {\n\t\t\tdto := &dashv2beta1.DashboardWithAccessInfo{}\n\t\t\tdash, ok := obj.(*dashv2beta1.Dashboard)\n\t\t\tif ok {\n\t\t\t\tdto.Dashboard = *dash\n\t\t\t}\n\t\t\tif access != nil {\n\t\t\t\terr = b.scheme.Convert(access, &dto.Access, nil)\n\t\t\t}\n\t\t\treturn dto, err\n\t\t}); err != nil {\n\t\treturn err\n\t}\n\n\t// v2\n\tif err := b.storageForVersion(apiGroupInfo, opts,\n\t\tdashv2.DashboardResourceInfo,\n\t\tnil, // do not register library panel\n\t\tnil,\n\t\tfunc(obj runtime.Object, access *internal.DashboardAccess) (v runtime.Object, err error) {\n\t\t\tdto := &dashv2.DashboardWithAccessInfo{}\n\t\t\tdash, ok := obj.(*dashv2.Dashboard)\n\t\t\tif ok {\n\t\t\t\tdto.Dashboard = *dash\n\t\t\t}\n\t\t\tif access != nil {\n\t\t\t\terr = b.scheme.Convert(access, &dto.Access, nil)\n\t\t\t}\n\t\t\treturn dto, err\n\t\t}); err != nil {\n\t\treturn err\n\t}"
+    },
+    "m-api-v1": {
+      "path": "apps/dashboard/pkg/apis/dashboard/v1/register.go",
+      "start_line": 15,
+      "end_line": 28,
+      "excerpt_sha256": "cd2373359a1383f3d618d0d10f72d652286b12cb06122b5335151694b2c8d5b7",
+      "source_sha256": "f4dc10a83ef43bc268ec644c681ffac6d75a936bdafc78407fe9f633babad5f5",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/apps/dashboard/pkg/apis/dashboard/v1/register.go#L15-L28",
+      "text": "const (\n\tGROUP      = \"dashboard.grafana.app\"\n\tVERSION    = \"v1\"\n\tAPIVERSION = GROUP + \"/\" + VERSION\n\n\t// Resource constants\n\tDASHBOARD_RESOURCE     = \"dashboards\"\n\tLIBRARY_PANEL_RESOURCE = \"librarypanels\"\n)\n\nvar DashboardResourceInfo = utils.NewResourceInfo(GROUP, VERSION,\n\t\"dashboards\", \"dashboard\", \"Dashboard\",\n\tfunc() runtime.Object { return &Dashboard{} },\n\tfunc() runtime.Object { return &DashboardList{} },"
+    },
+    "m-api-v2": {
+      "path": "apps/dashboard/pkg/apis/dashboard/v2/register.go",
+      "start_line": 14,
+      "end_line": 23,
+      "excerpt_sha256": "d38391acede96bc543cf7884ab4ea967cbc6e704b7b99bac34d9ed9cde0b31d5",
+      "source_sha256": "14410703ce0bae9ddeea6e5d59d972175b444fc40229e41a979f5cfe882cbc27",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/apps/dashboard/pkg/apis/dashboard/v2/register.go#L14-L23",
+      "text": "const (\n\tGROUP      = \"dashboard.grafana.app\"\n\tVERSION    = \"v2\"\n\tAPIVERSION = GROUP + \"/\" + VERSION\n)\n\nvar DashboardResourceInfo = utils.NewResourceInfo(GROUP, VERSION,\n\t\"dashboards\", \"dashboard\", \"Dashboard\",\n\tfunc() runtime.Object { return &Dashboard{} },\n\tfunc() runtime.Object { return &DashboardList{} },"
+    }
+  }
+}
