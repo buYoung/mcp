@@ -29,8 +29,8 @@
   },
   "files": {
     "README.md": {
-      "sha256": "4727ad8f4122c8f6940a4f69fa7216a97d24c08eaea7c33d00f1adf5fee4de1b",
-      "bytes": 11114
+      "sha256": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
+      "bytes": 11248
     },
     "dataset.json": {
       "sha256": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
@@ -133,8 +133,8 @@
   },
   "documentation_update": {
     "date": "2026-10-03",
-    "reason": "이전 벤치마크 제거에 따른 현재 준비 안내와 링크 갱신",
-    "previous_manifest_sha256": "f477a2ebea472c2cd46a9ef739ab181b30fdd522e92a27632799d1a47f94216b",
+    "reason": "사용자 요청으로 Serena 비교군과 21회 준비 계획 안내 반영",
+    "previous_manifest_sha256": "962b34867c4b175745bfa40c745e6fefc24a9c0637ddcfa45a9eacc89559da14",
     "question_evidence_grading_bytes_changed": false
   }
 }

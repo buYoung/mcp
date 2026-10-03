@@ -1,4 +1,4 @@
-"""Isolated Codex execution and observed usage for the 1.0.0 benchmark."""
+"""Selected coding-agent execution and observed usage for the 1.0.0 benchmark."""
 from __future__ import annotations
 
 import datetime
@@ -124,6 +124,7 @@ class ExecutionStop:
         self.usage_drain_seconds = usage_drain_seconds
         self.cutoff = None
         self.steps = []
+        self.backend = "codex"
 
     def request(self, reason: str, observed: dict):
         import fcntl
@@ -152,7 +153,7 @@ class ExecutionStop:
 
     def _send(self, signum: int, group: bool):
         sent = signal_target(self.process.pid, signum, group=group)
-        self.steps.append({"signal": signal.Signals(signum).name, "target": "codex_group" if group else "codex_process",
+        self.steps.append({"signal": signal.Signals(signum).name, "target": self.backend + ("_group" if group else "_process"),
                            "monotonic": time.monotonic(), "sent": sent})
 
     def advance(self):
@@ -207,6 +208,11 @@ def recorded_usage(folder: Path) -> dict:
     """One certification function for immediate execution and later reaggregation."""
     folder = folder.resolve()
     runtime = read_json(folder / "runtime.json")
+    if runtime.get("backend") == "claude_code":
+        from .claude_client import usage
+        return usage(read_live_jsonl(folder / "events.jsonl"),
+                     terminal_complete=runtime.get("record_collection_complete", False) and runtime.get("exit_code") == 0
+                     and not runtime.get("launch_error"), evidence=str(folder / "events.jsonl"))
     records = read_live_jsonl(folder / "rollout.jsonl")
     events = read_live_jsonl(folder / "events.jsonl")
     reasons = []
@@ -250,6 +256,33 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                   usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
                   codex_version: str | None = None) -> dict:
     spec = settings or default_settings()
+    require(grading or spec.get("solver_backend", "codex") == "codex", "Claude 풀이에는 execute_model을 사용하세요")
+    return _execute_agent(folder, prompt, relay_settings, grading, output_schema, usage_drain_seconds,
+                          settings=spec, cancel_event=cancel_event, codex_version=codex_version, backend="codex")
+
+
+def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
+                  usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
+                  codex_version: str | None = None, agent_version: str | None = None) -> dict:
+    spec = settings or default_settings()
+    require(spec["grader_model"] == "gpt-6-astra" and spec["grader_reasoning_effort"] == "high", "채점은 Astra/high로 고정합니다")
+    backend = "codex" if grading else spec["solver_backend"]
+    require(backend in {"codex", "claude_code"}, "지원하지 않는 코딩 에이전트")
+    if not grading:
+        from .route_contract import solver_model
+        selected = solver_model(spec["model"])
+        require(spec["reasoning_effort"] == selected["reasoning_effort"] and
+                backend == selected["backend"], "풀이 모델과 실행기 계약 불일치")
+    return _execute_agent(folder, prompt, relay_settings, grading, output_schema, usage_drain_seconds,
+                          settings=spec, cancel_event=cancel_event, codex_version=codex_version,
+                          backend=backend, agent_version=None if grading else agent_version)
+
+
+def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
+                   usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
+                   codex_version: str | None = None, backend="codex", agent_version: str | None = None) -> dict:
+    from . import claude_client
+    spec = settings or default_settings()
     require(not spec.get("preparation_only"), "route 준비 전용 계약에서는 solver/grader 실행이 금지됩니다")
     require(isinstance(usage_drain_seconds, (int, float)) and not isinstance(usage_drain_seconds, bool)
             and 0 <= usage_drain_seconds <= 30, "usage drain must be between 0 and 30 seconds")
@@ -257,7 +290,7 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     folder.mkdir(parents=True, exist_ok=True)
     workspace = folder / "workspace"
     workspace.mkdir(exist_ok=True)
-    env, home = isolated_environment(folder)
+    env, home = isolated_environment(folder) if backend == "codex" else (None, None)
     native_agent = spec.get("native_agent") if not grading else None
     codex_command = "codex"
     if native_agent:
@@ -266,9 +299,14 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
         codex_command = shutil.which("codex") or "codex"
         # PATH pin is applied to tool commands by shell_environment_policy, not the CLI's own runtime.
         write_json(folder / "native-agent.json", native_agent, exclusive=True)
-    args = [codex_command, "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json",
-            "-C", str(workspace), "-m", spec["grader_model"] if grading else spec["model"]] + codex_options(grading, spec)
-    if relay_settings:
+    args = ([codex_command, "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json",
+             "-C", str(workspace), "-m", spec["grader_model"] if grading else spec["model"]] + codex_options(grading, spec)
+            if backend == "codex" else [])
+    if backend == "claude_code":
+        require(not grading and not output_schema, "채점과 구조화 출력은 Codex/Astra에서 실행합니다")
+        agent_version = agent_version or command(["claude", "--version"]).strip()
+        args, workspace, env = claude_client.launch(folder, spec, relay_settings)
+    if relay_settings and backend == "codex":
         settings_path = folder / "relay-settings.json"
         write_json(settings_path, relay_settings, exclusive=True)
         require(relay_settings.get("schema") == "grafana-route-relay-v1", "지원하지 않는 도구 중계 계약")
@@ -287,9 +325,12 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
         schema_path = folder / "output-schema.json"
         write_json(schema_path, output_schema, exclusive=True)
         args += ["--output-schema", str(schema_path)]
-    args += ["-"]
-    write_json(folder / "command.json", {"args": args, "cwd": str(workspace), "model": args[args.index("-m") + 1],
-                                        "features_disabled": [f for f in DISABLED_FEATURES if not native_agent or f not in {"shell_tool", "unified_exec"}],
+    if backend == "codex":
+        args += ["-"]
+    write_json(folder / "command.json", {"args": args, "cwd": str(workspace), "model": spec["grader_model"] if grading else spec["model"],
+                                        "backend": backend, "agent_version": agent_version or codex_version,
+                                        "features_disabled": [f for f in DISABLED_FEATURES if not native_agent or f not in {"shell_tool", "unified_exec"}]
+                                                             if backend == "codex" else None,
                                         "codex_version": codex_version}, exclusive=True)
     (folder / "prompt.txt").write_text(prompt, encoding="utf-8")
     start = time.monotonic()
@@ -302,10 +343,11 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     is_stdout_eof = False
     buffer = b""
     model_exited_monotonic = None
+    answer_finished_monotonic = None
     with (folder / "events.jsonl").open("wb") as event_file, (folder / "stderr.log").open("wb") as error_file:
         selector = selectors.DefaultSelector()
         def pump():
-            nonlocal buffer, thread_id, is_stdout_eof
+            nonlocal buffer, thread_id, is_stdout_eof, answer_finished_monotonic
             for key, _ in selector.select(timeout=.05):
                 chunk = os.read(key.fileobj.fileno(), 65536)
                 if not chunk:
@@ -319,12 +361,18 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                     line, buffer = buffer.split(b"\n", 1)
                     if line:
                         event = json.loads(line)
+                        require(isinstance(event, dict), "agent event must be a JSON object")
                         if event.get("type") == "thread.started":
                             thread_id = event["thread_id"]
+                        elif backend == "claude_code" and event.get("type") == "system" and event.get("subtype") == "init":
+                            thread_id = event.get("session_id")
+                        elif backend == "claude_code" and event.get("type") == "result":
+                            answer_finished_monotonic = time.monotonic()
         try:
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=error_file, start_new_session=True)
             stop = ExecutionStop(folder, process, start, usage_drain_seconds)
+            stop.backend = backend
             write_json(folder / "process.json", {"pid": process.pid, "workspace": str(workspace),
                                                  "started_unix_seconds": time.time()}, exclusive=True)
             selector.register(process.stdout, selectors.EVENT_READ)
@@ -335,8 +383,12 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                 if cancel_event is not None and cancel_event.is_set():
                     stop.cancel()
                 if not stop.cutoff:
-                    live = read_live_jsonl(find_rollout(home, thread_id))
-                    observed = usage_metrics(live, terminal_complete=False, evidence="live rollout")["observed"]
+                    if backend == "claude_code":
+                        live = read_live_jsonl(folder / "events.jsonl")
+                        observed = claude_client.usage(live, terminal_complete=False, evidence="live Claude stream")["observed"]
+                    else:
+                        live = read_live_jsonl(find_rollout(home, thread_id))
+                        observed = usage_metrics(live, terminal_complete=False, evidence="live rollout")["observed"]
                     reason = None
                     if time.monotonic() - start >= spec["limits"]["elapsed_seconds"]:
                         reason = "timeout"
@@ -346,7 +398,10 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                         reason = "call_limit"
                     elif native_agent:
                         from .native_baseline import command_items
-                        if len(command_items(read_live_jsonl(folder / "events.jsonl"))) >= spec["limits"]["exploration_calls"]:
+                        native_events = read_live_jsonl(folder / "events.jsonl")
+                        items = ([c for c in claude_client.tool_items(native_events) if c.get("name") in claude_client.NATIVE_TOOLS]
+                                 if backend == "claude_code" else command_items(native_events))
+                        if len(items) >= spec["limits"]["exploration_calls"]:
                             reason = "call_limit"
                     if reason:
                         stop.request(reason, observed)
@@ -373,7 +428,7 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                 try:
                     pump()
                 except (OSError, ValueError, KeyError) as exc:
-                    launch_error = f"unsupported Codex event log during cleanup: {exc}"
+                    launch_error = f"unsupported {backend} event log during cleanup: {exc}"
             relay_cleanup = cleanup_relay(folder, cleanup_pump)
             deadline = time.monotonic() + 1
             while process and not is_stdout_eof and time.monotonic() < deadline:
@@ -381,15 +436,16 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
             selector.close()
             if process:
                 process.stdout.close()
-            (home / "auth.json").unlink(missing_ok=True)
+            if home:
+                (home / "auth.json").unlink(missing_ok=True)
     elapsed = time.monotonic() - start
     termination = stop.cutoff["reason"] if stop and stop.cutoff else None
     try:
         events = read_live_jsonl(folder / "events.jsonl")
     except (ValueError, KeyError) as exc:
         events = []
-        launch_error = f"unsupported Codex event log: {exc}"
-    rollout_path = find_rollout(home, thread_id)
+        launch_error = f"unsupported {backend} event log: {exc}"
+    rollout_path = find_rollout(home, thread_id) if home else None
     if rollout_path:
         shutil.copyfile(rollout_path, folder / "rollout.jsonl")
     try:
@@ -403,6 +459,8 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
         actual_version = next(iter(session_versions))
         if isinstance(actual_version, str):
             codex_version = actual_version if actual_version.startswith("codex-cli ") else f"codex-cli {actual_version}"
+    if backend == "codex":
+        agent_version = codex_version
     relay_records = read_live_jsonl(folder / "relay.jsonl")
     pending = {r["id"] for r in relay_records if r.get("event") == "request"} - {r["id"] for r in relay_records if r.get("event") == "result"}
     partial_files = [name for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
@@ -412,7 +470,8 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                 "model_exited_monotonic": model_exited_monotonic,
                 "cleanup_elapsed_seconds": max(0, time.monotonic() - (stop.cutoff["detected_monotonic"] if stop and stop.cutoff else model_exited_monotonic or start)),
                 "partial_jsonl_files": partial_files, "evidence": str(folder / "runtime.json")}
-    final_observed = usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"))["observed"]
+    final_observed = (claude_client.usage(events, terminal_complete=False, evidence=str(folder / "events.jsonl"))["observed"]
+                      if backend == "claude_code" else usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"))["observed"])
     cutoff_tokens = (stop.cutoff.get("observed_usage", {}).get("total_tokens") if stop and stop.cutoff else None)
     budget = {"unit": "cached-inclusive input_tokens + output_tokens", "limit_tokens": spec["limits"]["total_tokens"],
               "observed_tokens_at_cutoff": cutoff_tokens,
@@ -421,16 +480,23 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
               "observed_cleanup_tokens": final_observed["total_tokens"] - cutoff_tokens if cutoff_tokens is not None else 0,
               "whole_cost_may_be_missing": True}
     write_json(folder / "runtime.json", {"thread_id": thread_id, "started_monotonic": start, "started_unix_seconds": started_unix_seconds,
+                                        "backend": backend, "agent_version": agent_version or codex_version,
                                         "elapsed_seconds": elapsed, "exit_code": process.returncode if process else None,
                                         "model_exited_monotonic": model_exited_monotonic,
                                         "launch_error": launch_error, "termination": termination,
                                         "usage_drain_seconds": usage_drain_seconds, "codex_version": codex_version,
-                                        "record_collection_complete": bool(is_stdout_eof and not buffer and rollout_path and not partial_files and relay_cleanup["complete"]),
+                                        "record_collection_complete": bool(is_stdout_eof and not buffer and (rollout_path or backend == "claude_code")
+                                                                           and not partial_files and relay_cleanup["complete"]),
                                         "shutdown": shutdown, "budget": budget})
     final_rows = [r for r in records if r.get("type") == "response_item"
                       and r.get("payload", {}).get("role") == "assistant" and r["payload"].get("phase") == "final_answer"]
     final_text = "\n".join(c.get("text", "") for r in final_rows[-1:] for c in r["payload"].get("content", []) if c.get("type") == "output_text")
+    claude_result = claude_client.final_result(events) if backend == "claude_code" else None
+    if backend == "claude_code":
+        final_text = (claude_result or {}).get("result", "")
     answer_eligible = True
+    if backend == "claude_code" and stop and stop.cutoff:
+        answer_eligible = answer_finished_monotonic is not None and answer_finished_monotonic <= stop.cutoff["detected_monotonic"]
     if usage_drain_seconds and stop and stop.cutoff and final_rows:
         try:
             final_time = datetime.datetime.fromisoformat(final_rows[-1]["timestamp"].replace("Z", "+00:00")).timestamp()
@@ -441,7 +507,8 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     if not answer_eligible:
         (folder / "post-cutoff-answer.txt").write_text(final_text, encoding="utf-8")
     (folder / "answer.txt").write_text(answer, encoding="utf-8")
-    completed = any(e.get("type") == "turn.completed" for e in events)
+    completed = (bool(claude_result and claude_result.get("subtype") == "success" and not claude_result.get("is_error"))
+                 if backend == "claude_code" else any(e.get("type") == "turn.completed" for e in events))
     if any("rollout budget" in canonical(event).lower() and "exhaust" in canonical(event).lower() for event in events):
         termination = "token_limit"
     status = termination or ("completed" if completed and process and process.returncode == 0 and not launch_error else "environment_error")
@@ -449,6 +516,8 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     expected_model = spec["grader_model"] if grading else spec["model"]
     expected_effort = spec["grader_reasoning_effort"] if grading else spec["reasoning_effort"]
     conditions_valid = bool(contexts) and all(c.get("model") == expected_model and c.get("effort") == expected_effort for c in contexts)
+    if backend == "claude_code":
+        conditions_valid = claude_client.valid_model(events, expected_model)
     try:
         usage = recorded_usage(folder)
     except (ValueError, KeyError):
@@ -458,13 +527,19 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
     runtime = read_json(folder / "runtime.json")
     write_json(folder / "runtime.json", {**runtime, "budget": budget})
     result = {"status": status, "answer": answer, "elapsed_seconds": elapsed, "conditions_valid": conditions_valid,
+              "model": expected_model, "backend": backend, "agent_version": agent_version or codex_version,
               "usage": usage, "shutdown": shutdown, "budget": budget, "codex_version": codex_version,
               "artifact": str(folder / "runtime.json"), "thread_id": thread_id}
+    if backend == "claude_code":
+        result["effort_observation"] = {"requested": expected_effort, "source": "explicit CLI --effort; server-applied value unobserved"}
+        if claude_result and claude_result.get("is_error"):
+            result["error"] = claude_result.get("errors") or claude_result.get("subtype")
     if launch_error:
         result["error"] = launch_error
     if native_agent:
         from .native_baseline import command_items
-        count = len(command_items(events))
+        count = (sum(c.get("name") in claude_client.NATIVE_TOOLS for c in claude_client.tool_items(events))
+                 if backend == "claude_code" else len(command_items(events)))
         result["native_call_budget"] = {"observed_calls": count, "limit_calls": spec["limits"]["exploration_calls"],
                                        "observed_overshoot_calls": max(0, count - spec["limits"]["exploration_calls"]),
                                        "enforcement": "stop on observed native command items; concurrent calls may overshoot"}
@@ -538,4 +613,3 @@ def copy_source(source: Path, destination: Path):
         command(["cp", "-cR", str(source), str(destination)], timeout_seconds=300)
     else:
         shutil.copytree(source, destination, symlinks=True)
-

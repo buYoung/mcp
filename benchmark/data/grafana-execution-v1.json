@@ -1,13 +1,27 @@
 {
   "schema_version": 1,
   "profile": "grafana-routes",
-  "name": "Grafana 3개 경로 · 6개 비교군 · 준비 전용",
+  "name": "Grafana 3개 경로 · 7개 비교군 · 준비 전용",
   "dataset_id": "grafana-routes-v2",
   "comparison_lock_id": "grafana-comparison-targets-v1",
   "solver": {
     "model": "gpt-6.1-sol",
     "reasoning_effort": "medium"
   },
+  "solver_choices": [
+    {
+      "model": "gpt-6.1-sol",
+      "name": "GPT 6.1 Sol",
+      "backend": "codex",
+      "reasoning_effort": "medium"
+    },
+    {
+      "model": "claude-opus-5-5",
+      "name": "Claude Opus 5.5",
+      "backend": "claude_code",
+      "reasoning_effort": "medium"
+    }
+  ],
   "grader": {
     "model": "gpt-6-astra",
     "reasoning_effort": "high"
@@ -26,15 +40,16 @@
     "zvec-grep",
     "graphify",
     "codebase-memory-mcp",
+    "serena",
     "rg"
   ],
   "baseline": {
     "arm": "rg",
     "mode": "native_agent",
     "search_product_mcp": false,
-    "tools": "Codex native defaults; shell and filesystem navigation remain available",
+    "tools": "Selected coding-agent native shell and filesystem navigation; no search product MCP",
     "rg_version": "15.2.0",
-    "call_unit": "native command_execution items, counted once by item ID",
+    "call_unit": "Codex command_execution item ID or Claude native exploration tool_use ID; deduplicate partial/completed events",
     "source_access": "read-only fixed corpus and minimal runtime; no reference/report access"
   },
   "native_output_policy": {
@@ -59,7 +74,8 @@
     "codemap_jev": false,
     "graphify": "fresh_code_only",
     "zvec_model": "local/potion-code-16m-v2",
-    "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
+    "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b",
+    "serena": "registered_project_local_lsp_go_typescript_preindexed"
   },
   "execution_authorized": false,
   "policy_decisions": {
@@ -69,6 +85,9 @@
     "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
     "index_mode": "로컬 검색·색인으로 준비 (권장)",
     "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
-    "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다."
+    "solver_selection": "기본 gpt-6.1-sol 또는 claude-opus-5-5 중 하나를 선택하며 Codex / Claude Code 각각 사용",
+    "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
+    "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
+    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 3문항 = 21회 예정."
   }
 }

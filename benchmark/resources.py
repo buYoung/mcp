@@ -30,7 +30,7 @@ def lease(path: Path):
         yield
 
 
-def environment() -> dict:
+def environment(solver_backend="codex") -> dict:
     require(sys.version_info >= (3, 12), "Python 3.12 이상이 필요합니다")
     require(os.name == "posix", "이 벤치 하네스는 macOS/Linux를 지원합니다")
     for executable in ("git", "cargo", "rustc", "codex", "node"):
@@ -42,7 +42,11 @@ def environment() -> dict:
             f"{version}: 벤치 실행에 필요한 Codex 옵션이 없습니다: {', '.join(x for x in required if x not in help_text)}")
     login = subprocess.run(["codex", "login", "status"], capture_output=True, timeout=30)
     require(login.returncode == 0, "Codex 로그인이 필요합니다: codex login")
-    return {"codex_version": version, "python": platform.python_version(),
+    extra = {}
+    if solver_backend == "claude_code":
+        from .claude_client import capabilities
+        extra["claude"] = capabilities()
+    return {**extra, "solver_backend": solver_backend, "codex_version": version, "python": platform.python_version(),
             "node": command(["node", "--version"]).strip(),
             "rustc": command(["rustc", "-Vv"]).strip(), "cargo": command(["cargo", "--version"]).strip()}
 

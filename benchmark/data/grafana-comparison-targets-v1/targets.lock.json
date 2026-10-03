@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "revision": 1,
+  "revision": 2,
   "status": "source_identities_frozen",
   "frozen_at": "2026-10-03T01:33:05Z",
   "target_release": "1.0.0",
-  "scope": "외부 비교 도구 5개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
+  "scope": "외부 비교 도구 6개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
   "selection_policy": "2026-10-03 조회 당시 각 공식 GitHub 저장소의 latest 정식 릴리스를 선택하고 실제 태그 객체를 전체 커밋 해시로 해석했다. 선택 이후 latest나 기본 브랜치를 다시 조회해 자동 갱신하지 않는다.",
   "dataset": {
     "id": "grafana-routes-v2",
     "manifest_path": "../grafana-routes-v2/manifest.json",
-    "manifest_sha256": "8fb24b5b8cbc8a3530c61991dda2e7c3e80d859a96354adeb76f28ec9cc51cf4",
+    "manifest_sha256": "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24",
     "source": {
       "repository": "grafana/grafana",
       "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
@@ -26,10 +26,11 @@
     "zvec-grep",
     "graphify",
     "codebase-memory-mcp",
+    "serena",
     "rg"
   ],
-  "comparison_count": 5,
-  "total_arm_count_including_subject": 6,
+  "comparison_count": 6,
+  "total_arm_count_including_subject": 7,
   "comparisons": [
     {
       "id": "codegraph",
@@ -217,6 +218,55 @@
       "provenance_record": "codebase-memory-mcp"
     },
     {
+      "id": "serena",
+      "name": "Serena",
+      "role": "comparison_tool",
+      "status": "source_identity_frozen",
+      "repository": "oraios/serena",
+      "repository_url": "https://github.com/oraios/serena",
+      "upstream_repository_id": 953683578,
+      "version": "1.7.0",
+      "release_tag": "v1.7.0",
+      "release_url": "https://github.com/oraios/serena/releases/tag/v1.7.0",
+      "release_id": 367549941,
+      "release_published_at": "2026-08-09T18:38:06Z",
+      "commit": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+      "commit_url": "https://github.com/oraios/serena/commit/949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+      "git_tree_sha1": "6daa0fe28c2be66ed2462e02871426098ddecb69",
+      "implementation": "공식 serena-agent Python 구현; 로컬 LSP Go·TypeScript",
+      "package_name": "serena-agent",
+      "source_archive": {
+        "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+        "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
+        "bytes": 2252543,
+        "format": "tar.gz"
+      },
+      "source_files": [
+        {
+          "path": "README.md",
+          "git_blob_sha1": "6e16380f712b3a5a71d917d45fa4ad18e93da412",
+          "sha256": "e617441ff791c8c9cdb250b66ed9510284f6df0af260c529b77a94e3ac4eb461",
+          "bytes": 14511,
+          "url": "https://raw.githubusercontent.com/oraios/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/README.md"
+        },
+        {
+          "path": "pyproject.toml",
+          "git_blob_sha1": "b6bc9e586019250fc4c1586b77dcb2f3c6566228",
+          "sha256": "66d9130a108c2251213a4388e099d1e928c827a9e6287bcdaaa0ce0daa23753e",
+          "bytes": 13624,
+          "url": "https://raw.githubusercontent.com/oraios/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/pyproject.toml"
+        },
+        {
+          "path": "uv.lock",
+          "git_blob_sha1": "c5d1ab52d59ff37687f824017be234e878abe1f0",
+          "sha256": "48f88af6b9a7c942820b65d0321176b33b49f0012a8a0cd036ee1f5140cfe167",
+          "bytes": 524560,
+          "url": "https://raw.githubusercontent.com/oraios/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/uv.lock"
+        }
+      ],
+      "provenance_record": "serena"
+    },
+    {
       "id": "rg",
       "name": "plain rg",
       "role": "lexical_baseline",
@@ -297,5 +347,7 @@
     "solver_runs": 0,
     "grader_runs": 0
   },
-  "provenance_file": "provenance.json"
+  "provenance_file": "provenance.json",
+  "revision_reason": "사용자 요청으로 Serena를 추가한다. 기존 5개 비교 대상의 버전·커밋·소스 아카이브 핀은 보존한다.",
+  "previous_lock_sha256": "e67c69ac5c2416744be1873f2311641b437b57f2f74de819880174992777fefc"
 }

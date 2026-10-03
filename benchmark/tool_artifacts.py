@@ -1,4 +1,4 @@
-"""Task-local, source-bound installations for the six Grafana comparison arms."""
+"""Task-local, source-bound installations for the Grafana comparison arms."""
 from __future__ import annotations
 
 import argparse
@@ -182,17 +182,25 @@ def prepare_one(ident: str, emit=print) -> dict:
                                        routes.PREPARATION / "model-assets" / revision / filename))
         dependencies = {"package-lock.json": file_digest(source / "package-lock.json")}
         installation = source
-    elif ident == "graphify":
+    elif ident in {"graphify", "serena"}:
         uv = shutil.which("uv")
-        require(uv is not None, "Graphify의 고정 환경 준비에 uv가 필요합니다")
-        commands.append(run_logged([uv, "sync", "--locked", "--no-dev", "--extra", "mcp", "--python", "3.12"],
+        require(uv is not None, f"{ident}의 고정 환경 준비에 uv가 필요합니다")
+        extras = ["--extra", "mcp"] if ident == "graphify" else []
+        commands.append(run_logged([uv, "sync", "--locked", "--no-dev", *extras, "--python", "3.12"],
                                    source, output / "install.log"))
         python = source / ".venv/bin/python"
-        launch = [str(python), "-m", "graphify"]
+        launch = [str(python), "-m", "graphify"] if ident == "graphify" else [str(source / ".venv/bin/serena")]
         runtime = {"python": command([str(python), "--version"]).strip(),
                    "python_sha256": file_digest(python), "uv": command([uv, "--version"]).strip()}
         dependencies = {"uv.lock": file_digest(source / "uv.lock")}
-        backend = "tree_sitter_code_only"
+        backend = "tree_sitter_code_only" if ident == "graphify" else "local_lsp_go_typescript"
+        if ident == "serena":
+            for name in ("go", "gopls", "node", "npm"):
+                executable = shutil.which(name)
+                require(executable is not None, f"Serena 언어 서버 준비에 {name}가 필요합니다")
+                path = Path(executable).resolve()
+                runtime[name] = {"path": str(path), "sha256": file_digest(path),
+                                 "version": command([str(path), "version" if name in {"go", "gopls"} else "--version"]).strip()}
         installation = source
     else:
         require(platform.system() == "Darwin" and platform.machine() == "arm64", "등록한 공식 binary는 darwin-arm64 전용입니다")
@@ -209,7 +217,13 @@ def prepare_one(ident: str, emit=print) -> dict:
                                             "release_tag": "15.2.0" if ident == "rg" else "v0.11.0"}
         dependencies = {"distribution": "official_release", "asset_sha256": release["sha256"]}
         backend = "official_native_binary"
-    observed_version = command([*launch, "--version"], timeout_seconds=60).strip()
+    if ident == "serena":
+        # An archive has no .git; do not let its version command discover the harness's parent repository.
+        commands.append(run_logged([*launch, "--version"], source, output / "version.log",
+                                   env=clean_environment({"GIT_CEILING_DIRECTORIES": str(ARTIFACTS)}), timeout=60))
+        observed_version = (output / "version.log").read_text().strip()
+    else:
+        observed_version = command([*launch, "--version"], timeout_seconds=60).strip()
     require(arm["version"] in observed_version, f"설치 버전 불일치: {ident}: {observed_version}")
     baseline = read_json(Path(provenance["files_manifest"]))
     for name, metadata in baseline.items():
@@ -220,6 +234,10 @@ def prepare_one(ident: str, emit=print) -> dict:
         path = Path(arg)
         if path.is_file():
             executables.append({"path": str(path), "sha256": file_digest(path)})
+    if ident == "serena":
+        executables.append({"path": str(python), "sha256": file_digest(python)})
+        executables.extend({"path": runtime[name]["path"], "sha256": runtime[name]["sha256"]}
+                           for name in ("go", "gopls", "node", "npm"))
     result = {"id": ident, "source_pin": arm, "provenance": provenance, "actual_version": observed_version,
               "installation": str(installation), "installation_sha256": digest(tree_files(installation, exclude={"target"})),
               "launch": launch, "executables": executables, "dependencies": dependencies,

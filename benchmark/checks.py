@@ -132,15 +132,17 @@ class BenchChecks(unittest.TestCase):
 
 
     def test_explicit_settings_version_and_usage_reach_execution(self):
-        spec = settings.execution_settings()
+        spec = settings.execution_settings("claude-opus-5-5")
         spec["preparation_only"] = False
-        spec.update(model="fixture-model", reasoning_effort="high")
         spec["limits"]["total_tokens"] = 4321
-        result = runner.execute_codex(self.root / "session", "fixture", settings=spec, usage_drain_seconds=30,
-                                      codex_version="codex-cli fixture-99.1")
+        result = runner.execute_model(self.root / "session", "fixture", settings=spec, grading=True, usage_drain_seconds=30,
+                                      codex_version="codex-cli fixture-99.1", agent_version="claude fixture")
         self.assertTrue(result["conditions_valid"])
         self.assertEqual(result["status"], "completed")
         self.assertEqual(result["codex_version"], "codex-cli fixture-99.1")
+        self.assertEqual(result["model"], "gpt-6-astra")
+        self.assertEqual(result["backend"], "codex")
+        self.assertEqual(result["agent_version"], "codex-cli fixture-99.1")
         self.assertEqual(result["budget"]["limit_tokens"], 4321)
         self.assertEqual(result["usage_collection"]["drain_seconds"], 30)
         self.assertEqual(result["usage"]["total_tokens"]["value"], 120)
