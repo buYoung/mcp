@@ -1,4 +1,4 @@
-Register the user's task and relevance questions before search, read, grep or non-root overview. Jev judges each candidate with its supplied source evidence against these questions to filter unrelated code or declarations.
+Register the user's task and relevance questions before using an enabled Jev filter on search, read, grep or non-root overview. Jev judges each candidate with its supplied source evidence against these questions to filter unrelated code or declarations.
 
 Copy the full user request into task_query. Split it into distinct ways code can contribute to the answer; yes means related. Each question should test one coherent relationship. Merge equivalent questions and keep name or spelling variants as clues within a question, but do not pack independently useful roles into a long checklist merely to reduce the count. The 1–8 question limit is a capacity, not a target count.
 
