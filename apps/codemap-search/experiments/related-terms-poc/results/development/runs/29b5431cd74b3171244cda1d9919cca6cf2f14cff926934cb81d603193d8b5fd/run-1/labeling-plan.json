@@ -1,0 +1,557 @@
+{
+  "actual_maximum_payload_bytes": 322540,
+  "assignments": [
+    {
+      "assignment_identity": {
+        "bytes": 37246,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-001/manifest.json",
+        "sha256": "476e4741cf54ded851ccff01efe2d0c8ff38326b762c94fc5dc511d98e992904"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 9,
+        "observation_packets": 16,
+        "pairs": 9
+      },
+      "mandatory_payload_bytes": 317155,
+      "review_ids": [
+        "F001",
+        "F002",
+        "F003",
+        "F004",
+        "F005",
+        "F006",
+        "F007",
+        "F008",
+        "F009"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 33170,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-002/manifest.json",
+        "sha256": "f8e2dd3572bcd9c59a3f05b3583c6867ec007b2b1ef5a1f0812871f57620750b"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 7,
+        "observation_packets": 12,
+        "pairs": 7
+      },
+      "mandatory_payload_bytes": 285883,
+      "review_ids": [
+        "F010",
+        "F011",
+        "F012",
+        "F013",
+        "F014",
+        "F015",
+        "F016"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 34478,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-003/manifest.json",
+        "sha256": "5c71303724ecdccef98281c68ee4889a8848c74b27e74af25d5912194c9de1f8"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 8,
+        "observation_packets": 8,
+        "pairs": 8
+      },
+      "mandatory_payload_bytes": 316300,
+      "review_ids": [
+        "F017",
+        "F018",
+        "F019",
+        "F020",
+        "F021",
+        "F022",
+        "F023",
+        "F024"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 33201,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-004/manifest.json",
+        "sha256": "68ccd8f8378c9158291d8d3de97a9398f709fb660de08fcbe5fdc67b6ec0ba77"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 7,
+        "observation_packets": 16,
+        "pairs": 7
+      },
+      "mandatory_payload_bytes": 266213,
+      "review_ids": [
+        "F025",
+        "F026",
+        "F027",
+        "F028",
+        "F029",
+        "F030",
+        "F031"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 29640,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-005/manifest.json",
+        "sha256": "9fb6e6d3d612f71b96fd30335c2f120e53eda2dbd865acba7a773a9bba2ad255"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 7,
+        "observation_packets": 12,
+        "pairs": 7
+      },
+      "mandatory_payload_bytes": 254387,
+      "review_ids": [
+        "F032",
+        "F033",
+        "F034",
+        "F035",
+        "F036",
+        "F037",
+        "F038"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 31430,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-006/manifest.json",
+        "sha256": "a69308840cf45a36780c69a41cf623ae22f73431862a613b4457ae245694353d"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 6,
+        "observation_packets": 12,
+        "pairs": 6
+      },
+      "mandatory_payload_bytes": 297135,
+      "review_ids": [
+        "F039",
+        "F040",
+        "F041",
+        "F042",
+        "F043",
+        "F044"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 31359,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-007/manifest.json",
+        "sha256": "dd8dfab7e384c750b5641f6573c8faac6f0f73d9004cea4150da1bf3f73eade5"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 5,
+        "observation_packets": 20,
+        "pairs": 5
+      },
+      "mandatory_payload_bytes": 275831,
+      "review_ids": [
+        "F045",
+        "F046",
+        "F047",
+        "F048",
+        "F049"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 32834,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-008/manifest.json",
+        "sha256": "83a80a5325475429305efbbfce3e9cfec8ce06cc1961d2417e79a3e6f1f8fd86"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 7,
+        "observation_packets": 16,
+        "pairs": 7
+      },
+      "mandatory_payload_bytes": 269332,
+      "review_ids": [
+        "F050",
+        "F051",
+        "F052",
+        "F053",
+        "F054",
+        "F055",
+        "F056"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 28110,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-009/manifest.json",
+        "sha256": "574abe341b0fd6ac077422bbcc655237abfe4cd081cbe4f7298929029e030eea"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 8,
+        "observation_packets": 8,
+        "pairs": 8
+      },
+      "mandatory_payload_bytes": 244677,
+      "review_ids": [
+        "F057",
+        "F058",
+        "F059",
+        "F060",
+        "F061",
+        "F062",
+        "F063",
+        "F064"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 37412,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-010/manifest.json",
+        "sha256": "638599ad37e4f0f2aaa2a32ba9aed69e9c8543c5f5eecd7bfcf5318eaccfec17"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 11,
+        "observation_packets": 12,
+        "pairs": 11
+      },
+      "mandatory_payload_bytes": 319893,
+      "review_ids": [
+        "F065",
+        "F066",
+        "F067",
+        "F068",
+        "F069",
+        "F070",
+        "F071",
+        "F072",
+        "F073",
+        "F074",
+        "F075"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 38333,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-011/manifest.json",
+        "sha256": "539bf94c0d52c2964730752a9a0da146d7faa2c037ea7895eaf1a6039ebcec60"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 7,
+        "observation_packets": 16,
+        "pairs": 7
+      },
+      "mandatory_payload_bytes": 319916,
+      "review_ids": [
+        "F076",
+        "F077",
+        "F078",
+        "F079",
+        "F080",
+        "F081",
+        "F082"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 35055,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-012/manifest.json",
+        "sha256": "a92369ec311e56da25ca40159f120bef1cd08aba92a2d00b497a3282589a4f0b"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 6,
+        "observation_packets": 12,
+        "pairs": 6
+      },
+      "mandatory_payload_bytes": 316888,
+      "review_ids": [
+        "F083",
+        "F084",
+        "F085",
+        "F086",
+        "F087",
+        "F088"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 33857,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-013/manifest.json",
+        "sha256": "b9bc6e01b9ac93a6d9b22e5c79596944b10ce9fc2c4570e361b7c77f80ae4ca5"
+      },
+      "counts": {
+        "filter_loss_sample": 0,
+        "final_pairs": 8,
+        "observation_packets": 8,
+        "pairs": 8
+      },
+      "mandatory_payload_bytes": 308980,
+      "review_ids": [
+        "F089",
+        "F090",
+        "F091",
+        "F092",
+        "F093",
+        "F094",
+        "F095",
+        "F096"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 33470,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-014/manifest.json",
+        "sha256": "a58eef2a8b349deb93e429fecf3ae2f0ce9ce581943e498d4d00c4dcab786002"
+      },
+      "counts": {
+        "filter_loss_sample": 5,
+        "final_pairs": 1,
+        "observation_packets": 20,
+        "pairs": 6
+      },
+      "mandatory_payload_bytes": 282050,
+      "review_ids": [
+        "F097",
+        "L098",
+        "L099",
+        "L100",
+        "L101",
+        "L102"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 28867,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-015/manifest.json",
+        "sha256": "593da37bee4e841bc496b7ce8ccb824fd6668712748d5d46ad23d9331a68d3fc"
+      },
+      "counts": {
+        "filter_loss_sample": 5,
+        "final_pairs": 0,
+        "observation_packets": 12,
+        "pairs": 5
+      },
+      "mandatory_payload_bytes": 254021,
+      "review_ids": [
+        "L103",
+        "L104",
+        "L105",
+        "L106",
+        "L107"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 35321,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-016/manifest.json",
+        "sha256": "4cf13b23c7857262af337e581bc754da355abbea5473230beeb7ec1a2e0ebcd3"
+      },
+      "counts": {
+        "filter_loss_sample": 5,
+        "final_pairs": 0,
+        "observation_packets": 16,
+        "pairs": 5
+      },
+      "mandatory_payload_bytes": 311099,
+      "review_ids": [
+        "L108",
+        "L109",
+        "L110",
+        "L111",
+        "L112"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 27125,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-017/manifest.json",
+        "sha256": "0b6e37dadd0ab3bb0e0512728b4fddce7634545c6c3a1e25362f472a8b16f14c"
+      },
+      "counts": {
+        "filter_loss_sample": 7,
+        "final_pairs": 0,
+        "observation_packets": 8,
+        "pairs": 7
+      },
+      "mandatory_payload_bytes": 243582,
+      "review_ids": [
+        "L113",
+        "L114",
+        "L115",
+        "L116",
+        "L117",
+        "L118",
+        "L119"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 32294,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-018/manifest.json",
+        "sha256": "e78305d698ec1cd738e9ffb2252a7d4f1d1c6524fd0c9169c7c9af3413bc79ae"
+      },
+      "counts": {
+        "filter_loss_sample": 7,
+        "final_pairs": 0,
+        "observation_packets": 12,
+        "pairs": 7
+      },
+      "mandatory_payload_bytes": 290222,
+      "review_ids": [
+        "L120",
+        "L121",
+        "L122",
+        "L123",
+        "L124",
+        "L125",
+        "L126"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 32509,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-019/manifest.json",
+        "sha256": "f78938fa4c8795edba5b366f4b67fb0b719aca8592e7fd1a9d3bc915c7ded9a9"
+      },
+      "counts": {
+        "filter_loss_sample": 6,
+        "final_pairs": 0,
+        "observation_packets": 16,
+        "pairs": 6
+      },
+      "mandatory_payload_bytes": 282051,
+      "review_ids": [
+        "L127",
+        "L128",
+        "L129",
+        "L130",
+        "L131",
+        "L132"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 37890,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-020/manifest.json",
+        "sha256": "f22aa65f08e435bdd76f614c9e4c7d37927ba40cd6115c046613314be416722f"
+      },
+      "counts": {
+        "filter_loss_sample": 8,
+        "final_pairs": 0,
+        "observation_packets": 16,
+        "pairs": 8
+      },
+      "mandatory_payload_bytes": 322540,
+      "review_ids": [
+        "L133",
+        "L134",
+        "L135",
+        "L136",
+        "L137",
+        "L138",
+        "L139",
+        "L140"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 34173,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-021/manifest.json",
+        "sha256": "7bb1729d1796abb15c7e5ce80c83c0ddfa8554dfeb6a3aa34f2f827902420532"
+      },
+      "counts": {
+        "filter_loss_sample": 6,
+        "final_pairs": 0,
+        "observation_packets": 12,
+        "pairs": 6
+      },
+      "mandatory_payload_bytes": 314362,
+      "review_ids": [
+        "L141",
+        "L142",
+        "L143",
+        "L144",
+        "L145",
+        "L146"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 29618,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-022/manifest.json",
+        "sha256": "1faa8b250350f2b8ebd2596ad5eb5bcc0dd9e5da314aecf53ba7587339f110bb"
+      },
+      "counts": {
+        "filter_loss_sample": 9,
+        "final_pairs": 0,
+        "observation_packets": 4,
+        "pairs": 9
+      },
+      "mandatory_payload_bytes": 276647,
+      "review_ids": [
+        "L147",
+        "L148",
+        "L149",
+        "L150",
+        "L151",
+        "L152",
+        "L153",
+        "L154",
+        "L155"
+      ]
+    },
+    {
+      "assignment_identity": {
+        "bytes": 24576,
+        "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/assignments/batch-023/manifest.json",
+        "sha256": "d2f9a3f8d559c98c2a820d687669216a099ab40444150934dc1468ce9ebb0aec"
+      },
+      "counts": {
+        "filter_loss_sample": 4,
+        "final_pairs": 0,
+        "observation_packets": 8,
+        "pairs": 4
+      },
+      "mandatory_payload_bytes": 217682,
+      "review_ids": [
+        "L156",
+        "L157",
+        "L158",
+        "L159"
+      ]
+    }
+  ],
+  "batch_output_schema_identity": {
+    "bytes": 4583,
+    "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/batch-output.schema.json",
+    "sha256": "f2415471eb81e8156acf1f5052ed53152431f5dfdd4a098b72f542788e834f40"
+  },
+  "counts": {
+    "filter_loss_population": 62,
+    "filter_loss_sample": 62,
+    "final_pairs": 97,
+    "pending_labels": 159
+  },
+  "global_queue_labeler_read": "waived; parent/audit/collector validate global coverage",
+  "maximum_payload_bytes": 327680,
+  "profile_identity": {
+    "bytes": 43501,
+    "path": "apps/codemap-search/experiments/related-terms-poc/results/development/profiles/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/profile.json",
+    "sha256": "29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd"
+  },
+  "queue_identity": {
+    "bytes": 227346,
+    "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/queue-manifest.json",
+    "sha256": "81a238cd63009da71725172c6ae4ed0aece6f0974aef217a72f0cd8a212331fa"
+  },
+  "run_id": "run-1",
+  "schema": "rt-development-labeling-plan/1"
+}

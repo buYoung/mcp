@@ -1,0 +1,182 @@
+{
+  "protocol_sha256": "6513df254a216571770b43157d72bb2721a129cfa2520ef45bdca7dde2d76e1f",
+  "run_dir": ".codemap/poc/related-terms/evaluation/6513df254a21",
+  "commands": [
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc lookup --dataset .codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3 --policy apps/codemap-search/experiments/related-terms-poc/contracts/lookup-policy.json --state .codemap/poc/related-terms/workspaces/state/flask --expect-dataset-id rtd1-8efd9676107a983d --repeat 5 --terms-file .codemap/poc/related-terms/evaluation/6513df254a21/terms.txt --output .codemap/poc/related-terms/evaluation/6513df254a21/flask.jsonl --timing-output .codemap/poc/related-terms/evaluation/6513df254a21/flask-timing.json",
+      "exit": 0
+    },
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc lookup --dataset .codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3 --policy apps/codemap-search/experiments/related-terms-poc/contracts/lookup-policy.json --state .codemap/poc/related-terms/workspaces/state/gin --expect-dataset-id rtd1-8efd9676107a983d --repeat 5 --terms-file .codemap/poc/related-terms/evaluation/6513df254a21/terms.txt --output .codemap/poc/related-terms/evaluation/6513df254a21/gin.jsonl --timing-output .codemap/poc/related-terms/evaluation/6513df254a21/gin-timing.json",
+      "exit": 0
+    },
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc lookup --dataset .codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3 --policy apps/codemap-search/experiments/related-terms-poc/contracts/lookup-policy.json --state .codemap/poc/related-terms/workspaces/state/tokio --expect-dataset-id rtd1-8efd9676107a983d --repeat 5 --terms-file .codemap/poc/related-terms/evaluation/6513df254a21/terms.txt --output .codemap/poc/related-terms/evaluation/6513df254a21/tokio.jsonl --timing-output .codemap/poc/related-terms/evaluation/6513df254a21/tokio-timing.json",
+      "exit": 0
+    },
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc lookup --dataset .codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3 --policy apps/codemap-search/experiments/related-terms-poc/contracts/lookup-policy.json --state .codemap/poc/related-terms/workspaces/state/express --expect-dataset-id rtd1-8efd9676107a983d --repeat 5 --terms-file .codemap/poc/related-terms/evaluation/6513df254a21/terms.txt --output .codemap/poc/related-terms/evaluation/6513df254a21/express.jsonl --timing-output .codemap/poc/related-terms/evaluation/6513df254a21/express-timing.json",
+      "exit": 0
+    }
+  ],
+  "environment": {
+    "platform": "darwin",
+    "python": "3.14.8",
+    "binary_profile": "release"
+  },
+  "source_acquisition": {
+    "archive_bytes": {
+      "oewn-2025": 9986555,
+      "github-explore-c8d7bc5": 2027520,
+      "abbrcode-bd33b1c": 51200,
+      "se-abbr-8e1d77e": 501760,
+      "wikidata-sel1": 522240
+    },
+    "wall_time": "unmeasured (network downloads were run interactively)"
+  },
+  "dataset_build": {
+    "command": "python3 build_dataset.py build",
+    "wall_s": 59.87,
+    "max_rss_bytes": 4109844480,
+    "reproduced_frozen_sqlite_sha256": true,
+    "verify_wall_s": 17.93,
+    "verify_max_rss_bytes": 3358687232
+  },
+  "repository_index_finalization": {
+    "express": {
+      "indexing_ms": 630.5,
+      "vocabulary_materialize_ms": 4.3,
+      "stats_persist_ms": 2.5,
+      "stats_bytes": 49152,
+      "index_command_max_rss_bytes": 88227840
+    },
+    "flask": {
+      "indexing_ms": 377.9,
+      "vocabulary_materialize_ms": 6.2,
+      "stats_persist_ms": 2.8,
+      "stats_bytes": 61440,
+      "index_command_max_rss_bytes": 90456064
+    },
+    "gin": {
+      "indexing_ms": 544.1,
+      "vocabulary_materialize_ms": 7.1,
+      "stats_persist_ms": 2.7,
+      "stats_bytes": 102400,
+      "index_command_max_rss_bytes": 111542272
+    },
+    "tokio": {
+      "indexing_ms": 2312.1,
+      "vocabulary_materialize_ms": 15.8,
+      "stats_persist_ms": 4.0,
+      "stats_bytes": 126976,
+      "index_command_max_rss_bytes": 99287040
+    }
+  },
+  "lookup": {
+    "flask": {
+      "process_wall_s": 0.495,
+      "process_max_rss_bytes": 26902528,
+      "process_start_to_ready_ms": 7.895,
+      "dataset_open_ms": 4.825,
+      "stats_open_ms": 1.039,
+      "repeat_outputs_identical": true,
+      "first_pass_ms": {
+        "n": 92,
+        "median": 0.164,
+        "p90": 0.618,
+        "max": 2.248
+      },
+      "repeat_passes_ms": {
+        "n": 368,
+        "median": 0.127,
+        "p90": 0.519,
+        "max": 2.489
+      },
+      "output_bytes": {
+        "median": 5929,
+        "max": 125481
+      },
+      "raw_output_sha256": "cf0718d0c8b775b9548ff42ee5ae0f32a2189ce183cb67c9ee4626b7431d2568"
+    },
+    "gin": {
+      "process_wall_s": 0.556,
+      "process_max_rss_bytes": 28540928,
+      "process_start_to_ready_ms": 1.702,
+      "dataset_open_ms": 0.425,
+      "stats_open_ms": 1.154,
+      "repeat_outputs_identical": true,
+      "first_pass_ms": {
+        "n": 92,
+        "median": 0.118,
+        "p90": 0.444,
+        "max": 2.252
+      },
+      "repeat_passes_ms": {
+        "n": 368,
+        "median": 0.154,
+        "p90": 0.666,
+        "max": 2.527
+      },
+      "output_bytes": {
+        "median": 5973,
+        "max": 125464
+      },
+      "raw_output_sha256": "75b68ae122dca862bd0823daf128d462e15cbe6bb316ab7f2e813de0387f84e6"
+    },
+    "tokio": {
+      "process_wall_s": 0.445,
+      "process_max_rss_bytes": 27885568,
+      "process_start_to_ready_ms": 1.982,
+      "dataset_open_ms": 0.553,
+      "stats_open_ms": 1.293,
+      "repeat_outputs_identical": true,
+      "first_pass_ms": {
+        "n": 92,
+        "median": 0.155,
+        "p90": 0.548,
+        "max": 2.336
+      },
+      "repeat_passes_ms": {
+        "n": 368,
+        "median": 0.101,
+        "p90": 0.414,
+        "max": 1.872
+      },
+      "output_bytes": {
+        "median": 5974,
+        "max": 125368
+      },
+      "raw_output_sha256": "45e64650a4acf767804e40b0b476961dfe9692e5ccde203de42bf94773a9ac24"
+    },
+    "express": {
+      "process_wall_s": 0.415,
+      "process_max_rss_bytes": 26001408,
+      "process_start_to_ready_ms": 1.309,
+      "dataset_open_ms": 0.421,
+      "stats_open_ms": 0.771,
+      "repeat_outputs_identical": true,
+      "first_pass_ms": {
+        "n": 92,
+        "median": 0.097,
+        "p90": 0.385,
+        "max": 1.75
+      },
+      "repeat_passes_ms": {
+        "n": 368,
+        "median": 0.097,
+        "p90": 0.395,
+        "max": 1.821
+      },
+      "output_bytes": {
+        "median": 5972,
+        "max": 125522
+      },
+      "raw_output_sha256": "7408f368b936113b1565658fb973426a220a2a4513972dc8aa0b47e4540e01a3"
+    }
+  },
+  "memory_note": "max RSS is per whole process (dataset open + all lookups); per-lookup memory unmeasured"
+}

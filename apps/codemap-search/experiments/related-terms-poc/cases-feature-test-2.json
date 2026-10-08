@@ -1,0 +1,700 @@
+{
+ "schema": "rt-feature-test-cases/1",
+ "frozen_before_runs": true,
+ "round": "heldout-2",
+ "note": "Written by two independent authoring agents (no ranked search, lookup, or evaluation); merged without edits.",
+ "targets": {
+  "grafana": {
+   "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47",
+   "source": "benchmark/.cache/grafana (git archive of the commit)",
+   "snapshot_path": ".codemap/poc/related-terms/eval-targets/grafana",
+   "snapshot_root": "repository root",
+   "file_count": 22891,
+   "symlink_count": 7,
+   "git_tree_entry_count": 22898,
+   "size_bytes": 212412700,
+   "disk_usage_kib": 263736,
+   "question_source": "benchmark/v2/data/dataset.json",
+   "question_source_sha256": "eccfce8aca14c1c064e1ea481229ef5eeed01e5f37adca38a5834adcda447f67",
+   "question_source_spec_sha256": "97cbe223550ae49a7167113cc6cb47a6018dfa5bb65120f88a1ed4771012d349",
+   "exported_at": "2026-10-08"
+  },
+  "codemap-search": {
+   "commit": "46995808c69cc452bd2fcdd9fd146244d0a4c734",
+   "source": "apps/codemap-search (git archive of <commit>:apps/codemap-search)",
+   "snapshot_path": ".codemap/poc/related-terms/eval-targets/codemap-search",
+   "snapshot_root": "crate root (apps/codemap-search/ prefix stripped)",
+   "removed_paths": [
+    "experiments/"
+   ],
+   "removed_file_count": 1946,
+   "file_count": 876,
+   "symlink_count": 0,
+   "size_bytes": 14907787,
+   "disk_usage_kib": 16764,
+   "exported_at": "2026-10-08"
+  }
+ },
+ "cases": [
+  {
+   "id": "g2-01",
+   "language": "go",
+   "area": "datasources/plugins",
+   "target": "grafana",
+   "difficulty": "simple",
+   "prompt": "플러그인 서명 검증의 urlMatch는 매니페스트에 적힌 루트 URL과 대상 URL을 어떤 기준으로 같다고 판단하는가? 경로 끝 슬래시 차이의 처리와, glob 패턴 일치를 추가로 허용하는 서명 유형을 설명하라.",
+   "gold_paths": [
+    "pkg/plugins/manager/signature/manifest.go"
+   ],
+   "justification": "urlMatch가 scheme·host와 path.Clean한 RequestURI를 비교하고 SignatureTypePrivateGlob일 때만 glob.Compile 매칭을 추가로 시도한다."
+  },
+  {
+   "id": "g2-02",
+   "language": "ts",
+   "area": "alerting-ui",
+   "target": "grafana",
+   "difficulty": "simple",
+   "prompt": "경보 매처 문자열을 해석하는 parseMatcher는 입력에 여러 연산자 후보가 들어 있을 때 어느 연산자를 고르는가? 중괄호로 감싼 입력과 이름이 빈 입력의 처리, 그리고 결과의 isRegex·isEqual 값을 정하는 규칙을 설명하라.",
+   "gold_paths": [
+    "public/app/features/alerting/unified/utils/matchers.ts"
+   ],
+   "justification": "parseMatcher가 matcherOperators의 등장 위치를 정렬해 가장 앞선 연산자를 고르고, PromQL 형식 입력과 빈 이름에 오류를 던지며 연산자로 isRegex·isEqual을 계산한다."
+  },
+  {
+   "id": "g2-03",
+   "language": "go",
+   "area": "storage",
+   "target": "grafana",
+   "difficulty": "simple",
+   "prompt": "SQL 마이그레이터의 Migrator.exec는 마이그레이션 조건 SQL의 결과가 충족되지 않으면 어떻게 하는가? 코드 마이그레이션과 SQL이 공백뿐인 마이그레이션의 실행 차이, 그리고 doMigration이 실패를 마이그레이션 기록에 남기는 조건을 설명하라.",
+   "gold_paths": [
+    "pkg/services/sqlstore/migrator/migrator.go"
+   ],
+   "justification": "Migrator.exec가 condition.IsFulfilled가 거짓이면 경고 후 성공 처리하고 CodeMigration·빈 SQL을 분기하며, doMigration이 SkipMigrationLog가 아니면 실패 레코드를 트랜잭션 안에서 기록한다."
+  },
+  {
+   "id": "g2-04",
+   "language": "ts",
+   "area": "data-utilities",
+   "target": "grafana",
+   "difficulty": "simple",
+   "prompt": "rangeutil의 calculateInterval은 시간 범위와 해상도로 간격을 어떻게 구하고 lowLimitInterval이 있을 때 하한을 어떻게 적용하는가? describeInterval이 단위 없는 숫자 문자열과 지원하지 않는 단위를 받았을 때의 처리도 설명하라.",
+   "gold_paths": [
+    "packages/grafana-data/src/datetime/rangeutil.ts"
+   ],
+   "justification": "calculateInterval이 (to-from)/resolution을 roundInterval한 뒤 intervalToMs 하한을 적용하고, describeInterval이 단위 없는 숫자를 초로 해석하며 interval_regex 불일치 시 오류를 던진다."
+  },
+  {
+   "id": "g2-05",
+   "language": "go",
+   "area": "provisioning",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "파일로 프로비저닝한 대시보드의 JSON 파일을 디스크에서 지우면 Grafana 안의 대시보드는 삭제되는가? 삭제를 막는 설정이 켜진 경우와 꺼진 경우를 구분하고, 파일 내용이 바뀌지 않았을 때 다시 저장하지 않는 판단 기준과 데이터베이스 쓰기가 제한된 상황의 처리를 설명하라.",
+   "gold_paths": [
+    "pkg/services/provisioning/dashboards/file_reader.go"
+   ],
+   "justification": "FileReader.handleMissingDashboardFiles가 DisableDeletion 여부로 UnprovisionDashboard와 DeleteProvisionedDashboard 중 하나를 고르고, saveDashboard가 체크섬 비교와 isDatabaseAccessRestricted로 저장을 건너뛴다."
+  },
+  {
+   "id": "g2-06",
+   "language": "ts",
+   "area": "explore",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "Explore에서 실행한 쿼리가 브라우저에 쿼리 기록으로 저장될 때, 직전에 저장된 기록과 같은 쿼리로 보고 저장을 거부하는 비교 기준은 무엇인가? 보관 기간이 지난 항목과 최대 개수를 넘었을 때 어떤 항목부터 지우는지, 저장 공간이 가득 차 저장이 실패하면 몇 번까지 다시 시도하며 매번 무엇을 줄이는지 설명하라.",
+   "gold_paths": [
+    "public/app/core/history/RichHistoryLocalStorage.ts"
+   ],
+   "justification": "RichHistoryLocalStorage.addToRichHistory가 key·refId를 뺀 쿼리 비교, cleanUp(보관 기간 밖이지만 별표인 항목 유지), cleanUpUnstarredQuery(MAX_HISTORY_ITEMS), 재시도 3회의 저장 루프를 수행한다."
+  },
+  {
+   "id": "g2-07",
+   "language": "go",
+   "area": "folders/permissions",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "중첩 폴더를 다른 폴더 아래로 옮길 때 자기 하위 폴더 안으로 옮기거나 최대 깊이를 넘기는 이동은 어떻게 거부되는가? 하위 폴더들의 깊이 검사를 생략할 수 있는 조건과, 옮긴 뒤 사용자가 그 폴더에 더 높은 권한을 갖게 되는 이동을 막는 판단을 설명하라.",
+   "gold_paths": [
+    "pkg/registry/apis/folders/validate.go"
+   ],
+   "justification": "validateOnUpdate가 새 부모의 조상 목록으로 순환 참조와 최대 깊이를 검사하고 canSkipChildrenCheck·checkSubtreeDepth로 하위 깊이를, checkMoveAccess가 이전·새 위치의 권한 등급(resolveTier)을 비교한다."
+  },
+  {
+   "id": "g2-08",
+   "language": "ts",
+   "area": "dashboard-scene",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "대시보드 패널을 변수 값마다 반복해서 보여주도록 설정했는데 변수에 선택지가 하나도 없으면 무엇이 그려지는가? 가로 방향 반복에서 한 줄에 놓이는 기본 패널 수와 전체 높이 계산, 반복으로 높이가 늘어났을 때 아래 패널들의 위치 처리, 변수 값이 그대로면 다시 만들지 않는 조건을 설명하라.",
+   "gold_paths": [
+    "public/app/features/dashboard-scene/scene/layout-default/DashboardGridItem.tsx"
+   ],
+   "justification": "DashboardGridItem.performRepeat가 빈 옵션일 때 All/None 자리표시자를 쓰고 getMaxPerRow 기본값 4와 itemHeight로 높이를 계산하며 adjustYPositions와 _prevRepeatValues 비교를 처리한다."
+  },
+  {
+   "id": "g2-09",
+   "language": "go",
+   "area": "auth/login",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "로그인 쿠키를 가진 브라우저에 다른 출처의 페이지가 Grafana로 쓰기 요청을 보내게 하는 공격을 막는 검사는 어떤 요청을 검사 없이 통과시키는가? 요청의 출처 호스트가 서버 호스트와 다를 때 허용되는 조건과, 거부할 때와 출처 값을 해석할 수 없을 때의 응답 상태 코드를 설명하라.",
+   "gold_paths": [
+    "pkg/middleware/csrf/csrf.go"
+   ],
+   "justification": "CSRF.check가 로그인 쿠키 부재(항상 검사 설정 제외)·HEAD/OPTIONS/TRACE·안전 엔드포인트·Origin 부재를 통과시키고 호스트 일치·신뢰 출처·추가 헤더 비교로 403 또는 400을 결정한다."
+  },
+  {
+   "id": "g2-10",
+   "language": "ts",
+   "area": "data-utilities",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "그래프 범례나 표 머리글에 보이는 시리즈 이름은 어떤 우선순위로 정해지는가? 사용자가 지정한 표시 이름, 데이터 소스가 내려준 이름, 레이블 조합의 순서를 설명하고, 여러 결과 중 레이블 하나만 다를 때 그 값만 쓰는 경우, 한 결과 안에 같은 이름의 열이 겹칠 때 구분 방식, 이전 기간 비교 시리즈의 표기를 설명하라.",
+   "gold_paths": [
+    "packages/grafana-data/src/field/fieldState.ts"
+   ],
+   "justification": "calculateFieldDisplayName이 config.displayName·displayNameFromDS·프레임 이름·레이블(getSingleLabelName) 순으로 조합하고 getUniqueFieldName과 비교 시리즈 접미사를 붙인다."
+  },
+  {
+   "id": "g2-11",
+   "language": "go",
+   "area": "apiserver",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "주기적으로 도는 정리 작업은 오래된 단축 링크 중 어떤 것만 삭제하는가? 만료 기간 설정이 0일 때, 한 번이라도 열린 링크, 이미 지워진 링크를 만났을 때의 처리를 설명하고, 전체 정리 작업의 실행 주기와 한 번 실행의 시간 제한도 설명하라.",
+   "gold_paths": [
+    "pkg/services/cleanup/cleanup.go"
+   ],
+   "justification": "CleanUpService.Run/clean이 10분 주기·9분 제한으로 작업을 돌리고, ShortLinkExpiration>0일 때만 deleteStaleShortURLs가 LastSeenAt==0이면서 만료 기준 이전에 생성된 링크를 조직별로 삭제한다."
+  },
+  {
+   "id": "g2-12",
+   "language": "ts",
+   "area": "explore/logs",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "로그 목록에서 반복되는 줄을 하나로 접는 기능은 '정확히 일치', '숫자 무시', '서명' 방식에서 각각 비교 전에 무엇을 지우는가? 연속하지 않은 같은 줄도 합쳐지는지, 합쳐진 개수는 어느 줄에 세는지 설명하라.",
+   "gold_paths": [
+    "public/app/features/logs/logsModel.ts"
+   ],
+   "justification": "dedupLogRows가 직전 결과 행과 isDuplicateRow(ISO 날짜·숫자·단어 문자 제거 비교)로 비교해 앞 행의 duplicates를 늘린다."
+  },
+  {
+   "id": "g2-13",
+   "language": "go",
+   "area": "alerting",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "경보 규칙을 평가했는데 데이터가 하나도 오지 않았을 때 규칙 설정에 따라 경보 인스턴스 상태는 어떻게 바뀌는가? '데이터 없음' 상태로 두는 설정에서 대기 기간이 있는 규칙, 이미 대기 중인 인스턴스, 회복 중인 인스턴스를 구분하고, '마지막 상태 유지' 설정일 때 대기 중이던 인스턴스의 처리를 설명하라.",
+   "gold_paths": [
+    "pkg/services/ngalert/state/state.go"
+   ],
+   "justification": "resultNoData가 NoDataState별로 resultAlerting·resultNormal·resultKeepLast로 분기하고 For 기간과 Recovering 여부로 Pending·NoData 전환을 정한다."
+  },
+  {
+   "id": "g2-14",
+   "language": "ts",
+   "area": "variables",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "대시보드 변수에서 '전체(All)'를 선택한 뒤 쿼리 문자열에 그 변수를 넣으면 어떤 값으로 치환되는가? 사용자 지정 전체 값이 있을 때 형식 지정을 건너뛰는 조건, 반복 패널처럼 범위가 정해진 값이 대시보드 변수보다 먼저 쓰이는 순서, 정의되지 않은 변수 이름이 그대로 남는 경우를 설명하라.",
+   "gold_paths": [
+    "public/app/features/templating/template_srv.ts"
+   ],
+   "justification": "TemplateSrv._evaluateVariableExpression이 scopedVars 우선, macroRegistry 대체, isAllValue일 때 getAllValue와 사용자 지정 allValue의 형식 생략을 처리한다."
+  },
+  {
+   "id": "g2-15",
+   "language": "go",
+   "area": "dashboards-service",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "서버가 오래된 대시보드 JSON을 최신 스키마 버전으로 올릴 때, 버전별 변환을 시작하기 전에 프런트엔드 저장 형식과 맞추려고 어떤 정리와 기본값 적용을 하는가? 특정 버전 단계가 실패하면 오류에 어떤 정보가 담기는지, 모든 단계를 마친 뒤 목표 버전에 도달하지 못했을 때의 처리를 설명하라.",
+   "gold_paths": [
+    "apps/dashboard/pkg/migration/migrate.go"
+   ],
+   "justification": "migrator.migrate가 내보내기용 속성 삭제·applyFrontendDefaults·EnsurePanelsHaveUniqueIds 후 버전 루프를 돌고 NewMigrationError에 입력·실패 버전과 함수명을 담으며 최종 버전 불일치도 오류로 반환한다."
+  },
+  {
+   "id": "g2-16",
+   "language": "ts",
+   "area": "panels/visualizations",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "큰 숫자 하나를 보여주는 단일 값 패널에서 텍스트 표시를 자동으로 두었을 때 값만 보이다가 이름까지 함께 보이게 되는 조건은 무엇인가? 최소·최대를 지정하지 않은 숫자 필드의 범위를 정하는 방법, 그래프 모드를 끈 경우 작은 추세 그래프 계산 여부, 데이터 링크가 있을 때 클릭 동작을 설명하라.",
+   "gold_paths": [
+    "public/app/plugins/panel/stat/StatPanel.tsx"
+   ],
+   "justification": "StatPanel의 getTextMode(Auto→ValueAndName 조건), getValues(findNumericFieldMinMax 전역 범위와 sparkline 플래그), renderValue(DataLinksContextMenu)가 결정한다."
+  },
+  {
+   "id": "g2-17",
+   "language": "go",
+   "area": "search",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "대시보드 검색 API로 별표한 대시보드만 요청했는데 사용자가 별표한 대시보드가 하나도 없으면 어떻게 응답하는가? 별표 대상 식별자를 검색 조건에 미리 넣는 경우와, 정렬 옵션을 지정하지 않았을 때 폴더와 대시보드의 순서·제목 대소문자·태그 정렬을 설명하라.",
+   "gold_paths": [
+    "pkg/services/search/service.go",
+    "pkg/services/search/model/model.go"
+   ],
+   "justification": "SearchService.SearchHandler가 별표 집합으로 조기 반환과 UID 필터 채우기를 하고 Sort가 비면 sortedHits가 HitList.Less(폴더 우선, 소문자 제목 비교)와 태그 정렬을 적용한다."
+  },
+  {
+   "id": "g2-18",
+   "language": "ts",
+   "area": "panels/visualizations",
+   "target": "grafana",
+   "difficulty": "medium",
+   "prompt": "시계열 그래프 패널에 참/거짓 값 열을 넣으면 어떤 숫자로 바뀌고 선 보간 방식과 단위는 어떻게 강제되는가? 숫자 열에 무한대나 숫자가 아닌 값이 섞였을 때의 처리와, 시간 열이나 값 열이 없는 결과가 그래프에서 빠지는 조건을 설명하라.",
+   "gold_paths": [
+    "public/app/plugins/panel/timeseries/utils.ts"
+   ],
+   "justification": "prepareGraphableFields가 boolean을 0/1·min/max·StepAfter·bool 단위로 바꾸고 유한하지 않은 숫자를 null로 치환하며 hasTimeField·hasValueField로 프레임을 거른다."
+  },
+  {
+   "id": "g2-19",
+   "language": "go",
+   "area": "auth/login",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "비밀번호 로그인이 반복해서 실패하면 일시적으로 로그인을 막는다. 사용자 이름 기준 차단과 접속 IP 기준 차단을 어떤 순서로 검사하며 사용자에게 보이는 오류 문구는 어떻게 다른가? 실패 기록을 남기는 시점(여러 비밀번호 인증 수단을 모두 시도한 뒤인지), 실패 횟수를 세는 시간 범위, 오래된 실패 기록을 정리하는 주기와 여러 서버의 중복 정리를 막는 방법을 설명하라.",
+   "gold_paths": [
+    "pkg/services/authn/clients/password.go",
+    "pkg/services/loginattempt/loginattemptimpl/login_attempt.go"
+   ],
+   "justification": "Password.AuthenticatePassword가 Validate→ValidateIPAddress 뒤 모든 클라이언트가 실패하면 Add를 호출하고, loginattemptimpl.Service가 5분 창 집계와 serverlock 기반 10분 주기 cleanup을 담당한다."
+  },
+  {
+   "id": "g2-20",
+   "language": "ts",
+   "area": "dashboard-scene",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "대시보드를 고친 뒤 다른 페이지로 이동하거나 브라우저 탭을 닫을 때 '저장하지 않은 변경' 확인을 띄우지 않는 경우는 언제인가? 저장 권한, 파일이나 스크립트로 만든 대시보드, 빈 새 대시보드 같은 조건과 같은 대시보드 안 이동, 라이브러리 패널을 편집하다 떠날 때의 처리를 구분하라. 또한 시간 범위나 자동 새로고침 주기만 바뀐 경우를 실제 변경으로 치는지 판단하는 비교 방식을 설명하라.",
+   "gold_paths": [
+    "public/app/features/dashboard-scene/saving/DashboardPrompt.tsx",
+    "public/app/features/dashboard-scene/saving/getDashboardChanges.ts"
+   ],
+   "justification": "DashboardPrompt의 onHistoryBlock·beforeunload 처리와 ignoreChanges가 예외 조건을 정하고, getRawDashboardChanges가 saveTimeRange·saveRefresh가 없으면 원래 값으로 되돌린 뒤 jsonDiff로 변경 수를 센다."
+  },
+  {
+   "id": "g2-21",
+   "language": "go",
+   "area": "alerting",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "많은 경보 규칙이 같은 순간에 몰려 평가되지 않도록 평가 시점을 분산하는 방식을 추적하라. 같은 규칙 그룹이 같은 오프셋을 받는 기본 방식, 규칙마다 다른 오프셋을 받는 조건, 분산을 끄는 설정을 구분하라. 또한 스케줄러가 각 틱에서 규칙 실행 여부를 판정하는 식, 최소 평가 간격 보정, 간격이 기본 틱의 배수가 아닌 규칙의 처리, 같은 틱 안에서 실행 시작을 흩뜨리는 방법을 설명하라.",
+   "gold_paths": [
+    "pkg/services/ngalert/schedule/jitter.go",
+    "pkg/services/ngalert/schedule/schedule.go"
+   ],
+   "justification": "JitterStrategyFrom과 jitterOffsetInTicks(그룹 또는 UID 레이블 fingerprint를 빈도로 나눈 나머지)가 오프셋을 정하고, schedule.processTick이 minRuleInterval 보정·invalidInterval 제외·tickNum%itemFrequency 판정을, runSequences가 step 간격 분산을 수행한다."
+  },
+  {
+   "id": "g2-22",
+   "language": "ts",
+   "area": "data-utilities",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "여러 쿼리 결과를 공통 열로 묶어 하나의 표로 합치는 변환에서 기준 열을 지정하지 않으면 무엇을 기준으로 삼는가? 기준 열이 없는 결과가 섞였을 때 외부 결합과 내부 결합의 결과 차이, 결과가 하나뿐일 때의 처리, 기준 값이 오름차순이 아닐 때의 정렬, 원래 결과 이름이 합쳐진 열의 이름이나 레이블에 반영되는 방식을 설명하라.",
+   "gold_paths": [
+    "packages/grafana-data/src/transformations/transformers/joinByField.ts",
+    "packages/grafana-data/src/transformations/transformers/joinDataFrames.ts"
+   ],
+   "justification": "joinByFieldTransformer가 byField로 matcher를 만들고, joinDataFrames가 pickBestJoinField(첫 시간 필드), droppedFrame와 내부 결합 빈 결과, maybeSortFrame, 프레임 이름의 name 레이블 반영을 처리한다."
+  },
+  {
+   "id": "g2-23",
+   "language": "go",
+   "area": "auth/login",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "브라우저가 로그인 세션 쿠키 교체를 요청하면 서버는 언제 새 쿠키를 내려주고, 쿠키가 비어 있거나 세션을 찾지 못하면 어떤 상태 코드와 쿠키 처리를 하는가? 같은 세션의 교체 요청이 동시에 여러 개 들어올 때 중복 교체를 막는 방식, 몇 초 안에 이미 교체된 세션을 건너뛰는 조건, 교체 직전 값으로 들어온 요청을 받아들이는 조회 규칙을 설명하라.",
+   "gold_paths": [
+    "pkg/api/user_token.go",
+    "pkg/services/auth/authimpl/auth_token.go"
+   ],
+   "justification": "HTTPServer.RotateUserAuthToken·rotateToken이 응답 코드와 WriteSessionCookie·DeleteSessionCookie를 정하고, UserAuthTokenService.RotateToken이 singleflight와 SkipRotationTime을, LookupToken이 이전 토큰 허용과 긴급 회전 표시를 처리한다."
+  },
+  {
+   "id": "g2-24",
+   "language": "ts",
+   "area": "alerting-ui",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "경보 규칙 목록 검색창에 '키:값' 형태 필터와 일반 단어를 섞어 입력하면 어떻게 필터 조건으로 바뀌는가? 상태 값으로 'normal'을 쓰면 어떤 상태로 해석되는지, 연락처 필터와 알림 정책 필터를 동시에 넣으면 어느 쪽이 남는지 설명하라. 또한 필터를 바꾼 뒤 검색 문자열을 다시 만들 때 기존 순서 유지 방식과 공백이 들어간 값의 처리를 설명하라.",
+   "gold_paths": [
+    "public/app/features/alerting/unified/search/rulesSearchParser.ts",
+    "public/app/features/alerting/unified/search/searchParser.ts"
+   ],
+   "justification": "getSearchFilterFromQuery·parseStateToken·buildRoutingFilter(정책 우선)와 applySearchFilterToQuery가 searchParser.ts의 parseQueryToFilter·applyFiltersToQuery·getSafeFilterValue를 사용한다."
+  },
+  {
+   "id": "g2-25",
+   "language": "go",
+   "area": "datasources/plugins",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "데이터 소스 프록시가 브라우저 요청을 외부 API로 중계할 때, 플러그인이 정의한 경로 규칙과 일치하는지 어떻게 판단하고 그 규칙에 걸린 역할·권한 조건은 어떻게 검사하는가? 일치한 규칙에 따라 대상 주소·헤더·인증 토큰을 바꾸는 과정에서 데이터 소스 설정이 규칙의 인증 방식을 덮어쓰는 조건과 인증 방식이 비었을 때의 대체 순서를 설명하고, 어떤 규칙과도 맞지 않는 쓰기 요청이 거부되는 데이터 소스 종류도 설명하라.",
+   "gold_paths": [
+    "pkg/api/pluginproxy/ds_proxy.go",
+    "pkg/api/pluginproxy/ds_auth_provider.go"
+   ],
+   "justification": "DataSourceProxy.validateRequest·hasAccessToRoute가 메서드와 CleanRelativePath 접두사 비교, ReqAction·ReqRole을 검사하고 director가 ApplyRoute를 호출하며 getTokenProvider가 authenticationType 덮어쓰기와 tokenAuth→jwtTokenAuth 대체를 처리한다."
+  },
+  {
+   "id": "g2-26",
+   "language": "ts",
+   "area": "explore",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "Explore의 로그 줄에서 추적 ID를 눌러 옆 창에 다른 데이터 소스 쿼리를 여는 내부 링크를 만들 때, 링크 식에서 쓸 수 있는 값(현재 값, 같은 행의 다른 열, 로그 레이블)은 어떻게 채워지는가? 아직 값이 없는 변수가 있으면 링크를 숨기는 조건과 기본 제공 시간 변수를 예외로 두는 이유, Explore 접근 권한이 없는 사용자에게 내부 링크를 다루는 방식, 쿼리에 데이터 소스 지정이 빠졌을 때 채우는 처리를 설명하라.",
+   "gold_paths": [
+    "public/app/features/explore/utils/links.ts",
+    "packages/grafana-data/src/utils/dataLinks.ts"
+   ],
+   "justification": "getFieldLinksForExplore가 __value·__data·로그 레이블 scopedVars를 만들고 getVariableUsageInfo(builtInVariables 제외)와 dataLinkHasRequiredPermissionsFilter로 거른 뒤, mapInternalLinkToExplore가 datasource.uid 보충과 쿼리 보간을 수행한다."
+  },
+  {
+   "id": "g2-27",
+   "language": "go",
+   "area": "alerting/expressions",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "경보나 패널의 서버측 식에서 시계열을 숫자 하나로 줄일 때 값에 NaN·무한대·빈 값이 섞이면 결과가 어떻게 되는가? 기본 동작, 숫자가 아닌 값을 버리는 모드, 지정 값으로 바꾸는 모드를 구분하라. 또한 바꾸기 모드에서 대체 값이 빠졌을 때의 오류, 입력이 이미 숫자 하나일 때 경고를 붙이거나 결과에서 빠지는 조건을 설명하라.",
+   "gold_paths": [
+    "pkg/expr/mathexp/reduce.go",
+    "pkg/expr/commands.go"
+   ],
+   "justification": "UnmarshalReduceCommand가 settings.mode로 DropNonNumber·ReplaceNonNumberWithValue를 만들고, ReduceCommand.Execute와 Series.Reduce·mapSeries·MapOutput이 NaN 전파·제거·대체와 Number 입력 경고를 처리한다."
+  },
+  {
+   "id": "g2-28",
+   "language": "ts",
+   "area": "query-editors",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "SQL 계열 데이터 소스 쿼리 편집기에서 코드 모드로 직접 고친 SQL이 있을 때 빌더 모드로 돌아가려 하면 무슨 일이 일어나는가? 확인 창에서 복사하거나 버리기를 고를 때 원문 SQL과 편집 모드의 변화를 설명하라. 또한 데이터셋이나 테이블을 바꿀 때 기존 쿼리 내용 초기화와, 빌더에서 고른 열·집계 함수·별칭이 SELECT 절 문자열로 만들어지는 방식을 설명하라.",
+   "gold_paths": [
+    "packages/grafana-sql/src/components/QueryHeader.tsx",
+    "packages/grafana-sql/src/utils/sql.utils.ts"
+   ],
+   "justification": "QueryHeader의 onEditorModeChange·ConfirmModal의 onCopy/onDiscard·onDatasetChange·onTableChange가 모드 전환과 초기화를 처리하고, sql.utils.ts의 createSelectClause가 SELECT 절을 조립한다."
+  },
+  {
+   "id": "g2-29",
+   "language": "go",
+   "area": "live/streaming",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "외부 수집기가 HTTP로 측정값을 Grafana 실시간 스트림에 밀어 넣을 때, 요청 본문 크기 제한과 프레임 형식 선택, 지원하지 않는 형식일 때의 응답 코드는 무엇인가? 변환된 각 프레임을 채널에 게시할 때 구조가 바뀌었는지에 따라 전체 또는 데이터만 보내는 판단, 새 구독자가 받는 초기 데이터, 데이터 소스·플러그인 범위 스트림의 게시 경로 차이를 설명하라.",
+   "gold_paths": [
+    "pkg/services/live/pushhttp/push.go",
+    "pkg/services/live/convert/convert.go",
+    "pkg/services/live/managedstream/runner.go"
+   ],
+   "justification": "Gateway.Handle이 500KB MaxBytesReader와 ErrUnsupportedFrameFormat의 400 응답을 처리하고, Converter.Convert가 wide/labels_column 변환기를 고르며, Stream.Push·OnSubscribe가 frameCache 갱신 여부에 따른 포함 범위와 캐시 프레임 응답을 담당한다."
+  },
+  {
+   "id": "g2-30",
+   "language": "ts",
+   "area": "routing",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "로그인하지 않은 사용자가 특정 대시보드 주소로 들어왔다가 로그인한 뒤 원래 가려던 페이지로 돌아가는 처리를 추적하라. 돌아갈 주소를 어디에 잠시 보관하며 URL 토큰으로 로그인한 경우 왜 건너뛰는지, 다른 출처 주소로의 이동을 막는 조건과 다른 조직의 주소일 때 전체 페이지를 다시 여는 이유를 설명하라. 또한 이 처리가 앱 시작 중 언제 어떤 기능 설정에서만 실행되는지, 단축 링크 주소가 클라이언트 라우터를 거치지 않고 서버로 넘어가는 방식을 설명하라.",
+   "gold_paths": [
+    "public/app/core/navigation/handleRedirectTo.ts",
+    "public/app/app.ts",
+    "public/app/routes/routes.tsx"
+   ],
+   "justification": "handleRedirectTo가 sessionStorage 보관·auth_token 예외·same-origin과 orgId 검사를 하고, app.ts가 useSessionStorageForRedirection 플래그와 orgId getter 등록 뒤 호출하며, routes.tsx의 HandleGoToRedirect가 단축 링크 경로를 서버로 보낸다."
+  },
+  {
+   "id": "g2-31",
+   "language": "go",
+   "area": "auth/login",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "일반 OAuth 공급자로 로그인할 때 사용자 정보를 ID 토큰, 사용자 정보 API, 액세스 토큰 중 어떤 순서로 모으며 같은 항목이 여러 곳에 있으면 어느 값을 쓰는가? 역할 속성 표현식으로 조직 역할을 정하지 못하거나 잘못된 역할이 나왔을 때 엄격 모드에서 거부되는 조건, 역할 동기화를 건너뛰는 설정의 영향, 허용 그룹·팀·조직 소속 검사에서 탈락했을 때의 처리를 설명하라.",
+   "gold_paths": [
+    "pkg/login/social/connectors/generic_oauth.go",
+    "pkg/login/social/connectors/social_base.go"
+   ],
+   "justification": "SocialGenericOAuth.UserInfo가 collectUserInfoData·buildUserInfo(첫 값 우선)·postProcessUserInfo·validateUserAccess를 거치고, SocialBase.extractRoleAndAdminOptional·searchRole·isGroupMember가 RoleAttributeStrict와 그룹 검사를 처리한다."
+  },
+  {
+   "id": "g2-32",
+   "language": "ts",
+   "area": "dashboard-scene",
+   "target": "grafana",
+   "difficulty": "complex",
+   "prompt": "대시보드의 패널 하나만 '최근 24시간'처럼 다른 상대 시간을 쓰거나 시간을 뒤로 밀어 보여주도록 설정했다. 대시보드 시간이 절대 시간일 때 상대 시간 덮어쓰기가 적용되는지, 이동 값이 잘못된 형식일 때 패널 머리글에 표시되는 내용, 그 패널에서 드래그로 확대했을 때 대시보드 시간에 되돌려 반영하는 계산을 설명하라. 또한 이전 기간과 비교하는 추가 쿼리를 만들 때 비교 구간 계산, 쿼리 식별자 구분, 비교에서 빠지는 쿼리 조건을 설명하라.",
+   "gold_paths": [
+    "public/app/features/dashboard-scene/scene/panel-timerange/PanelTimeRange.tsx",
+    "public/app/features/dashboard-scene/scene/panel-timerange/utils.ts"
+   ],
+   "justification": "PanelTimeRange.getTimeOverride가 isRelativeTimeRange 조건과 잘못된 값 표시를, onTimeRangeChange가 '+' 역이동을, getExtraQueries가 utils.ts의 getCompareTimeRange(직전 기간 계산)·getCompareSeriesRefId·timeRangeCompare 제외를 처리한다."
+  },
+  {
+   "id": "c2-01",
+   "target": "codemap-search",
+   "difficulty": "simple",
+   "prompt": "parse_source는 파일 하나의 구문 분석에 어떤 시간 제한을 두고, 제한을 넘으면 분석을 어떻게 멈추는가? 멈춘 파서를 다른 파일에 다시 쓰기 전에 하는 처리와, 시간 초과와 그 밖의 분석 실패가 각각 어떤 오류 문구로 구분되는지 설명하라.",
+   "gold_paths": [
+    "src/parser/bounded.rs"
+   ],
+   "justification": "parse_with_limit가 진행 콜백에서 PARSE_TIME_LIMIT(5000ms) 경과 시 Break로 중단하고, 실패하면 parser.reset()으로 이어 하기 상태를 지운 뒤 시간 초과 문구와 일반 실패 문구를 구분해 돌려준다."
+  },
+  {
+   "id": "c2-02",
+   "target": "codemap-search",
+   "difficulty": "simple",
+   "prompt": "LimitedLineReader::next_line은 입력에서 한 줄을 꺼낼 때 줄 끝의 LF와 CR을 어떻게 떼어 내는가? 줄바꿈 없이 입력이 끝났을 때, 쌓인 버퍼가 max_line_length를 넘을 때, UTF-8이 아닐 때의 결과를 구분하고, 큰 프레임에서 이미 확인한 앞부분을 다시 훑지 않도록 하는 처리도 설명하라.",
+   "gold_paths": [
+    "src/mcp/protocol.rs"
+   ],
+   "justification": "LimitedLineReader::next_line이 search_start 이후 구간에서만 '\\n'을 찾고 끝의 \\n·\\r을 잘라내며, EOF에 남은 버퍼는 마지막 줄로 돌려주고 버퍼가 max_line_length를 넘으면 'Max line length exceeded', 잘못된 UTF-8은 'Invalid UTF-8' 오류를 낸다."
+  },
+  {
+   "id": "c2-03",
+   "target": "codemap-search",
+   "difficulty": "simple",
+   "prompt": "redact 모듈의 hidden은 가릴 값을 무엇으로 바꾸는가? 값이 [REDACTED] 표시보다 짧을 때와 여러 줄일 때(CRLF 포함) 결과 길이와 줄바꿈은 어떻게 되는가? mask_ranges가 겹치거나 맞닿은 탐지 범위를 합치는 규칙도 설명하라.",
+   "gold_paths": [
+    "src/redact/transform.rs"
+   ],
+   "justification": "hidden이 줄마다 본문 길이가 MARKER('[REDACTED]') 이상이면 표시로, 짧으면 같은 길이의 '*'로 바꾸고 줄 끝 \\r\\n을 그대로 붙여 결과가 길어지지 않게 하며, mask_ranges는 정렬 후 start ≤ 직전 end인 범위를 하나로 합친 뒤 hidden을 적용한다."
+  },
+  {
+   "id": "c2-04",
+   "target": "codemap-search",
+   "difficulty": "simple",
+   "prompt": "declarations::visibility는 Rust 기호의 공개 범위 표시를 어떤 순서로 정하는가? 트레이트 정의 안의 메서드와 트레이트 구현 블록 안의 메서드, impl 기호 자체, 함수 안 지역 기호, Rust가 아닌 언어의 기호는 각각 어떤 값이 되는가?",
+   "gold_paths": [
+    "src/declarations.rs"
+   ],
+   "justification": "visibility가 impl은 None, 필드가 아닌 지역 기호는 'local', Rust는 visibility_modifier 문자열→trait_item 또는 trait가 있는 impl_item 조상이면 'trait member'→그 외 'private'를 고르고, 다른 언어는 is_exported로 'exported'/'not exported'를 돌려준다."
+  },
+  {
+   "id": "c2-05",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "한 파일 안에 화면 마크업과 스크립트·스타일 블록을 함께 담는 프런트엔드 컴포넌트 파일에서 코드 부분만 골라 색인한다. 골라낸 코드의 줄·열 위치가 원래 파일과 그대로 맞도록 만드는 방법은 무엇인가? 형식에 따라 문서 안쪽 깊숙이 들어 있는 스크립트까지 받아들이는지 최상위 블록만 받는지, 닫히지 않은 블록, 스타일 블록에 모르는 언어가 지정됐을 때, 파일 맨 위의 설정 구획이 닫히지 않았을 때의 처리를 구분하라.",
+   "gold_paths": [
+    "src/parser/composite.rs"
+   ],
+   "justification": "SourceMasks::copy_code가 블록마다 원본과 같은 길이로 코드 밖 바이트를 공백(줄바꿈 유지)으로 채운 버퍼를 만들고, extract_embedded_sources는 Astro만 중첩된 소문자 script를 허용하며 닫는 태그가 없으면 중단하고, style_grammar는 모르는 lang을 건너뛰며, extract_sources는 닫히지 않은 frontmatter면 아무것도 추출하지 않는다."
+  },
+  {
+   "id": "c2-06",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "저장소 구조 요약 화면에 언어별 코드·주석·빈 줄 수 통계를 붙여 달라고 하면, 큰 저장소에서는 한 번의 요청에서 몇 개 파일·얼마의 바이트까지만 세고 나머지는 어떻게 안내하는가? 다시 요청했을 때 이미 센 파일을 재사용하는 조건, 색인된 뒤 내용이 바뀐 파일이나 읽는 도중 바뀐 파일을 세지 않는 이유, 표에 보여주는 언어 수 상한을 설명하라.",
+   "gold_paths": [
+    "src/tools/overview/stats.rs"
+   ],
+   "justification": "render·count_file이 요청당 STATS_REQUEST_FILE_LIMIT(256)개·STATS_REQUEST_BYTE_LIMIT(64MiB) 예산을 넘는 파일을 pending으로 남겨 재요청을 안내하고, 작업 공간·스냅샷·크기·수정 시각을 담은 CacheKey로 결과를 재사용하며(다른 스냅샷 항목은 prune), 스냅샷 이후 수정·읽는 중 변경은 unavailable로 세고 언어 행은 STATS_LANGUAGE_ROW_LIMIT(30)개까지 출력한다."
+  },
+  {
+   "id": "c2-07",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "에이전트가 어떤 파일을 읽고 검색했는지 로컬 기록으로 남기는 기능은 어떤 도구 호출만 기록하며, 검색 문장이나 파일 내용도 저장하는가? 기록은 며칠 동안 보관되고 언제 지워지는가(기록을 꺼 둔 상태 포함)? 기록 파일이 잠겨 있거나 쓰기에 실패하면 도구 응답과 경고 출력은 어떻게 되는지, 실패한 호출의 파일 정보도 남기는지 설명하라.",
+   "gold_paths": [
+    "src/analyze/storage.rs"
+   ],
+   "justification": "CallRecorder::record가 read/search/grep만 경로·크기·바이트 수로 기록하고 오류 호출은 파일 관찰 없이 호출 행만 남기며, append와 maintain(기록이 꺼져도 기존 DB만 열어 정리)이 RETENTION_MS(30일) 지난 행을 지우고, 250ms busy_timeout과 report의 연속 실패 1회 경고로 응답에 영향을 주지 않는다."
+  },
+  {
+   "id": "c2-08",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "파일 내용 검색에서 파일 이름 조건을 여러 개 줄 때 공백과 쉼표로 어떻게 나누고, 중괄호로 묶은 선택지는 어떻게 지켜지는가? 제외 조건('!'로 시작)만 주었을 때와 포함 조건이 하나라도 있을 때 어느 조건에도 걸리지 않은 파일의 포함 여부가 어떻게 달라지는지, 조건 앞의 './'나 역슬래시를 다루는 방식도 설명하라.",
+   "gold_paths": [
+    "src/tools/mod.rs"
+   ],
+   "justification": "split_grep_globs가 공백으로 나눈 뒤 '{'와 '}'를 모두 가진 토큰은 유지하고 나머지는 쉼표로 나누며, normalize_glob_prefix가 '!'를 보존한 채 '\\\\'를 '/'로, 앞의 './'를 반복 제거하고, GlobMatcher::is_match_entry는 아무 규칙에도 걸리지 않은 경로를 포함 규칙이 없을 때(has_whitelist=false)만 통과시킨다."
+  },
+  {
+   "id": "c2-09",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "메서드 이름과 모양만 맞으면 따로 선언하지 않아도 인터페이스를 만족한 것으로 보는 언어에서, 어떤 타입을 어떤 인터페이스의 구현 후보로 연결하는 기준은 무엇인가? 찾는 범위(같은 폴더의 패키지), 매개변수와 반환 타입 비교, 서로 다른 파일에서 같은 이름의 사용자 정의 타입이 쓰였을 때, 한 인터페이스 메서드에 맞는 메서드가 여럿일 때를 설명하라. 포인터로 받는 메서드 때문에 성립한 경우 결과에 붙는 표시도 설명하라.",
+   "gold_paths": [
+    "src/implementations/relations.rs",
+    "src/implementations/render.rs"
+   ],
+   "justification": "connect_go가 같은 상위 폴더·같은 namespace의 완전한 타입만 후보로 삼아 인터페이스의 모든 메서드에 matches가 정확히 1개일 때 연결하고, matches는 이름·매개변수·한정자·반환 타입 일치를 요구하되 파일/namespace가 다르면 내장 타입만 허용하며, render.rs가 is_pointer 연결에 '[pointer receiver; *T method set]'를 붙인다."
+  },
+  {
+   "id": "c2-10",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "러스트 코드에서 운영체제별 조건을 걸어 같은 이름의 함수나 모듈을 여러 벌 둔 경우, 호출 대상을 고를 때 각 정의가 지금 분석 대상에서 살아 있는지 어떻게 판단하는가? 대상 운영체제를 설정하지 않았을 때, '모두/하나라도/아님' 조합과 알 수 없는 조건, 테스트 전용 조건, 조건부로 속성을 붙이는 형태를 구분하라. 파일 자체가 상위 모듈 선언의 조건 아래 있을 때와 한 파일을 상위에서 여러 번 선언했을 때도 설명하라.",
+   "gold_paths": [
+    "src/callers/resolution/rust_cfg.rs",
+    "src/callers/resolution/rust_files.rs"
+   ],
+   "justification": "rust_cfg의 Predicate::expression이 target_os만 설정값과 비교(미설정·다른 키는 Unknown)하고 all/any/not을 True/False/Unknown 3값으로 계산하며, attribute는 cfg(test)=True·cfg_attr=Unknown·그 밖의 속성=True로 두고, rust_file_condition은 상위 mod 선언 조건을 모아 활성 선언이 하나면 상위 파일 조건과 AND, 여럿이면 Unknown, 모두 거짓이면 False로 정한다."
+  },
+  {
+   "id": "c2-11",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "저장소에서 처음 실행할 때 만들어지는 설정 파일과 빈 자격 정보 파일의 설명 문구를 한국어로 쓸지 영어로 쓸지는 무엇을 보고 정하는가? 운영체제별로 선호 언어 목록을 얻는 방법, 목록의 몇 번째 값을 보는지, 언어 정보가 없는 기본 로캘 값이나 빈 값, 지역·인코딩 꼬리표가 붙은 값을 해석하는 규칙과 목록을 얻다가 실패했을 때를 설명하라.",
+   "gold_paths": [
+    "src/config_locale.rs"
+   ],
+   "justification": "config_comment_language가 provider::preferred_locale_tags(macOS CFLocaleCopyPreferredLanguages, Windows GetUserPreferredUILanguages, Linux sys_locale)의 첫 값만 from_locale_tag로 해석해 '.'/'@' 뒤를 버리고 '-'/'_' 앞 언어가 ko일 때만 Korean을 고르며, 빈 값·C·POSIX·빈 목록·panic은 English로 둔다."
+  },
+  {
+   "id": "c2-12",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "처음 설정 파일을 만들 때 저장소 안의 프로젝트 종류를 알아보고 색인에서 뺄 빌드 결과물·의존성 폴더 목록을 미리 채워 준다. 하위 폴더에 따로 있는 프로젝트까지 찾는 방식, 찾은 폴더를 저장소 어디에서나 적용되도록 적는 형식, 이미 제외된 폴더나 의존성 설치 폴더 안의 프로젝트 표시 파일을 무시하는 이유를 설명하라. 사용자가 적은 제외 항목 중 거부되는 형태도 구분하라.",
+   "gold_paths": [
+    "src/workspace/exclusions.rs"
+   ],
+   "justification": "recommended_directories가 COMMON_DIRECTORIES에서 시작해 깊이 1 워커로 폴더를 차례로 내려가며 project_patterns의 표식 파일별 폴더를 '**/' 재귀 패턴으로 추가하고, 이미 일치한 폴더와 node_modules·.venv 등 고아 의존성 폴더는 내려가지 않으며, normalize_pattern이 빈 값·절대 경로·드라이브 문자·'..'·점/슬래시만 있는 패턴을 거부한다."
+  },
+  {
+   "id": "c2-13",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "외부 판정 서비스에 질문 여러 개를 공통 상태와 함께 보낼 때 요청을 몇 개로 나누는 기준은 무엇인가? 서비스의 토큰 계산기 없이 토큰 수를 어림하는 방법과 그 근거, 요청마다 따로 확인하는 두 가지 문맥 한도, 질문 하나만으로도 크기 한도를 넘는 경우와 나눈 요청 수가 너무 많아지는 경우의 결과를 설명하라.",
+   "gold_paths": [
+    "src/jev/batch.rs"
+   ],
+   "justification": "pack이 질문을 순서대로 담다가 max_batch_bytes나 estimate_tokens(바이트/3 올림) 기준 '상태+전체 질문'(56k)·'상태+가장 긴 질문'(28k) 한도를 넘으면 flush하고, 혼자서 바이트 한도를 넘는 질문은 QuestionTooLarge, 배치 수가 max_batches(128)를 넘으면 TooManyBatches로 실패한다."
+  },
+  {
+   "id": "c2-14",
+   "target": "codemap-search",
+   "difficulty": "medium",
+   "prompt": "이벤트를 보내는 곳과 받는 곳을 이어 보여주는 기능은 별도 설정 없이도 어떤 이벤트 API를 알아보는가(서버용 자바스크립트의 표준 이벤트 객체, 데스크톱 앱 프레임워크의 프런트엔드·러스트 쪽 API)? 사용자가 규칙을 직접 추가했을 때 같은 API를 가리키는 기본 규칙은 어떻게 되며 기본 규칙을 통째로 끌 수 있는가? 사용자 규칙이 너무 많거나 식별자·대상이 겹치거나 형식이 틀릴 때와, 저장소·전역 설정에 규칙이 모두 있을 때의 처리를 설명하라.",
+   "gold_paths": [
+    "src/events/rules.rs",
+    "src/config/event_navigation.rs"
+   ],
+   "justification": "effective_rules가 use_builtin_rules일 때 events/node:events의 EventEmitter와 Tauri JS·Rust API 기본 규칙을 만들고 같은 selector의 사용자 규칙이 있으면 해당 기본 규칙을 빼며 사용자 규칙을 앞에 두고, event_navigation::normalize는 64개 초과·검증 실패·id/selector 중복이면 경고 후 하위 계층을 쓰며 merge는 rules 목록을 저장소>전역 순으로 통째로 고른다."
+  },
+  {
+   "id": "c2-15",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "C·C++·어셈블리 파일은 컴파일러로 미리 돌려 조건부 블록과 치환 정의를 풀어낸 결과에서 선언을 다시 찾는다. 이때 쓸 빌드 명령을 어디서 찾는지(따로 지정하지 않았을 때 찾는 위치와 두 종류의 파일), 기록된 컴파일 명령 중 무엇을 그대로 넘기고 결과물·의존성 파일을 쓰는 옵션이나 모르는 옵션은 어떻게 다루는지, 기록된 컴파일러 프로그램을 그대로 실행하는지 설명하라. 실행이 너무 오래 걸리거나 출력이 너무 클 때, 실행 중 원본이 바뀌었을 때, 원래 줄 번호로 되돌릴 수 없을 때 색인 결과는 어떻게 되는가?",
+   "gold_paths": [
+    "src/index/preprocess/command.rs",
+    "src/index/preprocess/mod.rs",
+    "src/index/preprocess/mapping.rs"
+   ],
+   "justification": "CommandCache::invocation이 지정 경로 또는 저장소 안 상위 폴더의 compile_commands.json/compile_flags.txt에서 정확히 일치하는 항목만 쓰고 기록된 컴파일러 대신 설정된 clang/nasm을 실행하며, preprocessing_flags가 -o·-MF 등은 값과 함께 버리고 모르는 옵션은 거부하고, run_bounded가 시간·출력 상한 초과 시 프로세스 그룹을 종료하며, expand_for_index는 실패(원본 변경, has_explicit_line_directive, 매핑 실패 포함) 시 원본 선언을 유지하고 'Macro expansion unresolved' 안내를 남긴다."
+  },
+  {
+   "id": "c2-16",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "에이전트가 최근 며칠 동안 어떤 파일을 얼마나 반복해서 읽었는지 통계를 도구로 물어볼 수 있다. 직전 같은 길이 기간과 비교하는 표가 빠지는 조건, 경로 일부로 걸러냈을 때 응답 크기 합계와 파일별 수치가 서로 다른 기준으로 집계되는 이유, 저장된 색인 통계에만 쓰는 인자를 함께 넘기면 어떻게 되는지 설명하라. 결과가 응답 크기 한도를 넘으면 무엇부터 덜어내며 다음 페이지 위치는 어떻게 고쳐지는지, 끝내 맞출 수 없으면 어떻게 되는지도 구분하라.",
+   "gold_paths": [
+    "src/analyze/reads_report.rs",
+    "src/analyze/report.rs",
+    "src/tools/analyze.rs"
+   ],
+   "justification": "reads_report::collect는 days≤15일 때만 comparison 표를 만들고(아니면 안내 문구), CALL_FILTER는 일치 파일이 있는 호출 전체를, 파일 지표는 일치 경로만 집계하며, tools/analyze.rs의 run이 target별로 맞지 않는 인자를 거부하고 min(output_byte_cap, 8192) 한도로 report::compact를 호출해 파일 행을 하나씩 빼며 next_offset을 고친 뒤 daily→…→comparison 표를 지우고 그래도 넘치면 오류를 낸다."
+  },
+  {
+   "id": "c2-17",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "처음 저장소 구조 요약을 요청하면 폴더 목록과 파일 목록이 함께 나온다. 폴더 줄에서 하위 폴더를 같은 줄에 몰아 적는 규칙(어떤 폴더는 자기 줄을 갖고, 어떤 폴더는 부모 줄에 이름만 나오거나 자기 줄 없이 그 아래 폴더들이 대신 올라오는지)과, 줄 수나 한 줄에 붙이는 하위 폴더 수가 넘칠 때의 안내, 파일 줄에 종류별로 몇 개 이름까지 보이는지 설명하라. 폴더 옆 개수에서 함수 안 지역 변수·중첩 함수는 빠지고 클래스 메서드는 남는 기준과 외부에 공개된 항목의 예외도 함께 설명하라.",
+   "gold_paths": [
+    "src/codemap/tree.rs",
+    "src/codemap/mod.rs",
+    "src/codemap/summary.rs"
+   ],
+   "justification": "write_directory_tree가 범위 직속 폴더와 leaf 자식을 가진 deep 폴더만 anchor로 두고 terminal-group은 중괄호로 인라인, leaf 자식이 없는 deep 폴더는 하위로 승격하며 ROOT_DIRECTORY_LIMIT(60)·INLINE_CHILD_LIMIT(12) 초과 시 안내를 붙이고, RootCodemap은 파일 60개·종류별 ROOT_SYMBOLS_PER_KIND_LIMIT(4)개 이름까지 보여 주며, significant_symbols는 함수 범위 안에 엄격히 포함된 비공개 기호만 뺀다."
+  },
+  {
+   "id": "c2-18",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "검색·읽기 결과에서 작업과 무관한 부분을 외부 판정 서비스로 걸러내는 선택 기능을 켰다. 접속 키를 어디서 어떤 순서로 찾는지(저장소와 사용자 전역의 자격 정보 파일, 환경 변수), 자격 정보 파일에 모르는 항목이나 빈 값이 있을 때, 처음 실행할 때 만드는 빈 자격 정보 파일이 기존 파일이나 링크를 덮지 않는 방식을 설명하라. 키나 설정이 바뀌었을 때 서비스 연결을 다시 만드는 조건과 다시 만들지 않는 설정, 키가 없을 때 결과가 어떻게 되는지, 응답이 다른 주소로 넘기라고 하거나 연결이 끊겼을 때 요청을 자동으로 다시 보내지 않는 이유도 구분하라.",
+   "gold_paths": [
+    "src/config/auth.rs",
+    "src/mcp/jev.rs",
+    "src/jev/transport.rs"
+   ],
+   "justification": "auth::load가 저장소 auth.toml→전역 auth.toml 순으로 [jev].api_key를 읽고(모르는 키는 경고, 빈 값은 없음 처리) ensure_repo_auth는 create_new·0600으로 빈 템플릿만 만들며, JevHost::resolve가 파일 키→TYPESAFE_API_KEY 순으로 고르고 TransportFingerprint나 키가 바뀔 때만 평가기를 다시 만들며 키가 없으면 missing_credentials로 기본 출력을 유지하고, HttpsTransport::build는 redirect와 retry를 끈다(요청마다 과금되는 한 번의 시도)."
+  },
+  {
+   "id": "c2-19",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "새 버전으로 올리면 예전 설정 파일의 항목들이 새 구획 구조로 옮겨진다. 옮길 때 사용자가 단 설명 주석과 주석 처리해 둔 예시 줄('# 키 = 값')이 새 위치로 따라가는 방식, 목적지를 알 수 없는 주석이나 더 이상 쓰지 않는 예시의 처리, 한 파일 안에 옛 위치와 새 위치 값이 모두 있을 때 어느 쪽이 적용되는지 설명하라. 옮긴 결과가 실제 적용 값이나 상속 관계를 바꾸게 되면 어떻게 되는지, 자동으로 들어간 설명 문구는 최신 문구로 바꾸되 사용자가 쓴 메모와 문자열 값은 건드리지 않는 방식도 구분하라.",
+   "gold_paths": [
+    "src/config/layout.rs",
+    "src/config/layout/comments.rs",
+    "src/config/layout/generated.rs"
+   ],
+   "justification": "layout::migrate가 comments::relocate_examples로 인식된 주석 예시와 앞선 설명을 목적지 구획으로 옮기고(목적지 미상·불완전 예시는 제자리, 폐기된 Jev 예시는 설명만 옮김) SECTION_ALIASES·SETTINGS·SECTION_MOVES 순으로 값을 옮긴 뒤 이전·이후 normalize 결과가 다르면 파일을 그대로 두며, layout::normalize는 파일 안에서 새 철자를 우선하고, generated::refresh는 템플릿·LEGACY_COMMENTS와 정확히 같은 문구만 갱신한다."
+  },
+  {
+   "id": "c2-20",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "결과로 나오는 코드에서 비밀번호·토큰처럼 민감한 이름에 넣은 값을 가릴 때, 문법을 이해하는 언어에서는 어떤 값만 가리고 다른 변수 참조·함수 호출·객체 생성은 그대로 두는가? 문자열 안에 끼워 넣은 식, 타입 선언 부분, 문법이 이해하지 못한 형태는 각각 어떻게 되는지 설명하라. 문법 분석을 쓸 수 없는 텍스트와 줄 단위 '키=값' 설정 파일에서는 값의 끝을 어디로 잡는지, 이미 만들어진 도구 응답을 마지막에 한 번 더 훑을 때 대입문 추측을 다시 하지 않는 이유와 응답 JSON의 구조·키를 보존하는 방식도 구분하라.",
+   "gold_paths": [
+    "src/redact/syntax.rs",
+    "src/redact/text.rs",
+    "src/redact/response.rs"
+   ],
+   "justification": "syntax::inspect·values가 민감 이름 바인딩의 문자열(보간 부분 제외)·숫자만 가리고 식별자·호출·컨테이너는 이해된 것으로 decided 처리하며 타입 노드도 decided로 두고, 이해 못한 형태는 text::detect 대체 규칙(줄 설정 파일은 '#' 앞 줄 끝까지, 일반 텍스트는 따옴표 안·블록 스칼라·구분자 앞까지)이 맡으며, response::response는 도구 text에 detect_unambiguous_patterns만 다시 적용하고 객체 키·구조는 두고 문자열 값만 바꾼다."
+  },
+  {
+   "id": "c2-21",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "파일을 읽거나 내용 검색 결과에 함수가 보이면, 그 함수가 쓰는 같은 파일의 상수 정의 위치와 값을 함께 붙여 준다. 언어마다 무엇을 '바뀌지 않는 상수 선언'으로 인정하는지(자바 계열의 변경 불가 필드, C#·자바스크립트의 상수 선언, 코틀린의 읽기 전용 속성, 클래스 안에 둔 PHP 상수의 예외 등)와, 함수 본문 안 이름 사용 중 상수 참조로 치지 않는 경우(매개변수·지역 변수로 같은 이름을 다시 선언, 다른 객체의 속성 이름, 주석·문자열 안, 중첩 함수 안)를 설명하라. 같은 이름의 상수가 파일에 둘 이상이거나 다른 클래스·모듈 범위에 있을 때와, 값 미리보기의 줄바꿈·길이 처리와 비밀값 가리기도 구분하라.",
+   "gold_paths": [
+    "src/tools/live_symbols/references.rs",
+    "src/tools/live_symbols/references/declarations.rs"
+   ],
+   "justification": "references/declarations.rs의 binding이 언어별 final·const·val·let 등 불변 선언만 정의로 인정하고(클래스 안·중괄호 없는 namespace의 PHP 상수 제외), collect_with_resolver가 identifier_role로 바인딩·멤버·한정 이름을 빼고 주석·문자열·중첩 선언을 건너뛰며, 후보가 하나이고 declaration_scope·namespace가 같을 때만 행을 만들고 섀도잉되면 버리며, value_preview가 마스킹 후 줄바꿈을 이스케이프하고 240자에서 자른다."
+  },
+  {
+   "id": "c2-22",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "검색 결과나 파일 읽기에 자동으로 붙는 주변 정보(호출 관계 등)에서는 테스트 코드가 빠진다. 파일 전체를 테스트로 보는 기준과, 일반 소스 파일 안에 섞인 테스트 부분(테스트 표시가 붙은 함수, 테스트에서만 컴파일되는 모듈, 테스트 프레임워크 호출로 감싼 블록)의 범위를 찾는 방식, 표시 위쪽의 다른 표시·주석까지 범위에 넣는 처리를 설명하라. 테스트 표시가 있을 법한데 구문 분석이 실패하면 어떻게 되는지, 저장소·전역 설정에서 언어별 규칙을 바꾸면 기본 목록과 합쳐지는지 대체되는지, 테스트 코드를 다시 포함시킬 때와 원본 결과 자체가 바뀌는지도 구분하라.",
+   "gold_paths": [
+    "src/callers/test_code.rs",
+    "src/config/test_code.rs"
+   ],
+   "justification": "TestCodeFilter::regions가 file_patterns에 맞는 파일 전체를 제외하고, 그 밖에는 표식 사전 필터 후 parse_regions·test_scope로 Rust 속성(cfg(test) 포함)·decorator·annotation·describe/it류 호출의 선언 범위를 찾아 앞선 속성·주석까지 넓히며 파싱 실패 시 파일 전체를 제외하고, merge_test_code_rules는 file_patterns를 저장소>전역>기본으로 통째로, 언어별 목록은 언어 단위로 교체하며, should_include_test_code면 빈 영역을 쓰고 원본 색인·결과는 고치지 않는다."
+  },
+  {
+   "id": "c2-23",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "검색 결과 끝에 '어디서 어떤 객체의 목록 필드에 값을 넣고, 어디서 그 목록을 꺼내 읽는지' 짝을 참고용으로 붙인다. 넣기와 읽기로 인정하는 동작이 언어마다 어떻게 다른지, 두 위치를 같은 목록으로 이어도 된다고 보는 조건(둘 다 자기 자신을 통해 접근할 때, 같은 이름의 타입 선언이 저장소에 하나뿐일 때, 매개변수로 받은 객체일 때)을 설명하라. 결과에 이미 보이는 코드와 관련 없는 짝을 빼는 처리, 작업 범위 밖 파일, 묶음 수·짝 수·크기 상한도 구분하라.",
+   "gold_paths": [
+    "src/tools/search/render.rs",
+    "src/parser/mod.rs"
+   ],
+   "justification": "parser/mod.rs의 is_collection_producer_operation·is_collection_consumer_operation이 언어별 push/append/add류와 iter/get/begin류를 쓰기·읽기로 나눠 파일당 STATIC_COLLECTION_EDGES_PER_FILE_MAX(256)개까지 기록하고, render_static_collection_edges가 표시된 근거와 겹치고 범위 안에 있는 짝만 남기며 has_static_owner_connection으로 self/this 동일 소유자·단일 타입 선언·같은 파일 타입 선언과 self 짝만 잇고, 그룹 4개·그룹당 64쌍·1536바이트로 제한한다."
+  },
+  {
+   "id": "c2-24",
+   "target": "codemap-search",
+   "difficulty": "complex",
+   "prompt": "파일 내용 검색에서 일치한 줄만이 아니라 그 줄을 감싼 함수 전체를 보여 달라고 할 수 있다. 일치한 줄이 들어 있는 함수를 고르는 기준(여러 함수가 겹칠 때, 같은 크기의 경계가 둘일 때)과 한 함수 안 여러 일치 줄을 묶는 방식, 결과를 나눠 받을 때 세는 단위를 설명하라. 함수 경계를 찾을 수 없을 때(입력 크기 초과, 마크업과 스크립트가 섞인 컴포넌트 파일, 어떤 함수에도 속하지 않는 줄)와 함수 본문이 응답 한도를 넘거나 너무 긴 줄이 섞였을 때 각각 무엇이 대신 표시되는지, 비밀값 가리기는 어느 단계에서 적용되는지도 구분하라.",
+   "gold_paths": [
+    "src/tools/grep/expansion.rs",
+    "src/tools/live_symbols/callable.rs"
+   ],
+   "justification": "callable::containing이 줄을 포함하는 가장 작은 경계를 고르고 같은 크기가 둘이면 오류를 내며, capture는 input_byte_cap(min(max_file_size, 4MiB)) 초과·composite 확장자를 거부하고, ExpansionPage::add_file이 같은 경계의 일치 줄을 한 그룹으로 묶어 offset/limit을 그룹 단위로 세며, 경계 실패는 'Callable expansion unavailable' 뒤 일치 줄만, 한도 초과는 'Callable body unavailable', 긴 줄은 'Callable source incomplete' 안내를 붙이고 원본으로 파싱한 뒤 표시용 사본만 마스킹한다."
+  }
+ ]
+}

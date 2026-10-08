@@ -1,0 +1,26 @@
+[package]
+name = "related-terms-poc-v2"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "rtpoc2"
+path = "src/main.rs"
+
+[dependencies]
+# Product library: index engine, config, and identifier splitting. The product crate is not edited.
+codemap-search = { path = "../../.." }
+# Versions match apps/codemap-search/Cargo.lock so the experiment reads the same index format
+# and links the same bundled SQLite as the product. Tantivy's default `stemmer` feature
+# provides the Snowball English stemmer used for `word_stems`.
+tantivy = "=0.26.2"
+rusqlite = { version = "=0.40.2", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "=1.0.151"
+sha2 = "=0.11.0"
+
+[profile.release]
+opt-level = 3

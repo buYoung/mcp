@@ -1,0 +1,31 @@
+{
+  "labeling_plan_identity": {
+    "bytes": 16600,
+    "path": "apps/codemap-search/experiments/related-terms-poc/results/development/runs/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/labeling-plan.json",
+    "sha256": "afb2ea032ea53e409218e9276f4a8d83cbc678fb537b985aea39a1a68df0897c"
+  },
+  "limits": [
+    "Agent annotations are not human gold. Semantic metrics not computed.",
+    "Five repetitions are not independent semantic observations."
+  ],
+  "measurement_manifest_identity": {
+    "bytes": 8098,
+    "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/measurement-manifest.json",
+    "sha256": "67b492f30ffb938f6dafa4b5710d9aa221d3aa7f93b4a8e49f97ac2f40638b5b"
+  },
+  "pending_label_count": 159,
+  "profile_identity": {
+    "bytes": 43501,
+    "path": "apps/codemap-search/experiments/related-terms-poc/results/development/profiles/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/profile.json",
+    "sha256": "29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd"
+  },
+  "queue_manifest_identity": {
+    "bytes": 227346,
+    "path": ".codemap/poc/related-terms/evaluation/development/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/run-1/review/queue-manifest.json",
+    "sha256": "81a238cd63009da71725172c6ae4ed0aece6f0974aef217a72f0cd8a212331fa"
+  },
+  "run_id": "run-1",
+  "schema": "rt-development-evaluation-handoff/1",
+  "semantic_status": "pending_fresh_labels",
+  "technical_status": "measurement_and_queue_pass; fresh offline gate separate"
+}

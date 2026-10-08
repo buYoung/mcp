@@ -1,0 +1,275 @@
+{
+  "code_identities": [
+    {
+      "bytes": 65655,
+      "path": "apps/codemap-search/experiments/related-terms-poc/evaluate_development.py",
+      "sha256": "afff98187016450e804c4cbf75c067f8296ecdc2a2c798f42583b4b9b18b2bcb"
+    },
+    {
+      "bytes": 21679,
+      "path": "apps/codemap-search/experiments/related-terms-poc/development_profile.py",
+      "sha256": "644919e84c48fb24706aa682d6712e43b652a382df4724932971e3206d03111a"
+    },
+    {
+      "bytes": 54187,
+      "path": "apps/codemap-search/experiments/related-terms-poc/evaluate.py",
+      "sha256": "ac6aac915face8328468b7f15e52b55775c2818def5a263afa827b77ebdab32b"
+    },
+    {
+      "bytes": 8194,
+      "path": "apps/codemap-search/experiments/related-terms-poc/rtpoc_common.py",
+      "sha256": "af51ee25d2fdde9c76e3e2cdbd2f5c7a8715b4880ef52b701dd1dbfefe66927f"
+    },
+    {
+      "bytes": 9249,
+      "path": "apps/codemap-search/experiments/related-terms-poc/workspaces.py",
+      "sha256": "53443074b0b99c395e96c4a6017c3095c49607edc959fbce0dcb8600a3742cf6"
+    },
+    {
+      "bytes": 13949,
+      "path": "apps/codemap-search/experiments/related-terms-poc/lifecycle.py",
+      "sha256": "9a53010fb826d745ee75b6ec67f478fa75bce33dec04ced1f8b25afa98bd1098"
+    },
+    {
+      "bytes": 11635,
+      "path": "apps/codemap-search/experiments/related-terms-poc/lookup_handoff.py",
+      "sha256": "5f2924a18a6f3053816c04208c740032fa11448530fc277d75f858e4b1dd819d"
+    }
+  ],
+  "frozen_identities": {
+    "binary_sha256": "955de6934db23ca05b757835ab81cd6eeb3ceb8a21e97c0ace46d3cee03d72d7",
+    "dataset_id": "rtd1-47baa61927c4b090",
+    "dataset_sqlite_sha256": "b69cac9ca0d64c58d675f2e2d4d5f3a300cba271204ea628f07cbcee6c14678d",
+    "index_generation": {
+      "express": "5ec561fde5f5d6f8258432be72d9d1c9ed176858e930cc6457cccdc3b752599e",
+      "flask": "1837cce3420e481233f07b077fcc5020f258413746592dbc66de57ae26eb45fb",
+      "gin": "8b4f72d63342e491a43f7104b9adfe0f226d02fb3c54da43e702837048fcca6d",
+      "tokio": "ba3ff148a6a14ef422820597ceca0696521b4f753189619cac06f8701f044ccb"
+    },
+    "normalization_version": "rtn-2",
+    "policy_id": "rtl-1",
+    "policy_sha256": "1defb4278d812ce843a619ec48554e996f620ac46d7639077e33bb80847a51d7"
+  },
+  "inputs": {
+    "by_category": {
+      "alias": 10,
+      "ambiguous_abbreviation": 10,
+      "explicit_synonym": 11,
+      "identifier_form": 1,
+      "known_gap": 6,
+      "phrase": 6,
+      "random_vocabulary": 30,
+      "spelling_or_form": 4,
+      "unregistered": 6,
+      "wrong_sense_negative": 8
+    },
+    "by_group": {
+      "category_probe": 46,
+      "control": 16,
+      "random_probe": 30
+    },
+    "count": 92,
+    "identity": {
+      "bytes": 25796,
+      "path": "apps/codemap-search/experiments/related-terms-poc/cases.json",
+      "sha256": "1a870e296b7203ab4cffd29e2154e6db0bd04553904062f7fc4e3686e8fc7b81"
+    },
+    "ordered_case_ids": [
+      "C01",
+      "C02",
+      "C03",
+      "C04",
+      "C05",
+      "C06",
+      "C07",
+      "C08",
+      "C09",
+      "C10",
+      "C11",
+      "C12",
+      "C13",
+      "C14",
+      "C15",
+      "C16",
+      "P01",
+      "P02",
+      "P03",
+      "P04",
+      "P05",
+      "P06",
+      "P07",
+      "P08",
+      "P09",
+      "P10",
+      "P11",
+      "P12",
+      "P13",
+      "P14",
+      "P15",
+      "P16",
+      "P17",
+      "P18",
+      "P19",
+      "P20",
+      "P21",
+      "P22",
+      "P23",
+      "P24",
+      "P25",
+      "P26",
+      "P27",
+      "P28",
+      "P29",
+      "P30",
+      "P31",
+      "P32",
+      "P33",
+      "P34",
+      "P35",
+      "P36",
+      "P37",
+      "P38",
+      "P39",
+      "P40",
+      "P41",
+      "P42",
+      "P43",
+      "P44",
+      "P45",
+      "P46",
+      "R01",
+      "R02",
+      "R03",
+      "R04",
+      "R05",
+      "R06",
+      "R07",
+      "R08",
+      "R09",
+      "R10",
+      "R11",
+      "R12",
+      "R13",
+      "R14",
+      "R15",
+      "R16",
+      "R17",
+      "R18",
+      "R19",
+      "R20",
+      "R21",
+      "R22",
+      "R23",
+      "R24",
+      "R25",
+      "R26",
+      "R27",
+      "R28",
+      "R29",
+      "R30"
+    ]
+  },
+  "label_reuse": false,
+  "method": {
+    "measurement_conditions": {
+      "binary_profile": "release",
+      "dataset_build": "not_run; verified existing development SQLite reused",
+      "indexing": "from results/index-stats.json (single run per target)",
+      "memory": "/usr/bin/time -l maximum resident set size per process",
+      "pass_0": "first lookups in a fresh process (OS page cache not controlled)",
+      "passes_1_4": "repeated lookups in the same process",
+      "repeat": 5
+    },
+    "metrics": [
+      "dictionary coverage: inputs with at least one exact or token-normalized match",
+      "supported synonym return: inputs whose final terms include a synonym_in_intended_sense or near_synonym",
+      "useful return: final terms include synonym/near/alias/abbreviation labels",
+      "alias-only and abbreviation-only returns",
+      "wrong-sense and related-only rates among final candidates, by relation kind and source",
+      "abstention by status; technical unavailability (repository not ready)",
+      "expected_any found at dictionary stage vs final stage (missing kept separate from incorrect)",
+      "filter attrition per stage/reason; filter loss estimated from the filter-loss sample"
+    ],
+    "original_cohort_selection": {
+      "count": 30,
+      "population_size": 392,
+      "rule": "words matching ^[a-z]{4,12}$, file_count >= 3 in at least 3 targets, not in the stoplist",
+      "seed": 20261006,
+      "selected": [
+        "prefix",
+        "build",
+        "take",
+        "head",
+        "header",
+        "provided",
+        "enabled",
+        "resource",
+        "fails",
+        "read",
+        "slice",
+        "unicode",
+        "replace",
+        "world",
+        "write",
+        "append",
+        "checkout",
+        "action",
+        "fake",
+        "clear",
+        "versions",
+        "following",
+        "param",
+        "route",
+        "names",
+        "link",
+        "exist",
+        "accept",
+        "byte",
+        "debug"
+      ],
+      "source": "published repository statistics of the four pinned targets (not the dataset)",
+      "stoplist_sha256": "421f164e17d23dd3a45bcf001610128526385f366c2eacd75288765df89b1e34"
+    },
+    "original_cohort_selection_identity": {
+      "bytes": 7126,
+      "path": "apps/codemap-search/experiments/related-terms-poc/results/evaluation-protocol.json",
+      "sha256": "8518dd56802ee7e0fe0e1cf6d3ca1d618ee3b720ba076cc1fa61b3f249b0bf00"
+    },
+    "review_sampling": {
+      "interval_rule": "ci95=null for a full loss-population census (sample==population); Wilson95 only for an actual uniform partial sample, without FPC. Final census, controls/categories and repeated observations always descriptive.",
+      "maximum": 150,
+      "seed": 20261007
+    },
+    "review_transport": {
+      "global_queue_read": "parent/audit/collector only; labelers read complete assigned graph",
+      "mandatory_file_budget_bytes": 327680,
+      "partition": "contiguous greedy in unchanged global review-ID order; shared required files read once per assignment",
+      "wrapper": "formal JSON Schema transport; collector copies original9-field records losslessly"
+    },
+    "rubric": {
+      "labels": {
+        "abbreviation_correct": "correct abbreviation/expansion for the intended meaning",
+        "alias_same_concept": "another name of the same concept (product, protocol, pattern)",
+        "near_synonym": "close in the intended meaning, interchangeable in some code contexts",
+        "related_only": "related concept, not the same meaning",
+        "spelling_or_form_variant": "spelling, hyphenation, or inflection variant of the input",
+        "synonym_in_intended_sense": "interchangeable with the input in its intended code meaning",
+        "uncertain": "evidence insufficient to decide",
+        "wrong_sense": "valid only for a different sense of the input"
+      },
+      "method": "Each (input, candidate) pair is labeled against the frozen intended_meaning using only the recorded source evidence (sense gloss, concept, aliases, abbreviation record). Labels are repository-independent; one label per pair.",
+      "populations": {
+        "filter_loss_sample": "seeded (seed 20261007) uniform sample of at most 150 unique (case, candidate) pairs that survived normalization in some target but were never final",
+        "final_pairs": "every unique (case, candidate) that reached final_terms in any target"
+      },
+      "uncertainty": "Input/target repeats, purposively selected controls and the census of final pairs are descriptive only: ci95 is null, not an independent-trial interval. Dictionary coverage uses unique inputs. Only the uniform filter-loss sample has approximate Wilson 95% intervals (without finite-population correction). Uncertain labels stay separate."
+    }
+  },
+  "profile_identity": {
+    "bytes": 43501,
+    "path": "apps/codemap-search/experiments/related-terms-poc/results/development/profiles/29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd/profile.json",
+    "sha256": "29b5431cd74b3171244cda1d9919cca6cf2f14cff926934cb81d603193d8b5fd"
+  },
+  "schema": "rt-development-evaluation-protocol/1",
+  "semantic_status": "pending_fresh_labels"
+}

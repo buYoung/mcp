@@ -1,0 +1,126 @@
+{
+  "coverage": {
+    "internal_lookups": 1840,
+    "observations": 368,
+    "repetitions": 5,
+    "targets": 4,
+    "unique_inputs": 92
+  },
+  "dataset_build": {
+    "max_rss_bytes": null,
+    "status": "not_run",
+    "wall_s": null
+  },
+  "lookup": {
+    "express": {
+      "dataset_open_ms": 0.428,
+      "first_pass_ms": {
+        "max": 0.244,
+        "median": 0.031,
+        "n": 92,
+        "p90": 0.105
+      },
+      "output_bytes": {
+        "max": 16105,
+        "median": 2150
+      },
+      "process_max_rss_bytes": 10518528,
+      "process_start_to_ready_ms": 0.723,
+      "process_wall_s": 0.09896029205992818,
+      "repeat_outputs_identical": true,
+      "repeat_passes_ms": {
+        "max": 0.151,
+        "median": 0.027,
+        "n": 368,
+        "p90": 0.081
+      },
+      "stats_open_ms": 0.159
+    },
+    "flask": {
+      "dataset_open_ms": 0.387,
+      "first_pass_ms": {
+        "max": 0.207,
+        "median": 0.032,
+        "n": 92,
+        "p90": 0.104
+      },
+      "output_bytes": {
+        "max": 16108,
+        "median": 2148
+      },
+      "process_max_rss_bytes": 10534912,
+      "process_start_to_ready_ms": 0.668,
+      "process_wall_s": 0.09997637523338199,
+      "repeat_outputs_identical": true,
+      "repeat_passes_ms": {
+        "max": 0.151,
+        "median": 0.028,
+        "n": 368,
+        "p90": 0.079
+      },
+      "stats_open_ms": 0.173
+    },
+    "gin": {
+      "dataset_open_ms": 0.41,
+      "first_pass_ms": {
+        "max": 0.222,
+        "median": 0.031,
+        "n": 92,
+        "p90": 0.106
+      },
+      "output_bytes": {
+        "max": 16126,
+        "median": 2149
+      },
+      "process_max_rss_bytes": 10698752,
+      "process_start_to_ready_ms": 0.71,
+      "process_wall_s": 0.09731337521225214,
+      "repeat_outputs_identical": true,
+      "repeat_passes_ms": {
+        "max": 0.155,
+        "median": 0.028,
+        "n": 368,
+        "p90": 0.078
+      },
+      "stats_open_ms": 0.198
+    },
+    "tokio": {
+      "dataset_open_ms": 0.428,
+      "first_pass_ms": {
+        "max": 0.235,
+        "median": 0.031,
+        "n": 92,
+        "p90": 0.099
+      },
+      "output_bytes": {
+        "max": 16113,
+        "median": 2123
+      },
+      "process_max_rss_bytes": 10846208,
+      "process_start_to_ready_ms": 0.809,
+      "process_wall_s": 0.10834912490099669,
+      "repeat_outputs_identical": true,
+      "repeat_passes_ms": {
+        "max": 0.172,
+        "median": 0.028,
+        "n": 368,
+        "p90": 0.083
+      },
+      "stats_open_ms": 0.245
+    }
+  },
+  "measurement_manifest_identity": {
+    "bytes": 8102,
+    "path": ".codemap/poc/related-terms/evaluation/development/b5226f6dc63b28d1787dc5769c65bf24bdb5160b640daf5e81ed70af2a077f89/run-1/measurement-manifest.json",
+    "sha256": "107760d363fa659851826461dd257f338fce0621bd9bd8f3d6c67d873663dbf4"
+  },
+  "offline": "pending",
+  "profile_identity": {
+    "bytes": 41653,
+    "path": "apps/codemap-search/experiments/related-terms-poc/results/development/profiles/b5226f6dc63b28d1787dc5769c65bf24bdb5160b640daf5e81ed70af2a077f89/profile.json",
+    "sha256": "b5226f6dc63b28d1787dc5769c65bf24bdb5160b640daf5e81ed70af2a077f89"
+  },
+  "run_id": "run-1",
+  "schema": "rt-development-measurement-handoff/1",
+  "semantic_status": "pending_fresh_labels"
+}

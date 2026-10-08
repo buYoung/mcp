@@ -1,0 +1,16 @@
+{
+  "evidence_identity": {
+    "bytes": 171536,
+    "path": ".codemap/poc/related-terms/evaluation/development/c32d80981993c6c4d81065d347c20476b6bc7b7aac506a57e0e91e6b0ce5d1d1/run-1/offline/offline-evidence.json",
+    "sha256": "e321889d54dcf98b39c84ec77688c3ab448c0075fc29b5ad1597b278a7cc8f19"
+  },
+  "mode": "executed",
+  "profile_identity": {
+    "bytes": 43144,
+    "path": "apps/codemap-search/experiments/related-terms-poc/results/development/profiles/c32d80981993c6c4d81065d347c20476b6bc7b7aac506a57e0e91e6b0ce5d1d1/profile.json",
+    "sha256": "c32d80981993c6c4d81065d347c20476b6bc7b7aac506a57e0e91e6b0ce5d1d1"
+  },
+  "run_id": "run-1",
+  "schema": "rt-development-offline-handoff/1",
+  "status": "pass"
+}

@@ -1,0 +1,71 @@
+{
+  "scope": "bounded observations on existing outputs and temporary small artifacts; no production test files added",
+  "source_sha256": {
+    "build_dataset.py": "8c1a6928b7cf3bbcd9aa40e964e2bfa20ee5676ea56ef07167ffb5a5efda4f17",
+    "evaluate.py": "ac6aac915face8328468b7f15e52b55775c2818def5a263afa827b77ebdab32b"
+  },
+  "checks": {
+    "build_dataset.py_syntax": true,
+    "evaluate.py_syntax": true,
+    "current_handoff_artifacts_match": true,
+    "all_current_observations_match_raw": true,
+    "missing_and_duplicate_pair_rejected": true,
+    "summary_raw_divergence_rejected": true,
+    "returned_generation_mismatch_rejected": true,
+    "returned_dataset_mismatch_rejected": true,
+    "changed_manifest_rejected": true,
+    "changed_index_generation_rejected": true,
+    "changed_publication_rejected": true,
+    "changed_stats_rejected": true,
+    "failed_rebuild_preserves_existing_sqlite": true,
+    "same_id_rebuild_keeps_published_file": true,
+    "descriptive_proportion_has_no_ci": true,
+    "filter_loss_sample_retains_approximate_ci": true,
+    "aggregate_rejects_missing_duplicate_observation": true,
+    "superseded_offline_evidence_cannot_pass": true,
+    "protocol_rejects_changed_manifest": true,
+    "dictionary_metrics_count_unique_inputs": true,
+    "clustered_and_purposive_metrics_have_no_ci": true,
+    "report_recalculation_matches": true,
+    "semantic_observations_and_labels_unchanged": true,
+    "documentation_links_resolve": true
+  },
+  "status": "pass",
+  "not_executed": [
+    "full dataset rebuild (existing artifact intentionally reused)",
+    "independent relabeling of semantic judgments"
+  ],
+  "evaluation": {
+    "protocol_sha256": "223af460741fb6930e7c48b7b8c840216bc3b33924f25cbe567b885f9ec952b2",
+    "revision": 3,
+    "technical_status": {
+      "status": "pass",
+      "all_inputs_accounted": true,
+      "observations_match_raw_outputs": true,
+      "repository_not_ready_observations": 0,
+      "repeat_outputs_identical": true,
+      "dataset_artifact_matches_handoff": true,
+      "dataset_rebuild_reproduced": null,
+      "dataset_build_status": "not_run_existing_artifact_reused",
+      "evaluation_lookups_offline": "pass",
+      "index_time_statistics": "materialized during indexing and published before ready; lookups read published statistics only (child-02 lifecycle/offline evidence)"
+    },
+    "dataset_identity_before": {
+      "sha256": "a38be13da274d28f24d21613052302039f407664f71f3bbe72b110748b721d10",
+      "inode": 272523616,
+      "mtime_ns": 1791284046537613963,
+      "bytes": 227815424
+    },
+    "dataset_identity_after": {
+      "sha256": "a38be13da274d28f24d21613052302039f407664f71f3bbe72b110748b721d10",
+      "inode": 272523616,
+      "mtime_ns": 1791284046537613963,
+      "bytes": 227815424
+    },
+    "existing_dataset_not_replaced_or_modified": true,
+    "comparison_to_previous": {
+      "observations_identical_except_output_bytes": true,
+      "review_table_sha256_unchanged": true
+    }
+  }
+}

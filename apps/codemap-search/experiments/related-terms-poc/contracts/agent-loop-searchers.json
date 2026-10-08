@@ -1,0 +1,28 @@
+{
+  "schema": "rt-agent-loop-searchers/3",
+  "status": "Round 4 (heldout-5) searcher settings, decided by the user on 2026-10-08 after the pilot: judge only the agent-written design, two inexpensive searchers, 10 independent runs each.",
+  "conditions": [
+    {"name": "control", "has_block": false, "queries_per_case": 4},
+    {"name": "treatment", "has_block": true, "queries_per_case": 4}
+  ],
+  "condition_rule": "inputs with and without the block are identical except for related_terms_block, the rt-block/2 block_text the agent would read from initial_instructions",
+  "queries_per_case_reason": "4 matches the rtl-2.4 suggested query limit; both conditions write exactly this many follow-up queries after the baseline query.",
+  "max_query_words": 8,
+  "replicates": 10,
+  "replicates_reason": "User: two runs are too few; both searchers are inexpensive, so each runs 10 times per condition and the per-case found rates average 20 runs per condition.",
+  "searchers": [
+    {
+      "key": "codex-gpt-6-luna",
+      "providerInstanceId": "codex",
+      "model": "gpt-6-luna",
+      "options": {"reasoningEffort": "medium"}
+    },
+    {
+      "key": "claude-sonnet-5-5",
+      "providerInstanceId": "claudeAgent",
+      "model": "claude-sonnet-5-5",
+      "options": {"effort": "medium"}
+    }
+  ],
+  "searchers_reason": "User choice: two inexpensive models from the two agent families codemap-search users run; neither wrote the cases or chose the terms (claude-opus-5-5)."
+}

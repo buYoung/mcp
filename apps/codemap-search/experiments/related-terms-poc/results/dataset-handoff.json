@@ -1,0 +1,153 @@
+{
+  "handoff": "related-terms-poc/dataset",
+  "dataset_id": "rtd1-8efd9676107a983d",
+  "schema_version": "rt-dataset/1",
+  "normalization_version": "rtn-2",
+  "dataset_dir": ".codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d",
+  "jsonl_paths": [
+    ".codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/sources.jsonl",
+    ".codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/concepts.jsonl",
+    ".codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/expressions.jsonl",
+    ".codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/lexicalizations.jsonl",
+    ".codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/relations.jsonl"
+  ],
+  "sqlite_path": ".codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3",
+  "artifact_hashes": {
+    "sources.jsonl": "0be8e47179ad1dadc99c0cd887f5ba2732dac5547868c19a42ae6acf923aa27d",
+    "concepts.jsonl": "4de886c3b64fff7fd4c61346f0001cfe8535960a1615049f9977b3bee5bd833d",
+    "expressions.jsonl": "4abcf4906adb00376a2c0b2587c946d19c18afef41aada35fcf5842e61a2d207",
+    "lexicalizations.jsonl": "816654b277b07273f66611941cdb8a74001e97cf33508ede122878015f160a9b",
+    "relations.jsonl": "941a5a9fe18912c2970e5c512e09d75d321bcf01b824a071143d0feead6fb9d2",
+    "dataset.sqlite3": "a38be13da274d28f24d21613052302039f407664f71f3bbe72b110748b721d10",
+    "LICENSES/abbrcode-bd33b1c-LICENCE": "003aa08f298c3e475fa4971dcc930eceaa0bc80eefec2a7ce8705688b235985b",
+    "LICENSES/github-explore-c8d7bc5-LICENSE.txt": "7e7170e3cebf88a9f60c7b8421418323c09304da1af4d5e90f4da1dc1c8a2661",
+    "LICENSES/github-explore-c8d7bc5-notices.md": "6ec0955a3f787cb45310147565f4119a4d9efccd82662a52f4251756a5260a9f",
+    "LICENSES/oewn-2025-LICENSE.md": "672cc8b5663e8dc74c4b07a9dcf477193853575b119908fd3dc0aeeb60a9dbbb",
+    "LICENSES/oewn-2025-WNDB_License.txt": "df30ec18fbabcdaf031b79ea026d3e6b959010cffe6dd7be9ac137822175b904",
+    "LICENSES/se-abbr-8e1d77e-LICENSE": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+    "ATTRIBUTION.md": "2b6dee335e120153a88e36e69d66986451eced97533ece5ce602a8d73b7657a3",
+    "manifest.json": "42ee1237331d220a60f1afa0e38c621a10cea59d2476844980b635a5ba16c280"
+  },
+  "logical_sqlite_sha256": "6bdb0995b7d0a2e3c77c6768d04f9dd994aa6b9b59c5153541d3777f89fdae84",
+  "source_lock_path": "apps/codemap-search/experiments/related-terms-poc/sources.lock.json",
+  "source_lock_sha256": "cd440221922537b7c80c76bbacf035105d6980f94f7348c6b2ebb95b2dde134d",
+  "attribution_path": "apps/codemap-search/experiments/related-terms-poc/ATTRIBUTION.md",
+  "contract_paths": [
+    "apps/codemap-search/experiments/related-terms-poc/contracts/dataset.md",
+    "apps/codemap-search/experiments/related-terms-poc/contracts/dataset.schema.json",
+    "apps/codemap-search/experiments/related-terms-poc/schema.sql"
+  ],
+  "stats_path": "apps/codemap-search/experiments/related-terms-poc/results/dataset-stats.json",
+  "counts": {
+    "records": {
+      "sources": 5,
+      "concepts": 111718,
+      "expressions": 133942,
+      "lexicalizations": 195052,
+      "relations": 410459
+    },
+    "relations_by_kind_and_source": {
+      "abbreviation_expansion/abbrcode-bd33b1c": 306,
+      "abbreviation_expansion/se-abbr-8e1d77e": 358,
+      "abbreviation_of/abbrcode-bd33b1c": 306,
+      "abbreviation_of/se-abbr-8e1d77e": 358,
+      "alias/github-explore-c8d7bc5": 27084,
+      "alias/wikidata-sel1": 9694,
+      "antonym/oewn-2025": 7986,
+      "related_topic/github-explore-c8d7bc5": 19015,
+      "similar/oewn-2025": 59902,
+      "synonym/oewn-2025": 285450
+    },
+    "raw_source_counts": {
+      "oewn-2025": {
+        "synsets": 107519,
+        "synsets_with_multiple_members": 44961,
+        "memberships": 185129,
+        "raw_directed_member_pairs": 285546,
+        "entry_lemmas": 128009,
+        "similar_links": 23176,
+        "sense_antonym_links": 7988,
+        "domain_tagged_synsets": 6212
+      },
+      "wikidata-sel1": {
+        "requested_titles": 884,
+        "url_exclusions": 25,
+        "redirect_resolved_titles": 76,
+        "resolved_entities": 870,
+        "selected_entities": 870,
+        "topic_links_unresolved": 16,
+        "selected_entities_with_english_aliases": 606,
+        "english_aliases": 1720
+      },
+      "github-explore-c8d7bc5": {
+        "topic_pages": 1278,
+        "topic_pages_with_aliases": 847,
+        "declared_aliases": 2110,
+        "declared_related_links": 3386,
+        "related_slugs_without_topic_page": 1387,
+        "topic_pages_with_wikipedia_url": 927
+      },
+      "abbrcode-bd33b1c": {
+        "words": 280,
+        "word_abbreviation_pairs": 306,
+        "ambiguous_abbreviations": 16,
+        "degrees": {
+          "recommended": 221,
+          "not recommended": 33,
+          "context sensitive": 52
+        }
+      },
+      "se-abbr-8e1d77e": {
+        "dictionary_entries": 358,
+        "title_abbreviation_conflicts": 3,
+        "ambiguous_abbreviations": 9
+      }
+    }
+  },
+  "build_commands": [
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "python3 acquire_sources.py verify",
+      "outcome": "pass"
+    },
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "python3 build_dataset.py build",
+      "outcome": "pass; regeneration_matches_existing=True"
+    },
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "python3 build_dataset.py handoff .codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d",
+      "outcome": "pass"
+    }
+  ],
+  "environment": {
+    "python": "3.14.8",
+    "sqlite": "3.53.4",
+    "platform": "macOS-15.7.1-arm64-arm-64bit-Mach-O",
+    "builder_sha256": "676957587e5a7c929447aef3d76b4a073615d3b59269e754e9fdc0f632a59d18",
+    "common_sha256": "af51ee25d2fdde9c76e3e2cdbd2f5c7a8715b4880ef52b701dd1dbfefe66927f",
+    "schema_sql_sha256": "10fe8d766c9db972a5b37b45843482c9bd240926981dbaef448c3c4619db7e06",
+    "sources_lock_sha256": "cd440221922537b7c80c76bbacf035105d6980f94f7348c6b2ebb95b2dde134d"
+  },
+  "integrity_status": {
+    "status": "pass",
+    "source_archives_match_lock": true,
+    "sqlite_counts_match_manifest": true,
+    "read_only_open_created_files": false,
+    "dangling_identifiers": 0,
+    "relation_rule_violations": 0,
+    "schema_violations": 0,
+    "regeneration_matches_existing": true,
+    "runtime_network_required": false
+  },
+  "limitations": [
+    "Raw upstream counts are not code-domain coverage; serving relations were not quality-reviewed here.",
+    "WordNet is general English: e.g. its only 'retry' sense is legal (rehear); 'deserialize', 'enqueue', 'dequeue', 'memoize' have no dictionary entry; 'memoization' exists in Wikidata without aliases.",
+    "No morphology, spelling unification, or NFKC normalization; WordNet spelling variants in one synset remain synonym relations and are counted separately as equal-token-key pairs.",
+    "Aliases come from curated catalogs (GitHub topics, Wikidata) and include broader category names; they are not synonyms.",
+    "Corpus (public-code) support was not measured; no co-occurrence relations exist in this dataset.",
+    "SQLite file bytes matched across two builds on one machine only; cross-platform byte identity is not claimed. Logical identity is logical_sqlite_sha256.",
+    "Dataset size (JSONL ~314 MB, SQLite ~228 MB) is unoptimized for distribution."
+  ]
+}

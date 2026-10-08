@@ -1,0 +1,186 @@
+{
+  "protocol_sha256": "223af460741fb6930e7c48b7b8c840216bc3b33924f25cbe567b885f9ec952b2",
+  "run_dir": ".codemap/poc/related-terms/evaluation/223af460741f",
+  "commands": [
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "target/release/rtpoc lookup --dataset ../../../../.codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3 --policy contracts/lookup-policy.json --state ../../../../.codemap/poc/related-terms/workspaces/state/flask --expect-dataset-id rtd1-8efd9676107a983d --repeat 5 --terms-file ../../../../.codemap/poc/related-terms/evaluation/223af460741f/terms.txt --output ../../../../.codemap/poc/related-terms/evaluation/223af460741f/flask.jsonl --timing-output ../../../../.codemap/poc/related-terms/evaluation/223af460741f/flask-timing.json",
+      "exit": 0
+    },
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "target/release/rtpoc lookup --dataset ../../../../.codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3 --policy contracts/lookup-policy.json --state ../../../../.codemap/poc/related-terms/workspaces/state/gin --expect-dataset-id rtd1-8efd9676107a983d --repeat 5 --terms-file ../../../../.codemap/poc/related-terms/evaluation/223af460741f/terms.txt --output ../../../../.codemap/poc/related-terms/evaluation/223af460741f/gin.jsonl --timing-output ../../../../.codemap/poc/related-terms/evaluation/223af460741f/gin-timing.json",
+      "exit": 0
+    },
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "target/release/rtpoc lookup --dataset ../../../../.codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3 --policy contracts/lookup-policy.json --state ../../../../.codemap/poc/related-terms/workspaces/state/tokio --expect-dataset-id rtd1-8efd9676107a983d --repeat 5 --terms-file ../../../../.codemap/poc/related-terms/evaluation/223af460741f/terms.txt --output ../../../../.codemap/poc/related-terms/evaluation/223af460741f/tokio.jsonl --timing-output ../../../../.codemap/poc/related-terms/evaluation/223af460741f/tokio-timing.json",
+      "exit": 0
+    },
+    {
+      "cwd": "apps/codemap-search/experiments/related-terms-poc",
+      "command": "target/release/rtpoc lookup --dataset ../../../../.codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3 --policy contracts/lookup-policy.json --state ../../../../.codemap/poc/related-terms/workspaces/state/express --expect-dataset-id rtd1-8efd9676107a983d --repeat 5 --terms-file ../../../../.codemap/poc/related-terms/evaluation/223af460741f/terms.txt --output ../../../../.codemap/poc/related-terms/evaluation/223af460741f/express.jsonl --timing-output ../../../../.codemap/poc/related-terms/evaluation/223af460741f/express-timing.json",
+      "exit": 0
+    }
+  ],
+  "environment": {
+    "platform": "darwin",
+    "python": "3.14.8",
+    "binary_profile": "release"
+  },
+  "source_acquisition": {
+    "archive_bytes": {
+      "oewn-2025": 9986555,
+      "github-explore-c8d7bc5": 2027520,
+      "abbrcode-bd33b1c": 51200,
+      "se-abbr-8e1d77e": 501760,
+      "wikidata-sel1": 522240
+    },
+    "wall_time": "unmeasured (network downloads were run interactively)"
+  },
+  "dataset_access": {
+    "mode": "reuse_existing",
+    "path": ".codemap/poc/related-terms/datasets/rtd1-8efd9676107a983d/dataset.sqlite3",
+    "sha256": "a38be13da274d28f24d21613052302039f407664f71f3bbe72b110748b721d10",
+    "matches_frozen_artifact": true
+  },
+  "dataset_build": {
+    "status": "not_run",
+    "reason": "existing dataset reused; build cost belongs to earlier build evidence",
+    "wall_s": null,
+    "max_rss_bytes": null
+  },
+  "repository_index_finalization": {
+    "express": {
+      "indexing_ms": 630.5,
+      "vocabulary_materialize_ms": 4.3,
+      "stats_persist_ms": 2.5,
+      "stats_bytes": 49152,
+      "index_command_max_rss_bytes": 88227840
+    },
+    "flask": {
+      "indexing_ms": 377.9,
+      "vocabulary_materialize_ms": 6.2,
+      "stats_persist_ms": 2.8,
+      "stats_bytes": 61440,
+      "index_command_max_rss_bytes": 90456064
+    },
+    "gin": {
+      "indexing_ms": 544.1,
+      "vocabulary_materialize_ms": 7.1,
+      "stats_persist_ms": 2.7,
+      "stats_bytes": 102400,
+      "index_command_max_rss_bytes": 111542272
+    },
+    "tokio": {
+      "indexing_ms": 2312.1,
+      "vocabulary_materialize_ms": 15.8,
+      "stats_persist_ms": 4.0,
+      "stats_bytes": 126976,
+      "index_command_max_rss_bytes": 99287040
+    }
+  },
+  "lookup": {
+    "flask": {
+      "process_wall_s": 0.468,
+      "process_max_rss_bytes": 21676032,
+      "process_start_to_ready_ms": 1.39,
+      "dataset_open_ms": 0.905,
+      "stats_open_ms": 0.206,
+      "repeat_outputs_identical": true,
+      "first_pass_ms": {
+        "n": 92,
+        "median": 0.098,
+        "p90": 0.429,
+        "max": 1.749
+      },
+      "repeat_passes_ms": {
+        "n": 368,
+        "median": 0.091,
+        "p90": 0.357,
+        "max": 1.678
+      },
+      "output_bytes": {
+        "median": 5928,
+        "max": 125481
+      },
+      "raw_output_sha256": "ef7485c48c452d99d02f79079c63cee843ad350223eb9a20b01b48883a419e0f"
+    },
+    "gin": {
+      "process_wall_s": 0.416,
+      "process_max_rss_bytes": 26771456,
+      "process_start_to_ready_ms": 0.748,
+      "dataset_open_ms": 0.423,
+      "stats_open_ms": 0.198,
+      "repeat_outputs_identical": true,
+      "first_pass_ms": {
+        "n": 92,
+        "median": 0.107,
+        "p90": 0.48,
+        "max": 3.24
+      },
+      "repeat_passes_ms": {
+        "n": 368,
+        "median": 0.095,
+        "p90": 0.413,
+        "max": 1.833
+      },
+      "output_bytes": {
+        "median": 5973,
+        "max": 125464
+      },
+      "raw_output_sha256": "5e6ae655d878ad7a6cc40466f4585f8af2fefb3532f806f4250cf1d11f86889d"
+    },
+    "tokio": {
+      "process_wall_s": 0.423,
+      "process_max_rss_bytes": 24117248,
+      "process_start_to_ready_ms": 0.771,
+      "dataset_open_ms": 0.441,
+      "stats_open_ms": 0.215,
+      "repeat_outputs_identical": true,
+      "first_pass_ms": {
+        "n": 92,
+        "median": 0.096,
+        "p90": 0.402,
+        "max": 1.648
+      },
+      "repeat_passes_ms": {
+        "n": 368,
+        "median": 0.092,
+        "p90": 0.391,
+        "max": 2.252
+      },
+      "output_bytes": {
+        "median": 5974,
+        "max": 125368
+      },
+      "raw_output_sha256": "79fba00dfde1015fa4208d8b7b007b9b0332435c414d3f6adf1c18bcbe5c0a49"
+    },
+    "express": {
+      "process_wall_s": 0.414,
+      "process_max_rss_bytes": 21118976,
+      "process_start_to_ready_ms": 0.635,
+      "dataset_open_ms": 0.38,
+      "stats_open_ms": 0.152,
+      "repeat_outputs_identical": true,
+      "first_pass_ms": {
+        "n": 92,
+        "median": 0.097,
+        "p90": 0.384,
+        "max": 1.787
+      },
+      "repeat_passes_ms": {
+        "n": 368,
+        "median": 0.091,
+        "p90": 0.362,
+        "max": 1.57
+      },
+      "output_bytes": {
+        "median": 5972,
+        "max": 125522
+      },
+      "raw_output_sha256": "05ca63efdf807de522dd8ae6bd930a3d200a657cefcc9291979086c9a8c8c909"
+    }
+  },
+  "memory_note": "max RSS is per whole process (dataset open + all lookups); per-lookup memory unmeasured"
+}

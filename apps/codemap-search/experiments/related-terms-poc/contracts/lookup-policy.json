@@ -1,0 +1,23 @@
+{
+  "policy_id": "rtl-1",
+  "status": "Experiment hypotheses for phase 1, frozen before child-03 evaluation. Not approved product settings; the earlier proposal's values are not inherited.",
+  "included_relation_kinds": ["synonym", "alias", "abbreviation_expansion", "abbreviation_of", "similar", "related_topic"],
+  "excluded_relation_kinds": ["antonym"],
+  "kind_priority": {
+    "synonym": 0,
+    "alias": 1,
+    "abbreviation_expansion": 2,
+    "abbreviation_of": 2,
+    "similar": 3,
+    "related_topic": 4
+  },
+  "match_kinds": ["exact", "token_normalized"],
+  "repository_presence": "H1: keep a candidate only when every index token has file_count >= 1 in the published statistics. Phrases are judged by component presence only; no phrase or adjacency count exists.",
+  "commonness_max_file_fraction": 0.25,
+  "commonness_rule": "H2: drop a single-index-token candidate whose live-file fraction exceeds the value. Multi-token candidates have no defined fraction and are not filtered. The value is a hypothesis; per-candidate counts are saved so other cutoffs can be recomputed without rerunning.",
+  "final_limit": 10,
+  "final_limit_rule": "H3: at most this many final terms per input after deduplication; every earlier-stage candidate stays in the output.",
+  "ordering": "H4: relation-kind priority, then the query word's WordNet sense order (0 = most frequent; non-WordNet evidence = 0), then more supporting relations, then exact_key.",
+  "deduplication": "Candidates with identical index-token sequences (for example 'publish-subscribe' and 'publish subscribe') collapse to the first in order.",
+  "not_ready_behavior": "When repository statistics are not ready (stale, missing, incompatible, unavailable, not configured), no final terms are produced; dictionary candidates are still reported as not_evaluated."
+}

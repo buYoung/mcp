@@ -1,0 +1,48 @@
+{
+  "schema": "rt-feature-success-criteria/3",
+  "decided_at": "2026-10-08",
+  "decided_by": "user, 2026-10-08, round 4: judge the agent-written design (A) with codex gpt-6-luna and claude-sonnet-5-5, 10 runs each; an effect must exceed the up-to-10% run-to-run difference the user observed while developing codemap-search; precision is labeled on a seeded sample of 480 pairs, extended in steps of 480 while inconclusive; targets, mode, search settings, precision threshold, and hard limits are unchanged from criteria 2",
+  "round": "heldout-5",
+  "targets": [
+    "grafana",
+    "codemap-search"
+  ],
+  "judged_mode": "both",
+  "search": {
+    "candidate_limit": 100,
+    "top_k": 10,
+    "order": "displayed: the MCP search render order (directory-diversified detail head)"
+  },
+  "effect": {
+    "judged_by": "evaluate_agent_loop.py",
+    "design": "agent_reads_block",
+    "population": "medium and complex cases of the target whose baseline search (all terms joined by spaces) misses every gold path in its top_k; M = their count",
+    "measure": "a run finds a case when the baseline top_k or the top_k of one of its follow-up queries holds a gold path; per condition, found rate = mean over the M cases of the share of its 20 runs (2 searchers x 10 replicates, contracts/agent-loop-searchers.json) that find the case; treatment runs read the block, control runs do not",
+    "min_rate_difference": 0.1,
+    "rule": "treatment found rate - control found rate > 0.10 (10 percentage points) for every target",
+    "rule_reason": "user: agent runs differ by up to 10% in codemap-search development; differences up to 10% are agent variance, not an effect of the block",
+    "when_M_is_zero": "not measurable; reported as such, not as a pass",
+    "reported_not_judged": "pooled over both targets, per searcher, and the rtl-2.4 mechanical paired comparison of evaluate_feature.py"
+  },
+  "precision": {
+    "population": "every related term the judged_mode block showed (label-queue.jsonl)",
+    "labeler": "codex gpt-6.1-sol (reasoning high), contracts/feature-precision-rubric-2.json, one label per pair in the case prompt's context",
+    "sampling": "label-queue.jsonl shuffled once with seed 20261008; pairs are labeled in that order in steps of 480",
+    "sample_step": 480,
+    "seed": 20261008,
+    "useful_labels": [
+      "synonym_in_intended_sense",
+      "near_synonym",
+      "alias_same_concept",
+      "abbreviation_correct",
+      "spelling_or_form_variant"
+    ],
+    "min_useful_rate": 0.75,
+    "rule": "pooled useful rate on the labeled pairs with a Wilson 95% interval: pass if the lower bound >= 0.75, fail if the upper bound < 0.75, otherwise label the next 480 pairs; once every pair is labeled, pass if the rate >= 0.75"
+  },
+  "hard_limits": {
+    "rule": "in every mode and case: block_bytes <= 2048 and no identifier-shaped term expanded",
+    "max_block_bytes": 2048,
+    "identifier_terms_expanded": 0
+  }
+}

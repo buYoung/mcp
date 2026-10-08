@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rt-dataset/1",
+  "title": "Related-terms PoC canonical JSONL record",
+  "description": "One JSON object per JSONL line. File name selects the record type: sources.jsonl, concepts.jsonl, expressions.jsonl, lexicalizations.jsonl, relations.jsonl. Internal PoC contract, not a product API.",
+  "oneOf": [
+    { "$ref": "#/$defs/source" },
+    { "$ref": "#/$defs/concept" },
+    { "$ref": "#/$defs/expression" },
+    { "$ref": "#/$defs/lexicalization" },
+    { "$ref": "#/$defs/relation" }
+  ],
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "source_id", "name", "semantic_scope", "license_spdx", "attribution", "upstream", "revision", "archive_sha256"],
+      "properties": {
+        "record_type": { "const": "source" },
+        "source_id": { "type": "string" },
+        "name": { "type": "string" },
+        "semantic_scope": { "enum": ["general_english_lexicon", "software_topic_catalog", "structured_concepts", "code_identifier_abbreviations", "software_acronyms"] },
+        "license_spdx": { "enum": ["CC-BY-4.0", "CC0-1.0", "MIT"] },
+        "attribution": { "type": "string" },
+        "upstream": { "type": "string" },
+        "revision": { "type": "object" },
+        "archive_sha256": { "type": "string" }
+      }
+    },
+    "concept": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "concept_id", "source_id", "concept_kind", "source_record", "pos", "gloss", "domain_labels", "attributes"],
+      "properties": {
+        "record_type": { "const": "concept" },
+        "concept_id": { "type": "string" },
+        "source_id": { "type": "string" },
+        "concept_kind": { "enum": ["wordnet_synset", "github_topic", "github_topic_reference", "wikidata_item", "abbreviation_sense", "acronym_sense"] },
+        "source_record": { "type": "string" },
+        "pos": { "type": ["string", "null"] },
+        "gloss": { "type": ["string", "null"] },
+        "domain_labels": { "type": "array" },
+        "attributes": { "type": "object" }
+      }
+    },
+    "expression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "expression_id", "exact_key", "token_key", "token_key_lossy", "token_count", "surfaces"],
+      "properties": {
+        "record_type": { "const": "expression" },
+        "expression_id": { "type": "string" },
+        "exact_key": { "type": "string" },
+        "token_key": { "type": "string" },
+        "token_key_lossy": { "type": "boolean" },
+        "token_count": { "type": "integer" },
+        "surfaces": { "type": "array" }
+      }
+    },
+    "lexicalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "lexicalization_id", "concept_id", "expression_id", "surface", "role", "source_record", "rank"],
+      "properties": {
+        "record_type": { "const": "lexicalization" },
+        "lexicalization_id": { "type": "string" },
+        "concept_id": { "type": "string" },
+        "expression_id": { "type": "string" },
+        "surface": { "type": "string" },
+        "role": { "enum": ["wordnet_member", "topic_slug", "topic_display_name", "topic_alias", "wikidata_label", "wikidata_alias", "abbreviation", "expansion"] },
+        "source_record": { "type": "string" },
+        "rank": { "type": "integer" }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_type", "relation_id", "relation_kind", "direction", "evidence_kind", "source_id", "from_expression_id", "to_expression_id", "from_lexicalization_id", "to_lexicalization_id", "from_concept_id", "to_concept_id"],
+      "properties": {
+        "record_type": { "const": "relation" },
+        "relation_id": { "type": "string" },
+        "relation_kind": { "enum": ["synonym", "alias", "abbreviation_expansion", "abbreviation_of", "similar", "antonym", "related_topic"] },
+        "direction": { "enum": ["symmetric_pair", "declared"] },
+        "evidence_kind": { "enum": ["wordnet_same_synset", "github_topic_same_topic", "wikidata_same_item", "abbrcode_entry", "se_abbr_entry", "wordnet_similar_synset", "wordnet_sense_antonym", "github_topic_related"] },
+        "source_id": { "type": "string" },
+        "from_expression_id": { "type": "string" },
+        "to_expression_id": { "type": "string" },
+        "from_lexicalization_id": { "type": "string" },
+        "to_lexicalization_id": { "type": "string" },
+        "from_concept_id": { "type": "string" },
+        "to_concept_id": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "workspace_manifest_version": 1,
+  "selection_policy": "Four public repositories pinned at release tags, one per major language family the product indexes (Python, Go, Rust, JavaScript), covering web frameworks and an async runtime. Chosen before any lookup evaluation; not tuned to dataset results. Grafana and the benchmark-managed checkout are not used.",
+  "child01_corpus_overlap": "none: child 01 mined no public-code corpus",
+  "checkout_root": ".codemap/poc/related-terms/workspaces/checkouts",
+  "state_root": ".codemap/poc/related-terms/workspaces/state",
+  "isolation": "Each target is indexed from its own checkout cwd with CODEMAP_HOME=<state>/codemap-home (empty) and no repository .codemap/config.toml, so product defaults apply. One writer per state directory.",
+  "targets": [
+    {
+      "name": "flask",
+      "url": "https://github.com/pallets/flask",
+      "tag": "3.1.3",
+      "commit": "22d924701a6ae2e4cd01e9a15bbaf3946094af65",
+      "primary_language": "Python",
+      "domain": "web framework",
+      "clone_command": "git clone --depth 1 --branch 3.1.3 https://github.com/pallets/flask.git",
+      "selected_paths": ["."]
+    },
+    {
+      "name": "gin",
+      "url": "https://github.com/gin-gonic/gin",
+      "tag": "v1.12.0",
+      "commit": "73726dc606796a025971fe451f0aa6f1b9b847f6",
+      "primary_language": "Go",
+      "domain": "web framework",
+      "clone_command": "git clone --depth 1 --branch v1.12.0 https://github.com/gin-gonic/gin.git",
+      "selected_paths": ["."]
+    },
+    {
+      "name": "tokio",
+      "url": "https://github.com/tokio-rs/tokio",
+      "tag": "tokio-1.53.2",
+      "commit": "ff0c4068a4ba5f3af0fe3c5657ba42879b6ea599",
+      "primary_language": "Rust",
+      "domain": "async runtime",
+      "clone_command": "git clone --depth 1 --branch tokio-1.53.2 https://github.com/tokio-rs/tokio.git",
+      "selected_paths": ["."]
+    },
+    {
+      "name": "express",
+      "url": "https://github.com/expressjs/express",
+      "tag": "v5.2.1",
+      "commit": "dbac741a49a5a64336b70c06e85c2e2706e36336",
+      "primary_language": "JavaScript",
+      "domain": "web framework",
+      "clone_command": "git clone --depth 1 --branch v5.2.1 https://github.com/expressjs/express.git",
+      "selected_paths": ["."]
+    }
+  ]
+}

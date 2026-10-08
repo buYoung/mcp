@@ -1,0 +1,427 @@
+{
+  "scratch_copy_of": {
+    "name": "flask",
+    "commit": "22d924701a6ae2e4cd01e9a15bbaf3946094af65"
+  },
+  "scratch_workspace": ".codemap/poc/related-terms/workspaces/scratch/flask-lifecycle",
+  "scratch_state": ".codemap/poc/related-terms/workspaces/scratch/flask-lifecycle-state",
+  "binary_sha256": "955de6934db23ca05b757835ab81cd6eeb3ceb8a21e97c0ace46d3cee03d72d7",
+  "probe_words": [
+    "rtpocprobealpha",
+    "rtpocprobebeta"
+  ],
+  "probe_edits": {
+    "A": "src/flask/helpers.py",
+    "B": "src/flask/cli.py",
+    "A_append": "\n\ndef rtpoc_probe_alpha_fn():\n    \"\"\"rtpocprobealpha twice in one docstring: rtpocprobealpha.\"\"\"\n    return \"rtpocprobealpha rtpocprobealpha\"\n",
+    "B_append": "\n\nRTPOC_PROBE = \"rtpocprobealpha\"\n",
+    "A_beta_append": "\n\nRTPOC_PROBE_BETA = \"rtpocprobebeta\"\n"
+  },
+  "steps": [
+    {
+      "step": "L0 baseline full build",
+      "index": {
+        "args": [],
+        "exit": 0,
+        "stderr": null,
+        "published_generation": "63a58d033e200df0d2e8d7d1936546fa12c382c3d8430cf60125b0b3dc4f14a2",
+        "opstamp": 245,
+        "index_refresh_committed": true,
+        "deleted_postings_skipped": 0,
+        "deleted_docs_by_segment": [
+          0,
+          0,
+          0
+        ],
+        "materialize_ms": 6.31
+      },
+      "published_json_sha256": "cd61bad6d5e94a6cbe27451757d7809bbc6f0274968bbd61237a5787733b4a08",
+      "serving": {
+        "status": "ready",
+        "detail": null,
+        "published_generation": "63a58d033e200df0d2e8d7d1936546fa12c382c3d8430cf60125b0b3dc4f14a2",
+        "current_generation": "63a58d033e200df0d2e8d7d1936546fa12c382c3d8430cf60125b0b3dc4f14a2",
+        "live_files": 121,
+        "probe_file_counts": {
+          "rtpocprobealpha": 0,
+          "rtpocprobebeta": 0
+        }
+      },
+      "index_side_audit": {
+        "status": "pass",
+        "recount_mismatches": 0,
+        "missing_live_terms": 0,
+        "deleted_only_terms_absent": 0,
+        "denominator": {
+          "all_query_count": 121,
+          "published": 121,
+          "searcher_num_docs": 121
+        }
+      },
+      "raw_tantivy_doc_freq_including_deleted": [
+        {
+          "raw_doc_freq_by_field": {},
+          "word": "rtpocprobealpha"
+        },
+        {
+          "raw_doc_freq_by_field": {},
+          "word": "rtpocprobebeta"
+        }
+      ],
+      "segments": 3
+    },
+    {
+      "step": "L1 change: probe in A (docstring x2 + literal x2) and B (literal)",
+      "index": {
+        "args": [],
+        "exit": 0,
+        "stderr": null,
+        "published_generation": "097835dcfda6fc8bc8215000e0ce9d300e2e3c42ee65e6ed6402d1ea4555bbe4",
+        "opstamp": 251,
+        "index_refresh_committed": true,
+        "deleted_postings_skipped": 3274,
+        "deleted_docs_by_segment": [
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        "materialize_ms": 7.58
+      },
+      "published_json_sha256": "6563595f85dfec3bcac0b2c10bc4a6ddf95e13e00a998c31a8c367bc4aabb621",
+      "serving": {
+        "status": "ready",
+        "detail": null,
+        "published_generation": "097835dcfda6fc8bc8215000e0ce9d300e2e3c42ee65e6ed6402d1ea4555bbe4",
+        "current_generation": "097835dcfda6fc8bc8215000e0ce9d300e2e3c42ee65e6ed6402d1ea4555bbe4",
+        "live_files": 121,
+        "probe_file_counts": {
+          "rtpocprobealpha": 2,
+          "rtpocprobebeta": 0
+        }
+      },
+      "index_side_audit": {
+        "status": "pass",
+        "recount_mismatches": 0,
+        "missing_live_terms": 0,
+        "deleted_only_terms_absent": 0,
+        "denominator": {
+          "all_query_count": 121,
+          "published": 121,
+          "searcher_num_docs": 121
+        }
+      },
+      "raw_tantivy_doc_freq_including_deleted": [
+        {
+          "raw_doc_freq_by_field": {
+            "definition_body": 1,
+            "docstring": 1,
+            "literal": 2
+          },
+          "word": "rtpocprobealpha"
+        },
+        {
+          "raw_doc_freq_by_field": {},
+          "word": "rtpocprobebeta"
+        }
+      ],
+      "segments": 5
+    },
+    {
+      "step": "L2 delete B",
+      "index": {
+        "args": [],
+        "exit": 0,
+        "stderr": null,
+        "published_generation": "bb5808bae1b818a5f81481c4f30d86a16f7e278904bc1f46982d2d0c11cd0031",
+        "opstamp": 252,
+        "index_refresh_committed": true,
+        "deleted_postings_skipped": 3274,
+        "deleted_docs_by_segment": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "materialize_ms": 6.64
+      },
+      "published_json_sha256": "6d7ec9f1e5ba7ed9bd24cf41a77875e577e12718b2b1949314c66ddda676e19f",
+      "serving": {
+        "status": "ready",
+        "detail": null,
+        "published_generation": "bb5808bae1b818a5f81481c4f30d86a16f7e278904bc1f46982d2d0c11cd0031",
+        "current_generation": "bb5808bae1b818a5f81481c4f30d86a16f7e278904bc1f46982d2d0c11cd0031",
+        "live_files": 120,
+        "probe_file_counts": {
+          "rtpocprobealpha": 1,
+          "rtpocprobebeta": 0
+        }
+      },
+      "index_side_audit": {
+        "status": "pass",
+        "recount_mismatches": 0,
+        "missing_live_terms": 0,
+        "deleted_only_terms_absent": 95,
+        "denominator": {
+          "all_query_count": 120,
+          "published": 120,
+          "searcher_num_docs": 120
+        }
+      },
+      "raw_tantivy_doc_freq_including_deleted": [
+        {
+          "raw_doc_freq_by_field": {
+            "definition_body": 1,
+            "docstring": 1,
+            "literal": 1
+          },
+          "word": "rtpocprobealpha"
+        },
+        {
+          "raw_doc_freq_by_field": {},
+          "word": "rtpocprobebeta"
+        }
+      ],
+      "segments": 4
+    },
+    {
+      "step": "L3 restart: fresh processes read persisted state, no index command",
+      "published_json_sha256": "6d7ec9f1e5ba7ed9bd24cf41a77875e577e12718b2b1949314c66ddda676e19f",
+      "serving": {
+        "status": "ready",
+        "detail": null,
+        "published_generation": "bb5808bae1b818a5f81481c4f30d86a16f7e278904bc1f46982d2d0c11cd0031",
+        "current_generation": "bb5808bae1b818a5f81481c4f30d86a16f7e278904bc1f46982d2d0c11cd0031",
+        "live_files": 120,
+        "probe_file_counts": {
+          "rtpocprobealpha": 1,
+          "rtpocprobebeta": 0
+        }
+      },
+      "index_side_audit": {
+        "status": "pass",
+        "recount_mismatches": 0,
+        "missing_live_terms": 0,
+        "deleted_only_terms_absent": 95,
+        "denominator": {
+          "all_query_count": 120,
+          "published": 120,
+          "searcher_num_docs": 120
+        }
+      },
+      "raw_tantivy_doc_freq_including_deleted": [
+        {
+          "raw_doc_freq_by_field": {
+            "definition_body": 1,
+            "docstring": 1,
+            "literal": 1
+          },
+          "word": "rtpocprobealpha"
+        },
+        {
+          "raw_doc_freq_by_field": {},
+          "word": "rtpocprobebeta"
+        }
+      ],
+      "segments": 4
+    },
+    {
+      "step": "L4 change A + injected failure before publication",
+      "index": {
+        "args": [
+          "--fail-before-publish"
+        ],
+        "exit": 1,
+        "stderr": "rtpoc: injected failure before publication (index generation e2ce819ab6a1d26d committed, stats/stats-e2ce819ab6a1d26d.sqlite3 not published)"
+      },
+      "published_json_sha256": "6d7ec9f1e5ba7ed9bd24cf41a77875e577e12718b2b1949314c66ddda676e19f",
+      "serving": {
+        "status": "stale",
+        "detail": "index committed opstamp 255 after statistics for opstamp 252 were published",
+        "published_generation": "bb5808bae1b818a5f81481c4f30d86a16f7e278904bc1f46982d2d0c11cd0031",
+        "current_generation": "e2ce819ab6a1d26d0fa3163a931fdf0d24fd78964eb0f530908f5f8055978ca2",
+        "live_files": null,
+        "probe_file_counts": {
+          "rtpocprobealpha": null,
+          "rtpocprobebeta": null
+        }
+      },
+      "raw_tantivy_doc_freq_including_deleted": [
+        {
+          "raw_doc_freq_by_field": {
+            "definition_body": 1,
+            "docstring": 1,
+            "literal": 1
+          },
+          "word": "rtpocprobealpha"
+        },
+        {
+          "raw_doc_freq_by_field": {
+            "literal": 1
+          },
+          "word": "rtpocprobebeta"
+        }
+      ],
+      "segments": 4
+    },
+    {
+      "step": "L5 recovery: index again",
+      "index": {
+        "args": [],
+        "exit": 0,
+        "stderr": null,
+        "published_generation": "e2ce819ab6a1d26d0fa3163a931fdf0d24fd78964eb0f530908f5f8055978ca2",
+        "opstamp": 255,
+        "index_refresh_committed": false,
+        "deleted_postings_skipped": 3274,
+        "deleted_docs_by_segment": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "materialize_ms": 6.47
+      },
+      "published_json_sha256": "8986ef4c1cb0272731968fe644bb7ecad0f372063cb2be166d9fa87abeecdf98",
+      "serving": {
+        "status": "ready",
+        "detail": null,
+        "published_generation": "e2ce819ab6a1d26d0fa3163a931fdf0d24fd78964eb0f530908f5f8055978ca2",
+        "current_generation": "e2ce819ab6a1d26d0fa3163a931fdf0d24fd78964eb0f530908f5f8055978ca2",
+        "live_files": 120,
+        "probe_file_counts": {
+          "rtpocprobealpha": 1,
+          "rtpocprobebeta": 1
+        }
+      },
+      "index_side_audit": {
+        "status": "pass",
+        "recount_mismatches": 0,
+        "missing_live_terms": 0,
+        "deleted_only_terms_absent": 95,
+        "denominator": {
+          "all_query_count": 120,
+          "published": 120,
+          "searcher_num_docs": 120
+        }
+      },
+      "raw_tantivy_doc_freq_including_deleted": [
+        {
+          "raw_doc_freq_by_field": {
+            "definition_body": 1,
+            "docstring": 1,
+            "literal": 1
+          },
+          "word": "rtpocprobealpha"
+        },
+        {
+          "raw_doc_freq_by_field": {
+            "literal": 1
+          },
+          "word": "rtpocprobebeta"
+        }
+      ],
+      "segments": 4
+    },
+    {
+      "step": "L6 A becomes invalid UTF-8 (encoding exclusion)",
+      "index": {
+        "args": [],
+        "exit": 0,
+        "stderr": "Warning: Not indexing ./src/flask/helpers.py: invalid UTF-8; indexing accepts UTF-8 source only",
+        "published_generation": "6e0d44d61636a6fb9b70c21da1ccaa2146d6a57a36d4e38339cc52b9eba51ab0",
+        "opstamp": 256,
+        "index_refresh_committed": true,
+        "deleted_postings_skipped": 3274,
+        "deleted_docs_by_segment": [
+          1,
+          0,
+          1
+        ],
+        "materialize_ms": 5.71
+      },
+      "published_json_sha256": "5960cfe3d7619f2f0f2c8387a42bec50a39963663c5685ba9e49ba9fb9537bd6",
+      "serving": {
+        "status": "ready",
+        "detail": null,
+        "published_generation": "6e0d44d61636a6fb9b70c21da1ccaa2146d6a57a36d4e38339cc52b9eba51ab0",
+        "current_generation": "6e0d44d61636a6fb9b70c21da1ccaa2146d6a57a36d4e38339cc52b9eba51ab0",
+        "live_files": 119,
+        "probe_file_counts": {
+          "rtpocprobealpha": 0,
+          "rtpocprobebeta": 0
+        }
+      },
+      "index_side_audit": {
+        "status": "pass",
+        "recount_mismatches": 0,
+        "missing_live_terms": 0,
+        "deleted_only_terms_absent": 157,
+        "denominator": {
+          "all_query_count": 119,
+          "published": 119,
+          "searcher_num_docs": 119
+        }
+      },
+      "raw_tantivy_doc_freq_including_deleted": [
+        {
+          "raw_doc_freq_by_field": {},
+          "word": "rtpocprobealpha"
+        },
+        {
+          "raw_doc_freq_by_field": {},
+          "word": "rtpocprobebeta"
+        }
+      ],
+      "segments": 3
+    }
+  ],
+  "expectations": [
+    {
+      "check": "L1 counts unique files across fields/repeats",
+      "pass": true
+    },
+    {
+      "check": "L1 denominator unchanged",
+      "pass": true
+    },
+    {
+      "check": "L2 delete subtracts the file",
+      "pass": true
+    },
+    {
+      "check": "L2 denominator minus one",
+      "pass": true
+    },
+    {
+      "check": "L3 restart keeps the same published pair",
+      "pass": true
+    },
+    {
+      "check": "L4 failed publication leaves published.json untouched",
+      "pass": true
+    },
+    {
+      "check": "L4 newer index with old counts is reported stale, not ready",
+      "pass": true
+    },
+    {
+      "check": "L5 recovery publishes matching counts",
+      "pass": true
+    },
+    {
+      "check": "L6 encoding exclusion removes the file's words",
+      "pass": true
+    },
+    {
+      "check": "every ready step passes the index-side audit",
+      "pass": true
+    }
+  ],
+  "status": "pass",
+  "not_exercised": [
+    "parser extraction failure (no deterministic trigger without editing product code)",
+    "concurrent second writer (single-writer procedure is enforced by the operator)"
+  ]
+}

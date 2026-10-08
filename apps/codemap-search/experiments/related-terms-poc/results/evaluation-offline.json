@@ -1,0 +1,33 @@
+{
+  "protocol_sha256": "223af460741fb6930e7c48b7b8c840216bc3b33924f25cbe567b885f9ec952b2",
+  "raw_output_sha256": {
+    "flask": "ef7485c48c452d99d02f79079c63cee843ad350223eb9a20b01b48883a419e0f",
+    "gin": "5e6ae655d878ad7a6cc40466f4585f8af2fefb3532f806f4250cf1d11f86889d",
+    "tokio": "79fba00dfde1015fa4208d8b7b007b9b0332435c414d3f6adf1c18bcbe5c0a49",
+    "express": "05ca63efdf807de522dd8ae6bd930a3d200a657cefcc9291979086c9a8c8c909"
+  },
+  "method": "same sandbox profile as results/offline-evidence.json (no network; no reads of checkouts or index segments except meta.json); all frozen inputs on every target, 2 passes",
+  "targets": {
+    "flask": {
+      "sandboxed_exit": 0,
+      "outputs_identical_to_recorded_run": true,
+      "stderr": null
+    },
+    "gin": {
+      "sandboxed_exit": 0,
+      "outputs_identical_to_recorded_run": true,
+      "stderr": null
+    },
+    "tokio": {
+      "sandboxed_exit": 0,
+      "outputs_identical_to_recorded_run": true,
+      "stderr": null
+    },
+    "express": {
+      "sandboxed_exit": 0,
+      "outputs_identical_to_recorded_run": true,
+      "stderr": null
+    }
+  },
+  "status": "pass"
+}

@@ -1,0 +1,443 @@
+{
+  "workspace_manifest_path": "apps/codemap-search/experiments/related-terms-poc/workspaces.json",
+  "workspace_manifest_sha256": "8541451af50fe59aa195a70a3217997b338383ee1607706cb7ce399d29afe5fe",
+  "binary": {
+    "path": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc",
+    "sha256": "955de6934db23ca05b757835ab81cd6eeb3ceb8a21e97c0ace46d3cee03d72d7",
+    "profile": "release"
+  },
+  "stats_policies": {
+    "stats_format": "rt-stats/1",
+    "field_policy": "rts-fields-1:file_path_parts+symbol+docstring+literal+definition_body+reference+format_text",
+    "analyzer_policy": "tantivy-0.26.2/default:simple+remove_long(40)+lowercase",
+    "count": "unique live indexed files per analyzed word across all searchable fields"
+  },
+  "targets": {
+    "express": {
+      "commit": "dbac741a49a5a64336b70c06e85c2e2706e36336",
+      "pin_check": {
+        "head": "dbac741a49a5a64336b70c06e85c2e2706e36336",
+        "matches_pin": true,
+        "clean": true
+      },
+      "checkout": ".codemap/poc/related-terms/workspaces/checkouts/express",
+      "state": ".codemap/poc/related-terms/workspaces/state/express",
+      "commands": [
+        {
+          "cwd": ".codemap/poc/related-terms/workspaces/checkouts/express",
+          "env": {
+            "CODEMAP_HOME": ".codemap/poc/related-terms/workspaces/state/express/codemap-home"
+          },
+          "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc index --state .codemap/poc/related-terms/workspaces/state/express",
+          "exit": 0
+        },
+        {
+          "cwd": ".codemap/poc/related-terms/workspaces/checkouts/express",
+          "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc verify-stats --state .codemap/poc/related-terms/workspaces/state/express",
+          "exit": 0
+        }
+      ],
+      "published": {
+        "index_generation": "5ec561fde5f5d6f8258432be72d9d1c9ed176858e930cc6457cccdc3b752599e",
+        "index_opstamp": 325,
+        "live_files": 161,
+        "vocabulary_size": 2112,
+        "stats_file": "stats/stats-5ec561fde5f5d6f8.sqlite3",
+        "stats_sha256": "939c0b1dfdc90aa1ed5ab9b1db3e82f5474f035e18db84d9079ff6c4e51996fe",
+        "published_json_sha256": "9acad818796147981463cbb184eb1f8971f20dfa74eb25e942043db5229f1f8f"
+      },
+      "effective_config": {
+        "excluded_directories": [
+          ".idea",
+          ".vscode",
+          ".vs",
+          "node_modules",
+          ".yarn",
+          "target",
+          "dist",
+          "build",
+          "vendor",
+          ".git",
+          ".svn",
+          ".hg",
+          ".bzr",
+          ".jj",
+          ".sl",
+          ".codemap",
+          ".codemap-index"
+        ],
+        "is_document_support_enabled": false,
+        "is_shell_support_enabled": false,
+        "macro_expansion": "MacroExpansionConfig { is_enabled: true, compilation_database: None, clang_path: \"clang\", nasm_path: \"nasm\", clang_flags: [], nasm_flags: [], timeout_ms: 5000, max_output_bytes: 8388608 }",
+        "max_file_size": 1048576,
+        "use_git_exclude": true
+      },
+      "costs": {
+        "index_command_wall_s": 0.704,
+        "index_command_max_rss_bytes": 88227840,
+        "indexing_ms": 630.5,
+        "vocabulary_materialize_ms": 4.3,
+        "stats_persist_ms": 2.5,
+        "stats_bytes": 49152,
+        "per_field_live_postings": 29030,
+        "verify_wall_s": 0.027,
+        "verify_max_rss_bytes": 9175040
+      },
+      "verification": {
+        "counts_sha256": "9facf8cd0e6be58145ded0f1e2b30c2665f27d4fd13be473a21ed01d710df6bf",
+        "deleted_only_terms_absent": 0,
+        "denominator": {
+          "all_query_count": 161,
+          "published": 161,
+          "searcher_num_docs": 161
+        },
+        "elapsed_ms": 18.6915,
+        "index_generation": "5ec561fde5f5d6f8258432be72d9d1c9ed176858e930cc6457cccdc3b752599e",
+        "missing_live_terms": 0,
+        "published_words": 2112,
+        "recount_mismatches": 0,
+        "status": "pass",
+        "words_where_raw_field_doc_freq_sum_exceeds_live_union": 1745
+      },
+      "population": {
+        "tracked_files": 218,
+        "indexed_files": 161,
+        "indexed_not_tracked": 0,
+        "primary_extensions": [
+          ".cjs",
+          ".js",
+          ".mjs"
+        ],
+        "tracked_primary_files": 142,
+        "indexed_primary_files": 142,
+        "missing_primary_reasons": {},
+        "missing_primary_examples": [],
+        "indexed_by_extension": {
+          ".js": 142,
+          ".html": 8,
+          ".yml": 6,
+          ".css": 4,
+          ".json": 1
+        }
+      }
+    },
+    "flask": {
+      "commit": "22d924701a6ae2e4cd01e9a15bbaf3946094af65",
+      "pin_check": {
+        "head": "22d924701a6ae2e4cd01e9a15bbaf3946094af65",
+        "matches_pin": true,
+        "clean": true
+      },
+      "checkout": ".codemap/poc/related-terms/workspaces/checkouts/flask",
+      "state": ".codemap/poc/related-terms/workspaces/state/flask",
+      "commands": [
+        {
+          "cwd": ".codemap/poc/related-terms/workspaces/checkouts/flask",
+          "env": {
+            "CODEMAP_HOME": ".codemap/poc/related-terms/workspaces/state/flask/codemap-home"
+          },
+          "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc index --state .codemap/poc/related-terms/workspaces/state/flask",
+          "exit": 0
+        },
+        {
+          "cwd": ".codemap/poc/related-terms/workspaces/checkouts/flask",
+          "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc verify-stats --state .codemap/poc/related-terms/workspaces/state/flask",
+          "exit": 0
+        }
+      ],
+      "published": {
+        "index_generation": "1837cce3420e481233f07b077fcc5020f258413746592dbc66de57ae26eb45fb",
+        "index_opstamp": 245,
+        "live_files": 121,
+        "vocabulary_size": 2999,
+        "stats_file": "stats/stats-1837cce3420e4812.sqlite3",
+        "stats_sha256": "32b37879776eed311ee277950c25db0180e44e0b58be3ee77b04860caaa3320a",
+        "published_json_sha256": "549ab9e4727837f4df33c59c206bb654568b1d2dbba9cb7b87ce8a5333427c80"
+      },
+      "effective_config": {
+        "excluded_directories": [
+          ".idea",
+          ".vscode",
+          ".vs",
+          "node_modules",
+          ".yarn",
+          "target",
+          "dist",
+          "build",
+          "vendor",
+          ".git",
+          ".svn",
+          ".hg",
+          ".bzr",
+          ".jj",
+          ".sl",
+          ".codemap",
+          ".codemap-index"
+        ],
+        "is_document_support_enabled": false,
+        "is_shell_support_enabled": false,
+        "macro_expansion": "MacroExpansionConfig { is_enabled: true, compilation_database: None, clang_path: \"clang\", nasm_path: \"nasm\", clang_flags: [], nasm_flags: [], timeout_ms: 5000, max_output_bytes: 8388608 }",
+        "max_file_size": 1048576,
+        "use_git_exclude": true
+      },
+      "costs": {
+        "index_command_wall_s": 0.912,
+        "index_command_max_rss_bytes": 90456064,
+        "indexing_ms": 377.9,
+        "vocabulary_materialize_ms": 6.2,
+        "stats_persist_ms": 2.8,
+        "stats_bytes": 61440,
+        "per_field_live_postings": 31203,
+        "verify_wall_s": 0.032,
+        "verify_max_rss_bytes": 8175616
+      },
+      "verification": {
+        "counts_sha256": "73b79aa20e85e6238c60cec30b7f0e664492b6688c6a963972cce8bda62482fc",
+        "deleted_only_terms_absent": 0,
+        "denominator": {
+          "all_query_count": 121,
+          "published": 121,
+          "searcher_num_docs": 121
+        },
+        "elapsed_ms": 24.97775,
+        "index_generation": "1837cce3420e481233f07b077fcc5020f258413746592dbc66de57ae26eb45fb",
+        "missing_live_terms": 0,
+        "published_words": 2999,
+        "recount_mismatches": 0,
+        "status": "pass",
+        "words_where_raw_field_doc_freq_sum_exceeds_live_union": 2406
+      },
+      "population": {
+        "tracked_files": 235,
+        "indexed_files": 121,
+        "indexed_not_tracked": 0,
+        "primary_extensions": [
+          ".py"
+        ],
+        "tracked_primary_files": 83,
+        "indexed_primary_files": 83,
+        "missing_primary_reasons": {},
+        "missing_primary_examples": [],
+        "indexed_by_extension": {
+          ".py": 83,
+          ".html": 20,
+          ".yaml": 6,
+          ".toml": 5,
+          ".json": 2,
+          ".sql": 2,
+          ".css": 2,
+          ".yml": 1
+        }
+      }
+    },
+    "gin": {
+      "commit": "73726dc606796a025971fe451f0aa6f1b9b847f6",
+      "pin_check": {
+        "head": "73726dc606796a025971fe451f0aa6f1b9b847f6",
+        "matches_pin": true,
+        "clean": true
+      },
+      "checkout": ".codemap/poc/related-terms/workspaces/checkouts/gin",
+      "state": ".codemap/poc/related-terms/workspaces/state/gin",
+      "commands": [
+        {
+          "cwd": ".codemap/poc/related-terms/workspaces/checkouts/gin",
+          "env": {
+            "CODEMAP_HOME": ".codemap/poc/related-terms/workspaces/state/gin/codemap-home"
+          },
+          "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc index --state .codemap/poc/related-terms/workspaces/state/gin",
+          "exit": 0
+        },
+        {
+          "cwd": ".codemap/poc/related-terms/workspaces/checkouts/gin",
+          "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc verify-stats --state .codemap/poc/related-terms/workspaces/state/gin",
+          "exit": 0
+        }
+      ],
+      "published": {
+        "index_generation": "8b4f72d63342e491a43f7104b9adfe0f226d02fb3c54da43e702837048fcca6d",
+        "index_opstamp": 222,
+        "live_files": 109,
+        "vocabulary_size": 4533,
+        "stats_file": "stats/stats-8b4f72d63342e491.sqlite3",
+        "stats_sha256": "e49494b1c337d6b539654eb21a22cb090a63c2037c55b0f2fa1770395f2c3504",
+        "published_json_sha256": "8ce74f8adb3ff31a983629ec1012bb6f70ac9f2c08b801e7a3829cccbc24135d"
+      },
+      "effective_config": {
+        "excluded_directories": [
+          ".idea",
+          ".vscode",
+          ".vs",
+          "node_modules",
+          ".yarn",
+          "target",
+          "dist",
+          "build",
+          "vendor",
+          ".git",
+          ".svn",
+          ".hg",
+          ".bzr",
+          ".jj",
+          ".sl",
+          ".codemap",
+          ".codemap-index"
+        ],
+        "is_document_support_enabled": false,
+        "is_shell_support_enabled": false,
+        "macro_expansion": "MacroExpansionConfig { is_enabled: true, compilation_database: None, clang_path: \"clang\", nasm_path: \"nasm\", clang_flags: [], nasm_flags: [], timeout_ms: 5000, max_output_bytes: 8388608 }",
+        "max_file_size": 1048576,
+        "use_git_exclude": true
+      },
+      "costs": {
+        "index_command_wall_s": 0.575,
+        "index_command_max_rss_bytes": 111542272,
+        "indexing_ms": 544.1,
+        "vocabulary_materialize_ms": 7.1,
+        "stats_persist_ms": 2.7,
+        "stats_bytes": 102400,
+        "per_field_live_postings": 29693,
+        "verify_wall_s": 0.046,
+        "verify_max_rss_bytes": 8994816
+      },
+      "verification": {
+        "counts_sha256": "8efa427d24b59f7803879bbc05a8dd48c0a80c413e040971c396de20bfa0b512",
+        "deleted_only_terms_absent": 0,
+        "denominator": {
+          "all_query_count": 109,
+          "published": 109,
+          "searcher_num_docs": 109
+        },
+        "elapsed_ms": 38.018083000000004,
+        "index_generation": "8b4f72d63342e491a43f7104b9adfe0f226d02fb3c54da43e702837048fcca6d",
+        "missing_live_terms": 0,
+        "published_words": 4533,
+        "recount_mismatches": 0,
+        "status": "pass",
+        "words_where_raw_field_doc_freq_sum_exceeds_live_union": 3480
+      },
+      "population": {
+        "tracked_files": 130,
+        "indexed_files": 109,
+        "indexed_not_tracked": 0,
+        "primary_extensions": [
+          ".go"
+        ],
+        "tracked_primary_files": 98,
+        "indexed_primary_files": 98,
+        "missing_primary_reasons": {},
+        "missing_primary_examples": [],
+        "indexed_by_extension": {
+          ".go": 98,
+          ".yml": 8,
+          ".yaml": 3
+        }
+      }
+    },
+    "tokio": {
+      "commit": "ff0c4068a4ba5f3af0fe3c5657ba42879b6ea599",
+      "pin_check": {
+        "head": "ff0c4068a4ba5f3af0fe3c5657ba42879b6ea599",
+        "matches_pin": true,
+        "clean": true
+      },
+      "checkout": ".codemap/poc/related-terms/workspaces/checkouts/tokio",
+      "state": ".codemap/poc/related-terms/workspaces/state/tokio",
+      "commands": [
+        {
+          "cwd": ".codemap/poc/related-terms/workspaces/checkouts/tokio",
+          "env": {
+            "CODEMAP_HOME": ".codemap/poc/related-terms/workspaces/state/tokio/codemap-home"
+          },
+          "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc index --state .codemap/poc/related-terms/workspaces/state/tokio",
+          "exit": 0
+        },
+        {
+          "cwd": ".codemap/poc/related-terms/workspaces/checkouts/tokio",
+          "command": "apps/codemap-search/experiments/related-terms-poc/target/release/rtpoc verify-stats --state .codemap/poc/related-terms/workspaces/state/tokio",
+          "exit": 0
+        }
+      ],
+      "published": {
+        "index_generation": "ba3ff148a6a14ef422820597ceca0696521b4f753189619cac06f8701f044ccb",
+        "index_opstamp": 1643,
+        "live_files": 820,
+        "vocabulary_size": 7046,
+        "stats_file": "stats/stats-ba3ff148a6a14ef4.sqlite3",
+        "stats_sha256": "8391ebfda2e77f3afe3217f0d73f78051ee9522299719c8958ce4fdc52d9ef1d",
+        "published_json_sha256": "5c40b7db97ac0e515aa8b1aed5995611043f4d552603db4e66c0c1db76378687"
+      },
+      "effective_config": {
+        "excluded_directories": [
+          ".idea",
+          ".vscode",
+          ".vs",
+          "node_modules",
+          ".yarn",
+          "target",
+          "dist",
+          "build",
+          "vendor",
+          ".git",
+          ".svn",
+          ".hg",
+          ".bzr",
+          ".jj",
+          ".sl",
+          ".codemap",
+          ".codemap-index"
+        ],
+        "is_document_support_enabled": false,
+        "is_shell_support_enabled": false,
+        "macro_expansion": "MacroExpansionConfig { is_enabled: true, compilation_database: None, clang_path: \"clang\", nasm_path: \"nasm\", clang_flags: [], nasm_flags: [], timeout_ms: 5000, max_output_bytes: 8388608 }",
+        "max_file_size": 1048576,
+        "use_git_exclude": true
+      },
+      "costs": {
+        "index_command_wall_s": 2.355,
+        "index_command_max_rss_bytes": 99287040,
+        "indexing_ms": 2312.1,
+        "vocabulary_materialize_ms": 15.8,
+        "stats_persist_ms": 4.0,
+        "stats_bytes": 126976,
+        "per_field_live_postings": 189469,
+        "verify_wall_s": 0.068,
+        "verify_max_rss_bytes": 10027008
+      },
+      "verification": {
+        "counts_sha256": "9e67f9b0914e7e24a0c3574e4aa6eb62240d97423c728bade55951dbad4b44a2",
+        "deleted_only_terms_absent": 0,
+        "denominator": {
+          "all_query_count": 820,
+          "published": 820,
+          "searcher_num_docs": 820
+        },
+        "elapsed_ms": 59.585917,
+        "index_generation": "ba3ff148a6a14ef422820597ceca0696521b4f753189619cac06f8701f044ccb",
+        "missing_live_terms": 0,
+        "published_words": 7046,
+        "recount_mismatches": 0,
+        "status": "pass",
+        "words_where_raw_field_doc_freq_sum_exceeds_live_union": 4404
+      },
+      "population": {
+        "tracked_files": 865,
+        "indexed_files": 820,
+        "indexed_not_tracked": 0,
+        "primary_extensions": [
+          ".rs"
+        ],
+        "tracked_primary_files": 790,
+        "indexed_primary_files": 790,
+        "missing_primary_reasons": {},
+        "missing_primary_examples": [],
+        "indexed_by_extension": {
+          ".rs": 790,
+          ".toml": 18,
+          ".yml": 11,
+          ".json": 1
+        }
+      }
+    }
+  }
+}

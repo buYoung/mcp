@@ -1,0 +1,559 @@
+{
+  "schema": "rt-feature-test-terms/1",
+  "derived_from": "prompt text only; no code, gold paths, or search results seen",
+  "terms": {
+    "g3-01": [
+      "ParseTagPairs",
+      "JoinTagPairs",
+      "tag pairs",
+      "colon",
+      "key value",
+      "trim space",
+      "duplicate"
+    ],
+    "g3-02": [
+      "ValidateNoOwnedFolders",
+      "owned folders",
+      "team delete",
+      "folder search",
+      "service identity",
+      "search response"
+    ],
+    "g3-03": [
+      "dedupAnnotations",
+      "panel-alert",
+      "eventType",
+      "annotation events",
+      "duplicate id",
+      "dedup"
+    ],
+    "g3-04": [
+      "distribute",
+      "SPACE_BETWEEN",
+      "SPACE_AROUND",
+      "SPACE_EVENLY",
+      "onlyIdx",
+      "bar chart",
+      "Infinity NaN"
+    ],
+    "g3-05": [
+      "preferences",
+      "team preferences",
+      "org preferences",
+      "user preferences",
+      "home dashboard",
+      "week start",
+      "timezone",
+      "default theme"
+    ],
+    "g3-06": [
+      "query history",
+      "datasource filter",
+      "mixed datasource",
+      "starred only",
+      "search string",
+      "page limit",
+      "sort order",
+      "to time"
+    ],
+    "g3-07": [
+      "notification template",
+      "upsert template",
+      "rename template",
+      "version conflict",
+      "imported template",
+      "template limits",
+      "provenance",
+      "uid"
+    ],
+    "g3-08": [
+      "quota",
+      "quota limit",
+      "org quota",
+      "user quota",
+      "unlimited",
+      "background request",
+      "default quota",
+      "quota check"
+    ],
+    "g3-09": [
+      "state history",
+      "annotation",
+      "state reason",
+      "missing series",
+      "paused",
+      "nodata",
+      "annotation text",
+      "labels to tags"
+    ],
+    "g3-10": [
+      "annotation cleanup",
+      "cleanup job",
+      "max age",
+      "max count",
+      "batch size",
+      "sqlite parameter",
+      "annotation tag",
+      "alert annotations"
+    ],
+    "g3-11": [
+      "correlation",
+      "update correlation",
+      "provisioned",
+      "source datasource",
+      "external",
+      "target uid",
+      "regex transformation",
+      "legacy type"
+    ],
+    "g3-12": [
+      "grouping to matrix",
+      "matrix",
+      "row field",
+      "column field",
+      "value field",
+      "empty value",
+      "nested frames",
+      "display name"
+    ],
+    "g3-13": [
+      "partition by values",
+      "naming",
+      "separator",
+      "keep fields",
+      "append",
+      "display name",
+      "frame name",
+      "legend hide"
+    ],
+    "g3-14": [
+      "bar chart",
+      "x field",
+      "join frames",
+      "hide from viz",
+      "no numeric fields",
+      "stacking",
+      "Infinity",
+      "time field"
+    ],
+    "g3-15": [
+      "time range picker",
+      "time range form",
+      "validation",
+      "from after to",
+      "round up",
+      "clipboard",
+      "paste",
+      "UTC"
+    ],
+    "g3-16": [
+      "annotation mapping",
+      "data frame",
+      "field mapping",
+      "time end",
+      "tags split",
+      "merge frames",
+      "default color",
+      "string field"
+    ],
+    "g3-17": [
+      "new datasource",
+      "plugin category",
+      "enterprise plugin",
+      "license",
+      "cloud",
+      "not installed",
+      "learn more",
+      "sort"
+    ],
+    "g3-18": [
+      "shared preferences",
+      "preferences form",
+      "save",
+      "confirm",
+      "reload",
+      "theme",
+      "language",
+      "pseudo locale"
+    ],
+    "g3-19": [
+      "public dashboard",
+      "time range",
+      "timezone",
+      "max data points",
+      "interval",
+      "safe interval",
+      "sanitize query",
+      "hide time picker"
+    ],
+    "g3-20": [
+      "service account token",
+      "api key",
+      "Authorization header",
+      "Bearer",
+      "basic auth",
+      "checksum",
+      "last used",
+      "expired"
+    ],
+    "g3-21": [
+      "envelope encryption",
+      "data key",
+      "data key cache",
+      "key prefix",
+      "rotate keys",
+      "decrypt",
+      "algorithm",
+      "lock"
+    ],
+    "g3-22": [
+      "cloud migration",
+      "snapshot",
+      "resource types",
+      "dependencies",
+      "plugin signature",
+      "alerting",
+      "folder sort",
+      "plugin settings"
+    ],
+    "g3-23": [
+      "feature toggles",
+      "feature flags",
+      "enable",
+      "config section",
+      "environment override",
+      "dev mode",
+      "unknown toggle",
+      "parse value"
+    ],
+    "g3-24": [
+      "plugin install",
+      "already installed",
+      "core plugin",
+      "dependency",
+      "extract archive",
+      "symlink",
+      "zip slip",
+      "remove permissions"
+    ],
+    "g3-25": [
+      "render key",
+      "image renderer",
+      "rendering",
+      "jwt",
+      "remote cache",
+      "render cookie",
+      "concurrent limit",
+      "render user"
+    ],
+    "g3-26": [
+      "column filter",
+      "filter popup",
+      "operator",
+      "filter expression",
+      "comparison",
+      "and or",
+      "quoted value",
+      "nested rows"
+    ],
+    "g3-27": [
+      "csv",
+      "excel",
+      "inspect data",
+      "download csv",
+      "delimiter",
+      "BOM",
+      "locale",
+      "field config"
+    ],
+    "g3-28": [
+      "keybindings",
+      "escape",
+      "shortcut",
+      "kiosk",
+      "inspect",
+      "zoom out",
+      "collapse rows",
+      "panel edit"
+    ],
+    "g3-29": [
+      "library panel",
+      "delete library panel",
+      "connected dashboards",
+      "connections",
+      "delete modal",
+      "loading",
+      "access control"
+    ],
+    "g3-30": [
+      "save and test",
+      "test datasource",
+      "validator",
+      "datasource settings",
+      "reload datasources",
+      "cache",
+      "test status",
+      "details"
+    ],
+    "g3-31": [
+      "panel editor",
+      "change visualization",
+      "skip query",
+      "data provider",
+      "last used datasource",
+      "default datasource",
+      "plugin load",
+      "discard"
+    ],
+    "g3-32": [
+      "admin users",
+      "user search",
+      "debounce",
+      "sort",
+      "pagination",
+      "per page",
+      "auth module",
+      "filter"
+    ],
+    "c3-01": [
+      "task::parse",
+      "RegisteredTask::validate",
+      "encoded size",
+      "question count",
+      "blank text",
+      "unknown field",
+      "question id",
+      "match default"
+    ],
+    "c3-02": [
+      "LiveOptions::parse_grep",
+      "include_events",
+      "unresolved",
+      "expand",
+      "view",
+      "output mode",
+      "content",
+      "debug"
+    ],
+    "c3-03": [
+      "arguments::validate",
+      "task_query",
+      "unsupported argument",
+      "alias",
+      "case insensitive",
+      "debug",
+      "hyphen underscore",
+      "error message"
+    ],
+    "c3-04": [
+      "EventInputs::insert",
+      "event source",
+      "generation",
+      "byte limit",
+      "skipped files",
+      "skip reason",
+      "events disabled",
+      "retain source"
+    ],
+    "c3-05": [
+      "go",
+      "exported",
+      "receiver",
+      "test prefix",
+      "deprecated",
+      "doc comment",
+      "pointer receiver",
+      "generic"
+    ],
+    "c3-06": [
+      "shell",
+      "bash",
+      "source command",
+      "import",
+      "function definition",
+      "command substitution",
+      "parse error",
+      "zsh"
+    ],
+    "c3-07": [
+      "markdown",
+      "heading",
+      "setext",
+      "atx",
+      "code block",
+      "link",
+      "fenced",
+      "full text"
+    ],
+    "c3-08": [
+      "sass",
+      "indented syntax",
+      "mixin",
+      "keyframes",
+      "custom property",
+      "variable",
+      "selector",
+      "error recovery"
+    ],
+    "c3-09": [
+      "overview",
+      "outline",
+      "symbol tree",
+      "stale",
+      "file changed",
+      "truncate",
+      "relevance",
+      "line removal"
+    ],
+    "c3-10": [
+      "cpp",
+      "function declarator",
+      "qualified name",
+      "operator overload",
+      "destructor",
+      "conversion operator",
+      "template specialization",
+      "static"
+    ],
+    "c3-11": [
+      "overview",
+      "path",
+      "not indexed",
+      "binary",
+      "size limit",
+      "encoding",
+      "outside repository",
+      "index stalled"
+    ],
+    "c3-12": [
+      "compact",
+      "dedup notice",
+      "partial analysis",
+      "no direct calls",
+      "line ranges",
+      "unresolved",
+      "budget",
+      "headroom"
+    ],
+    "c3-13": [
+      "caller candidates",
+      "relevance",
+      "task scope",
+      "test code",
+      "visible lines",
+      "budget",
+      "scan incomplete",
+      "omit section"
+    ],
+    "c3-14": [
+      "benchmark",
+      "queries file",
+      "baseline",
+      "name match",
+      "recall",
+      "expected",
+      "mean",
+      "cli"
+    ],
+    "c3-15": [
+      "Dockerfile",
+      "Makefile",
+      "filename detection",
+      "language group",
+      "case sensitive",
+      "build arg",
+      "stage alias",
+      "special variable"
+    ],
+    "c3-16": [
+      "inheritance",
+      "extends",
+      "implements",
+      "resolve",
+      "type arguments",
+      "relative import",
+      "wildcard import",
+      "alias"
+    ],
+    "c3-17": [
+      "callees",
+      "call expression",
+      "member call",
+      "receiver type",
+      "unique definition",
+      "comments strings",
+      "language family",
+      "self call"
+    ],
+    "c3-18": [
+      "pii",
+      "redaction",
+      "context label",
+      "label suffix",
+      "overlap",
+      "resident registration",
+      "checksum",
+      "previous line"
+    ],
+    "c3-19": [
+      "secret",
+      "redaction",
+      "private key",
+      "aws access key",
+      "webhook",
+      "custom rule",
+      "allowlist",
+      "normalize field"
+    ],
+    "c3-20": [
+      "relevance judge",
+      "concurrency",
+      "rate limit",
+      "deadline",
+      "cancellation",
+      "status code",
+      "probability",
+      "tolerance"
+    ],
+    "c3-21": [
+      "index stats",
+      "read only",
+      "file status",
+      "stale",
+      "missing",
+      "language filter",
+      "sort",
+      "json output"
+    ],
+    "c3-22": [
+      "events",
+      "event relations",
+      "emit",
+      "listener",
+      "counterpart",
+      "stale index",
+      "excluded",
+      "diagnostic"
+    ],
+    "c3-23": [
+      "symbol context",
+      "enclosing symbol",
+      "siblings",
+      "relations",
+      "signature truncate",
+      "budget",
+      "interleave",
+      "next read"
+    ],
+    "c3-24": [
+      "file notice",
+      "indexing",
+      "stalled",
+      "test file",
+      "encoding",
+      "gitignore",
+      "size limit",
+      "content hash"
+    ]
+  }
+}

@@ -1,0 +1,217 @@
+{
+  "dataset_id": "rtd1-081f6f35d765db78",
+  "schema_version": "rt-dataset/1",
+  "normalization_version": "rtn-1",
+  "dataset_dir": ".codemap/poc/related-terms/datasets/rtd1-081f6f35d765db78",
+  "jsonl_sha256": {
+    "sources": "0be8e47179ad1dadc99c0cd887f5ba2732dac5547868c19a42ae6acf923aa27d",
+    "concepts": "4de886c3b64fff7fd4c61346f0001cfe8535960a1615049f9977b3bee5bd833d",
+    "expressions": "f957b8a575803e3c97d11d5cea02d4e39de112a0646787e1e25ce5c692992ba7",
+    "lexicalizations": "816654b277b07273f66611941cdb8a74001e97cf33508ede122878015f160a9b",
+    "relations": "941a5a9fe18912c2970e5c512e09d75d321bcf01b824a071143d0feead6fb9d2"
+  },
+  "sqlite_sha256": "fbbad07e40cda3358391e07ddd6c7ceed8a0119ddb18d577eed3e9ea5c1d0005",
+  "logical_sqlite_sha256": "80771f6062906d4051f150d40e1d2011293a2c520cbbec9e6950234c901ff5ae",
+  "sqlite_bytes": 227815424,
+  "jsonl_bytes": {
+    "sources": 2736,
+    "concepts": 38407267,
+    "expressions": 24318759,
+    "lexicalizations": 51599672,
+    "relations": 199393642
+  },
+  "raw_source_counts": {
+    "oewn-2025": {
+      "synsets": 107519,
+      "synsets_with_multiple_members": 44961,
+      "memberships": 185129,
+      "raw_directed_member_pairs": 285546,
+      "entry_lemmas": 128009,
+      "similar_links": 23176,
+      "sense_antonym_links": 7988,
+      "domain_tagged_synsets": 6212
+    },
+    "wikidata-sel1": {
+      "requested_titles": 884,
+      "url_exclusions": 25,
+      "redirect_resolved_titles": 76,
+      "resolved_entities": 870,
+      "selected_entities": 870,
+      "topic_links_unresolved": 16,
+      "selected_entities_with_english_aliases": 606,
+      "english_aliases": 1720
+    },
+    "github-explore-c8d7bc5": {
+      "topic_pages": 1278,
+      "topic_pages_with_aliases": 847,
+      "declared_aliases": 2110,
+      "declared_related_links": 3386,
+      "related_slugs_without_topic_page": 1387,
+      "topic_pages_with_wikipedia_url": 927
+    },
+    "abbrcode-bd33b1c": {
+      "words": 280,
+      "word_abbreviation_pairs": 306,
+      "ambiguous_abbreviations": 16,
+      "degrees": {
+        "recommended": 221,
+        "not recommended": 33,
+        "context sensitive": 52
+      }
+    },
+    "se-abbr-8e1d77e": {
+      "dictionary_entries": 358,
+      "title_abbreviation_conflicts": 3,
+      "ambiguous_abbreviations": 9
+    }
+  },
+  "serving_counts": {
+    "record_counts": {
+      "sources": 5,
+      "concepts": 111718,
+      "expressions": 133942,
+      "lexicalizations": 195052,
+      "relations": 410459
+    },
+    "relations_by_kind_and_source": {
+      "abbreviation_expansion/abbrcode-bd33b1c": 306,
+      "abbreviation_expansion/se-abbr-8e1d77e": 358,
+      "abbreviation_of/abbrcode-bd33b1c": 306,
+      "abbreviation_of/se-abbr-8e1d77e": 358,
+      "alias/github-explore-c8d7bc5": 27084,
+      "alias/wikidata-sel1": 9694,
+      "antonym/oewn-2025": 7986,
+      "related_topic/github-explore-c8d7bc5": 19015,
+      "similar/oewn-2025": 59902,
+      "synonym/oewn-2025": 285450
+    },
+    "expressions_multi_token": 62595,
+    "expressions_with_lossy_token_key": 1379,
+    "expressions_in_multiple_concepts": 27047,
+    "expressions_without_outgoing_relations": 31868,
+    "concepts_with_single_lexicalization": 64189,
+    "ambiguous_abbreviations_in_serving_relations": 29,
+    "diagnostic_probes": {
+      "delete": {
+        "in_dictionary": true,
+        "concepts": 3,
+        "outgoing_relations_by_kind": {
+          "synonym": 4
+        }
+      },
+      "erase": {
+        "in_dictionary": true,
+        "concepts": 3,
+        "outgoing_relations_by_kind": {
+          "antonym": 1,
+          "synonym": 6
+        }
+      },
+      "retry": {
+        "in_dictionary": true,
+        "concepts": 1,
+        "outgoing_relations_by_kind": {
+          "synonym": 1
+        }
+      },
+      "deserialize": {
+        "in_dictionary": false,
+        "concepts": 0,
+        "outgoing_relations_by_kind": {}
+      },
+      "serialize": {
+        "in_dictionary": true,
+        "concepts": 2,
+        "outgoing_relations_by_kind": {
+          "alias": 7,
+          "synonym": 1
+        }
+      },
+      "enqueue": {
+        "in_dictionary": false,
+        "concepts": 0,
+        "outgoing_relations_by_kind": {}
+      },
+      "dequeue": {
+        "in_dictionary": false,
+        "concepts": 0,
+        "outgoing_relations_by_kind": {}
+      },
+      "memoize": {
+        "in_dictionary": false,
+        "concepts": 0,
+        "outgoing_relations_by_kind": {}
+      },
+      "memoization": {
+        "in_dictionary": true,
+        "concepts": 1,
+        "outgoing_relations_by_kind": {}
+      },
+      "event loop": {
+        "in_dictionary": true,
+        "concepts": 1,
+        "outgoing_relations_by_kind": {
+          "alias": 4
+        }
+      },
+      "res": {
+        "in_dictionary": true,
+        "concepts": 3,
+        "outgoing_relations_by_kind": {
+          "abbreviation_expansion": 2,
+          "synonym": 1
+        }
+      },
+      "dir": {
+        "in_dictionary": true,
+        "concepts": 2,
+        "outgoing_relations_by_kind": {
+          "abbreviation_expansion": 2
+        }
+      }
+    }
+  },
+  "exclusions": {
+    "oewn-2025:examples_and_other_relations_not_imported": 1,
+    "oewn-2025:morphological_form_variants_not_imported": 4473
+  },
+  "skipped_same_expression_pairs": {
+    "github_topic_related": 1,
+    "github_topic_same_topic": 1594,
+    "wikidata_same_item": 190,
+    "wordnet_same_synset": 96,
+    "wordnet_sense_antonym": 2,
+    "wordnet_similar_synset": 2014
+  },
+  "corpus_support": "not_measured",
+  "verification": {
+    "status": "pass",
+    "logical_sqlite_sha256": "80771f6062906d4051f150d40e1d2011293a2c520cbbec9e6950234c901ff5ae",
+    "sqlite_sha256": "fbbad07e40cda3358391e07ddd6c7ceed8a0119ddb18d577eed3e9ea5c1d0005",
+    "dangling_identifiers": 0,
+    "relation_rule_violations": 0,
+    "schema_violations": 0,
+    "relations_between_equal_token_keys": {
+      "alias": 868,
+      "related_topic": 3,
+      "synonym": 494
+    },
+    "required_indexes": [
+      "expressions_by_token_key",
+      "relations_by_from_expression",
+      "lexicalizations_by_expression",
+      "lexicalizations_by_concept"
+    ],
+    "read_only_open_created_files": false
+  },
+  "regeneration_matches_existing": true,
+  "environment": {
+    "python": "3.14.8",
+    "sqlite": "3.53.4",
+    "platform": "macOS-15.7.1-arm64-arm-64bit-Mach-O",
+    "builder_sha256": "c343f7df8606d150c7b93c9662002f9e2bc75adb6d11841a79b12630f4974d76",
+    "common_sha256": "4fc374b10725a9d904bf06e7cb64bad771e76e4bbcb64fc313215d4aef66698c",
+    "schema_sql_sha256": "10fe8d766c9db972a5b37b45843482c9bd240926981dbaef448c3c4619db7e06",
+    "sources_lock_sha256": "cd440221922537b7c80c76bbacf035105d6980f94f7348c6b2ebb95b2dde134d"
+  }
+}
