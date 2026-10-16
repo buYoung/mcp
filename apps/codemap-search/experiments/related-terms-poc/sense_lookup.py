@@ -28,8 +28,9 @@ from term_canonical import canonical_surface, word_key
 from spelling_aliases import spelling_queries, spelling_variants
 from reviewed_relations import INPUT_RELATIONS_SCHEMA, SUPPORTED_SCHEMAS, validate_dataset_layout
 
-# stage-4 remaining review decisions on rts3-b5fb0c137c71a08f (rt-sense/3, input-scoped relations); previous default rts3-b5fb0c137c71a08f
-DEFAULT_SENSE_DATASET = cl.DATASETS / "rts3-9e01eaf1eadf960a/dataset.sqlite3"
+# stage-4 remaining review decisions on rts3-b5fb0c137c71a08f (rt-sense/3, input-scoped relations), tracked next to
+# this script; previous default rts3-b5fb0c137c71a08f stays under cl.DATASETS
+DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts3-9e01eaf1eadf960a/dataset.sqlite3"
 SCHEMA = "rt-sense-lookup/2"
 SENSE_SCHEMA = "rt-sense/2"
 

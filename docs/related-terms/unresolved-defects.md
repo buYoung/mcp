@@ -6,7 +6,7 @@
 | --- | --- |
 | 조사 대상 데이터셋 | `rts3-c4a3b0fe9eb74bc2` (SHA-256 `88edc1c3f25bc4218dc51fbc4dd4e1707cd83a02088ac8cb45517c71d9441f77`) |
 | 현재 기본 데이터셋 | `rts3-9e01eaf1eadf960a` (4단계 처리 결과, SHA-256 `ab8f1aea8a60625fb4f4795e02ffdfa9b3947ce61cc7120c84a03dc61646d192`). `sense_lookup.py`의 기본값. 같은 날 먼저 게시한 `rts3-d10ac73c3aee85cb`는 표기 결함(D4와 같은 원인)으로 대체했고 쓰지 않는다. 직전 기본값은 R1~R3 처리 결과 `rts3-b5fb0c137c71a08f`(SHA-256 `62b1122b10d6af2e4d24886e046148ae5912b6da0aa1f9504e73f6e372db3a48`) |
-| 데이터셋 위치 | `.codemap/poc/related-terms/thesaurus-v1/datasets/<데이터셋 ID>/dataset.sqlite3` |
+| 데이터셋 위치 | 현재 기본 데이터셋은 저장소에 포함된 `apps/codemap-search/experiments/related-terms-poc/datasets/rts3-9e01eaf1eadf960a/dataset.sqlite3`. 그 밖의 데이터셋은 git이 무시하는 `.codemap/poc/related-terms/thesaurus-v1/datasets/<데이터셋 ID>/dataset.sqlite3` |
 | 기준선 | `rts2-309e9bbaa19f7eb5` |
 | 확인일·방법 | 2026-10-16. 최종 DB와 기준선 DB를 읽기 전용으로 직접 조회해 현재 상태를 확인했다 |
 | 근거 경로 기준 | 아래 상대 경로는 `~/.cache/related-terms-usage-1/word-eval/followup-20261011/` 기준이다 |

@@ -1,0 +1,850 @@
+{
+  "schema_version": "rt-sense-corrections/1",
+  "base_dataset": "rts3-641a078ef551bfc0",
+  "relation_edits": [
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16853,
+        "concept": 1779,
+        "topic": "t604.1",
+        "sense": 10888,
+        "field": "software-design",
+        "rank": 34,
+        "word_key": "tag",
+        "surface": "tag",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16851,
+        "concept": 1594,
+        "topic": "t48.4",
+        "sense": 10887,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16853,
+        "concept": 1779,
+        "topic": "t604.1",
+        "sense": 10888,
+        "field": "software-design",
+        "rank": 35,
+        "word_key": "version",
+        "surface": "version",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16851,
+        "concept": 1594,
+        "topic": "t48.4",
+        "sense": 10887,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16853,
+        "concept": 1779,
+        "topic": "t604.1",
+        "sense": 10888,
+        "field": "software-design",
+        "rank": 36,
+        "word_key": "dirtyflag",
+        "surface": "dirty flag",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16851,
+        "concept": 1594,
+        "topic": "t48.4",
+        "sense": 10887,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16853,
+        "concept": 1779,
+        "topic": "t604.1",
+        "sense": 10888,
+        "field": "software-design",
+        "rank": 37,
+        "word_key": "recompute",
+        "surface": "recompute",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16851,
+        "concept": 1594,
+        "topic": "t48.4",
+        "sense": 10887,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16853,
+        "concept": 1779,
+        "topic": "t604.1",
+        "sense": 10888,
+        "field": "software-design",
+        "rank": 38,
+        "word_key": "dependencygraph",
+        "surface": "dependency graph",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16851,
+        "concept": 1594,
+        "topic": "t48.4",
+        "sense": 10887,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16853,
+        "concept": 1779,
+        "topic": "t604.1",
+        "sense": 10888,
+        "field": "software-design",
+        "rank": 42,
+        "word_key": "queryclient",
+        "surface": "queryClient",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16851,
+        "concept": 1594,
+        "topic": "t48.4",
+        "sense": 10887,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16853,
+        "concept": 1779,
+        "topic": "t604.1",
+        "sense": 10888,
+        "field": "software-design",
+        "rank": 45,
+        "word_key": "checksum",
+        "surface": "checksum",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16851,
+        "concept": 1594,
+        "topic": "t48.4",
+        "sense": 10887,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16853,
+        "concept": 1779,
+        "topic": "t604.1",
+        "sense": 10888,
+        "field": "software-design",
+        "rank": 46,
+        "word_key": "coherence",
+        "surface": "coherence",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4908,
+        "head": "invalidation",
+        "persona": 16851,
+        "concept": 1594,
+        "topic": "t48.4",
+        "sense": 10887,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform",
+        "rank": 2,
+        "word_key": "marginright",
+        "surface": "margin-right",
+        "kind": "identifier"
+      },
+      "target": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19876,
+        "concept": 465,
+        "topic": "t226",
+        "sense": 12838,
+        "field": "web-styling"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform",
+        "rank": 4,
+        "word_key": "marginleft",
+        "surface": "margin-left",
+        "kind": "identifier"
+      },
+      "target": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19876,
+        "concept": 465,
+        "topic": "t226",
+        "sense": 12838,
+        "field": "web-styling"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform",
+        "rank": 18,
+        "word_key": "mxauto",
+        "surface": "mx-auto",
+        "kind": "identifier"
+      },
+      "target": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19876,
+        "concept": 465,
+        "topic": "t226",
+        "sense": 12838,
+        "field": "web-styling"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform",
+        "rank": 24,
+        "word_key": "marginauto",
+        "surface": "margin auto",
+        "kind": "near"
+      },
+      "target": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19876,
+        "concept": 465,
+        "topic": "t226",
+        "sense": 12838,
+        "field": "web-styling"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform",
+        "rank": 49,
+        "word_key": "auto",
+        "surface": "auto",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19876,
+        "concept": 465,
+        "topic": "t226",
+        "sense": 12838,
+        "field": "web-styling"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4907,
+        "head": "invalidate",
+        "persona": 16847,
+        "concept": 5241,
+        "topic": "t258.4",
+        "sense": 10883,
+        "field": "databases-storage",
+        "rank": 16,
+        "word_key": "dirty",
+        "surface": "dirty",
+        "kind": "near"
+      },
+      "target": {
+        "term_id": 4907,
+        "head": "invalidate",
+        "persona": 16844,
+        "concept": 5548,
+        "topic": "t48.4",
+        "sense": 10883,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4907,
+        "head": "invalidate",
+        "persona": 16847,
+        "concept": 5241,
+        "topic": "t258.4",
+        "sense": 10883,
+        "field": "databases-storage",
+        "rank": 17,
+        "word_key": "markdirty",
+        "surface": "mark dirty",
+        "kind": "near"
+      },
+      "target": {
+        "term_id": 4907,
+        "head": "invalidate",
+        "persona": 16844,
+        "concept": 5548,
+        "topic": "t48.4",
+        "sense": 10883,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 4907,
+        "head": "invalidate",
+        "persona": 16847,
+        "concept": 5241,
+        "topic": "t258.4",
+        "sense": 10883,
+        "field": "databases-storage",
+        "rank": 35,
+        "word_key": "dirtyflag",
+        "surface": "dirty flag",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 4907,
+        "head": "invalidate",
+        "persona": 16844,
+        "concept": 5548,
+        "topic": "t48.4",
+        "sense": 10883,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11312,
+        "concept": 812,
+        "topic": "t347.1",
+        "sense": 7269,
+        "field": "observability-debugging",
+        "rank": 17,
+        "word_key": "executionorder",
+        "surface": "execution order",
+        "kind": "near"
+      },
+      "target": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11311,
+        "concept": 1036,
+        "topic": "t89.1",
+        "sense": 7268,
+        "field": "web-backend"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11312,
+        "concept": 812,
+        "topic": "t347.1",
+        "sense": 7269,
+        "field": "observability-debugging",
+        "rank": 18,
+        "word_key": "executionflow",
+        "surface": "execution flow",
+        "kind": "near"
+      },
+      "target": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11311,
+        "concept": 1036,
+        "topic": "t89.1",
+        "sense": 7268,
+        "field": "web-backend"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11312,
+        "concept": 812,
+        "topic": "t347.1",
+        "sense": 7269,
+        "field": "observability-debugging",
+        "rank": 23,
+        "word_key": "executiontrace",
+        "surface": "execution trace",
+        "kind": "near"
+      },
+      "target": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11311,
+        "concept": 1036,
+        "topic": "t89.1",
+        "sense": 7268,
+        "field": "web-backend"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11312,
+        "concept": 812,
+        "topic": "t347.1",
+        "sense": 7269,
+        "field": "observability-debugging",
+        "rank": 43,
+        "word_key": "trace",
+        "surface": "trace",
+        "kind": "co_use"
+      },
+      "target": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11311,
+        "concept": 1036,
+        "topic": "t89.1",
+        "sense": 7268,
+        "field": "web-backend"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9188,
+        "concept": 5000,
+        "topic": "t753",
+        "sense": 5862,
+        "field": "business-domains",
+        "rank": 13,
+        "word_key": "leave",
+        "surface": "leave",
+        "kind": "synonym"
+      },
+      "target": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9185,
+        "concept": 4872,
+        "topic": "t193.3",
+        "sense": 5859,
+        "field": "networking"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9188,
+        "concept": 5000,
+        "topic": "t753",
+        "sense": 5862,
+        "field": "business-domains",
+        "rank": 32,
+        "word_key": "socket.disconnect",
+        "surface": "socket.disconnect",
+        "kind": "identifier"
+      },
+      "target": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9185,
+        "concept": 4872,
+        "topic": "t193.3",
+        "sense": 5859,
+        "field": "networking"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9188,
+        "concept": 5000,
+        "topic": "t753",
+        "sense": 5862,
+        "field": "business-domains",
+        "rank": 37,
+        "word_key": "reconnection",
+        "surface": "reconnection",
+        "kind": "near"
+      },
+      "target": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9185,
+        "concept": 4872,
+        "topic": "t193.3",
+        "sense": 5859,
+        "field": "networking"
+      }
+    },
+    {
+      "mode": "reattribute_same_head",
+      "source": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9188,
+        "concept": 5000,
+        "topic": "t753",
+        "sense": 5862,
+        "field": "business-domains",
+        "rank": 40,
+        "word_key": "pingtimeout",
+        "surface": "ping timeout",
+        "kind": "near"
+      },
+      "target": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9185,
+        "concept": 4872,
+        "topic": "t193.3",
+        "sense": 5859,
+        "field": "networking"
+      }
+    },
+    {
+      "mode": "remove",
+      "source": {
+        "term_id": 5353,
+        "head": "lead",
+        "persona": 18395,
+        "concept": 901,
+        "topic": "t378",
+        "sense": 11883,
+        "field": "business-domains",
+        "rank": 28,
+        "word_key": "leadtime",
+        "surface": "lead_time",
+        "kind": "identifier"
+      }
+    }
+  ],
+  "input_detachments": [
+    {
+      "word_key": "marginauto",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform"
+      }
+    },
+    {
+      "word_key": "marginleft",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform"
+      }
+    },
+    {
+      "word_key": "marginright",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform"
+      }
+    },
+    {
+      "word_key": "mxauto",
+      "source": {
+        "term_id": 5780,
+        "head": "margin",
+        "persona": 19880,
+        "concept": 2849,
+        "topic": "t699.2",
+        "sense": 12839,
+        "field": "browser-platform"
+      }
+    },
+    {
+      "word_key": "markdirty",
+      "source": {
+        "term_id": 4907,
+        "head": "invalidate",
+        "persona": 16847,
+        "concept": 5241,
+        "topic": "t258.4",
+        "sense": 10883,
+        "field": "databases-storage"
+      }
+    },
+    {
+      "word_key": "executionflow",
+      "source": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11312,
+        "concept": 812,
+        "topic": "t347.1",
+        "sense": 7269,
+        "field": "observability-debugging"
+      }
+    },
+    {
+      "word_key": "executionorder",
+      "source": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11312,
+        "concept": 812,
+        "topic": "t347.1",
+        "sense": 7269,
+        "field": "observability-debugging"
+      }
+    },
+    {
+      "word_key": "executiontrace",
+      "source": {
+        "term_id": 3303,
+        "head": "execution",
+        "persona": 11312,
+        "concept": 812,
+        "topic": "t347.1",
+        "sense": 7269,
+        "field": "observability-debugging"
+      }
+    },
+    {
+      "word_key": "pingtimeout",
+      "source": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9188,
+        "concept": 5000,
+        "topic": "t753",
+        "sense": 5862,
+        "field": "business-domains"
+      }
+    },
+    {
+      "word_key": "reconnection",
+      "source": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9188,
+        "concept": 5000,
+        "topic": "t753",
+        "sense": 5862,
+        "field": "business-domains"
+      }
+    },
+    {
+      "word_key": "socket.disconnect",
+      "source": {
+        "term_id": 2713,
+        "head": "disconnect",
+        "persona": 9188,
+        "concept": 5000,
+        "topic": "t753",
+        "sense": 5862,
+        "field": "business-domains"
+      }
+    },
+    {
+      "word_key": "leadtime",
+      "source": {
+        "term_id": 5353,
+        "head": "lead",
+        "persona": 18395,
+        "concept": 901,
+        "topic": "t378",
+        "sense": 11883,
+        "field": "business-domains"
+      }
+    }
+  ],
+  "input_bindings": [
+    {
+      "word": "margin auto",
+      "source_persona": 19876,
+      "source_head": "margin",
+      "concept": 465
+    },
+    {
+      "word": "margin-left",
+      "source_persona": 19876,
+      "source_head": "margin",
+      "concept": 465
+    },
+    {
+      "word": "margin-right",
+      "source_persona": 19876,
+      "source_head": "margin",
+      "concept": 465
+    },
+    {
+      "word": "mx-auto",
+      "source_persona": 19876,
+      "source_head": "margin",
+      "concept": 465
+    },
+    {
+      "word": "mark dirty",
+      "source_persona": 16844,
+      "source_head": "invalidate",
+      "concept": 5548
+    },
+    {
+      "word": "execution trace",
+      "source_persona": 35220,
+      "source_head": "trace",
+      "concept": 812
+    },
+    {
+      "word": "ping timeout",
+      "source_persona": 9185,
+      "source_head": "disconnect",
+      "concept": 4872
+    },
+    {
+      "word": "reconnection",
+      "source_persona": 9185,
+      "source_head": "disconnect",
+      "concept": 4872
+    },
+    {
+      "word": "socket.disconnect",
+      "source_persona": 9185,
+      "source_head": "disconnect",
+      "concept": 4872
+    }
+  ],
+  "remove_own": [
+    {
+      "word": "invalidation",
+      "concept": 1779
+    },
+    {
+      "word": "margin",
+      "concept": 2849
+    },
+    {
+      "word": "invalidate",
+      "concept": 5241
+    },
+    {
+      "word": "execution",
+      "concept": 812
+    },
+    {
+      "word": "disconnect",
+      "concept": 5000
+    }
+  ],
+  "provenance": {
+    "scope": "stage 4c: dependency-aware own removals (A1, A2, R1/R2 holds) and B21 relation removal",
+    "decided_by": "remaining-001 session"
+  }
+}
