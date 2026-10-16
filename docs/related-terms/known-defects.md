@@ -1,6 +1,6 @@
 # 관련어 PoC 데이터셋의 알려진 결함
 
-현재 기본 데이터셋에서 직접 확인한 결함, 빠졌을 수 있는 뜻, 아직 확인하지 못한 점을 항목별로 모은 목록이다. 데이터셋을 쓰거나 고치기 전에 해당 항목을 ID나 단어로 찾아 확인한다. 이미 해결된 결함과 작업 경과는 담지 않는다.
+현재 기본 데이터셋에서 직접 확인한 결함, 빠졌을 수 있는 뜻, 아직 확인하지 못한 점을 항목별로 모은 목록이다. 이미 해결된 결함과 작업 경과는 담지 않는다.
 
 | 항목 | 내용 |
 | --- | --- |
@@ -49,7 +49,7 @@
 | 대상 | 주제 `t56.12` Team collaboration |
 | 현재 상태 | 분야가 `databases-storage` 하나뿐이다. 이 주제의 개념은 5793 `팀 협업 서비스`, 6418 `Slack message attachment`, 6421 `chat bot`, 6424 `direct message`, 6425 `user mention`, 6434 `link preview`다 |
 | 영향 | 이 개념에 속한 단어를 조회하면 팀 협업 뜻이 `databases-storage` 분야로 표시된다 |
-| 관련 항목 | [M](#m-빠졌을-수-있는-뜻)의 `messaging` 제안은 이 주제를 대상으로 하므로, 분야를 먼저 고쳐야 한다 |
+| 관련 항목 | [M](#m-빠졌을-수-있는-뜻)의 `messaging` 제안은 이 주제를 대상으로 한다 |
 
 ### K3. 관련어가 다른 뜻 아래 표시됨
 
@@ -66,7 +66,7 @@
 | 대상 | 개념 3409 `Intl.PluralRules`, 주제 `t315.5` Plural form selection(분야 `time-locale`) |
 | 현재 상태 | `idx`와 `idxs`가 이 개념의 구성원이다. 같은 개념에 `nth`, `ordinal`, `day`, `pluralrules` 등이 있다 |
 | 조회 결과 | `idx`를 조회하면 Plural form selection 뜻 아래 `subscript`, `ordinal`, `array index`, `database index`, `getIndex`가 나온다 |
-| 판정 상태 | 의미 검토에서 한 명만 문제를 지적해 고치지 않았다. 기본형 `idx`와 복수형 `idxs`를 함께 정해야 한다 |
+| 판정 상태 | 의미 검토에서 한 명만 문제를 지적해 고치지 않았다 |
 
 ### K5. 의심스러운 소속: `multinode`
 
@@ -106,30 +106,30 @@
 
 ## M. 빠졌을 수 있는 뜻
 
-의미 검토에서 검토자 한 명만 추가를 제안해 반영하지 않은 뜻이다. 결함으로 확정된 것은 아니다. 2026-10-16 기준으로 제안된 개념은 데이터셋에 하나도 없다. 대부분 복수형만 담는 개념이라 기본형과 함께 정해야 한다.
+의미 검토에서 검토자 한 명만 추가를 제안해 반영하지 않은 뜻이다. 결함으로 확정된 것은 아니다. 2026-10-16 기준으로 제안된 개념은 데이터셋에 하나도 없다. 대부분 복수형만 담는 개념이다.
 
 | 단어 | 제안된 뜻 | 반영하지 않은 이유 |
 | --- | --- | --- |
-| `consoles` | 계정 관리 콘솔(account management console) | 기본형 `console`과 함께 정해야 한다 |
-| `datasets` | 텔레메트리 질의 대상 데이터 집합(telemetry query dataset) | 기본형 `dataset`과 함께 정해야 한다 |
-| `grantee` | 권한을 받는 주체(access grant recipient) | 같은 개념의 `grantor`, `grantees`와 함께 정해야 한다 |
+| `consoles` | 계정 관리 콘솔(account management console) | 복수형만 담는 개념이 되어 기본형 `console`과 어긋난다 |
+| `datasets` | 텔레메트리 질의 대상 데이터 집합(telemetry query dataset) | 복수형만 담는 개념이 되어 기본형 `dataset`과 어긋난다 |
+| `grantee` | 권한을 받는 주체(access grant recipient) | 같은 개념에 `grantor`, `grantees`가 있어, `grantee`만 옮기면 역할어가 두 개념으로 갈린다 |
 | `inline`, `inlined` | 문서 안에 넣은 웹 자원 본문(inline web resource content) | 제안된 주제(`t586`, 리소스 파일 조직)와 맞지 않고, 기존 개념 6124·6295와의 관계가 정해지지 않았다 |
 | `insights` | 애플리케이션 성능 분석(application performance analytics) | 기존 개념 2281 `observability`와의 관계가 정해지지 않았다 |
-| `kinesis streams` | Amazon Kinesis Data Streams | 같은 개념 1392의 `Kinesis`, `Amazon Kinesis`와 함께 정해야 한다 |
-| `messaging` | 팀 메시징(team messaging) | 대상 주제 `t56.12`의 분야 결함([K2](#k2-주제의-분야가-틀림))을 먼저 고쳐야 한다 |
-| `packages` | Windows 앱 패키지(Windows application package) | 기본형 `package`, 같은 주제의 `appx`(573)와 함께 정해야 한다 |
+| `kinesis streams` | Amazon Kinesis Data Streams | 같은 개념 1392에 `Kinesis`, `Amazon Kinesis`가 있어 새 개념과 겹친다 |
+| `messaging` | 팀 메시징(team messaging) | 대상 주제 `t56.12`의 분야가 틀려 있어([K2](#k2-주제의-분야가-틀림)), 이 주제에 추가하면 팀 메시징 뜻이 `databases-storage` 분야로 분류된다 |
+| `packages` | Windows 앱 패키지(Windows application package) | 복수형만 담는 개념이 되고, 같은 주제의 `appx`(573)와 겹친다 |
 | `prelogin` | SQL Server 연결의 prelogin 단계 | 근거가 keycloak 테스트의 오류 문자열 하나뿐이다 |
-| `previews` | 청구서 미리보기(invoice preview) | 기본형 `preview`와 함께 정해야 한다 |
+| `previews` | 청구서 미리보기(invoice preview) | 복수형만 담는 개념이 되어 기본형 `preview`와 어긋난다 |
 | `processors` | 입력 처리 구성요소, 규칙 평가 처리기 | 두 제안의 범위가 다르고, 맞는 기존 주제가 없다 |
-| `rates` | 배송 요금(shipping rate) | 기본형 `rate`와 함께 정해야 한다 |
-| `services` | 비즈니스 서비스 상품(business service offerings) | 근거가 marketplace UI 문자열 하나뿐이고, 기본형 `service`와 함께 정해야 한다 |
+| `rates` | 배송 요금(shipping rate) | 복수형만 담는 개념이 되어 기본형 `rate`와 어긋난다 |
+| `services` | 비즈니스 서비스 상품(business service offerings) | 근거가 marketplace UI 문자열 하나뿐이고, 복수형만 담는 개념이 된다 |
 | `sizer` | 배치 항목 크기 추정기(batch item size estimator) | 근거가 vector의 `StatsdBatchSizer` 하나뿐이다 |
-| `sizes` | 이미지 크기 변형(image size variants) | 기본형 `size`와 함께 정해야 한다 |
-| `subkeys` | Redis 해시 하위 키(Redis hash subkeys) | 기본형 `subkey`와 함께 정해야 한다 |
-| `unsubscribed` | 이슈 알림 구독 상태 | `subscribe`, `subscribed`와 함께 정해야 하고, 근거가 sentry 하나뿐이다 |
+| `sizes` | 이미지 크기 변형(image size variants) | 복수형만 담는 개념이 되어 기본형 `size`와 어긋난다 |
+| `subkeys` | Redis 해시 하위 키(Redis hash subkeys) | 복수형만 담는 개념이 되어 기본형 `subkey`와 어긋난다 |
+| `unsubscribed` | 이슈 알림 구독 상태 | `subscribe`, `subscribed`와 개념이 갈리고, 근거가 sentry 하나뿐이다 |
 | `valued` | 속성 값의 개수(single-valued, multi-valued) | `valued` 단독에 이 뜻이 성립하는지 정해지지 않았다 |
-| `viewers` | 콘텐츠 뷰어(content viewer) | 기본형 `viewer`와 함께 정해야 한다 |
-| `rxs` | 채널 수신 끝점(channel receiver) | `rx`, `receiver`와 함께 정해야 한다 |
+| `viewers` | 콘텐츠 뷰어(content viewer) | 복수형만 담는 개념이 되어 기본형 `viewer`와 어긋난다 |
+| `rxs` | 채널 수신 끝점(channel receiver) | `rx`, `receiver`와 개념이 갈린다 |
 | `savings` | 실행 비용 절감, 메모리 크기 절감, 금전 비용 절감 | 기존 개념 6681(앱 크기 절감) 외에 뜻을 나눌 필요가 있는지 정해지지 않았다 |
 | `short date string` | `datestr`의 개념 1746 뜻 | 형태 변화 관계가 아니고, 원래 뜻이 서식 지정자인지 일반 문자열 이름인지 확정되지 않았다 |
 | `committed` | `CommitInfo` 관련어 | 이 이름을 제공하는 외부 라이브러리를 확인하지 못했다 |
@@ -145,7 +145,6 @@
 
 ## 고칠 때 지킬 점
 
-- 데이터셋 파일은 직접 수정하지 않는다. `correct_sense_dataset.py`나 `build_sense_dataset.py add-entries`로 새 데이터셋을 만든다.
 - own을 지우기 전에 그 persona에 붙은 관련어·input 의존을 먼저 옮기거나 지운다. 의존이 남아 있으면 `correct_sense_dataset.py`가 거부한다.
 - 한 보정 계획에서 관련어를 보내는 persona가 다른 행에서 받는 persona이면 계획 전체가 거부된다. 계획을 둘로 나눠 순서대로 적용한다.
 - 새 단어는 원래 표기로 넘긴다. 키 형태로 넘기면 [K7](#k7-표제어-표기가-바뀜)이 생긴다.

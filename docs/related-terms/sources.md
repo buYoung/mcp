@@ -25,9 +25,9 @@
 
 | 자료 | 생성 지침 | 생성 주체 | `rtr1`의 관계 수 |
 | --- | --- | --- | ---: |
-| 52개 분야별 단어 | `generation/vocab.md` | 에이전트 | — |
-| 표제어별 관련어 | `generation/relations.md` | Claude Sonnet 에이전트(표제어 11,041개), Codex `gpt-6.1-sol` xhigh(표제어 806개) | 519,202, 17,659 |
-| 함께 쓰는 단어(`co_use`) | `generation/co-use.md` | 에이전트 | — (뜻·카테고리 데이터셋에만 쓰임) |
+| 52개 분야별 단어 | `generation/vocab.md` | LLM | — |
+| 표제어별 관련어 | `generation/relations.md` | Claude Sonnet(표제어 11,041개), Codex `gpt-6.1-sol` xhigh(표제어 806개) | 519,202, 17,659 |
+| 함께 쓰는 단어(`co_use`) | `generation/co-use.md` | LLM | — (뜻·카테고리 데이터셋에만 쓰임) |
 
 - 생성 지침은 `apps/codemap-search/experiments/related-terms-poc/generation/`에 있다.
 - 생성 결과는 보존하지 않는다. 같은 지침으로 다시 생성해도 결과는 달라진다.
@@ -61,7 +61,7 @@
 | vector | https://github.com/vectordotdev/vector | `v0.59.0` | `a3231c76bdea5078bc54c205cf89f5a1ceddbb73` | Rust 90, Python 1 |
 | woocommerce | https://github.com/woocommerce/woocommerce | `11.2.0` | `1699191d5074a22e7f6c43ff2da8fa9942905435` | PHP 75, TypeScript 33, TSX 27, JavaScript 19 |
 
-같은 목록이 뜻 데이터셋 폴더의 `sources.json`에도 있다. 체크아웃 위치는 `.codemap/poc/related-terms/workspaces/checkouts/<저장소>`다. 다시 받을 때는 태그로 받은 뒤 커밋이 위 값과 같은지 확인한다.
+같은 목록이 뜻 데이터셋 폴더의 `sources.json`에도 있다. 체크아웃 위치는 `.codemap/poc/related-terms/workspaces/checkouts/<저장소>`다. 예를 들어 다음처럼 받을 수 있다.
 
 ```sh
 git clone --depth 1 --branch v1.12.0 https://github.com/gin-gonic/gin.git \

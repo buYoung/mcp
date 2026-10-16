@@ -2,7 +2,7 @@
 
 12개 코드 저장소에서 tree-sitter로 식별자를 모으고, 뜻 조회 결과가 코드에서의 뜻과 맞는지 LLM으로 판정하는 스크립트 모음이다. 같은 스크립트로 데이터셋에 빠진 단어와 뜻을 찾아 보강했다. 스크립트와 판정 지침은 `apps/codemap-search/experiments/related-terms-poc/word-eval/`에 있다.
 
-- **LLM 판정은 스크립트가 하지 않는다.** 스크립트가 판정 묶음과 지침을 만들면, 에이전트가 결과 파일을 쓰고, 확인 스크립트가 형식을 검사한다.
+- **LLM 판정은 스크립트가 하지 않는다.** 스크립트가 판정 묶음과 지침을 만들면, LLM이 결과 파일을 쓰고, 확인 스크립트가 형식을 검사한다.
 - **수집 결과, 판정 묶음, 판정 결과는 보존하지 않는다.** 아래 결과 수치는 당시 데이터셋 기준이며, 현재 기본 데이터셋으로는 다시 평가하지 않았다.
 
 ## 실행 준비
@@ -11,9 +11,9 @@
 | --- | --- |
 | tree-sitter 환경 | `tree-sitter` 0.26.0과 `tree-sitter-language-pack` 1.21.0. 예: `uv run --no-project --with tree-sitter==0.26.0 --with tree-sitter-language-pack==1.21.0 python <스크립트>`. 수집 스크립트와 `survey_tag_strings.py`, `verify_comment_source.py`, `probe_full_scale.py`, `collect_full.py`, `validate_full.py`, 테스트 2개가 필요로 한다 |
 | 작업 폴더 | 환경 변수 `WORD_EVAL_WORK_DIR`로 지정한다. 저장소별 수집 결과(`<작업 폴더>/<저장소>/`)와 집계 결과를 이 아래에 읽고 쓴다. 지정하지 않으면 작업 폴더가 필요한 스크립트는 오류 메시지를 내고 끝난다 |
-| 판정 묶음 | `<작업 폴더>/batches/` 아래에 에이전트에게 줄 입력, 지침, 결과 파일을 둔다 |
+| 판정 묶음 | `<작업 폴더>/batches/` 아래에 LLM에 줄 입력, 지침, 결과 파일을 둔다 |
 | 코드 체크아웃 | `.codemap/poc/related-terms/workspaces/checkouts/<저장소>`. 저장소별 URL·태그·커밋은 [원자료와 근거 저장소](sources.md)에 있다 |
-| 판정 지침의 자리표시자 | `{checkouts}`(체크아웃 폴더), `{catalog}`(데이터셋 목록 폴더)는 지침을 만드는 스크립트가 채운다. 에이전트에게 직접 주는 지침(`gap-topic-brief.md`, `unit-brief.md`, `verify-brief.md`, `verify-lang-brief.md`)은 직접 채운다 |
+| 판정 지침의 자리표시자 | `{checkouts}`(체크아웃 폴더), `{catalog}`(데이터셋 목록 폴더)는 지침을 만드는 스크립트가 채운다. LLM에 직접 주는 지침(`gap-topic-brief.md`, `unit-brief.md`, `verify-brief.md`, `verify-lang-brief.md`)은 직접 채운다 |
 
 ## 1. 식별자 수집
 
@@ -23,7 +23,7 @@
 | `collect_tag_values.py` | 태그 표기(Go struct 태그, 속성·애너테이션·데코레이터) 안의 값을 모은다 | `<저장소>/tag-input.json`, `tag-input-summary.json` |
 | `survey_tag_strings.py` | 다른 언어의 태그 표기 문자열을 조사한다 | `tag-string-survey.json`, `.md` |
 | `verify_comment_source.py` | 판정한 단어가 주석에서 온 것이 아닌지 대조한다 | `comment-source-check.json`, `.md` |
-| `compare_verify.py`, `compare_verify_lang.py` | 수집 결과를 에이전트가 원문을 읽고 만든 목록과 대조한다(지침 `verify-brief.md`, `verify-lang-brief.md`) | `verify-report.json`, `verify-lang-report.json` |
+| `compare_verify.py`, `compare_verify_lang.py` | 수집 결과를 LLM이 원문을 읽고 만든 목록과 대조한다(지침 `verify-brief.md`, `verify-lang-brief.md`) | `verify-report.json`, `verify-lang-report.json` |
 | `probe_full_scale.py` | 저장소 전체로 넓힐 때의 규모를 미리 잰다 | `full-scale-probe.json` |
 | `collect_full.py <출력>`, `validate_full.py` | 표본이 아니라 저장소 전체에서 이름을 모으고 표본 결과와 비교한 뒤 검증한다 | 출력 폴더의 `names.jsonl`, `summary.json` 등 |
 
@@ -38,10 +38,10 @@
 
 ## 2. 개념 단위 판정
 
-식별자를 의미 단위로 나누고, 각 단위가 개발 분야의 개념으로 분류 가능한지 에이전트가 판정한다(지침 `unit-brief-repo.md`).
+식별자를 의미 단위로 나누고, 각 단위가 개발 분야의 개념으로 분류 가능한지 LLM이 판정한다(지침 `unit-brief-repo.md`).
 
 1. `prepare_units.py <저장소>`: 판정 묶음(`batches/units-input/<저장소>/uNN.json`)과 지침을 만든다.
-2. 에이전트가 `batches/units/<저장소>/uNN.json`에 결과를 쓴다.
+2. LLM이 `batches/units/<저장소>/uNN.json`에 결과를 쓴다.
 3. `check_units.py`: 결과가 입력과 같은 수·순서인지, 단위가 식별자 전체를 덮는지 확인한다.
 4. `aggregate_units.py`: 단위별로 모으고 데이터셋의 현재 상태와 맞춘다.
 
@@ -51,7 +51,7 @@
 
 1. `lookup_words.py`: 평가 단어를 하나씩 `sense_lookup.py`로 조회해 응답을 저장한다.
 2. `prepare_judge.py <저장소>`: 응답과 코드에서의 뜻을 묶어 판정 묶음과 지침(`judge-brief-repo.md`)을 만든다.
-3. 에이전트가 `batches/repo-judge/<저장소>/jNN.json`에 결과를 쓴다. 당시 판정자는 `gpt-6-luna`(추론 medium)였다.
+3. LLM이 `batches/repo-judge/<저장소>/jNN.json`에 결과를 쓴다. 당시 판정자는 `gpt-6-luna`(추론 medium)였다.
 4. `check_judge.py`로 결과를 확인하고, `summarize_judge.py`로 지표를 낸다.
 5. `write_judge_report.py`(저장소별)와 `cross_repo_summary.py [v2]`(12개 저장소)로 집계 문서를 쓴다.
 
@@ -70,7 +70,7 @@
 
 1. `dataset_coverage.py`: 평가 단어를 데이터셋에서 찾는다. 표제어, 입력 뜻, 관계 파일에만 있음, 없음으로 나눈다.
 2. `prepare_gap_phrases.py`: 데이터셋에 없는 문구를 하나로 볼지 나눌지 판정할 묶음을 만든다(지침 `gap-phrase-brief.md`). 결과를 `check_gap_batch.py pNN`으로 확인하고, `collect_gap_results.py phrases`로 모은다.
-3. `build_gap_catalog.py`: 에이전트가 찾아볼 데이터셋 목록(분야·주제·개념)을 `batches/gap/catalog/`에 쓴다.
+3. `build_gap_catalog.py`: LLM이 찾아볼 데이터셋 목록(분야·주제·개념)을 `batches/gap/catalog/`에 쓴다.
 4. `prepare_gap_words.py base|phrases`: 단어를 넣을지와 넣을 자리를 판정할 묶음을 만든다(지침 `gap-word-brief.md`).
 5. `prepare_inherit_review.py`: 파생어·약어가 기본형의 뜻을 이어받아도 되는지 다시 판정할 묶음을 만든다(지침 `gap-inherit-brief.md`). 새 주제 정리 판정은 지침 `gap-topic-brief.md`를 쓴다.
 6. `collect_gap_results.py words`: 판정을 모아 `gap/entries.json`을 쓴다.

@@ -28,13 +28,13 @@
 
 ## 1. LLM으로 단어와 관련어 생성
 
-분야 정의는 `PoC/contracts/thesaurus-categories.json`(52개 분야)에 있다. 생성 지침은 `PoC/generation/`에 있으며, 에이전트에게 배치마다 입력·출력 경로를 붙여 전달했다.
+분야 정의는 `PoC/contracts/thesaurus-categories.json`(52개 분야)에 있다. 생성 지침은 `PoC/generation/`에 있으며, LLM에 배치마다 입력·출력 경로를 붙여 전달했다.
 
 | 단계 | 지침 | 출력(당시 위치) | 생성 주체 |
 | --- | --- | --- | --- |
-| 단어 생성 | `generation/vocab.md` | `T/vocab/<분야>.jsonl`. 분야마다 150~300개, 종류는 word·phrase·abbreviation·proper_noun·extension·identifier | 에이전트 |
-| 관련어 생성 | `generation/relations.md`, 출력 검사 `generation/validate_relations.py` | `T/relations/batch-NNN.jsonl`. 관계 종류는 synonym·abbreviation·form·family·near·identifier | Claude Sonnet 에이전트(표제어 11,041개), Codex `gpt-6.1-sol` xhigh(남은 표제어 806개, `*.codex.jsonl`) |
-| 함께 쓰는 단어 생성 | `generation/co-use.md` | `T/co-use-1/batches/co-use-NN.jsonl`(116개). 관계 종류 `co_use` | 에이전트 |
+| 단어 생성 | `generation/vocab.md` | `T/vocab/<분야>.jsonl`. 분야마다 150~300개, 종류는 word·phrase·abbreviation·proper_noun·extension·identifier | LLM |
+| 관련어 생성 | `generation/relations.md`, 출력 검사 `generation/validate_relations.py` | `T/relations/batch-NNN.jsonl`. 관계 종류는 synonym·abbreviation·form·family·near·identifier | Claude Sonnet(표제어 11,041개), Codex `gpt-6.1-sol` xhigh(남은 표제어 806개, `*.codex.jsonl`) |
+| 함께 쓰는 단어 생성 | `generation/co-use.md` | `T/co-use-1/batches/co-use-NN.jsonl`(116개). 관계 종류 `co_use` | LLM |
 
 - 지침 안의 `{vocab_dir}`는 단어 출력 폴더 자리다.
 - 분야별 단어를 하나로 합친 `vocab-merged.json`과 배치 분할 파일은 남아 있지 않다. 그것을 만든 스크립트도 없다.
@@ -68,7 +68,7 @@ python3 build_related_dataset.py --thesaurus <생성 자료 폴더> \
 ## 3. 카테고리 데이터셋 `rtc2`
 
 1. `subdivide_categories.py prepare`: 52개 상위 분야마다 그 분야로 생성된 단어 목록을 쓴다.
-2. 에이전트가 분야마다 `parents/<분야>.json`을 작성한다. 내용은 하위 분야 목록과, 그 분야에 뜻이 없어 뺄 단어 목록이다.
+2. LLM이 분야마다 `parents/<분야>.json`을 작성한다. 내용은 하위 분야 목록과, 그 분야에 뜻이 없어 뺄 단어 목록이다.
 3. `subdivide_categories.py check`: 위 결과를 빌드와 같은 규칙으로 검사한다.
 4. `build_category_dataset.py`: `vocab-merged.json`, 분야 정의, 분할 결과로 데이터셋을 만든다.
    - 기호나 대소문자·구분자만 다른 표기(`$state`, `AbortSignal`과 `abort signal`)는 `term_canonical.word_key`로 한 단어로 합친다.
@@ -81,7 +81,7 @@ python3 build_related_dataset.py --thesaurus <생성 자료 폴더> \
 | 순서 | 단계 | 스크립트·지침 | 결과 |
 | --- | --- | --- | --- |
 | 1 | 뜻 그래프 유도. 단어마다 관련어를 2차 문맥으로 묶어 뜻을 나누고, Louvain으로 개념과 주제를 만든다 | `induce_sense_graph.py --thesaurus … --co-use …` | `T/sense-graph-1` |
-| 2 | 주제 이름과 분야 지정(에이전트) | `build_sense_dataset.py carry-names`, `check-topics`, `topic-labels`, `check-fields` | 그래프의 `names/` |
+| 2 | 주제 이름과 분야 지정(LLM) | `build_sense_dataset.py carry-names`, `check-topics`, `topic-labels`, `check-fields` | 그래프의 `names/` |
 | 3 | 소속 검토. 뜻마다 개념 소속을 두 번 독립 판정하고, 일치한 변경만 적용한다 | `review_membership.py`, 지침 `generation/membership-review.md` | 검토된 그래프 |
 | 4 | 주제 세분. 같은 코드가 함께 쓰는 개념끼리만 주제를 다시 나눈다 | `subdivide_topics.py prepare`, `check`, `fields` | `T/sense-graph-2-split` |
 | 5 | 2차 소속 검토 | `review_membership.py` | `T/sense-graph-2-split-review2` |
@@ -99,7 +99,7 @@ python3 build_related_dataset.py --thesaurus <생성 자료 폴더> \
 새 보정을 적용할 때는 다음을 지킨다.
 - 직전 데이터셋 폴더를 `--base`로 준다. 기존 데이터셋은 바뀌지 않고 새 폴더가 생긴다.
 - 새 개념·주제가 필요하면 `add-entries`를 먼저 실행한다.
-- 결과를 기본값으로 쓰려면 `PoC/datasets/`에 넣고 `sense_lookup.py`의 `DEFAULT_SENSE_DATASET`을 바꾼다.
+- 결과를 기본값으로 쓰려면 `sense_lookup.py`의 `DEFAULT_SENSE_DATASET`을 바꾼다.
 
 ```sh
 python3 apps/codemap-search/experiments/related-terms-poc/correct_sense_dataset.py \
