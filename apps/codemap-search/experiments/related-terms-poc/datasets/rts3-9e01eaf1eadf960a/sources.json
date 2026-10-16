@@ -1,6 +1,6 @@
 {
- "dataset_id": "rts3-c4a3b0fe9eb74bc2",
- "purpose": "평가 단어 수집과 309 이후 추가·보정의 코드 근거로 사용한 고정 저장소 체크아웃",
+ "dataset_id": "rts3-9e01eaf1eadf960a",
+ "purpose": "단어 평가용 식별자 수집과, 데이터셋 보강·보정에서 코드 근거를 확인하는 데 쓴 고정 저장소 체크아웃",
  "checkout_root": ".codemap/poc/related-terms/workspaces/checkouts",
  "repositories": [
   {"name": "bitwarden-server", "url": "https://github.com/bitwarden/server.git", "tag": "v2026.9.2", "commit": "9ee4e0ebf502fd1c8bf5c1bbcbc2942c3b66bbcc"},
@@ -16,6 +16,5 @@
   {"name": "vector", "url": "https://github.com/vectordotdev/vector.git", "tag": "v0.59.0", "commit": "a3231c76bdea5078bc54c205cf89f5a1ceddbb73"},
   {"name": "woocommerce", "url": "https://github.com/woocommerce/woocommerce.git", "tag": "11.2.0", "commit": "1699191d5074a22e7f6c43ff2da8fa9942905435"}
  ],
- "verification": "2026-10-16 현재 체크아웃 HEAD와 수집 기록(word-eval/<저장소>/summary.json, p3/runs/p3-all-001-v1/<저장소>/summary.json)의 커밋이 12개 모두 일치",
- "scope_note": "이 목록은 이번 PoC의 단어 수집·근거 확인 범위다. 기반 데이터셋(rts2-32469ce3ab670de2 계열 sense graph)의 원래 구성 출처를 기록한 것은 아니다."
+ "scope_note": "데이터셋의 원래 관계 출처가 아니다. 원자료는 docs/related-terms/sources.md에 있다."
 }

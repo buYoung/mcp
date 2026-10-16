@@ -1,10 +1,11 @@
 # Attribution — related-terms PoC dataset
 
-This dataset (schema `rt-dataset/1`, normalization `rtn-2`) is a restructured derivative of the sources below.
-Changes made by the builder: records were selected as described in `contracts/dataset.md`, lookup keys were
-normalized (lowercase, whitespace-collapsed, identifier-split token keys), and relations were materialized into
-JSONL/SQLite. No upstream wording was rewritten; glosses are copied verbatim. The exact upstream bytes are pinned
-by SHA-256 in `sources.lock.json`. License texts are copied into each dataset build under `LICENSES/`.
+The round-1 dataset (schema `rt-dataset/1`, normalization `rtn-2`) was a restructured derivative of the sources below,
+and the related-terms dataset `rtr1-930791c83bea6132` (schema `rt-related/1`) carries its relations. Changes made by
+the builder: records were selected, lookup keys were normalized (lowercase, whitespace-collapsed, identifier-split
+token keys), and relations were materialized into JSONL/SQLite. No upstream wording was rewritten; glosses are
+copied verbatim. The pinned revisions are listed below and in `docs/related-terms/sources.md`. Copies must be
+accompanied by the upstream license files named below; the local dataset folder does not include them.
 
 No source endorses this dataset or the codemap-search project.
 
@@ -17,8 +18,7 @@ No source endorses this dataset or the codemap-search project.
 - Upstream `LICENSE.md` states that the resource is derived from Princeton WordNet under the WordNet License, that
   attribution must be given to both Princeton WordNet and the Open English Wordnet team, and that the original
   Princeton WordNet license terms apply to the underlying data. The `WNDB_License.txt` notice from the same tag must
-  accompany copies; both files are copied verbatim to `LICENSES/oewn-2025-LICENSE.md` and
-  `LICENSES/oewn-2025-WNDB_License.txt`.
+  accompany copies.
 - Imported: synset members and sense keys, part of speech, lexicographer file, first definition, `domain_topic`,
   `similar`, and sense-level `antonym`.
 
@@ -42,7 +42,7 @@ No source endorses this dataset or the codemap-search project.
 
 - Source: https://github.com/abbrcode/abbreviations-in-code — commit `bd33b1c7bbfea159275c88d223482f5da9a01e58`,
   `data/abbrs/.json`.
-- License: MIT License, Copyright (c) 2022 Gábor Kiss-Vámosi. The full notice is in `LICENSES/abbrcode-bd33b1c-LICENCE`.
+- License: MIT License, Copyright (c) 2022 Gábor Kiss-Vámosi. The full notice is in the upstream `LICENCE` at the pinned commit.
 - Imported: `word`, `abbr`, `degree`, `context`. Degrees are naming guidance, not probabilities.
 
 ## software-engineering-abbreviations-acronyms (`se-abbr-8e1d77e`)

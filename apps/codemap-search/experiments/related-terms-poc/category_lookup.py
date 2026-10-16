@@ -25,7 +25,7 @@ from term_canonical import canonical_surface, word_key
 
 REPO = Path(__file__).resolve().parents[4]
 DATASETS = REPO / ".codemap/poc/related-terms/thesaurus-v1/datasets"
-DEFAULT_CATEGORY_DATASET = DATASETS / "rtc2-80e77d8fb9ef2b41/dataset.sqlite3"
+DEFAULT_CATEGORY_DATASET = Path(__file__).resolve().parent / "datasets/rtc2-80e77d8fb9ef2b41/dataset.sqlite3"
 DEFAULT_RTPOC3 = Path(__file__).resolve().parent / "lookup-v3/target/release/rtpoc3"
 DEFAULT_DATASET = DATASETS / "rtr1-930791c83bea6132/dataset.sqlite3"
 

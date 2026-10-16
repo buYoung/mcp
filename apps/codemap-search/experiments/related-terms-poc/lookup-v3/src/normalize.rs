@@ -1,4 +1,4 @@
-//! Query normalization `rtn-2` (see contracts/dataset.md) and the repository-statistics
+//! Query normalization `rtn-2` of the `rt-dataset/1` builder and the repository-statistics
 //! analyzer. Dataset keys are produced by the Python builder; `normalize-check` proves this
 //! module derives the same keys for every dataset expression.
 
