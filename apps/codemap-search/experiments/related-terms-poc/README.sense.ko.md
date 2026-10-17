@@ -1,20 +1,21 @@
 # 유의어 조회하기
 
-뜻 데이터셋 `rts4-710c8ba0d79a776a`에서 단어의 유의어를 조회하는 방법입니다.
+뜻 데이터셋 `rts4-301d57d419380d08`에서 단어의 유의어를 조회하는 방법입니다.
 
 ## 데이터셋 위치
 
-`apps/codemap-search/experiments/related-terms-poc/datasets/rts4-710c8ba0d79a776a/`
+`apps/codemap-search/experiments/related-terms-poc/datasets/rts4-301d57d419380d08/`
 
 | 파일 | 내용 |
 | --- | --- |
 | `dataset.sqlite3` | 데이터셋 본체(48.6MB, `rt-sense/4`). 조회 스크립트는 이 파일만 읽습니다 |
-| `mappings.json` | 이 판에 더한 빠진 뜻 연결 233개. 항목마다 판정 이유가 있습니다 |
+| `revisions.json` | 이 판에서 고친 여러 단어 표현의 틀린 뜻 730개(관련어 옮기기 664개, 떼어내기 66개). 항목마다 판정한 단어와 이유가 있습니다 |
+| `revision-outcome.json` | 수정을 적용한 결과. 옮기거나 떼어낸 관련어마다 바뀐 소속이 있습니다 |
 | `build-report.json` | 만들 때의 기록 |
 
-틀린 뜻 수정(관련어 옮기기·떼어내기, 단어 뜻 옮기기)은 바로 앞 판 `rts4-78debdbe7f7bab0b`의 `revisions.json`에, 주제 재분류(분야 수정, 합치기, 단어 옮기기, 빈 주제 삭제, 새 주제)는 `rts4-0fb3d5bc20c215ba`의 `revisions.json`에 항목마다 이유와 함께 있습니다.
+앞 단계에서 고친 틀린 뜻(관련어 옮기기·떼어내기, 단어 뜻 옮기기)은 `rts4-71cffacbc6f7c0d8`의 `revisions.json`에, 빠진 뜻 연결은 `rts4-912fe1c9f62131b2`의 `mappings.json`에, 주제 재분류(분야 수정, 합치기, 단어 옮기기, 빈 주제 삭제, 새 주제)는 `rts4-0fb3d5bc20c215ba`의 `revisions.json`에 항목마다 이유와 함께 있습니다.
 
-이 판은 앞 판들에 차례로 더해 만들었습니다. 각 단계의 입력은 그 판의 폴더에 있습니다. 저장소에는 이 판, 바로 앞 기본값 `rts4-e5083ab344e1336d`, `rts3-9e01eaf1eadf960a`의 `dataset.sqlite3`만 들어 있고, 나머지 판은 입력 파일만 들어 있습니다. `rts4` 판들의 과정과 검증은 [작업 이력](../../../../docs/related-terms/sense-mapping-log/README.md)에 있습니다.
+이 판은 앞 판들에 차례로 더해 만들었습니다. 각 단계의 입력은 그 판의 폴더에 있습니다. 저장소에는 이 판, 앞 기본값 `rts4-710c8ba0d79a776a`와 `rts4-e5083ab344e1336d`, `rts3-9e01eaf1eadf960a`의 `dataset.sqlite3`만 들어 있고, 나머지 판은 입력 파일만 들어 있습니다. `rts4` 판들의 과정과 검증은 [작업 이력](../../../../docs/related-terms/sense-mapping-log/README.md)에 있습니다.
 
 | 판 | 더한 것 | 폴더에 있는 입력 |
 | --- | --- | --- |
@@ -27,8 +28,11 @@
 | `rts4-86c5620af1f181ce` | 분야가 하나뿐인 단어 934개에 다른 분야의 주제 연결 966개 | `mappings.json`, 판정 원본 |
 | `rts4-0fb3d5bc20c215ba` | 주제 재분류. 분야 수정 617개, 합치기 229개, 단어 옮기기 18개, 빈 주제 삭제 15개, 새 주제 8개 | `revisions.json`, `revision-outcome.json` |
 | `rts4-e5083ab344e1336d` | 재분류 판에 주제 연결 52개(입력 전용 단어의 연결 2개 포함) | `mappings.json` |
-| `rts4-78debdbe7f7bab0b` | 틀린 뜻 수정. 관련어 옮기기 893개, 떼어내기 195개, 검토 연결 끊기 8개, 단어 뜻 옮기기 70개 | `revisions.json`, `revision-outcome.json` |
-| `rts4-710c8ba0d79a776a` | 수정 판에 빠진 뜻 연결 233개(입력 전용 단어의 연결 19개 포함) | `mappings.json` |
+| `rts4-71cffacbc6f7c0d8` | 틀린 뜻 수정. 두 번 따로 판정해 둘 다 틀렸다고 한 뜻만 고침. 관련어 옮기기 877개, 떼어내기 191개, 검토 연결 끊기 8개, 단어 뜻 옮기기 67개 | `revisions.json`, `revision-outcome.json` |
+| `rts4-912fe1c9f62131b2` | 수정 판에 빠진 뜻 연결 233개(입력 전용 단어의 연결 19개 포함) | `mappings.json` |
+| `rts4-301d57d419380d08` | 남은 여러 단어 표현의 틀린 뜻 수정. 관련어 옮기기 664개, 떼어내기 66개 | `revisions.json`, `revision-outcome.json` |
+
+앞 기본값 `rts4-710c8ba0d79a776a`와 그 앞 판 `rts4-78debdbe7f7bab0b`는 재검증 전의 판정으로 만든 판이라 이 판의 앞 판이 아닙니다.
 
 ## 조회 스크립트
 

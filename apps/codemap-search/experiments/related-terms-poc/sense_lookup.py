@@ -37,8 +37,9 @@ from sense_mapping_schema import MAPPING_SCHEMA, validate_mapping_layout
 
 # rts3-48356e35e1f1ea28 in the rt-sense/4 layout plus topics mapped by review to words with a single field, then
 # topics re-classified (fields, merges, moves) and topics added by review, then wrong senses fixed by moving or
-# detaching related words and missing senses mapped by review; earlier versions stay next to it under datasets/
-DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts4-710c8ba0d79a776a/dataset.sqlite3"
+# detaching related words (only where an independent recheck agreed) and missing senses mapped by review; earlier
+# versions stay next to it under datasets/
+DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts4-301d57d419380d08/dataset.sqlite3"
 SCHEMA = "rt-sense-lookup/2"
 SENSE_SCHEMA = "rt-sense/2"
 READABLE_SCHEMAS = (*SUPPORTED_SCHEMAS, MAPPING_SCHEMA)

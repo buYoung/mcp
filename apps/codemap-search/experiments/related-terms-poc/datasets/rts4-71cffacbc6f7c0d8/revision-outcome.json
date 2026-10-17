@@ -1,0 +1,6624 @@
+{
+ "revised_relations": [
+  {
+   "word": "isolate",
+   "related": "unshare",
+   "from_persona": 17162,
+   "to_persona": 17160
+  },
+  {
+   "word": "namespace",
+   "related": "unshare",
+   "from_persona": 21601,
+   "to_persona": 21602
+  },
+  {
+   "word": "include",
+   "related": ".includes(",
+   "from_persona": 15954,
+   "to_persona": 15955
+  },
+  {
+   "word": "post",
+   "related": "/posts",
+   "from_persona": 25215,
+   "to_persona": 25221
+  },
+  {
+   "word": "subscription",
+   "related": "/subscriptions",
+   "from_persona": 33206,
+   "to_persona": 33207
+  },
+  {
+   "word": "epsilon",
+   "related": "absolute tolerance",
+   "from_persona": 10677,
+   "to_persona": 10681
+  },
+  {
+   "word": "iocp",
+   "related": "AcceptEx",
+   "from_persona": 16991,
+   "to_persona": 16992
+  },
+  {
+   "word": "tell",
+   "related": "ActorRef.tell",
+   "from_persona": 34055,
+   "to_persona": 34054
+  },
+  {
+   "word": "tells",
+   "related": "ActorRef.tell",
+   "from_persona": 34057,
+   "to_persona": 34056
+  },
+  {
+   "word": "after",
+   "related": "after_update",
+   "from_persona": 623,
+   "to_persona": 39919
+  },
+  {
+   "word": "epsilon",
+   "related": "atol",
+   "from_persona": 10677,
+   "to_persona": 10681
+  },
+  {
+   "word": "SharedArrayBuffer",
+   "related": "Atomics.wait",
+   "from_persona": 30875,
+   "to_persona": 30873
+  },
+  {
+   "word": "writing",
+   "related": "authoring",
+   "from_persona": 38468,
+   "to_persona": 38473
+  },
+  {
+   "word": "NumPy",
+   "related": "BLAS",
+   "from_persona": 22497,
+   "to_persona": 22498
+  },
+  {
+   "word": "TeamCity",
+   "related": "build steps",
+   "from_persona": 34013,
+   "to_persona": 44934
+  },
+  {
+   "word": "itertools",
+   "related": "cartesian product",
+   "from_persona": 17300,
+   "to_persona": 17304
+  },
+  {
+   "word": "product",
+   "related": "cartesian product",
+   "from_persona": 25850,
+   "to_persona": 40961
+  },
+  {
+   "word": "dependency graph",
+   "related": "circular import",
+   "from_persona": 8626,
+   "to_persona": 8625
+  },
+  {
+   "word": "cyclic reference",
+   "related": "circular import",
+   "from_persona": 7622,
+   "to_persona": 7623
+  },
+  {
+   "word": "max",
+   "related": "Collections.max",
+   "from_persona": 20080,
+   "to_persona": 20084
+  },
+  {
+   "word": "ack",
+   "related": "confirmation",
+   "from_persona": 340,
+   "to_persona": 337
+  },
+  {
+   "word": "receipt",
+   "related": "confirmation",
+   "from_persona": 27231,
+   "to_persona": 27232
+  },
+  {
+   "word": "verification",
+   "related": "confirmation",
+   "from_persona": 37255,
+   "to_persona": 37260
+  },
+  {
+   "word": "padding",
+   "related": "contentInset",
+   "from_persona": 23752,
+   "to_persona": 23753
+  },
+  {
+   "word": "pad",
+   "related": "contentInsets",
+   "from_persona": 23747,
+   "to_persona": 23749
+  },
+  {
+   "word": "availability zone",
+   "related": "data.aws_availability_zones",
+   "from_persona": 2236,
+   "to_persona": 2237
+  },
+  {
+   "word": "connection string",
+   "related": "database url",
+   "from_persona": 6380,
+   "to_persona": 6379
+  },
+  {
+   "word": "LocalTime",
+   "related": "DateTimeFormatter.ISO_LOCAL_TIME",
+   "from_persona": 19153,
+   "to_persona": 19159
+  },
+  {
+   "word": "time format",
+   "related": "DateTimeFormatter.ISO_LOCAL_TIME",
+   "from_persona": 34745,
+   "to_persona": 34742
+  },
+  {
+   "word": "structure",
+   "related": "directory structure",
+   "from_persona": 33050,
+   "to_persona": 33051
+  },
+  {
+   "word": "thread",
+   "related": "discussion thread",
+   "from_persona": 34506,
+   "to_persona": 34511
+  },
+  {
+   "word": "decodeAudioData",
+   "related": "EncodingError",
+   "from_persona": 8255,
+   "to_persona": 8254
+  },
+  {
+   "word": "DOMException",
+   "related": "EncodingError",
+   "from_persona": 9584,
+   "to_persona": 9585
+  },
+  {
+   "word": "condition",
+   "related": "error condition",
+   "from_persona": 6086,
+   "to_persona": 6087
+  },
+  {
+   "word": "conditions",
+   "related": "error conditions",
+   "from_persona": 6119,
+   "to_persona": 6120
+  },
+  {
+   "word": "runtime",
+   "related": "execution environment",
+   "from_persona": 29401,
+   "to_persona": 29399
+  },
+  {
+   "word": "extensions",
+   "related": "extension method",
+   "from_persona": 11587,
+   "to_persona": 40128
+  },
+  {
+   "word": "extensions",
+   "related": "extension methods",
+   "from_persona": 11587,
+   "to_persona": 40128
+  },
+  {
+   "word": "descriptor",
+   "related": "fds",
+   "from_persona": 8775,
+   "to_persona": 8774
+  },
+  {
+   "word": "descriptors",
+   "related": "fds",
+   "from_persona": 8777,
+   "to_persona": 8776
+  },
+  {
+   "word": "find",
+   "related": "FindFirst",
+   "from_persona": 12246,
+   "to_persona": 12247
+  },
+  {
+   "word": "findUserById",
+   "related": "FindFirst",
+   "from_persona": 12286,
+   "to_persona": 12287
+  },
+  {
+   "word": "find",
+   "related": "findUnique",
+   "from_persona": 12246,
+   "to_persona": 12247
+  },
+  {
+   "word": "findUserById",
+   "related": "findUnique",
+   "from_persona": 12286,
+   "to_persona": 12287
+  },
+  {
+   "word": "activation",
+   "related": "GELU",
+   "from_persona": 396,
+   "to_persona": 398
+  },
+  {
+   "word": "minute",
+   "related": "getMinutes",
+   "from_persona": 20866,
+   "to_persona": 20864
+  },
+  {
+   "word": "minutes",
+   "related": "getMinutes",
+   "from_persona": 20868,
+   "to_persona": 20869
+  },
+  {
+   "word": "home directory",
+   "related": "getpwuid",
+   "from_persona": 15079,
+   "to_persona": 15080
+  },
+  {
+   "word": "error response",
+   "related": "google.rpc.Status",
+   "from_persona": 10881,
+   "to_persona": 10879
+  },
+  {
+   "word": "grpc status",
+   "related": "google.rpc.Status",
+   "from_persona": 14346,
+   "to_persona": 14345
+  },
+  {
+   "word": "error response",
+   "related": "grpc-message",
+   "from_persona": 10881,
+   "to_persona": 10879
+  },
+  {
+   "word": "grpc metadata",
+   "related": "grpc-message",
+   "from_persona": 14342,
+   "to_persona": 14341
+  },
+  {
+   "word": "grpc status",
+   "related": "grpc-message",
+   "from_persona": 14346,
+   "to_persona": 14345
+  },
+  {
+   "word": "u003c",
+   "related": "html tag",
+   "from_persona": 36023,
+   "to_persona": 36021
+  },
+  {
+   "word": "u003e",
+   "related": "html tag",
+   "from_persona": 36027,
+   "to_persona": 36029
+  },
+  {
+   "word": "kebab case",
+   "related": "hyphenated",
+   "from_persona": 17826,
+   "to_persona": 17824
+  },
+  {
+   "word": "slug",
+   "related": "hyphenated",
+   "from_persona": 31416,
+   "to_persona": 31417
+  },
+  {
+   "word": "alias",
+   "related": "import as",
+   "from_persona": 758,
+   "to_persona": 759
+  },
+  {
+   "word": "additionally",
+   "related": "in addition",
+   "from_persona": 516,
+   "to_persona": 517
+  },
+  {
+   "word": "begin",
+   "related": "initiate",
+   "from_persona": 2781,
+   "to_persona": 45525
+  },
+  {
+   "word": "start",
+   "related": "initiate",
+   "from_persona": 32155,
+   "to_persona": 32156
+  },
+  {
+   "word": "input",
+   "related": "input tensor",
+   "from_persona": 16361,
+   "to_persona": 16360
+  },
+  {
+   "word": "inputs",
+   "related": "input tensor",
+   "from_persona": 16369,
+   "to_persona": 16368
+  },
+  {
+   "word": "hunk",
+   "related": "interactive staging",
+   "from_persona": 15409,
+   "to_persona": 46129
+  },
+  {
+   "word": "field name",
+   "related": "key_name",
+   "from_persona": 11986,
+   "to_persona": 11985
+  },
+  {
+   "word": "begin",
+   "related": "kick off",
+   "from_persona": 2781,
+   "to_persona": 45525
+  },
+  {
+   "word": "start",
+   "related": "kick off",
+   "from_persona": 32155,
+   "to_persona": 32156
+  },
+  {
+   "word": "namespace",
+   "related": "kube-system",
+   "from_persona": 21601,
+   "to_persona": 21599
+  },
+  {
+   "word": "iife",
+   "related": "libraryTarget",
+   "from_persona": 15680,
+   "to_persona": 15681
+  },
+  {
+   "word": "idb",
+   "related": "localForage",
+   "from_persona": 15535,
+   "to_persona": 47865
+  },
+  {
+   "word": "IndexedDB",
+   "related": "localForage",
+   "from_persona": 16065,
+   "to_persona": 16066
+  },
+  {
+   "word": "warn",
+   "related": "Log.w",
+   "from_persona": 37775,
+   "to_persona": 37777
+  },
+  {
+   "word": "warning",
+   "related": "Log.w",
+   "from_persona": 37778,
+   "to_persona": 37781
+  },
+  {
+   "word": "patch",
+   "related": "mbox",
+   "from_persona": 24206,
+   "to_persona": 46179
+  },
+  {
+   "word": "patch file",
+   "related": "mbox",
+   "from_persona": 24212,
+   "to_persona": 48056
+  },
+  {
+   "word": "Maven",
+   "related": "mvn package",
+   "from_persona": 20074,
+   "to_persona": 20072
+  },
+  {
+   "word": "package",
+   "related": "mvn package",
+   "from_persona": 23708,
+   "to_persona": 23701
+  },
+  {
+   "word": "optional field",
+   "related": "not required",
+   "from_persona": 23217,
+   "to_persona": 23215
+  },
+  {
+   "word": "TypedDict",
+   "related": "not required",
+   "from_persona": 35886,
+   "to_persona": 35883
+  },
+  {
+   "word": "strlen",
+   "related": "null-terminated string",
+   "from_persona": 32981,
+   "to_persona": 32982
+  },
+  {
+   "word": "spread",
+   "related": "object spread",
+   "from_persona": 31841,
+   "to_persona": 31844
+  },
+  {
+   "word": "spread operator",
+   "related": "object spread",
+   "from_persona": 31845,
+   "to_persona": 31847
+  },
+  {
+   "word": "absolute",
+   "related": "offsetParent",
+   "from_persona": 140,
+   "to_persona": 139
+  },
+  {
+   "word": "relative",
+   "related": "offsetParent",
+   "from_persona": 27803,
+   "to_persona": 27799
+  },
+  {
+   "word": "Math.ceil",
+   "related": "page count",
+   "from_persona": 20029,
+   "to_persona": 20030
+  },
+  {
+   "word": "strptime",
+   "related": "parseDate",
+   "from_persona": 33007,
+   "to_persona": 33006
+  },
+  {
+   "word": "pinned",
+   "related": "pin_memory",
+   "from_persona": 24707,
+   "to_persona": 41639
+  },
+  {
+   "word": "pinned",
+   "related": "pinned dependency",
+   "from_persona": 24707,
+   "to_persona": 24708
+  },
+  {
+   "word": "pins",
+   "related": "pinned dependency",
+   "from_persona": 24714,
+   "to_persona": 24715
+  },
+  {
+   "word": "pinned",
+   "related": "pinned memory",
+   "from_persona": 24707,
+   "to_persona": 41639
+  },
+  {
+   "word": "bind",
+   "related": "port binding",
+   "from_persona": 2982,
+   "to_persona": 2980
+  },
+  {
+   "word": "getenv",
+   "related": "read env",
+   "from_persona": 13628,
+   "to_persona": 13626
+  },
+  {
+   "word": "os.getenv",
+   "related": "read env",
+   "from_persona": 23422,
+   "to_persona": 23420
+  },
+  {
+   "word": "redirect",
+   "related": "redirect_stdout",
+   "from_persona": 27423,
+   "to_persona": 27422
+  },
+  {
+   "word": "redirecting",
+   "related": "redirect_stdout",
+   "from_persona": 27425,
+   "to_persona": 27427
+  },
+  {
+   "word": "redirects",
+   "related": "redirect_stdout",
+   "from_persona": 27429,
+   "to_persona": 27430
+  },
+  {
+   "word": "registerCommand",
+   "related": "registerCommands",
+   "from_persona": 27687,
+   "to_persona": 27688
+  },
+  {
+   "word": "activation",
+   "related": "ReLU",
+   "from_persona": 396,
+   "to_persona": 398
+  },
+  {
+   "word": "remaining",
+   "related": "remainingCount",
+   "from_persona": 27925,
+   "to_persona": 27927
+  },
+  {
+   "word": "remaining",
+   "related": "remaining time",
+   "from_persona": 27925,
+   "to_persona": 27927
+  },
+  {
+   "word": "data zoom",
+   "related": "ScrollBar",
+   "from_persona": 7934,
+   "to_persona": 7931
+  },
+  {
+   "word": "Highcharts",
+   "related": "ScrollBar",
+   "from_persona": 14969,
+   "to_persona": 14965
+  },
+  {
+   "word": "seek",
+   "related": "scrubber",
+   "from_persona": 30183,
+   "to_persona": 30184
+  },
+  {
+   "word": "sec",
+   "related": "secs.",
+   "from_persona": 30023,
+   "to_persona": 30024
+  },
+  {
+   "word": "unhandled promise rejection",
+   "related": "set_exception_handler",
+   "from_persona": 36277,
+   "to_persona": 48261
+  },
+  {
+   "word": "unhandled rejection",
+   "related": "set_exception_handler",
+   "from_persona": 36278,
+   "to_persona": 36279
+  },
+  {
+   "word": "shell",
+   "related": "shell-quote",
+   "from_persona": 30915,
+   "to_persona": 30913
+  },
+  {
+   "word": "shell command",
+   "related": "shell-quote",
+   "from_persona": 30923,
+   "to_persona": 30922
+  },
+  {
+   "word": "shlex.split",
+   "related": "shell-quote",
+   "from_persona": 30960,
+   "to_persona": 30962
+  },
+  {
+   "word": "activation",
+   "related": "sigmoid",
+   "from_persona": 396,
+   "to_persona": 398
+  },
+  {
+   "word": "helper",
+   "related": "spec_helper",
+   "from_persona": 14870,
+   "to_persona": 14872
+  },
+  {
+   "word": "helpers",
+   "related": "spec_helper",
+   "from_persona": 14877,
+   "to_persona": 14879
+  },
+  {
+   "word": "blog",
+   "related": "static site",
+   "from_persona": 3174,
+   "to_persona": 3172
+  },
+  {
+   "word": "static site generator",
+   "related": "static site",
+   "from_persona": 32341,
+   "to_persona": 32338
+  },
+  {
+   "word": "channel",
+   "related": "std::sync::mpsc",
+   "from_persona": 4580,
+   "to_persona": 4582
+  },
+  {
+   "word": "interleaving",
+   "related": "stride",
+   "from_persona": 16678,
+   "to_persona": 39090
+  },
+  {
+   "word": "interleaving",
+   "related": "strided",
+   "from_persona": 16678,
+   "to_persona": 39090
+  },
+  {
+   "word": "string interning",
+   "related": "string intern",
+   "from_persona": 32901,
+   "to_persona": 32902
+  },
+  {
+   "word": "desugar",
+   "related": "syntactic sugar",
+   "from_persona": 8844,
+   "to_persona": 45782
+  },
+  {
+   "word": "var",
+   "related": "Terraform variable",
+   "from_persona": 37103,
+   "to_persona": 39356
+  },
+  {
+   "word": "variable",
+   "related": "Terraform variable",
+   "from_persona": 37114,
+   "to_persona": 37116
+  },
+  {
+   "word": "chunking",
+   "related": "text splitter",
+   "from_persona": 4828,
+   "to_persona": 4830
+  },
+  {
+   "word": "time",
+   "related": "time.Parse",
+   "from_persona": 34710,
+   "to_persona": 34703
+  },
+  {
+   "word": "time.Now",
+   "related": "time.Parse",
+   "from_persona": 34721,
+   "to_persona": 34722
+  },
+  {
+   "word": "collect",
+   "related": "toArray",
+   "from_persona": 5471,
+   "to_persona": 5470
+  },
+  {
+   "word": "collect",
+   "related": "tolist",
+   "from_persona": 5471,
+   "to_persona": 5470
+  },
+  {
+   "word": "OpenVPN",
+   "related": "tun0",
+   "from_persona": 23070,
+   "to_persona": 23071
+  },
+  {
+   "word": "ovpn",
+   "related": "tun0",
+   "from_persona": 23634,
+   "to_persona": 23637
+  },
+  {
+   "word": "syscall",
+   "related": "vDSO",
+   "from_persona": 33662,
+   "to_persona": 33663
+  },
+  {
+   "word": "streamed",
+   "related": "video streaming",
+   "from_persona": 32796,
+   "to_persona": 32797
+  },
+  {
+   "word": "streaming",
+   "related": "video streaming",
+   "from_persona": 32803,
+   "to_persona": 32801
+  },
+  {
+   "word": "video transcoding",
+   "related": "video transcode",
+   "from_persona": 37356,
+   "to_persona": 37358
+  },
+  {
+   "word": "xlsx",
+   "related": "workbook",
+   "from_persona": 38579,
+   "to_persona": 45006
+  },
+  {
+   "word": "rich text editor",
+   "related": "WYSIWYG",
+   "from_persona": 28942,
+   "to_persona": 28944
+  },
+  {
+   "word": "mid",
+   "related": "(lo + hi) / 2",
+   "from_persona": 20744,
+   "to_persona": 20745
+  },
+  {
+   "word": "text message",
+   "related": "160 characters",
+   "from_persona": 34372,
+   "to_persona": 34374
+  },
+  {
+   "word": "scryptSync",
+   "related": "32 byte key",
+   "from_persona": 29940,
+   "to_persona": 29941
+  },
+  {
+   "word": "u32",
+   "related": "32-bit unsigned integer",
+   "from_persona": 36037,
+   "to_persona": 36038
+  },
+  {
+   "word": "scryptSync",
+   "related": "64 byte key",
+   "from_persona": 29940,
+   "to_persona": 29941
+  },
+  {
+   "word": "anchor",
+   "related": "a href",
+   "from_persona": 956,
+   "to_persona": 957
+  },
+  {
+   "word": "profile",
+   "related": "account profile",
+   "from_persona": 25878,
+   "to_persona": 25882
+  },
+  {
+   "word": "accumulate",
+   "related": "accumulator pattern",
+   "from_persona": 319,
+   "to_persona": 320
+  },
+  {
+   "word": "epsilon",
+   "related": "Adam epsilon",
+   "from_persona": 10677,
+   "to_persona": 10679
+  },
+  {
+   "word": "spin",
+   "related": "adaptive mutex",
+   "from_persona": 31805,
+   "to_persona": 31806
+  },
+  {
+   "word": "LangGraph",
+   "related": "agent graph",
+   "from_persona": 18216,
+   "to_persona": 45814
+  },
+  {
+   "word": "bitmap",
+   "related": "allocation bitmap",
+   "from_persona": 3047,
+   "to_persona": 3049
+  },
+  {
+   "word": "YourKit",
+   "related": "allocation profiling",
+   "from_persona": 38753,
+   "to_persona": 38756
+  },
+  {
+   "word": "memory limit",
+   "related": "Allowed memory size exhausted",
+   "from_persona": 20350,
+   "to_persona": 20351
+  },
+  {
+   "word": "memory limit",
+   "related": "Allowed memory size of",
+   "from_persona": 20350,
+   "to_persona": 20351
+  },
+  {
+   "word": "AWS SDK",
+   "related": "Amazon Web Services SDK",
+   "from_persona": 2352,
+   "to_persona": 2353
+  },
+  {
+   "word": "anonymous",
+   "related": "anonymous subroutine",
+   "from_persona": 1022,
+   "to_persona": 1023
+  },
+  {
+   "word": "api client",
+   "related": "api sdk",
+   "from_persona": 1143,
+   "to_persona": 1144
+  },
+  {
+   "word": "ips",
+   "related": "Apple crash report",
+   "from_persona": 17068,
+   "to_persona": 17071
+  },
+  {
+   "word": "framework",
+   "related": "Apple frameworks",
+   "from_persona": 12929,
+   "to_persona": 12934
+  },
+  {
+   "word": "strings",
+   "related": "apple localization",
+   "from_persona": 32930,
+   "to_persona": 32931
+  },
+  {
+   "word": "boundary",
+   "related": "architectural boundary",
+   "from_persona": 3336,
+   "to_persona": 3337
+  },
+  {
+   "word": "choropleth map",
+   "related": "area map",
+   "from_persona": 4788,
+   "to_persona": 4790
+  },
+  {
+   "word": "widening",
+   "related": "as i64",
+   "from_persona": 38066,
+   "to_persona": 38068
+  },
+  {
+   "word": "asc",
+   "related": "asc order",
+   "from_persona": 1630,
+   "to_persona": 1631
+  },
+  {
+   "word": "asc",
+   "related": "ascending sort",
+   "from_persona": 1630,
+   "to_persona": 1631
+  },
+  {
+   "word": "ord",
+   "related": "ASCII offset",
+   "from_persona": 23283,
+   "to_persona": 23284
+  },
+  {
+   "word": "fiber",
+   "related": "Async gem",
+   "from_persona": 11968,
+   "to_persona": 11970
+  },
+  {
+   "word": "data at rest",
+   "related": "at-rest encryption",
+   "from_persona": 7774,
+   "to_persona": 7775
+  },
+  {
+   "word": "unlink",
+   "related": "atomic delete",
+   "from_persona": 36386,
+   "to_persona": 36387
+  },
+  {
+   "word": "dac",
+   "related": "audio DAC",
+   "from_persona": 7670,
+   "to_persona": 7671
+  },
+  {
+   "word": "multi factor",
+   "related": "authentication factor",
+   "from_persona": 21386,
+   "to_persona": 21385
+  },
+  {
+   "word": "scale",
+   "related": "axis scale",
+   "from_persona": 29713,
+   "to_persona": 29714
+  },
+  {
+   "word": "distributed cache",
+   "related": "Azure Cache for Redis",
+   "from_persona": 9317,
+   "to_persona": 9316
+  },
+  {
+   "word": "Azure App Configuration",
+   "related": "Azure portal",
+   "from_persona": 2397,
+   "to_persona": 45062
+  },
+  {
+   "word": "rebalance",
+   "related": "B-tree rebalance",
+   "from_persona": 27208,
+   "to_persona": 27209
+  },
+  {
+   "word": "bisect",
+   "related": "bad commit",
+   "from_persona": 3011,
+   "to_persona": 3012
+  },
+  {
+   "word": "embeddings.create",
+   "related": "batch embedding",
+   "from_persona": 10325,
+   "to_persona": 10326
+  },
+  {
+   "word": "merge base",
+   "related": "best common ancestor",
+   "from_persona": 20435,
+   "to_persona": 20436
+  },
+  {
+   "word": "type inference",
+   "related": "bidirectional type checking",
+   "from_persona": 35919,
+   "to_persona": 35921
+  },
+  {
+   "word": "jsonl",
+   "related": "BigQuery load jsonl",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "day of month",
+   "related": "billing day",
+   "from_persona": 8016,
+   "to_persona": 8017
+  },
+  {
+   "word": "logical operator",
+   "related": "boolean operator",
+   "from_persona": 19286,
+   "to_persona": 19287
+  },
+  {
+   "word": "conditional breakpoint",
+   "related": "breakpoint condition",
+   "from_persona": 6096,
+   "to_persona": 6098
+  },
+  {
+   "word": "build time",
+   "related": "build latency",
+   "from_persona": 3798,
+   "to_persona": 3801
+  },
+  {
+   "word": "build time",
+   "related": "build performance",
+   "from_persona": 3798,
+   "to_persona": 3801
+  },
+  {
+   "word": "build.rs",
+   "related": "build scripts",
+   "from_persona": 3699,
+   "to_persona": 3700
+  },
+  {
+   "word": "build time",
+   "related": "build speed",
+   "from_persona": 3798,
+   "to_persona": 3801
+  },
+  {
+   "word": "build script",
+   "related": "build task",
+   "from_persona": 3780,
+   "to_persona": 3781
+  },
+  {
+   "word": "build.rs",
+   "related": "build.rs file",
+   "from_persona": 3699,
+   "to_persona": 3700
+  },
+  {
+   "word": "import",
+   "related": "bulk import",
+   "from_persona": 15884,
+   "to_persona": 40833
+  },
+  {
+   "word": "update",
+   "related": "bulk update",
+   "from_persona": 36556,
+   "to_persona": 36554
+  },
+  {
+   "word": "disable",
+   "related": "button disabled",
+   "from_persona": 9144,
+   "to_persona": 9146
+  },
+  {
+   "word": "std::ofstream",
+   "related": "C++ file I/O",
+   "from_persona": 32492,
+   "to_persona": 32494
+  },
+  {
+   "word": "std::ifstream",
+   "related": "C++ file I/O",
+   "from_persona": 32460,
+   "to_persona": 32461
+  },
+  {
+   "word": "std::string",
+   "related": "C++ string",
+   "from_persona": 32543,
+   "to_persona": 32544
+  },
+  {
+   "word": "tokio::time::timeout",
+   "related": "cancel safety",
+   "from_persona": 35056,
+   "to_persona": 35055
+  },
+  {
+   "word": "toBlob",
+   "related": "canvas to image",
+   "from_persona": 34896,
+   "to_persona": 34897
+  },
+  {
+   "word": "filename",
+   "related": "case sensitivity",
+   "from_persona": 12087,
+   "to_persona": 12088
+  },
+  {
+   "word": "ord",
+   "related": "cast char",
+   "from_persona": 23283,
+   "to_persona": 23284
+  },
+  {
+   "word": "catch block",
+   "related": "catch (...)",
+   "from_persona": 4354,
+   "to_persona": 4353
+  },
+  {
+   "word": "catch block",
+   "related": "catch (e)",
+   "from_persona": 4354,
+   "to_persona": 4353
+  },
+  {
+   "word": "catch all",
+   "related": "catch (e: Throwable)",
+   "from_persona": 4346,
+   "to_persona": 4350
+  },
+  {
+   "word": "catch block",
+   "related": "catch (error)",
+   "from_persona": 4354,
+   "to_persona": 4353
+  },
+  {
+   "word": "catch block",
+   "related": "catch (ex)",
+   "from_persona": 4354,
+   "to_persona": 4353
+  },
+  {
+   "word": "catch block",
+   "related": "catch (Exception e)",
+   "from_persona": 4354,
+   "to_persona": 4353
+  },
+  {
+   "word": "catch all",
+   "related": "catch all exceptions",
+   "from_persona": 4346,
+   "to_persona": 4350
+  },
+  {
+   "word": "catch block",
+   "related": "catch and log",
+   "from_persona": 4354,
+   "to_persona": 4355
+  },
+  {
+   "word": "catch block",
+   "related": "catch and rethrow",
+   "from_persona": 4354,
+   "to_persona": 4353
+  },
+  {
+   "word": "catch all",
+   "related": "catch any exception",
+   "from_persona": 4346,
+   "to_persona": 4350
+  },
+  {
+   "word": "catch block",
+   "related": "catch clause",
+   "from_persona": 4354,
+   "to_persona": 4353
+  },
+  {
+   "word": "catch all",
+   "related": "catch every error",
+   "from_persona": 4346,
+   "to_persona": 4350
+  },
+  {
+   "word": "data grid",
+   "related": "cell editor",
+   "from_persona": 7836,
+   "to_persona": 7835
+  },
+  {
+   "word": "subject",
+   "related": "certificate subject",
+   "from_persona": 33152,
+   "to_persona": 33154
+  },
+  {
+   "word": "ord",
+   "related": "character code",
+   "from_persona": 23283,
+   "to_persona": 23284
+  },
+  {
+   "word": "tgz",
+   "related": "chart package",
+   "from_persona": 34422,
+   "to_persona": 34424
+  },
+  {
+   "word": "scale",
+   "related": "Chart.js scales",
+   "from_persona": 29713,
+   "to_persona": 29714
+  },
+  {
+   "word": "scm",
+   "related": "checkout scm",
+   "from_persona": 29864,
+   "to_persona": 29865
+  },
+  {
+   "word": "multipart upload",
+   "related": "chunk upload",
+   "from_persona": 21412,
+   "to_persona": 21413
+  },
+  {
+   "word": "church encoding",
+   "related": "church booleans",
+   "from_persona": 4834,
+   "to_persona": 4835
+  },
+  {
+   "word": "lambda calculus",
+   "related": "church numerals",
+   "from_persona": 18199,
+   "to_persona": 18200
+  },
+  {
+   "word": "createInterface",
+   "related": "cli prompt",
+   "from_persona": 7169,
+   "to_persona": 7173
+  },
+  {
+   "word": "local cache",
+   "related": "client-side cache",
+   "from_persona": 19101,
+   "to_persona": 19102
+  },
+  {
+   "word": "end to end encryption",
+   "related": "client-side encryption",
+   "from_persona": 10465,
+   "to_persona": 10466
+  },
+  {
+   "word": "idb",
+   "related": "client-side storage",
+   "from_persona": 15535,
+   "to_persona": 47865
+  },
+  {
+   "word": "grouped bar",
+   "related": "clustered bar",
+   "from_persona": 14301,
+   "to_persona": 14300
+  },
+  {
+   "word": "icc",
+   "related": "colour profile",
+   "from_persona": 15487,
+   "to_persona": 15488
+  },
+  {
+   "word": "shell command",
+   "related": "command line command",
+   "from_persona": 30921,
+   "to_persona": 30922
+  },
+  {
+   "word": "signed off by",
+   "related": "commit message footer",
+   "from_persona": 31137,
+   "to_persona": 31138
+  },
+  {
+   "word": "build time",
+   "related": "compilation time",
+   "from_persona": 3798,
+   "to_persona": 3801
+  },
+  {
+   "word": "CBOR",
+   "related": "concise binary object representation",
+   "from_persona": 4397,
+   "to_persona": 4398
+  },
+  {
+   "word": "config key",
+   "related": "config field",
+   "from_persona": 6161,
+   "to_persona": 6162
+  },
+  {
+   "word": "defineConfig",
+   "related": "config helper function",
+   "from_persona": 8424,
+   "to_persona": 8429
+  },
+  {
+   "word": "config key",
+   "related": "config item",
+   "from_persona": 6161,
+   "to_persona": 6162
+  },
+  {
+   "word": "config key",
+   "related": "config param",
+   "from_persona": 6161,
+   "to_persona": 6162
+  },
+  {
+   "word": "config key",
+   "related": "config parameter",
+   "from_persona": 6161,
+   "to_persona": 6162
+  },
+  {
+   "word": "config key",
+   "related": "config property",
+   "from_persona": 6161,
+   "to_persona": 6162
+  },
+  {
+   "word": "config value",
+   "related": "config property value",
+   "from_persona": 6277,
+   "to_persona": 6279
+  },
+  {
+   "word": "config value",
+   "related": "config setting value",
+   "from_persona": 6277,
+   "to_persona": 6279
+  },
+  {
+   "word": "config key",
+   "related": "config variable",
+   "from_persona": 6161,
+   "to_persona": 6162
+  },
+  {
+   "word": "defineConfig",
+   "related": "configuration function",
+   "from_persona": 8424,
+   "to_persona": 8429
+  },
+  {
+   "word": "config key",
+   "related": "configuration key",
+   "from_persona": 6161,
+   "to_persona": 6162
+  },
+  {
+   "word": "conn",
+   "related": "conn string",
+   "from_persona": 6327,
+   "to_persona": 6331
+  },
+  {
+   "word": "connection string",
+   "related": "connection uri",
+   "from_persona": 6380,
+   "to_persona": 6379
+  },
+  {
+   "word": "strtok",
+   "related": "consecutive delimiters",
+   "from_persona": 33013,
+   "to_persona": 33015
+  },
+  {
+   "word": "shell command",
+   "related": "console command",
+   "from_persona": 30921,
+   "to_persona": 30922
+  },
+  {
+   "word": "lease",
+   "related": "Consul lock",
+   "from_persona": 18451,
+   "to_persona": 45253
+  },
+  {
+   "word": "memory limit",
+   "related": "container memory limit",
+   "from_persona": 20350,
+   "to_persona": 20352
+  },
+  {
+   "word": "jsonl",
+   "related": "Content-Type: application/x-ndjson",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "sequential scale",
+   "related": "continuous color scale",
+   "from_persona": 30449,
+   "to_persona": 30450
+  },
+  {
+   "word": "save",
+   "related": "cookie set",
+   "from_persona": 29649,
+   "to_persona": 42152
+  },
+  {
+   "word": "fiber",
+   "related": "cooperative thread",
+   "from_persona": 11968,
+   "to_persona": 11970
+  },
+  {
+   "word": "io.Copy",
+   "related": "copy data",
+   "from_persona": 16963,
+   "to_persona": 16964
+  },
+  {
+   "word": "dst",
+   "related": "copy destination",
+   "from_persona": 9842,
+   "to_persona": 9843
+  },
+  {
+   "word": "correlation",
+   "related": "correlation matrix",
+   "from_persona": 6929,
+   "to_persona": 45802
+  },
+  {
+   "word": "cp",
+   "related": "cp command",
+   "from_persona": 7029,
+   "to_persona": 7030
+  },
+  {
+   "word": "YourKit",
+   "related": "cpu profiling",
+   "from_persona": 38753,
+   "to_persona": 38757
+  },
+  {
+   "word": "Gitleaks",
+   "related": "credential scanning",
+   "from_persona": 13857,
+   "to_persona": 13860
+  },
+  {
+   "word": "cron",
+   "related": "cron configuration",
+   "from_persona": 7277,
+   "to_persona": 7278
+  },
+  {
+   "word": "day of month",
+   "related": "cron day-of-month",
+   "from_persona": 8016,
+   "to_persona": 8017
+  },
+  {
+   "word": "day of month",
+   "related": "cron dom field",
+   "from_persona": 8016,
+   "to_persona": 8017
+  },
+  {
+   "word": "job runner",
+   "related": "cron runner",
+   "from_persona": 17514,
+   "to_persona": 17515
+  },
+  {
+   "word": "LocalTime",
+   "related": "cron time",
+   "from_persona": 19153,
+   "to_persona": 19158
+  },
+  {
+   "word": "image crop",
+   "related": "crop area",
+   "from_persona": 15710,
+   "to_persona": 15708
+  },
+  {
+   "word": "image crop",
+   "related": "crop box",
+   "from_persona": 15710,
+   "to_persona": 15708
+  },
+  {
+   "word": "EditorConfig",
+   "related": "cross-editor settings",
+   "from_persona": 10140,
+   "to_persona": 10143
+  },
+  {
+   "word": "primitives",
+   "related": "crypto primitives",
+   "from_persona": 25593,
+   "to_persona": 25596
+  },
+  {
+   "word": "primitives",
+   "related": "cryptographic primitives",
+   "from_persona": 25593,
+   "to_persona": 25596
+  },
+  {
+   "word": "report",
+   "related": "Crystal Reports",
+   "from_persona": 28178,
+   "to_persona": 28181
+  },
+  {
+   "word": "precision",
+   "related": "CSS precision",
+   "from_persona": 25320,
+   "to_persona": 25322
+  },
+  {
+   "word": "string split",
+   "related": "csv split",
+   "from_persona": 32950,
+   "to_persona": 32951
+  },
+  {
+   "word": "bisect",
+   "related": "culprit commit",
+   "from_persona": 3011,
+   "to_persona": 3012
+  },
+  {
+   "word": "CPython",
+   "related": "cyclic garbage collector",
+   "from_persona": 7061,
+   "to_persona": 7065
+  },
+  {
+   "word": "standardize",
+   "related": "data preprocessing",
+   "from_persona": 32125,
+   "to_persona": 32126
+  },
+  {
+   "word": "truncated",
+   "related": "Data truncated for column",
+   "from_persona": 35588,
+   "to_persona": 35590
+  },
+  {
+   "word": "os.ReadFile",
+   "related": "data, err := os.ReadFile",
+   "from_persona": 23437,
+   "to_persona": 23441
+  },
+  {
+   "word": "database",
+   "related": "database client",
+   "from_persona": 7782,
+   "to_persona": 7783
+  },
+  {
+   "word": "database",
+   "related": "database connection",
+   "from_persona": 7782,
+   "to_persona": 7783
+  },
+  {
+   "word": "driver",
+   "related": "database driver",
+   "from_persona": 9763,
+   "to_persona": 9764
+  },
+  {
+   "word": "strftime",
+   "related": "date formatting",
+   "from_persona": 32838,
+   "to_persona": 32836
+  },
+  {
+   "word": "Moment.js",
+   "related": "date formatting",
+   "from_persona": 21139,
+   "to_persona": 21138
+  },
+  {
+   "word": "Moment.js",
+   "related": "date parsing",
+   "from_persona": 21139,
+   "to_persona": 21138
+  },
+  {
+   "word": "driver",
+   "related": "db driver",
+   "from_persona": 9761,
+   "to_persona": 9764
+  },
+  {
+   "word": "query",
+   "related": "db query",
+   "from_persona": 26540,
+   "to_persona": 26542
+  },
+  {
+   "word": "connection string",
+   "related": "db url",
+   "from_persona": 6380,
+   "to_persona": 6379
+  },
+  {
+   "word": "schema generation",
+   "related": "DDL generation",
+   "from_persona": 29831,
+   "to_persona": 29833
+  },
+  {
+   "word": "card",
+   "related": "debit card",
+   "from_persona": 4266,
+   "to_persona": 4267
+  },
+  {
+   "word": "decimal",
+   "related": "decimal floating point",
+   "from_persona": 8181,
+   "to_persona": 8183
+  },
+  {
+   "word": "decimal",
+   "related": "decimal literal",
+   "from_persona": 8181,
+   "to_persona": 8185
+  },
+  {
+   "word": "flow",
+   "related": "declare type",
+   "from_persona": 12502,
+   "to_persona": 12505
+  },
+  {
+   "word": "decodeAudioData",
+   "related": "decode audio",
+   "from_persona": 8252,
+   "to_persona": 8254
+  },
+  {
+   "word": "sensible defaults",
+   "related": "default configuration",
+   "from_persona": 30384,
+   "to_persona": 30386
+  },
+  {
+   "word": "sensible defaults",
+   "related": "default settings",
+   "from_persona": 30384,
+   "to_persona": 30386
+  },
+  {
+   "word": "delete",
+   "related": "delete expression",
+   "from_persona": 8516,
+   "to_persona": 8517
+  },
+  {
+   "word": "sep",
+   "related": "delimiter-separated values",
+   "from_persona": 30405,
+   "to_persona": 30406
+  },
+  {
+   "word": "underflow",
+   "related": "denormals are zero",
+   "from_persona": 36243,
+   "to_persona": 36245
+  },
+  {
+   "word": "compact",
+   "related": "dense mode",
+   "from_persona": 5747,
+   "to_persona": 5748
+  },
+  {
+   "word": "util.deprecate",
+   "related": "deprecation code",
+   "from_persona": 36930,
+   "to_persona": 36931
+  },
+  {
+   "word": "util.deprecate",
+   "related": "deprecation codes",
+   "from_persona": 36930,
+   "to_persona": 36931
+  },
+  {
+   "word": "back",
+   "related": "deque back",
+   "from_persona": 2435,
+   "to_persona": 2437
+  },
+  {
+   "word": "desc",
+   "related": "description field",
+   "from_persona": 8755,
+   "to_persona": 8756
+  },
+  {
+   "word": "develop",
+   "related": "dev branch",
+   "from_persona": 8893,
+   "to_persona": 8891
+  },
+  {
+   "word": "develop",
+   "related": "development branch",
+   "from_persona": 8893,
+   "to_persona": 8891
+  },
+  {
+   "word": "difference",
+   "related": "difference of sets",
+   "from_persona": 9020,
+   "to_persona": 9025
+  },
+  {
+   "word": "dac",
+   "related": "digital to analogue converter",
+   "from_persona": 7670,
+   "to_persona": 7671
+  },
+  {
+   "word": "dac",
+   "related": "Digital-to-Analog Converter",
+   "from_persona": 7670,
+   "to_persona": 7671
+  },
+  {
+   "word": "dac",
+   "related": "direct digital synthesis",
+   "from_persona": 7670,
+   "to_persona": 7671
+  },
+  {
+   "word": "walker",
+   "related": "directory traversal",
+   "from_persona": 37734,
+   "to_persona": 48302
+  },
+  {
+   "word": "beforeunload",
+   "related": "dirty form",
+   "from_persona": 2776,
+   "to_persona": 2779
+  },
+  {
+   "word": "disable",
+   "related": "disabled: true",
+   "from_persona": 9144,
+   "to_persona": 9146
+  },
+  {
+   "word": "pot",
+   "related": "django makemessages",
+   "from_persona": 25269,
+   "to_persona": 25270
+  },
+  {
+   "word": "soa",
+   "related": "DNS SOA",
+   "from_persona": 31521,
+   "to_persona": 31524
+  },
+  {
+   "word": "Docker Hub",
+   "related": "docker search",
+   "from_persona": 9470,
+   "to_persona": 9471
+  },
+  {
+   "word": "Docusaurus",
+   "related": "docusaurus deploy",
+   "from_persona": 9530,
+   "to_persona": 9532
+  },
+  {
+   "word": "point",
+   "related": "dot (.)",
+   "from_persona": 24996,
+   "to_persona": 24997
+  },
+  {
+   "word": "nested loop",
+   "related": "double loop",
+   "from_persona": 21814,
+   "to_persona": 21816
+  },
+  {
+   "word": "drop",
+   "related": "drop first",
+   "from_persona": 9774,
+   "to_persona": 45428
+  },
+  {
+   "word": "dsn",
+   "related": "dsn string",
+   "from_persona": 9836,
+   "to_persona": 9837
+  },
+  {
+   "word": "id1",
+   "related": "dummy id",
+   "from_persona": 15531,
+   "to_persona": 15532
+  },
+  {
+   "word": "id2",
+   "related": "dummy id",
+   "from_persona": 15533,
+   "to_persona": 15534
+  },
+  {
+   "word": "Nacos",
+   "related": "dynamic configuration service",
+   "from_persona": 21559,
+   "to_persona": 45064
+  },
+  {
+   "word": "gst",
+   "related": "e-way bill",
+   "from_persona": 14354,
+   "to_persona": 14355
+  },
+  {
+   "word": "end to end encryption",
+   "related": "e2e encryption",
+   "from_persona": 10465,
+   "to_persona": 10466
+  },
+  {
+   "word": "Echo",
+   "related": "echo -n",
+   "from_persona": 10077,
+   "to_persona": 10079
+  },
+  {
+   "word": "etags",
+   "related": "Emacs tags",
+   "from_persona": 10964,
+   "to_persona": 10965
+  },
+  {
+   "word": "RFC 2822",
+   "related": "email date format",
+   "from_persona": 28916,
+   "to_persona": 28918
+  },
+  {
+   "word": "RFC 2822",
+   "related": "email headers",
+   "from_persona": 28916,
+   "to_persona": 28917
+  },
+  {
+   "word": "cc",
+   "related": "email recipient",
+   "from_persona": 4401,
+   "to_persona": 4402
+  },
+  {
+   "word": "end to end encryption",
+   "related": "encrypt on device",
+   "from_persona": 10465,
+   "to_persona": 10466
+  },
+  {
+   "word": "end to end encryption",
+   "related": "encrypted chat",
+   "from_persona": 10465,
+   "to_persona": 10466
+  },
+  {
+   "word": "end to end encryption",
+   "related": "encrypted messaging",
+   "from_persona": 10465,
+   "to_persona": 10466
+  },
+  {
+   "word": "keys",
+   "related": "encryption keys",
+   "from_persona": 17943,
+   "to_persona": 17946
+  },
+  {
+   "word": "Vite",
+   "related": "env prefix",
+   "from_persona": 37513,
+   "to_persona": 37517
+  },
+  {
+   "word": "variable",
+   "related": "env variables",
+   "from_persona": 37111,
+   "to_persona": 37116
+  },
+  {
+   "word": "per environment",
+   "related": "environment config",
+   "from_persona": 24451,
+   "to_persona": 24453
+  },
+  {
+   "word": "per environment",
+   "related": "environment configuration",
+   "from_persona": 24451,
+   "to_persona": 24453
+  },
+  {
+   "word": "RE2",
+   "related": "Envoy regex",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "erased",
+   "related": "erase-remove idiom",
+   "from_persona": 10701,
+   "to_persona": 10705
+  },
+  {
+   "word": "error response",
+   "related": "error status",
+   "from_persona": 10877,
+   "to_persona": 10874
+  },
+  {
+   "word": "rpc client",
+   "related": "eth rpc client",
+   "from_persona": 29228,
+   "to_persona": 29232
+  },
+  {
+   "word": "evtx",
+   "related": "event log file",
+   "from_persona": 11125,
+   "to_persona": 11126
+  },
+  {
+   "word": "evtx",
+   "related": "event logs",
+   "from_persona": 11125,
+   "to_persona": 11126
+  },
+  {
+   "word": "sender",
+   "related": "event sender",
+   "from_persona": 30334,
+   "to_persona": 41576
+  },
+  {
+   "word": "cron",
+   "related": "EventBridge schedule",
+   "from_persona": 7277,
+   "to_persona": 7278
+  },
+  {
+   "word": "negative lookahead",
+   "related": "exclude directories",
+   "from_persona": 21780,
+   "to_persona": 21781
+  },
+  {
+   "word": "negative lookahead",
+   "related": "exclude folders",
+   "from_persona": 21780,
+   "to_persona": 21781
+  },
+  {
+   "word": "exclusive",
+   "related": "exclusive subscription",
+   "from_persona": 11227,
+   "to_persona": 11229
+  },
+  {
+   "word": "exif",
+   "related": "exif orientation",
+   "from_persona": 11336,
+   "to_persona": 11335
+  },
+  {
+   "word": "orientation",
+   "related": "exif orientation",
+   "from_persona": 23360,
+   "to_persona": 23358
+  },
+  {
+   "word": "plt.savefig",
+   "related": "export figure",
+   "from_persona": 24896,
+   "to_persona": 24897
+  },
+  {
+   "word": "plt.savefig",
+   "related": "export plot",
+   "from_persona": 24896,
+   "to_persona": 24897
+  },
+  {
+   "word": "export",
+   "related": "export to csv",
+   "from_persona": 11493,
+   "to_persona": 11492
+  },
+  {
+   "word": "leaked",
+   "related": "exposed secrets",
+   "from_persona": 18420,
+   "to_persona": 18423
+  },
+  {
+   "word": "outside",
+   "related": "external network",
+   "from_persona": 23561,
+   "to_persona": 23565
+  },
+  {
+   "word": "factory",
+   "related": "factory provider",
+   "from_persona": 11649,
+   "to_persona": 11648
+  },
+  {
+   "word": "fail",
+   "related": "fail case",
+   "from_persona": 11663,
+   "to_persona": 11668
+  },
+  {
+   "word": "tick",
+   "related": "fakeAsync tick",
+   "from_persona": 34657,
+   "to_persona": 34660
+  },
+  {
+   "word": "raw",
+   "related": "ffmpeg -f s16le",
+   "from_persona": 26872,
+   "to_persona": 26874
+  },
+  {
+   "word": "std::ofstream",
+   "related": "file << data",
+   "from_persona": 32492,
+   "to_persona": 32493
+  },
+  {
+   "word": "FileManager",
+   "related": "file manager class",
+   "from_persona": 12075,
+   "to_persona": 12078
+  },
+  {
+   "word": "stem",
+   "related": "filename without extension",
+   "from_persona": 32607,
+   "to_persona": 32608
+  },
+  {
+   "word": "hidden file",
+   "related": "find -name .*",
+   "from_persona": 14946,
+   "to_persona": 14949
+  },
+  {
+   "word": "bisect",
+   "related": "find the commit that broke",
+   "from_persona": 3011,
+   "to_persona": 3012
+  },
+  {
+   "word": "Crashlytics",
+   "related": "Firebase Performance",
+   "from_persona": 7091,
+   "to_persona": 7092
+  },
+  {
+   "word": "programming",
+   "related": "firmware programming",
+   "from_persona": 25898,
+   "to_persona": 25900
+  },
+  {
+   "word": "party",
+   "related": "first-party cookies",
+   "from_persona": 24111,
+   "to_persona": 24114
+  },
+  {
+   "word": "positives",
+   "related": "flaky alerts",
+   "from_persona": 25188,
+   "to_persona": 25189
+  },
+  {
+   "word": "flash",
+   "related": "flash firmware",
+   "from_persona": 12445,
+   "to_persona": 12446
+  },
+  {
+   "word": "flatten",
+   "related": "flatten array",
+   "from_persona": 12467,
+   "to_persona": 12468
+  },
+  {
+   "word": "epsilon",
+   "related": "floating point comparison",
+   "from_persona": 10677,
+   "to_persona": 10679
+  },
+  {
+   "word": "Flux",
+   "related": "flux create helmrelease",
+   "from_persona": 12551,
+   "to_persona": 12554
+  },
+  {
+   "word": "follower",
+   "related": "followers table",
+   "from_persona": 12633,
+   "to_persona": 12636
+  },
+  {
+   "word": "force directed graph",
+   "related": "force-directed layout",
+   "from_persona": 12694,
+   "to_persona": 12693
+  },
+  {
+   "word": "strftime",
+   "related": "format time",
+   "from_persona": 32838,
+   "to_persona": 32836
+  },
+  {
+   "word": "ram",
+   "related": "free -h",
+   "from_persona": 26755,
+   "to_persona": 26762
+  },
+  {
+   "word": "KafkaProducer",
+   "related": "from kafka import KafkaProducer",
+   "from_persona": 17794,
+   "to_persona": 17795
+  },
+  {
+   "word": "fs.promises",
+   "related": "fs.readFile callback",
+   "from_persona": 13081,
+   "to_persona": 13082
+  },
+  {
+   "word": "read to string",
+   "related": "fs.readFile utf8",
+   "from_persona": 27131,
+   "to_persona": 27132
+  },
+  {
+   "word": "exact match",
+   "related": "fuzzy match",
+   "from_persona": 11151,
+   "to_persona": 11149
+  },
+  {
+   "word": "nearest",
+   "related": "fuzzy match",
+   "from_persona": 21734,
+   "to_persona": 21737
+  },
+  {
+   "word": "cfg",
+   "related": "game config",
+   "from_persona": 4486,
+   "to_persona": 4488
+  },
+  {
+   "word": "tick",
+   "related": "game tick",
+   "from_persona": 34657,
+   "to_persona": 34661
+  },
+  {
+   "word": "world",
+   "related": "game world",
+   "from_persona": 38349,
+   "to_persona": 38351
+  },
+  {
+   "word": "collecting",
+   "related": "garbage collecting",
+   "from_persona": 5475,
+   "to_persona": 5479
+  },
+  {
+   "word": "sequence",
+   "related": "GENERATED ALWAYS AS IDENTITY",
+   "from_persona": 30435,
+   "to_persona": 30434
+  },
+  {
+   "word": "geospatial index",
+   "related": "geo index",
+   "from_persona": 13558,
+   "to_persona": 13560
+  },
+  {
+   "word": "TopoJSON",
+   "related": "geographic map",
+   "from_persona": 35159,
+   "to_persona": 45186
+  },
+  {
+   "word": "GitHub CLI",
+   "related": "gh repo",
+   "from_persona": 13817,
+   "to_persona": 13818
+  },
+  {
+   "word": "branches",
+   "related": "git branches",
+   "from_persona": 3415,
+   "to_persona": 3416
+  },
+  {
+   "word": "GitKraken",
+   "related": "git client",
+   "from_persona": 13847,
+   "to_persona": 13846
+  },
+  {
+   "word": "fetch",
+   "related": "git fetch --all",
+   "from_persona": 11925,
+   "to_persona": 11931
+  },
+  {
+   "word": "develop",
+   "related": "git flow feature start",
+   "from_persona": 8893,
+   "to_persona": 8891
+  },
+  {
+   "word": "develop",
+   "related": "git flow init",
+   "from_persona": 8893,
+   "to_persona": 8891
+  },
+  {
+   "word": "var",
+   "related": "GitLab CI variables",
+   "from_persona": 37103,
+   "to_persona": 39356
+  },
+  {
+   "word": "Gitleaks",
+   "related": "gitleaks git",
+   "from_persona": 13857,
+   "to_persona": 13860
+  },
+  {
+   "word": "hidden file",
+   "related": "glob dot",
+   "from_persona": 14946,
+   "to_persona": 14949
+  },
+  {
+   "word": "matcher",
+   "related": "glob matcher",
+   "from_persona": 19975,
+   "to_persona": 41800
+  },
+  {
+   "word": "EvalError",
+   "related": "global eval",
+   "from_persona": 10995,
+   "to_persona": 10996
+  },
+  {
+   "word": "http.Client",
+   "related": "go http client",
+   "from_persona": 15282,
+   "to_persona": 15285
+  },
+  {
+   "word": "GoLand",
+   "related": "Go IDE",
+   "from_persona": 14028,
+   "to_persona": 14029
+  },
+  {
+   "word": "RE2",
+   "related": "Go regexp package",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "http.Client",
+   "related": "golang http client",
+   "from_persona": 15282,
+   "to_persona": 15285
+  },
+  {
+   "word": "bisect",
+   "related": "good commit",
+   "from_persona": 3011,
+   "to_persona": 3012
+  },
+  {
+   "word": "sensible defaults",
+   "related": "good defaults",
+   "from_persona": 30384,
+   "to_persona": 30385
+  },
+  {
+   "word": "gst",
+   "related": "Goods and Services Tax",
+   "from_persona": 14354,
+   "to_persona": 14355
+  },
+  {
+   "word": "pull",
+   "related": "GPIO pull",
+   "from_persona": 26271,
+   "to_persona": 26276
+  },
+  {
+   "word": "Colab",
+   "related": "GPU runtime",
+   "from_persona": 5444,
+   "to_persona": 5445
+  },
+  {
+   "word": "EXIT_SUCCESS",
+   "related": "graceful exit",
+   "from_persona": 11382,
+   "to_persona": 11381
+  },
+  {
+   "word": "grant",
+   "related": "GRANT ALL PRIVILEGES",
+   "from_persona": 14199,
+   "to_persona": 14200
+  },
+  {
+   "word": "positive",
+   "related": "greater than zero",
+   "from_persona": 25181,
+   "to_persona": 25182
+  },
+  {
+   "word": "Gunicorn",
+   "related": "green unicorn",
+   "from_persona": 14410,
+   "to_persona": 14412
+  },
+  {
+   "word": "Grunt",
+   "related": "grunt build",
+   "from_persona": 14347,
+   "to_persona": 14348
+  },
+  {
+   "word": "Grunt",
+   "related": "grunt serve",
+   "from_persona": 14347,
+   "to_persona": 14348
+  },
+  {
+   "word": "Gunicorn",
+   "related": "gunicorn app:app",
+   "from_persona": 14410,
+   "to_persona": 14412
+  },
+  {
+   "word": "delegated",
+   "related": "handed off",
+   "from_persona": 8508,
+   "to_persona": 8510
+  },
+  {
+   "word": "bit banging",
+   "related": "hardware peripheral",
+   "from_persona": 3023,
+   "to_persona": 3024
+  },
+  {
+   "word": "prime",
+   "related": "hash prime",
+   "from_persona": 25578,
+   "to_persona": 25581
+  },
+  {
+   "word": "top",
+   "related": "heap top",
+   "from_persona": 35114,
+   "to_persona": 35120
+  },
+  {
+   "word": "hexagonal",
+   "related": "hex grid",
+   "from_persona": 14915,
+   "to_persona": 14916
+  },
+  {
+   "word": "fromCharCode",
+   "related": "hex to string",
+   "from_persona": 13008,
+   "to_persona": 13009
+  },
+  {
+   "word": "hexagonal",
+   "related": "hexagonal grid",
+   "from_persona": 14915,
+   "to_persona": 14916
+  },
+  {
+   "word": "hexagonal",
+   "related": "hexagonal lattice",
+   "from_persona": 14915,
+   "to_persona": 14916
+  },
+  {
+   "word": "inventory",
+   "related": "host groups",
+   "from_persona": 16868,
+   "to_persona": 16870
+  },
+  {
+   "word": "remote repository",
+   "related": "hosted repository",
+   "from_persona": 27997,
+   "to_persona": 27998
+  },
+  {
+   "word": "Algolia",
+   "related": "hosted search",
+   "from_persona": 752,
+   "to_persona": 753
+  },
+  {
+   "word": "reservation",
+   "related": "hotel reservation",
+   "from_persona": 28443,
+   "to_persona": 28444
+  },
+  {
+   "word": "rel",
+   "related": "HTML link",
+   "from_persona": 27784,
+   "to_persona": 27787
+  },
+  {
+   "word": "RateLimit-Limit",
+   "related": "HTTP header",
+   "from_persona": 26856,
+   "to_persona": 48103
+  },
+  {
+   "word": "X-RateLimit-Limit",
+   "related": "HTTP header",
+   "from_persona": 38611,
+   "to_persona": 48331
+  },
+  {
+   "word": "X-RateLimit-Remaining",
+   "related": "HTTP header",
+   "from_persona": 38612,
+   "to_persona": 48332
+  },
+  {
+   "word": "tracestate",
+   "related": "HTTP header",
+   "from_persona": 35246,
+   "to_persona": 48245
+  },
+  {
+   "word": "user agent string",
+   "related": "HTTP header",
+   "from_persona": 36778,
+   "to_persona": 48275
+  },
+  {
+   "word": "Content-Disposition",
+   "related": "HTTP header",
+   "from_persona": 6597,
+   "to_persona": 46188
+  },
+  {
+   "word": "xff",
+   "related": "HTTP header",
+   "from_persona": 38560,
+   "to_persona": 48327
+  },
+  {
+   "word": "trace context",
+   "related": "HTTP headers",
+   "from_persona": 35227,
+   "to_persona": 48243
+  },
+  {
+   "word": "proxies",
+   "related": "http proxy",
+   "from_persona": 26126,
+   "to_persona": 26125
+  },
+  {
+   "word": "http client",
+   "related": "http request library",
+   "from_persona": 15326,
+   "to_persona": 15327
+  },
+  {
+   "word": "push",
+   "related": "HTTP/2 push",
+   "from_persona": 26349,
+   "to_persona": 42124
+  },
+  {
+   "word": "proxies",
+   "related": "https proxy",
+   "from_persona": 26126,
+   "to_persona": 26125
+  },
+  {
+   "word": "layout",
+   "related": "Hugo layout",
+   "from_persona": 18330,
+   "to_persona": 18331
+  },
+  {
+   "word": "NodaTime",
+   "related": "IANA time zones",
+   "from_persona": 22075,
+   "to_persona": 22077
+  },
+  {
+   "word": "icon",
+   "related": "icon font",
+   "from_persona": 15503,
+   "to_persona": 15505
+  },
+  {
+   "word": "icon",
+   "related": "icon fonts",
+   "from_persona": 15503,
+   "to_persona": 15505
+  },
+  {
+   "word": "EditorConfig",
+   "related": "IDE settings",
+   "from_persona": 10140,
+   "to_persona": 10143
+  },
+  {
+   "word": "decimal",
+   "related": "IEEE 754-2008 decimal",
+   "from_persona": 8181,
+   "to_persona": 8183
+  },
+  {
+   "word": "filename",
+   "related": "illegal characters",
+   "from_persona": 12087,
+   "to_persona": 12094
+  },
+  {
+   "word": "Moment.js",
+   "related": "immutable alternatives",
+   "from_persona": 21136,
+   "to_persona": 21138
+  },
+  {
+   "word": "widening",
+   "related": "implicit widening",
+   "from_persona": 38066,
+   "to_persona": 38068
+  },
+  {
+   "word": "dt",
+   "related": "import datetime as dt",
+   "from_persona": 9846,
+   "to_persona": 9847
+  },
+  {
+   "word": "range",
+   "related": "in range",
+   "from_persona": 26807,
+   "to_persona": 26808
+  },
+  {
+   "word": "receipt",
+   "related": "in-app purchase receipt",
+   "from_persona": 27231,
+   "to_persona": 27232
+  },
+  {
+   "word": "DuckDB",
+   "related": "in-process database",
+   "from_persona": 9879,
+   "to_persona": 9880
+  },
+  {
+   "word": "asc",
+   "related": "increasing order",
+   "from_persona": 1630,
+   "to_persona": 1631
+  },
+  {
+   "word": "incremental build",
+   "related": "incremental compilation",
+   "from_persona": 16017,
+   "to_persona": 16021
+  },
+  {
+   "word": "incremental build",
+   "related": "incremental compile",
+   "from_persona": 16017,
+   "to_persona": 16021
+  },
+  {
+   "word": "EditorConfig",
+   "related": "indent_style = space",
+   "from_persona": 10140,
+   "to_persona": 10143
+  },
+  {
+   "word": "EditorConfig",
+   "related": "indent_style = tab",
+   "from_persona": 10140,
+   "to_persona": 10143
+  },
+  {
+   "word": "Dijkstra",
+   "related": "indexed priority queue",
+   "from_persona": 9057,
+   "to_persona": 9060
+  },
+  {
+   "word": "save",
+   "related": "IndexedDB put",
+   "from_persona": 29649,
+   "to_persona": 29653
+  },
+  {
+   "word": "annotation",
+   "related": "Ingress annotations",
+   "from_persona": 1007,
+   "to_persona": 38921
+  },
+  {
+   "word": "section",
+   "related": "ini section",
+   "from_persona": 30093,
+   "to_persona": 30098
+  },
+  {
+   "word": "inner",
+   "related": "innerHTML sanitizer",
+   "from_persona": 16324,
+   "to_persona": 16327
+  },
+  {
+   "word": "scanf",
+   "related": "input parsing",
+   "from_persona": 29750,
+   "to_persona": 29751
+  },
+  {
+   "word": "gst",
+   "related": "input tax credit",
+   "from_persona": 14354,
+   "to_persona": 14355
+  },
+  {
+   "word": "install",
+   "related": "install script",
+   "from_persona": 16461,
+   "to_persona": 16456
+  },
+  {
+   "word": "instance type",
+   "related": "InstanceType<typeof X>",
+   "from_persona": 16497,
+   "to_persona": 16498
+  },
+  {
+   "word": "widening",
+   "related": "int to long",
+   "from_persona": 38066,
+   "to_persona": 38068
+  },
+  {
+   "word": "develop",
+   "related": "integration branch",
+   "from_persona": 8893,
+   "to_persona": 8891
+  },
+  {
+   "word": "integrity",
+   "related": "integrity check",
+   "from_persona": 16607,
+   "to_persona": 16604
+  },
+  {
+   "word": "integrity",
+   "related": "integrity constraint",
+   "from_persona": 16604,
+   "to_persona": 16606
+  },
+  {
+   "word": "integrity",
+   "related": "integrity verification",
+   "from_persona": 16607,
+   "to_persona": 16604
+  },
+  {
+   "word": "nested route",
+   "related": "intercepting routes",
+   "from_persona": 21824,
+   "to_persona": 21828
+  },
+  {
+   "word": "icc",
+   "related": "international color consortium",
+   "from_persona": 15487,
+   "to_persona": 15488
+  },
+  {
+   "word": "token revocation",
+   "related": "invalidate token",
+   "from_persona": 35019,
+   "to_persona": 35017
+  },
+  {
+   "word": "reservation",
+   "related": "inventory reservation",
+   "from_persona": 28443,
+   "to_persona": 28444
+  },
+  {
+   "word": "invite",
+   "related": "invite email",
+   "from_persona": 16890,
+   "to_persona": 16888
+  },
+  {
+   "word": "invoiceId",
+   "related": "invoice number",
+   "from_persona": 16919,
+   "to_persona": 16918
+  },
+  {
+   "word": "ips",
+   "related": "iOS crash log",
+   "from_persona": 17068,
+   "to_persona": 17071
+  },
+  {
+   "word": "iso",
+   "related": "ISO calendar",
+   "from_persona": 17138,
+   "to_persona": 17140
+  },
+  {
+   "word": "iso",
+   "related": "ISO country code",
+   "from_persona": 17138,
+   "to_persona": 17139
+  },
+  {
+   "word": "iso",
+   "related": "ISO language code",
+   "from_persona": 17138,
+   "to_persona": 17139
+  },
+  {
+   "word": "StopIteration",
+   "related": "iterator exhausted",
+   "from_persona": 32675,
+   "to_persona": 32679
+  },
+  {
+   "word": "LocalTime",
+   "related": "Jackson LocalTime",
+   "from_persona": 19153,
+   "to_persona": 19159
+  },
+  {
+   "word": "YourKit",
+   "related": "Java profiler",
+   "from_persona": 38753,
+   "to_persona": 38757
+  },
+  {
+   "word": "Highcharts",
+   "related": "javascript charting",
+   "from_persona": 14969,
+   "to_persona": 14965
+  },
+  {
+   "word": "precedence",
+   "related": "JavaScript operator precedence",
+   "from_persona": 25313,
+   "to_persona": 25317
+  },
+  {
+   "word": "jpg",
+   "related": "JPEG decoder",
+   "from_persona": 17565,
+   "to_persona": 17566
+  },
+  {
+   "word": "Squoosh",
+   "related": "jpeg xl",
+   "from_persona": 31962,
+   "to_persona": 31963
+  },
+  {
+   "word": "ips",
+   "related": "JSON crash report",
+   "from_persona": 17068,
+   "to_persona": 17071
+  },
+  {
+   "word": "JSON.parse",
+   "related": "JSON decode",
+   "from_persona": 17624,
+   "to_persona": 17622
+  },
+  {
+   "word": "pojo",
+   "related": "json mapping",
+   "from_persona": 25045,
+   "to_persona": 25050
+  },
+  {
+   "word": "res.json",
+   "related": "json replacer",
+   "from_persona": 28412,
+   "to_persona": 28414
+  },
+  {
+   "word": "jsonl",
+   "related": "json streaming",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "jsonl",
+   "related": "JSON Text Sequences",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "jsonl",
+   "related": "json.dumps + newline",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "jsonl",
+   "related": "JSON.parse per line",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "YourKit",
+   "related": "jvm profiler",
+   "from_persona": 38753,
+   "to_persona": 38757
+  },
+  {
+   "word": "ConsumerRecord",
+   "related": "kafka message",
+   "from_persona": 6520,
+   "to_persona": 6522
+  },
+  {
+   "word": "ProducerRecord",
+   "related": "kafka message",
+   "from_persona": 25846,
+   "to_persona": 25845
+  },
+  {
+   "word": "ConsumerRecord",
+   "related": "kafka record",
+   "from_persona": 6520,
+   "to_persona": 6522
+  },
+  {
+   "word": "ProducerRecord",
+   "related": "kafka record",
+   "from_persona": 25846,
+   "to_persona": 25845
+  },
+  {
+   "word": "mtx",
+   "related": "kernel mutex",
+   "from_persona": 21358,
+   "to_persona": 21359
+  },
+  {
+   "word": "maps",
+   "related": "key-value pairs",
+   "from_persona": 19874,
+   "to_persona": 19873
+  },
+  {
+   "word": "keyword",
+   "related": "keyword search",
+   "from_persona": 17975,
+   "to_persona": 17974
+  },
+  {
+   "word": "keywords",
+   "related": "keyword search",
+   "from_persona": 17981,
+   "to_persona": 17982
+  },
+  {
+   "word": "kind",
+   "related": "kind enum",
+   "from_persona": 17997,
+   "to_persona": 17998
+  },
+  {
+   "word": "cron job",
+   "related": "kind: CronJob",
+   "from_persona": 7285,
+   "to_persona": 7284
+  },
+  {
+   "word": "cron",
+   "related": "kind: CronJob",
+   "from_persona": 7277,
+   "to_persona": 7278
+  },
+  {
+   "word": "binary search tree",
+   "related": "kth smallest",
+   "from_persona": 2975,
+   "to_persona": 2971
+  },
+  {
+   "word": "evict",
+   "related": "kubectl drain",
+   "from_persona": 11112,
+   "to_persona": 11116
+  },
+  {
+   "word": "eviction",
+   "related": "kubectl drain",
+   "from_persona": 11118,
+   "to_persona": 11120
+  },
+  {
+   "word": "annotation",
+   "related": "Kubernetes annotation",
+   "from_persona": 1007,
+   "to_persona": 38921
+  },
+  {
+   "word": "grammar",
+   "related": "language grammar",
+   "from_persona": 14183,
+   "to_persona": 14184
+  },
+  {
+   "word": "multipart upload",
+   "related": "large file upload",
+   "from_persona": 21412,
+   "to_persona": 21413
+  },
+  {
+   "word": "nested route",
+   "related": "layout route",
+   "from_persona": 21827,
+   "to_persona": 21825
+  },
+  {
+   "word": "nested route",
+   "related": "layout routes",
+   "from_persona": 21824,
+   "to_persona": 21825
+  },
+  {
+   "word": "leaked",
+   "related": "leaked credentials",
+   "from_persona": 18425,
+   "to_persona": 18423
+  },
+  {
+   "word": "Less",
+   "related": "Leaner Style Sheets",
+   "from_persona": 18548,
+   "to_persona": 18549
+  },
+  {
+   "word": "format specifier",
+   "related": "left justify",
+   "from_persona": 12799,
+   "to_persona": 12798
+  },
+  {
+   "word": "lenient",
+   "related": "lenient parser",
+   "from_persona": 18537,
+   "to_persona": 18541
+  },
+  {
+   "word": "traversal",
+   "related": "lens traversal",
+   "from_persona": 35463,
+   "to_persona": 45424
+  },
+  {
+   "word": "broadcast",
+   "related": "limited broadcast",
+   "from_persona": 3468,
+   "to_persona": 3470
+  },
+  {
+   "word": "jsonl",
+   "related": "line-delimited JSON",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "positives",
+   "related": "lint false positives",
+   "from_persona": 25188,
+   "to_persona": 25190
+  },
+  {
+   "word": "Liquid",
+   "related": "Liquid syntax",
+   "from_persona": 18853,
+   "to_persona": 18855
+  },
+  {
+   "word": "Liquid",
+   "related": "Liquid tags",
+   "from_persona": 18853,
+   "to_persona": 18855
+  },
+  {
+   "word": "Liquid",
+   "related": "Liquid variables",
+   "from_persona": 18853,
+   "to_persona": 18855
+  },
+  {
+   "word": "life",
+   "related": "live cell",
+   "from_persona": 18650,
+   "to_persona": 18651
+  },
+  {
+   "word": "thread id",
+   "related": "logging thread id",
+   "from_persona": 34535,
+   "to_persona": 34536
+  },
+  {
+   "word": "login flow",
+   "related": "login process",
+   "from_persona": 19298,
+   "to_persona": 19301
+  },
+  {
+   "word": "login flow",
+   "related": "login steps",
+   "from_persona": 19298,
+   "to_persona": 19301
+  },
+  {
+   "word": "jsonl",
+   "related": "logstash json_lines",
+   "from_persona": 17647,
+   "to_persona": 17649
+  },
+  {
+   "word": "lo",
+   "related": "low index",
+   "from_persona": 19018,
+   "to_persona": 19019
+  },
+  {
+   "word": "lo",
+   "related": "lower index",
+   "from_persona": 19018,
+   "to_persona": 19019
+  },
+  {
+   "word": "Kibana",
+   "related": "Lucene query",
+   "from_persona": 17985,
+   "to_persona": 47906
+  },
+  {
+   "word": "ips",
+   "related": "macOS crash report",
+   "from_persona": 17068,
+   "to_persona": 17071
+  },
+  {
+   "word": "DTrace",
+   "related": "macos dtrace",
+   "from_persona": 9866,
+   "to_persona": 9867
+  },
+  {
+   "word": "RFC 2822",
+   "related": "mail date",
+   "from_persona": 28916,
+   "to_persona": 28917
+  },
+  {
+   "word": "RFC 2822",
+   "related": "mail gem",
+   "from_persona": 28916,
+   "to_persona": 28917
+  },
+  {
+   "word": "CLion",
+   "related": "Makefile project",
+   "from_persona": 5108,
+   "to_persona": 5110
+  },
+  {
+   "word": "mask",
+   "related": "mask password",
+   "from_persona": 19942,
+   "to_persona": 19947
+  },
+  {
+   "word": "capture",
+   "related": "match group",
+   "from_persona": 4227,
+   "to_persona": 4228
+  },
+  {
+   "word": "pct",
+   "related": "Math.round(x * 100)",
+   "from_persona": 24365,
+   "to_persona": 24366
+  },
+  {
+   "word": "memory limit",
+   "related": "maximum memory",
+   "from_persona": 20350,
+   "to_persona": 20351
+  },
+  {
+   "word": "spin",
+   "related": "MCS lock",
+   "from_persona": 31805,
+   "to_persona": 31806
+  },
+  {
+   "word": "collision",
+   "related": "MD5 collision",
+   "from_persona": 5504,
+   "to_persona": 5507
+  },
+  {
+   "word": "pages",
+   "related": "memory pages",
+   "from_persona": 23778,
+   "to_persona": 23781
+  },
+  {
+   "word": "YourKit",
+   "related": "memory profiling",
+   "from_persona": 38753,
+   "to_persona": 38756
+  },
+  {
+   "word": "memory limit",
+   "related": "memory quota",
+   "from_persona": 20350,
+   "to_persona": 20351
+  },
+  {
+   "word": "exchange",
+   "related": "message exchange",
+   "from_persona": 11208,
+   "to_persona": 11209
+  },
+  {
+   "word": "WinForms",
+   "related": "message loop",
+   "from_persona": 38135,
+   "to_persona": 38134
+  },
+  {
+   "word": "series",
+   "related": "metric series",
+   "from_persona": 30488,
+   "to_persona": 30493
+  },
+  {
+   "word": "collecting",
+   "related": "metrics collection",
+   "from_persona": 5475,
+   "to_persona": 5481
+  },
+  {
+   "word": "mms",
+   "related": "mms message",
+   "from_persona": 20973,
+   "to_persona": 20974
+  },
+  {
+   "word": "in memory database",
+   "related": "mock database",
+   "from_persona": 16322,
+   "to_persona": 16319
+  },
+  {
+   "word": "Helix",
+   "related": "modal editor",
+   "from_persona": 14847,
+   "to_persona": 14846
+  },
+  {
+   "word": "prime",
+   "related": "modulus prime",
+   "from_persona": 25578,
+   "to_persona": 25581
+  },
+  {
+   "word": "doc",
+   "related": "MongoDB document",
+   "from_persona": 9418,
+   "to_persona": 9421
+  },
+  {
+   "word": "populate",
+   "related": "mongoose populate",
+   "from_persona": 25122,
+   "to_persona": 25123
+  },
+  {
+   "word": "local cache",
+   "related": "multi-level cache",
+   "from_persona": 19101,
+   "to_persona": 19102
+  },
+  {
+   "word": "switch",
+   "related": "multi-way branch",
+   "from_persona": 33507,
+   "to_persona": 33508
+  },
+  {
+   "word": "multiline",
+   "related": "multiline ellipsis",
+   "from_persona": 21387,
+   "to_persona": 21388
+  },
+  {
+   "word": "multiline",
+   "related": "multiline flag",
+   "from_persona": 21387,
+   "to_persona": 21392
+  },
+  {
+   "word": "multiline",
+   "related": "multiline mode",
+   "from_persona": 21387,
+   "to_persona": 21392
+  },
+  {
+   "word": "multiline",
+   "related": "multiline textarea",
+   "from_persona": 21387,
+   "to_persona": 21390
+  },
+  {
+   "word": "drawer",
+   "related": "navigation drawer",
+   "from_persona": 9748,
+   "to_persona": 9745
+  },
+  {
+   "word": "negative",
+   "related": "negative number",
+   "from_persona": 21771,
+   "to_persona": 21769
+  },
+  {
+   "word": "layout",
+   "related": "nested layout",
+   "from_persona": 18330,
+   "to_persona": 18332
+  },
+  {
+   "word": "netcat",
+   "related": "netcat listener",
+   "from_persona": 21868,
+   "to_persona": 21869
+  },
+  {
+   "word": "nat",
+   "related": "network address translation",
+   "from_persona": 21623,
+   "to_persona": 21624
+  },
+  {
+   "word": "Chart.js",
+   "related": "new Chart",
+   "from_persona": 4655,
+   "to_persona": 4656
+  },
+  {
+   "word": "jsonl",
+   "related": "newline-delimited JSON",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "jsonl",
+   "related": "Newtonsoft JsonTextReader SupportMultipleContent",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "nil",
+   "related": "nil coalescing",
+   "from_persona": 22023,
+   "to_persona": 22019
+  },
+  {
+   "word": "RE2",
+   "related": "no lookahead",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "RE2",
+   "related": "no lookbehind",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "red",
+   "related": "node color",
+   "from_persona": 27389,
+   "to_persona": 27392
+  },
+  {
+   "word": "Sequelize",
+   "related": "node orm",
+   "from_persona": 30428,
+   "to_persona": 30430
+  },
+  {
+   "word": "Temporal",
+   "related": "non-Gregorian calendars",
+   "from_persona": 34108,
+   "to_persona": 34110
+  },
+  {
+   "word": "sendNotification",
+   "related": "notification queue",
+   "from_persona": 30363,
+   "to_persona": 30362
+  },
+  {
+   "word": "prime",
+   "related": "nth prime",
+   "from_persona": 25580,
+   "to_persona": 25579
+  },
+  {
+   "word": "safely",
+   "related": "null safe",
+   "from_persona": 29531,
+   "to_persona": 29535
+  },
+  {
+   "word": "numeric",
+   "related": "numeric literal",
+   "from_persona": 22496,
+   "to_persona": 22495
+  },
+  {
+   "word": "precision",
+   "related": "numeric precision",
+   "from_persona": 25320,
+   "to_persona": 25322
+  },
+  {
+   "word": "numeric",
+   "related": "numeric string",
+   "from_persona": 22496,
+   "to_persona": 22495
+  },
+  {
+   "word": "numeric",
+   "related": "numeric type",
+   "from_persona": 22496,
+   "to_persona": 22495
+  },
+  {
+   "word": "nvmrc",
+   "related": "nvm install",
+   "from_persona": 22530,
+   "to_persona": 22529
+  },
+  {
+   "word": "dependency graph",
+   "related": "nx graph",
+   "from_persona": 8628,
+   "to_persona": 8625
+  },
+  {
+   "word": "code",
+   "related": "OAuth code",
+   "from_persona": 5312,
+   "to_persona": 5313
+  },
+  {
+   "word": "idb",
+   "related": "offline storage",
+   "from_persona": 15535,
+   "to_persona": 47865
+  },
+  {
+   "word": "IndexedDB",
+   "related": "offline storage",
+   "from_persona": 16065,
+   "to_persona": 16066
+  },
+  {
+   "word": "party",
+   "related": "OIDC relying party",
+   "from_persona": 24111,
+   "to_persona": 24112
+  },
+  {
+   "word": "jsonl",
+   "related": "one JSON object per line",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "sync.Once",
+   "related": "one-time initialization",
+   "from_persona": 33583,
+   "to_persona": 33584
+  },
+  {
+   "word": "opened",
+   "related": "onopen event",
+   "from_persona": 23013,
+   "to_persona": 23016
+  },
+  {
+   "word": "connect",
+   "related": "open connection",
+   "from_persona": 6339,
+   "to_persona": 6337
+  },
+  {
+   "word": "std::fs::File",
+   "related": "open file",
+   "from_persona": 32447,
+   "to_persona": 32444
+  },
+  {
+   "word": "attribution",
+   "related": "open source licenses",
+   "from_persona": 2069,
+   "to_persona": 2072
+  },
+  {
+   "word": "api client",
+   "related": "openapi client",
+   "from_persona": 1143,
+   "to_persona": 1144
+  },
+  {
+   "word": "opening",
+   "related": "opening bracket",
+   "from_persona": 23031,
+   "to_persona": 23030
+  },
+  {
+   "word": "sig",
+   "related": "openssl dgst",
+   "from_persona": 31061,
+   "to_persona": 31063
+  },
+  {
+   "word": "sensible defaults",
+   "related": "opinionated defaults",
+   "from_persona": 30384,
+   "to_persona": 30385
+  },
+  {
+   "word": "asc",
+   "related": "ORDER BY ... ASC",
+   "from_persona": 1630,
+   "to_persona": 1631
+  },
+  {
+   "word": "asc",
+   "related": "order by asc",
+   "from_persona": 1630,
+   "to_persona": 1631
+  },
+  {
+   "word": "invitation",
+   "related": "organization invitation",
+   "from_persona": 16883,
+   "to_persona": 16884
+  },
+  {
+   "word": "attribution",
+   "related": "original author",
+   "from_persona": 2069,
+   "to_persona": 2072
+  },
+  {
+   "word": "Hunt-McIlroy",
+   "related": "original diff",
+   "from_persona": 15415,
+   "to_persona": 15416
+  },
+  {
+   "word": "query",
+   "related": "orm query",
+   "from_persona": 26540,
+   "to_persona": 26547
+  },
+  {
+   "word": "msg2",
+   "related": "other message",
+   "from_persona": 21322,
+   "to_persona": 21325
+  },
+  {
+   "word": "std::ofstream",
+   "related": "output file stream",
+   "from_persona": 32492,
+   "to_persona": 32493
+  },
+  {
+   "word": "checked",
+   "related": "overflow checking",
+   "from_persona": 4695,
+   "to_persona": 4697
+  },
+  {
+   "word": "captures",
+   "related": "packet captures",
+   "from_persona": 4248,
+   "to_persona": 38954
+  },
+  {
+   "word": "layout",
+   "related": "page template",
+   "from_persona": 18330,
+   "to_persona": 18331
+  },
+  {
+   "word": "correlation",
+   "related": "pandas corr",
+   "from_persona": 6929,
+   "to_persona": 45802
+  },
+  {
+   "word": "Matplotlib",
+   "related": "pandas plot",
+   "from_persona": 20060,
+   "to_persona": 20059
+  },
+  {
+   "word": "jsonl",
+   "related": "pandas.read_json lines=True",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "incremental index",
+   "related": "partial reindex",
+   "from_persona": 16023,
+   "to_persona": 16025
+  },
+  {
+   "word": "coalesce",
+   "related": "partition merging",
+   "from_persona": 5289,
+   "to_persona": 5291
+  },
+  {
+   "word": "partition",
+   "related": "PARTITION OF",
+   "from_persona": 24087,
+   "to_persona": 24094
+  },
+  {
+   "word": "coalesce",
+   "related": "partition reduction",
+   "from_persona": 5289,
+   "to_persona": 5291
+  },
+  {
+   "word": "match",
+   "related": "pattern match",
+   "from_persona": 19962,
+   "to_persona": 19967
+  },
+  {
+   "word": "matching",
+   "related": "pattern match",
+   "from_persona": 19991,
+   "to_persona": 19988
+  },
+  {
+   "word": "pause",
+   "related": "pause cron job",
+   "from_persona": 24298,
+   "to_persona": 45602
+  },
+  {
+   "word": "pause",
+   "related": "pause on exceptions",
+   "from_persona": 24298,
+   "to_persona": 24299
+  },
+  {
+   "word": "pause",
+   "related": "pause schedule",
+   "from_persona": 24298,
+   "to_persona": 45602
+  },
+  {
+   "word": "receipt",
+   "related": "payment receipt",
+   "from_persona": 27231,
+   "to_persona": 27232
+  },
+  {
+   "word": "settle",
+   "related": "payment settlement",
+   "from_persona": 30779,
+   "to_persona": 30780
+  },
+  {
+   "word": "correlation",
+   "related": "Pearson correlation",
+   "from_persona": 6929,
+   "to_persona": 45802
+  },
+  {
+   "word": "util.deprecate",
+   "related": "pending deprecation",
+   "from_persona": 36930,
+   "to_persona": 36931
+  },
+  {
+   "word": "pct",
+   "related": "percent done",
+   "from_persona": 24365,
+   "to_persona": 24366
+  },
+  {
+   "word": "lcp",
+   "related": "performance metric",
+   "from_persona": 18373,
+   "to_persona": 18374
+  },
+  {
+   "word": "svd",
+   "related": "peripheral access crate",
+   "from_persona": 33435,
+   "to_persona": 33437
+  },
+  {
+   "word": "hard delete",
+   "related": "permanent deletion",
+   "from_persona": 14554,
+   "to_persona": 14556
+  },
+  {
+   "word": "permanently",
+   "related": "permanently deleted",
+   "from_persona": 24530,
+   "to_persona": 24532
+  },
+  {
+   "word": "rope",
+   "related": "persistent string",
+   "from_persona": 29110,
+   "to_persona": 29113
+  },
+  {
+   "word": "place",
+   "related": "place value",
+   "from_persona": 24776,
+   "to_persona": 24777
+  },
+  {
+   "word": "contact",
+   "related": "point of contact",
+   "from_persona": 6529,
+   "to_persona": 6527
+  },
+  {
+   "word": "absolute",
+   "related": "position: absolute",
+   "from_persona": 140,
+   "to_persona": 139
+  },
+  {
+   "word": "relative",
+   "related": "position: absolute",
+   "from_persona": 27803,
+   "to_persona": 27799
+  },
+  {
+   "word": "relative",
+   "related": "position: fixed",
+   "from_persona": 27803,
+   "to_persona": 27799
+  },
+  {
+   "word": "relative",
+   "related": "position: sticky",
+   "from_persona": 27803,
+   "to_persona": 27799
+  },
+  {
+   "word": "positive",
+   "related": "positive number",
+   "from_persona": 25181,
+   "to_persona": 25182
+  },
+  {
+   "word": "tries",
+   "related": "prefix lookup",
+   "from_persona": 35535,
+   "to_persona": 35536
+  },
+  {
+   "word": "prevents",
+   "related": "prevents injection",
+   "from_persona": 25538,
+   "to_persona": 39198
+  },
+  {
+   "word": "ephemeral",
+   "related": "preview environment",
+   "from_persona": 10622,
+   "to_persona": 10625
+  },
+  {
+   "word": "producer id",
+   "related": "producer name",
+   "from_persona": 25841,
+   "to_persona": 25843
+  },
+  {
+   "word": "Sequelize",
+   "related": "promise-based orm",
+   "from_persona": 30428,
+   "to_persona": 30430
+  },
+  {
+   "word": "RE2",
+   "related": "PromQL regex",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "proxies",
+   "related": "proxy server",
+   "from_persona": 26126,
+   "to_persona": 26125
+  },
+  {
+   "word": "producer id",
+   "related": "Pulsar producer name",
+   "from_persona": 25841,
+   "to_persona": 25843
+  },
+  {
+   "word": "receipt",
+   "related": "purchase receipt",
+   "from_persona": 27231,
+   "to_persona": 27232
+  },
+  {
+   "word": "Hunt-McIlroy",
+   "related": "Python difflib",
+   "from_persona": 15415,
+   "to_persona": 15416
+  },
+  {
+   "word": "pygit2",
+   "related": "Python git library",
+   "from_persona": 26437,
+   "to_persona": 26435
+  },
+  {
+   "word": "precedence",
+   "related": "Python operator precedence",
+   "from_persona": 25313,
+   "to_persona": 25317
+  },
+  {
+   "word": "competing consumers",
+   "related": "queue group",
+   "from_persona": 5818,
+   "to_persona": 5816
+  },
+  {
+   "word": "traversal",
+   "related": "queue-based traversal",
+   "from_persona": 35463,
+   "to_persona": 35464
+  },
+  {
+   "word": "channel",
+   "related": "RabbitMQ channel",
+   "from_persona": 4579,
+   "to_persona": 4584
+  },
+  {
+   "word": "StopIteration",
+   "related": "raise StopIteration",
+   "from_persona": 32675,
+   "to_persona": 32679
+  },
+  {
+   "word": "ram",
+   "related": "RAM cache",
+   "from_persona": 26755,
+   "to_persona": 26761
+  },
+  {
+   "word": "range",
+   "related": "range query",
+   "from_persona": 26807,
+   "to_persona": 26808
+  },
+  {
+   "word": "data zoom",
+   "related": "range selector",
+   "from_persona": 7934,
+   "to_persona": 7931
+  },
+  {
+   "word": "Highcharts",
+   "related": "range selector",
+   "from_persona": 14969,
+   "to_persona": 14965
+  },
+  {
+   "word": "read to string",
+   "related": "read as string",
+   "from_persona": 27131,
+   "to_persona": 27132
+  },
+  {
+   "word": "reads",
+   "related": "read bytes",
+   "from_persona": 27118,
+   "to_persona": 27116
+  },
+  {
+   "word": "std::fs::read_to_string",
+   "related": "read entire file as string",
+   "from_persona": 32450,
+   "to_persona": 32451
+  },
+  {
+   "word": "read to string",
+   "related": "read entire file to string",
+   "from_persona": 27131,
+   "to_persona": 27132
+  },
+  {
+   "word": "std::fs::read_to_string",
+   "related": "read file as string",
+   "from_persona": 32450,
+   "to_persona": 32451
+  },
+  {
+   "word": "os.ReadFile",
+   "related": "read file into memory",
+   "from_persona": 23437,
+   "to_persona": 23441
+  },
+  {
+   "word": "read to string",
+   "related": "read into string",
+   "from_persona": 27131,
+   "to_persona": 27132
+  },
+  {
+   "word": "reads",
+   "related": "read operation",
+   "from_persona": 27118,
+   "to_persona": 27116
+  },
+  {
+   "word": "os.ReadFile",
+   "related": "read whole file",
+   "from_persona": 23437,
+   "to_persona": 23441
+  },
+  {
+   "word": "read lines",
+   "related": "readLines R",
+   "from_persona": 27077,
+   "to_persona": 27079
+  },
+  {
+   "word": "badge",
+   "related": "README badge",
+   "from_persona": 2562,
+   "to_persona": 2565
+  },
+  {
+   "word": "badge",
+   "related": "README badges",
+   "from_persona": 2562,
+   "to_persona": 2565
+  },
+  {
+   "word": "sensible defaults",
+   "related": "reasonable defaults",
+   "from_persona": 30384,
+   "to_persona": 30385
+  },
+  {
+   "word": "rebalance",
+   "related": "rebalance tree",
+   "from_persona": 27208,
+   "to_persona": 27209
+  },
+  {
+   "word": "reconcile",
+   "related": "reconcile conflicts",
+   "from_persona": 27277,
+   "to_persona": 27279
+  },
+  {
+   "word": "forgot password",
+   "related": "recover account",
+   "from_persona": 12757,
+   "to_persona": 12756
+  },
+  {
+   "word": "rec",
+   "related": "recursive binding",
+   "from_persona": 27224,
+   "to_persona": 27227
+  },
+  {
+   "word": "channel",
+   "related": "Redis channel",
+   "from_persona": 4579,
+   "to_persona": 4584
+  },
+  {
+   "word": "resp",
+   "related": "Redis protocol",
+   "from_persona": 28578,
+   "to_persona": 28580
+  },
+  {
+   "word": "extract",
+   "related": "regex capture",
+   "from_persona": 11601,
+   "to_persona": 39035
+  },
+  {
+   "word": "RE2",
+   "related": "regex from user input",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "matching",
+   "related": "regex match",
+   "from_persona": 19991,
+   "to_persona": 19988
+  },
+  {
+   "word": "RE2",
+   "related": "regex match",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "re.compile",
+   "related": "regex package",
+   "from_persona": 26939,
+   "to_persona": 26940
+  },
+  {
+   "word": "icc",
+   "related": "relative colorimetric",
+   "from_persona": 15487,
+   "to_persona": 15488
+  },
+  {
+   "word": "ip",
+   "related": "remote ip",
+   "from_persona": 17040,
+   "to_persona": 17039
+  },
+  {
+   "word": "remote",
+   "related": "Remote Procedure",
+   "from_persona": 27946,
+   "to_persona": 27950
+  },
+  {
+   "word": "rename",
+   "related": "rename directory",
+   "from_persona": 28032,
+   "to_persona": 28034
+  },
+  {
+   "word": "rename",
+   "related": "rename variable",
+   "from_persona": 28032,
+   "to_persona": 28035
+  },
+  {
+   "word": "ReactNode",
+   "related": "renderable content",
+   "from_persona": 27001,
+   "to_persona": 27002
+  },
+  {
+   "word": "root",
+   "related": "repo root",
+   "from_persona": 29071,
+   "to_persona": 29072
+  },
+  {
+   "word": "report",
+   "related": "Reporting API",
+   "from_persona": 28178,
+   "to_persona": 28187
+  },
+  {
+   "word": "report",
+   "related": "Reporting Services",
+   "from_persona": 28178,
+   "to_persona": 28181
+  },
+  {
+   "word": "root",
+   "related": "repository root",
+   "from_persona": 29071,
+   "to_persona": 29072
+  },
+  {
+   "word": "REST",
+   "related": "request file",
+   "from_persona": 28642,
+   "to_persona": 28644
+  },
+  {
+   "word": "handlers",
+   "related": "request handlers",
+   "from_persona": 14497,
+   "to_persona": 14501
+  },
+  {
+   "word": "http client",
+   "related": "request library",
+   "from_persona": 15326,
+   "to_persona": 15327
+  },
+  {
+   "word": "catch all",
+   "related": "rescue Exception",
+   "from_persona": 4346,
+   "to_persona": 4350
+  },
+  {
+   "word": "catch all",
+   "related": "rescue StandardError",
+   "from_persona": 4346,
+   "to_persona": 4350
+  },
+  {
+   "word": "reservation",
+   "related": "reservation service",
+   "from_persona": 28443,
+   "to_persona": 28444
+  },
+  {
+   "word": "reservation",
+   "related": "reservation system",
+   "from_persona": 28443,
+   "to_persona": 28444
+  },
+  {
+   "word": "reset",
+   "related": "reset state",
+   "from_persona": 28473,
+   "to_persona": 28468
+  },
+  {
+   "word": "test teardown",
+   "related": "reset state",
+   "from_persona": 34297,
+   "to_persona": 34295
+  },
+  {
+   "word": "resumable upload",
+   "related": "resumable media upload",
+   "from_persona": 28710,
+   "to_persona": 28713
+  },
+  {
+   "word": "review",
+   "related": "review feedback",
+   "from_persona": 28864,
+   "to_persona": 28862
+  },
+  {
+   "word": "invite",
+   "related": "revoke invite",
+   "from_persona": 16890,
+   "to_persona": 16888
+  },
+  {
+   "word": "Right",
+   "related": "right subtree",
+   "from_persona": 28950,
+   "to_persona": 28959
+  },
+  {
+   "word": "pct",
+   "related": "rolling pct change",
+   "from_persona": 24365,
+   "to_persona": 24366
+  },
+  {
+   "word": "reservation",
+   "related": "room reservation",
+   "from_persona": 28443,
+   "to_persona": 28444
+  },
+  {
+   "word": "root",
+   "related": "root node",
+   "from_persona": 29071,
+   "to_persona": 29073
+  },
+  {
+   "word": "root",
+   "related": "root path",
+   "from_persona": 29071,
+   "to_persona": 29072
+  },
+  {
+   "word": "nearest",
+   "related": "round to nearest",
+   "from_persona": 21733,
+   "to_persona": 21736
+  },
+  {
+   "word": "rpc client",
+   "related": "rpc channel",
+   "from_persona": 29228,
+   "to_persona": 29232
+  },
+  {
+   "word": "rpc client",
+   "related": "rpc connection",
+   "from_persona": 29228,
+   "to_persona": 29232
+  },
+  {
+   "word": "rpc client",
+   "related": "rpc transport",
+   "from_persona": 29228,
+   "to_persona": 29232
+  },
+  {
+   "word": "prime",
+   "related": "rsa prime",
+   "from_persona": 25578,
+   "to_persona": 25579
+  },
+  {
+   "word": "rsync",
+   "related": "rsync -avz",
+   "from_persona": 29285,
+   "to_persona": 29287
+  },
+  {
+   "word": "symbol",
+   "related": "Ruby symbol",
+   "from_persona": 33532,
+   "to_persona": 33533
+  },
+  {
+   "word": "type checking",
+   "related": "runtime type check",
+   "from_persona": 35861,
+   "to_persona": 35857
+  },
+  {
+   "word": "type checking",
+   "related": "runtime type checking",
+   "from_persona": 35861,
+   "to_persona": 35857
+  },
+  {
+   "word": "type checking",
+   "related": "runtime typing",
+   "from_persona": 35861,
+   "to_persona": 35857
+  },
+  {
+   "word": "objects",
+   "related": "s3 objects",
+   "from_persona": 22615,
+   "to_persona": 39159
+  },
+  {
+   "word": "prime",
+   "related": "safe prime",
+   "from_persona": 25578,
+   "to_persona": 25579
+  },
+  {
+   "word": "plt.savefig",
+   "related": "save figure",
+   "from_persona": 24896,
+   "to_persona": 24897
+  },
+  {
+   "word": "plt.savefig",
+   "related": "save plot",
+   "from_persona": 24896,
+   "to_persona": 24897
+  },
+  {
+   "word": "VP9",
+   "related": "scalable video coding",
+   "from_persona": 37595,
+   "to_persona": 37597
+  },
+  {
+   "word": "primitives",
+   "related": "scalar types",
+   "from_persona": 25596,
+   "to_persona": 25594
+  },
+  {
+   "word": "scale",
+   "related": "scale type linear",
+   "from_persona": 29713,
+   "to_persona": 29714
+  },
+  {
+   "word": "sp",
+   "related": "scale-independent pixels",
+   "from_persona": 31688,
+   "to_persona": 31693
+  },
+  {
+   "word": "LocalTime",
+   "related": "schedule time",
+   "from_persona": 19153,
+   "to_persona": 19158
+  },
+  {
+   "word": "high resolution",
+   "related": "scheduler tick",
+   "from_persona": 14991,
+   "to_persona": 14992
+  },
+  {
+   "word": "ddl",
+   "related": "schema definition language",
+   "from_persona": 8068,
+   "to_persona": 8065
+  },
+  {
+   "word": "scrape",
+   "related": "screen scraping",
+   "from_persona": 29886,
+   "to_persona": 29890
+  },
+  {
+   "word": "wheel",
+   "related": "scroll wheel",
+   "from_persona": 37996,
+   "to_persona": 37998
+  },
+  {
+   "word": "scryptSync",
+   "related": "scrypt parameters",
+   "from_persona": 29940,
+   "to_persona": 29941
+  },
+  {
+   "word": "occurrence",
+   "related": "search match",
+   "from_persona": 22678,
+   "to_persona": 22680
+  },
+  {
+   "word": "reservation",
+   "related": "seat reservation",
+   "from_persona": 28443,
+   "to_persona": 28444
+  },
+  {
+   "word": "msg2",
+   "related": "second message",
+   "from_persona": 21322,
+   "to_persona": 21325
+  },
+  {
+   "word": "main window",
+   "related": "secondary window",
+   "from_persona": 19682,
+   "to_persona": 19681
+  },
+  {
+   "word": "sec",
+   "related": "seconds since",
+   "from_persona": 30023,
+   "to_persona": 30024
+  },
+  {
+   "word": "keys",
+   "related": "secret keys",
+   "from_persona": 17943,
+   "to_persona": 17946
+  },
+  {
+   "word": "Gitleaks",
+   "related": "secret scanner",
+   "from_persona": 13857,
+   "to_persona": 13860
+  },
+  {
+   "word": "Gitleaks",
+   "related": "secrets scanner",
+   "from_persona": 13857,
+   "to_persona": 13860
+  },
+  {
+   "word": "hard delete",
+   "related": "secure delete",
+   "from_persona": 14554,
+   "to_persona": 14556
+  },
+  {
+   "word": "options",
+   "related": "select option",
+   "from_persona": 23234,
+   "to_persona": 23231
+  },
+  {
+   "word": "semver",
+   "related": "semver compare",
+   "from_persona": 30318,
+   "to_persona": 30317
+  },
+  {
+   "word": "sender",
+   "related": "Sender header",
+   "from_persona": 30334,
+   "to_persona": 30338
+  },
+  {
+   "word": "duration",
+   "related": "session duration",
+   "from_persona": 9928,
+   "to_persona": 9931
+  },
+  {
+   "word": "settle",
+   "related": "settle payment",
+   "from_persona": 30779,
+   "to_persona": 30780
+  },
+  {
+   "word": "collision",
+   "related": "SHA-1 collision",
+   "from_persona": 5504,
+   "to_persona": 5507
+  },
+  {
+   "word": "choropleth map",
+   "related": "shaded map",
+   "from_persona": 4788,
+   "to_persona": 4790
+  },
+  {
+   "word": "fread",
+   "related": "short count",
+   "from_persona": 12946,
+   "to_persona": 12942
+  },
+  {
+   "word": "drawer",
+   "related": "side menu",
+   "from_persona": 9748,
+   "to_persona": 9745
+  },
+  {
+   "word": "related terms",
+   "related": "similar words",
+   "from_persona": 27794,
+   "to_persona": 27796
+  },
+  {
+   "word": "rename detection",
+   "related": "similarity index",
+   "from_persona": 28041,
+   "to_persona": 28036
+  },
+  {
+   "word": "coalesce",
+   "related": "single partition",
+   "from_persona": 5289,
+   "to_persona": 5291
+  },
+  {
+   "word": "mtx",
+   "related": "sleep mutex",
+   "from_persona": 21358,
+   "to_persona": 21359
+  },
+  {
+   "word": "std::fs::read_to_string",
+   "related": "slurp file",
+   "from_persona": 32450,
+   "to_persona": 32451
+  },
+  {
+   "word": "bind",
+   "related": "socket bind",
+   "from_persona": 2982,
+   "to_persona": 2980
+  },
+  {
+   "word": "port",
+   "related": "socket port",
+   "from_persona": 25133,
+   "to_persona": 25134
+  },
+  {
+   "word": "scm",
+   "related": "software configuration management",
+   "from_persona": 29864,
+   "to_persona": 29865
+  },
+  {
+   "word": "bit banging",
+   "related": "software I2C",
+   "from_persona": 3023,
+   "to_persona": 3024
+  },
+  {
+   "word": "rpc client",
+   "related": "Solana RPC",
+   "from_persona": 29228,
+   "to_persona": 29232
+  },
+  {
+   "word": "sort by",
+   "related": "sort column",
+   "from_persona": 31640,
+   "to_persona": 31639
+  },
+  {
+   "word": "bubble sort",
+   "related": "sorting algorithm",
+   "from_persona": 3573,
+   "to_persona": 3574
+  },
+  {
+   "word": "collation",
+   "related": "sorting rules",
+   "from_persona": 5463,
+   "to_persona": 5465
+  },
+  {
+   "word": "scm",
+   "related": "source control management",
+   "from_persona": 29864,
+   "to_persona": 29865
+  },
+  {
+   "word": "SciPy",
+   "related": "sparse matrices",
+   "from_persona": 29860,
+   "to_persona": 29861
+  },
+  {
+   "word": "partition",
+   "related": "split by predicate",
+   "from_persona": 24087,
+   "to_persona": 45429
+  },
+  {
+   "word": "driver",
+   "related": "sql driver",
+   "from_persona": 9761,
+   "to_persona": 9764
+  },
+  {
+   "word": "pr",
+   "related": "squash and merge",
+   "from_persona": 25297,
+   "to_persona": 25298
+  },
+  {
+   "word": "sse",
+   "related": "sse client",
+   "from_persona": 31987,
+   "to_persona": 31988
+  },
+  {
+   "word": "sse",
+   "related": "sse connection",
+   "from_persona": 31987,
+   "to_persona": 31988
+  },
+  {
+   "word": "sse",
+   "related": "sse event",
+   "from_persona": 31987,
+   "to_persona": 31988
+  },
+  {
+   "word": "sse",
+   "related": "sse server",
+   "from_persona": 31987,
+   "to_persona": 31988
+  },
+  {
+   "word": "firewall",
+   "related": "ssh port",
+   "from_persona": 12343,
+   "to_persona": 12345
+  },
+  {
+   "word": "traversal",
+   "related": "stack-based traversal",
+   "from_persona": 35463,
+   "to_persona": 35466
+  },
+  {
+   "word": "std::ofstream",
+   "related": "std::ofstream file(path)",
+   "from_persona": 32492,
+   "to_persona": 32493
+  },
+  {
+   "word": "populate",
+   "related": "strapi populate",
+   "from_persona": 25122,
+   "to_persona": 25123
+  },
+  {
+   "word": "deep merge",
+   "related": "strategic merge",
+   "from_persona": 8342,
+   "to_persona": 8343
+  },
+  {
+   "word": "jsonl",
+   "related": "streaming JSON",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "strict",
+   "related": "strict equals",
+   "from_persona": 32839,
+   "to_persona": 39301
+  },
+  {
+   "word": "Superset",
+   "related": "strict superset",
+   "from_persona": 33342,
+   "to_persona": 33344
+  },
+  {
+   "word": "escape sequence",
+   "related": "string escapes",
+   "from_persona": 10933,
+   "to_persona": 10934
+  },
+  {
+   "word": "matcher",
+   "related": "string matcher",
+   "from_persona": 19975,
+   "to_persona": 41800
+  },
+  {
+   "word": "raw",
+   "related": "String.raw template tag",
+   "from_persona": 26872,
+   "to_persona": 26873
+  },
+  {
+   "word": "strong",
+   "related": "strong cryptography",
+   "from_persona": 32993,
+   "to_persona": 32995
+  },
+  {
+   "word": "strong",
+   "related": "strong encryption",
+   "from_persona": 32993,
+   "to_persona": 32995
+  },
+  {
+   "word": "matches",
+   "related": "structural matching",
+   "from_persona": 19984,
+   "to_persona": 42090
+  },
+  {
+   "word": "structured",
+   "related": "structured format",
+   "from_persona": 33055,
+   "to_persona": 33058
+  },
+  {
+   "word": "submit",
+   "related": "submit for review",
+   "from_persona": 33164,
+   "to_persona": 33167
+  },
+  {
+   "word": "mutation test",
+   "related": "surviving mutant",
+   "from_persona": 21485,
+   "to_persona": 21486
+  },
+  {
+   "word": "symbol",
+   "related": "symbol names",
+   "from_persona": 33532,
+   "to_persona": 33539
+  },
+  {
+   "word": "symbol",
+   "related": "symbol tables",
+   "from_persona": 33532,
+   "to_persona": 33541
+  },
+  {
+   "word": "Gunicorn",
+   "related": "sync worker",
+   "from_persona": 14410,
+   "to_persona": 14413
+  },
+  {
+   "word": "primitives",
+   "related": "synchronization primitives",
+   "from_persona": 25593,
+   "to_persona": 25595
+  },
+  {
+   "word": "suspend",
+   "related": "systemctl suspend",
+   "from_persona": 33412,
+   "to_persona": 33409
+  },
+  {
+   "word": "tabulate",
+   "related": "table format",
+   "from_persona": 33767,
+   "to_persona": 33766
+  },
+  {
+   "word": "indent",
+   "related": "tabs vs spaces",
+   "from_persona": 16051,
+   "to_persona": 16047
+  },
+  {
+   "word": "class",
+   "related": "tailwind classes",
+   "from_persona": 4931,
+   "to_persona": 4936
+  },
+  {
+   "word": "tar.gz",
+   "related": "tar archive",
+   "from_persona": 33885,
+   "to_persona": 33884
+  },
+  {
+   "word": "gst",
+   "related": "tax registration",
+   "from_persona": 14354,
+   "to_persona": 14355
+  },
+  {
+   "word": "connection state",
+   "related": "tcp state",
+   "from_persona": 6373,
+   "to_persona": 6372
+  },
+  {
+   "word": "fin",
+   "related": "tcp state",
+   "from_persona": 12222,
+   "to_persona": 12221
+  },
+  {
+   "word": "template variable",
+   "related": "template token",
+   "from_persona": 34100,
+   "to_persona": 34103
+  },
+  {
+   "word": "tt",
+   "related": "Template Toolkit",
+   "from_persona": 35709,
+   "to_persona": 35710
+  },
+  {
+   "word": "shell command",
+   "related": "terminal tool",
+   "from_persona": 30921,
+   "to_persona": 30922
+  },
+  {
+   "word": "normally",
+   "related": "terminate normally",
+   "from_persona": 22233,
+   "to_persona": 22238
+  },
+  {
+   "word": "assertion",
+   "related": "test assertion",
+   "from_persona": 1714,
+   "to_persona": 1715
+  },
+  {
+   "word": "multiline",
+   "related": "TextField multiline",
+   "from_persona": 21387,
+   "to_persona": 21390
+  },
+  {
+   "word": "spin",
+   "related": "ticket lock",
+   "from_persona": 31805,
+   "to_persona": 31806
+  },
+  {
+   "word": "strftime",
+   "related": "time formatting",
+   "from_persona": 32838,
+   "to_persona": 32836
+  },
+  {
+   "word": "remaining",
+   "related": "time remaining",
+   "from_persona": 27925,
+   "to_persona": 27927
+  },
+  {
+   "word": "time series database",
+   "related": "time series storage",
+   "from_persona": 34793,
+   "to_persona": 45239
+  },
+  {
+   "word": "build time",
+   "related": "time to build",
+   "from_persona": 3798,
+   "to_persona": 3801
+  },
+  {
+   "word": "Temporal",
+   "related": "time zone support",
+   "from_persona": 34108,
+   "to_persona": 34111
+  },
+  {
+   "word": "v7",
+   "related": "time-ordered uuid",
+   "from_persona": 37007,
+   "to_persona": 37009
+  },
+  {
+   "word": "tick",
+   "related": "timer tick",
+   "from_persona": 34657,
+   "to_persona": 34664
+  },
+  {
+   "word": "RFC 2822",
+   "related": "timezone offset",
+   "from_persona": 28916,
+   "to_persona": 28918
+  },
+  {
+   "word": "secure by default",
+   "related": "TLS by default",
+   "from_persona": 30111,
+   "to_persona": 30116
+  },
+  {
+   "word": "jsonl",
+   "related": "to_json orient records lines",
+   "from_persona": 17647,
+   "to_persona": 17650
+  },
+  {
+   "word": "disable",
+   "related": "toggle off",
+   "from_persona": 9144,
+   "to_persona": 45563
+  },
+  {
+   "word": "tok",
+   "related": "tokenizer BPE",
+   "from_persona": 34964,
+   "to_persona": 34966
+  },
+  {
+   "word": "scheduler",
+   "related": "Tokio scheduler",
+   "from_persona": 29806,
+   "to_persona": 29807
+  },
+  {
+   "word": "catch all",
+   "related": "too broad exception",
+   "from_persona": 4346,
+   "to_persona": 4350
+  },
+  {
+   "word": "bubble sort",
+   "related": "toy sort",
+   "from_persona": 3573,
+   "to_persona": 3574
+  },
+  {
+   "word": "overhead",
+   "related": "tracing overhead",
+   "from_persona": 23584,
+   "to_persona": 23585
+  },
+  {
+   "word": "propagation",
+   "related": "transaction propagation",
+   "from_persona": 26033,
+   "to_persona": 26036
+  },
+  {
+   "word": "test teardown",
+   "related": "transaction rollback",
+   "from_persona": 34297,
+   "to_persona": 34295
+  },
+  {
+   "word": "transient",
+   "related": "transient data",
+   "from_persona": 35391,
+   "to_persona": 35393
+  },
+  {
+   "word": "transient",
+   "related": "transient field",
+   "from_persona": 35391,
+   "to_persona": 35395
+  },
+  {
+   "word": "tr",
+   "related": "translation function",
+   "from_persona": 35216,
+   "to_persona": 39327
+  },
+  {
+   "word": "rb",
+   "related": "tree balancing",
+   "from_persona": 26897,
+   "to_persona": 26902
+  },
+  {
+   "word": "project tree",
+   "related": "tree command",
+   "from_persona": 25953,
+   "to_persona": 25951
+  },
+  {
+   "word": "root",
+   "related": "tree root",
+   "from_persona": 29071,
+   "to_persona": 29073
+  },
+  {
+   "word": "truncated",
+   "related": "truncated data",
+   "from_persona": 35588,
+   "to_persona": 35590
+  },
+  {
+   "word": "truncated",
+   "related": "truncated output",
+   "from_persona": 35588,
+   "to_persona": 35590
+  },
+  {
+   "word": "module resolution",
+   "related": "tsconfig paths",
+   "from_persona": 21123,
+   "to_persona": 21121
+  },
+  {
+   "word": "disables",
+   "related": "turns off",
+   "from_persona": 9152,
+   "to_persona": 45565
+  },
+  {
+   "word": "auto",
+   "related": "type deduction",
+   "from_persona": 2169,
+   "to_persona": 2172
+  },
+  {
+   "word": "defineConfig",
+   "related": "typed config",
+   "from_persona": 8424,
+   "to_persona": 8428
+  },
+  {
+   "word": "instance type",
+   "related": "typeof Class",
+   "from_persona": 16497,
+   "to_persona": 16498
+  },
+  {
+   "word": "annotation",
+   "related": "TypeScript annotation",
+   "from_persona": 1007,
+   "to_persona": 1009
+  },
+  {
+   "word": "duck typing",
+   "related": "TypeScript structural typing",
+   "from_persona": 9883,
+   "to_persona": 9889
+  },
+  {
+   "word": "ord",
+   "related": "u8 as char",
+   "from_persona": 23283,
+   "to_persona": 23284
+  },
+  {
+   "word": "broadcast",
+   "related": "udp broadcast",
+   "from_persona": 3468,
+   "to_persona": 3479
+  },
+  {
+   "word": "channel",
+   "related": "unbounded channel",
+   "from_persona": 4579,
+   "to_persona": 4582
+  },
+  {
+   "word": "d3.extent",
+   "related": "undefined values",
+   "from_persona": 7646,
+   "to_persona": 7648
+  },
+  {
+   "word": "Unicode",
+   "related": "Unicode strings",
+   "from_persona": 36286,
+   "to_persona": 36288
+  },
+  {
+   "word": "Unix",
+   "related": "unix domain socket",
+   "from_persona": 36361,
+   "to_persona": 41889
+  },
+  {
+   "word": "ImportError",
+   "related": "unresolved import",
+   "from_persona": 15896,
+   "to_persona": 15897
+  },
+  {
+   "word": "underflow",
+   "related": "unsigned integer wrap",
+   "from_persona": 36243,
+   "to_persona": 36246
+  },
+  {
+   "word": "RE2",
+   "related": "unsupported backreference",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "RE2",
+   "related": "unsupported lookahead",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "RE2",
+   "related": "untrusted patterns",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "RE2",
+   "related": "untrusted regex",
+   "from_persona": 26948,
+   "to_persona": 26949
+  },
+  {
+   "word": "error type",
+   "related": "user error",
+   "from_persona": 10894,
+   "to_persona": 10895
+  },
+  {
+   "word": "user data",
+   "related": "user information",
+   "from_persona": 36784,
+   "to_persona": 36786
+  },
+  {
+   "word": "encoding",
+   "related": "video encoding",
+   "from_persona": 10409,
+   "to_persona": 10410
+  },
+  {
+   "word": "video",
+   "related": "video file",
+   "from_persona": 37325,
+   "to_persona": 37323
+  },
+  {
+   "word": "VP9",
+   "related": "vp9 codec",
+   "from_persona": 37595,
+   "to_persona": 37597
+  },
+  {
+   "word": "dac",
+   "related": "waveform generator",
+   "from_persona": 7670,
+   "to_persona": 7671
+  },
+  {
+   "word": "scrape",
+   "related": "web scraper",
+   "from_persona": 29886,
+   "to_persona": 29890
+  },
+  {
+   "word": "webhook url",
+   "related": "webhook registration",
+   "from_persona": 37918,
+   "to_persona": 37919
+  },
+  {
+   "word": "hdr",
+   "related": "wide color gamut",
+   "from_persona": 14714,
+   "to_persona": 14715
+  },
+  {
+   "word": "widening",
+   "related": "widened type",
+   "from_persona": 38066,
+   "to_persona": 38068
+  },
+  {
+   "word": "widening",
+   "related": "widening cast",
+   "from_persona": 38066,
+   "to_persona": 38068
+  },
+  {
+   "word": "widening",
+   "related": "widening primitive conversion",
+   "from_persona": 38066,
+   "to_persona": 38068
+  },
+  {
+   "word": "fclose",
+   "related": "with open",
+   "from_persona": 11852,
+   "to_persona": 11849
+  },
+  {
+   "word": "Gunicorn",
+   "related": "worker class",
+   "from_persona": 14410,
+   "to_persona": 14413
+  },
+  {
+   "word": "invitation",
+   "related": "workspace invite",
+   "from_persona": 16883,
+   "to_persona": 16884
+  },
+  {
+   "word": "world",
+   "related": "world matrix",
+   "from_persona": 38349,
+   "to_persona": 38352
+  },
+  {
+   "word": "world",
+   "related": "world space",
+   "from_persona": 38349,
+   "to_persona": 38352
+  },
+  {
+   "word": "os.WriteFile",
+   "related": "write bytes to file",
+   "from_persona": 23446,
+   "to_persona": 23448
+  },
+  {
+   "word": "os.WriteFile",
+   "related": "write whole file",
+   "from_persona": 23446,
+   "to_persona": 23448
+  },
+  {
+   "word": "wsgi",
+   "related": "wsgi app",
+   "from_persona": 38507,
+   "to_persona": 38505
+  },
+  {
+   "word": "exclusive",
+   "related": "X lock",
+   "from_persona": 11227,
+   "to_persona": 11230
+  },
+  {
+   "word": "subject",
+   "related": "X.509 subject",
+   "from_persona": 33152,
+   "to_persona": 33154
+  },
+  {
+   "word": "sp",
+   "related": "x86 stack pointer",
+   "from_persona": 31688,
+   "to_persona": 31692
+  },
+  {
+   "word": "prevent",
+   "related": "xss prevention",
+   "from_persona": 25525,
+   "to_persona": 25530
+  },
+  {
+   "word": "pan",
+   "related": "zoom and pan",
+   "from_persona": 23822,
+   "to_persona": 23820
+  },
+  {
+   "word": "call",
+   "related": "str",
+   "from_persona": 4053,
+   "to_persona": null
+  },
+  {
+   "word": "operator overloading",
+   "related": "str",
+   "from_persona": 23125,
+   "to_persona": null
+  },
+  {
+   "word": "deployment environment",
+   "related": "profile",
+   "from_persona": 8676,
+   "to_persona": null
+  },
+  {
+   "word": "mode",
+   "related": "profile",
+   "from_persona": 21038,
+   "to_persona": null
+  },
+  {
+   "word": "mixin",
+   "related": "include",
+   "from_persona": 20928,
+   "to_persona": null
+  },
+  {
+   "word": "module.scss",
+   "related": "include",
+   "from_persona": 21116,
+   "to_persona": null
+  },
+  {
+   "word": "Less",
+   "related": "extend",
+   "from_persona": 18549,
+   "to_persona": null
+  },
+  {
+   "word": "mixin",
+   "related": "extend",
+   "from_persona": 20928,
+   "to_persona": null
+  },
+  {
+   "word": "sass",
+   "related": "extend",
+   "from_persona": 29633,
+   "to_persona": null
+  },
+  {
+   "word": "scss",
+   "related": "extend",
+   "from_persona": 29943,
+   "to_persona": null
+  },
+  {
+   "word": "Stylus",
+   "related": "extend",
+   "from_persona": 33136,
+   "to_persona": null
+  },
+  {
+   "word": "absolute value",
+   "related": "absolute tolerance",
+   "from_persona": 147,
+   "to_persona": null
+  },
+  {
+   "word": "Winsock",
+   "related": "AcceptEx",
+   "from_persona": 38137,
+   "to_persona": null
+  },
+  {
+   "word": "trigger",
+   "related": "after_update",
+   "from_persona": 35540,
+   "to_persona": null
+  },
+  {
+   "word": "absolute value",
+   "related": "atol",
+   "from_persona": 147,
+   "to_persona": null
+  },
+  {
+   "word": "cross origin isolation",
+   "related": "Atomics.wait",
+   "from_persona": 7315,
+   "to_persona": null
+  },
+  {
+   "word": "availability",
+   "related": "A-Z",
+   "from_persona": 2232,
+   "to_persona": null
+  },
+  {
+   "word": "AWS_REGION",
+   "related": "A-Z",
+   "from_persona": 2347,
+   "to_persona": null
+  },
+  {
+   "word": "region",
+   "related": "A-Z",
+   "from_persona": 27675,
+   "to_persona": null
+  },
+  {
+   "word": "zone",
+   "related": "A-Z",
+   "from_persona": 38864,
+   "to_persona": null
+  },
+  {
+   "word": "Azure",
+   "related": "A-Z",
+   "from_persona": 2393,
+   "to_persona": null
+  },
+  {
+   "word": "Microsoft Azure",
+   "related": "A-Z",
+   "from_persona": 20733,
+   "to_persona": null
+  },
+  {
+   "word": "availability zone",
+   "related": "A-Z",
+   "from_persona": 2236,
+   "to_persona": null
+  },
+  {
+   "word": "multi az",
+   "related": "A-Z",
+   "from_persona": 21373,
+   "to_persona": null
+  },
+  {
+   "word": "SciPy",
+   "related": "BLAS",
+   "from_persona": 29860,
+   "to_persona": null
+  },
+  {
+   "word": "std::chrono",
+   "related": "C++20",
+   "from_persona": 32413,
+   "to_persona": null
+  },
+  {
+   "word": "std::chrono::steady_clock",
+   "related": "C++20",
+   "from_persona": 32415,
+   "to_persona": null
+  },
+  {
+   "word": "std::chrono::system_clock",
+   "related": "C++20",
+   "from_persona": 32417,
+   "to_persona": null
+  },
+  {
+   "word": "std::format",
+   "related": "C++20",
+   "from_persona": 32441,
+   "to_persona": null
+  },
+  {
+   "word": "std::atomic",
+   "related": "C++20",
+   "from_persona": 32407,
+   "to_persona": null
+  },
+  {
+   "word": "std::thread",
+   "related": "C++20",
+   "from_persona": 32558,
+   "to_persona": null
+  },
+  {
+   "word": "circular",
+   "related": "circular import",
+   "from_persona": 4884,
+   "to_persona": null
+  },
+  {
+   "word": "circular",
+   "related": "circular imports",
+   "from_persona": 4884,
+   "to_persona": null
+  },
+  {
+   "word": "circular reference",
+   "related": "circular import",
+   "from_persona": 4893,
+   "to_persona": null
+  },
+  {
+   "word": "Math.max",
+   "related": "Collections.max",
+   "from_persona": 20035,
+   "to_persona": null
+  },
+  {
+   "word": "policies",
+   "related": "cors policy",
+   "from_persona": 25061,
+   "to_persona": null
+  },
+  {
+   "word": "policy",
+   "related": "cors policy",
+   "from_persona": 25063,
+   "to_persona": null
+  },
+  {
+   "word": "multi az",
+   "related": "data.aws_availability_zones",
+   "from_persona": 21373,
+   "to_persona": null
+  },
+  {
+   "word": "Neon",
+   "related": "database url",
+   "from_persona": 21792,
+   "to_persona": null
+  },
+  {
+   "word": "PlanetScale",
+   "related": "database url",
+   "from_persona": 24812,
+   "to_persona": null
+  },
+  {
+   "word": "structures",
+   "related": "directory structure",
+   "from_persona": 33079,
+   "to_persona": null
+  },
+  {
+   "word": "threads",
+   "related": "discussion thread",
+   "from_persona": 34574,
+   "to_persona": null
+  },
+  {
+   "word": "ggplot",
+   "related": "dplyr",
+   "from_persona": 13747,
+   "to_persona": null
+  },
+  {
+   "word": "ggplot2",
+   "related": "dplyr",
+   "from_persona": 13748,
+   "to_persona": null
+  },
+  {
+   "word": "R",
+   "related": "dplyr",
+   "from_persona": 26651,
+   "to_persona": null
+  },
+  {
+   "word": "experience",
+   "related": "dx",
+   "from_persona": 11435,
+   "to_persona": null
+  },
+  {
+   "word": "ux",
+   "related": "dx",
+   "from_persona": 36988,
+   "to_persona": null
+  },
+  {
+   "word": "forcing",
+   "related": "enforce",
+   "from_persona": 12704,
+   "to_persona": null
+  },
+  {
+   "word": "forcing",
+   "related": "enforcing",
+   "from_persona": 12704,
+   "to_persona": null
+  },
+  {
+   "word": "execution",
+   "related": "execution environment",
+   "from_persona": 11310,
+   "to_persona": null
+  },
+  {
+   "word": "ext",
+   "related": "extension methods",
+   "from_persona": 11537,
+   "to_persona": null
+  },
+  {
+   "word": "extends",
+   "related": "extension method",
+   "from_persona": 11554,
+   "to_persona": null
+  },
+  {
+   "word": "extends",
+   "related": "extension methods",
+   "from_persona": 11554,
+   "to_persona": null
+  },
+  {
+   "word": "activate",
+   "related": "GELU",
+   "from_persona": 391,
+   "to_persona": null
+  },
+  {
+   "word": "passwd",
+   "related": "getpwuid",
+   "from_persona": 24166,
+   "to_persona": null
+  },
+  {
+   "word": "script",
+   "related": "Greasemonkey",
+   "from_persona": 29921,
+   "to_persona": null
+  },
+  {
+   "word": "scripts",
+   "related": "Greasemonkey",
+   "from_persona": 29926,
+   "to_persona": null
+  },
+  {
+   "word": "gt",
+   "related": "ground truth",
+   "from_persona": 14358,
+   "to_persona": null
+  },
+  {
+   "word": "label",
+   "related": "ground truth",
+   "from_persona": 18164,
+   "to_persona": null
+  },
+  {
+   "word": "labels",
+   "related": "ground truth",
+   "from_persona": 18172,
+   "to_persona": null
+  },
+  {
+   "word": "addFilter",
+   "related": "Handlebars helper",
+   "from_persona": 504,
+   "to_persona": null
+  },
+  {
+   "word": "applyFilters",
+   "related": "Handlebars helpers",
+   "from_persona": 1319,
+   "to_persona": null
+  },
+  {
+   "word": "rename",
+   "related": "import as",
+   "from_persona": 28032,
+   "to_persona": null
+  },
+  {
+   "word": "addition",
+   "related": "in addition",
+   "from_persona": 510,
+   "to_persona": null
+  },
+  {
+   "word": "fragmentation",
+   "related": "INFO memory",
+   "from_persona": 12907,
+   "to_persona": null
+  },
+  {
+   "word": "memory fragmentation",
+   "related": "INFO memory",
+   "from_persona": 20331,
+   "to_persona": null
+  },
+  {
+   "word": "diff hunk",
+   "related": "interactive staging",
+   "from_persona": 9029,
+   "to_persona": null
+  },
+  {
+   "word": "internal",
+   "related": "InternalError",
+   "from_persona": 16700,
+   "to_persona": null
+  },
+  {
+   "word": "internally",
+   "related": "InternalError",
+   "from_persona": 16704,
+   "to_persona": null
+  },
+  {
+   "word": "followed",
+   "related": "isFollowing",
+   "from_persona": 12631,
+   "to_persona": null
+  },
+  {
+   "word": "following",
+   "related": "isFollowing",
+   "from_persona": 12638,
+   "to_persona": null
+  },
+  {
+   "word": "name",
+   "related": "key_name",
+   "from_persona": 21562,
+   "to_persona": null
+  },
+  {
+   "word": "ns",
+   "related": "kube-system",
+   "from_persona": 22367,
+   "to_persona": null
+  },
+  {
+   "word": "immediately invoked function expression",
+   "related": "libraryTarget",
+   "from_persona": 15777,
+   "to_persona": null
+  },
+  {
+   "word": "sax",
+   "related": "low memory",
+   "from_persona": 29672,
+   "to_persona": null
+  },
+  {
+   "word": "stream parser",
+   "related": "low memory",
+   "from_persona": 32819,
+   "to_persona": null
+  },
+  {
+   "word": "managed",
+   "related": "ManagedPolicyArn",
+   "from_persona": 19731,
+   "to_persona": null
+  },
+  {
+   "word": "managed",
+   "related": "managed_policy_arns",
+   "from_persona": 19731,
+   "to_persona": null
+  },
+  {
+   "word": "enoent",
+   "related": "ModuleNotFoundError",
+   "from_persona": 10479,
+   "to_persona": null
+  },
+  {
+   "word": "file not found",
+   "related": "ModuleNotFoundError",
+   "from_persona": 12095,
+   "to_persona": null
+  },
+  {
+   "word": "exFAT",
+   "related": "no permissions",
+   "from_persona": 11333,
+   "to_persona": null
+  },
+  {
+   "word": "FAT32",
+   "related": "no permissions",
+   "from_persona": 11827,
+   "to_persona": null
+  },
+  {
+   "word": "sz",
+   "related": "null-terminated string",
+   "from_persona": 33716,
+   "to_persona": null
+  },
+  {
+   "word": "ceil",
+   "related": "page count",
+   "from_persona": 4421,
+   "to_persona": null
+  },
+  {
+   "word": "ceiling",
+   "related": "page count",
+   "from_persona": 4424,
+   "to_persona": null
+  },
+  {
+   "word": "Promise.any",
+   "related": "pan_y",
+   "from_persona": 25967,
+   "to_persona": null
+  },
+  {
+   "word": "promise any",
+   "related": "pan_y",
+   "from_persona": 25982,
+   "to_persona": null
+  },
+  {
+   "word": "parses",
+   "related": "parseDate",
+   "from_persona": 24047,
+   "to_persona": null
+  },
+  {
+   "word": "fan out",
+   "related": "partition",
+   "from_persona": 11797,
+   "to_persona": null
+  },
+  {
+   "word": "separate",
+   "related": "partition",
+   "from_persona": 30415,
+   "to_persona": null
+  },
+  {
+   "word": "split",
+   "related": "partition",
+   "from_persona": 31822,
+   "to_persona": null
+  },
+  {
+   "word": "unzip",
+   "related": "partition",
+   "from_persona": 36546,
+   "to_persona": null
+  },
+  {
+   "word": "pins",
+   "related": "pin_memory",
+   "from_persona": 24714,
+   "to_persona": null
+  },
+  {
+   "word": "pins",
+   "related": "pinned memory",
+   "from_persona": 24714,
+   "to_persona": null
+  },
+  {
+   "word": "binding",
+   "related": "port binding",
+   "from_persona": 2987,
+   "to_persona": null
+  },
+  {
+   "word": "t1",
+   "related": "post script",
+   "from_persona": 33718,
+   "to_persona": null
+  },
+  {
+   "word": "t2",
+   "related": "post script",
+   "from_persona": 33722,
+   "to_persona": null
+  },
+  {
+   "word": "Dart",
+   "related": "pubspec.yaml",
+   "from_persona": 7738,
+   "to_persona": null
+  },
+  {
+   "word": "obj",
+   "related": "PyObject",
+   "from_persona": 22556,
+   "to_persona": null
+  },
+  {
+   "word": "object",
+   "related": "PyObject",
+   "from_persona": 22560,
+   "to_persona": null
+  },
+  {
+   "word": "ua",
+   "related": "python requests",
+   "from_persona": 36051,
+   "to_persona": null
+  },
+  {
+   "word": "user agent",
+   "related": "python requests",
+   "from_persona": 36776,
+   "to_persona": null
+  },
+  {
+   "word": "res",
+   "related": "React.Component",
+   "from_persona": 28403,
+   "to_persona": null
+  },
+  {
+   "word": "ReScript",
+   "related": "React.Component",
+   "from_persona": 28434,
+   "to_persona": null
+  },
+  {
+   "word": "activate",
+   "related": "ReLU",
+   "from_persona": 391,
+   "to_persona": null
+  },
+  {
+   "word": "remainder",
+   "related": "remainingCount",
+   "from_persona": 27922,
+   "to_persona": null
+  },
+  {
+   "word": "remainder",
+   "related": "remaining time",
+   "from_persona": 27922,
+   "to_persona": null
+  },
+  {
+   "word": "duplicate",
+   "related": "replicate",
+   "from_persona": 9915,
+   "to_persona": null
+  },
+  {
+   "word": "repeat",
+   "related": "replicate",
+   "from_persona": 28105,
+   "to_persona": null
+  },
+  {
+   "word": "seek offset",
+   "related": "scrubber",
+   "from_persona": 30186,
+   "to_persona": null
+  },
+  {
+   "word": "activate",
+   "related": "sigmoid",
+   "from_persona": 391,
+   "to_persona": null
+  },
+  {
+   "word": "radar",
+   "related": "skills",
+   "from_persona": 26686,
+   "to_persona": null
+  },
+  {
+   "word": "radar chart",
+   "related": "skills",
+   "from_persona": 26689,
+   "to_persona": null
+  },
+  {
+   "word": "thread::spawn",
+   "related": "std::sync::mpsc",
+   "from_persona": 34519,
+   "to_persona": null
+  },
+  {
+   "word": "quote",
+   "related": "stock quote",
+   "from_persona": 26641,
+   "to_persona": null
+  },
+  {
+   "word": "quote",
+   "related": "stock quotes",
+   "from_persona": 26641,
+   "to_persona": null
+  },
+  {
+   "word": "syntax",
+   "related": "syntactic sugar",
+   "from_persona": 33629,
+   "to_persona": null
+  },
+  {
+   "word": "chunked",
+   "related": "text splitter",
+   "from_persona": 4826,
+   "to_persona": null
+  },
+  {
+   "word": "collecting",
+   "related": "toArray",
+   "from_persona": 5477,
+   "to_persona": null
+  },
+  {
+   "word": "collecting",
+   "related": "tolist",
+   "from_persona": 5477,
+   "to_persona": null
+  },
+  {
+   "word": "val",
+   "related": "valueOf",
+   "from_persona": 37023,
+   "to_persona": null
+  },
+  {
+   "word": "value",
+   "related": "valueOf",
+   "from_persona": 37063,
+   "to_persona": null
+  },
+  {
+   "word": "values",
+   "related": "valueOf",
+   "from_persona": 37089,
+   "to_persona": null
+  },
+  {
+   "word": "clock_gettime",
+   "related": "vDSO",
+   "from_persona": 5131,
+   "to_persona": null
+  },
+  {
+   "word": "RabbitMQ",
+   "related": "VMware",
+   "from_persona": 26668,
+   "to_persona": null
+  },
+  {
+   "word": "Spring Cloud Stream",
+   "related": "VMware",
+   "from_persona": 31869,
+   "to_persona": null
+  },
+  {
+   "word": "wildcard",
+   "related": "wildcard import",
+   "from_persona": 38088,
+   "to_persona": null
+  },
+  {
+   "word": "wildcard",
+   "related": "wildcard imports",
+   "from_persona": 38088,
+   "to_persona": null
+  },
+  {
+   "word": "LazyFrame",
+   "related": "with_columns",
+   "from_persona": 18355,
+   "to_persona": null
+  },
+  {
+   "word": "sheet",
+   "related": "workbook",
+   "from_persona": 30909,
+   "to_persona": null
+  },
+  {
+   "word": "markdown",
+   "related": "WYSIWYG",
+   "from_persona": 19899,
+   "to_persona": null
+  },
+  {
+   "word": "build time",
+   "related": "build-time dependency",
+   "from_persona": 3798,
+   "to_persona": null
+  },
+  {
+   "word": "call",
+   "related": "call tracing",
+   "from_persona": 4053,
+   "to_persona": null
+  },
+  {
+   "word": "data at rest",
+   "related": "column encryption",
+   "from_persona": 7774,
+   "to_persona": null
+  },
+  {
+   "word": "languages",
+   "related": "domain specific language",
+   "from_persona": 18228,
+   "to_persona": null
+  },
+  {
+   "word": "sig",
+   "related": "email signature",
+   "from_persona": 31061,
+   "to_persona": null
+  },
+  {
+   "word": "void",
+   "related": "empty element",
+   "from_persona": 37567,
+   "to_persona": null
+  },
+  {
+   "word": "epsilon",
+   "related": "epsilon decay",
+   "from_persona": 10677,
+   "to_persona": null
+  },
+  {
+   "word": "data at rest",
+   "related": "field level encryption",
+   "from_persona": 7774,
+   "to_persona": null
+  },
+  {
+   "word": "id1",
+   "related": "first id",
+   "from_persona": 15531,
+   "to_persona": null
+  },
+  {
+   "word": "matches",
+   "related": "fuzzy match",
+   "from_persona": 19984,
+   "to_persona": null
+  },
+  {
+   "word": "X-RateLimit-Reset",
+   "related": "HTTP header",
+   "from_persona": 38613,
+   "to_persona": null
+  },
+  {
+   "word": "traceparent",
+   "related": "HTTP header",
+   "from_persona": 35235,
+   "to_persona": null
+  },
+  {
+   "word": "sendNotification",
+   "related": "in-app notification",
+   "from_persona": 30363,
+   "to_persona": null
+  },
+  {
+   "word": "corrupt",
+   "related": "integrity check",
+   "from_persona": 6947,
+   "to_persona": null
+  },
+  {
+   "word": "iso",
+   "related": "International Organization for Standardization",
+   "from_persona": 17138,
+   "to_persona": null
+  },
+  {
+   "word": "iso",
+   "related": "ISO currency code",
+   "from_persona": 17138,
+   "to_persona": null
+  },
+  {
+   "word": "long",
+   "related": "long-lived connection",
+   "from_persona": 19373,
+   "to_persona": null
+  },
+  {
+   "word": "long",
+   "related": "long-running task",
+   "from_persona": 19373,
+   "to_persona": null
+  },
+  {
+   "word": "matching",
+   "related": "match statement",
+   "from_persona": 19991,
+   "to_persona": null
+  },
+  {
+   "word": "ram",
+   "related": "memory module",
+   "from_persona": 26755,
+   "to_persona": null
+  },
+  {
+   "word": "multiline",
+   "related": "multiline commit message",
+   "from_persona": 21387,
+   "to_persona": null
+  },
+  {
+   "word": "multiline",
+   "related": "multiline editing",
+   "from_persona": 21387,
+   "to_persona": null
+  },
+  {
+   "word": "multiline",
+   "related": "multiline expression",
+   "from_persona": 21387,
+   "to_persona": null
+  },
+  {
+   "word": "multiline",
+   "related": "multiline prompt",
+   "from_persona": 21387,
+   "to_persona": null
+  },
+  {
+   "word": "multiline",
+   "related": "multiline statement",
+   "from_persona": 21387,
+   "to_persona": null
+  },
+  {
+   "word": "delete",
+   "related": "ON DELETE SET NULL",
+   "from_persona": 8516,
+   "to_persona": null
+  },
+  {
+   "word": "pct",
+   "related": "pct container",
+   "from_persona": 24365,
+   "to_persona": null
+  },
+  {
+   "word": "pct",
+   "related": "pct create",
+   "from_persona": 24365,
+   "to_persona": null
+  },
+  {
+   "word": "pct",
+   "related": "pct exec",
+   "from_persona": 24365,
+   "to_persona": null
+  },
+  {
+   "word": "pct",
+   "related": "pct start",
+   "from_persona": 24365,
+   "to_persona": null
+  },
+  {
+   "word": "poc",
+   "related": "point of contact",
+   "from_persona": 24967,
+   "to_persona": null
+  },
+  {
+   "word": "temporary",
+   "related": "preview environment",
+   "from_persona": 34114,
+   "to_persona": null
+  },
+  {
+   "word": "prime",
+   "related": "primes (notation)",
+   "from_persona": 25578,
+   "to_persona": null
+  },
+  {
+   "word": "problem",
+   "related": "problem set",
+   "from_persona": 25722,
+   "to_persona": null
+  },
+  {
+   "word": "pct",
+   "related": "Proxmox pct",
+   "from_persona": 24365,
+   "to_persona": null
+  },
+  {
+   "word": "relative",
+   "related": "relative error",
+   "from_persona": 27799,
+   "to_persona": null
+  },
+  {
+   "word": "rename",
+   "related": "rename branch",
+   "from_persona": 28032,
+   "to_persona": null
+  },
+  {
+   "word": "renaming",
+   "related": "rename file",
+   "from_persona": 28042,
+   "to_persona": null
+  },
+  {
+   "word": "renaming",
+   "related": "rename map",
+   "from_persona": 28042,
+   "to_persona": null
+  },
+  {
+   "word": "rename",
+   "related": "rename on import",
+   "from_persona": 28032,
+   "to_persona": null
+  },
+  {
+   "word": "rename",
+   "related": "rename remote",
+   "from_persona": 28032,
+   "to_persona": null
+  },
+  {
+   "word": "project settings",
+   "related": "repo config",
+   "from_persona": 25943,
+   "to_persona": null
+  },
+  {
+   "word": "mtime",
+   "related": "reproducible builds",
+   "from_persona": 21347,
+   "to_persona": null
+  },
+  {
+   "word": "reserve",
+   "related": "reserved concurrency",
+   "from_persona": 28453,
+   "to_persona": null
+  },
+  {
+   "word": "reserved",
+   "related": "reserved concurrency",
+   "from_persona": 28457,
+   "to_persona": null
+  },
+  {
+   "word": "resolve",
+   "related": "resolve issue",
+   "from_persona": 28520,
+   "to_persona": null
+  },
+  {
+   "word": "resolve",
+   "related": "resolve thread",
+   "from_persona": 28520,
+   "to_persona": null
+  },
+  {
+   "word": "reboot",
+   "related": "Restart Manager",
+   "from_persona": 27216,
+   "to_persona": null
+  },
+  {
+   "word": "runtime",
+   "related": "runtime environment",
+   "from_persona": 29401,
+   "to_persona": null
+  },
+  {
+   "word": "Algolia",
+   "related": "search as a service",
+   "from_persona": 752,
+   "to_persona": null
+  },
+  {
+   "word": "pushing",
+   "related": "server push",
+   "from_persona": 26364,
+   "to_persona": null
+  },
+  {
+   "word": "more",
+   "related": "show more",
+   "from_persona": 21222,
+   "to_persona": null
+  },
+  {
+   "word": "rename",
+   "related": "similarity index",
+   "from_persona": 28033,
+   "to_persona": null
+  },
+  {
+   "word": "channel",
+   "related": "Slack channel",
+   "from_persona": 4579,
+   "to_persona": null
+  },
+  {
+   "word": "binding",
+   "related": "socket bind",
+   "from_persona": 2987,
+   "to_persona": null
+  },
+  {
+   "word": "bubble",
+   "related": "sorting algorithm",
+   "from_persona": 3564,
+   "to_persona": null
+  },
+  {
+   "word": "nfc",
+   "related": "tap to pay",
+   "from_persona": 21978,
+   "to_persona": null
+  },
+  {
+   "word": "Temporal",
+   "related": "temporal locality",
+   "from_persona": 34108,
+   "to_persona": null
+  },
+  {
+   "word": "symbol",
+   "related": "unique symbol",
+   "from_persona": 33538,
+   "to_persona": null
+  },
+  {
+   "word": "directive",
+   "related": "use strict",
+   "from_persona": 9096,
+   "to_persona": null
+  },
+  {
+   "word": "FileChannel",
+   "related": "positioner",
+   "from_persona": 12035,
+   "to_persona": null
+  },
+  {
+   "word": "file pointer",
+   "related": "positioner",
+   "from_persona": 12124,
+   "to_persona": null
+  },
+  {
+   "word": "fseek",
+   "related": "positioner",
+   "from_persona": 13124,
+   "to_persona": null
+  },
+  {
+   "word": "seek",
+   "related": "positioner",
+   "from_persona": 30183,
+   "to_persona": null
+  },
+  {
+   "word": "seek offset",
+   "related": "positioner",
+   "from_persona": 30186,
+   "to_persona": null
+  },
+  {
+   "word": "duplicate",
+   "related": "replicated",
+   "from_persona": 9915,
+   "to_persona": null
+  },
+  {
+   "word": "repeat",
+   "related": "replicated",
+   "from_persona": 28105,
+   "to_persona": null
+  },
+  {
+   "word": "sort.Slice",
+   "related": "slices.SortFunc",
+   "from_persona": 31635,
+   "to_persona": null
+  }
+ ],
+ "merged_personas": [
+  {
+   "persona": 42965,
+   "into": 42961
+  },
+  {
+   "persona": 42963,
+   "into": 42961
+  },
+  {
+   "persona": 42966,
+   "into": 42961
+  },
+  {
+   "persona": 3587,
+   "into": 3585
+  },
+  {
+   "persona": 6156,
+   "into": 6153
+  },
+  {
+   "persona": 47741,
+   "into": 9941
+  },
+  {
+   "persona": 43974,
+   "into": 40078
+  },
+  {
+   "persona": 18475,
+   "into": 18472
+  },
+  {
+   "persona": 44825,
+   "into": 44773
+  },
+  {
+   "persona": 47417,
+   "into": 26160
+  },
+  {
+   "persona": 48372,
+   "into": 30946
+  },
+  {
+   "persona": 34091,
+   "into": 34089
+  },
+  {
+   "persona": 48221,
+   "into": 46862
+  }
+ ],
+ "moved_personas": [
+  17162,
+  34133,
+  11311,
+  15633,
+  42759,
+  42965,
+  42961,
+  42963,
+  42966,
+  40290,
+  25215,
+  33206,
+  2140,
+  3585,
+  3587,
+  42011,
+  3787,
+  6153,
+  6156,
+  40429,
+  8252,
+  40114,
+  39747,
+  41615,
+  9941,
+  11628,
+  40616,
+  40076,
+  41714,
+  40078,
+  43974,
+  41005,
+  40832,
+  41795,
+  41545,
+  41921,
+  39764,
+  18472,
+  18475,
+  19885,
+  19901,
+  41225,
+  40654,
+  41233,
+  24097,
+  43363,
+  42117,
+  44773,
+  44825,
+  42237,
+  26160,
+  27231,
+  27473,
+  39799,
+  27687,
+  30023,
+  30946,
+  39599,
+  47334,
+  46285,
+  32901,
+  34091,
+  34089,
+  39978,
+  46862,
+  40788,
+  40716,
+  37356,
+  38179,
+  38461
+ ],
+ "dropped_concepts": [
+  {
+   "concept": 6163,
+   "name": "passkey directory entry"
+  },
+  {
+   "concept": 6171,
+   "name": "onboarding introduction"
+  },
+  {
+   "concept": 6191,
+   "name": "linked product context"
+  },
+  {
+   "concept": 6336,
+   "name": "SAML key descriptor"
+  },
+  {
+   "concept": 6537,
+   "name": "popup ownership identifiers"
+  },
+  {
+   "concept": 6594,
+   "name": "terminal text area size"
+  },
+  {
+   "concept": 6755,
+   "name": "terminal screen pages"
+  },
+  {
+   "concept": 6889,
+   "name": "event delivery finalizer"
+  },
+  {
+   "concept": 7014,
+   "name": "CSS primitive value"
+  }
+ ]
+}

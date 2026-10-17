@@ -4,7 +4,7 @@
 
 | 항목 | 내용 |
 | --- | --- |
-| 뜻 데이터셋 | `rts4-710c8ba0d79a776a`(`rt-sense/4`). `sense_lookup.py`의 기본값이다. 위치는 `apps/codemap-search/experiments/related-terms-poc/datasets/rts4-710c8ba0d79a776a/dataset.sqlite3`, SHA-256은 `e93f389e83e06d244c20af7a9102951460ec1340d23767c8a8be19596e6bbd83`이다. 아래 결함은 `rts3-9e01eaf1eadf960a`(SHA-256 `ab8f1aea8a60625fb4f4795e02ffdfa9b3947ce61cc7120c84a03dc61646d192`)에서 확인했다. 그 뒤 판은 분야별 누락 단어(`rts3-25df1cf41d0d8247`), 관련어로만 있던 단어의 분야 연결(`rts3-08b1780cc2880c26`), 연결하지 못한 단어의 새 개념(`rts3-5fba9ba33d7c7c7f`), 빠진 단어 재검토(`rts3-48356e35e1f1ea28`)를 더하고, 구조를 정리한 뒤(`rts4-3b9284a3b42c2917`) 분야가 하나뿐인 단어에 주제를 연결하고(`rts4-86c5620af1f181ce`), 주제를 재분류하고(`rts4-0fb3d5bc20c215ba`, `rts4-e5083ab344e1336d`), 틀린 뜻을 고치고 빠진 뜻을 연결한 것(`rts4-78debdbe7f7bab0b`, `rts4-710c8ba0d79a776a`)이다. 결함 항목 단어는 `unshare`에 뜻 하나가 더해졌고([K1](#k1-개념-하나에-다른-뜻이-섞임)), 나머지는 관련어가 늘어난 것 말고는 `rts3-25df1cf41d0d8247`과 같다. `rts4` 판에서 결함 항목 단어의 뜻과 그 순서가 그대로인 것은 2026-10-17에 확인했다([작업 이력 4단계](sense-mapping-log/04-verification.md#6-결함-단어와-예시-단어)). 재분류 판과 새 뜻 순서 규칙에서도 K1·K3~K6의 증상은 그대로이고, K2는 고쳐졌다([작업 이력 8단계](sense-mapping-log/08-default-and-sense-order.md#5-함께-확인한-것)). 10단계의 뜻 순서 규칙(A)에서도 K1·K3~K5의 증상은 그대로다([작업 이력 10단계](sense-mapping-log/10-sense-order-rule.md#5-a-전환)). 12단계에서 만든 현재 기본값에서는 K1·K3~K5와 K6의 `specs`가 고쳐졌다([작업 이력 12단계](sense-mapping-log/12-sense-data-fixes.md#알려진-결함)) |
+| 뜻 데이터셋 | `rts4-301d57d419380d08`(`rt-sense/4`). `sense_lookup.py`의 기본값이다. 위치는 `apps/codemap-search/experiments/related-terms-poc/datasets/rts4-301d57d419380d08/dataset.sqlite3`, SHA-256은 `cc7aab0b255845023c473b81414d8ad3eb04849a24616fc86a746ecaa73a1690`이다. 아래 결함은 `rts3-9e01eaf1eadf960a`(SHA-256 `ab8f1aea8a60625fb4f4795e02ffdfa9b3947ce61cc7120c84a03dc61646d192`)에서 확인했다. 그 뒤 판은 분야별 누락 단어(`rts3-25df1cf41d0d8247`), 관련어로만 있던 단어의 분야 연결(`rts3-08b1780cc2880c26`), 연결하지 못한 단어의 새 개념(`rts3-5fba9ba33d7c7c7f`), 빠진 단어 재검토(`rts3-48356e35e1f1ea28`)를 더하고, 구조를 정리한 뒤(`rts4-3b9284a3b42c2917`) 분야가 하나뿐인 단어에 주제를 연결하고(`rts4-86c5620af1f181ce`), 주제를 재분류하고(`rts4-0fb3d5bc20c215ba`, `rts4-e5083ab344e1336d`), 틀린 뜻을 고치고 빠진 뜻을 연결한 것(`rts4-71cffacbc6f7c0d8`, `rts4-912fe1c9f62131b2`, `rts4-301d57d419380d08`)이다. 결함 항목 단어는 `unshare`에 뜻 하나가 더해졌고([K1](#k1-개념-하나에-다른-뜻이-섞임)), 나머지는 관련어가 늘어난 것 말고는 `rts3-25df1cf41d0d8247`과 같다. `rts4` 판에서 결함 항목 단어의 뜻과 그 순서가 그대로인 것은 2026-10-17에 확인했다([작업 이력 4단계](sense-mapping-log/04-verification.md#6-결함-단어와-예시-단어)). 재분류 판과 새 뜻 순서 규칙에서도 K1·K3~K6의 증상은 그대로이고, K2는 고쳐졌다([작업 이력 8단계](sense-mapping-log/08-default-and-sense-order.md#5-함께-확인한-것)). 10단계의 뜻 순서 규칙(A)에서도 K1·K3~K5의 증상은 그대로다([작업 이력 10단계](sense-mapping-log/10-sense-order-rule.md#5-a-전환)). 12단계에서 K1·K3~K5와 K6의 `specs`를 고쳤고([작업 이력 12단계](sense-mapping-log/12-sense-data-fixes.md#알려진-결함)), 재검증을 거쳐 다시 만든 현재 기본값에서도 그대로 고쳐져 있다([작업 이력 14단계](sense-mapping-log/14-recheck-and-remaining-n6.md#알려진-결함과-예시-단어)) |
 | 관련어 데이터셋 | `rtr1-930791c83bea6132`(`rt-related/1`). `sense_lookup.py`와 `category_lookup.py`가 입력 단어 해석에 쓴다. 저장소에 없고 로컬 `.codemap/poc/related-terms/thesaurus-v1/datasets/`에만 있다 |
 | 확인일 | 2026-10-16 |
 | 확인 방법 | 두 데이터셋을 읽기 전용으로 조회하고, `sense_lookup.py`와 `rtpoc3 related`로 실제 조회 결과를 확인했다. 코드 용례는 데이터셋 근거로 쓴 12개 저장소의 고정 체크아웃(`rts3-9e01eaf1eadf960a` 폴더의 `sources.json`)에서 찾았다 |
@@ -42,7 +42,7 @@
 | 현재 상태 | 구성원 14개에 XML 이름공간 용어(`xmlnamespace`, `qnames`, `prefix` 등)와 격리 뜻 단어(`isolate`, `tenantisolation`)가 함께 있다. `namespace`·`namespaced`도 이 개념에 있다 |
 | 조회 결과 | Linux 격리 명령 `unshare`는 이 개념의 persona 17162·21601을 거쳐 input으로도 분류된다. 새 개념 추가([파이프라인](pipeline.md) 12단계)로 `os-shell`의 Namespace and root isolation 뜻이 먼저 나오지만, 그 아래에 XML parsing 뜻과 관련어 `isolate`, `namespace`가 그대로 나온다 |
 | 영향 | 격리·이름공간 관련 단어의 조회에 XML 뜻이 섞인다 |
-| 고친 판 | 현재 기본값 `rts4-710c8ba0d79a776a`에서 `isolate`의 이 소속을 Linux container isolation(`t245.2`)으로, `tenant isolation`의 소속을 Tenant organization isolation(`t813.1`)으로 옮겼다. `isolate`와 `namespace`가 붙인 관련어 `unshare`도 `t245.2`로 옮겼다. `unshare`, `isolate`, `tenant isolation`에 XML parsing 뜻이 나오지 않는다 |
+| 고친 판 | 현재 기본값 `rts4-301d57d419380d08`에서 `isolate`의 이 소속을 Linux container isolation(`t245.2`)으로, `tenant isolation`의 소속을 Tenant organization isolation(`t813.1`)으로 옮겼다. `isolate`와 `namespace`가 붙인 관련어 `unshare`도 `t245.2`로 옮겼다. `unshare`, `isolate`, `tenant isolation`에 XML parsing 뜻이 나오지 않는다 |
 
 ### K2. 주제의 분야가 틀림
 
@@ -52,7 +52,7 @@
 | 현재 상태 | 분야가 `databases-storage` 하나뿐이다. 이 주제의 개념은 5793 `팀 협업 서비스`, 6418 `Slack message attachment`, 6421 `chat bot`, 6424 `direct message`, 6425 `user mention`, 6434 `link preview`다 |
 | 영향 | 이 개념에 속한 단어를 조회하면 팀 협업 뜻이 `databases-storage` 분야로 표시된다 |
 | 관련 항목 | [M](#m-빠졌을-수-있는-뜻)의 `messaging` 제안은 이 주제를 대상으로 한다 |
-| 고친 판 | 재분류 판 `rts4-0fb3d5bc20c215ba`부터 이 주제의 분야는 `docs-collaboration`이다. 현재 기본값 `rts4-710c8ba0d79a776a`에도 들어 있다. 위의 현재 상태는 `rts4-86c5620af1f181ce`까지의 상태다([작업 이력 6단계](sense-mapping-log/06-reclassification.md)) |
+| 고친 판 | 재분류 판 `rts4-0fb3d5bc20c215ba`부터 이 주제의 분야는 `docs-collaboration`이다. 현재 기본값 `rts4-301d57d419380d08`에도 들어 있다. 위의 현재 상태는 `rts4-86c5620af1f181ce`까지의 상태다([작업 이력 6단계](sense-mapping-log/06-reclassification.md)) |
 
 ### K3. 관련어가 다른 뜻 아래 표시됨
 
@@ -61,7 +61,7 @@
 | 대상 | `execution`의 persona 11311. 개념 1036 `invocation`, 주제 `t89.1` Server route handlers(분야 `web-backend`)에 속한다 |
 | 현재 상태 | 일반 실행 관련어 16개가 이 persona에 붙어 있다: `exec`, `run`, `runs`, `invocation`, `executioncontext`, `executionorder`, `executionflow`, `executionresult`, `executiontrace`, `exitstatus`, `jobrun`, `testrun`, `sandbox`, `entrypoint`, `permissions`, `trace`. `execution`에는 일반 프로그램 실행을 뜻하는 개념이 없다 |
 | 조회 결과 | `execution`을 조회하면 위 관련어가 `web-backend` 뜻 아래 나온다 |
-| 고친 판 | 현재 기본값 `rts4-710c8ba0d79a776a`에서 이 persona를 Execution wording(`t203.2`, `general-wording`)으로 옮겼다. 위 관련어가 첫 뜻 Execution wording 아래 나온다 |
+| 고친 판 | 현재 기본값 `rts4-301d57d419380d08`에서 이 persona를 Execution wording(`t203.2`, `general-wording`)으로 옮겼다. 위 관련어가 첫 뜻 Execution wording 아래 나온다 |
 
 ### K4. 의심스러운 소속: `idx`, `idxs`
 
@@ -71,7 +71,7 @@
 | 현재 상태 | `idx`와 `idxs`가 이 개념의 구성원이다. 같은 개념에 `nth`, `ordinal`, `day`, `pluralrules` 등이 있다 |
 | 조회 결과 | `idx`를 조회하면 Plural form selection 뜻 아래 `subscript`, `ordinal`, `array index`, `database index`, `getIndex`가 나온다 |
 | 판정 상태 | 의미 검토에서 한 명만 문제를 지적해 고치지 않았다 |
-| 고친 판 | 현재 기본값 `rts4-710c8ba0d79a776a`에서 Claude Sonnet 5.5가 틀린 소속으로 판정해, 두 단어의 이 소속을 Indexed element access(`t684`)로 옮겼다. Plural form selection 뜻이 나오지 않는다 |
+| 고친 판 | 현재 기본값 `rts4-301d57d419380d08`에서 Claude Sonnet 5.5가 틀린 소속으로 판정해, 두 단어의 이 소속을 Indexed element access(`t684`)로 옮겼다. Plural form selection 뜻이 나오지 않는다 |
 
 ### K5. 의심스러운 소속: `multinode`
 
@@ -81,7 +81,7 @@
 | 코드 용례 | 12개 저장소의 용례 5곳은 모두 여러 서버·클러스터 노드라는 뜻이다. vector Kubernetes 테스트의 `MULTINODE` 환경 변수, vector 릴리스 기록과 RFC, keycloak 캐싱 문서, redis 클러스터 테스트다. 그래프·트리·DOM 노드 뜻의 용례는 찾지 못했다 |
 | 조회 결과 | 뜻 19개가 나온다. 클러스터 뜻(Kubernetes pod·manifest, host, Redis Cluster)은 4개이고, 나머지는 그래프·트리·AST·연결 리스트·리치 텍스트 편집기 같은 구조 뜻이다 |
 | 판정 상태 | 구조 노드 뜻(예: 여러 노드 선택)이 성립하는지 판정하지 못해 고치지 않았다 |
-| 고친 판 | 현재 기본값 `rts4-710c8ba0d79a776a`에서 Claude Sonnet 5.5가 own 4개를 모두 틀린 소속으로 판정해 Runtime host nodes(`t662.1`)로 옮겼다. 첫 뜻이 Runtime host nodes이고 뜻은 15개다. 다른 단어를 거쳐 오는 구조 뜻(Linked list traversal, AST visitors 등)은 판정하지 않아 남아 있다 |
+| 고친 판 | 현재 기본값 `rts4-301d57d419380d08`에서 Claude Sonnet 5.5가 own 4개를 모두 틀린 소속으로 판정해 Runtime host nodes(`t662.1`)로 옮겼다. 첫 뜻이 Runtime host nodes이고 뜻은 15개다. 다른 단어를 거쳐 오는 구조 뜻(Linked list traversal, AST visitors 등)은 판정하지 않아 남아 있다 |
 
 ### K6. 판정하지 못한 소속: `sourced`, `specs`
 
@@ -90,7 +90,7 @@
 | `sourced` | own 809 `interpreter`(`t254.1` Bytecode interpretation) | 셸 `source` 명령으로 실행된 스크립트라는 뜻이면 성립할 수 있다. 소스 코드라는 뜻과 구별할 근거가 부족하다 |
 | `specs` | own 1079 `filter`(`t286.1` Log ingestion pipelines) | 이 소속의 근거가 불명확하지만, 대신 넣을 개념이 없어 지우면 뜻이 사라진다 |
 
-현재 기본값 `rts4-710c8ba0d79a776a`에서 Claude Sonnet 5.5가 `sourced`의 두 소속은 맞다고 판정해 그대로 두었다. `specs`의 소속은 틀렸다고 판정해 Technical specifications(`t741.2`)로 옮겼다.
+현재 기본값 `rts4-301d57d419380d08`에서 Claude Sonnet 5.5가 `sourced`의 두 소속은 맞다고 판정해 그대로 두었다. `specs`의 소속은 틀렸다고 판정해 Technical specifications(`t741.2`)로 옮겼다.
 
 ### K7. 표제어 표기가 바뀜
 
