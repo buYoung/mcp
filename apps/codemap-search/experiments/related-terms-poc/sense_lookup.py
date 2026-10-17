@@ -36,8 +36,9 @@ from reviewed_relations import INPUT_RELATIONS_SCHEMA, SUPPORTED_SCHEMAS, valida
 from sense_mapping_schema import MAPPING_SCHEMA, validate_mapping_layout
 
 # rts3-48356e35e1f1ea28 in the rt-sense/4 layout plus topics mapped by review to words with a single field, then
-# topics re-classified (fields, merges, moves) and topics added by review; earlier versions stay next to it under datasets/
-DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts4-e5083ab344e1336d/dataset.sqlite3"
+# topics re-classified (fields, merges, moves) and topics added by review, then wrong senses fixed by moving or
+# detaching related words and missing senses mapped by review; earlier versions stay next to it under datasets/
+DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts4-710c8ba0d79a776a/dataset.sqlite3"
 SCHEMA = "rt-sense-lookup/2"
 SENSE_SCHEMA = "rt-sense/2"
 READABLE_SCHEMAS = (*SUPPORTED_SCHEMAS, MAPPING_SCHEMA)
@@ -414,7 +415,7 @@ def lookup(query, matches, index, is_direct_included=True, is_reverse_included=F
 RINGS = (("direct", "직접 관계어"), ("near", "가까운 연관어"), ("same_topic", "같은 주제"))
 UNSORTED_LABEL = "뜻 미배정 직접 관계어"
 TEXT_EPILOG = """텍스트 출력: 입력 해석, 뜻 미배정 직접 관계어(주로 같은 단어의 다른 표기), 그다음 뜻마다 직접 관계어 · 가까운 연관어 · 같은 주제.
-한 번 실행한 결과 안에서 같은 단어는 처음 나온 곳에만 쓴다. 괄호 안은 그 단어들을 낸 입력 단어다.
+한 번 실행한 결과 안에서 같은 단어는 처음 나온 곳에만 쓴다. 관련어가 하나도 없는 뜻은 제목만 쓴다. 괄호 안은 그 단어들을 낸 입력 단어다.
 인자 하나가 입력 하나다. 여러 단어로 된 표현은 따옴표로 묶는다. 사전에 그 표현이 없으면 단어별로 나눠 찾는다."""
 
 
@@ -457,7 +458,8 @@ def call_blocks(results):
 def render_text(results):
     """One call: how each input was read, then every group of the call once.
 
-    A word is written once per call, in the first group that reaches it, and a group with nothing left is not written.
+    A word is written once per call, in the first group that reaches it, and a group left empty by repeats is not
+    written. A sense with no related word at all is written as its heading alone, so its field and topic still show.
     Every candidate of every input is still written; only repeats and empty lines are gone.
     """
     shown = {word_key(r["input"]) for r in results} | {word_key(t) for r in results for s in r["resolution"]["seeds"] for t in s["terms"]}
@@ -474,6 +476,8 @@ def render_text(results):
         rows = [(title, fresh(block[ring])) for ring, title in RINGS]
         rows = [(title, words) for title, words in rows if words]
         if not rows:
+            if block["label"] != UNSORTED_LABEL and not any(block[ring] for ring, _ in RINGS):
+                body.append(f'## {block["label"]}{spans}')
             continue
         total += sum(len(words) for _, words in rows)
         if block["label"] == UNSORTED_LABEL:

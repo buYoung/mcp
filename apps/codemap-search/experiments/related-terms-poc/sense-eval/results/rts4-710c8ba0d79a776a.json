@@ -1,0 +1,5677 @@
+{
+ "sense_dataset": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search/experiments/related-terms-poc/datasets/rts4-710c8ba0d79a776a/dataset.sqlite3",
+ "summary": {
+  "all": {
+   "words": 224,
+   "hit": 86.2,
+   "main_hit": 79.0,
+   "top_hit": 71.0,
+   "no_answer": 0,
+   "median_senses": 2.0,
+   "median_fields": 1.0,
+   "median_candidates": 130.0,
+   "mean_candidates": 217.0
+  },
+  "target": {
+   "words": 113,
+   "hit": 93.8,
+   "main_hit": 84.1,
+   "top_hit": 87.6,
+   "no_answer": 0,
+   "median_senses": 2,
+   "median_fields": 1,
+   "median_candidates": 93,
+   "mean_candidates": 105.7
+  },
+  "multi": {
+   "words": 65,
+   "hit": 87.7,
+   "main_hit": 84.6,
+   "top_hit": 55.4,
+   "no_answer": 0,
+   "median_senses": 9,
+   "median_fields": 6,
+   "median_candidates": 373,
+   "mean_candidates": 447.8
+  },
+  "input": {
+   "words": 46,
+   "hit": 65.2,
+   "main_hit": 58.7,
+   "top_hit": 52.2,
+   "no_answer": 0,
+   "median_senses": 2.0,
+   "median_fields": 1.0,
+   "median_candidates": 83.0,
+   "mean_candidates": 164.1
+  }
+ },
+ "words": [
+  {
+   "id": "bitwarden-server-001",
+   "word": "password manager",
+   "group": "target",
+   "expected_fields": [
+    "security",
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security",
+    "security",
+    "security"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 110,
+   "answer_sha256": "f2ee0909d2a30def714ea16a5e8b37a61df2f228350a57446888aa2a223f72e1"
+  },
+  {
+   "id": "bitwarden-server-002",
+   "word": "invoice",
+   "group": "target",
+   "expected_fields": [
+    "business-domains"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains",
+    "business-domains",
+    "business-domains",
+    "business-domains",
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 1,
+   "candidates": 330,
+   "answer_sha256": "c50c841ef73055a2d10fbcfb3c9b2cbee5656d98a12cc0fcdc094c3f11a6001a"
+  },
+  {
+   "id": "bitwarden-server-003",
+   "word": "get user",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity",
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 174,
+   "answer_sha256": "9cda54ced3c1a2ff0c4f9a81b472878ee0da6839f15c5e6411c3fe26a8919aba"
+  },
+  {
+   "id": "bitwarden-server-004",
+   "word": "sql connection",
+   "group": "target",
+   "expected_fields": [
+    "databases-storage"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "databases-storage",
+    "databases-storage",
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 83,
+   "answer_sha256": "5b2c604b053e7c3242de487f422fa274bbb5c0430ecef2e819636eafc63bbd9c"
+  },
+  {
+   "id": "bitwarden-server-005",
+   "word": "view result",
+   "group": "target",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 14,
+   "answer_sha256": "8d2db3fbd4de387cff38b178781cd026bc1cbbbf8ad19f9551e6736250f27467"
+  },
+  {
+   "id": "bitwarden-server-007",
+   "word": "payment source",
+   "group": "target",
+   "expected_fields": [
+    "business-domains"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 83,
+   "answer_sha256": "776bc05b4f10886a8ad9ddcf0dad32e7a34ae6562e0546a2a0580712b10d1dc7"
+  },
+  {
+   "id": "bitwarden-server-008",
+   "word": "payment method",
+   "group": "target",
+   "expected_fields": [
+    "business-domains"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains",
+    "business-domains",
+    "business-domains",
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 1,
+   "candidates": 244,
+   "answer_sha256": "0b955323cf0da19ee55baf20fa1b924c8189f805ce60c209d0c6ed563c57cd55"
+  },
+  {
+   "id": "bitwarden-server-009",
+   "word": "commercial",
+   "group": "target",
+   "expected_fields": [
+    "business-domains",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 4,
+   "answer_sha256": "4ddd1eda56c60021b6f5863f466c904a2d4d247892f663028dc29f81c0d4dbb9"
+  },
+  {
+   "id": "bitwarden-server-010",
+   "word": "fido 2",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 95,
+   "answer_sha256": "c287127d00daabec173c41b31307d640bd4b7f76c0a1079e20690d32a9beb382"
+  },
+  {
+   "id": "bitwarden-server-012",
+   "word": "prefix",
+   "group": "multi",
+   "expected_fields": [
+    "text-processing",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "text-processing",
+    "algorithms-data-structures",
+    "web-styling",
+    "build-release",
+    "networking",
+    "cloud-infrastructure",
+    "data-formats",
+    "languages-compilers",
+    "web-backend",
+    "language-constructs",
+    "files-io",
+    "algorithms-data-structures",
+    "editors-ide"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 13,
+   "fields": 12,
+   "candidates": 331,
+   "answer_sha256": "010e1a07eb5136eb3a81f31eee5008e3f10fca3f622a31e22dfef9f389ae7e6b"
+  },
+  {
+   "id": "bitwarden-server-013",
+   "word": "login",
+   "group": "multi",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "security",
+    "auth-identity",
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 7,
+   "fields": 3,
+   "candidates": 319,
+   "answer_sha256": "3df58711581b04a499a1bbcef262a8486c4def8e9581efcf81a1d96498d27888"
+  },
+  {
+   "id": "bitwarden-server-016",
+   "word": "admin",
+   "group": "multi",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity",
+    "security",
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 2,
+   "candidates": 153,
+   "answer_sha256": "8a85f5a2d7972b98ce8527662dfb8a8db77ba6158b0ed83f6454ec3cc521b182"
+  },
+  {
+   "id": "bitwarden-server-017",
+   "word": "asia",
+   "group": "input",
+   "expected_fields": [
+    "time-locale",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "cloud-infrastructure"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 50,
+   "answer_sha256": "2077d420b298281693db6927c0ce3a028b1d13cf5e3e4a013884e6c49bd211e9"
+  },
+  {
+   "id": "bitwarden-server-018",
+   "word": "access policies",
+   "group": "input",
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "security",
+    "security"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 156,
+   "answer_sha256": "d84848877c8167b573097e964a82217a3f642c557103168c83af90c5b6626e30"
+  },
+  {
+   "id": "bitwarden-server-019",
+   "word": "reset password",
+   "group": "input",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "security",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 3,
+   "candidates": 92,
+   "answer_sha256": "08b199d6a98ea47112b6c063feb557ac573dc9465a2437e3eb199c5fc6404778"
+  },
+  {
+   "id": "bitwarden-server-020",
+   "word": "organization repository",
+   "group": "input",
+   "expected_fields": [
+    "databases-storage",
+    "software-design"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 35,
+   "answer_sha256": "f21770910dbfc5463ac31b943de242f15ec25e37ca659a75f7cf39df1b7ed99c"
+  },
+  {
+   "id": "express-021",
+   "word": "jsonp",
+   "group": "target",
+   "expected_fields": [
+    "web-backend",
+    "data-formats",
+    "browser-platform"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security",
+    "browser-platform"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 109,
+   "answer_sha256": "aa88e540d5712aaf89297317bfd3b2f2ca303fefc4862435a37fa2736a8f6823"
+  },
+  {
+   "id": "express-022",
+   "word": "dirname",
+   "group": "target",
+   "expected_fields": [
+    "files-io"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "files-io",
+    "files-io",
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 193,
+   "answer_sha256": "dc925b1d18aa9a7f85a7b3549c8c3f82b79b88d58284907a28e3d90625e1eea0"
+  },
+  {
+   "id": "express-023",
+   "word": "escape html",
+   "group": "target",
+   "expected_fields": [
+    "text-processing",
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security",
+    "text-processing"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 102,
+   "answer_sha256": "f7d8fc362d022b26bab53c36cb8d14426a3e4f264b167e91d5786df145db2f2b"
+  },
+  {
+   "id": "express-025",
+   "word": "disposition",
+   "group": "target",
+   "expected_fields": [
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "browser-platform",
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 93,
+   "answer_sha256": "bf768a1727727caa0fe3524f663df97510942e1d83791cf87a6400ae6b4f3b9d"
+  },
+  {
+   "id": "express-026",
+   "word": "create error",
+   "group": "target",
+   "expected_fields": [
+    "error-handling",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "error-handling"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 44,
+   "answer_sha256": "cd267cf1c55a2eb41c077cdc2f8a46e2f60a7558fbb71bc487e0fe0745359c04"
+  },
+  {
+   "id": "express-027",
+   "word": "deprecate",
+   "group": "target",
+   "expected_fields": [
+    "build-release",
+    "software-design"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "build-release",
+    "build-release"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 102,
+   "answer_sha256": "648651a09df4f43df42a0c0fcbb135badea6ec0758df2d7f9c36395d97e458b7"
+  },
+  {
+   "id": "express-028",
+   "word": "finalhandler",
+   "group": "target",
+   "expected_fields": [
+    "web-backend",
+    "error-handling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 131,
+   "answer_sha256": "48cc8d7f1fe3f7aaa5224e85c06c665280a3c161ab796d0cd76f71b2bc8c0c97"
+  },
+  {
+   "id": "express-029",
+   "word": "sess",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 76,
+   "answer_sha256": "293134769ad03bea3617422787437768210747f589dfcb55c9a3f7325e6c5c58"
+  },
+  {
+   "id": "express-030",
+   "word": "single",
+   "group": "target",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 48,
+   "answer_sha256": "0be218362ec0e1713354612fda208673e3b4e19c2e8459563a1fc3f2d9383cea"
+  },
+  {
+   "id": "express-031",
+   "word": "querystring",
+   "group": "multi",
+   "expected_fields": [
+    "web-backend",
+    "browser-platform"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "web-backend",
+    "databases-storage",
+    "databases-storage",
+    "web-backend",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 6,
+   "fields": 3,
+   "candidates": 201,
+   "answer_sha256": "c5b984f7a4263c30e00cff22f799a3b66a4c30b7a623f99bfb98692512e397a5"
+  },
+  {
+   "id": "express-032",
+   "word": "compile",
+   "group": "multi",
+   "expected_fields": [
+    "languages-compilers",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "text-processing",
+    "build-release",
+    "languages-compilers",
+    "languages-compilers",
+    "languages-compilers",
+    "mobile-desktop",
+    "languages-compilers",
+    "languages-compilers",
+    "graphics-media",
+    "configuration",
+    "web-backend",
+    "build-release",
+    "security",
+    "docs-collaboration",
+    "ml-ai",
+    "ml-ai"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 3,
+   "senses": 16,
+   "fields": 10,
+   "candidates": 550,
+   "answer_sha256": "2e557babc01123b2514b369ec71758d5d94c0aba6845d171f637397f49319139"
+  },
+  {
+   "id": "express-033",
+   "word": "define",
+   "group": "multi",
+   "expected_fields": [
+    "language-constructs"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "languages-compilers",
+    "general-wording",
+    "languages-compilers",
+    "languages-compilers",
+    "web-backend",
+    "text-processing"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 6,
+   "fields": 4,
+   "candidates": 203,
+   "answer_sha256": "9aba9cc60ccefa73b7518cb363e511aa99183bcabeac44b8fcccb4d87657db6c"
+  },
+  {
+   "id": "express-034",
+   "word": "lookup",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording",
+    "files-io",
+    "algorithms-data-structures"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "algorithms-data-structures",
+    "networking",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "language-constructs",
+    "databases-storage",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "auth-identity",
+    "general-wording",
+    "software-design",
+    "databases-storage",
+    "language-constructs",
+    "languages-compilers",
+    "files-io",
+    "files-io",
+    "web-backend",
+    "algorithms-data-structures"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 18,
+   "fields": 10,
+   "candidates": 870,
+   "answer_sha256": "9a0485d5d4a3cb275b9f7a0e81bbf9d821ac87235ca05ab63d20e6cc695c6e5e"
+  },
+  {
+   "id": "express-035",
+   "word": "status",
+   "group": "multi",
+   "expected_fields": [
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "cloud-infrastructure",
+    "web-backend",
+    "general-wording",
+    "observability-debugging",
+    "language-constructs",
+    "language-constructs",
+    "os-shell",
+    "version-control",
+    "docs-collaboration",
+    "cloud-infrastructure",
+    "error-handling",
+    "general-wording",
+    "web-backend",
+    "web-backend",
+    "browser-platform",
+    "business-domains",
+    "auth-identity",
+    "web-backend",
+    "business-domains",
+    "concurrency-async",
+    "configuration",
+    "error-handling",
+    "version-control",
+    "docs-collaboration",
+    "files-io",
+    "frontend-ui",
+    "docs-collaboration",
+    "business-domains",
+    "frontend-ui",
+    "business-domains",
+    "version-control",
+    "business-domains",
+    "systems-low-level",
+    "databases-storage",
+    "version-control"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 35,
+   "fields": 18,
+   "candidates": 1268,
+   "answer_sha256": "dcbc365cca572bb156eda9957392c57e9288fb4ab0bdc82ca06e5905b6ad90d8"
+  },
+  {
+   "id": "express-036",
+   "word": "role",
+   "group": "multi",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "docs-collaboration",
+    "auth-identity",
+    "auth-identity",
+    "cloud-infrastructure",
+    "frontend-ui",
+    "auth-identity",
+    "auth-identity",
+    "ml-ai",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "frontend-ui",
+    "auth-identity",
+    "frontend-ui",
+    "frontend-ui",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "frontend-ui",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "software-design",
+    "business-domains",
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 30,
+   "fields": 7,
+   "candidates": 769,
+   "answer_sha256": "c07c8700a46a1e8df520ba7e46c3f1766824feb2b196264d45032c2fcec25128"
+  },
+  {
+   "id": "express-037",
+   "word": "clear cookie",
+   "group": "input",
+   "expected_fields": [
+    "web-backend",
+    "browser-platform",
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 146,
+   "answer_sha256": "e203e570d4a4270374472c6615f547d97a2a0ad5dc8e50c01289de151ddf2ccd"
+  },
+  {
+   "id": "express-038",
+   "word": "method override",
+   "group": "input",
+   "expected_fields": [
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "language-constructs",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 3,
+   "candidates": 103,
+   "answer_sha256": "d22532fd35fbe50a2002aa48313d365105bf1608de69252224bf1070e7ea5838"
+  },
+  {
+   "id": "express-039",
+   "word": "define getter",
+   "group": "input",
+   "expected_fields": [
+    "language-constructs"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "language-constructs"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 132,
+   "answer_sha256": "2ae075fe677f703608c011113a0249ae42e1daaaae2cb9b38fbd8faa418c1d69"
+  },
+  {
+   "id": "express-040",
+   "word": "is ip",
+   "group": "input",
+   "expected_fields": [
+    "networking"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "networking"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 18,
+   "answer_sha256": "e9af19667a30cafb46a6afb891a6e1eb6b7cd175f98cbcf3badaef31b71bfff1"
+  },
+  {
+   "id": "flask-041",
+   "word": "cert",
+   "group": "target",
+   "expected_fields": [
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security",
+    "security"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 141,
+   "answer_sha256": "4eab5cb2c7efc5aa9a57dc2395ae9ed509664babc50ad532e91caf9e29d8c8d4"
+  },
+  {
+   "id": "flask-042",
+   "word": "errors stream",
+   "group": "target",
+   "expected_fields": [
+    "files-io",
+    "observability-debugging",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 23,
+   "answer_sha256": "433aaae6c241ef0421df289438e2e87b070d4a277d37920f76eed7de2743f659"
+  },
+  {
+   "id": "flask-043",
+   "word": "copyright",
+   "group": "target",
+   "expected_fields": [
+    "docs-collaboration"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "docs-collaboration"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 54,
+   "answer_sha256": "8f847da067c1234b1819a0d887e641df6e2f605ed67f6eea122d34a56217842b"
+  },
+  {
+   "id": "flask-044",
+   "word": "logo",
+   "group": "target",
+   "expected_fields": [
+    "graphics-media",
+    "web-styling",
+    "docs-collaboration"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "mobile-desktop",
+    "mobile-desktop"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 11,
+   "answer_sha256": "e95e396ab1b951e571de3fdfb2282b302e9dfb14e60d7f98d6269f8f9d5e3a29"
+  },
+  {
+   "id": "flask-045",
+   "word": "inliner",
+   "group": "target",
+   "expected_fields": [
+    "docs-collaboration",
+    "text-processing"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "docs-collaboration"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 34,
+   "answer_sha256": "7019c481b45ce41b5672fe7d5e0e7015f6300e00c938a1bd45f1e1bd8ce88366"
+  },
+  {
+   "id": "flask-046",
+   "word": "parse args",
+   "group": "target",
+   "expected_fields": [
+    "os-shell"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell",
+    "languages-compilers"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 156,
+   "answer_sha256": "a2813dc53999d5b62e57a7371b7ab3298e0250066c63e9cec02946f026653179"
+  },
+  {
+   "id": "flask-047",
+   "word": "static path",
+   "group": "target",
+   "expected_fields": [
+    "web-backend",
+    "files-io",
+    "docs-collaboration"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "docs-collaboration"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 34,
+   "answer_sha256": "e745ac2f4abdaa7f7e940b268f8fa43633b5a2d0c3d028d5ec892e77bc31ba6c"
+  },
+  {
+   "id": "flask-048",
+   "word": "sorts",
+   "group": "target",
+   "expected_fields": [
+    "algorithms-data-structures"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "algorithms-data-structures",
+    "algorithms-data-structures"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 73,
+   "answer_sha256": "0fd5b67378e13c78fd095f5559b2da6424724cf7c98f9b3adaef68e14276119c"
+  },
+  {
+   "id": "flask-049",
+   "word": "view functions",
+   "group": "target",
+   "expected_fields": [
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 131,
+   "answer_sha256": "18d0cfbd24ba2682af38634124fd0450294e042df60edb7a23e97fa71e561cb8"
+  },
+  {
+   "id": "flask-050",
+   "word": "time",
+   "group": "target",
+   "expected_fields": [
+    "time-locale"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "time-locale",
+    "time-locale",
+    "time-locale",
+    "time-locale",
+    "time-locale"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 1,
+   "candidates": 293,
+   "answer_sha256": "eee638a2dc3a7ba26ac6f66e92c942e3fb2b49a3b1b83993ab83cd307f2a4653"
+  },
+  {
+   "id": "flask-051",
+   "word": "session",
+   "group": "multi",
+   "expected_fields": [
+    "auth-identity",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity",
+    "databases-storage",
+    "databases-storage",
+    "distributed-systems",
+    "web-backend",
+    "auth-identity",
+    "security",
+    "databases-storage",
+    "auth-identity",
+    "os-shell",
+    "auth-identity",
+    "auth-identity",
+    "web-backend",
+    "networking",
+    "os-shell",
+    "frontend-ui",
+    "auth-identity",
+    "databases-storage",
+    "auth-identity",
+    "auth-identity",
+    "databases-storage",
+    "networking",
+    "auth-identity",
+    "networking",
+    "software-design",
+    "time-locale",
+    "web-backend",
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 29,
+   "fields": 11,
+   "candidates": 1138,
+   "answer_sha256": "350533f735dacdaf79e2df8e1a03d389360acc0542c5fd5787e31c75fc999681"
+  },
+  {
+   "id": "flask-052",
+   "word": "base",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "math-numerics",
+    "general-wording",
+    "cloud-infrastructure",
+    "version-control",
+    "files-io",
+    "version-control",
+    "web-styling",
+    "text-processing",
+    "language-constructs",
+    "math-numerics",
+    "general-wording",
+    "distributed-systems",
+    "cloud-infrastructure",
+    "language-constructs",
+    "general-wording",
+    "algorithms-data-structures",
+    "algorithms-data-structures"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 3,
+   "senses": 18,
+   "fields": 10,
+   "candidates": 450,
+   "answer_sha256": "81cd377a1b8b9ee18823b35f58ebf7aa7c354cd4f19c4f4d8f1a49cab0de3d34"
+  },
+  {
+   "id": "flask-053",
+   "word": "attribute",
+   "group": "multi",
+   "expected_fields": [
+    "language-constructs",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "browser-platform",
+    "auth-identity",
+    "language-constructs",
+    "graphics-media",
+    "browser-platform",
+    "software-design",
+    "auth-identity",
+    "data-visualization",
+    "data-engineering",
+    "testing"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 11,
+   "fields": 8,
+   "candidates": 657,
+   "answer_sha256": "ac2f8f73c7883294b6b5ea8c7612369db9cc085ff7733f029367f4a29466e7be"
+  },
+  {
+   "id": "flask-054",
+   "word": "module",
+   "group": "multi",
+   "expected_fields": [
+    "language-constructs"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "languages-compilers",
+    "language-constructs",
+    "software-design",
+    "web-backend",
+    "os-shell",
+    "build-release",
+    "cloud-infrastructure",
+    "software-design",
+    "type-systems",
+    "languages-compilers",
+    "languages-compilers",
+    "languages-compilers",
+    "software-design",
+    "language-constructs",
+    "languages-compilers",
+    "software-design",
+    "build-release",
+    "languages-compilers",
+    "build-release",
+    "languages-compilers",
+    "ml-ai"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 21,
+   "fields": 9,
+   "candidates": 729,
+   "answer_sha256": "44b90ca763461bf6e717fdea1db34ba458b5e2a690852d1dbdacddd1c9a95174"
+  },
+  {
+   "id": "flask-055",
+   "word": "found",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "algorithms-data-structures",
+    "general-wording",
+    "general-wording",
+    "general-wording",
+    "web-backend",
+    "files-io"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 6,
+   "fields": 4,
+   "candidates": 211,
+   "answer_sha256": "960d6dd0c822985a0f5a1c920a504f7e0300768f78f88d83b4e56d0c1f509930"
+  },
+  {
+   "id": "flask-056",
+   "word": "loaders",
+   "group": "multi",
+   "expected_fields": [
+    "web-backend",
+    "files-io",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "software-design",
+    "databases-storage",
+    "build-release",
+    "frontend-ui",
+    "frontend-ui",
+    "configuration",
+    "languages-compilers",
+    "frontend-ui",
+    "systems-low-level"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 10,
+   "fields": 8,
+   "candidates": 498,
+   "answer_sha256": "c7f20b3863a69400e1dc1b7501ddc356bb48ea97e1b96c386f85494ba23131c8"
+  },
+  {
+   "id": "flask-057",
+   "word": "cookie samesite",
+   "group": "input",
+   "expected_fields": [
+    "browser-platform",
+    "security",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 66,
+   "answer_sha256": "805b09afec4e416da509aac68bfe382965754d4ccb38ecf4a4eadd2e6cef6663"
+  },
+  {
+   "id": "flask-058",
+   "word": "get cookie",
+   "group": "input",
+   "expected_fields": [
+    "web-backend",
+    "browser-platform",
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 66,
+   "answer_sha256": "c1b27befedf2faf35bf4cf05cae23d07b971fda55f966a11c2c0d9a19c58f2ee"
+  },
+  {
+   "id": "flask-059",
+   "word": "on update",
+   "group": "input",
+   "expected_fields": [
+    "general-wording",
+    "concurrency-async",
+    "software-design",
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "databases-storage",
+    "frontend-ui",
+    "files-io",
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 4,
+   "fields": 3,
+   "candidates": 140,
+   "answer_sha256": "2929a305430a9633ca73a90d52c9bd41c91810dd0bb2a869d8c955731d167bfb"
+  },
+  {
+   "id": "flask-060",
+   "word": "root path",
+   "group": "input",
+   "expected_fields": [
+    "files-io"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "files-io",
+    "web-backend",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 3,
+   "candidates": 131,
+   "answer_sha256": "4682dbf8bc418288c6b2d8ea12532f5bfe3be2522ceb559462f5ef87cf31bf7e"
+  },
+  {
+   "id": "gin-061",
+   "word": "fly io",
+   "group": "target",
+   "expected_fields": [
+    "cloud-infrastructure"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "cloud-infrastructure"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 83,
+   "answer_sha256": "aff5a6332afb105243e0cdeed234e8dd9f3134718b0bebb1e43544448b9844fa"
+  },
+  {
+   "id": "gin-062",
+   "word": "close notify",
+   "group": "target",
+   "expected_fields": [
+    "web-backend",
+    "networking"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 21,
+   "answer_sha256": "4ab2f0c3b65344acc2768c50b18bb25835f0c73449d02ef8dbf4cbe4d3310a68"
+  },
+  {
+   "id": "gin-063",
+   "word": "gojson",
+   "group": "target",
+   "expected_fields": [
+    "data-formats"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-formats"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 24,
+   "answer_sha256": "cb550e8c3f839067e4bd6b2716e71e129925f70427d3c24e8d15fb821e600e5b"
+  },
+  {
+   "id": "gin-064",
+   "word": "ver",
+   "group": "target",
+   "expected_fields": [
+    "build-release"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "build-release"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 71,
+   "answer_sha256": "a9bcc3986bdb60348ea204fcc155cfd8b45de259e428094b0a838eb19fa7da58"
+  },
+  {
+   "id": "gin-066",
+   "word": "sonic",
+   "group": "target",
+   "expected_fields": [
+    "data-formats"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-formats"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 24,
+   "answer_sha256": "76f7f75cb19b27b597f3b30bcd5322b93f7d3eaafa2d2fd020506dbe85bbfdac"
+  },
+  {
+   "id": "gin-067",
+   "word": "broken pipe",
+   "group": "target",
+   "expected_fields": [
+    "networking",
+    "os-shell",
+    "error-handling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "networking",
+    "os-shell",
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 138,
+   "answer_sha256": "04815d3b6e3789378048bb2ea3f2b8e687b13feb898a0ecf7b5687fa43d8c459"
+  },
+  {
+   "id": "gin-068",
+   "word": "secure json",
+   "group": "target",
+   "expected_fields": [
+    "web-backend",
+    "security",
+    "data-formats"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 2,
+   "answer_sha256": "70823bc1a4e73406a85f485886e4bd4c761a03b5936649cc20cc39a6f712bb06"
+  },
+  {
+   "id": "gin-069",
+   "word": "pointed",
+   "group": "target",
+   "expected_fields": [
+    "systems-low-level",
+    "language-constructs"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "systems-low-level"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 81,
+   "answer_sha256": "fbcda01aaab5d1fa9db455ff3a1651595b2666532929b5d86483bc45b5358569"
+  },
+  {
+   "id": "gin-070",
+   "word": "files",
+   "group": "target",
+   "expected_fields": [
+    "web-backend",
+    "files-io"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "files-io",
+    "files-io"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 129,
+   "answer_sha256": "a538ab62f3e53da3dffb19a227b21422280e9586f4b651a07830468b606ab5ad"
+  },
+  {
+   "id": "gin-071",
+   "word": "core",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording",
+    "software-design"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "languages-compilers",
+    "languages-compilers",
+    "concurrency-async",
+    "observability-debugging",
+    "general-wording",
+    "software-design",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 5,
+   "senses": 7,
+   "fields": 5,
+   "candidates": 209,
+   "answer_sha256": "172f31e776efefe58934fff49381daff9c858f7a93809bd187fcb45104efd85e"
+  },
+  {
+   "id": "gin-072",
+   "word": "loc",
+   "group": "multi",
+   "expected_fields": [
+    "time-locale"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "editors-ide",
+    "algorithms-data-structures",
+    "data-engineering",
+    "time-locale",
+    "testing",
+    "files-io",
+    "time-locale",
+    "data-visualization",
+    "ml-ai"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 4,
+   "senses": 9,
+   "fields": 8,
+   "candidates": 474,
+   "answer_sha256": "d4758c9cb562fcd733071e189e07e8a1aa14325d24999bca92899abe725534c8"
+  },
+  {
+   "id": "gin-073",
+   "word": "tf",
+   "group": "multi",
+   "expected_fields": [
+    "time-locale"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "ml-ai",
+    "cloud-infrastructure",
+    "frontend-ui",
+    "ml-ai"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 4,
+   "fields": 3,
+   "candidates": 176,
+   "answer_sha256": "89eb19a92cb51959e118da66241c941c275764d6b51f88096845a5a34aacf0ac"
+  },
+  {
+   "id": "gin-075",
+   "word": "validate",
+   "group": "multi",
+   "expected_fields": [
+    "error-handling",
+    "data-formats",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "error-handling",
+    "type-systems",
+    "os-shell",
+    "data-formats",
+    "data-formats",
+    "security",
+    "databases-storage",
+    "concurrency-async",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 10,
+   "fields": 9,
+   "candidates": 479,
+   "answer_sha256": "22635d4768d1ea0ae141c44814e471a0f4180cdeeb950a66f68b4bfc6cdc440f"
+  },
+  {
+   "id": "gin-076",
+   "word": "realm",
+   "group": "multi",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity",
+    "docs-collaboration"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 85,
+   "answer_sha256": "ded026d5a400a4c859190e772766fc3173a701081ce8e007860e2c443e89e25a"
+  },
+  {
+   "id": "gin-077",
+   "word": "struct field",
+   "group": "input",
+   "expected_fields": [
+    "language-constructs",
+    "type-systems"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "software-design",
+    "data-formats",
+    "frontend-ui",
+    "data-formats",
+    "data-formats",
+    "data-engineering"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 6,
+   "fields": 4,
+   "candidates": 280,
+   "answer_sha256": "9ff786e1c5a543c68ef0b132666eafb5c37328f077089ff101c5524a15525244"
+  },
+  {
+   "id": "gin-078",
+   "word": "local addr",
+   "group": "input",
+   "expected_fields": [
+    "networking"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "networking",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 141,
+   "answer_sha256": "5e7f6098ef235672a6927f407a54791b15082ef5b55f872f05ae3f9e179bf3d3"
+  },
+  {
+   "id": "gin-079",
+   "word": "resolve address",
+   "group": "input",
+   "expected_fields": [
+    "networking",
+    "configuration"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "languages-compilers"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 28,
+   "answer_sha256": "a01ea44dd4670973bbadbe27ad07bd70372c3aabc225800922cef2139af996dc"
+  },
+  {
+   "id": "gin-080",
+   "word": "node value",
+   "group": "input",
+   "expected_fields": [
+    "algorithms-data-structures",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "browser-platform"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 67,
+   "answer_sha256": "4a142a81d589447a0194b3eb792d1ea68d9463e0306ce40d56173ba53287c9b8"
+  },
+  {
+   "id": "gutenberg-081",
+   "word": "test paths",
+   "group": "target",
+   "expected_fields": [
+    "web-backend",
+    "observability-debugging"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "testing",
+    "testing"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 124,
+   "answer_sha256": "16b2eb0fb4e331b0cfac31c17565c8e12504fe79c4aa5294e6dbb882886511f3"
+  },
+  {
+   "id": "gutenberg-082",
+   "word": "inserter",
+   "group": "target",
+   "expected_fields": [
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 23,
+   "answer_sha256": "398978d111d7d53a4803a40b3698001f23f1f44bdb10f19f4c33358e35511a6a"
+  },
+  {
+   "id": "gutenberg-083",
+   "word": "text transform",
+   "group": "target",
+   "expected_fields": [
+    "web-styling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "text-processing",
+    "web-styling"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 108,
+   "answer_sha256": "bf8fd1fda637ea499874cc818ec99390edb49a11ef27fadb26c3b72637bda1e9"
+  },
+  {
+   "id": "gutenberg-084",
+   "word": "undelimited",
+   "group": "target",
+   "expected_fields": [
+    "text-processing"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "text-processing"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 49,
+   "answer_sha256": "0421998d567edc0402e2a1612a92b78596e65cc9bfdd6117d7b22f3e629891b0"
+  },
+  {
+   "id": "gutenberg-085",
+   "word": "am",
+   "group": "target",
+   "expected_fields": [
+    "time-locale"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "time-locale",
+    "mobile-desktop"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 83,
+   "answer_sha256": "c7d4b4ab79d7e67aba51e82b77fba9cbc8bb74973e5d5b9b89c9a9a5a3d1d26c"
+  },
+  {
+   "id": "gutenberg-086",
+   "word": "on reset",
+   "group": "target",
+   "expected_fields": [
+    "frontend-ui",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 77,
+   "answer_sha256": "34abeeb225df3fec938519d2618e7b4bb6636fc6ff2a517396f2f655496e6e05"
+  },
+  {
+   "id": "gutenberg-088",
+   "word": "featured image",
+   "group": "target",
+   "expected_fields": [
+    "business-domains",
+    "graphics-media"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 15,
+   "answer_sha256": "5d5c984a2ae733b6b8b6df38ca027599a6b4287d7bcf9c58ec961dd31803c1c8"
+  },
+  {
+   "id": "gutenberg-089",
+   "word": "gif",
+   "group": "target",
+   "expected_fields": [
+    "graphics-media"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "graphics-media",
+    "graphics-media"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 181,
+   "answer_sha256": "ef54130ab98e8dba4721a47aec3b5ad4d10ec40f60cc181adc8fe4dbab6a9034"
+  },
+  {
+   "id": "gutenberg-090",
+   "word": "confirm dialog",
+   "group": "target",
+   "expected_fields": [
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 92,
+   "answer_sha256": "e6d33a55a3fa42f89689a90203cd206c1e902e874daff0a9ad53253ad544372a"
+  },
+  {
+   "id": "gutenberg-091",
+   "word": "disabled",
+   "group": "multi",
+   "expected_fields": [
+    "configuration",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "configuration",
+    "general-wording",
+    "frontend-ui",
+    "frontend-ui",
+    "configuration",
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui",
+    "testing",
+    "web-styling"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 11,
+   "fields": 5,
+   "candidates": 405,
+   "answer_sha256": "62288a5e8bbba2723f52918d93b0b4749a111619e0d5c32890180c8794877fc0"
+  },
+  {
+   "id": "gutenberg-092",
+   "word": "handler",
+   "group": "multi",
+   "expected_fields": [
+    "web-backend",
+    "software-design",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "distributed-systems",
+    "concurrency-async",
+    "error-handling",
+    "os-shell",
+    "observability-debugging",
+    "concurrency-async",
+    "concurrency-async",
+    "functional-programming",
+    "concurrency-async",
+    "browser-platform",
+    "web-backend",
+    "distributed-systems",
+    "cloud-infrastructure",
+    "concurrency-async",
+    "software-design",
+    "general-wording",
+    "web-backend",
+    "software-design",
+    "error-handling",
+    "web-backend",
+    "software-design",
+    "systems-low-level",
+    "cloud-infrastructure"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 24,
+   "fields": 12,
+   "candidates": 889,
+   "answer_sha256": "59c70aec740c4607ab0f34a163bf25781bcae7d126d7cb8309238d0e3d8779b9"
+  },
+  {
+   "id": "gutenberg-093",
+   "word": "mobile",
+   "group": "multi",
+   "expected_fields": [
+    "web-styling",
+    "mobile-desktop",
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-styling",
+    "browser-platform",
+    "mobile-desktop",
+    "frontend-ui",
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 5,
+   "candidates": 165,
+   "answer_sha256": "c89d524a35488619c750dad859a956ad3c174280d527e3210ea4f8040724bbdf"
+  },
+  {
+   "id": "gutenberg-094",
+   "word": "link preview",
+   "group": "multi",
+   "expected_fields": [
+    "frontend-ui",
+    "browser-platform"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "docs-collaboration",
+    "security"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 46,
+   "answer_sha256": "3fe3c10f8cec8d11f329b7fa7a845565247f172fbed072ca9bf2afd7582f7087"
+  },
+  {
+   "id": "gutenberg-095",
+   "word": "objects",
+   "group": "multi",
+   "expected_fields": [
+    "language-constructs",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "language-constructs",
+    "systems-low-level",
+    "systems-low-level",
+    "algorithms-data-structures",
+    "cloud-infrastructure",
+    "version-control",
+    "software-design",
+    "languages-compilers",
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 10,
+   "fields": 8,
+   "candidates": 511,
+   "answer_sha256": "b179f7530921b50200aaa9ab3e952932387fbe7c12e87d6c2e53d4637ed551cf"
+  },
+  {
+   "id": "gutenberg-096",
+   "word": "selected",
+   "group": "multi",
+   "expected_fields": [
+    "frontend-ui",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 1,
+   "candidates": 124,
+   "answer_sha256": "ba8fd335ba86154b6838a771a174600d797374721b0dcc4ba6abc043c960829d"
+  },
+  {
+   "id": "gutenberg-097",
+   "word": "breakpoints",
+   "group": "input",
+   "expected_fields": [
+    "web-styling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-styling",
+    "observability-debugging",
+    "observability-debugging",
+    "observability-debugging",
+    "observability-debugging",
+    "observability-debugging",
+    "browser-platform",
+    "language-constructs",
+    "mobile-desktop",
+    "web-styling",
+    "editors-ide",
+    "editors-ide",
+    "editors-ide",
+    "web-styling",
+    "web-styling",
+    "web-styling",
+    "observability-debugging",
+    "languages-compilers",
+    "web-styling",
+    "language-constructs",
+    "databases-storage",
+    "web-styling"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 22,
+   "fields": 8,
+   "candidates": 741,
+   "answer_sha256": "6a7cd25846203f351b2045ac8ce0fefb91463fcbd95556319d2175b5866ae5a1"
+  },
+  {
+   "id": "gutenberg-098",
+   "word": "dismissible",
+   "group": "input",
+   "expected_fields": [
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 48,
+   "answer_sha256": "b4254eb4761b344df2398f449a7015e8374bf8977b4a9250178b2304b88a7fa1"
+  },
+  {
+   "id": "gutenberg-099",
+   "word": "velocity y",
+   "group": "input",
+   "expected_fields": [
+    "frontend-ui",
+    "math-numerics",
+    "graphics-media"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 74,
+   "answer_sha256": "16481780c511523ee6fdb36a281ec1878d949aa3eb3606c9223b68522b8183c6"
+  },
+  {
+   "id": "gutenberg-100",
+   "word": "tone",
+   "group": "input",
+   "expected_fields": [
+    "web-styling",
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "graphics-media",
+    "systems-low-level",
+    "web-styling"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 3,
+   "senses": 3,
+   "fields": 3,
+   "candidates": 118,
+   "answer_sha256": "2073b26d13ec39ffa65bae3fb1c8297839cf3d54e9578eeb5cfcb47ff3a145fc"
+  },
+  {
+   "id": "keycloak-101",
+   "word": "toolbar item",
+   "group": "target",
+   "expected_fields": [
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "mobile-desktop",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 70,
+   "answer_sha256": "3d14f1b1f596a76bd75ccbcc3a2889d9c23b97692a15e1986086c0e83c1f9924"
+  },
+  {
+   "id": "keycloak-102",
+   "word": "elliptic curve",
+   "group": "target",
+   "expected_fields": [
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security",
+    "security"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 115,
+   "answer_sha256": "26387a109b8ab30e6b4fadddea474c1ab3d4ef0c00451b606776e42de164bf5c"
+  },
+  {
+   "id": "keycloak-103",
+   "word": "web authn",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity",
+    "browser-platform"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 115,
+   "answer_sha256": "bdb6d03b04e65923263414e9ebe1fa2a426643b8be6bdc562d0710cb2057796e"
+  },
+  {
+   "id": "keycloak-104",
+   "word": "cache manager",
+   "group": "target",
+   "expected_fields": [
+    "databases-storage"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "databases-storage",
+    "databases-storage",
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 71,
+   "answer_sha256": "314b7367fda7cd84c0ca6d0149c27d4d540ed555c60223a792487843c67fbf3f"
+  },
+  {
+   "id": "keycloak-105",
+   "word": "scim",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity",
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 166,
+   "answer_sha256": "c93b1164b3c285c8e838b58cd92cf244d63a6158b9cb671823fcdb35a18994a5"
+  },
+  {
+   "id": "keycloak-106",
+   "word": "last name",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 65,
+   "answer_sha256": "520feb2e4d33cab1b49fcbbbf6fd7e655e2196f6cd7408de26f528c9587e28b6"
+  },
+  {
+   "id": "keycloak-107",
+   "word": "vct",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 13,
+   "answer_sha256": "c4a4b110c3e135ca420925f6d992cf712c430a04036aefbf00b39fd50737f351"
+  },
+  {
+   "id": "keycloak-108",
+   "word": "big integer",
+   "group": "target",
+   "expected_fields": [
+    "math-numerics"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "math-numerics",
+    "math-numerics",
+    "math-numerics",
+    "math-numerics"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 1,
+   "candidates": 231,
+   "answer_sha256": "d4d023615ad6420ce3416e8b6012f268399e6de9a4308dadd2ff52ce3e2da15e"
+  },
+  {
+   "id": "keycloak-109",
+   "word": "code challenge",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 141,
+   "answer_sha256": "16a0d4eaeed79289850ab5ccbe3444116eda44433290ab564676418bf3c774dc"
+  },
+  {
+   "id": "keycloak-110",
+   "word": "sd jwt",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 62,
+   "answer_sha256": "f6031637fe0ecd787ccedd352e4076f078e2cfa825259c48f49116ec13788d24"
+  },
+  {
+   "id": "keycloak-111",
+   "word": "target",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "build-release",
+    "general-wording",
+    "docs-collaboration",
+    "systems-low-level",
+    "browser-platform",
+    "observability-debugging",
+    "build-release",
+    "build-release",
+    "type-systems",
+    "browser-platform",
+    "mobile-desktop",
+    "observability-debugging",
+    "data-visualization",
+    "languages-compilers",
+    "software-design",
+    "files-io",
+    "algorithms-data-structures",
+    "time-locale",
+    "observability-debugging",
+    "build-release",
+    "data-visualization",
+    "browser-platform"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 3,
+   "senses": 23,
+   "fields": 15,
+   "candidates": 809,
+   "answer_sha256": "80f23250696d6404fa3f98131db2e88fcd718b6e70e0f07c933d81ba52861d1e"
+  },
+  {
+   "id": "keycloak-112",
+   "word": "certificates",
+   "group": "multi",
+   "expected_fields": [
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security",
+    "security",
+    "security",
+    "networking",
+    "security",
+    "mobile-desktop",
+    "security",
+    "auth-identity",
+    "security"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 9,
+   "fields": 4,
+   "candidates": 303,
+   "answer_sha256": "7353b888db28806c6a8ae6241979d88f614ffb5388dfa0c393eccfdc4d8fcac9"
+  },
+  {
+   "id": "keycloak-113",
+   "word": "public",
+   "group": "multi",
+   "expected_fields": [
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "software-design",
+    "error-handling",
+    "frontend-ui",
+    "security",
+    "security"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 5,
+   "senses": 6,
+   "fields": 5,
+   "candidates": 258,
+   "answer_sha256": "d694996f1e66f9ece22ef975cd9d6e2b3ba0ce7ec4f8ac569510d711b6f298e9"
+  },
+  {
+   "id": "keycloak-114",
+   "word": "option",
+   "group": "multi",
+   "expected_fields": [
+    "os-shell",
+    "configuration",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell",
+    "os-shell",
+    "configuration",
+    "type-systems",
+    "functional-programming",
+    "data-visualization",
+    "error-handling",
+    "frontend-ui",
+    "functional-programming",
+    "general-wording",
+    "type-systems",
+    "language-constructs",
+    "configuration",
+    "language-constructs",
+    "language-constructs",
+    "language-constructs",
+    "functional-programming",
+    "algorithms-data-structures",
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 19,
+   "fields": 11,
+   "candidates": 784,
+   "answer_sha256": "ca9bb16ffe9cb57bebdf5954cac6f04a0fa20c07df62cd0a29aafe1f511734ec"
+  },
+  {
+   "id": "keycloak-115",
+   "word": "query params",
+   "group": "multi",
+   "expected_fields": [
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "databases-storage",
+    "web-backend",
+    "frontend-ui",
+    "type-systems"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 4,
+   "candidates": 137,
+   "answer_sha256": "a91dfab535044a1db5f1700001ac04ce8957634a911ac0b64b8199d886c0b356"
+  },
+  {
+   "id": "keycloak-116",
+   "word": "filter",
+   "group": "multi",
+   "expected_fields": [
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "functional-programming",
+    "functional-programming",
+    "databases-storage",
+    "security",
+    "text-processing",
+    "web-backend",
+    "graphics-media",
+    "data-formats",
+    "concurrency-async",
+    "observability-debugging",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "observability-debugging",
+    "language-constructs",
+    "algorithms-data-structures",
+    "text-processing",
+    "databases-storage",
+    "functional-programming",
+    "concurrency-async",
+    "functional-programming",
+    "databases-storage",
+    "algorithms-data-structures",
+    "databases-storage",
+    "functional-programming",
+    "data-engineering",
+    "data-engineering",
+    "language-constructs",
+    "graphics-media",
+    "data-visualization",
+    "auth-identity",
+    "web-backend",
+    "distributed-systems",
+    "type-systems",
+    "text-processing",
+    "functional-programming",
+    "databases-storage",
+    "data-engineering",
+    "databases-storage",
+    "ml-ai",
+    "files-io",
+    "algorithms-data-structures",
+    "general-wording",
+    "web-backend",
+    "data-visualization",
+    "files-io",
+    "web-backend",
+    "databases-storage",
+    "frontend-ui",
+    "observability-debugging",
+    "algorithms-data-structures"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 52,
+   "fields": 20,
+   "candidates": 1730,
+   "answer_sha256": "87c4486a52f8ab4a1afc80b744300b7a53115cecf3fbcc0b304e0e1d7918c061"
+  },
+  {
+   "id": "keycloak-117",
+   "word": "code challenge method",
+   "group": "input",
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 109,
+   "answer_sha256": "37995f10fbd53b3a6cc4346774019abc171d7d98899126fb1a4da0fbd7587261"
+  },
+  {
+   "id": "keycloak-118",
+   "word": "criteria query",
+   "group": "input",
+   "expected_fields": [
+    "databases-storage"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 33,
+   "answer_sha256": "16e0076e4fa4ff73e9df1809d6cd653522e3b6177cefcb17d110151a1e20c86c"
+  },
+  {
+   "id": "keycloak-119",
+   "word": "set selected",
+   "group": "input",
+   "expected_fields": [
+    "frontend-ui",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui",
+    "software-design"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 110,
+   "answer_sha256": "552b87717bedccac0149e842329415b447c0690ac9d1d2f6b42d0e3a1a3af9f1"
+  },
+  {
+   "id": "keycloak-120",
+   "word": "set metadata",
+   "group": "input",
+   "expected_fields": [
+    "general-wording",
+    "language-constructs",
+    "data-formats"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 10,
+   "answer_sha256": "f040e54b7edcb7c59d2ec9f64ff2a0761a06c62fe433b79a9ca78a115f3a242d"
+  },
+  {
+   "id": "redis-121",
+   "word": "set proc title",
+   "group": "target",
+   "expected_fields": [
+    "os-shell"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 45,
+   "answer_sha256": "5b1ded9eb393f421840e5da50a5d9223a8799defca795eee17053886d4bf7871"
+  },
+  {
+   "id": "redis-122",
+   "word": "vsetattr",
+   "group": "target",
+   "expected_fields": [
+    "databases-storage"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "ml-ai",
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 107,
+   "answer_sha256": "77ec2b6e8420ea4371ef6a5284fa020dae627733e13774454bcdaa3dfefadfef"
+  },
+  {
+   "id": "redis-123",
+   "word": "unixtime",
+   "group": "target",
+   "expected_fields": [
+    "time-locale"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "time-locale",
+    "time-locale",
+    "time-locale"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 104,
+   "answer_sha256": "185f1112512709faca452c944b285d6ef0847e67b772954463944bf7407bbb91"
+  },
+  {
+   "id": "redis-125",
+   "word": "vpopcnt",
+   "group": "target",
+   "expected_fields": [
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "systems-low-level"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 51,
+   "answer_sha256": "e63ebd15a3de97865940297478f9ea4ca6a7b4ba5331fec6172412eb73d501ac"
+  },
+  {
+   "id": "redis-126",
+   "word": "unix socket",
+   "group": "target",
+   "expected_fields": [
+    "networking",
+    "os-shell"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "networking",
+    "networking",
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 82,
+   "answer_sha256": "16003b3a4324ff2afb69c550569e83989d697cc3860d0f3b2c59014fc84b82d9"
+  },
+  {
+   "id": "redis-127",
+   "word": "stress",
+   "group": "target",
+   "expected_fields": [
+    "testing",
+    "observability-debugging"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "testing"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 61,
+   "answer_sha256": "3a434e2fb989eb91038a105cc6711cc755e585fc49edbdd68b6f51f66b95e923"
+  },
+  {
+   "id": "redis-128",
+   "word": "serialized",
+   "group": "target",
+   "expected_fields": [
+    "data-formats"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-formats",
+    "data-formats",
+    "data-formats",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 2,
+   "candidates": 174,
+   "answer_sha256": "6dcbc734acec79494b7d6d0b0dac62048d7ec118d1ffd0fea8f0eef189116a0b"
+  },
+  {
+   "id": "redis-129",
+   "word": "tv",
+   "group": "target",
+   "expected_fields": [
+    "time-locale"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "time-locale"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 22,
+   "answer_sha256": "71f9591b86c1f30777e12c596df931cfcd297bbe766fcfa63eb223efc21565c4"
+  },
+  {
+   "id": "redis-130",
+   "word": "listpack",
+   "group": "target",
+   "expected_fields": [
+    "databases-storage",
+    "algorithms-data-structures"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-formats",
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 84,
+   "answer_sha256": "e5afe5b5e26b53198c67d1299b7e78b1db539182504a9fd96ac5f6fd80e03a38"
+  },
+  {
+   "id": "redis-131",
+   "word": "scale",
+   "group": "multi",
+   "expected_fields": [
+    "math-numerics",
+    "ml-ai"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-visualization",
+    "graphics-media",
+    "ml-ai",
+    "graphics-media",
+    "math-numerics",
+    "math-numerics",
+    "math-numerics",
+    "cloud-infrastructure",
+    "data-visualization",
+    "graphics-media",
+    "data-visualization",
+    "web-styling",
+    "frontend-ui",
+    "math-numerics",
+    "math-numerics",
+    "math-numerics",
+    "data-visualization",
+    "cloud-infrastructure"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 3,
+   "senses": 18,
+   "fields": 7,
+   "candidates": 525,
+   "answer_sha256": "617bfaa6f319b2a4d9e63cb78074fd9818134fbac3941278ce2b6d6edaebcb24"
+  },
+  {
+   "id": "redis-132",
+   "word": "failed",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "general-wording",
+    "error-handling",
+    "error-handling",
+    "testing",
+    "general-wording",
+    "general-wording",
+    "testing",
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 8,
+   "fields": 4,
+   "candidates": 311,
+   "answer_sha256": "36d9c216656704c95faf41f2d136682404375369868e424cd12fca3958438b6e"
+  },
+  {
+   "id": "redis-133",
+   "word": "reserve",
+   "group": "multi",
+   "expected_fields": [
+    "algorithms-data-structures",
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "systems-low-level",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "business-domains",
+    "languages-compilers",
+    "algorithms-data-structures",
+    "algorithms-data-structures"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 7,
+   "fields": 4,
+   "candidates": 214,
+   "answer_sha256": "80aa117f44ade80b5138990fe66ce47567263e7d68f6c561720eadc6add931cb"
+  },
+  {
+   "id": "redis-134",
+   "word": "change",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "general-wording",
+    "build-release",
+    "concurrency-async",
+    "browser-platform",
+    "version-control",
+    "general-wording",
+    "data-engineering",
+    "web-styling",
+    "files-io"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 9,
+   "fields": 8,
+   "candidates": 298,
+   "answer_sha256": "843540b071201cc2c5c3bc40745b0a23e1434783e16faeff63e3753415f2c1d2"
+  },
+  {
+   "id": "redis-135",
+   "word": "skip",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording",
+    "algorithms-data-structures"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "testing",
+    "type-systems",
+    "general-wording",
+    "testing",
+    "files-io",
+    "testing",
+    "testing",
+    "version-control",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 4,
+   "senses": 10,
+   "fields": 6,
+   "candidates": 412,
+   "answer_sha256": "78da079743008e3c258bd76e94ab147f85e8c9ef081737f4d6916687c18c92df"
+  },
+  {
+   "id": "redis-136",
+   "word": "drain",
+   "group": "multi",
+   "expected_fields": [
+    "concurrency-async"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "files-io",
+    "os-shell",
+    "cloud-infrastructure",
+    "distributed-systems",
+    "os-shell",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 6,
+   "senses": 6,
+   "fields": 5,
+   "candidates": 286,
+   "answer_sha256": "1f88cbd985e2324260dfde7fd4bdec7facd7f7a7956f13acbfb48a22a79df3a3"
+  },
+  {
+   "id": "redis-137",
+   "word": "signal handlers",
+   "group": "input",
+   "expected_fields": [
+    "os-shell"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell",
+    "observability-debugging",
+    "systems-low-level",
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 3,
+   "candidates": 219,
+   "answer_sha256": "91cd2321906100966fc5806836eb8491477d0715afe7604f3e723e2fa060745b"
+  },
+  {
+   "id": "redis-139",
+   "word": "offsets",
+   "group": "input",
+   "expected_fields": [
+    "algorithms-data-structures",
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "editors-ide",
+    "distributed-systems",
+    "algorithms-data-structures",
+    "systems-low-level",
+    "browser-platform",
+    "web-backend",
+    "files-io",
+    "time-locale",
+    "systems-low-level",
+    "testing",
+    "systems-low-level",
+    "data-engineering",
+    "distributed-systems",
+    "text-processing",
+    "frontend-ui",
+    "files-io",
+    "web-styling",
+    "algorithms-data-structures",
+    "systems-low-level",
+    "databases-storage",
+    "systems-low-level",
+    "data-engineering",
+    "graphics-media",
+    "systems-low-level",
+    "algorithms-data-structures",
+    "web-styling",
+    "databases-storage",
+    "distributed-systems",
+    "web-styling",
+    "languages-compilers",
+    "text-processing",
+    "databases-storage",
+    "version-control",
+    "time-locale",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 3,
+   "senses": 35,
+   "fields": 18,
+   "candidates": 1216,
+   "answer_sha256": "a823ae17e8693c7b8d3f60567ffa8816291904c2d9782940079811a75d04f930"
+  },
+  {
+   "id": "redis-140",
+   "word": "get node",
+   "group": "input",
+   "expected_fields": [
+    "algorithms-data-structures",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "graphics-media"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 9,
+   "answer_sha256": "bf0ea2b11e670cdbfd6bae706ad3661d4a9bbc33be531d7366b4986f6a60c62e"
+  },
+  {
+   "id": "sentry-141",
+   "word": "stringified",
+   "group": "target",
+   "expected_fields": [
+    "text-processing",
+    "data-formats",
+    "language-constructs"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-formats",
+    "data-formats"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 106,
+   "answer_sha256": "891bdbb5f6f389684c001dc5eff3795cc23b4e985aa32b58f0a4dd8c0888bae6"
+  },
+  {
+   "id": "sentry-142",
+   "word": "seer",
+   "group": "target",
+   "expected_fields": [
+    "ml-ai",
+    "observability-debugging"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "observability-debugging"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 45,
+   "answer_sha256": "ff1bd6fa5fdf1b78b6ef49f862c0a5dbc6d1ac677507a4a4c8223ad5ab415735"
+  },
+  {
+   "id": "sentry-143",
+   "word": "has role",
+   "group": "target",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "auth-identity",
+    "auth-identity"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 161,
+   "answer_sha256": "8bd31bb9633d6d66c627497e7a32830c7e6e85870f9148e6a4f5568defb42169"
+  },
+  {
+   "id": "sentry-144",
+   "word": "billing cycle",
+   "group": "target",
+   "expected_fields": [
+    "business-domains"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains",
+    "time-locale"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 143,
+   "answer_sha256": "b1eb1715339b75089f28ebe53ae5954bedb9e86f0091e2d5392b7b210e08020a"
+  },
+  {
+   "id": "sentry-145",
+   "word": "unit test",
+   "group": "target",
+   "expected_fields": [
+    "testing"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "testing",
+    "testing",
+    "testing",
+    "testing"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 1,
+   "candidates": 348,
+   "answer_sha256": "2b210b020c4e92f8eeb6707b71b185e6f1745dc228f668d5452161b5c9938b4f"
+  },
+  {
+   "id": "sentry-147",
+   "word": "search bar",
+   "group": "target",
+   "expected_fields": [
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 128,
+   "answer_sha256": "0b8b0293cdbd375c19aad58fc57300ed34a4f264a5e366396b8ec8b53a8cad87"
+  },
+  {
+   "id": "sentry-148",
+   "word": "bigtable",
+   "group": "target",
+   "expected_fields": [
+    "databases-storage",
+    "cloud-infrastructure"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "databases-storage",
+    "cloud-infrastructure"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 76,
+   "answer_sha256": "d091598943cf59420ab9d138b537d970b52c621a1937194207b056352821783e"
+  },
+  {
+   "id": "sentry-149",
+   "word": "ms",
+   "group": "target",
+   "expected_fields": [
+    "time-locale"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "time-locale",
+    "time-locale"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 156,
+   "answer_sha256": "fecdaded3809d6a85d5d2676e291c247a7ca67a306ac026b39bcb185f149614b"
+  },
+  {
+   "id": "sentry-150",
+   "word": "component template",
+   "group": "target",
+   "expected_fields": [
+    "frontend-ui",
+    "time-locale",
+    "text-processing"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "databases-storage"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 5,
+   "answer_sha256": "8bdd5a7a67ca7184a37f7165c55a5a1cd219f67fc11b2f7b77691a36df832160"
+  },
+  {
+   "id": "sentry-151",
+   "word": "query builder",
+   "group": "multi",
+   "expected_fields": [
+    "frontend-ui",
+    "databases-storage"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "databases-storage",
+    "software-design",
+    "databases-storage",
+    "databases-storage",
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 2,
+   "candidates": 174,
+   "answer_sha256": "4488f5157e0ab7d41ff01b974cbee75539929a3d04510cc13274079978dc28ae"
+  },
+  {
+   "id": "sentry-153",
+   "word": "name",
+   "group": "multi",
+   "expected_fields": [
+    "language-constructs",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "text-processing",
+    "languages-compilers",
+    "auth-identity",
+    "frontend-ui",
+    "databases-storage",
+    "language-constructs",
+    "web-backend",
+    "observability-debugging",
+    "networking",
+    "web-backend",
+    "frontend-ui",
+    "frontend-ui",
+    "build-release",
+    "algorithms-data-structures",
+    "files-io",
+    "frontend-ui",
+    "language-constructs",
+    "editors-ide",
+    "languages-compilers",
+    "text-processing",
+    "cloud-infrastructure",
+    "language-constructs",
+    "error-handling",
+    "software-design",
+    "languages-compilers",
+    "files-io",
+    "cloud-infrastructure",
+    "build-release",
+    "browser-platform",
+    "browser-platform"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 6,
+   "senses": 30,
+   "fields": 17,
+   "candidates": 1318,
+   "answer_sha256": "ca3c7c92f98a7b8093a60d6956f8e309620a8c9c6679154edef33d9875e4209f"
+  },
+  {
+   "id": "sentry-154",
+   "word": "export",
+   "group": "multi",
+   "expected_fields": [
+    "data-formats",
+    "files-io",
+    "business-domains"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-formats",
+    "languages-compilers",
+    "data-formats",
+    "mobile-desktop",
+    "language-constructs",
+    "configuration",
+    "os-shell",
+    "language-constructs",
+    "databases-storage",
+    "configuration",
+    "software-design",
+    "type-systems",
+    "data-formats"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 13,
+   "fields": 9,
+   "candidates": 441,
+   "answer_sha256": "a533d9578035e79b5786f280b15e9ab391da14d90582f306f22084a888265efc"
+  },
+  {
+   "id": "sentry-155",
+   "word": "csp",
+   "group": "multi",
+   "expected_fields": [
+    "security",
+    "browser-platform"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security",
+    "security",
+    "concurrency-async",
+    "algorithms-data-structures",
+    "security",
+    "auth-identity",
+    "browser-platform",
+    "security"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 8,
+   "fields": 5,
+   "candidates": 299,
+   "answer_sha256": "0fc0a8dc508097d990752edef0ef7f78338fb8a6df840dec6d967780c8eddf72"
+  },
+  {
+   "id": "sentry-156",
+   "word": "link",
+   "group": "multi",
+   "expected_fields": [
+    "browser-platform",
+    "auth-identity",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "docs-collaboration",
+    "files-io",
+    "browser-platform",
+    "algorithms-data-structures",
+    "editors-ide",
+    "docs-collaboration",
+    "languages-compilers",
+    "web-backend",
+    "frontend-ui",
+    "general-wording",
+    "docs-collaboration",
+    "docs-collaboration",
+    "frontend-ui",
+    "docs-collaboration",
+    "data-visualization",
+    "graphics-media",
+    "mobile-desktop"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 3,
+   "senses": 17,
+   "fields": 12,
+   "candidates": 529,
+   "answer_sha256": "629c06092e6f754bcf3991f608beffbc0afb61bf9ce0d69baaecf6cfe81bc3bf"
+  },
+  {
+   "id": "sentry-157",
+   "word": "portal target",
+   "group": "input",
+   "expected_fields": [
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "browser-platform"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 67,
+   "answer_sha256": "456dddf2fcbe742239e6ac298d6c53642387cb0acf23756a19ca2907407f1403"
+  },
+  {
+   "id": "sentry-158",
+   "word": "operators",
+   "group": "input",
+   "expected_fields": [
+    "language-constructs",
+    "databases-storage",
+    "math-numerics"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "concurrency-async",
+    "language-constructs",
+    "cloud-infrastructure",
+    "language-constructs",
+    "functional-programming",
+    "systems-low-level",
+    "languages-compilers",
+    "data-engineering",
+    "functional-programming",
+    "languages-compilers",
+    "languages-compilers",
+    "language-constructs",
+    "databases-storage",
+    "frontend-ui",
+    "data-engineering",
+    "cloud-infrastructure",
+    "cloud-infrastructure"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 17,
+   "fields": 9,
+   "candidates": 653,
+   "answer_sha256": "32ef27b72833175c77249f40c32b793e5b91209811da05eecd8bcdcf01e2f38b"
+  },
+  {
+   "id": "sentry-159",
+   "word": "styles",
+   "group": "input",
+   "expected_fields": [
+    "web-styling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-styling",
+    "web-styling",
+    "web-styling",
+    "editors-ide",
+    "os-shell",
+    "time-locale",
+    "browser-platform",
+    "web-styling",
+    "data-visualization",
+    "web-styling",
+    "web-styling",
+    "data-visualization",
+    "mobile-desktop",
+    "time-locale",
+    "web-styling",
+    "docs-collaboration",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 17,
+   "fields": 9,
+   "candidates": 555,
+   "answer_sha256": "ec42ed3cc5a7f5f42374479b7f23df0508ad84f9cd176f57681911271ced2c64"
+  },
+  {
+   "id": "sentry-160",
+   "word": "assigned to",
+   "group": "input",
+   "expected_fields": [
+    "docs-collaboration",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "docs-collaboration",
+    "docs-collaboration",
+    "auth-identity",
+    "language-constructs"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 5,
+   "fields": 3,
+   "candidates": 200,
+   "answer_sha256": "b5462b468d74e897d9279fcf6444fb5f92bc16c3bdabed9b436c733e75a79df8"
+  },
+  {
+   "id": "terminal-161",
+   "word": "dark",
+   "group": "target",
+   "expected_fields": [
+    "web-styling",
+    "mobile-desktop"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-styling"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 65,
+   "answer_sha256": "3e8c232143fe99cd5b7c27f1b9d378e3d046c9f855301284ac8f7cef9beceeb3"
+  },
+  {
+   "id": "terminal-162",
+   "word": "cbt",
+   "group": "target",
+   "expected_fields": [
+    "os-shell",
+    "text-processing"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell",
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 217,
+   "answer_sha256": "e00be4dd0793534817ee0749b29c3f0cdd2b276e79a9202804a66cd37d0cd5b7"
+  },
+  {
+   "id": "terminal-163",
+   "word": "coinit",
+   "group": "target",
+   "expected_fields": [
+    "os-shell",
+    "mobile-desktop",
+    "concurrency-async"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 18,
+   "answer_sha256": "57cbd131ab3af518fc44127fa1de812f31af146537270097dd67327aae37fb45"
+  },
+  {
+   "id": "terminal-164",
+   "word": "decrqss",
+   "group": "target",
+   "expected_fields": [
+    "os-shell",
+    "text-processing"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 203,
+   "answer_sha256": "291c2a3fcf8dced062b02f1f086bade715b525c30f9669b9d29665627f7f1b34"
+  },
+  {
+   "id": "terminal-165",
+   "word": "decscusr",
+   "group": "target",
+   "expected_fields": [
+    "os-shell",
+    "text-processing"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 203,
+   "answer_sha256": "1e8a5067b54db1dcc962b9d0c133eb0cd8da5d17993763d118989f757373ef2d"
+  },
+  {
+   "id": "terminal-166",
+   "word": "bell",
+   "group": "target",
+   "expected_fields": [
+    "os-shell",
+    "graphics-media"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 203,
+   "answer_sha256": "74840d12d583f4fad5eaff6e207faeed6657dc5fa66771da75b394932f933054"
+  },
+  {
+   "id": "terminal-167",
+   "word": "pwch",
+   "group": "target",
+   "expected_fields": [
+    "text-processing",
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "systems-low-level"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 72,
+   "answer_sha256": "0e6c25d9ce47595e4c856d464f3ab1590b83f3036e445c1f7fefde46a316d385"
+  },
+  {
+   "id": "terminal-168",
+   "word": "ls 3",
+   "group": "target",
+   "expected_fields": [
+    "text-processing",
+    "os-shell"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 203,
+   "answer_sha256": "9755bf90d2d645e1813c519d3f587c25b654efdd9915462a72f4cf8a22865c92"
+  },
+  {
+   "id": "terminal-169",
+   "word": "deckpnm",
+   "group": "target",
+   "expected_fields": [
+    "os-shell",
+    "text-processing"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "os-shell"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 203,
+   "answer_sha256": "4d1da4fee3c0de562c6b9e99fd2385c16fe6d291273e3197b867b17c036d4829"
+  },
+  {
+   "id": "terminal-170",
+   "word": "scroll rect",
+   "group": "target",
+   "expected_fields": [
+    "graphics-media",
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "graphics-media"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 23,
+   "answer_sha256": "f617df1a9ae64e04a4dbe796602005ade6a446efac019f69820afc29753e1bfc"
+  },
+  {
+   "id": "terminal-171",
+   "word": "tokens",
+   "group": "multi",
+   "expected_fields": [
+    "auth-identity"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "languages-compilers",
+    "web-styling",
+    "ml-ai",
+    "auth-identity",
+    "web-backend",
+    "text-processing",
+    "languages-compilers",
+    "text-processing",
+    "web-styling"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 4,
+   "senses": 9,
+   "fields": 6,
+   "candidates": 420,
+   "answer_sha256": "feee724776e7b4ebea6548d2d46c99ffed6a57d174c85bcf62587a7ef17e96d5"
+  },
+  {
+   "id": "terminal-172",
+   "word": "fill",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording",
+    "os-shell"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-engineering",
+    "systems-low-level",
+    "data-visualization",
+    "graphics-media",
+    "web-styling",
+    "language-constructs",
+    "frontend-ui",
+    "frontend-ui",
+    "files-io",
+    "graphics-media",
+    "data-visualization",
+    "algorithms-data-structures",
+    "text-processing"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 13,
+   "fields": 10,
+   "candidates": 579,
+   "answer_sha256": "6a5d19a6fe674bd54fea9851f2847c938d25e3be22061a680cb2345fd0ac937b"
+  },
+  {
+   "id": "terminal-173",
+   "word": "connect",
+   "group": "multi",
+   "expected_fields": [
+    "networking",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "networking",
+    "networking",
+    "networking",
+    "networking",
+    "general-wording",
+    "concurrency-async",
+    "web-backend",
+    "frontend-ui",
+    "general-wording",
+    "networking",
+    "graphics-media",
+    "networking",
+    "networking",
+    "networking",
+    "networking",
+    "software-design",
+    "distributed-systems",
+    "concurrency-async",
+    "databases-storage"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 19,
+   "fields": 9,
+   "candidates": 547,
+   "answer_sha256": "fa9d7d5f3aa9a9f9685a2ca952f92225de1ef07192f3c476f9baeb908a33f402"
+  },
+  {
+   "id": "terminal-174",
+   "word": "private",
+   "group": "multi",
+   "expected_fields": [
+    "os-shell",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "language-constructs",
+    "os-shell",
+    "error-handling",
+    "general-wording",
+    "security",
+    "networking",
+    "language-constructs"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 3,
+   "senses": 8,
+   "fields": 6,
+   "candidates": 497,
+   "answer_sha256": "4e81aa244c0ad0fe0af1bf0b3573edaf61c854870fdf4dab960c4a1b579a4ca3"
+  },
+  {
+   "id": "terminal-175",
+   "word": "lean",
+   "group": "multi",
+   "expected_fields": [
+    "languages-compilers",
+    "build-release",
+    "os-shell"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "general-wording",
+    "type-systems",
+    "data-formats",
+    "databases-storage",
+    "docs-collaboration"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 5,
+   "fields": 5,
+   "candidates": 182,
+   "answer_sha256": "0e41385e9d9590ee14ac8cd1a8ec5f75d2070c6f5f728aba39930075948b8a0d"
+  },
+  {
+   "id": "terminal-176",
+   "word": "fragment",
+   "group": "multi",
+   "expected_fields": [
+    "configuration"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "web-backend",
+    "mobile-desktop",
+    "mobile-desktop",
+    "graphics-media",
+    "networking",
+    "frontend-ui",
+    "configuration",
+    "mobile-desktop",
+    "frontend-ui",
+    "web-backend",
+    "algorithms-data-structures",
+    "databases-storage",
+    "docs-collaboration",
+    "web-backend",
+    "browser-platform"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 8,
+   "senses": 16,
+   "fields": 10,
+   "candidates": 521,
+   "answer_sha256": "fdbec41b55b3198ad3043f7900b4a3ea19c15570a837ecbcc33b8ba3d4720a4f"
+  },
+  {
+   "id": "terminal-177",
+   "word": "get name",
+   "group": "input",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "observability-debugging",
+    "databases-storage",
+    "type-systems",
+    "cloud-infrastructure"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 5,
+   "fields": 5,
+   "candidates": 295,
+   "answer_sha256": "0bcfdc7be1321ad3cd51785010eabe93ce8557e72619afdea1d5a13658085e61"
+  },
+  {
+   "id": "terminal-178",
+   "word": "end index",
+   "group": "input",
+   "expected_fields": [
+    "algorithms-data-structures",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "text-processing",
+    "text-processing",
+    "text-processing"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 6,
+   "fields": 2,
+   "candidates": 153,
+   "answer_sha256": "64f793bb978cbba22c6178b3e610bf3777b88e3d95971714716ed9347aea4050"
+  },
+  {
+   "id": "terminal-180",
+   "word": "minimum size",
+   "group": "input",
+   "expected_fields": [
+    "frontend-ui",
+    "mobile-desktop",
+    "web-styling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "math-numerics"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 52,
+   "answer_sha256": "40e0a7c55ae9dd78c78a868bd5e071492d799ad4b70350f5b75ce58b2fb584d0"
+  },
+  {
+   "id": "tokio-181",
+   "word": "aio",
+   "group": "target",
+   "expected_fields": [
+    "files-io",
+    "os-shell",
+    "concurrency-async"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "concurrency-async",
+    "files-io"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 116,
+   "answer_sha256": "495eb486e411e557afea4d72376fb861e7100e6ecd916a7bf90e4592db149416"
+  },
+  {
+   "id": "tokio-182",
+   "word": "read vectored",
+   "group": "target",
+   "expected_fields": [
+    "files-io",
+    "networking"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "files-io"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 75,
+   "answer_sha256": "77a4a988dce19862f668102107e9eb52d2a99528ccaf65b3c7005a2ffbbd52c8"
+  },
+  {
+   "id": "tokio-183",
+   "word": "unparked",
+   "group": "target",
+   "expected_fields": [
+    "concurrency-async"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "concurrency-async",
+    "concurrency-async",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 92,
+   "answer_sha256": "b0cc94e1ff50d5b6037f1969a0c0ce855710d2d8a339b9239ec18edddd529531"
+  },
+  {
+   "id": "tokio-184",
+   "word": "atomic usize",
+   "group": "target",
+   "expected_fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "concurrency-async",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 118,
+   "answer_sha256": "527f9619749f547a25f5e546f2cbf87a50af2b75f4d8bdbb11240ae45eb0702a"
+  },
+  {
+   "id": "tokio-185",
+   "word": "amt",
+   "group": "target",
+   "expected_fields": [
+    "general-wording",
+    "math-numerics"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains",
+    "business-domains",
+    "business-domains"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 126,
+   "answer_sha256": "dfdfda2d7f8f911564f493225bee58bba8cc9c347b933090fd51de76becf6bb1"
+  },
+  {
+   "id": "tokio-186",
+   "word": "nonstatic",
+   "group": "target",
+   "expected_fields": [
+    "type-systems",
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "systems-low-level",
+    "systems-low-level"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 94,
+   "answer_sha256": "122308fd5b8eb6f5326e0f495af15dcdb4a91e21487c331c0efa64b50f6dbfe4"
+  },
+  {
+   "id": "tokio-187",
+   "word": "shutting down",
+   "group": "target",
+   "expected_fields": [
+    "concurrency-async",
+    "general-wording",
+    "os-shell"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "language-constructs"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 23,
+   "answer_sha256": "f905d77a6950b698b5b52a318f9033edb86da60caaae30139fe4e152b7c81873"
+  },
+  {
+   "id": "tokio-188",
+   "word": "waits",
+   "group": "target",
+   "expected_fields": [
+    "os-shell",
+    "concurrency-async"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "concurrency-async",
+    "concurrency-async",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 123,
+   "answer_sha256": "27302411d5963bac5a6d99c85ab9593ad063e85cd39b8f6ae656dbd43ab2dd59"
+  },
+  {
+   "id": "tokio-189",
+   "word": "join error",
+   "group": "target",
+   "expected_fields": [
+    "concurrency-async",
+    "error-handling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "concurrency-async",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 118,
+   "answer_sha256": "56b5730f224390f7cb5e25e44833fc032d485923766b714fe777ff1bf5c36ea5"
+  },
+  {
+   "id": "tokio-191",
+   "word": "group",
+   "group": "multi",
+   "expected_fields": [
+    "observability-debugging",
+    "testing",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "algorithms-data-structures",
+    "distributed-systems",
+    "auth-identity",
+    "text-processing",
+    "os-shell",
+    "cloud-infrastructure",
+    "web-backend",
+    "os-shell",
+    "data-engineering",
+    "auth-identity",
+    "data-visualization",
+    "concurrency-async"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 12,
+   "fields": 10,
+   "candidates": 684,
+   "answer_sha256": "3649fce314d138eeceb6c1d97e112ae4928169266903e0f65ad6b241d91cd136"
+  },
+  {
+   "id": "tokio-192",
+   "word": "disable",
+   "group": "multi",
+   "expected_fields": [
+    "configuration",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "configuration",
+    "general-wording",
+    "general-wording",
+    "systems-low-level",
+    "editors-ide",
+    "configuration",
+    "software-design"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 7,
+   "fields": 5,
+   "candidates": 352,
+   "answer_sha256": "8b1ddf688a2e3234a5db7ae1ef943a046025ef40aa309e6191c2325e980c0a57"
+  },
+  {
+   "id": "tokio-193",
+   "word": "second",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "time-locale",
+    "type-systems",
+    "graphics-media",
+    "time-locale",
+    "time-locale",
+    "algorithms-data-structures"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 6,
+   "fields": 4,
+   "candidates": 287,
+   "answer_sha256": "38c32faa4b1f0fcb3d3689a24237b407997d9dfbde7c2bbb9895b3b3855533d3"
+  },
+  {
+   "id": "tokio-195",
+   "word": "weak",
+   "group": "multi",
+   "expected_fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "systems-low-level",
+    "web-backend",
+    "systems-low-level"
+   ],
+   "hit": true,
+   "main_hit": false,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 156,
+   "answer_sha256": "47dd8d0fa50a257da144518e9bd54d473a249812ea8d4ef47b5dff97d638fc51"
+  },
+  {
+   "id": "tokio-196",
+   "word": "third",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "databases-storage",
+    "build-release",
+    "time-locale",
+    "web-backend",
+    "algorithms-data-structures"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 5,
+   "fields": 5,
+   "candidates": 154,
+   "answer_sha256": "2336770a2fa5ddb9e732b0c96b6a1b150d2bc2168b483cc1d0bab23028a02c72"
+  },
+  {
+   "id": "tokio-197",
+   "word": "thread stack size",
+   "group": "input",
+   "expected_fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "functional-programming"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 32,
+   "answer_sha256": "d40a03c831d59deef98cd51b914683da14bb0d6597e1f8eff33cb808a5203e54"
+  },
+  {
+   "id": "tokio-198",
+   "word": "poll close",
+   "group": "input",
+   "expected_fields": [
+    "concurrency-async",
+    "files-io"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 59,
+   "answer_sha256": "32f30e6abeaa9e4ce00802ea5eb05d0cd95b385107a6a06409a9bdfb085a9f7c"
+  },
+  {
+   "id": "tokio-199",
+   "word": "raw socket",
+   "group": "input",
+   "expected_fields": [
+    "networking",
+    "systems-low-level"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "networking",
+    "networking",
+    "networking",
+    "graphics-media"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 2,
+   "candidates": 132,
+   "answer_sha256": "510906ddae4ada71732abfe67122c4ac4928c3eada81c703ec7b164b39183ce6"
+  },
+  {
+   "id": "tokio-200",
+   "word": "latency histogram",
+   "group": "input",
+   "expected_fields": [
+    "observability-debugging",
+    "math-numerics"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "observability-debugging"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 35,
+   "answer_sha256": "87c5a2e546812f50eaa7736045533b9eaeb7ad6ef797a3a009a193b1090de44a"
+  },
+  {
+   "id": "vector-201",
+   "word": "span id",
+   "group": "target",
+   "expected_fields": [
+    "observability-debugging"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "observability-debugging",
+    "observability-debugging",
+    "observability-debugging"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 138,
+   "answer_sha256": "c184cc9e7839ca81059baee10d85e7db0877530d07301a926d760f07ae5c92fb"
+  },
+  {
+   "id": "vector-202",
+   "word": "kinesis firehose",
+   "group": "target",
+   "expected_fields": [
+    "cloud-infrastructure",
+    "distributed-systems",
+    "data-engineering"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-engineering",
+    "cloud-infrastructure",
+    "data-engineering"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 74,
+   "answer_sha256": "60ec32ad8004c25bb3e7cae4189ad4cbe0b171ff12d2c6262b4bd16f80d6d419"
+  },
+  {
+   "id": "vector-203",
+   "word": "prometheus",
+   "group": "target",
+   "expected_fields": [
+    "observability-debugging"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "observability-debugging",
+    "observability-debugging",
+    "math-numerics",
+    "observability-debugging",
+    "observability-debugging",
+    "testing"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 6,
+   "fields": 3,
+   "candidates": 296,
+   "answer_sha256": "e6b1159e1bb8f3ebe7ea4b02d43a28d23b7d264bfe38511e1fa702bc832ce8de"
+  },
+  {
+   "id": "vector-204",
+   "word": "schannel",
+   "group": "target",
+   "expected_fields": [
+    "security"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "security"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 85,
+   "answer_sha256": "f18782f42c2059e9cbc8b7024a6ab33c8f18ad57145afe5954289919f248f6a9"
+  },
+  {
+   "id": "vector-205",
+   "word": "floating",
+   "group": "target",
+   "expected_fields": [
+    "math-numerics"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "math-numerics",
+    "math-numerics",
+    "math-numerics",
+    "math-numerics",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 2,
+   "candidates": 134,
+   "answer_sha256": "0bd7fad4bf9d690ae2680eb68753f2f1a9e0e7c3f1b36e03ff45f3c5cf776ede"
+  },
+  {
+   "id": "vector-206",
+   "word": "ede",
+   "group": "target",
+   "expected_fields": [
+    "networking",
+    "error-handling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "networking"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 50,
+   "answer_sha256": "0de601c0bf62a3cec5bd67948982d9e481148a11194d65393163239b1807b28d"
+  },
+  {
+   "id": "vector-207",
+   "word": "sorted",
+   "group": "target",
+   "expected_fields": [
+    "algorithms-data-structures",
+    "databases-storage"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "algorithms-data-structures"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 1,
+   "candidates": 163,
+   "answer_sha256": "df0255627a1c76fab1b1a49cb2ccb79c0e1a61b1ec3531b3011973fb03b2bec9"
+  },
+  {
+   "id": "vector-208",
+   "word": "datetime",
+   "group": "target",
+   "expected_fields": [
+    "time-locale"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "time-locale",
+    "time-locale",
+    "time-locale",
+    "time-locale",
+    "time-locale",
+    "time-locale",
+    "time-locale",
+    "time-locale"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 8,
+   "fields": 1,
+   "candidates": 268,
+   "answer_sha256": "5513567bbea53d2d72221a61cdaf62d7cd40026ffadb0126b9678a7498148833"
+  },
+  {
+   "id": "vector-209",
+   "word": "helm chart",
+   "group": "target",
+   "expected_fields": [
+    "cloud-infrastructure"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "cloud-infrastructure"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 66,
+   "answer_sha256": "ef25b4ee02517379386b5735ba2aaf6a5eb56eaf22074f5d107b4a4c56795d06"
+  },
+  {
+   "id": "vector-210",
+   "word": "detects",
+   "group": "target",
+   "expected_fields": [
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "algorithms-data-structures",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 43,
+   "answer_sha256": "760d13d3f7be2d8ff0afa52fd183bcf83d99e643aaf98fd0b0e334e1cc6dc031"
+  },
+  {
+   "id": "vector-211",
+   "word": "condition",
+   "group": "multi",
+   "expected_fields": [
+    "databases-storage",
+    "language-constructs",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "language-constructs",
+    "error-handling",
+    "functional-programming",
+    "testing",
+    "concurrency-async",
+    "testing",
+    "auth-identity",
+    "language-constructs",
+    "language-constructs",
+    "testing",
+    "databases-storage",
+    "general-wording",
+    "cloud-infrastructure"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 13,
+   "fields": 9,
+   "candidates": 612,
+   "answer_sha256": "b22ee320ee9d1874230f76272c85f70d7a6201fef4a07224a0873a694725a118"
+  },
+  {
+   "id": "vector-212",
+   "word": "amqp",
+   "group": "multi",
+   "expected_fields": [
+    "distributed-systems"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "distributed-systems",
+    "distributed-systems",
+    "distributed-systems",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 2,
+   "candidates": 176,
+   "answer_sha256": "d968a260836c8a3e789c7112015a7bc107a226de3c459f124eaaaeaa2644f349"
+  },
+  {
+   "id": "vector-213",
+   "word": "bytes",
+   "group": "multi",
+   "expected_fields": [
+    "systems-low-level",
+    "math-numerics",
+    "files-io",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "systems-low-level",
+    "systems-low-level",
+    "text-processing",
+    "systems-low-level",
+    "systems-low-level",
+    "text-processing",
+    "data-formats",
+    "text-processing",
+    "general-wording"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 9,
+   "fields": 4,
+   "candidates": 310,
+   "answer_sha256": "2acf8eba2b8dc70dbfdb855bd378147e50c4f844961bd66316b3b79970037d64"
+  },
+  {
+   "id": "vector-215",
+   "word": "limit",
+   "group": "multi",
+   "expected_fields": [
+    "general-wording",
+    "math-numerics"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-backend",
+    "distributed-systems",
+    "systems-low-level",
+    "math-numerics",
+    "systems-low-level",
+    "math-numerics",
+    "databases-storage",
+    "algorithms-data-structures",
+    "distributed-systems",
+    "text-processing",
+    "text-processing",
+    "math-numerics",
+    "cloud-infrastructure",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "general-wording",
+    "os-shell",
+    "concurrency-async"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 4,
+   "senses": 18,
+   "fields": 11,
+   "candidates": 504,
+   "answer_sha256": "e1e34c3c3a2de80056f6594e2ce0c2615f7297cfa93f56bbf574ef5264b55da0"
+  },
+  {
+   "id": "vector-216",
+   "word": "authorization",
+   "group": "multi",
+   "expected_fields": [
+    "auth-identity",
+    "web-backend"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "auth-identity",
+    "web-backend",
+    "auth-identity",
+    "business-domains",
+    "auth-identity",
+    "web-backend",
+    "auth-identity",
+    "auth-identity",
+    "business-domains",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "auth-identity",
+    "security",
+    "auth-identity",
+    "web-backend",
+    "software-design",
+    "auth-identity",
+    "web-backend",
+    "auth-identity",
+    "distributed-systems",
+    "auth-identity",
+    "time-locale"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 28,
+   "fields": 7,
+   "candidates": 1009,
+   "answer_sha256": "b5a007de039cd547420c322c2e0e81be69b15e9caa7a335eaeccbbf3309dbaf0"
+  },
+  {
+   "id": "vector-217",
+   "word": "first byte",
+   "group": "input",
+   "expected_fields": [
+    "systems-low-level",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "observability-debugging"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 35,
+   "answer_sha256": "05a4389a455c96b744421c7482005cf95414bb4740aba2fa596668480b281201"
+  },
+  {
+   "id": "vector-218",
+   "word": "delta t",
+   "group": "input",
+   "expected_fields": [
+    "time-locale",
+    "math-numerics"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-styling"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 53,
+   "answer_sha256": "6b98ab937eeda920152fb86047641a8ee92f7b92258b2fbccf4ac6b3351acd4b"
+  },
+  {
+   "id": "vector-219",
+   "word": "tcp state",
+   "group": "input",
+   "expected_fields": [
+    "networking"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "networking",
+    "networking"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 55,
+   "answer_sha256": "ab93b2ee58e1c11d0a51c99f0fa46f17525bd3c9738409346494ac0485eebf5b"
+  },
+  {
+   "id": "vector-220",
+   "word": "counting",
+   "group": "input",
+   "expected_fields": [
+    "math-numerics",
+    "general-wording",
+    "data-formats",
+    "networking"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "data-engineering",
+    "math-numerics",
+    "math-numerics",
+    "algorithms-data-structures",
+    "systems-low-level",
+    "frontend-ui",
+    "web-backend",
+    "mobile-desktop",
+    "time-locale",
+    "algorithms-data-structures",
+    "algorithms-data-structures",
+    "text-processing",
+    "time-locale",
+    "cloud-infrastructure",
+    "graphics-media",
+    "databases-storage",
+    "math-numerics"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 17,
+   "fields": 12,
+   "candidates": 639,
+   "answer_sha256": "6ba3193ce49f1062cb08f407dc0a6ff0758f513e55e337c7f9b34503cedc7bd2"
+  },
+  {
+   "id": "woocommerce-221",
+   "word": "audio",
+   "group": "target",
+   "expected_fields": [
+    "graphics-media"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "graphics-media",
+    "graphics-media",
+    "graphics-media",
+    "graphics-media",
+    "graphics-media"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 1,
+   "candidates": 147,
+   "answer_sha256": "c926773a8273cf45709080565678ca913c70fd99ee3eb7c84d256e97322de46f"
+  },
+  {
+   "id": "woocommerce-222",
+   "word": "v 5",
+   "group": "target",
+   "expected_fields": [
+    "build-release",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "build-release"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 53,
+   "answer_sha256": "0aaa98db3012490b23c7073823917935bbd2c100cf54a8974fb1485d2c3be082"
+  },
+  {
+   "id": "woocommerce-223",
+   "word": "combined selector",
+   "group": "target",
+   "expected_fields": [
+    "web-styling"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "web-styling"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 24,
+   "answer_sha256": "3b4fb9d181a2d448933a1943181a263265114bd602544aa3c8329957aa16ef76"
+  },
+  {
+   "id": "woocommerce-224",
+   "word": "product variation",
+   "group": "target",
+   "expected_fields": [
+    "business-domains"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 62,
+   "answer_sha256": "a0deedf45ef24f71d58def200beec4a48d47de4ca0c6fb2ec05514a8b7307959"
+  },
+  {
+   "id": "woocommerce-225",
+   "word": "navigation component",
+   "group": "target",
+   "expected_fields": [
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "mobile-desktop",
+    "mobile-desktop"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 31,
+   "answer_sha256": "6ee3b33079b9411190d441743f9f4f89633f7cd9cfbaed5d86ad50bf91168113"
+  },
+  {
+   "id": "woocommerce-226",
+   "word": "ajax",
+   "group": "target",
+   "expected_fields": [
+    "web-backend",
+    "browser-platform",
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "browser-platform",
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 129,
+   "answer_sha256": "d1737fe8ca95a0bb0e0d4e892107a0aef53e2242b8a42c4c24f179bf19c17f62"
+  },
+  {
+   "id": "woocommerce-227",
+   "word": "popover",
+   "group": "target",
+   "expected_fields": [
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 105,
+   "answer_sha256": "cde50fd8e2e19b63631e084d09cc31840198c84943047d453b4cafc51e2441a1"
+  },
+  {
+   "id": "woocommerce-228",
+   "word": "discounts",
+   "group": "target",
+   "expected_fields": [
+    "business-domains"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains",
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 1,
+   "candidates": 145,
+   "answer_sha256": "9289b717550c372387101b73bb5fcd316973f004d8c6aa1788ea71300de2d8b8"
+  },
+  {
+   "id": "woocommerce-229",
+   "word": "tax",
+   "group": "target",
+   "expected_fields": [
+    "business-domains",
+    "databases-storage"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "business-domains",
+    "business-domains",
+    "business-domains",
+    "business-domains"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 1,
+   "candidates": 237,
+   "answer_sha256": "283e9f3e0954a0d57173aac7a215ff77f423296da1713c09fa749a891d090fb2"
+  },
+  {
+   "id": "woocommerce-230",
+   "word": "floor",
+   "group": "target",
+   "expected_fields": [
+    "math-numerics"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "math-numerics",
+    "math-numerics",
+    "math-numerics"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 1,
+   "candidates": 141,
+   "answer_sha256": "38cb54c536f0ba236a4226eb50c01fad6b31c871c97ff12b8dfc5de3b45f611b"
+  },
+  {
+   "id": "woocommerce-231",
+   "word": "speak",
+   "group": "multi",
+   "expected_fields": [
+    "frontend-ui",
+    "graphics-media",
+    "browser-platform"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui",
+    "graphics-media"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 16,
+   "answer_sha256": "11e4d2acc7dc90e32fc2695123b2ee215ce104d30c42550fc6f8fa067ae789fe"
+  },
+  {
+   "id": "woocommerce-232",
+   "word": "stats",
+   "group": "multi",
+   "expected_fields": [
+    "observability-debugging",
+    "math-numerics",
+    "data-engineering"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "observability-debugging",
+    "math-numerics",
+    "data-engineering",
+    "math-numerics",
+    "files-io"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 4,
+   "candidates": 233,
+   "answer_sha256": "89f315d7f90576cc1674069873001b74f9e94fb45fee0b5d1c177d01709632be"
+  },
+  {
+   "id": "woocommerce-233",
+   "word": "editor",
+   "group": "multi",
+   "expected_fields": [
+    "frontend-ui",
+    "business-domains"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "editors-ide",
+    "frontend-ui",
+    "editors-ide",
+    "editors-ide",
+    "editors-ide",
+    "configuration",
+    "software-design",
+    "observability-debugging",
+    "editors-ide"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 9,
+   "fields": 5,
+   "candidates": 373,
+   "answer_sha256": "86137b007ca10e73397411786e90f9e84f2e68bfbdf87dd6f528e07df749a5c9"
+  },
+  {
+   "id": "woocommerce-234",
+   "word": "on close",
+   "group": "multi",
+   "expected_fields": [
+    "frontend-ui",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "frontend-ui",
+    "frontend-ui",
+    "frontend-ui",
+    "networking",
+    "networking"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 5,
+   "fields": 2,
+   "candidates": 136,
+   "answer_sha256": "fc94cf29b015a38588a0d3625cfed7a98d1662d1eb76810cd8852e9b2e224733"
+  },
+  {
+   "id": "woocommerce-235",
+   "word": "react testing library",
+   "group": "multi",
+   "expected_fields": [
+    "testing",
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "testing",
+    "frontend-ui",
+    "testing"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 3,
+   "fields": 2,
+   "candidates": 136,
+   "answer_sha256": "9d5756543cfdfef780f43a812ccdb5f25ebf3a04e5268f40bc703e45ba5e583e"
+  },
+  {
+   "id": "woocommerce-236",
+   "word": "keys",
+   "group": "multi",
+   "expected_fields": [
+    "algorithms-data-structures",
+    "general-wording",
+    "language-constructs"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "type-systems",
+    "algorithms-data-structures",
+    "security",
+    "auth-identity",
+    "security",
+    "language-constructs",
+    "databases-storage",
+    "text-processing",
+    "language-constructs",
+    "os-shell",
+    "frontend-ui"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": false,
+   "first_hit_rank": 2,
+   "senses": 11,
+   "fields": 9,
+   "candidates": 483,
+   "answer_sha256": "972d5389d70211a51a1e9ab3908440ae3ec8e25983058d8aff1cb43f1ff25427"
+  },
+  {
+   "id": "woocommerce-237",
+   "word": "settings page",
+   "group": "input",
+   "expected_fields": [
+    "configuration",
+    "frontend-ui"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "configuration"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 46,
+   "answer_sha256": "63b6e4a0e42de5493d339159b3e1344f96053e91fe09616914c3a4415cd678c9"
+  },
+  {
+   "id": "woocommerce-238",
+   "word": "documentation url",
+   "group": "input",
+   "expected_fields": [
+    "docs-collaboration",
+    "browser-platform"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "docs-collaboration"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 1,
+   "fields": 1,
+   "candidates": 24,
+   "answer_sha256": "dbb805558898b47c9594312ea284f41787cd242606dd0371622d0476616e33ee"
+  },
+  {
+   "id": "woocommerce-239",
+   "word": "drive",
+   "group": "input",
+   "expected_fields": [
+    "business-domains",
+    "general-wording"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "cloud-infrastructure",
+    "mobile-desktop"
+   ],
+   "hit": false,
+   "main_hit": false,
+   "top_hit": false,
+   "first_hit_rank": null,
+   "senses": 2,
+   "fields": 2,
+   "candidates": 28,
+   "answer_sha256": "c85c82837b7316be013e672e2ec6cd392e8f9d38a578fe1ab21abdd02a8fa914"
+  },
+  {
+   "id": "woocommerce-240",
+   "word": "image url",
+   "group": "input",
+   "expected_fields": [
+    "graphics-media",
+    "browser-platform"
+   ],
+   "status": "ok",
+   "sense_fields": [
+    "graphics-media",
+    "browser-platform",
+    "auth-identity",
+    "web-backend"
+   ],
+   "hit": true,
+   "main_hit": true,
+   "top_hit": true,
+   "first_hit_rank": 1,
+   "senses": 4,
+   "fields": 4,
+   "candidates": 99,
+   "answer_sha256": "7f09b1bcc56eabeb7bfdf43cb8a44c5450091675c0a982c3310b29769d9ca146"
+  }
+ ]
+}

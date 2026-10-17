@@ -1,20 +1,20 @@
 # 유의어 조회하기
 
-뜻 데이터셋 `rts4-e5083ab344e1336d`에서 단어의 유의어를 조회하는 방법입니다.
+뜻 데이터셋 `rts4-710c8ba0d79a776a`에서 단어의 유의어를 조회하는 방법입니다.
 
 ## 데이터셋 위치
 
-`apps/codemap-search/experiments/related-terms-poc/datasets/rts4-e5083ab344e1336d/`
+`apps/codemap-search/experiments/related-terms-poc/datasets/rts4-710c8ba0d79a776a/`
 
 | 파일 | 내용 |
 | --- | --- |
 | `dataset.sqlite3` | 데이터셋 본체(48.6MB, `rt-sense/4`). 조회 스크립트는 이 파일만 읽습니다 |
-| `mappings.json` | 이 판에 더한 단어 → 주제 연결 52개. 항목마다 판정 이유가 있습니다 |
+| `mappings.json` | 이 판에 더한 빠진 뜻 연결 233개. 항목마다 판정 이유가 있습니다 |
 | `build-report.json` | 만들 때의 기록 |
 
-주제 재분류(분야 수정, 합치기, 단어 옮기기, 빈 주제 삭제, 새 주제)는 바로 앞 판 `rts4-0fb3d5bc20c215ba`의 `revisions.json`에 항목마다 이유와 함께 있습니다.
+틀린 뜻 수정(관련어 옮기기·떼어내기, 단어 뜻 옮기기)은 바로 앞 판 `rts4-78debdbe7f7bab0b`의 `revisions.json`에, 주제 재분류(분야 수정, 합치기, 단어 옮기기, 빈 주제 삭제, 새 주제)는 `rts4-0fb3d5bc20c215ba`의 `revisions.json`에 항목마다 이유와 함께 있습니다.
 
-이 판은 앞 판들에 차례로 더해 만들었습니다. 각 단계의 입력은 그 판의 폴더에 있습니다. 저장소에는 이 판과 `rts3-9e01eaf1eadf960a`의 `dataset.sqlite3`만 들어 있고, 나머지 판은 입력 파일만 들어 있습니다. `rts4` 판들의 과정과 검증은 [작업 이력](../../../../docs/related-terms/sense-mapping-log/README.md)에 있습니다.
+이 판은 앞 판들에 차례로 더해 만들었습니다. 각 단계의 입력은 그 판의 폴더에 있습니다. 저장소에는 이 판, 바로 앞 기본값 `rts4-e5083ab344e1336d`, `rts3-9e01eaf1eadf960a`의 `dataset.sqlite3`만 들어 있고, 나머지 판은 입력 파일만 들어 있습니다. `rts4` 판들의 과정과 검증은 [작업 이력](../../../../docs/related-terms/sense-mapping-log/README.md)에 있습니다.
 
 | 판 | 더한 것 | 폴더에 있는 입력 |
 | --- | --- | --- |
@@ -27,6 +27,8 @@
 | `rts4-86c5620af1f181ce` | 분야가 하나뿐인 단어 934개에 다른 분야의 주제 연결 966개 | `mappings.json`, 판정 원본 |
 | `rts4-0fb3d5bc20c215ba` | 주제 재분류. 분야 수정 617개, 합치기 229개, 단어 옮기기 18개, 빈 주제 삭제 15개, 새 주제 8개 | `revisions.json`, `revision-outcome.json` |
 | `rts4-e5083ab344e1336d` | 재분류 판에 주제 연결 52개(입력 전용 단어의 연결 2개 포함) | `mappings.json` |
+| `rts4-78debdbe7f7bab0b` | 틀린 뜻 수정. 관련어 옮기기 893개, 떼어내기 195개, 검토 연결 끊기 8개, 단어 뜻 옮기기 70개 | `revisions.json`, `revision-outcome.json` |
+| `rts4-710c8ba0d79a776a` | 수정 판에 빠진 뜻 연결 233개(입력 전용 단어의 연결 19개 포함) | `mappings.json` |
 
 ## 조회 스크립트
 
@@ -52,14 +54,14 @@ python3 apps/codemap-search/experiments/related-terms-poc/sense_lookup.py '$even
 `unshare`를 조회한 결과입니다.
 
 ```text
-# 관련어 65개 · 입력 1개
+# 관련어 24개 · 입력 1개
 입력 해석: unshare
 ## Operating systems, processes and shell — Namespace and root isolation
-  같은 주제: AppArmor, chroot, mount namespace, namespaces, pivot_root, runc, setns
-## Data formats and serialization — XML parsing
+  같은 주제: AppArmor, chroot, mount namespace, namespaces, pivot_root, setns
+## Cloud, containers and infrastructure — Linux container isolation
   직접 관계어: isolate, namespace
-  가까운 연관어: cache key, named, namespaced, ns, prefix, ...
-  같은 주제: CDATA, config schema, dom parser, ...
+  가까운 연관어: cAdvisor, cgroup, container, crun, Debian, ext4, ...
+  같은 주제: systemd-nspawn, ulimit
 ```
 
 - **첫 줄:** 결과에 나온 단어 수와 입력 수입니다.
@@ -68,9 +70,9 @@ python3 apps/codemap-search/experiments/related-terms-poc/sense_lookup.py '$even
   - **직접 관계어:** 그 뜻으로 함께 만든 관련어
   - **가까운 연관어:** 같은 개념에 속한 단어
   - **같은 주제:** 같은 주제의 다른 단어
-- **`## 뜻 미배정 직접 관계어`:** 뜻이 정해지지 않은 관련어입니다. 주로 같은 단어의 다른 표기입니다.
+- **`## 뜻 미배정 직접 관계어`:** 뜻이 정해지지 않은 관련어입니다. 주로 같은 단어의 다른 표기이고, 틀린 뜻에서 떼어낸 관련어도 여기 남습니다(예: `activate`의 `ReLU`).
 - 한 번 실행한 결과 안에서 같은 단어는 처음 나온 곳에만 씁니다.
-- 결과는 자르지 않습니다. 단어에 따라 수백 개가 나옵니다. 예를 들어 `'abort signal' idx`는 984개입니다.
+- 결과는 자르지 않습니다. 단어에 따라 수백 개가 나옵니다. 예를 들어 `'abort signal' idx`는 988개입니다.
 
 ### 자주 쓰는 옵션
 
