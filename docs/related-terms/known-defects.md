@@ -4,25 +4,26 @@
 
 | 항목 | 내용 |
 | --- | --- |
-| 뜻 데이터셋 | `rts3-9e01eaf1eadf960a`(`rt-sense/3`). `sense_lookup.py`의 기본값이다. 위치는 `apps/codemap-search/experiments/related-terms-poc/datasets/rts3-9e01eaf1eadf960a/dataset.sqlite3`, SHA-256은 `ab8f1aea8a60625fb4f4795e02ffdfa9b3947ce61cc7120c84a03dc61646d192`이다 |
+| 뜻 데이터셋 | `rts4-e5083ab344e1336d`(`rt-sense/4`). `sense_lookup.py`의 기본값이다. 위치는 `apps/codemap-search/experiments/related-terms-poc/datasets/rts4-e5083ab344e1336d/dataset.sqlite3`, SHA-256은 `6888bf291e20df573b831f539224d42b9a4331c0234ab509c48f745d017c4b0f`이다. 아래 결함은 `rts3-9e01eaf1eadf960a`(SHA-256 `ab8f1aea8a60625fb4f4795e02ffdfa9b3947ce61cc7120c84a03dc61646d192`)에서 확인했다. 그 뒤 판은 분야별 누락 단어(`rts3-25df1cf41d0d8247`), 관련어로만 있던 단어의 분야 연결(`rts3-08b1780cc2880c26`), 연결하지 못한 단어의 새 개념(`rts3-5fba9ba33d7c7c7f`), 빠진 단어 재검토(`rts3-48356e35e1f1ea28`)를 더하고, 구조를 정리한 뒤(`rts4-3b9284a3b42c2917`) 분야가 하나뿐인 단어에 주제를 연결하고(`rts4-86c5620af1f181ce`), 주제를 재분류한 것(`rts4-0fb3d5bc20c215ba`, `rts4-e5083ab344e1336d`)이다. 결함 항목 단어는 `unshare`에 뜻 하나가 더해졌고([K1](#k1-개념-하나에-다른-뜻이-섞임)), 나머지는 관련어가 늘어난 것 말고는 `rts3-25df1cf41d0d8247`과 같다. `rts4` 판에서 결함 항목 단어의 뜻과 그 순서가 그대로인 것은 2026-10-17에 확인했다([작업 이력 4단계](sense-mapping-log/04-verification.md#6-결함-단어와-예시-단어)). 재분류 판과 새 뜻 순서 규칙에서도 K1·K3~K6의 증상은 그대로이고, K2는 고쳐졌다([작업 이력 8단계](sense-mapping-log/08-default-and-sense-order.md#5-함께-확인한-것)) |
 | 관련어 데이터셋 | `rtr1-930791c83bea6132`(`rt-related/1`). `sense_lookup.py`와 `category_lookup.py`가 입력 단어 해석에 쓴다. 저장소에 없고 로컬 `.codemap/poc/related-terms/thesaurus-v1/datasets/`에만 있다 |
 | 확인일 | 2026-10-16 |
-| 확인 방법 | 두 데이터셋을 읽기 전용으로 조회하고, `sense_lookup.py`와 `rtpoc3 related`로 실제 조회 결과를 확인했다. 코드 용례는 데이터셋 근거로 쓴 12개 저장소의 고정 체크아웃(데이터셋 폴더의 `sources.json`)에서 찾았다 |
+| 확인 방법 | 두 데이터셋을 읽기 전용으로 조회하고, `sense_lookup.py`와 `rtpoc3 related`로 실제 조회 결과를 확인했다. 코드 용례는 데이터셋 근거로 쓴 12개 저장소의 고정 체크아웃(`rts3-9e01eaf1eadf960a` 폴더의 `sources.json`)에서 찾았다 |
 
 ## 한눈에 보기
 
 | ID | 구분 | 대상 | 조회에서 보이는 현상 |
 | --- | --- | --- | --- |
-| [K1](#k1-개념-하나에-다른-뜻이-섞임) | 개념에 다른 뜻이 섞임 | 개념 3060 `ns` | `unshare`의 뜻이 XML parsing 하나뿐이다 |
-| [K2](#k2-주제의-분야가-틀림) | 주제의 분야가 틀림 | 주제 `t56.12` | 팀 협업 뜻이 `databases-storage` 분야로 분류된다 |
+| [K1](#k1-개념-하나에-다른-뜻이-섞임) | 개념에 다른 뜻이 섞임 | 개념 3060 `ns` | `unshare`에 XML parsing 뜻이 함께 나온다 |
+| [K2](#k2-주제의-분야가-틀림) | 주제의 분야가 틀림 | 주제 `t56.12` | 팀 협업 뜻이 `databases-storage` 분야로 분류된다. 현재 기본값에서는 고쳐졌다 |
 | [K3](#k3-관련어가-다른-뜻-아래-표시됨) | 관련어가 다른 뜻 아래 표시됨 | `execution` | 일반 실행 관련어가 `web-backend` 뜻 아래 나온다 |
 | [K4](#k4-의심스러운-소속-idx-idxs) | 의심스러운 소속 | `idx`, `idxs` | 색인 관련어가 복수형 규칙(`time-locale`) 뜻 아래 나온다 |
 | [K5](#k5-의심스러운-소속-multinode) | 의심스러운 소속 | `multinode` | 클러스터 노드 뜻보다 그래프·트리 구조 뜻이 더 많이 나온다 |
 | [K6](#k6-판정하지-못한-소속-sourced-specs) | 판정하지 못한 소속 | `sourced`, `specs` | 맞는 연결인지 판정하지 못했다 |
 | [K7](#k7-표제어-표기가-바뀜) | 표제어 표기가 바뀜 | 보정으로 추가된 표제어 28개 | `maintenance mode`가 `maintenancemode`로 표시된다 |
 | [K8](#k8-관련어-데이터셋의-경쟁-제품-관계) | 경쟁 제품 관계 | 관련어 데이터셋 `rtr1` | `svelte`에 `Blazor`·`React`·`Vue`·`Angular`가 나온다 |
+| [K9](#k9-질의-유사도-정렬의-한계) | 뜻 순서 | `sense_lookup.py`의 유사도 정렬 | `handler`의 13번 생성된 뜻이 넷째로, `tokens`의 인증 토큰 뜻이 뒤로 밀린다 |
 | [M](#m-빠졌을-수-있는-뜻) | 빠졌을 수 있는 뜻 | 단어 23개 | 제안된 뜻이 데이터셋에 없다 |
-| [U1~U4](#u-확인하지-못한-것) | 확인하지 못한 것 | | 결함인지 모른다 |
+| [U1~U6](#u-확인하지-못한-것) | 확인하지 못한 것 | | 결함인지 모른다 |
 
 ## 용어
 
@@ -39,7 +40,7 @@
 | --- | --- |
 | 대상 | 개념 3060 `ns`, 주제 `t508.1` XML parsing(분야 `data-formats`) |
 | 현재 상태 | 구성원 14개에 XML 이름공간 용어(`xmlnamespace`, `qnames`, `prefix` 등)와 격리 뜻 단어(`isolate`, `tenantisolation`)가 함께 있다. `namespace`·`namespaced`도 이 개념에 있다 |
-| 조회 결과 | Linux 격리 명령 `unshare`는 이 개념의 persona 17162·21601을 거쳐 input으로 분류된다. 조회하면 뜻이 XML parsing 하나뿐이고 관련어는 `isolate`, `namespace`다 |
+| 조회 결과 | Linux 격리 명령 `unshare`는 이 개념의 persona 17162·21601을 거쳐 input으로도 분류된다. 새 개념 추가([파이프라인](pipeline.md) 12단계)로 `os-shell`의 Namespace and root isolation 뜻이 먼저 나오지만, 그 아래에 XML parsing 뜻과 관련어 `isolate`, `namespace`가 그대로 나온다 |
 | 영향 | 격리·이름공간 관련 단어의 조회에 XML 뜻이 섞인다 |
 
 ### K2. 주제의 분야가 틀림
@@ -50,6 +51,7 @@
 | 현재 상태 | 분야가 `databases-storage` 하나뿐이다. 이 주제의 개념은 5793 `팀 협업 서비스`, 6418 `Slack message attachment`, 6421 `chat bot`, 6424 `direct message`, 6425 `user mention`, 6434 `link preview`다 |
 | 영향 | 이 개념에 속한 단어를 조회하면 팀 협업 뜻이 `databases-storage` 분야로 표시된다 |
 | 관련 항목 | [M](#m-빠졌을-수-있는-뜻)의 `messaging` 제안은 이 주제를 대상으로 한다 |
+| 고친 판 | 재분류 판 `rts4-0fb3d5bc20c215ba`부터 이 주제의 분야는 `docs-collaboration`이다. 현재 기본값 `rts4-e5083ab344e1336d`에도 들어 있다. 위의 현재 상태는 `rts4-86c5620af1f181ce`까지의 상태다([작업 이력 6단계](sense-mapping-log/06-reclassification.md)) |
 
 ### K3. 관련어가 다른 뜻 아래 표시됨
 
@@ -104,6 +106,15 @@
 | 조회 결과 | `rtpoc3 related`로 `svelte`를 조회하면 `Blazor` 73.9%(`reverse:related_topic`), `React` 57.9%, `Vue` 55.1%, `Vue.js` 51.6%, `Angular` 50.9%가 나온다 |
 | 확인하지 못한 것 | 이 관계가 `sense_lookup.py`의 입력 해석이나 결과에 영향을 주는지는 확인하지 않았다 |
 
+### K9. 질의 유사도 정렬의 한계
+
+| 항목 | 내용 |
+| --- | --- |
+| 대상 | `sense_lookup.py`의 뜻 순서. 입력의 임베딩과 각 뜻의 주제 단어 평균 임베딩의 코사인 순이다([작업 이력 9단계](sense-mapping-log/09-similarity-order.md)) |
+| 현재 상태 | 생성 횟수를 보지 않는다. 뜻이 둘 이상인 표본 823단어 중 226단어는 첫 뜻이 가장 많이 생성된 뜻이 아니고, 7단어는 검토로만 연결한 뜻(가중치 0)이 첫 뜻이다. 질의 표기만 보므로 문맥을 구분하지 못하고, 같은 글자가 든 주제가 앞서기 쉽다. 첫째와 둘째 뜻의 유사도 차이가 0.02 미만인 경우가 14%다 |
+| 조회 결과 | `handler`는 13번 생성된 Event emission listeners가 넷째다. `tokens`는 Lexical token streams와 Design token tooling이 인증 토큰보다 앞선다. `breakpoints`는 CSS 기준점보다 디버거 뜻이 앞선다 |
+| 판정 상태 | 사용자가 유사도 순 정렬을 정했다. 생성 횟수와 함께 쓰는 방법은 시험하지 않았다 |
+
 ## M. 빠졌을 수 있는 뜻
 
 의미 검토에서 검토자 한 명만 추가를 제안해 반영하지 않은 뜻이다. 결함으로 확정된 것은 아니다. 2026-10-16 기준으로 제안된 개념은 데이터셋에 하나도 없다. 대부분 복수형만 담는 개념이다.
@@ -134,18 +145,23 @@
 | `short date string` | `datestr`의 개념 1746 뜻 | 형태 변화 관계가 아니고, 원래 뜻이 서식 지정자인지 일반 문자열 이름인지 확정되지 않았다 |
 | `committed` | `CommitInfo` 관련어 | 이 이름을 제공하는 외부 라이브러리를 확인하지 못했다 |
 
+분야 연결([파이프라인](pipeline.md) 11단계)에서 맞는 개념이 없어 연결하지 않은 1,060쌍은 새 개념 추가(12단계)에서 다시 판정해 1,033쌍을 넣었다. 넣지 않은 27쌍은 빠진 단어 재검토(13단계)에서 설명이 닿는 모든 분야를 다시 보고 25단어를 연결했다. 연결할 분야가 남지 않은 `requireNonNull`, `negative testing`과 단어별 판단은 `rts3-48356e35e1f1ea28` 폴더의 `rereview.json`에 있다.
+
 ## U. 확인하지 못한 것
 
 | ID | 내용 | 상태 |
 | --- | --- | --- |
-| U1 | 품질 개선·회귀 | 최신 데이터셋으로 회귀검증, 평가 단어 재판정, 이전 판과의 비교를 하지 않았다. 조회 품질이 나아졌는지, 다른 단어가 나빠졌는지 모른다 |
+| U1 | 품질 개선·회귀 | [단어 평가](word-evaluation.md)의 평가 단어는 최신 데이터셋으로 다시 판정하지 않았다. 조회 품질이 나아졌는지, 다른 단어가 나빠졌는지 그 단어들로는 모른다. `rts4` 판들만 새 평가 세트 224단어와 이전 판과의 조회 비교로 확인했다([작업 이력](sense-mapping-log/README.md)) |
 | U2 | 이전 중간판에서 본 도움 단어 소실 | 이전 중간판에서 일부 평가 문맥의 도움 단어가 줄었다. Terminal `menu`의 `deselect`, Keycloak `comitted`, `debounced`의 관련어 수, Redis `multiple`·Vector `bulk`·Sentry `tuple`이 그 사례다. 최신 데이터셋에서는 다시 측정하지 않았다 |
 | U3 | `common`, `multiple`의 관련어 혼합 | 소속 개념(각각 8개, 7개)은 확인했다. 각 뜻의 관련어에 다른 뜻의 단어가 섞였는지는 전수 확인하지 않았다 |
 | U4 | 같은 단어의 뜻 여러 개가 같은 개념에 속한 경우 | 1,804쌍(persona 3,741개)이 있다. 조회 품질에 영향을 주는지 판정하지 않았다 |
+| U5 | 분야 연결로 입력 해석이 바뀐 단어 | 분야를 연결한 2,953단어는 이제 단어 전체로 해석된다. 이 중 610단어는 전에 부분으로 나뉘어 나오던 다른 분야 뜻이 빠졌다. 대부분은 `AppVeyor` → `app`, `OpenWhisk` → `open` 같은 부분 잡음이다. 그러나 `std::multimap`의 C++ STL 뜻(`std`)처럼 쓸모 있던 뜻도 빠진다. 전체 품질이 나아졌는지 판정하지 않았다 |
+| U6 | 새 개념 추가·재검토로 입력 해석이 바뀐 단어 | 새 개념에 넣은 1,019단어도 단어 전체로 해석된다. 이 중 104단어는 전에 부분으로 나뉘어 나오던 뜻이 빠졌다. 대부분은 `user-select` → `user`·`select` 같은 부분 잡음이다. 그러나 `ANSI escape code`가 `ansi escape`를 거쳐 받던 `os-shell` 뜻처럼 쓸모 있던 뜻도 빠진다. 넣은 단어를 포함하는 다른 입력은 나뉘는 방식이 바뀐다(`avro-tools.jar` → `avro tools` + `jar`). 자기 뜻이 생긴 단어는 기본형으로 넓혀 찾지 않으므로 기본형의 뜻이 빠진다(`Event Hubs`가 `Event Hub`의 AMQP publishing 뜻을 잃음). 빠진 단어 재검토(13단계)에서도 49단어 가운데 8단어가 같은 이유로 뜻이 빠졌다. `spelling` → `SpEL` 같은 잡음이 대부분이다. 그러나 `cgroups`는 기본형 `cgroup`을 거쳐 받던 CPU resource usage 뜻을 잃었다. 전체 품질이 나아졌는지 판정하지 않았다 |
 
 ## 고칠 때 지킬 점
 
 - own을 지우기 전에 그 persona에 붙은 관련어·input 의존을 먼저 옮기거나 지운다. 의존이 남아 있으면 `correct_sense_dataset.py`가 거부한다.
 - 한 보정 계획에서 관련어를 보내는 persona가 다른 행에서 받는 persona이면 계획 전체가 거부된다. 계획을 둘로 나눠 순서대로 적용한다.
 - 새 단어는 원래 표기로 넘긴다. 키 형태로 넘기면 [K7](#k7-표제어-표기가-바뀜)이 생긴다.
+- 첫째·둘째 항목은 `correct_sense_dataset.py`의 규칙이다. 이 도구는 `rt-sense/3` 판만 받으므로, 현재 기본값(`rt-sense/4`)은 `add_topic_mappings.py`, `revise_topics.py` 같은 `rt-sense/4`용 도구로 고친다.
 - 새 데이터셋을 기본값으로 쓰려면 `sense_lookup.py`의 `DEFAULT_SENSE_DATASET`을 바꾼다.

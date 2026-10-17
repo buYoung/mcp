@@ -33,47 +33,51 @@ class Dataset:
     def __init__(self):
         self.connection = sqlite3.connect(f"file:{sl.DEFAULT_SENSE_DATASET}?mode=ro", uri=True)
         self.head_fields, self.input_fields, self.related = aggregate_units.load_dataset(sl.DEFAULT_SENSE_DATASET)
-        self.members = collections.defaultdict(list)
-        for concept, surface in self.connection.execute(
-                "SELECT DISTINCT p.concept, t.surface FROM personas p JOIN terms t USING (term_id) ORDER BY p.concept, p.persona"):
-            self.members[concept].append(surface)
-        self.concept_info = {concept: (name, topic, label, field) for concept, name, topic, label, field in self.connection.execute(
-            "SELECT c.concept, c.name, c.topic, tp.label, tf.field FROM concepts c JOIN topics tp ON tp.topic = c.topic "
-            "JOIN topic_fields tf ON tf.topic = c.topic AND tf.rank = 0")}
+        surfaces = dict(self.connection.execute("SELECT word_key, surface FROM terms"))
+        # 뜻 자리 = (주제, 개념). rt-sense/4에서 주제에만 연결된 단어는 개념이 None인 자리에 든다.
+        self.places, self.word_places, self.members = {}, collections.defaultdict(list), collections.defaultdict(list)
+        for persona, key, _, concept, topic, _ in sorted(sl.persona_rows(self.connection)):
+            self.places[persona] = (topic, concept)
+            self.word_places[key].append((topic, concept))
+            if surfaces[key] not in self.members[(topic, concept)]:
+                self.members[(topic, concept)].append(surfaces[key])
+        self.concept_names = dict(self.connection.execute("SELECT concept, name FROM concepts"))
+        self.topic_info = {topic: (label, field) for topic, label, field in self.connection.execute(
+            "SELECT tp.topic, tp.label, tf.field FROM topics tp JOIN topic_fields tf ON tf.topic = tp.topic AND tf.rank = 0")}
 
     def status(self, text):
         key = word_key(text)
         return ("head" if key in self.head_fields else "input" if key in self.input_fields
                 else "relation_only" if key in self.related else "missing")
 
-    def sense_rows(self, concepts):
+    def sense_rows(self, places):
         rows = []
-        for concept in sorted(set(concepts))[:12]:
-            name, topic, label, field = self.concept_info[concept]
-            rows.append({"field": field, "topic": topic, "topic_label": label, "concept": concept, "concept_name": name,
-                         "words": self.members[concept][:6]})
+        for topic, concept in sorted(set(places), key=lambda place: (place[1] is None, place[1] or 0, place[0]))[:12]:
+            label, field = self.topic_info[topic]
+            rows.append({"field": field, "topic": topic, "topic_label": label, "concept": concept,
+                         "concept_name": self.concept_names.get(concept), "words": self.members[(topic, concept)][:6]})
         return rows
 
     def current_senses(self, text):
         key = word_key(text)
-        own = [c for (c,) in self.connection.execute(
-            "SELECT p.concept FROM personas p JOIN terms t USING (term_id) WHERE t.word_key = ?", (key,))]
-        through = [c for (c,) in self.connection.execute(
-            "SELECT p.concept FROM input_senses i JOIN personas p USING (persona) WHERE i.word_key = ?", (key,))]
-        return self.sense_rows(own + [c for c in through if c not in own])
+        own = self.word_places.get(key, [])
+        through = [self.places[p] for (p,) in self.connection.execute("SELECT persona FROM input_senses WHERE word_key = ?", (key,))]
+        return self.sense_rows(own + [place for place in through if place not in own])
 
     def relation_evidence(self, text):
         rows = self.connection.execute(
-            "SELECT t.surface, p.concept FROM relations r JOIN terms t USING (term_id) LEFT JOIN personas p ON p.persona = r.persona "
-            "WHERE r.word_key = ? LIMIT 40", (word_key(text),)).fetchall()
+            "SELECT t.surface, r.persona FROM relations r JOIN terms t USING (term_id) WHERE r.word_key = ? LIMIT 40",
+            (word_key(text),)).fetchall()
         evidence = []
-        for head, concept in rows:
+        for head, persona in rows:
             if len(evidence) >= 6:
                 break
             entry = {"head": head}
-            if concept is not None:
-                name, topic, label, field = self.concept_info[concept]
-                entry.update({"concept": concept, "concept_name": name, "topic_label": label, "field": field})
+            if persona is not None:
+                topic, concept = self.places[persona]
+                label, field = self.topic_info[topic]
+                entry.update({"concept": concept, "concept_name": self.concept_names.get(concept), "topic_label": label,
+                              "field": field})
             evidence.append(entry)
         return evidence
 

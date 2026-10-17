@@ -8,6 +8,7 @@
 | [코드 단어 수집과 단어 평가](word-evaluation.md) | tree-sitter 식별자 수집, LLM 판정 절차, 데이터셋 보강, 당시 평가 결과 |
 | [원자료와 근거 저장소](sources.md) | 외부 사전 자료와 고정 판, LLM 생성 자료, 임베딩 모델, 코드 저장소 12개 |
 | [알려진 결함](known-defects.md) | 현재 기본 데이터셋에서 확인한 결함, 빠졌을 수 있는 뜻, 확인하지 못한 것 |
+| [뜻 데이터셋 구조 정리와 분야 매핑 확장](sense-mapping-log/README.md) | 평가 세트, `rt-sense/4` 구조, 분야가 하나뿐인 단어의 주제 매핑, 조회 검증의 단계별 기록 |
 | [관련어 사전 조회하기](../../apps/codemap-search/experiments/related-terms-poc/README.related.ko.md) | `rtpoc3 related` 사용법과 관련어 데이터셋 평가 결과 |
 
 ## 바로 조회하기

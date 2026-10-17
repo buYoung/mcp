@@ -14,6 +14,7 @@ from pathlib import Path
 from word_eval_paths import EXPERIMENTS
 
 sys.path.insert(0, str(EXPERIMENTS))
+import sense_lookup as sl  # noqa: E402
 from term_canonical import word_key  # noqa: E402
 
 
@@ -23,13 +24,12 @@ def compact(text):
 
 def load_dataset(path):
     connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
-    head_fields, input_fields = collections.defaultdict(set), collections.defaultdict(set)
-    for key, field in connection.execute(
-            "SELECT t.word_key, s.field FROM personas p JOIN terms t USING (term_id) JOIN senses s USING (sense)"):
+    head_fields, input_fields, persona_fields = collections.defaultdict(set), collections.defaultdict(set), {}
+    for persona, key, field, *_ in sl.persona_rows(connection):
         head_fields[key].add(field)
-    for key, field in connection.execute(
-            "SELECT i.word_key, s.field FROM input_senses i JOIN personas p USING (persona) JOIN senses s USING (sense)"):
-        input_fields[key].add(field)
+        persona_fields[persona] = field
+    for key, persona in connection.execute("SELECT word_key, persona FROM input_senses"):
+        input_fields[key].add(persona_fields[persona])
     related = {key for (key,) in connection.execute("SELECT DISTINCT word_key FROM relations")}
     connection.close()
     return head_fields, input_fields, related

@@ -1,7 +1,8 @@
 """Sense lookup PoC: input word -> its senses -> its own related words (direct), words sharing a concept (near)
 or a topic (same topic), one hop.
 
-Reads `rt-sense/2` and the input-scoped relation extension `rt-sense/3`, and resolves input through `rt-related/1` with
+Reads `rt-sense/2`, the input-scoped relation extension `rt-sense/3` and the word-to-topic layout `rt-sense/4`
+(`sense_mapping_schema.py`), and resolves input through `rt-related/1` with
 `rtpoc3 related`, exactly like `category_lookup.py`, except that an input with senses of its own is not widened to
 its lemma (`--no-exact-first` restores that widening). A sense is the group of a word's personas that fall in
 one topic (one field with `--no-split-senses-by-topic`). A word's senses are its own, then those of the personas it
@@ -9,30 +10,52 @@ was generated in as a related word (`input_senses`), which a dataset may also gi
 for topics they have none in. For each sense the result lists the words the input was generated with in that sense,
 then the words of its concepts, then the other words of its topics; related words outside every sense (`form` links
 among them) follow per input word. `--reverse` adds the words that list the input as related, for measurement only.
-Each word appears once, in the first group that reaches it. Nothing is reached through a returned word's own
+An input's senses come most similar to the input first: the cosine between the input's embedding and the mean
+embedding of each sense's topic words, both stored in `rt-related/1` (`--no-similarity-order` restores the persona
+count order). Each word appears once, in the first group that reaches it. Nothing is reached through a returned word's own
 relations or concepts, and nothing is cut off.
 
 Usage: python3 apps/codemap-search/experiments/related-terms-poc/sense_lookup.py token cache '$state'
 """
 
 import argparse
+from array import array
 from collections import defaultdict
 from dataclasses import dataclass, field as dataclass_field
+from functools import cached_property, lru_cache
 import json
+import math
 from pathlib import Path
 import sqlite3
 import sys
 
 import category_lookup as cl
-from term_canonical import canonical_surface, word_key
+from term_canonical import canonical_surface, exact_key, word_key
 from spelling_aliases import spelling_queries, spelling_variants
 from reviewed_relations import INPUT_RELATIONS_SCHEMA, SUPPORTED_SCHEMAS, validate_dataset_layout
+from sense_mapping_schema import MAPPING_SCHEMA, validate_mapping_layout
 
-# stage-4 remaining review decisions on rts3-b5fb0c137c71a08f (rt-sense/3, input-scoped relations), tracked next to
-# this script; previous default rts3-b5fb0c137c71a08f stays under cl.DATASETS
-DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts3-9e01eaf1eadf960a/dataset.sqlite3"
+# rts3-48356e35e1f1ea28 in the rt-sense/4 layout plus topics mapped by review to words with a single field, then
+# topics re-classified (fields, merges, moves) and topics added by review; earlier versions stay next to it under datasets/
+DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts4-e5083ab344e1336d/dataset.sqlite3"
 SCHEMA = "rt-sense-lookup/2"
 SENSE_SCHEMA = "rt-sense/2"
+READABLE_SCHEMAS = (*SUPPORTED_SCHEMAS, MAPPING_SCHEMA)
+# persona, word, field, concept (NULL in rt-sense/4 when the word maps to the topic alone), topic, and how many
+# generated personas the row stands for (the sense order weight; one row is one persona before rt-sense/4)
+PERSONA_QUERIES = {
+    MAPPING_SCHEMA: "SELECT p.persona, t.word_key, tf.field, p.concept, p.topic, p.source_persona_count FROM personas AS p "
+                    "JOIN terms AS t USING (term_id) JOIN topic_fields AS tf ON tf.topic = p.topic AND tf.rank = 0",
+    **dict.fromkeys(SUPPORTED_SCHEMAS,
+                    "SELECT p.persona, t.word_key, s.field, p.concept, c.topic, 1 FROM personas AS p "
+                    "JOIN senses AS s USING (sense) JOIN terms AS t ON t.term_id = p.term_id JOIN concepts AS c USING (concept)"),
+}
+
+
+def persona_rows(connection):
+    """(persona, word, field, concept, topic, weight) rows of any readable sense dataset, for scripts that read it directly."""
+    schema = connection.execute("SELECT value FROM sense_meta WHERE key = 'schema_version'").fetchone()[0]
+    return connection.execute(PERSONA_QUERIES[schema])
 
 
 @dataclass
@@ -45,11 +68,14 @@ class Sense:
     is_own: bool = True
 
 
-def sense_order(sense, is_topic_split):
+def sense_order(sense, is_topic_split, topic_words):
     """Without topic split, by persona count then field, as before. With it, a word's own senses come before the
-    senses read through other words' personas, each by persona count."""
+    senses read through other words' personas, each by persona count, and senses of topics mapped by review alone
+    (rt-sense/4 persona count 0) come last. Senses with the same persona count go by the number of words in their
+    topic, largest first, so that revising a topic's field does not reorder them; field and topic break what is left."""
     if is_topic_split:
-        return (not sense.is_own, -sense.personas, sense.field, sorted(sense.topics))
+        topic_size = max((len(topic_words.get(topic, ())) for topic in sense.topics), default=0)
+        return (sense.personas == 0, not sense.is_own, -sense.personas, -topic_size, sense.field, sorted(sense.topics))
     return (-sense.personas, sense.field)
 
 
@@ -71,6 +97,14 @@ class SenseIndex:
     is_input_sibling_included: bool = True
     is_topic_split: bool = False
     input_relation_words: dict = dataclass_field(default_factory=dict)
+    # (vector dataset, topic) -> (sum of the topic words' vectors, the words that have one), filled on first use
+    topic_vector_sums: dict = dataclass_field(default_factory=dict)
+
+    @cached_property
+    def generated_headwords(self):
+        """Words with a generated sense of their own. A word whose own senses are only topics mapped by review
+        (rt-sense/4 persona count 0) still takes its lemma, like a word read only through `input_senses`."""
+        return frozenset(key for key, senses in self.senses.items() if any(sense.personas for sense in senses))
 
     def senses_of(self, key):
         """A word's own senses, then classifications through source personas (`input_senses`): generated related
@@ -88,7 +122,8 @@ class SenseIndex:
             head, field, concept, topic = self.persona_info[persona]
             part = parts.setdefault((field, topic if self.is_topic_split else None),
                                     {"concepts": set(), "topics": set(), "direct": [], "personas": 0})
-            part["concepts"].add(concept)
+            if concept is not None:
+                part["concepts"].add(concept)
             part["topics"].add(topic)
             part["direct"].append(head)
             if self.is_input_sibling_included:
@@ -98,7 +133,7 @@ class SenseIndex:
             part["personas"] += 1
         senses = [Sense(field, frozenset(p["concepts"]), frozenset(p["topics"]), tuple(dict.fromkeys(p["direct"])), p["personas"],
                         is_own=False) for (field, _), p in parts.items()]
-        return list(own) + sorted(senses, key=lambda s: sense_order(s, self.is_topic_split))
+        return list(own) + sorted(senses, key=lambda s: sense_order(s, self.is_topic_split, self.topic_words))
 
     @classmethod
     def load(cls, dataset_path, is_topic_split=False):
@@ -108,10 +143,13 @@ class SenseIndex:
         connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         try:
             meta = dict(connection.execute("SELECT key, value FROM sense_meta"))
-            if meta.get("schema_version") not in SUPPORTED_SCHEMAS:
-                raise SystemExit(f"sense dataset incompatible: {meta.get('schema_version')!r}, expected {SUPPORTED_SCHEMAS}")
+            if meta.get("schema_version") not in READABLE_SCHEMAS:
+                raise SystemExit(f"sense dataset incompatible: {meta.get('schema_version')!r}, expected {READABLE_SCHEMAS}")
             try:
-                validate_dataset_layout(connection, meta["schema_version"])
+                if meta["schema_version"] == MAPPING_SCHEMA:
+                    validate_mapping_layout(connection)
+                else:
+                    validate_dataset_layout(connection, meta["schema_version"])
             except (ValueError, sqlite3.DatabaseError) as error:
                 raise SystemExit(f"sense dataset layout incompatible: {error}") from error
             rule = json.loads(meta["input_sense_rule"]) if "input_sense_rule" in meta else {"direct": "head_and_siblings"}
@@ -123,16 +161,14 @@ class SenseIndex:
             field_labels = dict(connection.execute("SELECT field, label FROM fields"))
             parts = defaultdict(lambda: {"concepts": set(), "topics": set(), "direct": [], "personas": 0})
             persona_info, concept_words, topic_words = {}, defaultdict(set), defaultdict(set)
-            for persona, key, field, concept, topic in connection.execute(
-                "SELECT p.persona, t.word_key, s.field, p.concept, c.topic FROM personas AS p "
-                "JOIN senses AS s USING (sense) JOIN terms AS t ON t.term_id = p.term_id JOIN concepts AS c USING (concept)"
-            ):
+            for persona, key, field, concept, topic, weight in connection.execute(PERSONA_QUERIES[meta["schema_version"]]):
                 part = parts[(key, field, topic if is_topic_split else None)]
-                part["concepts"].add(concept)
+                if concept is not None:
+                    part["concepts"].add(concept)
+                    concept_words[concept].add(key)
                 part["topics"].add(topic)
-                part["personas"] += 1
+                part["personas"] += weight
                 persona_info[persona] = (key, field, concept, topic)
-                concept_words[concept].add(key)
                 topic_words[topic].add(key)
             unsorted_direct, reverse, persona_words = defaultdict(list), defaultdict(list), defaultdict(list)
             for head, key, surface, persona in connection.execute(
@@ -151,7 +187,7 @@ class SenseIndex:
             if connection.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'input_senses'").fetchone():
                 for key, persona in connection.execute("SELECT word_key, persona FROM input_senses ORDER BY word_key, persona"):
                     input_personas[key].append(persona)
-            if meta["schema_version"] == INPUT_RELATIONS_SCHEMA:
+            if meta["schema_version"] in (INPUT_RELATIONS_SCHEMA, MAPPING_SCHEMA):
                 for key, persona, related, surface in connection.execute(
                     "SELECT input_word_key,source_persona,related_word_key,surface FROM input_relations "
                     "ORDER BY input_word_key,source_persona,rank,related_word_key"
@@ -165,19 +201,101 @@ class SenseIndex:
         for (key, field, _), part in parts.items():
             senses[key].append(Sense(field, frozenset(part["concepts"]), frozenset(part["topics"]), tuple(part["direct"]), part["personas"]))
         for key in senses:
-            senses[key].sort(key=lambda s: sense_order(s, is_topic_split))
-        tags = {key: frozenset(c for s in senses.get(key, ()) for c in s.concepts) for key in surfaces}
+            senses[key].sort(key=lambda s: sense_order(s, is_topic_split, topic_words))
+        # Input resolution only asks whether a word is classified, so a word's topics tag it (a topic-only persona
+        # has no concept).
+        tags = {key: frozenset(t for s in senses.get(key, ()) for t in s.topics) for key in surfaces}
         for key, personas in input_personas.items():
             if not tags.get(key):
-                tags[key] = frozenset(persona_info[p][2] for p in personas)
+                tags[key] = frozenset(persona_info[p][3] for p in personas)
         vocabulary = cl.Vocabulary(surfaces, tags, dict(concept_words), {})
         return cls(surfaces, dict(senses), dict(unsorted_direct), dict(reverse), dict(concept_words), dict(topic_words),
                    concept_names, topic_labels, field_labels, vocabulary, persona_info, dict(persona_words), dict(input_personas),
                    rule["direct"] == "head_and_siblings", is_topic_split, dict(input_relation_words))
 
 
-def seed_senses(seed, index):
-    """The seed words' senses merged by topic (by field without topic split)."""
+@dataclass
+class TermVectors:
+    """Word embeddings stored in an `rt-related/1` dataset, read by exact key on first use (no model runs here)."""
+    dataset_path: Path
+    connection: sqlite3.Connection
+    vectors: dict = dataclass_field(default_factory=dict)
+
+    @classmethod
+    @lru_cache(maxsize=4)
+    def load(cls, dataset_path):
+        path = Path(dataset_path)
+        if not path.exists():
+            raise SystemExit(f"vector dataset unavailable: {path}")
+        return cls(path, sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False))
+
+    def of(self, surface):
+        """The word's int8 vector, read under its spelling and then its canonical form; None when not stored."""
+        if surface not in self.vectors:
+            self.vectors[surface] = None
+            for key in dict.fromkeys((exact_key(surface), exact_key(canonical_surface(surface)))):
+                row = self.connection.execute("SELECT vector FROM terms WHERE exact_key = ?", (key,)).fetchone()
+                if row and row[0]:
+                    self.vectors[surface] = array("b", row[0])
+                    break
+        return self.vectors[surface]
+
+
+def vector_sum(vectors):
+    total = [0] * len(vectors[0])
+    for vector in vectors:
+        total = [t + v for t, v in zip(total, vector)]
+    return total
+
+
+def cosine(left, right):
+    norm = math.sqrt(sum(a * a for a in left)) * math.sqrt(sum(b * b for b in right))
+    return sum(a * b for a, b in zip(left, right)) / norm if norm else None
+
+
+def query_vector(seed, index, vectors):
+    """The input span's own vector, else the sum of its words' vectors."""
+    vector = vectors.of(seed.span)
+    if vector is not None:
+        return vector
+    found = [v for v in (vectors.of(index.surfaces[t]) for t in seed.terms) if v is not None]
+    return vector_sum(found) if found else None
+
+
+def topic_vector_sum(index, vectors, topic):
+    key = (vectors.dataset_path, topic)
+    if key not in index.topic_vector_sums:
+        found = {w: v for w in sorted(index.topic_words.get(topic, ())) if (v := vectors.of(index.surfaces[w])) is not None}
+        index.topic_vector_sums[key] = (vector_sum(list(found.values())) if found else None, frozenset(found))
+    return index.topic_vector_sums[key]
+
+
+def sense_similarity(query, sense, index, vectors, own):
+    """Cosine between the query and the mean of the sense's topic words other than the input's own words (`own`).
+    A topic with no other word with a vector stands for itself through the sense's direct related words."""
+    total, members = None, 0
+    for topic in sense.topics:
+        topic_sum, words = topic_vector_sum(index, vectors, topic)
+        if topic_sum is None:
+            continue
+        removed = [vectors.of(index.surfaces[w]) for w in words & own]
+        if len(words) - len(removed) <= 0:
+            continue
+        part = vector_sum([topic_sum] + [[-v for v in r] for r in removed]) if removed else topic_sum
+        total = part if total is None else vector_sum([total, part])
+        members += len(words) - len(removed)
+    if not members:
+        found = [v for v in (vectors.of(index.surfaces.get(w, w)) for w in sense.direct if w not in own) if v is not None]
+        if not found:
+            return None
+        total = vector_sum(found)
+    return cosine(query, total)
+
+
+def seed_senses(seed, index, vectors=None):
+    """The seed words' senses merged by topic (by field without topic split). With `vectors` and topic split, they
+    go by similarity to the input (`sense_similarity`), most similar first; senses without a similarity come last,
+    and `sense_order` breaks ties."""
     merged = {}
     for term in seed.terms:
         for sense in index.senses_of(term):
@@ -189,25 +307,36 @@ def seed_senses(seed, index):
                                       old.is_own or sense.is_own)
             else:
                 merged[group] = sense
-    return sorted(merged.values(), key=lambda s: sense_order(s, index.is_topic_split))
+    senses = sorted(merged.values(), key=lambda s: sense_order(s, index.is_topic_split, index.topic_words))
+    query = query_vector(seed, index, vectors) if vectors is not None and index.is_topic_split else None
+    if query is None:
+        return senses
+    own = set(seed.terms) | {word_key(seed.span)}
+    similarities = [sense_similarity(query, sense, index, vectors, own) for sense in senses]
+    order = sorted(range(len(senses)), key=lambda i: (similarities[i] is None, -(similarities[i] or 0), i))
+    return [senses[i] for i in order]
 
 
 def lookup(query, matches, index, is_direct_included=True, is_reverse_included=False, is_syntax_skipped=False, is_exact_first=False,
-           is_inflection_evidence_used=True, inflection_dataset=cl.DEFAULT_DATASET, spelling_matches=None):
+           is_inflection_evidence_used=True, inflection_dataset=cl.DEFAULT_DATASET, spelling_matches=None,
+           is_similarity_ordered=True, vector_dataset=cl.DEFAULT_DATASET):
     """`matches` are `rtpoc3 related` matches for `canonical_surface(query)`.
 
     Groups are filled nearest first (direct, unsorted direct, near, same topic, reverse); a word already placed
     is not repeated. Without `is_direct_included` the direct groups stay empty, as in `rt-sense-lookup/1`.
     With `is_syntax_skipped`, input parts that are only code syntax (`fn`, `.go`, `[Mm]`) are not looked up.
     With `is_exact_first`, an input that is itself a word with senses is not widened to its lemma (`blocking` stays
-    `blocking`, not also `block`); an input whose own senses come only from `input_senses` still takes its lemma.
+    `blocking`, not also `block`); an input whose own senses come only from `input_senses` or from topics mapped by
+    review still takes its lemma.
     With `is_inflection_evidence_used`, competing lemmas are resolved through the input resolution dataset's relations.
     `spelling_matches`, when supplied, maps the queries from `spelling_queries` to matcher results and enables
     confirmed spelling alternatives. None preserves the original precomputed-match API. Each interpretation uses
     the same caller options; original meanings are retained, and returned words never become new query seeds.
+    With `is_similarity_ordered`, each seed's senses go by similarity to the seed, from the embeddings stored in
+    `vector_dataset` (`seed_senses`); without it, by persona count as before.
     """
     word = canonical_surface(query)
-    headwords = index.senses.keys() if is_exact_first else frozenset()
+    headwords = index.generated_headwords if is_exact_first else frozenset()
     inflections = cl.InflectionEvidence.load(inflection_dataset) if is_inflection_evidence_used else None
     resolution = cl.resolve(word, matches, index.vocabulary, is_syntax_skipped, headwords, inflections)
     has_matches = bool(matches)
@@ -239,7 +368,8 @@ def lookup(query, matches, index, is_direct_included=True, is_reverse_included=F
         placed.update(fresh)
         groups[group] = fresh
 
-    seeds = [(seed, seed_senses(seed, index)) for seed in resolution.seeds]
+    vectors = TermVectors.load(vector_dataset) if is_similarity_ordered else None
+    seeds = [(seed, seed_senses(seed, index, vectors)) for seed in resolution.seeds]
     for seed, senses in seeds:
         for sense in senses:
             place((id(seed), sense.field, sense.topics, "direct"), sense.direct if is_direct_included else ())
@@ -375,7 +505,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, epilog=TEXT_EPILOG, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("terms", nargs="*")
     parser.add_argument("--terms-file")
-    parser.add_argument("--sense-dataset", default=DEFAULT_SENSE_DATASET, help="rt-sense/2 or rt-sense/3 SQLite")
+    parser.add_argument("--sense-dataset", default=DEFAULT_SENSE_DATASET, help="rt-sense/2, rt-sense/3 or rt-sense/4 SQLite")
     parser.add_argument("--dataset", default=cl.DEFAULT_DATASET, help="rt-related/1 SQLite used by rtpoc3 for input resolution")
     parser.add_argument("--rtpoc3", default=cl.DEFAULT_RTPOC3)
     parser.add_argument("--reverse", action="store_true", help="also list words that name the input as related (measurement only)")
@@ -386,6 +516,9 @@ def main():
                         help="prefer lemmas evidenced by form links or the base's related words (--no-evidence-inflections: earlier behavior)")
     parser.add_argument("--split-senses-by-topic", action=argparse.BooleanOptionalAction, default=True,
                         help="one sense per topic of a word (--no-split-senses-by-topic: earlier behavior, one per field)")
+    parser.add_argument("--similarity-order", action=argparse.BooleanOptionalAction, default=True,
+                        help="order each input's senses by similarity to the input, from the --dataset embeddings "
+                             "(--no-similarity-order: earlier behavior, by persona count)")
     parser.add_argument("--format", choices=("text", "text-by-input", "json"), default="text",
                         help="text: one call, nearest rings first; text-by-input: the earlier per-input text")
     parser.add_argument("--output")
@@ -399,7 +532,8 @@ def main():
     results = [lookup(q, stored.get(canonical_surface(q), []), index, is_reverse_included=args.reverse,
                       is_syntax_skipped=args.skip_syntax_parts, is_exact_first=args.exact_first,
                       is_inflection_evidence_used=args.evidence_inflections, inflection_dataset=args.dataset,
-                      spelling_matches=stored) for q in queries]
+                      spelling_matches=stored, is_similarity_ordered=args.similarity_order, vector_dataset=args.dataset)
+               for q in queries]
     if args.format == "text":
         text = render_text(results)
     elif args.format == "text-by-input":

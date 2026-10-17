@@ -12,7 +12,9 @@
 
 | 데이터셋 | 스키마 | 위치 | 쓰는 도구 | 만든 스크립트 |
 | --- | --- | --- | --- | --- |
-| 뜻 `rts3-9e01eaf1eadf960a` | `rt-sense/3` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py`의 기본값 | `build_sense_dataset.py`, `correct_sense_dataset.py` |
+| 뜻 `rts3-48356e35e1f1ea28` | `rt-sense/3` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 로컬에만 있음) | `sense_lookup.py --sense-dataset`로 지정 | `build_sense_dataset.py`, `correct_sense_dataset.py` |
+| 뜻 `rts4-86c5620af1f181ce` | `rt-sense/4` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 로컬에만 있음) | `sense_lookup.py --sense-dataset`로 지정 | `migrate_sense_dataset.py`, `add_topic_mappings.py` |
+| 뜻 `rts4-e5083ab344e1336d` | `rt-sense/4` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py`의 기본값 | `revise_topics.py`, `add_topic_mappings.py` |
 | 카테고리 `rtc2-80e77d8fb9ef2b41` | `rt-category/2` | `PoC/datasets/` (저장소에 포함) | `category_lookup.py`의 기본값 | `build_category_dataset.py` |
 | 관련어 `rtr1-930791c83bea6132` | `rt-related/1` | `T/datasets/` (로컬에만 있음, 약 430MiB) | `rtpoc3 related`, 두 조회 도구의 입력 해석 | `build_related_dataset.py` |
 
@@ -23,7 +25,7 @@
   └─ 1. LLM 생성: 단어(vocab) → 관련어(relations) → 함께 쓰는 단어(co-use)
         ├─ 2. 관련어 데이터셋 rtr1   (+ 외부 사전 자료, 임베딩)
         ├─ 3. 카테고리 데이터셋 rtc2 (+ 하위 분야 분할)
-        └─ 4. 뜻 데이터셋 rts3       (뜻 그래프 → 검토 → 빌드 → 단어 평가 보강 → 검토 보정)
+        └─ 4. 뜻 데이터셋 rts3·rts4  (뜻 그래프 → 검토 → 빌드 → 단어 평가 보강 → 검토 보정 → 누락 단어 추가 → 분야 연결 → 새 개념 추가 → 빠진 단어 재검토 → 구조 정리 → 분야 매핑 확장 → 주제 재분류)
 ```
 
 ## 1. LLM으로 단어와 관련어 생성
@@ -76,7 +78,7 @@ python3 build_related_dataset.py --thesaurus <생성 자료 폴더> \
 
 ## 4. 뜻 데이터셋 `rts3`
 
-단어의 뜻(persona)은 개념(concept)에 속하고, 개념은 주제(topic)에, 주제는 1~3개의 분야(field)에 속한다.
+단어의 뜻(persona)은 개념(concept)에 속하고, 개념은 주제(topic)에, 주제는 1~3개의 분야(field)에 속한다. 14단계의 `rt-sense/4`부터는 persona가 주제에 바로 속하고, 개념은 없어도 된다.
 
 | 순서 | 단계 | 스크립트·지침 | 결과 |
 | --- | --- | --- | --- |
@@ -88,17 +90,45 @@ python3 build_related_dataset.py --thesaurus <생성 자료 폴더> \
 | 6 | 빌드 | `build_sense_dataset.py build --graph … --thesaurus … --co-use …` | `rts2-82363b4a9b18baf7` |
 | 7 | 입력 뜻 추가. 자기 뜻이 없는 관련어를, 그 관련어가 생성된 뜻을 통해 분류한다 | `build_sense_dataset.py add-input-senses` | `rts2-32469ce3ab670de2` |
 | 8 | 단어 평가 보강. 단어 평가에서 빠진 것으로 판정한 단어·뜻을 추가한다 | `build_sense_dataset.py add-entries --entries <entries.json>` | `rts2-309e9bbaa19f7eb5` |
-| 9 | 검토 보정. 의미 검토 결과를 여러 차례 적용하고, 입력별 관련어를 담는 `rt-sense/3` 확장을 더한다 | `correct_sense_dataset.py`(`reviewed_relations.py`, `reviewed_graph_edits.py`) | `rts3-9e01eaf1eadf960a`(현재 기본값) |
+| 9 | 검토 보정. 의미 검토 결과를 여러 차례 적용하고, 입력별 관련어를 담는 `rt-sense/3` 확장을 더한다 | `correct_sense_dataset.py`(`reviewed_relations.py`, `reviewed_graph_edits.py`) | `rts3-9e01eaf1eadf960a` |
+| 10 | 누락 단어 추가. 분야마다 빠진 단어를 조사해, 데이터셋에 없거나 분야 없이 있거나 다른 분야에만 있는 단어를 그 분야의 주제에 넣는다 | `build_sense_dataset.py add-entries --entries <entries.json>` | `rts3-25df1cf41d0d8247` |
+| 11 | 분야 연결. 누락 단어 조사에서 어떤 분야에 속한다고 본, 관련어로만 있는 단어를 그 분야의 기존 개념에 있는 뜻 하나를 통해 분류한다 | `correct_sense_dataset.py`(`input_bindings`) | `rts3-08b1780cc2880c26` |
+| 12 | 새 개념 추가. 분야 연결에서 맞는 개념이 없어 연결하지 않은 단어를 그 분야의 새 개념으로 넣는다 | `build_sense_dataset.py add-entries --entries <entries.json>` | `rts3-5fba9ba33d7c7c7f` |
+| 13 | 빠진 단어 재검토. 11·12단계에서 넣지 않은 단어를, 설명이 닿는 모든 분야에 연결한다 | `build_sense_dataset.py add-entries --entries <entries.json>` | `rts3-48356e35e1f1ea28` |
+| 14 | 구조 정리. 단어 이름만 붙인 개념을 없애고 단어를 주제에 바로 연결한다(`rt-sense/4`). 조회 결과는 바꾸지 않는다 | `migrate_sense_dataset.py` | `rts4-3b9284a3b42c2917` |
+| 15 | 분야 매핑 확장. 분야가 하나뿐인 단어에, 설명에 대상이 든 다른 분야의 주제를 연결한다 | `add_topic_mappings.py --mappings <mappings.json>` | `rts4-86c5620af1f181ce` |
+| 16 | 주제 재분류. 주제의 분야와 이름을 다시 매기고, 대상이 같은 주제를 합치고, 잘못 들어간 단어를 옮기고, 빈 주제를 지우고, 빠진 주제를 더한다 | `revise_topics.py --plan <revisions.json>` 뒤 `add_topic_mappings.py --mappings <mappings.json>` | `rts4-0fb3d5bc20c215ba` → `rts4-e5083ab344e1336d`(현재 기본값) |
 
 - 1~5단계의 정확한 순서는 5단계만 기록으로 확인했다. 5단계의 입력 그래프는 `T/sense-graph-2-split`이었다. 그 앞 단계는 그래프 폴더 이름(`sense-graph-1` → `sense-graph-2` → `sense-graph-2-reviewed` → `sense-graph-2-split`)으로만 알 수 있다.
 - 6~8단계는 각 데이터셋의 `sense_meta`(`graph`, `base_dataset`, `entries`)로 확인했다.
 - 8단계 입력 `entries.json`은 [코드 단어 수집과 단어 평가](word-evaluation.md)의 보강 단계에서 만들었다. 주제 47개, 개념 1,265개, 뜻 3,358개, 기본형 뜻 이어받기 272건이 들어 있었다.
-- 9단계의 보정 계획은 마지막 단계의 것만 데이터셋 폴더의 `corrections.json`에 남아 있다. 보정 계획의 형식은 `correct_sense_dataset.py`의 설명문에 있다.
+- 9단계의 보정 계획은 마지막 단계의 것만 `rts3-9e01eaf1eadf960a` 폴더의 `corrections.json`에 남아 있다. 보정 계획의 형식은 `correct_sense_dataset.py`의 설명문에 있다.
+- 10단계 입력 `entries.json`은 `rts3-25df1cf41d0d8247` 폴더에 있다. 분야별 조사 결과는 `PoC/datas/omission/`에 있다. 단어마다 그 단어 이름의 새 개념을 만들었고, 주제 130개, 개념 1,442개, 새 표제어 738개가 들어 있다. 관계어는 더하지 않았다.
+- 11단계의 보정 계획(`corrections.json`)과 단어별 근거(`bindings-review.json`)는 데이터셋 폴더에 있다. 대상은 누락 단어 조사에서 `관련어로만 있음`으로 적었지만 그 분야와 연결이 없던 4,111쌍이다.
+  - 같은 주제나 분야에 그 단어를 관련어로 둔 뜻이 있는 1,148쌍은 그 뜻을 통해 연결했다.
+  - 나머지 2,963쌍은 Claude Sonnet 5.5(high)가 분야마다 판정했다. 1,881쌍은 기존 개념의 뜻에 연결했다. 1,082쌍은 연결하지 않았다. 이유는 맞는 개념 없음 1,060, 그 분야의 뜻이 아님 19, 표기 문제 3이다.
+  - 중복을 합친 연결은 3,021건, 대상 단어는 2,953개다. 새 개념·주제와 관계어는 더하지 않았다.
+  - 연결한 단어는 용어 행이 새로 생긴다. 그 표기는 조회 도구가 이전에 보여 주던 관련어 표기를 그대로 썼다([K7](known-defects.md#k7-표제어-표기가-바뀜) 방지).
+- 12단계 입력 `entries.json`과 단어별 판단(`concepts-review.json`)은 `rts3-5fba9ba33d7c7c7f` 폴더에 있다. 대상은 11단계에서 맞는 개념이 없어 연결하지 않은 1,060쌍이다.
+  - Claude Sonnet 5.5(high)가 분야마다 판정했다. 1,033쌍은 넣었고 27쌍은 넣지 않았다. 넣지 않은 이유는 그 분야의 용어가 아님 14, 너무 일반적임 9, 이미 있는 단어의 표기 변형 3, 맞는 주제 없음 1이다.
+  - 넣은 단어는 10단계처럼 단어마다 그 단어 이름의 개념을 만들었다. 같은 것을 가리키는 단어(`bracket matching`과 `balanced parentheses` 등)만 한 개념으로 묶었다.
+  - 맞는 기존 주제가 없으면 새 주제를 만들었다. 주제 120개, 개념 1,005개, 새 표제어 969개, 뜻 1,032개가 들어 있다. 관계어는 더하지 않았다.
+  - 단어 하나뿐인 새 주제에 넣으면 그 단어의 조회 결과가 비는 경우가 있었다. 그래서 `ANSI escape code`는 기존 주제 `t554`(String literals)로 옮겼다. `v-on`은 Vue 지시자 주제가 없어 넣지 않았다.
+  - 표기는 11단계와 같이 조회 도구가 이전에 보여 주던 표기를 그대로 썼다.
+- 13단계 입력 `entries.json`과 단어별 판단(`rereview.json`)은 `rts3-48356e35e1f1ea28` 폴더에 있다.
+  - 대상은 11단계에서 연결하지 않은 22단어(맞는 개념 없음은 제외)와 12단계에서 넣지 않은 27단어, 모두 49단어다.
+  - 11·12단계는 다른 분야가 더 주된 분야이면 "그 분야의 용어가 아님"으로 뺐다. 13단계는 단어의 설명에 그 분야의 대상이 들어 있으면 연결한다. 예를 들어 `nvidia-smi`는 설명에 GPU가 있으므로 `graphics-media`에도 연결했다.
+  - Claude Sonnet 5.5(high)가 단어마다 39개 분야를 모두 보고 적합도가 "매우 높음" 또는 "높음"인 분야를 골랐다. 단어 전체의 뜻이 이미 있는 분야는 뺐다.
+  - 이미 뜻이 있는 분야라도 그 뜻의 주제가 단어와 맞지 않는 4건은 검토자가 직접 추가했다. 예를 들어 `Spectre`의 `security` 뜻은 Webhook signature verification 주제여서, 취약점 주제에 따로 연결했다.
+  - 연결은 59건이다. 연결마다 그 주제에 단어 이름의 새 개념을 만들었다. 새 주제는 4개다.
+  - 47단어가 한 곳 이상 연결됐다. `requireNonNull`과 `negative testing`은 연결할 분야가 남지 않았다. 둘 다 원래 분야(오류 처리, 테스트)에는 뜻이 이미 있다.
 - 남은 결함은 [알려진 결함](known-defects.md)에 있다.
+- 14~16단계의 과정과 검증은 [뜻 데이터셋 구조 정리와 분야 매핑 확장](sense-mapping-log/README.md)에 있다. 15단계의 단어별 판정은 `rts4-86c5620af1f181ce` 폴더의 `mappings.json`과 `mapping-decisions-a.txt`, `mapping-decisions-b.txt`에 있다. 16단계의 판정은 `rts4-0fb3d5bc20c215ba` 폴더의 `revisions.json`과 `rts4-e5083ab344e1336d` 폴더의 `mappings.json`에 항목마다 이유와 함께 있다.
 
 새 보정을 적용할 때는 다음을 지킨다.
 - 직전 데이터셋 폴더를 `--base`로 준다. 기존 데이터셋은 바뀌지 않고 새 폴더가 생긴다.
 - 새 개념·주제가 필요하면 `add-entries`를 먼저 실행한다.
+- `add-entries`와 `correct_sense_dataset.py`는 `rt-sense/3` 판만 받는다. 현재 기본값은 `rt-sense/4` 판이라 이 두 도구로 고칠 수 없다. `rt-sense/4` 판에 단어 → 주제 연결을 더하는 도구는 `add_topic_mappings.py`, 주제의 분야·이름을 고치고 주제를 합치거나 지우는 도구는 `revise_topics.py`다.
 - 결과를 기본값으로 쓰려면 `sense_lookup.py`의 `DEFAULT_SENSE_DATASET`을 바꾼다.
 
 ```sh
@@ -114,7 +144,7 @@ python3 apps/codemap-search/experiments/related-terms-poc/correct_sense_dataset.
 | `PoC/category_lookup.py` | 입력 단어 → 하위 분야 → 그 분야의 단어 | 카테고리 데이터셋, 관련어 데이터셋, `rtpoc3` |
 | `PoC/lookup-v3`의 `rtpoc3 related` | 관련어 데이터셋의 유사도순 관련어 | 관련어 데이터셋 |
 
-두 Python 조회 도구는 입력 단어의 표기를 해석할 때 `rtpoc3 related`를 실행한다. `rtpoc3`가 없으면 다음 명령으로 빌드한다.
+두 Python 조회 도구는 입력 단어의 표기를 해석할 때 `rtpoc3 related`를 실행한다. `sense_lookup.py`는 관련어 데이터셋에 저장된 단어 임베딩으로 뜻을 질의와 비슷한 순서로 정렬한다(`--no-similarity-order`로 끈다). `rtpoc3`가 없으면 다음 명령으로 빌드한다.
 
 ```sh
 cargo build --offline --release \

@@ -68,7 +68,7 @@ def main():
             calls.append((queries,str(rtpoc3),str(dataset)))
             return matches
         argv=['sense_lookup.py','polices','--sense-dataset',str(database),'--dataset','chosen-lexical.sqlite3',
-              '--rtpoc3','chosen-matcher','--no-evidence-inflections','--skip-syntax-parts','--format','json']
+              '--rtpoc3','chosen-matcher','--no-evidence-inflections','--skip-syntax-parts','--no-similarity-order','--format','json']
         real_resolve=lookup.cl.resolve
         with patch.object(lookup.cl,'run_rtpoc3',side_effect=matcher), patch.object(lookup.cl,'resolve',wraps=real_resolve) as resolve, patch.object(sys,'argv',argv), contextlib.redirect_stdout(io.StringIO()) as stdout:
             lookup.main()

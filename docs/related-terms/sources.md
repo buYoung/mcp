@@ -61,7 +61,7 @@
 | vector | https://github.com/vectordotdev/vector | `v0.59.0` | `a3231c76bdea5078bc54c205cf89f5a1ceddbb73` | Rust 90, Python 1 |
 | woocommerce | https://github.com/woocommerce/woocommerce | `11.2.0` | `1699191d5074a22e7f6c43ff2da8fa9942905435` | PHP 75, TypeScript 33, TSX 27, JavaScript 19 |
 
-같은 목록이 뜻 데이터셋 폴더의 `sources.json`에도 있다. 체크아웃 위치는 `.codemap/poc/related-terms/workspaces/checkouts/<저장소>`다. 예를 들어 다음처럼 받을 수 있다.
+같은 목록이 뜻 데이터셋 `rts3-9e01eaf1eadf960a` 폴더의 `sources.json`에도 있다. 체크아웃 위치는 `.codemap/poc/related-terms/workspaces/checkouts/<저장소>`다. 예를 들어 다음처럼 받을 수 있다.
 
 ```sh
 git clone --depth 1 --branch v1.12.0 https://github.com/gin-gonic/gin.git \

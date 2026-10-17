@@ -75,6 +75,8 @@
 5. `prepare_inherit_review.py`: 파생어·약어가 기본형의 뜻을 이어받아도 되는지 다시 판정할 묶음을 만든다(지침 `gap-inherit-brief.md`). 새 주제 정리 판정은 지침 `gap-topic-brief.md`를 쓴다.
 6. `collect_gap_results.py words`: 판정을 모아 `gap/entries.json`을 쓴다.
 
+이 중 기본 데이터셋을 직접 읽는 스크립트(`dataset_coverage.py`, `build_gap_catalog.py`, `prepare_gap_words.py`, `prepare_inherit_review.py`, `collect_gap_results.py`)는 `rt-sense/3`과 `rt-sense/4`를 모두 읽는다. 그러나 `entries.json`을 넣는 `add-entries`는 `rt-sense/3` 판만 받으므로, 현재 기본 데이터셋(`rt-sense/4`)에는 이 결과를 그대로 넣을 수 없다.
+
 ## 5. 보강 후 재판정
 
 보강한 데이터셋으로 평가 단어를 다시 조회하고, 응답이 바뀐 단어를 다시 판정한다.
@@ -113,7 +115,7 @@
 | terminal | 2,244 | 64.8% | 95.7% |
 
 - 판정자는 LLM 하나이며, 사람의 판정과 대조하지 않았다.
-- 이후 검토 보정으로 만든 현재 기본 데이터셋(`rts3-9e01eaf1eadf960a`)은 다시 평가하지 않았다([알려진 결함](known-defects.md)의 U1).
+- 이후 검토 보정으로 만든 `rts3-9e01eaf1eadf960a`는 다시 평가하지 않았다. 여기에 분야별 누락 단어를 더한 `rts3-25df1cf41d0d8247`, 관련어로만 있던 단어의 분야 연결을 더한 `rts3-08b1780cc2880c26`, 연결하지 못한 단어의 새 개념을 더한 `rts3-5fba9ba33d7c7c7f`, 빠진 단어를 재검토한 `rts3-48356e35e1f1ea28`, 이를 `rt-sense/4`로 옮기고 분야 매핑을 더한 `rts4-86c5620af1f181ce`, 주제를 재분류한 현재 기본 데이터셋 `rts4-e5083ab344e1336d`도 마찬가지다([알려진 결함](known-defects.md)의 U1).
 
 ## 이 폴더로 옮기며 확인한 것
 

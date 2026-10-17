@@ -1,0 +1,6242 @@
+{
+ "base_dataset": "rts4-86c5620af1f181ce",
+ "reviewer": "Claude Opus 5.5",
+ "new_topics": [
+  {
+   "topic": "x307",
+   "label": "Fortran and COBOL",
+   "scope": "Programming in the long-lived compiled languages Fortran and COBOL and maintaining their codebases.",
+   "fields": [
+    "languages-compilers"
+   ],
+   "reason": "두 단어를 담을 언어 주제가 없음"
+  },
+  {
+   "topic": "x308",
+   "label": "Zig language",
+   "scope": "Writing systems software in Zig and building it with build.zig.",
+   "fields": [
+    "languages-compilers",
+    "systems-low-level"
+   ],
+   "reason": "Zig, build.zig"
+  },
+  {
+   "topic": "x309",
+   "label": "AWS streaming data services",
+   "scope": "Ingesting and analyzing streaming data with Amazon Kinesis Data Streams, Data Firehose and Data Analytics.",
+   "fields": [
+    "cloud-infrastructure",
+    "data-engineering"
+   ],
+   "reason": "Kinesis 단어 7개"
+  },
+  {
+   "topic": "x310",
+   "label": "AWS messaging services",
+   "scope": "Sending notifications and queueing messages with Amazon SNS, Amazon SQS and Amazon MQ.",
+   "fields": [
+    "cloud-infrastructure",
+    "distributed-systems"
+   ],
+   "reason": "AWS 메시징 단어 3개"
+  },
+  {
+   "topic": "x311",
+   "label": "AWS AI services",
+   "scope": "Calling managed AI services such as Amazon Polly text-to-speech and Amazon Translate.",
+   "fields": [
+    "cloud-infrastructure",
+    "ml-ai"
+   ],
+   "reason": "AWS AI 단어 2개"
+  },
+  {
+   "topic": "x312",
+   "label": "Lua language",
+   "scope": "Programming and embedding the Lua scripting language and its LuaJIT runtime.",
+   "fields": [
+    "languages-compilers"
+   ],
+   "reason": "Lua, LuaJIT"
+  },
+  {
+   "topic": "x313",
+   "label": "Data app frameworks",
+   "scope": "Building interactive data apps and dashboards in Python or R with Streamlit, Shiny and Gradio.",
+   "fields": [
+    "data-visualization",
+    "web-backend"
+   ],
+   "reason": "Shiny, Streamlit, Gradio"
+  },
+  {
+   "topic": "x314",
+   "label": "Async function syntax",
+   "scope": "Declaring and calling asynchronous functions with async and await syntax and awaitable types.",
+   "fields": [
+    "language-constructs",
+    "concurrency-async"
+   ],
+   "reason": "async 문법 단어 4개"
+  }
+ ],
+ "labels": [
+  {
+   "topic": "t1022",
+   "label": "Declaration type inference",
+   "scope": "Inferring the types of declarations: auto, decltype, deduced return types.",
+   "reason": "같은 이름의 t920과 대상이 다름"
+  },
+  {
+   "topic": "t242.1",
+   "label": "Buffered readers and writers",
+   "scope": "Buffered readers and writers, input streams, flushing, and I/O exceptions.",
+   "reason": "같은 이름의 t241.1(스트림 배압)과 구분"
+  },
+  {
+   "topic": "t86.6",
+   "label": "Release tagging and version bumps",
+   "scope": "Tagging releases and automating release versions and version bumps.",
+   "reason": "같은 이름의 t28.2(배포 파이프라인)과 구분"
+  },
+  {
+   "topic": "t594.2",
+   "label": "Clearing and purging wording",
+   "scope": "Clearing, flushing, forgetting, and purging stored state.",
+   "reason": "같은 이름의 t48.4(캐시 무효화)와 구분"
+  },
+  {
+   "topic": "t348",
+   "label": "Future composition",
+   "scope": "Chaining asynchronous results with CompletableFuture thenApply, thenCompose and supplyAsync.",
+   "reason": "같은 이름의 t780(모나드)과 대상이 다름"
+  },
+  {
+   "topic": "t38",
+   "label": "Addition wording",
+   "scope": "Words for something added: added, appended, inserted, attached, newly created.",
+   "reason": "단어가 이름(Associated/linked)과 다름"
+  },
+  {
+   "topic": "t687",
+   "label": "Permanence wording",
+   "scope": "Words for lasting without end: forever, indefinitely, permanent, continuously, infinite.",
+   "reason": "단어가 이름(Guarantee)과 다름"
+  },
+  {
+   "topic": "t374.4",
+   "label": "Normative requirement wording",
+   "scope": "Normative wording in specifications: must, shall, should, may, conformance, RFC requirements.",
+   "reason": "같은 이름의 t681(필요·의존 표현)과 구분"
+  },
+  {
+   "topic": "t399",
+   "label": "Greedy and backtracking algorithms",
+   "scope": "Greedy heuristics, backtracking, branch and bound, Huffman coding and minimum spanning trees.",
+   "reason": "같은 이름의 t479와 구분"
+  },
+  {
+   "topic": "t479",
+   "label": "Union-find and connected components",
+   "scope": "Disjoint-set union-find, connected components and Kruskal's minimum spanning tree.",
+   "reason": "같은 이름의 t399와 구분"
+  },
+  {
+   "topic": "t39.17",
+   "label": "IoT device registry and state",
+   "scope": "Registering IoT devices as things and managing their state.",
+   "reason": "합친 뒤 범위"
+  },
+  {
+   "topic": "t56.10",
+   "label": "Vector databases",
+   "scope": "Storing and searching embedding vectors with vector databases and extensions such as Milvus, pgvector and Qdrant.",
+   "reason": "단어 셋이 서로 다른 제품"
+  },
+  {
+   "topic": "t838",
+   "label": "PostgreSQL tools and clients",
+   "scope": "Working with PostgreSQL through psql, pgAdmin, pg_dump/pg_restore, connection poolers and client queries.",
+   "reason": "단어가 모두 PostgreSQL 도구"
+  },
+  {
+   "topic": "t546",
+   "label": "Erlang messaging systems",
+   "scope": "Erlang and the message brokers built on it, such as RabbitMQ and EMQX.",
+   "reason": "단어가 Erlang과 Erlang 기반 브로커"
+  },
+  {
+   "topic": "t990",
+   "label": "Wrapping and surrounding",
+   "scope": "Wrapping a value, text or selection in an enclosing element, delimiter or object.",
+   "reason": "단어 surround, wrap이 오류 원인과 무관"
+  },
+  {
+   "topic": "t241.10",
+   "label": "xxHash hashing",
+   "scope": "Computing fast non-cryptographic hashes and stream checksums with xxHash.",
+   "reason": "합친 뒤 범위"
+  },
+  {
+   "topic": "t84.3",
+   "label": "Load and stress testing",
+   "scope": "Driving API workloads in load, stress and soak tests and measuring requests or operations per second.",
+   "reason": "부하·스트레스 테스트 새 주제 대신 이 주제를 넓힘"
+  },
+  {
+   "topic": "t154",
+   "label": "AWS developer tools",
+   "scope": "Hosting, building, deploying and releasing code with AWS CodeCommit, CodeBuild, CodeDeploy and CodePipeline.",
+   "reason": "남는 단어가 모두 AWS CI/CD 서비스"
+  },
+  {
+   "topic": "t685.2",
+   "label": "String search algorithms",
+   "scope": "Matching patterns in strings with algorithms such as Knuth-Morris-Pratt, Boyer-Moore and Manacher.",
+   "reason": "문자열 탐색 새 주제 대신 이 주제를 넓힘"
+  },
+  {
+   "topic": "t495.1",
+   "label": "Domain-driven design models",
+   "scope": "Modeling domains with bounded contexts, aggregates and value objects, and recording or replaying domain events in event stores.",
+   "reason": "DDD 단어가 함께 있음"
+  },
+  {
+   "topic": "t617",
+   "label": "Number theory algorithms",
+   "scope": "Computing GCD, LCM, modular inverses and fast powers with Euclidean and exponentiation algorithms.",
+   "reason": "정수론 새 주제 대신 이 주제를 넓힘"
+  },
+  {
+   "topic": "t1044.1",
+   "label": "Vim and Neovim",
+   "scope": "Configuring and extending Vim and Neovim with Vim script, Lua plugins and LSP integration.",
+   "reason": "단어가 Vim·Neovim 전반"
+  }
+ ],
+ "fields": [
+  {
+   "topic": "t1022",
+   "fields": [
+    "type-systems",
+    "language-constructs"
+   ],
+   "reason": "타입 추론은 타입 시스템 대상"
+  },
+  {
+   "topic": "t118.1",
+   "fields": [
+    "frontend-ui",
+    "docs-collaboration",
+    "build-release"
+   ],
+   "reason": "정적 사이트 생성 프레임워크(Astro, Gatsby, Eleventy)는 프런트엔드 대상"
+  },
+  {
+   "topic": "t242.8",
+   "fields": [
+    "concurrency-async",
+    "files-io"
+   ],
+   "reason": "읽기 잠금은 동시성 대상"
+  },
+  {
+   "topic": "t19.4",
+   "fields": [
+    "business-domains",
+    "auth-identity"
+   ],
+   "reason": "소프트웨어 라이선스·상용 판매는 비즈니스 대상"
+  },
+  {
+   "topic": "t203.2",
+   "fields": [
+    "general-wording",
+    "language-constructs"
+   ],
+   "reason": "일반 동사 표현"
+  },
+  {
+   "topic": "t212.2",
+   "fields": [
+    "general-wording",
+    "language-constructs"
+   ],
+   "reason": "그대로 일반 표현, 호출 대상 보조"
+  },
+  {
+   "topic": "t348",
+   "fields": [
+    "concurrency-async",
+    "functional-programming"
+   ],
+   "reason": "CompletableFuture 연쇄는 비동기 대상"
+  },
+  {
+   "topic": "t374.4",
+   "fields": [
+    "general-wording",
+    "docs-collaboration"
+   ],
+   "reason": "명세 문장의 규범 표현"
+  },
+  {
+   "topic": "t375.1",
+   "fields": [
+    "distributed-systems",
+    "os-shell"
+   ],
+   "reason": "RPC는 분산 시스템 대상. IPC 단어가 있어 os-shell 보조"
+  },
+  {
+   "topic": "t456.1",
+   "fields": [
+    "general-wording",
+    "error-handling"
+   ],
+   "reason": "거절·실패 표현"
+  },
+  {
+   "topic": "t497.3",
+   "fields": [
+    "concurrency-async",
+    "distributed-systems"
+   ],
+   "reason": "MPI는 병렬·분산 실행 대상"
+  },
+  {
+   "topic": "t589.2",
+   "fields": [
+    "web-backend",
+    "frontend-ui",
+    "browser-platform"
+   ],
+   "reason": "서버 리디렉션(res.redirect, 3xx)은 HTTP 서버 대상"
+  },
+  {
+   "topic": "t594.2",
+   "fields": [
+    "general-wording",
+    "databases-storage"
+   ],
+   "reason": "지우기 표현. 캐시 단어가 많아 보조"
+  },
+  {
+   "topic": "t1045.1",
+   "fields": [
+    "languages-compilers",
+    "algorithms-data-structures"
+   ],
+   "reason": "AST 파싱·방문은 컴파일러 도구"
+  },
+  {
+   "topic": "t147.2",
+   "fields": [
+    "text-processing",
+    "algorithms-data-structures"
+   ],
+   "reason": "문자열 접두사 처리"
+  },
+  {
+   "topic": "t308.5",
+   "fields": [
+    "data-visualization",
+    "algorithms-data-structures"
+   ],
+   "reason": "힘 기반 그래프 배치는 시각화"
+  },
+  {
+   "topic": "t308.6",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "탭 목록 키보드 탐색은 UI 컴포넌트"
+  },
+  {
+   "topic": "t331.2",
+   "fields": [
+    "software-design"
+   ],
+   "reason": "Guice·InversifyJS 의존성 주입"
+  },
+  {
+   "topic": "t354.5",
+   "fields": [
+    "language-constructs",
+    "algorithms-data-structures"
+   ],
+   "reason": "식 평가 순서"
+  },
+  {
+   "topic": "t354.6",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "TensorFlow 계산 그래프"
+  },
+  {
+   "topic": "t357.2",
+   "fields": [
+    "concurrency-async",
+    "functional-programming"
+   ],
+   "reason": "Rx 스트림 zip"
+  },
+  {
+   "topic": "t379.3",
+   "fields": [
+    "os-shell"
+   ],
+   "reason": "프로세스 격리"
+  },
+  {
+   "topic": "t379.4",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "물리 실행 계획"
+  },
+  {
+   "topic": "t446.4",
+   "fields": [
+    "build-release",
+    "configuration"
+   ],
+   "reason": "비율 기반 기능 배포"
+  },
+  {
+   "topic": "t468.2",
+   "fields": [
+    "type-systems",
+    "algorithms-data-structures"
+   ],
+   "reason": "keyof, 타입 가드"
+  },
+  {
+   "topic": "t468.3",
+   "fields": [
+    "databases-storage",
+    "configuration"
+   ],
+   "reason": "Consul·Couchbase·Memcached 키-값 저장소"
+  },
+  {
+   "topic": "t468.4",
+   "fields": [
+    "web-backend",
+    "concurrency-async"
+   ],
+   "reason": "throttle(요청·실행 빈도 제한)"
+  },
+  {
+   "topic": "t471.2",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "UI 변경 감지"
+  },
+  {
+   "topic": "t496.1",
+   "fields": [
+    "frontend-ui",
+    "browser-platform"
+   ],
+   "reason": "DOM·컴포넌트 트리"
+  },
+  {
+   "topic": "t496.5",
+   "fields": [
+    "languages-compilers",
+    "type-systems"
+   ],
+   "reason": "TypeScript 컴파일러 AST"
+  },
+  {
+   "topic": "t496.6",
+   "fields": [
+    "version-control"
+   ],
+   "reason": "git clone"
+  },
+  {
+   "topic": "t698.2",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "SQL SELECT"
+  },
+  {
+   "topic": "t701.2",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "영업일 계산"
+  },
+  {
+   "topic": "t8.1",
+   "fields": [
+    "general-wording",
+    "math-numerics"
+   ],
+   "reason": "크기 비교 표현"
+  },
+  {
+   "topic": "t8.3",
+   "fields": [
+    "language-constructs",
+    "math-numerics"
+   ],
+   "reason": "비교 연산자"
+  },
+  {
+   "topic": "t822.2",
+   "fields": [
+    "web-backend",
+    "distributed-systems"
+   ],
+   "reason": "요청 속도 제한"
+  },
+  {
+   "topic": "t822.3",
+   "fields": [
+    "auth-identity",
+    "security"
+   ],
+   "reason": "일회용 인증 코드 확인"
+  },
+  {
+   "topic": "t837.1",
+   "fields": [
+    "math-numerics",
+    "algorithms-data-structures"
+   ],
+   "reason": "무작위 표본 추출"
+  },
+  {
+   "topic": "t837.2",
+   "fields": [
+    "security",
+    "math-numerics"
+   ],
+   "reason": "암호용 난수"
+  },
+  {
+   "topic": "t837.3",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "GAN 판별기"
+  },
+  {
+   "topic": "t91.2",
+   "fields": [
+    "files-io"
+   ],
+   "reason": "fsnotify 파일 변경 알림"
+  },
+  {
+   "topic": "t92.2",
+   "fields": [
+    "text-processing",
+    "algorithms-data-structures"
+   ],
+   "reason": "문자열 연결"
+  },
+  {
+   "topic": "t92.3",
+   "fields": [
+    "text-processing"
+   ],
+   "reason": "문자열 나누기"
+  },
+  {
+   "topic": "t92.4",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "트랜스포머 어텐션"
+  },
+  {
+   "topic": "t92.5",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "정도 표현"
+  },
+  {
+   "topic": "t92.6",
+   "fields": [
+    "files-io"
+   ],
+   "reason": "std::ofstream"
+  },
+  {
+   "topic": "t951.2",
+   "fields": [
+    "build-release",
+    "frontend-ui"
+   ],
+   "reason": "번들 코드 분할"
+  },
+  {
+   "topic": "t15.9",
+   "fields": [
+    "security"
+   ],
+   "reason": "보안 운영(SOC)"
+  },
+  {
+   "topic": "t159.8",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "Square 결제 API"
+  },
+  {
+   "topic": "t19.5",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "권고 표현"
+  },
+  {
+   "topic": "t34.4",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "그레고리력"
+  },
+  {
+   "topic": "t749.4",
+   "fields": [
+    "ml-ai",
+    "docs-collaboration"
+   ],
+   "reason": "지식 베이스·온톨로지"
+  },
+  {
+   "topic": "t813.2",
+   "fields": [
+    "distributed-systems"
+   ],
+   "reason": "Apache Pulsar 메시징"
+  },
+  {
+   "topic": "t813.3",
+   "fields": [
+    "cloud-infrastructure"
+   ],
+   "reason": "컴퓨트 인스턴스"
+  },
+  {
+   "topic": "t896.3",
+   "fields": [
+    "os-shell",
+    "auth-identity"
+   ],
+   "reason": "Unix UID·GID"
+  },
+  {
+   "topic": "t163.2",
+   "fields": [
+    "mobile-desktop",
+    "os-shell"
+   ],
+   "reason": "앱·액티비티 생명주기"
+  },
+  {
+   "topic": "t163.3",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "제품 지원 종료(EOL)"
+  },
+  {
+   "topic": "t214.4",
+   "fields": [
+    "frontend-ui",
+    "browser-platform",
+    "mobile-desktop"
+   ],
+   "reason": "파일 선택 대화상자"
+  },
+  {
+   "topic": "t233.4",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "광고 캠페인 추적"
+  },
+  {
+   "topic": "t233.5",
+   "fields": [
+    "web-backend",
+    "error-handling"
+   ],
+   "reason": "웹 오류 페이지"
+  },
+  {
+   "topic": "t321.5",
+   "fields": [
+    "language-constructs"
+   ],
+   "reason": "가변 컬렉션"
+  },
+  {
+   "topic": "t398",
+   "fields": [
+    "observability-debugging",
+    "browser-platform"
+   ],
+   "reason": "Core Web Vitals·RUM 성능 감시"
+  },
+  {
+   "topic": "t571.2",
+   "fields": [
+    "testing"
+   ],
+   "reason": "결함 주입"
+  },
+  {
+   "topic": "t606.2",
+   "fields": [
+    "web-styling",
+    "frontend-ui",
+    "mobile-desktop"
+   ],
+   "reason": "UI 배치(vstack, zstack)"
+  },
+  {
+   "topic": "t610.1",
+   "fields": [
+    "general-wording",
+    "build-release"
+   ],
+   "reason": "기능 지원 여부 표현"
+  },
+  {
+   "topic": "t610.3",
+   "fields": [
+    "build-release",
+    "browser-platform"
+   ],
+   "reason": "하위 호환성·MSRV"
+  },
+  {
+   "topic": "t699.2",
+   "fields": [
+    "general-wording",
+    "web-styling"
+   ],
+   "reason": "가운데 위치 표현"
+  },
+  {
+   "topic": "t699.3",
+   "fields": [
+    "web-styling",
+    "browser-platform"
+   ],
+   "reason": "CSS 요소 위치 지정"
+  },
+  {
+   "topic": "t747.2",
+   "fields": [
+    "mobile-desktop",
+    "browser-platform"
+   ],
+   "reason": "앱 딥 링크"
+  },
+  {
+   "topic": "t747.3",
+   "fields": [
+    "data-formats"
+   ],
+   "reason": "RDF 관계 술어"
+  },
+  {
+   "topic": "t747.4",
+   "fields": [
+    "data-formats"
+   ],
+   "reason": "XML 네임스페이스 URI"
+  },
+  {
+   "topic": "t1013.2",
+   "fields": [
+    "text-processing",
+    "general-wording"
+   ],
+   "reason": "길이 잘라내기"
+  },
+  {
+   "topic": "t181.5",
+   "fields": [
+    "languages-compilers"
+   ],
+   "reason": "Go 개발 도구"
+  },
+  {
+   "topic": "t181.6",
+   "fields": [
+    "files-io"
+   ],
+   "reason": "shutil.copy"
+  },
+  {
+   "topic": "t249.3",
+   "fields": [
+    "languages-compilers",
+    "build-release"
+   ],
+   "reason": "컴파일러 죽은 코드 제거"
+  },
+  {
+   "topic": "t28.5",
+   "fields": [
+    "testing"
+   ],
+   "reason": "테스트 피라미드"
+  },
+  {
+   "topic": "t39.13",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "Day.js 날짜 처리"
+  },
+  {
+   "topic": "t39.14",
+   "fields": [
+    "docs-collaboration"
+   ],
+   "reason": "문서 호스팅(Read the Docs)"
+  },
+  {
+   "topic": "t39.15",
+   "fields": [
+    "version-control"
+   ],
+   "reason": "Git 서브모듈"
+  },
+  {
+   "topic": "t39.16",
+   "fields": [
+    "cloud-infrastructure",
+    "build-release"
+   ],
+   "reason": "terraform init"
+  },
+  {
+   "topic": "t39.17",
+   "fields": [
+    "cloud-infrastructure",
+    "distributed-systems"
+   ],
+   "reason": "IoT 장치(things)"
+  },
+  {
+   "topic": "t543.2",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "소유 표현(has)"
+  },
+  {
+   "topic": "t777.2",
+   "fields": [
+    "languages-compilers",
+    "systems-low-level"
+   ],
+   "reason": "심볼 이름 해석"
+  },
+  {
+   "topic": "t1005.2",
+   "fields": [
+    "auth-identity",
+    "build-release"
+   ],
+   "reason": "GitHub Actions OIDC 인증"
+  },
+  {
+   "topic": "t111.2",
+   "fields": [
+    "cloud-infrastructure",
+    "business-domains"
+   ],
+   "reason": "예약 인스턴스 가격"
+  },
+  {
+   "topic": "t170.7",
+   "fields": [
+    "web-backend",
+    "mobile-desktop"
+   ],
+   "reason": "OkHttp·Retrofit HTTP 클라이언트"
+  },
+  {
+   "topic": "t261.4",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "월 약어"
+  },
+  {
+   "topic": "t532.2",
+   "fields": [
+    "security",
+    "auth-identity"
+   ],
+   "reason": "스푸핑·사칭 공격"
+  },
+  {
+   "topic": "t532.5",
+   "fields": [
+    "security",
+    "networking",
+    "business-domains"
+   ],
+   "reason": "SPF·DKIM 발신자 인증"
+  },
+  {
+   "topic": "t157.2",
+   "fields": [
+    "networking"
+   ],
+   "reason": "소켓 수신"
+  },
+  {
+   "topic": "t169.3",
+   "fields": [
+    "distributed-systems",
+    "cloud-infrastructure"
+   ],
+   "reason": "하트비트·리스 갱신"
+  },
+  {
+   "topic": "t174.2",
+   "fields": [
+    "mobile-desktop",
+    "cloud-infrastructure",
+    "browser-platform"
+   ],
+   "reason": "푸시 알림"
+  },
+  {
+   "topic": "t174.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "억제·무음 표현"
+  },
+  {
+   "topic": "t245.3",
+   "fields": [
+    "os-shell",
+    "cloud-infrastructure"
+   ],
+   "reason": "Debian·apt"
+  },
+  {
+   "topic": "t245.4",
+   "fields": [
+    "os-shell",
+    "cloud-infrastructure"
+   ],
+   "reason": "Red Hat 계열 배포판"
+  },
+  {
+   "topic": "t323.3",
+   "fields": [
+    "security",
+    "cloud-infrastructure"
+   ],
+   "reason": "최소 권한·기본 보안 정책"
+  },
+  {
+   "topic": "t611.3",
+   "fields": [
+    "general-wording",
+    "auth-identity"
+   ],
+   "reason": "익명 표현"
+  },
+  {
+   "topic": "t64.4",
+   "fields": [
+    "languages-compilers",
+    "error-handling"
+   ],
+   "reason": "Python ImportError"
+  },
+  {
+   "topic": "t64.5",
+   "fields": [
+    "build-release",
+    "os-shell"
+   ],
+   "reason": "Yocto 시스템 이미지"
+  },
+  {
+   "topic": "t648.2",
+   "fields": [
+    "configuration"
+   ],
+   "reason": "전역 설정"
+  },
+  {
+   "topic": "t71.5",
+   "fields": [
+    "web-styling",
+    "browser-platform"
+   ],
+   "reason": "브라우저 벤더 접두사"
+  },
+  {
+   "topic": "t73.3",
+   "fields": [
+    "configuration"
+   ],
+   "reason": "설정 우선순위"
+  },
+  {
+   "topic": "t127.2",
+   "fields": [
+    "files-io",
+    "concurrency-async"
+   ],
+   "reason": "Java NIO 버퍼·파일 채널"
+  },
+  {
+   "topic": "t127.3",
+   "fields": [
+    "networking",
+    "concurrency-async"
+   ],
+   "reason": "Java 소켓"
+  },
+  {
+   "topic": "t127.4",
+   "fields": [
+    "languages-compilers",
+    "concurrency-async"
+   ],
+   "reason": "Node.js 런타임 API"
+  },
+  {
+   "topic": "t128.7",
+   "fields": [
+    "language-constructs",
+    "systems-low-level"
+   ],
+   "reason": "이동 의미론"
+  },
+  {
+   "topic": "t129.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "중요도 표현"
+  },
+  {
+   "topic": "t129.4",
+   "fields": [
+    "graphics-media"
+   ],
+   "reason": "x264 영상 인코딩"
+  },
+  {
+   "topic": "t132.3",
+   "fields": [
+    "observability-debugging",
+    "os-shell"
+   ],
+   "reason": "strace"
+  },
+  {
+   "topic": "t133.3",
+   "fields": [
+    "algorithms-data-structures",
+    "systems-low-level"
+   ],
+   "reason": "값 교환"
+  },
+  {
+   "topic": "t165.4",
+   "fields": [
+    "software-design",
+    "concurrency-async"
+   ],
+   "reason": "커맨드 패턴"
+  },
+  {
+   "topic": "t165.6",
+   "fields": [
+    "ml-ai",
+    "concurrency-async"
+   ],
+   "reason": "에이전트 실행 루프"
+  },
+  {
+   "topic": "t165.7",
+   "fields": [
+    "data-engineering"
+   ],
+   "reason": "Dagster"
+  },
+  {
+   "topic": "t165.8",
+   "fields": [
+    "os-shell",
+    "mobile-desktop"
+   ],
+   "reason": "launchd"
+  },
+  {
+   "topic": "t165.9",
+   "fields": [
+    "os-shell"
+   ],
+   "reason": "PM2 프로세스 관리"
+  },
+  {
+   "topic": "t177.2",
+   "fields": [
+    "general-wording",
+    "concurrency-async"
+   ],
+   "reason": "완료 상태 표현"
+  },
+  {
+   "topic": "t177.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "주로 일어남 표현"
+  },
+  {
+   "topic": "t190.2",
+   "fields": [
+    "mobile-desktop",
+    "concurrency-async"
+   ],
+   "reason": "RxSwift 뷰 모델"
+  },
+  {
+   "topic": "t190.5",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "Elasticsearch match 질의"
+  },
+  {
+   "topic": "t190.6",
+   "fields": [
+    "language-constructs"
+   ],
+   "reason": "Uint8Array"
+  },
+  {
+   "topic": "t297.5",
+   "fields": [
+    "distributed-systems",
+    "web-backend"
+   ],
+   "reason": "JMS·Kafka·RabbitMQ 템플릿"
+  },
+  {
+   "topic": "t297.6",
+   "fields": [
+    "networking",
+    "concurrency-async"
+   ],
+   "reason": "소켓 송수신"
+  },
+  {
+   "topic": "t297.7",
+   "fields": [
+    "systems-low-level"
+   ],
+   "reason": "직렬 포트(UART)"
+  },
+  {
+   "topic": "t297.8",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "시세 티커"
+  },
+  {
+   "topic": "t319.3",
+   "fields": [
+    "testing",
+    "time-locale"
+   ],
+   "reason": "가짜 타이머 테스트"
+  },
+  {
+   "topic": "t319.4",
+   "fields": [
+    "data-visualization",
+    "graphics-media"
+   ],
+   "reason": "Cesium 지리 공간 렌더링"
+  },
+  {
+   "topic": "t319.5",
+   "fields": [
+    "os-shell",
+    "configuration"
+   ],
+   "reason": "/etc 시스템 설정 경로"
+  },
+  {
+   "topic": "t482.1",
+   "fields": [
+    "general-wording",
+    "concurrency-async"
+   ],
+   "reason": "보내기 표현"
+  },
+  {
+   "topic": "t528.1",
+   "fields": [
+    "mobile-desktop"
+   ],
+   "reason": "Electron 전역 단축키"
+  },
+  {
+   "topic": "t528.10",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "폼 변경 핸들러"
+  },
+  {
+   "topic": "t528.11",
+   "fields": [
+    "systems-low-level",
+    "concurrency-async"
+   ],
+   "reason": "하드웨어 인터럽트 핸들러"
+  },
+  {
+   "topic": "t528.12",
+   "fields": [
+    "networking",
+    "concurrency-async"
+   ],
+   "reason": "dns.lookup 콜백"
+  },
+  {
+   "topic": "t528.14",
+   "fields": [
+    "data-visualization",
+    "frontend-ui"
+   ],
+   "reason": "Leaflet 지도"
+  },
+  {
+   "topic": "t528.15",
+   "fields": [
+    "auth-identity"
+   ],
+   "reason": "로그인 리디렉션"
+  },
+  {
+   "topic": "t528.17",
+   "fields": [
+    "languages-compilers"
+   ],
+   "reason": "구문 트리 리스너"
+  },
+  {
+   "topic": "t528.5",
+   "fields": [
+    "software-design",
+    "frontend-ui"
+   ],
+   "reason": "제어 역전"
+  },
+  {
+   "topic": "t528.7",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "워크플로 수동 실행"
+  },
+  {
+   "topic": "t528.9",
+   "fields": [
+    "frontend-ui",
+    "general-wording"
+   ],
+   "reason": "UI 컨트롤 표현"
+  },
+  {
+   "topic": "t53.2",
+   "fields": [
+    "auth-identity",
+    "security"
+   ],
+   "reason": "인증 재시도 대기"
+  },
+  {
+   "topic": "t576.10",
+   "fields": [
+    "os-shell",
+    "mobile-desktop"
+   ],
+   "reason": "Windows COM 인터페이스"
+  },
+  {
+   "topic": "t576.11",
+   "fields": [
+    "mobile-desktop"
+   ],
+   "reason": "기기 방향"
+  },
+  {
+   "topic": "t576.12",
+   "fields": [
+    "security"
+   ],
+   "reason": "공급망 공격"
+  },
+  {
+   "topic": "t576.9",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "알고리즘 공정성 편향"
+  },
+  {
+   "topic": "t878.3",
+   "fields": [
+    "networking",
+    "distributed-systems"
+   ],
+   "reason": "전송 흐름 제어"
+  },
+  {
+   "topic": "t917.3",
+   "fields": [
+    "error-handling",
+    "concurrency-async"
+   ],
+   "reason": "Go panic 복구"
+  },
+  {
+   "topic": "t21.3",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "체크박스·라디오 컨트롤"
+  },
+  {
+   "topic": "t21.4",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "우회 표현"
+  },
+  {
+   "topic": "t21.5",
+   "fields": [
+    "distributed-systems",
+    "web-backend"
+   ],
+   "reason": "서비스 사용 불가"
+  },
+  {
+   "topic": "t303.2",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "SQL 방언"
+  },
+  {
+   "topic": "t458.2",
+   "fields": [
+    "testing",
+    "configuration"
+   ],
+   "reason": "샌드박스 테스트 격리"
+  },
+  {
+   "topic": "t458.3",
+   "fields": [
+    "web-styling"
+   ],
+   "reason": "CSS z-index"
+  },
+  {
+   "topic": "t466.3",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "Meilisearch"
+  },
+  {
+   "topic": "t881",
+   "fields": [
+    "os-shell",
+    "configuration"
+   ],
+   "reason": "Windows 레지스트리"
+  },
+  {
+   "topic": "t293.4",
+   "fields": [
+    "data-visualization",
+    "data-engineering"
+   ],
+   "reason": "Power BI 보고서"
+  },
+  {
+   "topic": "t429.4",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "SQL savepoint"
+  },
+  {
+   "topic": "t50.2",
+   "fields": [
+    "functional-programming"
+   ],
+   "reason": "모노이드"
+  },
+  {
+   "topic": "t50.3",
+   "fields": [
+    "functional-programming",
+    "algorithms-data-structures"
+   ],
+   "reason": "fold"
+  },
+  {
+   "topic": "t67.3",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "Joblib·scikit-learn"
+  },
+  {
+   "topic": "t67.4",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "Apache HTTP 서버"
+  },
+  {
+   "topic": "t12.4",
+   "fields": [
+    "docs-collaboration",
+    "data-visualization"
+   ],
+   "reason": "Excalidraw 다이어그램"
+  },
+  {
+   "topic": "t12.5",
+   "fields": [
+    "web-styling",
+    "build-release"
+   ],
+   "reason": "디자인 토큰 변환"
+  },
+  {
+   "topic": "t201.3",
+   "fields": [
+    "graphics-media"
+   ],
+   "reason": "libvips 이미지 처리"
+  },
+  {
+   "topic": "t460.4",
+   "fields": [
+    "ml-ai",
+    "data-formats"
+   ],
+   "reason": "언어 모델 제약 디코딩"
+  },
+  {
+   "topic": "t508.2",
+   "fields": [
+    "browser-platform",
+    "data-formats"
+   ],
+   "reason": "HTML 요소"
+  },
+  {
+   "topic": "t635.2",
+   "fields": [
+    "web-backend",
+    "data-formats",
+    "error-handling"
+   ],
+   "reason": "요청 입력 검증"
+  },
+  {
+   "topic": "t635.5",
+   "fields": [
+    "web-backend",
+    "databases-storage"
+   ],
+   "reason": "ActiveRecord 모델 검증"
+  },
+  {
+   "topic": "t635.8",
+   "fields": [
+    "version-control"
+   ],
+   "reason": "리뷰 nit"
+  },
+  {
+   "topic": "t744.3",
+   "fields": [
+    "general-wording",
+    "databases-storage"
+   ],
+   "reason": "저장됨 표현"
+  },
+  {
+   "topic": "t95.2",
+   "fields": [
+    "cloud-infrastructure",
+    "configuration",
+    "data-formats"
+   ],
+   "reason": "Docker Compose 파일"
+  },
+  {
+   "topic": "t95.3",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "요청 값 해석"
+  },
+  {
+   "topic": "t264.1",
+   "fields": [
+    "editors-ide",
+    "data-visualization"
+   ],
+   "reason": "호출 그래프·저장소 지도"
+  },
+  {
+   "topic": "t264.3",
+   "fields": [
+    "docs-collaboration",
+    "software-design",
+    "data-visualization"
+   ],
+   "reason": "Mermaid·PlantUML 설계 다이어그램"
+  },
+  {
+   "topic": "t279.2",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "범주 묶기"
+  },
+  {
+   "topic": "t300.2",
+   "fields": [
+    "frontend-ui",
+    "web-styling"
+   ],
+   "reason": "배지·칩 UI"
+  },
+  {
+   "topic": "t427.4",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "모델 설명"
+  },
+  {
+   "topic": "t583.2",
+   "fields": [
+    "os-shell",
+    "systems-low-level"
+   ],
+   "reason": "Linux 커널"
+  },
+  {
+   "topic": "t150.3",
+   "fields": [
+    "distributed-systems",
+    "databases-storage"
+   ],
+   "reason": "분산 잠금·리스"
+  },
+  {
+   "topic": "t150.4",
+   "fields": [
+    "distributed-systems",
+    "databases-storage"
+   ],
+   "reason": "일관성 모델"
+  },
+  {
+   "topic": "t150.5",
+   "fields": [
+    "security"
+   ],
+   "reason": "무결성(CIA)"
+  },
+  {
+   "topic": "t150.7",
+   "fields": [
+    "distributed-systems"
+   ],
+   "reason": "메시지 토픽 파티션"
+  },
+  {
+   "topic": "t246.3",
+   "fields": [
+    "build-release",
+    "databases-storage"
+   ],
+   "reason": "빌드 캐시"
+  },
+  {
+   "topic": "t25.2",
+   "fields": [
+    "networking",
+    "databases-storage"
+   ],
+   "reason": "소켓 옵션·keepalive"
+  },
+  {
+   "topic": "t25.5",
+   "fields": [
+    "web-backend",
+    "networking"
+   ],
+   "reason": "HTTP 클라이언트 연결"
+  },
+  {
+   "topic": "t258.2",
+   "fields": [
+    "systems-low-level",
+    "databases-storage"
+   ],
+   "reason": "CPU 캐시 프리페치"
+  },
+  {
+   "topic": "t277.5",
+   "fields": [
+    "distributed-systems",
+    "databases-storage"
+   ],
+   "reason": "CRDT"
+  },
+  {
+   "topic": "t296.10",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "쿼리 문자열 파싱"
+  },
+  {
+   "topic": "t296.4",
+   "fields": [
+    "auth-identity",
+    "databases-storage"
+   ],
+   "reason": "계정·테넌트 식별자"
+  },
+  {
+   "topic": "t296.5",
+   "fields": [
+    "version-control",
+    "security"
+   ],
+   "reason": "커밋 해시"
+  },
+  {
+   "topic": "t296.6",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "소셜 팔로워"
+  },
+  {
+   "topic": "t296.9",
+   "fields": [
+    "os-shell"
+   ],
+   "reason": "프로세스 그룹"
+  },
+  {
+   "topic": "t435.2",
+   "fields": [
+    "graphics-media"
+   ],
+   "reason": "음량·데시벨"
+  },
+  {
+   "topic": "t48.1",
+   "fields": [
+    "databases-storage",
+    "security"
+   ],
+   "reason": "데이터 보존·저장 암호화(auth-identity는 형제에서 물려받음)"
+  },
+  {
+   "topic": "t48.10",
+   "fields": [
+    "web-backend",
+    "databases-storage"
+   ],
+   "reason": "HTTP 캐시 검증"
+  },
+  {
+   "topic": "t48.11",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "증분 백업"
+  },
+  {
+   "topic": "t48.12",
+   "fields": [
+    "networking"
+   ],
+   "reason": "DHCP 리스"
+  },
+  {
+   "topic": "t48.2",
+   "fields": [
+    "auth-identity",
+    "web-backend"
+   ],
+   "reason": "세션 만료"
+  },
+  {
+   "topic": "t48.3",
+   "fields": [
+    "databases-storage",
+    "time-locale"
+   ],
+   "reason": "캐시 TTL"
+  },
+  {
+   "topic": "t48.4",
+   "fields": [
+    "databases-storage",
+    "cloud-infrastructure"
+   ],
+   "reason": "캐시 무효화·CDN"
+  },
+  {
+   "topic": "t48.5",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "Redis 캐시 명령"
+  },
+  {
+   "topic": "t48.6",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "수명·기간 값"
+  },
+  {
+   "topic": "t48.7",
+   "fields": [
+    "frontend-ui",
+    "web-backend"
+   ],
+   "reason": "SWR·ISR"
+  },
+  {
+   "topic": "t48.8",
+   "fields": [
+    "auth-identity",
+    "security"
+   ],
+   "reason": "토큰 갱신"
+  },
+  {
+   "topic": "t48.9",
+   "fields": [
+    "concurrency-async",
+    "distributed-systems"
+   ],
+   "reason": "타임아웃·데드라인"
+  },
+  {
+   "topic": "t512.2",
+   "fields": [
+    "distributed-systems",
+    "error-handling"
+   ],
+   "reason": "장애 복구·failover"
+  },
+  {
+   "topic": "t556.2",
+   "fields": [
+    "cloud-infrastructure"
+   ],
+   "reason": "서버리스 scale to zero"
+  },
+  {
+   "topic": "t56.10",
+   "fields": [
+    "databases-storage",
+    "ml-ai"
+   ],
+   "reason": "벡터 데이터베이스"
+  },
+  {
+   "topic": "t56.11",
+   "fields": [
+    "ml-ai",
+    "text-processing"
+   ],
+   "reason": "spaCy"
+  },
+  {
+   "topic": "t56.12",
+   "fields": [
+    "docs-collaboration"
+   ],
+   "reason": "팀 메신저·봇"
+  },
+  {
+   "topic": "t56.2",
+   "fields": [
+    "text-processing",
+    "ml-ai"
+   ],
+   "reason": "n-gram·tf-idf"
+  },
+  {
+   "topic": "t56.6",
+   "fields": [
+    "frontend-ui",
+    "databases-storage"
+   ],
+   "reason": "검색창·자동완성 UI"
+  },
+  {
+   "topic": "t56.8",
+   "fields": [
+    "text-processing"
+   ],
+   "reason": "문장 분할"
+  },
+  {
+   "topic": "t56.9",
+   "fields": [
+    "graphics-media"
+   ],
+   "reason": "2D 선 그리기"
+  },
+  {
+   "topic": "t588.2",
+   "fields": [
+    "algorithms-data-structures",
+    "databases-storage"
+   ],
+   "reason": "find/lookup 연산(editors-ide는 형제에서 물려받음)"
+  },
+  {
+   "topic": "t726.2",
+   "fields": [
+    "math-numerics",
+    "graphics-media"
+   ],
+   "reason": "신호 창 함수"
+  },
+  {
+   "topic": "t828.2",
+   "fields": [
+    "ml-ai",
+    "data-formats"
+   ],
+   "reason": "safetensors 체크포인트"
+  },
+  {
+   "topic": "t876.5",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "해시 테이블 슬롯"
+  },
+  {
+   "topic": "t892.2",
+   "fields": [
+    "data-engineering"
+   ],
+   "reason": "데이터프레임 인덱스"
+  },
+  {
+   "topic": "t977.2",
+   "fields": [
+    "security",
+    "databases-storage"
+   ],
+   "reason": "저장 암호화"
+  },
+  {
+   "topic": "t285.10",
+   "fields": [
+    "systems-low-level",
+    "networking"
+   ],
+   "reason": "CAN 버스"
+  },
+  {
+   "topic": "t285.11",
+   "fields": [
+    "observability-debugging"
+   ],
+   "reason": "Splunk 로그 수집"
+  },
+  {
+   "topic": "t285.7",
+   "fields": [
+    "software-design"
+   ],
+   "reason": "느슨한 결합 패턴"
+  },
+  {
+   "topic": "t285.8",
+   "fields": [
+    "concurrency-async"
+   ],
+   "reason": "리액티브 publisher"
+  },
+  {
+   "topic": "t29.1",
+   "fields": [
+    "concurrency-async",
+    "browser-platform"
+   ],
+   "reason": "이벤트 throttle·대역폭 제한"
+  },
+  {
+   "topic": "t29.3",
+   "fields": [
+    "cloud-infrastructure",
+    "general-wording"
+   ],
+   "reason": "저장 용량 표현"
+  },
+  {
+   "topic": "t29.4",
+   "fields": [
+    "concurrency-async",
+    "distributed-systems"
+   ],
+   "reason": "동시 실행 제한·세마포어"
+  },
+  {
+   "topic": "t29.5",
+   "fields": [
+    "security",
+    "distributed-systems"
+   ],
+   "reason": "서비스 거부 공격"
+  },
+  {
+   "topic": "t29.8",
+   "fields": [
+    "security"
+   ],
+   "reason": "플랫폼 증명"
+  },
+  {
+   "topic": "t29.9",
+   "fields": [
+    "systems-low-level"
+   ],
+   "reason": "펌웨어"
+  },
+  {
+   "topic": "t305.3",
+   "fields": [
+    "software-design",
+    "language-constructs"
+   ],
+   "reason": "상태 기계"
+  },
+  {
+   "topic": "t305.4",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "강화학습 보상"
+  },
+  {
+   "topic": "t432.3",
+   "fields": [
+    "networking"
+   ],
+   "reason": "네트워크 QoS"
+  },
+  {
+   "topic": "t432.4",
+   "fields": [
+    "cloud-infrastructure"
+   ],
+   "reason": "Kubernetes 자원 QoS"
+  },
+  {
+   "topic": "t432.5",
+   "fields": [
+    "security"
+   ],
+   "reason": "재전송 공격 방어"
+  },
+  {
+   "topic": "t432.6",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "이메일 발송"
+  },
+  {
+   "topic": "t46.2",
+   "fields": [
+    "networking",
+    "distributed-systems"
+   ],
+   "reason": "클라이언트 연결 타임아웃"
+  },
+  {
+   "topic": "t46.4",
+   "fields": [
+    "web-backend",
+    "networking"
+   ],
+   "reason": "HTTP 클라이언트"
+  },
+  {
+   "topic": "t488",
+   "fields": [
+    "data-engineering",
+    "distributed-systems"
+   ],
+   "reason": "스트림 처리(Flink·Beam)"
+  },
+  {
+   "topic": "t546",
+   "fields": [
+    "distributed-systems",
+    "languages-compilers"
+   ],
+   "reason": "Erlang 기반 브로커"
+  },
+  {
+   "topic": "t552.2",
+   "fields": [
+    "distributed-systems",
+    "web-backend"
+   ],
+   "reason": "브로커 리스너(browser-platform은 형제에서 물려받음)"
+  },
+  {
+   "topic": "t552.4",
+   "fields": [
+    "algorithms-data-structures",
+    "security"
+   ],
+   "reason": "SipHash"
+  },
+  {
+   "topic": "t552.5",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "WebSphere"
+  },
+  {
+   "topic": "t68.1",
+   "fields": [
+    "general-wording",
+    "distributed-systems"
+   ],
+   "reason": "대안·fallback 표현"
+  },
+  {
+   "topic": "t68.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "자동 표현"
+  },
+  {
+   "topic": "t695.2",
+   "fields": [
+    "systems-low-level"
+   ],
+   "reason": "하드웨어 버스"
+  },
+  {
+   "topic": "t764.2",
+   "fields": [
+    "networking"
+   ],
+   "reason": "ARP"
+  },
+  {
+   "topic": "t764.3",
+   "fields": [
+    "auth-identity"
+   ],
+   "reason": "JWT aud"
+  },
+  {
+   "topic": "t764.4",
+   "fields": [
+    "data-formats"
+   ],
+   "reason": "EML 파일"
+  },
+  {
+   "topic": "t1010.2",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "모델 학습"
+  },
+  {
+   "topic": "t118.4",
+   "fields": [
+    "web-styling"
+   ],
+   "reason": "글꼴 굵기"
+  },
+  {
+   "topic": "t118.5",
+   "fields": [
+    "text-processing",
+    "data-formats"
+   ],
+   "reason": "pretty print"
+  },
+  {
+   "topic": "t244.3",
+   "fields": [
+    "general-wording",
+    "testing"
+   ],
+   "reason": "실패 표현"
+  },
+  {
+   "topic": "t244.4",
+   "fields": [
+    "build-release",
+    "docs-collaboration"
+   ],
+   "reason": "핫픽스·패치 버전"
+  },
+  {
+   "topic": "t244.7",
+   "fields": [
+    "editors-ide"
+   ],
+   "reason": "확장 기여 지점"
+  },
+  {
+   "topic": "t244.8",
+   "fields": [
+    "testing"
+   ],
+   "reason": "테스트 대역"
+  },
+  {
+   "topic": "t51.3",
+   "fields": [
+    "general-wording",
+    "error-handling"
+   ],
+   "reason": "문제 표현"
+  },
+  {
+   "topic": "t51.4",
+   "fields": [
+    "business-domains",
+    "docs-collaboration"
+   ],
+   "reason": "고객 지원 티켓"
+  },
+  {
+   "topic": "t51.5",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "일 단위 시간"
+  },
+  {
+   "topic": "t664.3",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "NVDA 화면 낭독기"
+  },
+  {
+   "topic": "t734.3",
+   "fields": [
+    "data-visualization"
+   ],
+   "reason": "Highcharts"
+  },
+  {
+   "topic": "t31.8",
+   "fields": [
+    "languages-compilers",
+    "editors-ide"
+   ],
+   "reason": "증분 구문 분석"
+  },
+  {
+   "topic": "t328.3",
+   "fields": [
+    "algorithms-data-structures",
+    "text-processing"
+   ],
+   "reason": "문자열 유사도"
+  },
+  {
+   "topic": "t328.4",
+   "fields": [
+    "functional-programming"
+   ],
+   "reason": "튜플 투영 fst"
+  },
+  {
+   "topic": "t334.2",
+   "fields": [
+    "web-styling"
+   ],
+   "reason": "UI 간격"
+  },
+  {
+   "topic": "t334.3",
+   "fields": [
+    "browser-platform",
+    "frontend-ui"
+   ],
+   "reason": "DOM 요소 오프셋"
+  },
+  {
+   "topic": "t334.4",
+   "fields": [
+    "math-numerics",
+    "graphics-media"
+   ],
+   "reason": "좌표·보간 지점"
+  },
+  {
+   "topic": "t334.5",
+   "fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ],
+   "reason": "select I/O 다중화"
+  },
+  {
+   "topic": "t602.2",
+   "fields": [
+    "languages-compilers",
+    "editors-ide"
+   ],
+   "reason": "TypeScript 도구"
+  },
+  {
+   "topic": "t696.2",
+   "fields": [
+    "mobile-desktop",
+    "build-release"
+   ],
+   "reason": "Kotlin Multiplatform"
+  },
+  {
+   "topic": "t374.2",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "조건 충족 표현"
+  },
+  {
+   "topic": "t374.3",
+   "fields": [
+    "type-systems"
+   ],
+   "reason": "refinement type"
+  },
+  {
+   "topic": "t374.5",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "동작·의미 표현"
+  },
+  {
+   "topic": "t547.2",
+   "fields": [
+    "frontend-ui",
+    "error-handling"
+   ],
+   "reason": "aria-invalid"
+  },
+  {
+   "topic": "t547.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "메시지 표현"
+  },
+  {
+   "topic": "t549.2",
+   "fields": [
+    "data-engineering"
+   ],
+   "reason": "astype 자료형 변환"
+  },
+  {
+   "topic": "t550.3",
+   "fields": [
+    "web-backend",
+    "networking"
+   ],
+   "reason": "HTTP 100 continue"
+  },
+  {
+   "topic": "t550.4",
+   "fields": [
+    "language-constructs",
+    "functional-programming"
+   ],
+   "reason": "패턴 매칭"
+  },
+  {
+   "topic": "t551.2",
+   "fields": [
+    "os-shell",
+    "error-handling"
+   ],
+   "reason": "프로세스 종료 코드"
+  },
+  {
+   "topic": "t551.3",
+   "fields": [
+    "language-constructs",
+    "web-backend"
+   ],
+   "reason": "반환값·응답 값"
+  },
+  {
+   "topic": "t551.4",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "HTTP 상태 코드"
+  },
+  {
+   "topic": "t551.5",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "배송 추적"
+  },
+  {
+   "topic": "t578.1",
+   "fields": [
+    "general-wording",
+    "error-handling"
+   ],
+   "reason": "잘못됨 표현"
+  },
+  {
+   "topic": "t578.2",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "알 수 없음 표현"
+  },
+  {
+   "topic": "t677.4",
+   "fields": [
+    "type-systems",
+    "language-constructs"
+   ],
+   "reason": "튜플 타입"
+  },
+  {
+   "topic": "t990",
+   "fields": [
+    "general-wording",
+    "editors-ide"
+   ],
+   "reason": "감싸기(wrap, surround)"
+  },
+  {
+   "topic": "x223",
+   "fields": [
+    "concurrency-async",
+    "error-handling"
+   ],
+   "reason": "lock poisoning"
+  },
+  {
+   "topic": "t0.5",
+   "fields": [
+    "data-formats"
+   ],
+   "reason": "XPath"
+  },
+  {
+   "topic": "t134.2",
+   "fields": [
+    "configuration",
+    "files-io"
+   ],
+   "reason": "로컬 설정 저장"
+  },
+  {
+   "topic": "t134.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "유지·보존 표현"
+  },
+  {
+   "topic": "t134.5",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "Redux 상태 영속화"
+  },
+  {
+   "topic": "t138.3",
+   "fields": [
+    "build-release",
+    "files-io"
+   ],
+   "reason": "패키지 번들"
+  },
+  {
+   "topic": "t172.2",
+   "fields": [
+    "version-control"
+   ],
+   "reason": "isomorphic-git"
+  },
+  {
+   "topic": "t241.2",
+   "fields": [
+    "concurrency-async",
+    "functional-programming"
+   ],
+   "reason": "리액티브 스트림 조합"
+  },
+  {
+   "topic": "t241.3",
+   "fields": [
+    "data-engineering"
+   ],
+   "reason": "데이터 처리 파이프라인"
+  },
+  {
+   "topic": "t241.4",
+   "fields": [
+    "auth-identity"
+   ],
+   "reason": "계정 소유권"
+  },
+  {
+   "topic": "t241.5",
+   "fields": [
+    "data-formats",
+    "data-engineering"
+   ],
+   "reason": "Feather"
+  },
+  {
+   "topic": "t241.6",
+   "fields": [
+    "auth-identity"
+   ],
+   "reason": "JWT 디코딩"
+  },
+  {
+   "topic": "t241.8",
+   "fields": [
+    "web-backend",
+    "languages-compilers"
+   ],
+   "reason": "Node.js 런타임"
+  },
+  {
+   "topic": "t241.9",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "UI 반응성"
+  },
+  {
+   "topic": "t242.2",
+   "fields": [
+    "general-wording",
+    "files-io"
+   ],
+   "reason": "커서·스캔 표현"
+  },
+  {
+   "topic": "t242.4",
+   "fields": [
+    "data-formats",
+    "observability-debugging"
+   ],
+   "reason": "JSON Lines·구조화 로그"
+  },
+  {
+   "topic": "t242.7",
+   "fields": [
+    "functional-programming"
+   ],
+   "reason": "Reader 모나드"
+  },
+  {
+   "topic": "t363.1",
+   "fields": [
+    "configuration",
+    "files-io"
+   ],
+   "reason": "설정 파일 읽기"
+  },
+  {
+   "topic": "t393.2",
+   "fields": [
+    "data-formats"
+   ],
+   "reason": "JSON Patch"
+  },
+  {
+   "topic": "t453.2",
+   "fields": [
+    "databases-storage",
+    "files-io"
+   ],
+   "reason": "소프트 삭제"
+  },
+  {
+   "topic": "t453.3",
+   "fields": [
+    "os-shell",
+    "build-release"
+   ],
+   "reason": "패키지 제거"
+  },
+  {
+   "topic": "t521",
+   "fields": [
+    "os-shell",
+    "files-io"
+   ],
+   "reason": "표준 입출력"
+  },
+  {
+   "topic": "t922.2",
+   "fields": [
+    "databases-storage",
+    "cloud-infrastructure"
+   ],
+   "reason": "읽기 복제본"
+  },
+  {
+   "topic": "t93.2",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "FizzBuzz 연습"
+  },
+  {
+   "topic": "t1025.2",
+   "fields": [
+    "os-shell",
+    "systems-low-level"
+   ],
+   "reason": "커널 모듈"
+  },
+  {
+   "topic": "t106.2",
+   "fields": [
+    "mobile-desktop",
+    "frontend-ui"
+   ],
+   "reason": "모바일 내비게이션 스택"
+  },
+  {
+   "topic": "t106.5",
+   "fields": [
+    "general-wording",
+    "frontend-ui"
+   ],
+   "reason": "UI·UX 표현"
+  },
+  {
+   "topic": "t106.6",
+   "fields": [
+    "data-formats",
+    "docs-collaboration"
+   ],
+   "reason": "Word 문서"
+  },
+  {
+   "topic": "t106.7",
+   "fields": [
+    "data-formats"
+   ],
+   "reason": "PDF 보고서"
+  },
+  {
+   "topic": "t106.8",
+   "fields": [
+    "web-styling"
+   ],
+   "reason": "CSS 의사 요소"
+  },
+  {
+   "topic": "t32.1",
+   "fields": [
+    "general-wording",
+    "os-shell"
+   ],
+   "reason": "시작·초기화 표현"
+  },
+  {
+   "topic": "t32.3",
+   "fields": [
+    "build-release"
+   ],
+   "reason": ".NET 패키지 생성"
+  },
+  {
+   "topic": "t337.2",
+   "fields": [
+    "mobile-desktop",
+    "frontend-ui"
+   ],
+   "reason": "데스크톱 메뉴 막대·트레이"
+  },
+  {
+   "topic": "t4.3",
+   "fields": [
+    "data-visualization",
+    "frontend-ui"
+   ],
+   "reason": "플롯 격자"
+  },
+  {
+   "topic": "t4.4",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "격자 셀 시뮬레이션"
+  },
+  {
+   "topic": "t450.3",
+   "fields": [
+    "browser-platform",
+    "frontend-ui"
+   ],
+   "reason": "브라우저 DOM 런타임"
+  },
+  {
+   "topic": "t450.4",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "HTTP 요청 컨텍스트"
+  },
+  {
+   "topic": "t457.1",
+   "fields": [
+    "software-design",
+    "build-release"
+   ],
+   "reason": "의존 관계"
+  },
+  {
+   "topic": "t501.4",
+   "fields": [
+    "mobile-desktop",
+    "frontend-ui"
+   ],
+   "reason": "Flutter 위젯 상태"
+  },
+  {
+   "topic": "t526.5",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "함의 표현"
+  },
+  {
+   "topic": "t616.2",
+   "fields": [
+    "graphics-media",
+    "frontend-ui"
+   ],
+   "reason": "Fabric.js 캔버스"
+  },
+  {
+   "topic": "t724.2",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "템플릿 상속"
+  },
+  {
+   "topic": "t735.4",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "Liquid 템플릿"
+  },
+  {
+   "topic": "t849.1",
+   "fields": [
+    "web-backend",
+    "frontend-ui"
+   ],
+   "reason": "GraphQL"
+  },
+  {
+   "topic": "t849.3",
+   "fields": [
+    "browser-platform",
+    "web-backend"
+   ],
+   "reason": "웹 스크래핑"
+  },
+  {
+   "topic": "t849.4",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "TanStack Table"
+  },
+  {
+   "topic": "x230",
+   "fields": [
+    "testing",
+    "frontend-ui"
+   ],
+   "reason": "컴포넌트 단위 테스트"
+  },
+  {
+   "topic": "t218.1",
+   "fields": [
+    "language-constructs",
+    "testing"
+   ],
+   "reason": "truthy 값·toBeTruthy"
+  },
+  {
+   "topic": "t218.3",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "SQL WHERE 조건"
+  },
+  {
+   "topic": "t218.4",
+   "fields": [
+    "language-constructs",
+    "type-systems"
+   ],
+   "reason": "불리언 식"
+  },
+  {
+   "topic": "t218.5",
+   "fields": [
+    "observability-debugging"
+   ],
+   "reason": "조건부 중단점"
+  },
+  {
+   "topic": "t240.1",
+   "fields": [
+    "systems-low-level",
+    "files-io"
+   ],
+   "reason": "copy-on-write 파일 시스템·버퍼"
+  },
+  {
+   "topic": "t240.3",
+   "fields": [
+    "security",
+    "algorithms-data-structures"
+   ],
+   "reason": "블록체인 해시 체인"
+  },
+  {
+   "topic": "t240.4",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "트리 잎 노드"
+  },
+  {
+   "topic": "t240.5",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "Vue 반응형 참조"
+  },
+  {
+   "topic": "t240.6",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "Yarn"
+  },
+  {
+   "topic": "t40.2",
+   "fields": [
+    "data-engineering",
+    "distributed-systems"
+   ],
+   "reason": "분산 MapReduce"
+  },
+  {
+   "topic": "t402.2",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "페이지네이션"
+  },
+  {
+   "topic": "t498.1",
+   "fields": [
+    "concurrency-async",
+    "language-constructs"
+   ],
+   "reason": "한 번만 초기화"
+  },
+  {
+   "topic": "t498.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "즉시 표현"
+  },
+  {
+   "topic": "t498.4",
+   "fields": [
+    "software-design",
+    "frontend-ui"
+   ],
+   "reason": "지연 로딩·코드 분할"
+  },
+  {
+   "topic": "t721.2",
+   "fields": [
+    "frontend-ui",
+    "browser-platform"
+   ],
+   "reason": "스크롤 위치"
+  },
+  {
+   "topic": "t241.10",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "xxHash"
+  },
+  {
+   "topic": "t189.2",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "Azure Pipelines"
+  },
+  {
+   "topic": "t212.5",
+   "fields": [
+    "version-control",
+    "business-domains"
+   ],
+   "reason": "승인 절차"
+  },
+  {
+   "topic": "t26.2",
+   "fields": [
+    "web-backend",
+    "browser-platform"
+   ],
+   "reason": "파일 다운로드"
+  },
+  {
+   "topic": "t26.3",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "이력서 경력"
+  },
+  {
+   "topic": "t26.5",
+   "fields": [
+    "systems-low-level",
+    "language-constructs"
+   ],
+   "reason": "원시 포인터 소유권"
+  },
+  {
+   "topic": "t26.6",
+   "fields": [
+    "data-visualization"
+   ],
+   "reason": "Tableau 통합 문서"
+  },
+  {
+   "topic": "t462.2",
+   "fields": [
+    "math-numerics"
+   ],
+   "reason": "근사 비교"
+  },
+  {
+   "topic": "t568.2",
+   "fields": [
+    "mobile-desktop"
+   ],
+   "reason": "배터리 충전"
+  },
+  {
+   "topic": "t594.4",
+   "fields": [
+    "web-styling"
+   ],
+   "reason": "UI 색 팔레트"
+  },
+  {
+   "topic": "t594.5",
+   "fields": [
+    "concurrency-async",
+    "time-locale"
+   ],
+   "reason": "tokio sleep 타이머"
+  },
+  {
+   "topic": "t723.2",
+   "fields": [
+    "build-release",
+    "cloud-infrastructure"
+   ],
+   "reason": "GitOps 동기화"
+  },
+  {
+   "topic": "t818.2",
+   "fields": [
+    "networking"
+   ],
+   "reason": "패킷 캡슐화·터널"
+  },
+  {
+   "topic": "t840.2",
+   "fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ],
+   "reason": "Rust Pin"
+  },
+  {
+   "topic": "t900.2",
+   "fields": [
+    "data-engineering",
+    "functional-programming"
+   ],
+   "reason": "지연 계산 collect"
+  },
+  {
+   "topic": "t108.2",
+   "fields": [
+    "web-styling",
+    "graphics-media"
+   ],
+   "reason": "테두리·구분선"
+  },
+  {
+   "topic": "t108.6",
+   "fields": [
+    "data-visualization"
+   ],
+   "reason": "geom_line"
+  },
+  {
+   "topic": "t108.8",
+   "fields": [
+    "data-visualization"
+   ],
+   "reason": "노드 연결 다이어그램"
+  },
+  {
+   "topic": "t108.9",
+   "fields": [
+    "mobile-desktop",
+    "os-shell"
+   ],
+   "reason": "창 관리자"
+  },
+  {
+   "topic": "t207.5",
+   "fields": [
+    "data-visualization",
+    "math-numerics"
+   ],
+   "reason": "신뢰 구간 그림"
+  },
+  {
+   "topic": "t36.3",
+   "fields": [
+    "networking",
+    "observability-debugging"
+   ],
+   "reason": "전송 처리량"
+  },
+  {
+   "topic": "t649.3",
+   "fields": [
+    "mobile-desktop"
+   ],
+   "reason": "GPS 위치"
+  },
+  {
+   "topic": "t105.2",
+   "fields": [
+    "security",
+    "auth-identity"
+   ],
+   "reason": "요청 서명"
+  },
+  {
+   "topic": "t131.5",
+   "fields": [
+    "functional-programming",
+    "language-constructs"
+   ],
+   "reason": "지연 평가"
+  },
+  {
+   "topic": "t135.6",
+   "fields": [
+    "data-formats",
+    "web-backend"
+   ],
+   "reason": "Protobuf 디스크립터"
+  },
+  {
+   "topic": "t135.8",
+   "fields": [
+    "data-formats",
+    "systems-low-level"
+   ],
+   "reason": "simdjson"
+  },
+  {
+   "topic": "t203.3",
+   "fields": [
+    "functional-programming",
+    "language-constructs"
+   ],
+   "reason": "부분 적용"
+  },
+  {
+   "topic": "t203.4",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "적용 표현"
+  },
+  {
+   "topic": "t203.5",
+   "fields": [
+    "concurrency-async"
+   ],
+   "reason": "코루틴 문맥 전환"
+  },
+  {
+   "topic": "t215.3",
+   "fields": [
+    "testing"
+   ],
+   "reason": "pytest conftest"
+  },
+  {
+   "topic": "t224.4",
+   "fields": [
+    "web-styling"
+   ],
+   "reason": "CSS 캐스케이드"
+  },
+  {
+   "topic": "t395.4",
+   "fields": [
+    "frontend-ui",
+    "mobile-desktop"
+   ],
+   "reason": "수명 주기 초기화 훅"
+  },
+  {
+   "topic": "t395.6",
+   "fields": [
+    "build-release",
+    "mobile-desktop"
+   ],
+   "reason": "대상 플랫폼"
+  },
+  {
+   "topic": "t455.1",
+   "fields": [
+    "languages-compilers"
+   ],
+   "reason": "Delphi·Pascal"
+  },
+  {
+   "topic": "t455.2",
+   "fields": [
+    "general-wording",
+    "language-constructs"
+   ],
+   "reason": "함수 이름 표현"
+  },
+  {
+   "topic": "t6.11",
+   "fields": [
+    "mobile-desktop",
+    "frontend-ui"
+   ],
+   "reason": "창 소유 관계"
+  },
+  {
+   "topic": "t6.13",
+   "fields": [
+    "databases-storage",
+    "type-systems"
+   ],
+   "reason": "ORM 상속 구분자"
+  },
+  {
+   "topic": "t6.4",
+   "fields": [
+    "type-systems",
+    "software-design"
+   ],
+   "reason": "변성·리스코프 치환"
+  },
+  {
+   "topic": "t600.2",
+   "fields": [
+    "languages-compilers"
+   ],
+   "reason": "루프 불변식 최적화"
+  },
+  {
+   "topic": "t600.3",
+   "fields": [
+    "error-handling",
+    "language-constructs"
+   ],
+   "reason": "StopIteration·IndexError"
+  },
+  {
+   "topic": "t600.5",
+   "fields": [
+    "graphics-media",
+    "algorithms-data-structures"
+   ],
+   "reason": "회전"
+  },
+  {
+   "topic": "t690.2",
+   "fields": [
+    "languages-compilers",
+    "systems-low-level"
+   ],
+   "reason": "FFI·JNI"
+  },
+  {
+   "topic": "t766.3",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "Buildkite"
+  },
+  {
+   "topic": "t766.4",
+   "fields": [
+    "data-visualization"
+   ],
+   "reason": "그래픽 문법"
+  },
+  {
+   "topic": "t766.5",
+   "fields": [
+    "version-control"
+   ],
+   "reason": "Sapling"
+  },
+  {
+   "topic": "t821.1",
+   "fields": [
+    "general-wording",
+    "security"
+   ],
+   "reason": "소유·비공개 표현"
+  },
+  {
+   "topic": "t866.2",
+   "fields": [
+    "data-formats",
+    "web-backend"
+   ],
+   "reason": "Marshmallow"
+  },
+  {
+   "topic": "t866.3",
+   "fields": [
+    "testing"
+   ],
+   "reason": "spec.ts"
+  },
+  {
+   "topic": "x246",
+   "fields": [
+    "os-shell",
+    "language-constructs"
+   ],
+   "reason": "shebang"
+  },
+  {
+   "topic": "t11.8",
+   "fields": [
+    "text-processing",
+    "files-io"
+   ],
+   "reason": "입력 스캐너"
+  },
+  {
+   "topic": "t155.1",
+   "fields": [
+    "build-release",
+    "files-io"
+   ],
+   "reason": "배포 아카이브"
+  },
+  {
+   "topic": "t155.2",
+   "fields": [
+    "build-release",
+    "languages-compilers"
+   ],
+   "reason": "Python 패키지 설정"
+  },
+  {
+   "topic": "t155.3",
+   "fields": [
+    "testing",
+    "configuration"
+   ],
+   "reason": "pytest 설정"
+  },
+  {
+   "topic": "t155.5",
+   "fields": [
+    "editors-ide",
+    "configuration"
+   ],
+   "reason": "EditorConfig"
+  },
+  {
+   "topic": "t155.6",
+   "fields": [
+    "editors-ide",
+    "languages-compilers"
+   ],
+   "reason": "Black·Ruff"
+  },
+  {
+   "topic": "t161.2",
+   "fields": [
+    "build-release",
+    "languages-compilers"
+   ],
+   "reason": "Babel·PostCSS 변환 설정"
+  },
+  {
+   "topic": "t161.3",
+   "fields": [
+    "build-release",
+    "languages-compilers"
+   ],
+   "reason": "증분 빌드"
+  },
+  {
+   "topic": "t161.4",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "Angular 파이프"
+  },
+  {
+   "topic": "t216.1",
+   "fields": [
+    "build-release",
+    "languages-compilers"
+   ],
+   "reason": "프로젝트 스캐폴드"
+  },
+  {
+   "topic": "t216.2",
+   "fields": [
+    "build-release",
+    "languages-compilers"
+   ],
+   "reason": "build.rs"
+  },
+  {
+   "topic": "t216.4",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "GAN"
+  },
+  {
+   "topic": "t216.5",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "GeneratedValue"
+  },
+  {
+   "topic": "t313.3",
+   "fields": [
+    "mobile-desktop",
+    "languages-compilers",
+    "build-release"
+   ],
+   "reason": "Android Kotlin 개발"
+  },
+  {
+   "topic": "t346.4",
+   "fields": [
+    "ml-ai",
+    "math-numerics"
+   ],
+   "reason": "JAX"
+  },
+  {
+   "topic": "t346.6",
+   "fields": [
+    "web-backend",
+    "text-processing"
+   ],
+   "reason": "템플릿 렌더링"
+  },
+  {
+   "topic": "t382.2",
+   "fields": [
+    "algorithms-data-structures",
+    "languages-compilers"
+   ],
+   "reason": "Go 컨테이너"
+  },
+  {
+   "topic": "t382.3",
+   "fields": [
+    "algorithms-data-structures",
+    "languages-compilers"
+   ],
+   "reason": "Go 정렬"
+  },
+  {
+   "topic": "t382.4",
+   "fields": [
+    "text-processing",
+    "languages-compilers"
+   ],
+   "reason": "Go 문자열 변환"
+  },
+  {
+   "topic": "t382.5",
+   "fields": [
+    "os-shell",
+    "configuration"
+   ],
+   "reason": "Cobra·Viper"
+  },
+  {
+   "topic": "t387.3",
+   "fields": [
+    "error-handling",
+    "languages-compilers"
+   ],
+   "reason": "Rust panic·todo"
+  },
+  {
+   "topic": "t405.4",
+   "fields": [
+    "observability-debugging"
+   ],
+   "reason": "gauge 지표"
+  },
+  {
+   "topic": "t405.5",
+   "fields": [
+    "web-styling"
+   ],
+   "reason": "styled 컴포넌트"
+  },
+  {
+   "topic": "t414.2",
+   "fields": [
+    "editors-ide"
+   ],
+   "reason": "Visual Studio"
+  },
+  {
+   "topic": "t475",
+   "fields": [
+    "security",
+    "systems-low-level"
+   ],
+   "reason": "역공학"
+  },
+  {
+   "topic": "t522.2",
+   "fields": [
+    "browser-platform"
+   ],
+   "reason": "Chromium 계열 브라우저"
+  },
+  {
+   "topic": "t522.3",
+   "fields": [
+    "math-numerics",
+    "languages-compilers"
+   ],
+   "reason": "JavaScript Math"
+  },
+  {
+   "topic": "t522.5",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "Microsoft 서비스"
+  },
+  {
+   "topic": "t530.2",
+   "fields": [
+    "graphics-media"
+   ],
+   "reason": "오디오 채널"
+  },
+  {
+   "topic": "t530.3",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "CouchDB"
+  },
+  {
+   "topic": "t62.4",
+   "fields": [
+    "systems-low-level",
+    "build-release"
+   ],
+   "reason": "임베디드 링커 스크립트"
+  },
+  {
+   "topic": "t198.5",
+   "fields": [
+    "time-locale",
+    "languages-compilers"
+   ],
+   "reason": "Go time.Duration"
+  },
+  {
+   "topic": "t310.3",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "이진 탐색 경계"
+  },
+  {
+   "topic": "t310.4",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "날짜 범위"
+  },
+  {
+   "topic": "t310.7",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "분기 한정 탐색"
+  },
+  {
+   "topic": "t310.8",
+   "fields": [
+    "text-processing"
+   ],
+   "reason": "문자 분류"
+  },
+  {
+   "topic": "t310.9",
+   "fields": [
+    "data-visualization",
+    "math-numerics"
+   ],
+   "reason": "오차 막대"
+  },
+  {
+   "topic": "t341.2",
+   "fields": [
+    "error-handling",
+    "type-systems"
+   ],
+   "reason": "undefined 멤버 접근"
+  },
+  {
+   "topic": "t444.1",
+   "fields": [
+    "math-numerics",
+    "language-constructs"
+   ],
+   "reason": "카운터 증감(concurrency-async는 형제에서 물려받음)"
+  },
+  {
+   "topic": "t444.2",
+   "fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ],
+   "reason": "원자적 참조 계수"
+  },
+  {
+   "topic": "t444.3",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "반복 일정"
+  },
+  {
+   "topic": "t676.2",
+   "fields": [
+    "ml-ai",
+    "math-numerics"
+   ],
+   "reason": "모델 편향"
+  },
+  {
+   "topic": "t778.2",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "윤년"
+  },
+  {
+   "topic": "x251",
+   "fields": [
+    "business-domains",
+    "math-numerics"
+   ],
+   "reason": "금액 표현"
+  },
+  {
+   "topic": "x253",
+   "fields": [
+    "time-locale",
+    "math-numerics"
+   ],
+   "reason": "천 단위 구분 기호"
+  },
+  {
+   "topic": "t184.2",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "문맥 표현"
+  },
+  {
+   "topic": "t497.1",
+   "fields": [
+    "ml-ai",
+    "math-numerics"
+   ],
+   "reason": "행렬·텐서 연산"
+  },
+  {
+   "topic": "t497.4",
+   "fields": [
+    "systems-low-level",
+    "language-constructs"
+   ],
+   "reason": "이중 포인터"
+  },
+  {
+   "topic": "t717.5",
+   "fields": [
+    "ml-ai",
+    "cloud-infrastructure"
+   ],
+   "reason": "SageMaker 배포"
+  },
+  {
+   "topic": "t78.4",
+   "fields": [
+    "math-numerics",
+    "ml-ai"
+   ],
+   "reason": "반복 수렴"
+  },
+  {
+   "topic": "t78.5",
+   "fields": [
+    "math-numerics",
+    "ml-ai"
+   ],
+   "reason": "베이지안 사전분포"
+  },
+  {
+   "topic": "t78.6",
+   "fields": [
+    "math-numerics"
+   ],
+   "reason": "수치 해법"
+  },
+  {
+   "topic": "t982.2",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "지식 표현"
+  },
+  {
+   "topic": "t87.3",
+   "fields": [
+    "ml-ai",
+    "mobile-desktop"
+   ],
+   "reason": "Core ML"
+  },
+  {
+   "topic": "t87.4",
+   "fields": [
+    "concurrency-async",
+    "mobile-desktop"
+   ],
+   "reason": "Grand Central Dispatch"
+  },
+  {
+   "topic": "t87.6",
+   "fields": [
+    "browser-platform",
+    "mobile-desktop"
+   ],
+   "reason": "WebKit·Safari"
+  },
+  {
+   "topic": "t87.9",
+   "fields": [
+    "os-shell",
+    "mobile-desktop"
+   ],
+   "reason": "launchd"
+  },
+  {
+   "topic": "t236.2",
+   "fields": [
+    "os-shell",
+    "files-io"
+   ],
+   "reason": "이름 있는 파이프"
+  },
+  {
+   "topic": "t325.2",
+   "fields": [
+    "web-backend",
+    "cloud-infrastructure"
+   ],
+   "reason": "웹사이트 호스팅"
+  },
+  {
+   "topic": "t369.1",
+   "fields": [
+    "distributed-systems",
+    "algorithms-data-structures"
+   ],
+   "reason": "일관 해싱"
+  },
+  {
+   "topic": "t489.4",
+   "fields": [
+    "text-processing"
+   ],
+   "reason": "와일드카드"
+  },
+  {
+   "topic": "t90.7",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "직접 표현"
+  },
+  {
+   "topic": "t90.8",
+   "fields": [
+    "data-visualization"
+   ],
+   "reason": "방사형 게이지"
+  },
+  {
+   "topic": "t90.9",
+   "fields": [
+    "cloud-infrastructure"
+   ],
+   "reason": "liveness probe"
+  },
+  {
+   "topic": "x264",
+   "fields": [
+    "security",
+    "networking"
+   ],
+   "reason": "DNS 공격"
+  },
+  {
+   "topic": "t273.1",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "출력 표현"
+  },
+  {
+   "topic": "t286.2",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "탐색 표현"
+  },
+  {
+   "topic": "t294.1",
+   "fields": [
+    "observability-debugging",
+    "security"
+   ],
+   "reason": "감사 로그(version-control은 형제에서 물려받음)"
+  },
+  {
+   "topic": "t299.1",
+   "fields": [
+    "data-visualization",
+    "observability-debugging"
+   ],
+   "reason": "대시보드"
+  },
+  {
+   "topic": "t299.3",
+   "fields": [
+    "data-visualization",
+    "data-engineering"
+   ],
+   "reason": "BI 측정값"
+  },
+  {
+   "topic": "t299.4",
+   "fields": [
+    "ml-ai"
+   ],
+   "reason": "모델 평가 지표"
+  },
+  {
+   "topic": "t347.10",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "Uvicorn"
+  },
+  {
+   "topic": "t347.6",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "게임 경험치"
+  },
+  {
+   "topic": "t347.7",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "GITHUB_RUN_ID"
+  },
+  {
+   "topic": "t347.8",
+   "fields": [
+    "configuration"
+   ],
+   "reason": "load_dotenv"
+  },
+  {
+   "topic": "t347.9",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "LocalTime"
+  },
+  {
+   "topic": "t401.7",
+   "fields": [
+    "cloud-infrastructure"
+   ],
+   "reason": "인스턴스 유형"
+  },
+  {
+   "topic": "t401.8",
+   "fields": [
+    "systems-low-level",
+    "language-constructs"
+   ],
+   "reason": "span 메모리 뷰"
+  },
+  {
+   "topic": "t467.2",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "이유 표현"
+  },
+  {
+   "topic": "t467.5",
+   "fields": [
+    "math-numerics",
+    "ml-ai"
+   ],
+   "reason": "선형 회귀"
+  },
+  {
+   "topic": "t694.4",
+   "fields": [
+    "data-visualization"
+   ],
+   "reason": "차트 데이터 계열"
+  },
+  {
+   "topic": "t727.4",
+   "fields": [
+    "os-shell",
+    "systems-low-level"
+   ],
+   "reason": "Linux 장치 번호"
+  },
+  {
+   "topic": "t84.1",
+   "fields": [
+    "math-numerics",
+    "data-visualization"
+   ],
+   "reason": "히스토그램"
+  },
+  {
+   "topic": "t84.2",
+   "fields": [
+    "data-visualization",
+    "math-numerics"
+   ],
+   "reason": "상자·바이올린 그림"
+  },
+  {
+   "topic": "t84.3",
+   "fields": [
+    "testing",
+    "observability-debugging"
+   ],
+   "reason": "부하 테스트"
+  },
+  {
+   "topic": "t84.4",
+   "fields": [
+    "observability-debugging",
+    "systems-low-level"
+   ],
+   "reason": "메모리 누수"
+  },
+  {
+   "topic": "t84.7",
+   "fields": [
+    "security"
+   ],
+   "reason": "CT 로그"
+  },
+  {
+   "topic": "t126.4",
+   "fields": [
+    "testing",
+    "cloud-infrastructure"
+   ],
+   "reason": "테스트 컨테이너"
+  },
+  {
+   "topic": "t166.2",
+   "fields": [
+    "graphics-media"
+   ],
+   "reason": "녹화 일시정지"
+  },
+  {
+   "topic": "t17.1",
+   "fields": [
+    "auth-identity",
+    "error-handling"
+   ],
+   "reason": "접근 거부"
+  },
+  {
+   "topic": "t326.7",
+   "fields": [
+    "concurrency-async"
+   ],
+   "reason": "runBlocking"
+  },
+  {
+   "topic": "t339.2",
+   "fields": [
+    "configuration",
+    "os-shell"
+   ],
+   "reason": "도구 rc 파일"
+  },
+  {
+   "topic": "t339.4",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "Jenkins"
+  },
+  {
+   "topic": "t37.2",
+   "fields": [
+    "general-wording",
+    "configuration"
+   ],
+   "reason": "매개변수 표현"
+  },
+  {
+   "topic": "t49.1",
+   "fields": [
+    "build-release",
+    "os-shell"
+   ],
+   "reason": "빌드 에이전트"
+  },
+  {
+   "topic": "t49.4",
+   "fields": [
+    "web-backend",
+    "os-shell"
+   ],
+   "reason": "Gunicorn"
+  },
+  {
+   "topic": "t659.3",
+   "fields": [
+    "observability-debugging",
+    "os-shell"
+   ],
+   "reason": "커널 추적 프로브"
+  },
+  {
+   "topic": "t704.1",
+   "fields": [
+    "cloud-infrastructure",
+    "os-shell"
+   ],
+   "reason": "가상 머신 게스트"
+  },
+  {
+   "topic": "t14.2",
+   "fields": [
+    "auth-identity",
+    "security"
+   ],
+   "reason": "토큰 폐기"
+  },
+  {
+   "topic": "t14.3",
+   "fields": [
+    "configuration",
+    "security"
+   ],
+   "reason": "direnv"
+  },
+  {
+   "topic": "t154",
+   "fields": [
+    "build-release",
+    "cloud-infrastructure"
+   ],
+   "reason": "AWS 개발 도구"
+  },
+  {
+   "topic": "t173.5",
+   "fields": [
+    "data-engineering",
+    "databases-storage"
+   ],
+   "reason": "전체 적재"
+  },
+  {
+   "topic": "t173.6",
+   "fields": [
+    "type-systems",
+    "testing"
+   ],
+   "reason": "형식 검증"
+  },
+  {
+   "topic": "t211.2",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "반복 결제"
+  },
+  {
+   "topic": "t251.5",
+   "fields": [
+    "general-wording",
+    "security"
+   ],
+   "reason": "보안 위험 표현"
+  },
+  {
+   "topic": "t251.6",
+   "fields": [
+    "testing"
+   ],
+   "reason": "테스트 전략"
+  },
+  {
+   "topic": "t410.4",
+   "fields": [
+    "security",
+    "ml-ai"
+   ],
+   "reason": "프롬프트 주입"
+  },
+  {
+   "topic": "t44.1",
+   "fields": [
+    "auth-identity",
+    "security"
+   ],
+   "reason": "관리자 역할"
+  },
+  {
+   "topic": "t44.2",
+   "fields": [
+    "security",
+    "cloud-infrastructure"
+   ],
+   "reason": "샌드박스 강화"
+  },
+  {
+   "topic": "t44.3",
+   "fields": [
+    "security",
+    "auth-identity"
+   ],
+   "reason": "권한 상승"
+  },
+  {
+   "topic": "t44.4",
+   "fields": [
+    "files-io",
+    "mobile-desktop"
+   ],
+   "reason": "FileManager"
+  },
+  {
+   "topic": "t660.2",
+   "fields": [
+    "auth-identity",
+    "security"
+   ],
+   "reason": "계정 잠금"
+  },
+  {
+   "topic": "t660.3",
+   "fields": [
+    "security",
+    "business-domains"
+   ],
+   "reason": "지갑 니모닉"
+  },
+  {
+   "topic": "t660.4",
+   "fields": [
+    "auth-identity"
+   ],
+   "reason": "복구 코드"
+  },
+  {
+   "topic": "t768.2",
+   "fields": [
+    "observability-debugging"
+   ],
+   "reason": "관측 쿼리"
+  },
+  {
+   "topic": "t959.2",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "최대 유량"
+  },
+  {
+   "topic": "t100.1",
+   "fields": [
+    "general-wording",
+    "software-design"
+   ],
+   "reason": "구성 가능 표현"
+  },
+  {
+   "topic": "t338.1",
+   "fields": [
+    "software-design",
+    "distributed-systems"
+   ],
+   "reason": "명령 버스·CQRS(editors-ide는 형제에서 물려받음)"
+  },
+  {
+   "topic": "t338.2",
+   "fields": [
+    "editors-ide"
+   ],
+   "reason": "편집기 명령 등록"
+  },
+  {
+   "topic": "t35.10",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "GitHub Actions"
+  },
+  {
+   "topic": "t35.12",
+   "fields": [
+    "data-visualization"
+   ],
+   "reason": "scaleLinear"
+  },
+  {
+   "topic": "t35.13",
+   "fields": [
+    "data-visualization",
+    "math-numerics"
+   ],
+   "reason": "추세선"
+  },
+  {
+   "topic": "t35.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "기반 구현 표현"
+  },
+  {
+   "topic": "t35.4",
+   "fields": [
+    "web-backend",
+    "software-design"
+   ],
+   "reason": "요청 미들웨어"
+  },
+  {
+   "topic": "t35.7",
+   "fields": [
+    "web-backend",
+    "software-design"
+   ],
+   "reason": "필터·인터셉터 훅"
+  },
+  {
+   "topic": "t42.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "기능 표현"
+  },
+  {
+   "topic": "t43.5",
+   "fields": [
+    "web-backend",
+    "software-design"
+   ],
+   "reason": "NestJS 모듈"
+  },
+  {
+   "topic": "t495.3",
+   "fields": [
+    "text-processing",
+    "security"
+   ],
+   "reason": "문자 이스케이프"
+  },
+  {
+   "topic": "t604.2",
+   "fields": [
+    "web-styling"
+   ],
+   "reason": "Stitches"
+  },
+  {
+   "topic": "t646.3",
+   "fields": [
+    "databases-storage",
+    "software-design"
+   ],
+   "reason": "DAO"
+  },
+  {
+   "topic": "t655.3",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "ASP.NET 컨트롤러"
+  },
+  {
+   "topic": "t97.1",
+   "fields": [
+    "web-backend",
+    "software-design"
+   ],
+   "reason": "플러그인 콜백"
+  },
+  {
+   "topic": "t97.2",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "웹훅 등록"
+  },
+  {
+   "topic": "t97.3",
+   "fields": [
+    "browser-platform"
+   ],
+   "reason": "서비스 워커"
+  },
+  {
+   "topic": "t200.3",
+   "fields": [
+    "data-formats",
+    "systems-low-level"
+   ],
+   "reason": "struct.pack·msgpack"
+  },
+  {
+   "topic": "t22.4",
+   "fields": [
+    "databases-storage"
+   ],
+   "reason": "MySQL 테이블 파일"
+  },
+  {
+   "topic": "t69.3",
+   "fields": [
+    "networking"
+   ],
+   "reason": "서브넷 마스크"
+  },
+  {
+   "topic": "t69.4",
+   "fields": [
+    "databases-storage",
+    "algorithms-data-structures"
+   ],
+   "reason": "비트맵 색인"
+  },
+  {
+   "topic": "t13.7",
+   "fields": [
+    "os-shell",
+    "testing"
+   ],
+   "reason": "pty 자동화"
+  },
+  {
+   "topic": "t27.4",
+   "fields": [
+    "graphics-media"
+   ],
+   "reason": "물리 시뮬레이션"
+  },
+  {
+   "topic": "t400.4",
+   "fields": [
+    "concurrency-async"
+   ],
+   "reason": "동시 실행"
+  },
+  {
+   "topic": "t400.5",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "white 표현"
+  },
+  {
+   "topic": "t45.4",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "React 일괄 갱신"
+  },
+  {
+   "topic": "t5.3",
+   "fields": [
+    "security"
+   ],
+   "reason": "위조 검증"
+  },
+  {
+   "topic": "t160.4",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "해석됨 표현"
+  },
+  {
+   "topic": "t160.7",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "직렬화 표현"
+  },
+  {
+   "topic": "t266.10",
+   "fields": [
+    "languages-compilers"
+   ],
+   "reason": "TypeScript 트랜스파일"
+  },
+  {
+   "topic": "t266.3",
+   "fields": [
+    "language-constructs",
+    "languages-compilers"
+   ],
+   "reason": "네임스페이스 충돌"
+  },
+  {
+   "topic": "t266.6",
+   "fields": [
+    "business-domains"
+   ],
+   "reason": "Google Pay"
+  },
+  {
+   "topic": "t266.7",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "pytz"
+  },
+  {
+   "topic": "t266.8",
+   "fields": [
+    "concurrency-async"
+   ],
+   "reason": "스레드 식별자"
+  },
+  {
+   "topic": "t266.9",
+   "fields": [
+    "time-locale"
+   ],
+   "reason": "번역 키"
+  },
+  {
+   "topic": "t391.1",
+   "fields": [
+    "time-locale",
+    "text-processing"
+   ],
+   "reason": "Intl.ListFormat"
+  },
+  {
+   "topic": "t391.2",
+   "fields": [
+    "data-formats",
+    "text-processing"
+   ],
+   "reason": "CSV 읽기·쓰기"
+  },
+  {
+   "topic": "t391.4",
+   "fields": [
+    "os-shell",
+    "text-processing"
+   ],
+   "reason": "shlex"
+  },
+  {
+   "topic": "t562.2",
+   "fields": [
+    "build-release"
+   ],
+   "reason": "CI 빌드 행렬"
+  },
+  {
+   "topic": "t595.3",
+   "fields": [
+    "web-backend",
+    "text-processing"
+   ],
+   "reason": "FreeMarker 템플릿"
+  },
+  {
+   "topic": "t683.2",
+   "fields": [
+    "frontend-ui"
+   ],
+   "reason": "토글 스위치"
+  },
+  {
+   "topic": "t685.1",
+   "fields": [
+    "algorithms-data-structures",
+    "text-processing"
+   ],
+   "reason": "선형 탐색"
+  },
+  {
+   "topic": "t685.2",
+   "fields": [
+    "algorithms-data-structures",
+    "text-processing"
+   ],
+   "reason": "문자열 탐색 알고리즘"
+  },
+  {
+   "topic": "t685.3",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "롤링 해시"
+  },
+  {
+   "topic": "t817.2",
+   "fields": [
+    "math-numerics"
+   ],
+   "reason": "다항식 항"
+  },
+  {
+   "topic": "t117.2",
+   "fields": [
+    "time-locale",
+    "networking"
+   ],
+   "reason": "시계 동기화·NTP"
+  },
+  {
+   "topic": "t268.3",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "트리거 표현"
+  },
+  {
+   "topic": "t268.4",
+   "fields": [
+    "systems-low-level",
+    "time-locale"
+   ],
+   "reason": "SysTick"
+  },
+  {
+   "topic": "t268.6",
+   "fields": [
+    "math-numerics",
+    "algorithms-data-structures"
+   ],
+   "reason": "의사 난수"
+  },
+  {
+   "topic": "t283.3",
+   "fields": [
+    "languages-compilers"
+   ],
+   "reason": "컴파일러 소스 목록"
+  },
+  {
+   "topic": "t283.4",
+   "fields": [
+    "ml-ai",
+    "graphics-media"
+   ],
+   "reason": "OCR"
+  },
+  {
+   "topic": "t315.8",
+   "fields": [
+    "text-processing",
+    "os-shell"
+   ],
+   "reason": "tr·sed 문자 치환"
+  },
+  {
+   "topic": "t420.4",
+   "fields": [
+    "algorithms-data-structures",
+    "distributed-systems"
+   ],
+   "reason": "Snowflake ID"
+  },
+  {
+   "topic": "t826.2",
+   "fields": [
+    "graphics-media",
+    "web-styling"
+   ],
+   "reason": "애니메이션 재생"
+  },
+  {
+   "topic": "t209.4",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "부정 표현"
+  },
+  {
+   "topic": "t225.2",
+   "fields": [
+    "observability-debugging",
+    "browser-platform"
+   ],
+   "reason": "User Timing"
+  },
+  {
+   "topic": "t355.2",
+   "fields": [
+    "algorithms-data-structures",
+    "languages-compilers"
+   ],
+   "reason": "std::map"
+  },
+  {
+   "topic": "t373.7",
+   "fields": [
+    "concurrency-async"
+   ],
+   "reason": "fire and forget"
+  },
+  {
+   "topic": "t486.2",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "버림 표현"
+  },
+  {
+   "topic": "t511.7",
+   "fields": [
+    "concurrency-async"
+   ],
+   "reason": "소프트웨어 트랜잭션 메모리"
+  },
+  {
+   "topic": "x291",
+   "fields": [
+    "software-design",
+    "type-systems"
+   ],
+   "reason": "리스코프 치환 원칙"
+  },
+  {
+   "topic": "t140.12",
+   "fields": [
+    "files-io",
+    "os-shell",
+    "networking"
+   ],
+   "reason": "rsync"
+  },
+  {
+   "topic": "t140.13",
+   "fields": [
+    "build-release",
+    "languages-compilers"
+   ],
+   "reason": "sbt"
+  },
+  {
+   "topic": "t682.1",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "불일치 표현"
+  },
+  {
+   "topic": "t957.2",
+   "fields": [
+    "build-release",
+    "version-control"
+   ],
+   "reason": "빌드 산출물 정리"
+  },
+  {
+   "topic": "t103",
+   "fields": [
+    "build-release",
+    "cloud-infrastructure",
+    "distributed-systems"
+   ],
+   "reason": "Argo CD·Argo Workflows"
+  },
+  {
+   "topic": "t144.1",
+   "fields": [
+    "web-backend",
+    "auth-identity"
+   ],
+   "reason": "NestJS 가드"
+  },
+  {
+   "topic": "t495.1",
+   "fields": [
+    "software-design",
+    "distributed-systems"
+   ],
+   "reason": "DDD·이벤트 소싱"
+  },
+  {
+   "topic": "t88.5",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "데이터·내용 표현"
+  },
+  {
+   "topic": "t88.6",
+   "fields": [
+    "web-backend",
+    "data-formats"
+   ],
+   "reason": "메시지 본문 직렬화"
+  },
+  {
+   "topic": "t89.2",
+   "fields": [
+    "web-backend",
+    "auth-identity"
+   ],
+   "reason": "ASP.NET 인증·인가"
+  },
+  {
+   "topic": "t89.3",
+   "fields": [
+    "cloud-infrastructure",
+    "configuration"
+   ],
+   "reason": "멱등 프로비저닝(Ansible)"
+  },
+  {
+   "topic": "t89.4",
+   "fields": [
+    "frontend-ui",
+    "web-backend"
+   ],
+   "reason": "React Router 데이터 로더"
+  },
+  {
+   "topic": "t94.2",
+   "fields": [
+    "web-backend"
+   ],
+   "reason": "Spring MVC 컨트롤러"
+  },
+  {
+   "topic": "x296",
+   "fields": [
+    "networking",
+    "web-backend"
+   ],
+   "reason": "ngrok 터널링"
+  },
+  {
+   "topic": "t149.4",
+   "fields": [
+    "browser-platform",
+    "frontend-ui"
+   ],
+   "reason": "DOM 속성 조작"
+  },
+  {
+   "topic": "t164.2",
+   "fields": [
+    "frontend-ui",
+    "web-styling"
+   ],
+   "reason": "컴포넌트 디자인 시스템"
+  },
+  {
+   "topic": "t491.1",
+   "fields": [
+    "frontend-ui",
+    "web-styling"
+   ],
+   "reason": "패널·사이드바"
+  },
+  {
+   "topic": "t491.4",
+   "fields": [
+    "general-wording"
+   ],
+   "reason": "상호작용 표현"
+  },
+  {
+   "topic": "t491.6",
+   "fields": [
+    "frontend-ui",
+    "browser-platform"
+   ],
+   "reason": "포인터 입력"
+  },
+  {
+   "topic": "t58.1",
+   "fields": [
+    "web-styling",
+    "text-processing"
+   ],
+   "reason": "텍스트 정렬"
+  },
+  {
+   "topic": "t58.2",
+   "fields": [
+    "algorithms-data-structures"
+   ],
+   "reason": "생물 서열 정렬"
+  },
+  {
+   "topic": "t747.1",
+   "fields": [
+    "browser-platform",
+    "web-backend"
+   ],
+   "reason": "URL 주소"
+  },
+  {
+   "topic": "t16",
+   "fields": [
+    "browser-platform",
+    "security"
+   ],
+   "reason": "CORS 헤더는 보안 대상(89건)"
+  },
+  {
+   "topic": "t36.1",
+   "fields": [
+    "graphics-media",
+    "networking"
+   ],
+   "reason": "적응형 비트레이트 전송(89건)"
+  },
+  {
+   "topic": "t79.1",
+   "fields": [
+    "ml-ai",
+    "databases-storage",
+    "algorithms-data-structures"
+   ],
+   "reason": "근사 최근접 이웃 탐색(89건)"
+  },
+  {
+   "topic": "t741.1",
+   "fields": [
+    "docs-collaboration",
+    "software-design"
+   ],
+   "reason": "아키텍처 결정 기록(89건)"
+  },
+  {
+   "topic": "t160.1",
+   "fields": [
+    "text-processing",
+    "browser-platform"
+   ],
+   "reason": "atob·btoa(89건)"
+  },
+  {
+   "topic": "t162.1",
+   "fields": [
+    "web-backend",
+    "distributed-systems"
+   ],
+   "reason": "BFF(89건)"
+  },
+  {
+   "topic": "t617",
+   "fields": [
+    "math-numerics",
+    "algorithms-data-structures"
+   ],
+   "reason": "정수론 알고리즘(89건)"
+  },
+  {
+   "topic": "t325.1",
+   "fields": [
+    "networking",
+    "cloud-infrastructure"
+   ],
+   "reason": "CloudFront(89건)"
+  },
+  {
+   "topic": "t251.1",
+   "fields": [
+    "security",
+    "testing"
+   ],
+   "reason": "DAST(89건)"
+  },
+  {
+   "topic": "t694.2",
+   "fields": [
+    "observability-debugging",
+    "distributed-systems"
+   ],
+   "reason": "분산 추적(89건)"
+  },
+  {
+   "topic": "x155",
+   "fields": [
+    "testing",
+    "mobile-desktop"
+   ],
+   "reason": "모바일 UI 테스트(89건)"
+  },
+  {
+   "topic": "t77",
+   "fields": [
+    "web-styling",
+    "frontend-ui"
+   ],
+   "reason": "Framer Motion(89건)"
+  },
+  {
+   "topic": "t345.1",
+   "fields": [
+    "graphics-media",
+    "languages-compilers"
+   ],
+   "reason": "GLSL(89건)"
+  },
+  {
+   "topic": "t565.3",
+   "fields": [
+    "databases-storage",
+    "languages-compilers"
+   ],
+   "reason": "PL/SQL(89건)"
+  },
+  {
+   "topic": "t20.3",
+   "fields": [
+    "security",
+    "auth-identity",
+    "cloud-infrastructure"
+   ],
+   "reason": "KMS(89건)"
+  },
+  {
+   "topic": "t297.3",
+   "fields": [
+    "concurrency-async",
+    "distributed-systems"
+   ],
+   "reason": "Orleans·Ray 액터(89건)"
+  },
+  {
+   "topic": "x137",
+   "fields": [
+    "ml-ai",
+    "distributed-systems"
+   ],
+   "reason": "Ray(89건)"
+  },
+  {
+   "topic": "t18.13",
+   "fields": [
+    "frontend-ui",
+    "mobile-desktop"
+   ],
+   "reason": "TalkBack(89건)"
+  },
+  {
+   "topic": "t101.7",
+   "fields": [
+    "data-visualization",
+    "business-domains"
+   ],
+   "reason": "TradingView(89건)"
+  },
+  {
+   "topic": "t1050.1",
+   "fields": [
+    "concurrency-async",
+    "browser-platform"
+   ],
+   "reason": "Web Workers(89건)"
+  },
+  {
+   "topic": "t532.3",
+   "fields": [
+    "networking",
+    "business-domains",
+    "security"
+   ],
+   "reason": "SMTP 전송(메일 프로토콜)"
+  },
+  {
+   "topic": "t532.4",
+   "fields": [
+    "networking",
+    "business-domains"
+   ],
+   "reason": "IMAP 메일함(메일 프로토콜)"
+  }
+ ],
+ "moves": [
+  {
+   "word": "Kafka",
+   "topic": "t294.2",
+   "into": "t85.1",
+   "reason": "커밋 기록 주제에 잘못 들어감"
+  },
+  {
+   "word": "Apache Kafka",
+   "topic": "t294.2",
+   "into": "t85.1",
+   "reason": "커밋 기록 주제에 잘못 들어감"
+  },
+  {
+   "word": "Manacher",
+   "topic": "t426",
+   "into": "t685.2",
+   "reason": "Cloudflare 주제에 잘못 들어감. 문자열 탐색 주제(t685.2)로"
+  },
+  {
+   "word": "rotated",
+   "topic": "t154",
+   "into": "t20.4",
+   "reason": "비밀 회전 단어를 API key rotation으로"
+  },
+  {
+   "word": "ansible-vault",
+   "topic": "t154",
+   "into": "t20.6",
+   "reason": "Ansible Vault를 Secret stores로"
+  },
+  {
+   "word": "status line",
+   "topic": "t973",
+   "into": "t412.3",
+   "reason": "HTTP 상태 줄. 편집기 상태 표시줄 주제에 잘못 들어감"
+  },
+  {
+   "word": "object result",
+   "topic": "t973",
+   "into": "t655.3",
+   "reason": "ASP.NET ObjectResult"
+  },
+  {
+   "word": "vscode.window",
+   "topic": "t973",
+   "into": "t31.1",
+   "reason": "VS Code API"
+  },
+  {
+   "word": "Sorbet",
+   "topic": "t125.3",
+   "into": "t918",
+   "reason": "Ruby 타입 검사기. Python typing에 잘못 들어감"
+  },
+  {
+   "word": "outb",
+   "topic": "t22.2",
+   "into": "t697",
+   "reason": "x86 포트 입출력 명령. SIMD에 잘못 들어감"
+  },
+  {
+   "word": "inb",
+   "topic": "t22.2",
+   "into": "t697",
+   "reason": "x86 포트 입출력 명령. SIMD에 잘못 들어감"
+  },
+  {
+   "word": "TiDB",
+   "topic": "t618.3",
+   "into": "t150.2",
+   "reason": "분산 SQL 데이터베이스. 클라우드 배포 위치에 잘못 들어감"
+  },
+  {
+   "word": "AWS CodeBuild",
+   "topic": "t20.6",
+   "into": "t28.1",
+   "reason": "CI 빌드 서비스. 비밀 저장소에 잘못 들어감"
+  },
+  {
+   "word": "Fortran",
+   "topic": "t717.1",
+   "into": "x307",
+   "reason": "프로그래밍 언어. 비지도 군집에 잘못 들어감"
+  },
+  {
+   "word": "COBOL",
+   "topic": "t244.2",
+   "into": "x307",
+   "reason": "프로그래밍 언어. 코드 리팩터링에 잘못 들어감"
+  },
+  {
+   "word": "Citus",
+   "topic": "x83",
+   "into": "t150.2",
+   "reason": "PostgreSQL 분산 확장. 샤딩 대상"
+  },
+  {
+   "word": "Underscore.js",
+   "topic": "t744.4",
+   "into": "t809",
+   "reason": "함수형 유틸리티 라이브러리. 순환 객체 그래프에 잘못 들어감"
+  },
+  {
+   "word": "asyncpg",
+   "topic": "t129.1",
+   "into": "t838",
+   "reason": "PostgreSQL 비동기 드라이버. 이벤트 루프 주제보다 PostgreSQL 클라이언트 주제가 맞음"
+  }
+ ],
+ "merges": [
+  {
+   "topic": "t1009",
+   "into": "t948",
+   "reason": "같은 범위(Material UI surfaces)"
+  },
+  {
+   "topic": "t1012",
+   "into": "t284",
+   "reason": "같은 범위(Rounding)"
+  },
+  {
+   "topic": "t104.2",
+   "into": "t551.1",
+   "reason": "성공 결과 표현. Operation outcomes와 같은 대상"
+  },
+  {
+   "topic": "t744.5",
+   "into": "t551.1",
+   "reason": "성공 결과 표현. Operation outcomes와 같은 대상"
+  },
+  {
+   "topic": "t449",
+   "into": "t118.1",
+   "reason": "같은 대상(정적 사이트 생성)"
+  },
+  {
+   "topic": "t118.6",
+   "into": "t242.8",
+   "reason": "같은 대상(읽기 잠금)"
+  },
+  {
+   "topic": "t294.2",
+   "into": "t145.3",
+   "reason": "git 커밋 기록 단어. Kafka는 따로 옮김"
+  },
+  {
+   "topic": "t734.2",
+   "into": "t19.4",
+   "reason": "같은 대상(라이선스 활성화)"
+  },
+  {
+   "topic": "t190.3",
+   "into": "t85.2",
+   "reason": "Kafka 소비자 오프셋. 기존 Kafka offset consumption과 같은 대상"
+  },
+  {
+   "topic": "t935.2",
+   "into": "t85.2",
+   "reason": "Kafka 소비자 오프셋. 기존 Kafka offset consumption과 같은 대상"
+  },
+  {
+   "topic": "t558.2",
+   "into": "t203.2",
+   "reason": "같은 대상(실행 표현)"
+  },
+  {
+   "topic": "t566.1",
+   "into": "t212.2",
+   "reason": "같은 대상(호출 표현)"
+  },
+  {
+   "topic": "t212.6",
+   "into": "t62.7",
+   "reason": "같은 대상(동적 라이브러리 로딩)"
+  },
+  {
+   "topic": "t86.9",
+   "into": "t215.2",
+   "reason": "이름 해석. resolve/resolving 두 단어"
+  },
+  {
+   "topic": "t704.2",
+   "into": "t216.2",
+   "reason": "같은 대상(build.rs)"
+  },
+  {
+   "topic": "t254.1",
+   "into": "t346.3",
+   "reason": "같은 대상(인터프리터와 바이트코드)"
+  },
+  {
+   "topic": "t269.8",
+   "into": "t569.1",
+   "reason": "같은 대상(정상 종료)"
+  },
+  {
+   "topic": "t666.1",
+   "into": "t282.2",
+   "reason": "같은 대상(HTTP 클라이언트 요청)"
+  },
+  {
+   "topic": "t291",
+   "into": "t964",
+   "reason": "같은 범위(공개키 암호)"
+  },
+  {
+   "topic": "t891",
+   "into": "t3",
+   "reason": "같은 범위(Cortex-M)"
+  },
+  {
+   "topic": "t309",
+   "into": "t60",
+   "reason": "같은 범위(라우트 인증 가드)"
+  },
+  {
+   "topic": "t31.7",
+   "into": "t6.3",
+   "reason": "같은 대상(객체 조합)"
+  },
+  {
+   "topic": "t764.5",
+   "into": "t315.3",
+   "reason": "같은 대상(지역화 메시지 서식)"
+  },
+  {
+   "topic": "t349",
+   "into": "t609",
+   "reason": "같은 대상(완전함 표현)"
+  },
+  {
+   "topic": "t361.4",
+   "into": "t652",
+   "reason": "같은 대상(Helm 차트)"
+  },
+  {
+   "topic": "t694.5",
+   "into": "t375.1",
+   "reason": "같은 대상(원격 프로시저 호출)"
+  },
+  {
+   "topic": "t421",
+   "into": "t850",
+   "reason": "같은 범위(네이티브 UI 뷰·컨트롤)"
+  },
+  {
+   "topic": "t43.6",
+   "into": "t862",
+   "reason": "같은 대상(제공 표현)"
+  },
+  {
+   "topic": "t590.2",
+   "into": "t456.1",
+   "reason": "같은 대상(거절 표현)"
+  },
+  {
+   "topic": "t480",
+   "into": "t570",
+   "reason": "같은 범위(파일 시스템)"
+  },
+  {
+   "topic": "x73",
+   "into": "t497.3",
+   "reason": "같은 대상(MPI)"
+  },
+  {
+   "topic": "t528.4",
+   "into": "t803",
+   "reason": "같은 대상(발생 표현)"
+  },
+  {
+   "topic": "x178",
+   "into": "t589.2",
+   "reason": "같은 대상(HTTP 리디렉션)"
+  },
+  {
+   "topic": "t690.3",
+   "into": "t7",
+   "reason": "같은 대상(포함 표현)"
+  },
+  {
+   "topic": "t714",
+   "into": "t7",
+   "reason": "같은 대상(포함 표현)"
+  },
+  {
+   "topic": "t693",
+   "into": "t752",
+   "reason": "같은 대상(생성 표현)"
+  },
+  {
+   "topic": "t731",
+   "into": "t98",
+   "reason": "같은 대상(올바름 표현)"
+  },
+  {
+   "topic": "t792",
+   "into": "t913",
+   "reason": "같은 범위(CSR/SSR 렌더링)"
+  },
+  {
+   "topic": "t8.8",
+   "into": "t932",
+   "reason": "같은 대상(Redis 정렬 집합)"
+  },
+  {
+   "topic": "t28.4",
+   "into": "t21.2",
+   "reason": "같은 대상(기능 플래그)"
+  },
+  {
+   "topic": "t951.4",
+   "into": "t21.2",
+   "reason": "기능 플래그 단어 하나. Feature flags와 같은 대상"
+  },
+  {
+   "topic": "t706.6",
+   "into": "t39.17",
+   "reason": "IoT thing 단어 하나. IoT 장치 주제와 같은 대상"
+  },
+  {
+   "topic": "t86.8",
+   "into": "t245.4",
+   "reason": "CentOS 단어 하나. Red Hat distributions와 같은 대상"
+  },
+  {
+   "topic": "t426",
+   "into": "t324",
+   "reason": "Cloudflare 단어(d1, Cloudflare Images). Manacher는 먼저 문자열 탐색 주제로 옮김"
+  },
+  {
+   "topic": "t165.10",
+   "into": "t169.1",
+   "reason": "pod template 단어 하나. Kubernetes pod configuration과 같은 대상"
+  },
+  {
+   "topic": "t190.4",
+   "into": "t8.3",
+   "reason": "le 단어 하나. Relational operators와 같은 대상"
+  },
+  {
+   "topic": "t262.2",
+   "into": "t3",
+   "reason": "__disable_irq 등. Cortex-M 주제와 같은 대상"
+  },
+  {
+   "topic": "t269.6",
+   "into": "t904",
+   "reason": "booking 단어 하나. Inventory reservations와 같은 대상"
+  },
+  {
+   "topic": "t269.9",
+   "into": "t65.4",
+   "reason": "SSLContext 단어 하나. TLS handshake와 같은 대상"
+  },
+  {
+   "topic": "t297.9",
+   "into": "t566.2",
+   "reason": "vtbl 단어 하나. Polymorphic method dispatch와 같은 대상"
+  },
+  {
+   "topic": "t528.13",
+   "into": "t91.2",
+   "reason": "fswatch 단어 하나. 파일 변경 알림과 같은 대상"
+  },
+  {
+   "topic": "t528.16",
+   "into": "x56",
+   "reason": "Notification.requestPermission. 권한 API 주제와 같은 대상"
+  },
+  {
+   "topic": "t276.2",
+   "into": "t39.2",
+   "reason": "resolve/resolving. Dependency graph resolution과 같은 대상"
+  },
+  {
+   "topic": "t429.3",
+   "into": "t269.3",
+   "reason": "nursery 단어 하나. Trio task nurseries와 같은 대상"
+  },
+  {
+   "topic": "t635.7",
+   "into": "t637",
+   "reason": "Guava 단어 하나. Guava collection utilities와 같은 대상"
+  },
+  {
+   "topic": "t716.3",
+   "into": "t896.1",
+   "reason": "addMember 단어 하나. Account provisioning과 같은 대상"
+  },
+  {
+   "topic": "t25.7",
+   "into": "t150.1",
+   "reason": "follower 단어 하나. Replica failover와 같은 대상"
+  },
+  {
+   "topic": "t296.11",
+   "into": "t15.7",
+   "reason": "service principal 단어 하나. Service identities와 같은 대상"
+  },
+  {
+   "topic": "t296.7",
+   "into": "t174.2",
+   "reason": "local notification 단어 하나. 푸시 알림 주제와 같은 대상"
+  },
+  {
+   "topic": "t296.8",
+   "into": "t744.4",
+   "reason": "object graph 단어 하나. Cyclic object graphs와 같은 대상"
+  },
+  {
+   "topic": "t588.3",
+   "into": "t56.5",
+   "reason": "token filter 단어 하나. Search analyzers와 같은 대상"
+  },
+  {
+   "topic": "t540",
+   "into": "t29.7",
+   "reason": "free tier, usage quota 두 단어. Usage quotas와 같은 대상"
+  },
+  {
+   "topic": "t552.3",
+   "into": "t24.1",
+   "reason": "binding key 단어 하나. AMQP publishing과 같은 대상"
+  },
+  {
+   "topic": "t764.6",
+   "into": "t285.6",
+   "reason": "mark as read 단어 하나. Inbox message state와 같은 대상"
+  },
+  {
+   "topic": "t478.2",
+   "into": "t56.3",
+   "reason": "posting 단어 하나. Search indexing과 같은 대상"
+  },
+  {
+   "topic": "t263.2",
+   "into": "t24.1",
+   "reason": "exchange_declare 단어 하나. AMQP publishing과 같은 대상"
+  },
+  {
+   "topic": "t374.6",
+   "into": "t550.2",
+   "reason": "unwrap 단어 하나. Result propagation과 같은 대상"
+  },
+  {
+   "topic": "t0.2",
+   "into": "t852",
+   "reason": "review comment 단어 하나. Review discussion comments와 같은 대상"
+  },
+  {
+   "topic": "t0.3",
+   "into": "t91.2",
+   "reason": "Watchman 단어 하나. 파일 변경 알림과 같은 대상"
+  },
+  {
+   "topic": "t0.4",
+   "into": "t91.2",
+   "reason": "WatchService 단어 하나. 파일 변경 알림과 같은 대상"
+  },
+  {
+   "topic": "t241.7",
+   "into": "t876.3",
+   "reason": "Lettuce 단어 하나. Redis application clients와 같은 대상"
+  },
+  {
+   "topic": "t876.6",
+   "into": "t241.8",
+   "reason": "Node.js 단어 하나. Node.js runtime과 같은 대상"
+  },
+  {
+   "topic": "t106.9",
+   "into": "t948",
+   "reason": "side sheet 단어 하나. Material UI surfaces(t1009가 합쳐지는 주제) 범위에 side sheet가 있음"
+  },
+  {
+   "topic": "t32.4",
+   "into": "t551.5",
+   "reason": "shipping 단어 하나. Shipment tracking과 같은 배송 대상"
+  },
+  {
+   "topic": "t735.3",
+   "into": "t805.1",
+   "reason": "confirm dialog 단어 하나. Confirmation responses와 같은 대상"
+  },
+  {
+   "topic": "t301.3",
+   "into": "t922.1",
+   "reason": "text mode 단어 하나. File opening modes와 같은 대상"
+  },
+  {
+   "topic": "t151.3",
+   "into": "t242.1",
+   "reason": "input stream 단어 하나. Buffered stream I/O와 같은 대상"
+  },
+  {
+   "topic": "t179.2",
+   "into": "t241.10",
+   "reason": "xxHash 단어 하나. 같은 xxHash 주제"
+  },
+  {
+   "topic": "t594.3",
+   "into": "t19.4",
+   "reason": "activation 단어 하나. License activation과 같은 대상"
+  },
+  {
+   "topic": "t108.5",
+   "into": "t947",
+   "reason": "Edge 단어 하나. 영상 에지 검출은 Image filter kernels와 같은 대상"
+  },
+  {
+   "topic": "t872.2",
+   "into": "t4.4",
+   "reason": "life 단어 하나. Game of Life는 Cellular simulations와 같은 대상"
+  },
+  {
+   "topic": "t135.7",
+   "into": "t281.4",
+   "reason": "runtime/unchecked exception. Exception type hierarchies와 같은 대상"
+  },
+  {
+   "topic": "t135.9",
+   "into": "t780",
+   "reason": "state monad 단어 하나. Monadic chaining(t780)과 같은 대상"
+  },
+  {
+   "topic": "t316.8",
+   "into": "t351.3",
+   "reason": "shadow dom 단어 하나. Web components와 같은 대상"
+  },
+  {
+   "topic": "t566.3",
+   "into": "t736",
+   "reason": "virtual list 단어 하나. Scrollable list views와 같은 대상"
+  },
+  {
+   "topic": "t6.10",
+   "into": "t395.3",
+   "reason": "abstract factory 단어 하나. Factory methods와 같은 대상"
+  },
+  {
+   "topic": "t6.12",
+   "into": "t547.1",
+   "reason": "custom exception 단어 하나. Error types and messages와 같은 대상"
+  },
+  {
+   "topic": "t6.9",
+   "into": "t451.3",
+   "reason": "go to implementation 등. Symbol navigation providers와 같은 대상"
+  },
+  {
+   "topic": "t600.4",
+   "into": "t51.1",
+   "reason": "Agile 단어 하나. Agile backlog tasks와 같은 대상"
+  },
+  {
+   "topic": "t155.7",
+   "into": "t222",
+   "reason": "points 단어 하나. Geometric measurement points와 같은 대상"
+  },
+  {
+   "topic": "t161.5",
+   "into": "x122",
+   "reason": "Unity 단어 하나. 2D and 3D game frameworks와 같은 대상"
+  },
+  {
+   "topic": "t254.2",
+   "into": "t218.3",
+   "reason": "like 단어 하나. SQL row conditions와 같은 대상"
+  },
+  {
+   "topic": "t558.3",
+   "into": "t1010.2",
+   "reason": "train 단어 하나. Machine learning training과 같은 대상"
+  },
+  {
+   "topic": "x130",
+   "into": "t455.1",
+   "reason": "Delphi, Pascal. Delphi Pascal units와 같은 대상"
+  },
+  {
+   "topic": "t207.4",
+   "into": "t10.2",
+   "reason": "complex 단어 하나. Complex components와 같은 대상"
+  },
+  {
+   "topic": "t310.10",
+   "into": "t284",
+   "reason": "floor 등. Rounding과 같은 대상"
+  },
+  {
+   "topic": "t442.5",
+   "into": "t738",
+   "reason": "literal 단어 하나. Literal constants와 같은 대상"
+  },
+  {
+   "topic": "t845",
+   "into": "t743",
+   "reason": "sqrt, pow. Powers logarithms roots와 같은 대상"
+  },
+  {
+   "topic": "t148.3",
+   "into": "t318",
+   "reason": "CLIP 단어 하나. Embedding/diffusion models와 같은 대상"
+  },
+  {
+   "topic": "t411",
+   "into": "t23",
+   "reason": "cross validation, hyperparameter. Model evaluation과 같은 대상"
+  },
+  {
+   "topic": "t592.2",
+   "into": "t766.4",
+   "reason": "grammar of graphics 단어 하나. 같은 시각화 문법 주제"
+  },
+  {
+   "topic": "t667",
+   "into": "t56.10",
+   "reason": "Chroma, Qdrant 등. Vector databases와 같은 대상"
+  },
+  {
+   "topic": "t717.4",
+   "into": "t678.1",
+   "reason": "lossy compression 단어 하나. Image encoding formats와 같은 대상"
+  },
+  {
+   "topic": "t928",
+   "into": "t948",
+   "reason": "fab, bottom navigation 등. Material UI surfaces와 같은 대상"
+  },
+  {
+   "topic": "t1051",
+   "into": "t1015",
+   "reason": "WireGuard·peer. VPN tunnels와 같은 대상"
+  },
+  {
+   "topic": "t545",
+   "into": "t517",
+   "reason": "ephemeral port, local address. Port conflicts와 같은 대상"
+  },
+  {
+   "topic": "t90.6",
+   "into": "t603",
+   "reason": "createTransport, mailkit. SMTP message relays와 같은 대상"
+  },
+  {
+   "topic": "t286.3",
+   "into": "t434.1",
+   "reason": "time picker 단어 하나. Date time pickers와 같은 대상"
+  },
+  {
+   "topic": "t299.5",
+   "into": "t522.5",
+   "reason": "Microsoft 365 단어 하나. Microsoft service integration과 같은 대상"
+  },
+  {
+   "topic": "t467.4",
+   "into": "t578.1",
+   "reason": "bad 단어 하나. Invalidity wording과 같은 대상"
+  },
+  {
+   "topic": "t467.6",
+   "into": "t375.1",
+   "reason": "RpcError 단어 하나. Remote procedure calls와 같은 대상"
+  },
+  {
+   "topic": "t1044.2",
+   "into": "t84.3",
+   "reason": "wrk 단어 하나. 부하 테스트 주제로 합침"
+  },
+  {
+   "topic": "t865",
+   "into": "x82",
+   "reason": "greptimedb, InfluxDB, Telegraf. Time series databases와 같은 대상"
+  },
+  {
+   "topic": "t126.3",
+   "into": "t694.2",
+   "reason": "parent span 등. Distributed trace instrumentation과 같은 대상"
+  },
+  {
+   "topic": "t46.3",
+   "into": "t375.1",
+   "reason": "rpc, RpcError, Gearman. Remote procedure calls와 같은 대상"
+  },
+  {
+   "topic": "t326.6",
+   "into": "t281.4",
+   "reason": "exception 단어 하나. Exception type hierarchies와 같은 대상"
+  },
+  {
+   "topic": "t339.3",
+   "into": "t87.1",
+   "reason": "ipa 단어 하나. Application packaging과 같은 대상"
+  },
+  {
+   "topic": "t49.6",
+   "into": "t208.3",
+   "reason": "activity, intent. Android app components와 같은 대상"
+  },
+  {
+   "topic": "x277",
+   "into": "x226",
+   "reason": "/var/log. Standard directory locations와 같은 대상"
+  },
+  {
+   "topic": "t569.4",
+   "into": "x226",
+   "reason": "usr 단어 하나. Standard directory locations와 같은 대상"
+  },
+  {
+   "topic": "t659.4",
+   "into": "t401.5",
+   "reason": "Heaptrack 단어 하나. Allocator heap profiles와 같은 대상"
+  },
+  {
+   "topic": "t173.4",
+   "into": "t251.4",
+   "reason": "cvss 단어 하나. Artifact vulnerability scanning과 같은 대상"
+  },
+  {
+   "topic": "t221.5",
+   "into": "t476",
+   "reason": "asr, error rate. Speech transcription과 같은 대상"
+  },
+  {
+   "topic": "t44.5",
+   "into": "t569.2",
+   "reason": "SIGKILL 단어 하나. Process termination과 같은 대상"
+  },
+  {
+   "topic": "t555",
+   "into": "t959.1",
+   "reason": "taint analysis 등. Tainted data flow와 같은 대상"
+  },
+  {
+   "topic": "t591",
+   "into": "t413",
+   "reason": "FIPS, NIST. Cryptography standards와 같은 대상"
+  },
+  {
+   "topic": "t768.1",
+   "into": "t251.3",
+   "reason": "CodeQL, lgtm. Static security analysis와 같은 대상"
+  },
+  {
+   "topic": "t830",
+   "into": "t660.1",
+   "reason": "password reset 등. Password hash verification과 같은 대상"
+  },
+  {
+   "topic": "t314",
+   "into": "t42.1",
+   "reason": "ClassLoader 등. Plugin lifecycle과 같은 대상"
+  },
+  {
+   "topic": "t35.11",
+   "into": "t876.3",
+   "reason": "ioredis 단어 하나. Redis application clients와 같은 대상"
+  },
+  {
+   "topic": "t35.8",
+   "into": "t281.3",
+   "reason": "catch, catcher. Exception control flow와 같은 대상"
+  },
+  {
+   "topic": "t35.9",
+   "into": "t550.2",
+   "reason": "eyre 단어 하나. Result propagation(anyhow 포함)과 같은 대상"
+  },
+  {
+   "topic": "t42.4",
+   "into": "t148.1",
+   "reason": "base model 단어 하나. Pretrained model loading과 같은 대상"
+  },
+  {
+   "topic": "t42.5",
+   "into": "x129",
+   "reason": "entry point 단어 하나. Program entry points와 같은 대상"
+  },
+  {
+   "topic": "t655.4",
+   "into": "x85",
+   "reason": "Structurizr 단어 하나. Diagrams as code와 같은 대상"
+  },
+  {
+   "topic": "t836.2",
+   "into": "x56",
+   "reason": "geolocation 단어 하나. 브라우저 권한 API 주제와 같은 대상"
+  },
+  {
+   "topic": "x163",
+   "into": "t305.3",
+   "reason": "state machine, XState. State machine transitions와 같은 대상"
+  },
+  {
+   "topic": "t1039.2",
+   "into": "t489.1",
+   "reason": "fqdn 단어 하나. Hostname resolution과 같은 대상"
+  },
+  {
+   "topic": "t1059",
+   "into": "t499.3",
+   "reason": "MaybeUninit, zeroed. Uninitialized memory diagnostics와 같은 대상"
+  },
+  {
+   "topic": "t167.5",
+   "into": "t547.1",
+   "reason": "error class 단어 하나. Error types and messages와 같은 대상"
+  },
+  {
+   "topic": "t167.6",
+   "into": "t650.1",
+   "reason": "tracemalloc 단어 하나. Heap memory diagnostics와 같은 대상"
+  },
+  {
+   "topic": "t171.6",
+   "into": "t22.1",
+   "reason": "inc 단어 하나. Machine instructions와 같은 대상"
+  },
+  {
+   "topic": "t171.7",
+   "into": "t791.1",
+   "reason": "nic 단어 하나. Interface addressing과 같은 대상"
+  },
+  {
+   "topic": "t199.2",
+   "into": "t48.6",
+   "reason": "time to live 단어 하나. Lifetime durations와 같은 대상"
+  },
+  {
+   "topic": "t22.3",
+   "into": "t11.2",
+   "reason": "context free grammar, parser generator. Grammar definitions와 같은 대상"
+  },
+  {
+   "topic": "t234.5",
+   "into": "x122",
+   "reason": "Godot 단어 하나. 2D and 3D game frameworks와 같은 대상"
+  },
+  {
+   "topic": "t265",
+   "into": "t167.4",
+   "reason": "stack frame, stack pointer. Stack memory layout과 같은 대상"
+  },
+  {
+   "topic": "t307.5",
+   "into": "t281.3",
+   "reason": "exception handling 단어 하나. Exception control flow와 같은 대상"
+  },
+  {
+   "topic": "t307.6",
+   "into": "t90.8",
+   "reason": "gauge chart 단어 하나. 게이지 시각화 주제"
+  },
+  {
+   "topic": "t307.7",
+   "into": "t137.1",
+   "reason": "media stream 단어 하나. Camera microphone recording과 같은 대상"
+  },
+  {
+   "topic": "t430",
+   "into": "t1015",
+   "reason": "IPsec, vpn. VPN tunnels와 같은 대상"
+  },
+  {
+   "topic": "t519",
+   "into": "t171.5",
+   "reason": "ecc, flash memory. Flash storage translation과 같은 대상"
+  },
+  {
+   "topic": "t643.4",
+   "into": "t85.2",
+   "reason": "rebalance 등. Kafka offset consumption과 같은 대상"
+  },
+  {
+   "topic": "t643.5",
+   "into": "t526.1",
+   "reason": "effect 단어 하나. Reactive computed effects와 같은 대상"
+  },
+  {
+   "topic": "t69.5",
+   "into": "t139.4",
+   "reason": "avi 단어 하나. Video transcoding과 같은 대상"
+  },
+  {
+   "topic": "t13.5",
+   "into": "t551.2",
+   "reason": "$? 단어 하나. Process exit status와 같은 대상"
+  },
+  {
+   "topic": "t13.6",
+   "into": "t82.2",
+   "reason": "example 단어 하나. Usage examples와 같은 대상"
+  },
+  {
+   "topic": "t27.3",
+   "into": "t208.2",
+   "reason": "Capacitor 단어 하나. Hybrid mobile bridges와 같은 대상"
+  },
+  {
+   "topic": "t5.2",
+   "into": "t969",
+   "reason": "table driven, Testify. Parameterized tests와 같은 대상"
+  },
+  {
+   "topic": "t523.2",
+   "into": "t614.1",
+   "reason": "fuzzing·property based test. Randomized property tests와 같은 대상"
+  },
+  {
+   "topic": "t614.2",
+   "into": "t173.6",
+   "reason": "lemma 단어 하나. Formal verification과 같은 대상"
+  },
+  {
+   "topic": "t160.10",
+   "into": "x213",
+   "reason": "cursor pagination 단어 하나. Query result pagination과 같은 대상"
+  },
+  {
+   "topic": "t160.11",
+   "into": "t326.1",
+   "reason": "subprocess.run 단어 하나. Subprocess command execution과 같은 대상"
+  },
+  {
+   "topic": "t160.9",
+   "into": "t623",
+   "reason": "compare_digest 단어 하나. Webhook signature verification과 같은 대상"
+  },
+  {
+   "topic": "t266.4",
+   "into": "t114.2",
+   "reason": "binary 단어 하나. Binary stream modes와 같은 대상"
+  },
+  {
+   "topic": "t266.5",
+   "into": "t469",
+   "reason": "differ 단어 하나. Variation wording과 같은 대상"
+  },
+  {
+   "topic": "t418.1",
+   "into": "t391.2",
+   "reason": "csv, txt. CSV record I/O와 같은 대상"
+  },
+  {
+   "topic": "t418.3",
+   "into": "t69.2",
+   "reason": "control register 단어 하나. Register bit fields와 같은 대상"
+  },
+  {
+   "topic": "t573.4",
+   "into": "t326.2",
+   "reason": "cron expression 단어 하나. Scheduled job directives와 같은 대상"
+  },
+  {
+   "topic": "t573.5",
+   "into": "t24.1",
+   "reason": "routing key 단어 하나. AMQP publishing과 같은 대상"
+  },
+  {
+   "topic": "t135.5",
+   "into": "t595.3",
+   "reason": "FreeMarker, ftl. 같은 FreeMarker 주제"
+  },
+  {
+   "topic": "t595.4",
+   "into": "t273.2",
+   "reason": "memory dump 단어 하나. Fatal crash dumps와 같은 대상"
+  },
+  {
+   "topic": "t952.2",
+   "into": "t173.5",
+   "reason": "full 단어 하나. Full data loading과 같은 대상"
+  },
+  {
+   "topic": "t952.3",
+   "into": "t615.2",
+   "reason": "writing 단어 하나. File write APIs와 같은 대상"
+  },
+  {
+   "topic": "t987.2",
+   "into": "t148.1",
+   "reason": "AutoTokenizer 단어 하나. Pretrained model loading과 같은 대상"
+  },
+  {
+   "topic": "x169",
+   "into": "t310.8",
+   "reason": "isLetter 등. Character classes와 같은 대상"
+  },
+  {
+   "topic": "t1031",
+   "into": "t420.2",
+   "reason": "epoch seconds 등. Epoch timestamp units와 같은 대상"
+  },
+  {
+   "topic": "t117.3",
+   "into": "t101.7",
+   "reason": "candlestick chart 단어 하나. 금융 가격 차트 주제"
+  },
+  {
+   "topic": "t117.4",
+   "into": "t489.3",
+   "reason": "Route 53 단어 하나. DNS record management와 같은 대상"
+  },
+  {
+   "topic": "t268.7",
+   "into": "t241.9",
+   "reason": "reactivity 단어 하나. UI reactivity와 같은 대상"
+  },
+  {
+   "topic": "t315.10",
+   "into": "t334.1",
+   "reason": "line number, column number. Source text positions와 같은 대상"
+  },
+  {
+   "topic": "t315.11",
+   "into": "t680",
+   "reason": "ime, tf. Keyboard input composition과 같은 대상"
+  },
+  {
+   "topic": "t315.12",
+   "into": "t981",
+   "reason": "string comparison 단어 하나. String comparison과 같은 대상"
+  },
+  {
+   "topic": "t315.9",
+   "into": "t160.2",
+   "reason": "ascii 단어 하나. Character code points와 같은 대상"
+  },
+  {
+   "topic": "t343.2",
+   "into": "t209.1",
+   "reason": "undefined 단어 하나. Nullable value handling과 같은 대상"
+  },
+  {
+   "topic": "t359",
+   "into": "t117.1",
+   "reason": "DateTimeOffset 등. Zoned date-time APIs와 같은 대상"
+  },
+  {
+   "topic": "t420.5",
+   "into": "t85.1",
+   "reason": "message header 단어 하나. Kafka client integration과 같은 대상"
+  },
+  {
+   "topic": "t433.5",
+   "into": "t387.1",
+   "reason": "Cargo 단어 하나. Cargo compiler tooling과 같은 대상"
+  },
+  {
+   "topic": "t433.6",
+   "into": "t401.3",
+   "reason": "jfr 단어 하나. JVM profiling과 같은 대상"
+  },
+  {
+   "topic": "t673.2",
+   "into": "t704.1",
+   "reason": "iso 단어 하나. Virtual machine guests와 같은 대상"
+  },
+  {
+   "topic": "t860",
+   "into": "t408.2",
+   "reason": "day of year, ordinal. Calendar date fields와 같은 대상"
+  },
+  {
+   "topic": "t200.4",
+   "into": "t230.2",
+   "reason": "existential type 단어 하나. Existential type encoding과 같은 대상"
+  },
+  {
+   "topic": "t373.5",
+   "into": "t549.2",
+   "reason": "astype, type casting. Numeric dtype conversion과 같은 대상"
+  },
+  {
+   "topic": "t373.8",
+   "into": "t405.3",
+   "reason": "symbol 단어 하나. Native library linkage와 같은 대상"
+  },
+  {
+   "topic": "t486.3",
+   "into": "t387.2",
+   "reason": "no std 단어 하나. Rust no-std environments와 같은 대상"
+  },
+  {
+   "topic": "t511.2",
+   "into": "t125.3",
+   "reason": "pyi, stub. Python typing과 같은 대상"
+  },
+  {
+   "topic": "t511.4",
+   "into": "t215.1",
+   "reason": "destructure 단어 하나. Lexical variable bindings와 같은 대상"
+  },
+  {
+   "topic": "t511.5",
+   "into": "t498.2",
+   "reason": "eager evaluation 단어 하나. Evaluation strategies와 같은 대상"
+  },
+  {
+   "topic": "t511.6",
+   "into": "t30",
+   "reason": "pull_request_target 단어 하나. CI workflow execution과 같은 대상"
+  },
+  {
+   "topic": "t515.5",
+   "into": "t465.3",
+   "reason": "Object.freeze 단어 하나. Immutable data와 같은 대상"
+  },
+  {
+   "topic": "t140.10",
+   "into": "t103",
+   "reason": "Argo CD 단어 하나. t103에 이미 있음"
+  },
+  {
+   "topic": "t140.11",
+   "into": "t706.1",
+   "reason": "Maven Central 단어 하나. t706.1에 이미 있음"
+  },
+  {
+   "topic": "t140.14",
+   "into": "t216.1",
+   "reason": "starter template 단어 하나. Project starter scaffolds와 같은 대상"
+  },
+  {
+   "topic": "t140.15",
+   "into": "t626",
+   "reason": "travis.yml 단어 하나. t626에 이미 있음"
+  },
+  {
+   "topic": "t162.2",
+   "into": "t495.1",
+   "reason": "bounded context 단어 하나. t495.1에 이미 있음"
+  },
+  {
+   "topic": "t282.4",
+   "into": "t84.3",
+   "reason": "hey 단어 하나. t84.3에 이미 있음"
+  },
+  {
+   "topic": "t412.4",
+   "into": "t257.1",
+   "reason": "cache api 단어 하나. t257.1에 이미 있음"
+  },
+  {
+   "topic": "t639",
+   "into": "t581",
+   "reason": "Uvicorn 겹침. 같은 ASGI 서버 대상"
+  },
+  {
+   "topic": "t88.10",
+   "into": "t532.3",
+   "reason": "Mailgun 단어 하나. t532.3에 이미 있음"
+  },
+  {
+   "topic": "t88.4",
+   "into": "t933",
+   "reason": "cgi, wsgi. Python web serving과 같은 대상"
+  },
+  {
+   "topic": "t88.7",
+   "into": "t1019",
+   "reason": "webhook 등. Webhook event payloads와 같은 대상"
+  },
+  {
+   "topic": "t88.8",
+   "into": "t24.2",
+   "reason": "basic_consume 단어 하나. t24.2에 이미 있음"
+  },
+  {
+   "topic": "t88.9",
+   "into": "t19.3",
+   "reason": "last login 등. Login records와 같은 대상"
+  },
+  {
+   "topic": "t89.6",
+   "into": "t361.5",
+   "reason": "OpenShift 단어 하나. t361.5에 이미 있음"
+  },
+  {
+   "topic": "t973",
+   "into": "t672.2",
+   "reason": "남은 status bar. Interface shell layout에 이미 있음"
+  },
+  {
+   "topic": "t164.5",
+   "into": "t51.1",
+   "reason": "epic 단어 하나. t51.1에 이미 있음"
+  },
+  {
+   "topic": "t164.6",
+   "into": "t30",
+   "reason": "jobs 단어 하나. CI workflow execution과 같은 대상"
+  },
+  {
+   "topic": "t758",
+   "into": "t417.2",
+   "reason": "Material Design, Angular Material. t417.2에 이미 있음"
+  },
+  {
+   "topic": "t491.3",
+   "into": "t580",
+   "reason": "camera 단어 하나. Graphics camera terminology와 같은 대상"
+  },
+  {
+   "topic": "t491.5",
+   "into": "t748",
+   "reason": "lod 단어 하나. t748에 이미 있음"
+  },
+  {
+   "topic": "t491.7",
+   "into": "t196",
+   "reason": "precision 단어 하나. t196에 이미 있음"
+  },
+  {
+   "topic": "t796.2",
+   "into": "t42.1",
+   "reason": "extension 단어 하나. Plugin lifecycle과 같은 대상"
+  },
+  {
+   "topic": "t796.3",
+   "into": "t518",
+   "reason": "guard, guards. Guard clauses와 같은 대상"
+  },
+  {
+   "topic": "t796.4",
+   "into": "t747.1",
+   "reason": "url, urllib. Website addresses와 같은 대상"
+  },
+  {
+   "topic": "t691.4",
+   "into": "t117.2",
+   "reason": "system time, stime. Clock synchronization과 같은 대상"
+  },
+  {
+   "topic": "x289",
+   "into": "t173.6",
+   "reason": "Dafny, SMT solver. t173.6에 이미 있음"
+  },
+  {
+   "topic": "t18.14",
+   "into": "x155",
+   "reason": "Espresso 단어 하나. Mobile UI testing에 이미 있음"
+  },
+  {
+   "topic": "t26.4",
+   "into": "t532.4",
+   "reason": "mailbox 단어 하나. 메일 프로토콜은 t532.3·t532.4의 분야를 networking으로 바꿔 담음"
+  },
+  {
+   "topic": "t310.6",
+   "into": "t101.7",
+   "reason": "candlestick chart 등. Financial candlestick charts와 같은 대상"
+  }
+ ],
+ "drops": [
+  {
+   "topic": "t141.2",
+   "reason": "빈 주제(Dialog closing)"
+  },
+  {
+   "topic": "t896.4",
+   "reason": "빈 주제(File creation modes)"
+  },
+  {
+   "topic": "t213.4",
+   "reason": "빈 주제(duplicates.json의 merge 대신)"
+  },
+  {
+   "topic": "t344.2",
+   "reason": "빈 주제(duplicates.json의 merge 대신)"
+  },
+  {
+   "topic": "t706.4",
+   "reason": "빈 주제(Certificate key stores)"
+  },
+  {
+   "topic": "t507.2",
+   "reason": "빈 주제(Archive file handling)"
+  },
+  {
+   "topic": "x44",
+   "reason": "빈 주제(Graphics API diagnostics)"
+  },
+  {
+   "topic": "t766.2",
+   "reason": "빈 주제(Bookmarks)"
+  },
+  {
+   "topic": "x10",
+   "reason": "빈 주제(Password manager URI matching)"
+  },
+  {
+   "topic": "t89.5",
+   "reason": "단어 없는 빈 주제"
+  },
+  {
+   "topic": "x45",
+   "reason": "단어 없는 빈 주제"
+  },
+  {
+   "topic": "x46",
+   "reason": "단어 없는 빈 주제"
+  },
+  {
+   "topic": "x47",
+   "reason": "단어 없는 빈 주제"
+  },
+  {
+   "topic": "x17",
+   "reason": "단어 없는 빈 주제. resp는 t876.4 Python Redis clients에 있음"
+  },
+  {
+   "topic": "x38",
+   "reason": "단어 없는 빈 주제. document picture in picture는 t450.3에 있음"
+  }
+ ]
+}

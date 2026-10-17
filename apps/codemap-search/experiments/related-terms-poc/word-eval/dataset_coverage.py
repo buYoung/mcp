@@ -8,7 +8,6 @@
 """
 import collections
 import json
-import sqlite3
 import sys
 from word_eval_paths import EXPERIMENTS, work_dir
 
@@ -16,6 +15,7 @@ sys.path.insert(0, str(EXPERIMENTS))
 import sense_lookup as sl  # noqa: E402
 from term_canonical import word_key  # noqa: E402
 
+import aggregate_units  # noqa: E402
 from cross_repo_summary import REPOSITORIES  # noqa: E402
 
 WORK = work_dir()
@@ -23,14 +23,8 @@ STATUSES = ("head", "input", "relation_only", "missing")
 
 
 def dataset_fields():
-    connection = sqlite3.connect(f"file:{sl.DEFAULT_SENSE_DATASET}?mode=ro", uri=True)
-    fields = collections.defaultdict(set)
-    for query in ("SELECT t.word_key, s.field FROM personas p JOIN terms t USING (term_id) JOIN senses s USING (sense)",
-                  "SELECT i.word_key, s.field FROM input_senses i JOIN personas p USING (persona) JOIN senses s USING (sense)"):
-        for key, field in connection.execute(query):
-            fields[key].add(field)
-    connection.close()
-    return fields
+    head_fields, input_fields, _ = aggregate_units.load_dataset(sl.DEFAULT_SENSE_DATASET)
+    return {key: head_fields.get(key, set()) | input_fields.get(key, set()) for key in head_fields.keys() | input_fields.keys()}
 
 
 def main():

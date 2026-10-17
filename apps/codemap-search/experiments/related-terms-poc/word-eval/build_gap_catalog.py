@@ -3,7 +3,7 @@
 사용법: python3 build_gap_catalog.py
 출력(<작업 폴더>/batches/gap/catalog/):
   fields.json         분야 id·이름·범위
-  topics.jsonl        주제 하나당 한 줄(id, 이름, 범위, 분야, 개념 id·이름)
+  topics.jsonl        주제 하나당 한 줄(id, 이름, 범위, 분야, 개념 id·이름, 개념 없이 주제에만 연결된 단어 최대 20개)
   concepts.jsonl      개념 하나당 한 줄(id, 이름, 주제 id·이름, 분야, 구성 단어 최대 20개)
 """
 import collections
@@ -27,11 +27,15 @@ def main():
     topic_fields = collections.defaultdict(list)
     for topic, field in connection.execute("SELECT topic, field FROM topic_fields ORDER BY topic, rank"):
         topic_fields[topic].append(field)
+    surfaces = dict(connection.execute("SELECT word_key, surface FROM terms"))
+    # 개념 구성 단어와, rt-sense/4에서 개념 없이 주제에만 연결된 단어(개념 None)
     members = collections.defaultdict(list)
-    for concept, surface in connection.execute(
-            "SELECT DISTINCT p.concept, t.surface FROM personas p JOIN terms t USING (term_id) ORDER BY p.concept, p.persona"):
-        members[concept].append(surface)
-    topics = {topic: {"topic": topic, "label": label, "scope": scope, "fields": topic_fields[topic], "concepts": []}
+    for _, key, _, concept, topic, _ in sorted(sl.persona_rows(connection)):
+        place = concept if concept is not None else (topic, None)
+        if surfaces[key] not in members[place]:
+            members[place].append(surfaces[key])
+    topics = {topic: {"topic": topic, "label": label, "scope": scope, "fields": topic_fields[topic], "concepts": [],
+                      "words": members[(topic, None)][:20]}
               for topic, label, scope in connection.execute("SELECT topic, label, scope FROM topics ORDER BY topic")}
     concepts = []
     for concept, name, topic in connection.execute("SELECT concept, name, topic FROM concepts ORDER BY concept"):

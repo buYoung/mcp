@@ -1,0 +1,30 @@
+{
+  "dataset_id": "rts4-0fb3d5bc20c215ba",
+  "schema_version": "rt-sense/4",
+  "base_dataset": "rts4-86c5620af1f181ce",
+  "new_topics": 8,
+  "labels": 22,
+  "fields": 617,
+  "moves": 18,
+  "merges": 229,
+  "drops": 15,
+  "before": {
+    "topics": 2781,
+    "concepts": 5158,
+    "personas": 44180,
+    "relations": 592793,
+    "input_senses": 334442,
+    "input_relations": 9
+  },
+  "after": {
+    "topics": 2545,
+    "concepts": 5157,
+    "personas": 44173,
+    "relations": 592793,
+    "input_senses": 334442,
+    "input_relations": 9
+  },
+  "merged_personas": 7,
+  "moved_personas": 18,
+  "dropped_concepts": 1
+}
