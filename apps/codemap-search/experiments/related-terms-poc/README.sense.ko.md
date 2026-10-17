@@ -20,7 +20,7 @@
 | 판 | 더한 것 | 폴더에 있는 입력 |
 | --- | --- | --- |
 | `rts3-9e01eaf1eadf960a` | 검토 보정 | 보정 계획, 근거로 쓴 12개 코드 저장소의 판(`sources.json`) |
-| `rts3-25df1cf41d0d8247` | 분야별 누락 단어(`datas/omission/`) | `entries.json` |
+| `rts3-25df1cf41d0d8247` | 분야별 누락 단어 | `entries.json` |
 | `rts3-08b1780cc2880c26` | 관련어로만 있던 단어의 분야 연결 | `corrections.json`, `bindings-review.json` |
 | `rts3-5fba9ba33d7c7c7f` | 분야 연결에서 맞는 개념이 없던 단어의 새 개념 | `entries.json`, `concepts-review.json` |
 | `rts3-48356e35e1f1ea28` | 앞 두 단계에서 빠진 49단어를 설명이 닿는 모든 분야에 연결 | `entries.json`, `rereview.json` |
