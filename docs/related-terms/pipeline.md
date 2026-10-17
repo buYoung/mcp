@@ -144,7 +144,7 @@ python3 apps/codemap-search/experiments/related-terms-poc/correct_sense_dataset.
 | `PoC/category_lookup.py` | 입력 단어 → 하위 분야 → 그 분야의 단어 | 카테고리 데이터셋, 관련어 데이터셋, `rtpoc3` |
 | `PoC/lookup-v3`의 `rtpoc3 related` | 관련어 데이터셋의 유사도순 관련어 | 관련어 데이터셋 |
 
-두 Python 조회 도구는 입력 단어의 표기를 해석할 때 `rtpoc3 related`를 실행한다. `sense_lookup.py`는 관련어 데이터셋에 저장된 단어 임베딩으로 뜻을 질의와 비슷한 순서로 정렬한다(`--no-similarity-order`로 끈다). `rtpoc3`가 없으면 다음 명령으로 빌드한다.
+두 Python 조회 도구는 입력 단어의 표기를 해석할 때 `rtpoc3 related`를 실행한다. `sense_lookup.py`는 생성 횟수가 같은 뜻을 관련어 데이터셋에 저장된 단어 임베딩으로 질의와 비슷한 순서로 정렬한다(`--no-similarity-order`로 끈다). `rtpoc3`가 없으면 다음 명령으로 빌드한다.
 
 ```sh
 cargo build --offline --release \

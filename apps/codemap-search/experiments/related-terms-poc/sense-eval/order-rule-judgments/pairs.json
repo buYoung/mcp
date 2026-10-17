@@ -1,0 +1,2477 @@
+{
+ "items": [
+  {
+   "id": 1,
+   "word": "--context",
+   "options": {
+    "1": {
+     "field": "Build, packaging and release",
+     "topic": "Release notes",
+     "related_in_this_sense": [
+      "git-cliff"
+     ],
+     "topic_examples": [
+      "breaking",
+      "bug fix",
+      "Changesets",
+      "git-cliff",
+      "Keep a Changelog",
+      "unstable"
+     ]
+    },
+    "2": {
+     "field": "Cloud, containers and infrastructure",
+     "topic": "Docker image builds",
+     "related_in_this_sense": [
+      "Kaniko"
+     ],
+     "topic_examples": [
+      "artifact",
+      "container",
+      "docker image",
+      "oci",
+      "scratch",
+      "Telepresence"
+     ]
+    }
+   }
+  },
+  {
+   "id": 2,
+   "word": "--extras",
+   "options": {
+    "1": {
+     "field": "Build, packaging and release",
+     "topic": "Optional build features",
+     "related_in_this_sense": [
+      "optional",
+      "added",
+      "trailing whitespace",
+      "extras_require",
+      "optional dependency",
+      "context"
+     ],
+     "topic_examples": [
+      "build profile",
+      "Cargo.toml",
+      "cfg attr",
+      "features",
+      "optional",
+      "optional dependency"
+     ]
+    },
+    "2": {
+     "field": "General English wording",
+     "topic": "Additional/optional wording",
+     "related_in_this_sense": [
+      "additional",
+      "supplementary",
+      "supplemental",
+      "spare",
+      "surplus",
+      "bonus"
+     ],
+     "topic_examples": [
+      "additional",
+      "additionally",
+      "also",
+      "further",
+      "optional",
+      "unknown field"
+     ]
+    }
+   }
+  },
+  {
+   "id": 3,
+   "word": "--global",
+   "options": {
+    "1": {
+     "field": "Configuration and environments",
+     "topic": "Global settings",
+     "related_in_this_sense": [
+      "global settings"
+     ],
+     "topic_examples": [
+      "global settings"
+     ]
+    },
+    "2": {
+     "field": "Configuration and environments",
+     "topic": "Preference settings",
+     "related_in_this_sense": [
+      "global"
+     ],
+     "topic_examples": [
+      "defaults",
+      "maybe monad",
+      "preferences",
+      "user data",
+      "user defaults",
+      "user settings"
+     ]
+    }
+   }
+  },
+  {
+   "id": 4,
+   "word": "-b",
+   "options": {
+    "1": {
+     "field": "Testing",
+     "topic": "Coverage threshold reporting",
+     "related_in_this_sense": [
+      "gcov"
+     ],
+     "topic_examples": [
+      "code",
+      "cov",
+      "coverage threshold",
+      "line coverage",
+      "qa",
+      "statement"
+     ]
+    },
+    "2": {
+     "field": "Operating systems, processes and shell",
+     "topic": "Shell text utilities",
+     "related_in_this_sense": [
+      "GNU diff"
+     ],
+     "topic_examples": [
+      "awk",
+      "coreutils",
+      "GNU",
+      "GNU diff",
+      "grep",
+      "sed"
+     ]
+    }
+   }
+  },
+  {
+   "id": 5,
+   "word": "[[rules]]",
+   "options": {
+    "1": {
+     "field": "Errors and exception handling",
+     "topic": "Runtime contract validation",
+     "related_in_this_sense": [
+      "business rule",
+      "validation rule",
+      "predicate",
+      "condition",
+      "matcher",
+      "inference"
+     ],
+     "topic_examples": [
+      "acceptance",
+      "assert",
+      "receipt",
+      "validating",
+      "validation",
+      "validators"
+     ]
+    },
+    "2": {
+     "field": "Authentication, identity and access",
+     "topic": "Authorization policies",
+     "related_in_this_sense": [
+      "style rule",
+      "CSSStyleRule",
+      "CSSMediaRule",
+      "CSSFontFaceRule",
+      "stylelint rule",
+      "eslint rule"
+     ],
+     "topic_examples": [
+      "affirmative",
+      "assign",
+      "bucket policy",
+      "decision",
+      "enforcement",
+      "management"
+     ]
+    }
+   }
+  },
+  {
+   "id": 6,
+   "word": "ability",
+   "options": {
+    "1": {
+     "field": "General English wording",
+     "topic": "Inability wording",
+     "related_in_this_sense": [],
+     "topic_examples": [
+      "able",
+      "cannot",
+      "didn",
+      "doesn",
+      "module resolution",
+      "unable"
+     ]
+    },
+    "2": {
+     "field": "Authentication, identity and access",
+     "topic": "Authorization checks",
+     "related_in_this_sense": [
+      "can",
+      "CanCanCan",
+      "cannot",
+      "accessibleBy",
+      "rules",
+      "conditions"
+     ],
+     "topic_examples": [
+      "accessible",
+      "authorization requirement",
+      "authorize",
+      "has_perm",
+      "login_required",
+      "UseGuards"
+     ]
+    }
+   }
+  },
+  {
+   "id": 7,
+   "word": "arrange",
+   "options": {
+    "1": {
+     "field": "Algorithms and data structures",
+     "topic": "Sorting algorithms",
+     "related_in_this_sense": [
+      "sort"
+     ],
+     "topic_examples": [
+      "Collections.sort",
+      "presort",
+      "qsort",
+      "shell sort",
+      "sorted",
+      "stable sort"
+     ]
+    },
+    "2": {
+     "field": "Algorithms and data structures",
+     "topic": "Sort keys",
+     "related_in_this_sense": [
+      "sort_values"
+     ],
+     "topic_examples": [
+      "by",
+      "order by",
+      "popularity",
+      "reversed",
+      "ThenBy",
+      "top n"
+     ]
+    }
+   }
+  },
+  {
+   "id": 8,
+   "word": "binary format",
+   "options": {
+    "1": {
+     "field": "Data formats and serialization",
+     "topic": "Binary serialization",
+     "related_in_this_sense": [
+      "binary serialization",
+      "wire format",
+      "text format",
+      "Protobuf",
+      "msgpack",
+      "BSON"
+     ],
+     "topic_examples": [
+      "avro-tools",
+      "der",
+      "field number",
+      "pb",
+      "self describing",
+      "type tag"
+     ]
+    },
+    "2": {
+     "field": "Data formats and serialization",
+     "topic": "Binary packing",
+     "related_in_this_sense": [
+      "binary protocol",
+      "binary data",
+      "bytes",
+      "endianness",
+      "struct.pack",
+      "byteOffset"
+     ],
+     "topic_examples": [
+      "msgpack",
+      "pack",
+      "struct",
+      "struct.pack",
+      "unpack",
+      "unpacked"
+     ]
+    }
+   }
+  },
+  {
+   "id": 9,
+   "word": "Cats",
+   "options": {
+    "1": {
+     "field": "Functional programming",
+     "topic": "Functional type abstractions",
+     "related_in_this_sense": [
+      "cats-core",
+      "cats-kernel",
+      "cats-free",
+      "cats-laws",
+      "cats-mtl",
+      "Typelevel"
+     ],
+     "topic_examples": [
+      "gadt",
+      "lift",
+      "maybe",
+      "monad laws",
+      "only",
+      "traverse"
+     ]
+    },
+    "2": {
+     "field": "Functional programming",
+     "topic": "Scala functional libraries",
+     "related_in_this_sense": [
+      "cats-effect",
+      "fs2",
+      "http4s",
+      "doobie",
+      "circe",
+      "Scala"
+     ],
+     "topic_examples": [
+      "for",
+      "Scala",
+      "Scalaz"
+     ]
+    }
+   }
+  },
+  {
+   "id": 10,
+   "word": "CI runner",
+   "options": {
+    "1": {
+     "field": "Testing",
+     "topic": "Test suite execution",
+     "related_in_this_sense": [
+      "test runner"
+     ],
+     "topic_examples": [
+      "after_script",
+      "browser test",
+      "detectors",
+      "jupiter",
+      "suite",
+      "test teardown"
+     ]
+    },
+    "2": {
+     "field": "Build, packaging and release",
+     "topic": "CI workflow execution",
+     "related_in_this_sense": [
+      "runner"
+     ],
+     "topic_examples": [
+      "Azure Pipelines",
+      "Drone CI",
+      "GitHub Actions",
+      "matrix",
+      "tox",
+      "workflow_run"
+     ]
+    }
+   }
+  },
+  {
+   "id": 11,
+   "word": "container_name",
+   "options": {
+    "1": {
+     "field": "Language ecosystems, compilers and runtimes",
+     "topic": "Symbol naming",
+     "related_in_this_sense": [
+      "name"
+     ],
+     "topic_examples": [
+      "class",
+      "name",
+      "names",
+      "py",
+      "rb",
+      "simple name"
+     ]
+    },
+    "2": {
+     "field": "Cloud, containers and infrastructure",
+     "topic": "Kubernetes pod configuration",
+     "related_in_this_sense": [
+      "docker container"
+     ],
+     "topic_examples": [
+      "crash loop backoff",
+      "kubelet",
+      "label selector",
+      "readiness probe",
+      "secrets manager",
+      "stateful set"
+     ]
+    }
+   }
+  },
+  {
+   "id": 12,
+   "word": "defn",
+   "options": {
+    "1": {
+     "field": "Language ecosystems, compilers and runtimes",
+     "topic": "Clojure dialects",
+     "related_in_this_sense": [
+      "clj",
+      "cljs",
+      "Clojure"
+     ],
+     "topic_examples": [
+      "clj",
+      "cljc",
+      "Clojure",
+      "edn",
+      "Lisp",
+      "transducer"
+     ]
+    },
+    "2": {
+     "field": "Functional programming",
+     "topic": "Callable function values",
+     "related_in_this_sense": [
+      "def",
+      "fn",
+      "fun"
+     ],
+     "topic_examples": [
+      "bi consumer",
+      "closure",
+      "closure capture",
+      "delegate",
+      "function declaration",
+      "function expression"
+     ]
+    }
+   }
+  },
+  {
+   "id": 13,
+   "word": "drm",
+   "options": {
+    "1": {
+     "field": "Graphics, images and media",
+     "topic": "Adaptive media streams",
+     "related_in_this_sense": [
+      "Widevine",
+      "FairPlay",
+      "PlayReady",
+      "Encrypted Media Extensions",
+      "eme",
+      "license server"
+     ],
+     "topic_examples": [
+      "adaptive bitrate",
+      "m3u8",
+      "media",
+      "media stream",
+      "MPEG-DASH",
+      "VLC"
+     ]
+    },
+    "2": {
+     "field": "Security and cryptography",
+     "topic": "Encryption key management",
+     "related_in_this_sense": [
+      "kid",
+      "encryption",
+      "decryption",
+      "kms",
+      "ioctl"
+     ],
+     "topic_examples": [
+      "api key",
+      "data at rest",
+      "encryption",
+      "key rotation",
+      "secret key",
+      "use"
+     ]
+    }
+   }
+  },
+  {
+   "id": 14,
+   "word": "Duration.ofHours",
+   "options": {
+    "1": {
+     "field": "Dates, time and localization",
+     "topic": "Elapsed execution timing",
+     "related_in_this_sense": [
+      "duration"
+     ],
+     "topic_examples": [
+      "Date.now",
+      "high resolution",
+      "response time",
+      "Stopwatch",
+      "timed",
+      "Unix epoch"
+     ]
+    },
+    "2": {
+     "field": "Dates, time and localization",
+     "topic": "Calendar schedules",
+     "related_in_this_sense": [
+      "hour"
+     ],
+     "topic_examples": [
+      "cron",
+      "dow",
+      "hour",
+      "LocalTime",
+      "mm",
+      "time unit"
+     ]
+    }
+   }
+  },
+  {
+   "id": 15,
+   "word": "ebpf",
+   "options": {
+    "1": {
+     "field": "Observability, debugging and performance",
+     "topic": "Kernel tracing probes",
+     "related_in_this_sense": [
+      "BPF",
+      "extended berkeley packet filter",
+      "Berkeley Packet Filter",
+      "bpftrace",
+      "bcc",
+      "BPF CO-RE"
+     ],
+     "topic_examples": [
+      "breakpoint",
+      "etl",
+      "jank",
+      "probe",
+      "recorded",
+      "traceable"
+     ]
+    },
+    "2": {
+     "field": "Operating systems, processes and shell",
+     "topic": "Kernel device drivers",
+     "related_in_this_sense": [
+      "core",
+      "perf_event",
+      "Falco",
+      "jit",
+      "syscall",
+      "Linux kernel"
+     ],
+     "topic_examples": [
+      "ddk",
+      "iowrite32",
+      "kernel",
+      "Linux",
+      "sys",
+      "Winsock"
+     ]
+    }
+   }
+  },
+  {
+   "id": 16,
+   "word": "EJB",
+   "options": {
+    "1": {
+     "field": "Software design and architecture",
+     "topic": "Loose coupling patterns",
+     "related_in_this_sense": [
+      "facade pattern"
+     ],
+     "topic_examples": [
+      "design pattern",
+      "facade pattern",
+      "loose coupling",
+      "mediator",
+      "observer pattern"
+     ]
+    },
+    "2": {
+     "field": "HTTP servers and APIs",
+     "topic": "Spring MVC/Java servlets",
+     "related_in_this_sense": [
+      "JMS"
+     ],
+     "topic_examples": [
+      "ee",
+      "jakarta",
+      "jboss",
+      "Spring MVC",
+      "Tomcat",
+      "war"
+     ]
+    }
+   }
+  },
+  {
+   "id": 17,
+   "word": "entity resolution",
+   "options": {
+    "1": {
+     "field": "Algorithms and data structures",
+     "topic": "Similarity fingerprints",
+     "related_in_this_sense": [
+      "fuzzy matching"
+     ],
+     "topic_examples": [
+      "dedupe",
+      "deduped",
+      "fingerprint",
+      "fingerprinter",
+      "fuzzy matching",
+      "hash function"
+     ]
+    },
+    "2": {
+     "field": "Algorithms and data structures",
+     "topic": "Collection deduplication",
+     "related_in_this_sense": [
+      "deduplicate"
+     ],
+     "topic_examples": [
+      "array list",
+      "intern",
+      "remove duplicates",
+      "repeat",
+      "set union",
+      "single flight"
+     ]
+    }
+   }
+  },
+  {
+   "id": 18,
+   "word": "event.cancelable",
+   "options": {
+    "1": {
+     "field": "Browser and web platform",
+     "topic": "Event propagation",
+     "related_in_this_sense": [
+      "preventDefault"
+     ],
+     "topic_examples": [
+      "bubble",
+      "delegated",
+      "delegation",
+      "event delegation",
+      "shadow dom",
+      "wheel"
+     ]
+    },
+    "2": {
+     "field": "Browser and web platform",
+     "topic": "DOM event listeners",
+     "related_in_this_sense": [
+      "dom event"
+     ],
+     "topic_examples": [
+      "an",
+      "event",
+      "EventTarget",
+      "fromEvent",
+      "listening",
+      "senders"
+     ]
+    }
+   }
+  },
+  {
+   "id": 19,
+   "word": "failure",
+   "options": {
+    "1": {
+     "field": "General English wording",
+     "topic": "Failure status wording",
+     "related_in_this_sense": [],
+     "topic_examples": [
+      "aborts",
+      "broken",
+      "fails",
+      "panics"
+     ]
+    },
+    "2": {
+     "field": "Errors and exception handling",
+     "topic": "Operation outcomes",
+     "related_in_this_sense": [
+      "success",
+      "Result.Failure",
+      "Try.failure",
+      "Either.left",
+      "Left",
+      "failure code"
+     ],
+     "topic_examples": [
+      "busykey",
+      "eprotonosupport",
+      "errcode",
+      "EXIT_SUCCESS",
+      "s false",
+      "Step Functions"
+     ]
+    }
+   }
+  },
+  {
+   "id": 20,
+   "word": "fuse.js",
+   "options": {
+    "1": {
+     "field": "Editors, IDEs and code intelligence",
+     "topic": "Fuzzy file finding",
+     "related_in_this_sense": [
+      "fuzzy finder"
+     ],
+     "topic_examples": [
+      "approximate",
+      "match",
+      "SimHash",
+      "similarity",
+      "string comparison",
+      "suggest"
+     ]
+    },
+    "2": {
+     "field": "Databases, caching and search",
+     "topic": "Search indexing",
+     "related_in_this_sense": [
+      "Tantivy"
+     ],
+     "topic_examples": [
+      "full text",
+      "mapping",
+      "product catalog",
+      "search",
+      "searching",
+      "trigram index"
+     ]
+    }
+   }
+  },
+  {
+   "id": 21,
+   "word": "generateIv",
+   "options": {
+    "1": {
+     "field": "Security and cryptography",
+     "topic": "Cryptographic random generation",
+     "related_in_this_sense": [
+      "randomBytes",
+      "secure random"
+     ],
+     "topic_examples": [
+      "bits",
+      "ChaCha20",
+      "nonce",
+      "salt",
+      "secure random",
+      "urandom"
+     ]
+    },
+    "2": {
+     "field": "Security and cryptography",
+     "topic": "Symmetric cipher operations",
+     "related_in_this_sense": [
+      "initialization vector",
+      "iv"
+     ],
+     "topic_examples": [
+      "aes",
+      "charCodeAt",
+      "ciphers",
+      "decrypt",
+      "message authentication code",
+      "security"
+     ]
+    }
+   }
+  },
+  {
+   "id": 22,
+   "word": "GNU",
+   "options": {
+    "1": {
+     "field": "Operating systems, processes and shell",
+     "topic": "Shell text utilities",
+     "related_in_this_sense": [
+      "GNU toolchain",
+      "GNU coreutils",
+      "binutils",
+      "sed",
+      "awk",
+      "gawk"
+     ],
+     "topic_examples": [
+      "awk",
+      "coreutils",
+      "GNU diff",
+      "grep",
+      "sed"
+     ]
+    },
+    "2": {
+     "field": "Build, packaging and release",
+     "topic": "Cross-compilation toolchains",
+     "related_in_this_sense": [
+      "GNU Project",
+      "GNU's Not Unix",
+      "gnu.org",
+      "Free Software Foundation",
+      "FSF",
+      "GNU Compiler Collection"
+     ],
+     "topic_examples": [
+      "ARM",
+      "build configuration",
+      "cross",
+      "LLVM",
+      "target triple",
+      "Yocto"
+     ]
+    }
+   }
+  },
+  {
+   "id": 23,
+   "word": "grouping",
+   "options": {
+    "1": {
+     "field": "Distributed systems and messaging",
+     "topic": "Batch processing",
+     "related_in_this_sense": [],
+     "topic_examples": [
+      "batch",
+      "batcher",
+      "msgs",
+      "paginating",
+      "partially",
+      "repeated"
+     ]
+    },
+    "2": {
+     "field": "Algorithms and data structures",
+     "topic": "Category grouping",
+     "related_in_this_sense": [],
+     "topic_examples": [
+      "categories",
+      "classify",
+      "collection",
+      "group by",
+      "ordinal scale",
+      "TypeDoc"
+     ]
+    }
+   }
+  },
+  {
+   "id": 24,
+   "word": "hypotheses",
+   "options": {
+    "1": {
+     "field": "Errors and exception handling",
+     "topic": "Runtime contract validation",
+     "related_in_this_sense": [
+      "assumptions"
+     ],
+     "topic_examples": [
+      "are",
+      "assertion",
+      "check",
+      "impossible",
+      "validatable",
+      "verification"
+     ]
+    },
+    "2": {
+     "field": "Machine learning and LLMs",
+     "topic": "Language model requests",
+     "related_in_this_sense": [
+      "beam search"
+     ],
+     "topic_examples": [
+      "agent",
+      "chat",
+      "ChatPromptTemplate",
+      "DeepSeek",
+      "OpenAI",
+      "parameter"
+     ]
+    }
+   }
+  },
+  {
+   "id": 25,
+   "word": "indexing",
+   "options": {
+    "1": {
+     "field": "Algorithms and data structures",
+     "topic": "Indexed element access",
+     "related_in_this_sense": [
+      "incremental indexing",
+      "background indexing",
+      "full-text indexing",
+      "symbol indexing",
+      "code indexing",
+      "indexing progress"
+     ],
+     "topic_examples": [
+      "bounds",
+      "charAt",
+      "index out of bounds",
+      "IndexOutOfBoundsException",
+      "indices",
+      "nth"
+     ]
+    },
+    "2": {
+     "field": "Databases, caching and search",
+     "topic": "Search indexing",
+     "related_in_this_sense": [
+      "index builder",
+      "index update",
+      "background index",
+      "inverted index",
+      "trigram index",
+      "Tantivy"
+     ],
+     "topic_examples": [
+      "bulk",
+      "document store",
+      "field data",
+      "full text search",
+      "idx",
+      "search term"
+     ]
+    }
+   }
+  },
+  {
+   "id": 26,
+   "word": "inventory",
+   "options": {
+    "1": {
+     "field": "Business and product domains",
+     "topic": "Inventory reservations",
+     "related_in_this_sense": [
+      "replenishment",
+      "reserve",
+      "reservation",
+      "allocation",
+      "assets",
+      "batch"
+     ],
+     "topic_examples": [
+      "appointment",
+      "availability",
+      "booking",
+      "reservation",
+      "reserve",
+      "ticketing"
+     ]
+    },
+    "2": {
+     "field": "Business and product domains",
+     "topic": "Product catalogs",
+     "related_in_this_sense": [
+      "inventory management",
+      "inventory system",
+      "stock",
+      "stock level",
+      "stock count",
+      "stocktake"
+     ],
+     "topic_examples": [
+      "available",
+      "in stock",
+      "Shopify",
+      "stars",
+      "variations",
+      "warehouse"
+     ]
+    }
+   }
+  },
+  {
+   "id": 27,
+   "word": "io.WriteCloser",
+   "options": {
+    "1": {
+     "field": "HTTP servers and APIs",
+     "topic": "HTTP response writing",
+     "related_in_this_sense": [
+      "writer"
+     ],
+     "topic_examples": [
+      "io.StringIO",
+      "mockwriter",
+      "promhttp",
+      "render",
+      "string builder",
+      "strings.Builder"
+     ]
+    },
+    "2": {
+     "field": "Files and I/O",
+     "topic": "Buffered stream I/O",
+     "related_in_this_sense": [
+      "output stream"
+     ],
+     "topic_examples": [
+      "async iterator",
+      "ending",
+      "finish",
+      "output stream",
+      "paused",
+      "PutObjectCommand"
+     ]
+    }
+   }
+  },
+  {
+   "id": 28,
+   "word": "issued",
+   "options": {
+    "1": {
+     "field": "Databases, caching and search",
+     "topic": "Cache entry expiration",
+     "related_in_this_sense": [
+      "issuedAt",
+      "expiry",
+      "expiration",
+      "invoice",
+      "expiresAt",
+      "validity"
+     ],
+     "topic_examples": [
+      "absolute",
+      "expiration",
+      "expire",
+      "pre signed url",
+      "sliding expiration",
+      "until"
+     ]
+    },
+    "2": {
+     "field": "Business and product domains",
+     "topic": "Delivery status",
+     "related_in_this_sense": [
+      "released",
+      "Published",
+      "sent",
+      "emitted",
+      "assigned",
+      "dispatched"
+     ],
+     "topic_examples": [
+      "dispatched",
+      "handed",
+      "outbox",
+      "pushed",
+      "sent",
+      "transmitted"
+     ]
+    }
+   }
+  },
+  {
+   "id": 29,
+   "word": "legacy database",
+   "options": {
+    "1": {
+     "field": "Databases, caching and search",
+     "topic": "Access database connectivity",
+     "related_in_this_sense": [
+      "mdb"
+     ],
+     "topic_examples": [
+      "accdb",
+      "backend",
+      "client server",
+      "mdb",
+      "odbc",
+      "tier"
+     ]
+    },
+    "2": {
+     "field": "Databases, caching and search",
+     "topic": "Schema migration DDL",
+     "related_in_this_sense": [
+      "dbf"
+     ],
+     "topic_examples": [
+      "alter",
+      "alter table",
+      "Flyway",
+      "index mapping",
+      "schema migration",
+      "seed data"
+     ]
+    }
+   }
+  },
+  {
+   "id": 30,
+   "word": "memory visibility",
+   "options": {
+    "1": {
+     "field": "Concurrency and async",
+     "topic": "Lock-free atomics",
+     "related_in_this_sense": [
+      "visibility"
+     ],
+     "topic_examples": [
+      "compare",
+      "compare and swap",
+      "load",
+      "memory model",
+      "order",
+      "wfi"
+     ]
+    },
+    "2": {
+     "field": "Concurrency and async",
+     "topic": "Shared state races",
+     "related_in_this_sense": [
+      "happens before"
+     ],
+     "topic_examples": [
+      "actor",
+      "concurrent modification",
+      "concurrently",
+      "happen",
+      "happens",
+      "happens before"
+     ]
+    }
+   }
+  },
+  {
+   "id": 31,
+   "word": "message dispatcher",
+   "options": {
+    "1": {
+     "field": "Concurrency and async",
+     "topic": "Task dispatchers",
+     "related_in_this_sense": [
+      "dispatcher"
+     ],
+     "topic_examples": [
+      "dispatcher"
+     ]
+    },
+    "2": {
+     "field": "Distributed systems and messaging",
+     "topic": "Message dispatching",
+     "related_in_this_sense": [
+      "dispatch"
+     ],
+     "topic_examples": [
+      "command bus",
+      "handler",
+      "handles",
+      "NServiceBus",
+      "OkHttp",
+      "run loop"
+     ]
+    }
+   }
+  },
+  {
+   "id": 32,
+   "word": "MUI",
+   "options": {
+    "1": {
+     "field": "Frontend frameworks and UI components",
+     "topic": "UI component libraries",
+     "related_in_this_sense": [],
+     "topic_examples": [
+      "chakra",
+      "Chakra UI",
+      "component library",
+      "Fluent UI",
+      "Mantine",
+      "Semantic UI"
+     ]
+    },
+    "2": {
+     "field": "Styling and visual design",
+     "topic": "Material component themes",
+     "related_in_this_sense": [
+      "Material UI",
+      "MUI Core",
+      "MUI X",
+      "mui/material",
+      "mui/icons-material",
+      "mui/system"
+     ],
+     "topic_examples": [
+      "Angular",
+      "Angular Material",
+      "Material Icons",
+      "Material UI",
+      "Roboto",
+      "useTheme"
+     ]
+    }
+   }
+  },
+  {
+   "id": 33,
+   "word": "net.ipv4.ip_forward",
+   "options": {
+    "1": {
+     "field": "Networking and protocols",
+     "topic": "IP socket addresses",
+     "related_in_this_sense": [
+      "ipv4"
+     ],
+     "topic_examples": [
+      "app1",
+      "hostname",
+      "htons",
+      "local address",
+      "ports",
+      "SO_REUSEADDR"
+     ]
+    },
+    "2": {
+     "field": "Networking and protocols",
+     "topic": "Firewall/NAT rules",
+     "related_in_this_sense": [
+      "iptables"
+     ],
+     "topic_examples": [
+      "aws_security_group",
+      "firewall",
+      "forward",
+      "fw",
+      "harden",
+      "nat"
+     ]
+    }
+   }
+  },
+  {
+   "id": 34,
+   "word": "nlb",
+   "options": {
+    "1": {
+     "field": "Cloud, containers and infrastructure",
+     "topic": "VPC firewall routing",
+     "related_in_this_sense": [
+      "aws nlb",
+      "nlb target group",
+      "nlb listener",
+      "elastic ip",
+      "nlb-ip",
+      "nlb-instance"
+     ],
+     "topic_examples": [
+      "direction",
+      "network acl",
+      "routed",
+      "routing",
+      "vpc",
+      "wan"
+     ]
+    },
+    "2": {
+     "field": "Networking and protocols",
+     "topic": "Ingress load balancing",
+     "related_in_this_sense": [
+      "network load balancer",
+      "layer 4 load balancer",
+      "l4 load balancer",
+      "load balancer",
+      "elb",
+      "ELBv2"
+     ],
+     "topic_examples": [
+      "app1",
+      "gateway",
+      "gateways",
+      "routing",
+      "servers",
+      "wsgi"
+     ]
+    }
+   }
+  },
+  {
+   "id": 35,
+   "word": "npe",
+   "options": {
+    "1": {
+     "field": "Errors and exception handling",
+     "topic": "Null reference errors",
+     "related_in_this_sense": [],
+     "topic_examples": [
+      "null pointer"
+     ]
+    },
+    "2": {
+     "field": "Type systems",
+     "topic": "Nullable value handling",
+     "related_in_this_sense": [
+      "null pointer exception",
+      "null pointer",
+      "null reference",
+      "null dereference",
+      "nil pointer dereference",
+      "NullReferenceException"
+     ],
+     "topic_examples": [
+      "as_ref",
+      "is",
+      "maybe",
+      "option",
+      "undefined",
+      "variant"
+     ]
+    }
+   }
+  },
+  {
+   "id": 36,
+   "word": "of",
+   "options": {
+    "1": {
+     "field": "Concurrency and async",
+     "topic": "Observable stream operators",
+     "related_in_this_sense": [
+      "EnumSet.of",
+      "Duration.ofMillis",
+      "Instant.ofEpochMilli",
+      "DateTimeFormatter.ofPattern",
+      "RxJS",
+      "Observable"
+     ],
+     "topic_examples": [
+      "latest",
+      "observe",
+      "operator",
+      "rx",
+      "Rx.NET",
+      "until"
+     ]
+    },
+    "2": {
+     "field": "Software design and architecture",
+     "topic": "Static factory construction",
+     "related_in_this_sense": [
+      "Stream.of",
+      "List.of",
+      "Set.of",
+      "Map.of",
+      "Optional.of",
+      "Optional.ofNullable"
+     ],
+     "topic_examples": [
+      "covariant",
+      "factory method",
+      "return type",
+      "static factory method"
+     ]
+    }
+   }
+  },
+  {
+   "id": 37,
+   "word": "os thread",
+   "options": {
+    "1": {
+     "field": "Concurrency and async",
+     "topic": "Native thread lifecycle",
+     "related_in_this_sense": [
+      "operating system thread",
+      "native thread",
+      "kernel thread",
+      "system thread",
+      "platform thread",
+      "kernel-level thread"
+     ],
+     "topic_examples": [
+      "detach",
+      "killable",
+      "Thread.UncaughtExceptionHandler",
+      "threading.Thread",
+      "unpark",
+      "unparked"
+     ]
+    },
+    "2": {
+     "field": "Concurrency and async",
+     "topic": "Cooperative fiber scheduling",
+     "related_in_this_sense": [
+      "green thread",
+      "goroutine",
+      "fiber",
+      "scheduler",
+      "context switch",
+      "CPU affinity"
+     ],
+     "topic_examples": [
+      "context switch",
+      "coroutine",
+      "goroutine",
+      "green thread",
+      "Greenlet",
+      "routine"
+     ]
+    }
+   }
+  },
+  {
+   "id": 38,
+   "word": "probe",
+   "options": {
+    "1": {
+     "field": "Cloud, containers and infrastructure",
+     "topic": "Liveness health checks",
+     "related_in_this_sense": [
+      "check",
+      "health probe",
+      "liveness probe",
+      "readiness probe",
+      "startup probe",
+      "health check"
+     ],
+     "topic_examples": [
+      "health check",
+      "indicating",
+      "MicroK8s",
+      "ping",
+      "return code",
+      "timeout"
+     ]
+    },
+    "2": {
+     "field": "Observability, debugging and performance",
+     "topic": "Kernel tracing probes",
+     "related_in_this_sense": [
+      "kprobe",
+      "uprobe",
+      "tracepoint"
+     ],
+     "topic_examples": [
+      "bcc",
+      "conditional breakpoint",
+      "device driver",
+      "etl",
+      "set_trace",
+      "tid"
+     ]
+    }
+   }
+  },
+  {
+   "id": 39,
+   "word": "process.env.PORT",
+   "options": {
+    "1": {
+     "field": "Networking and protocols",
+     "topic": "Socket servers",
+     "related_in_this_sense": [
+      "app.listen"
+     ],
+     "topic_examples": [
+      "hijacked",
+      "listen address",
+      "listener",
+      "live reload",
+      "refused",
+      "served"
+     ]
+    },
+    "2": {
+     "field": "Configuration and environments",
+     "topic": "Environment configuration",
+     "related_in_this_sense": [
+      "process.env"
+     ],
+     "topic_examples": [
+      "ConfigMap",
+      "dot",
+      "dotenv",
+      "GitHub Actions",
+      "os.getenv",
+      "var"
+     ]
+    }
+   }
+  },
+  {
+   "id": 40,
+   "word": "QoS=1",
+   "options": {
+    "1": {
+     "field": "Distributed systems and messaging",
+     "topic": "MQTT broker delivery",
+     "related_in_this_sense": [
+      "at least once"
+     ],
+     "topic_examples": [
+      "broker",
+      "EMQX",
+      "message broker",
+      "publish subscribe",
+      "qos",
+      "quality of service"
+     ]
+    },
+    "2": {
+     "field": "Networking and protocols",
+     "topic": "Network traffic QoS",
+     "related_in_this_sense": [
+      "quality of service"
+     ],
+     "topic_examples": [
+      "at least once",
+      "congestion control",
+      "isp",
+      "quality of service",
+      "red",
+      "tc"
+     ]
+    }
+   }
+  },
+  {
+   "id": 41,
+   "word": "query",
+   "options": {
+    "1": {
+     "field": "Databases, caching and search",
+     "topic": "SQL statement execution",
+     "related_in_this_sense": [
+      "PreparedStatement",
+      "parameterized query",
+      "raw query",
+      "db.Query",
+      "connection.query",
+      "executeQuery"
+     ],
+     "topic_examples": [
+      "exactly",
+      "executeQuery",
+      "matches",
+      "prepare",
+      "row count",
+      "script"
+     ]
+    },
+    "2": {
+     "field": "Observability, debugging and performance",
+     "topic": "Observability queries",
+     "related_in_this_sense": [
+      "PromQL",
+      "LogQL",
+      "log query"
+     ],
+     "topic_examples": []
+    }
+   }
+  },
+  {
+   "id": 42,
+   "word": "relative address",
+   "options": {
+    "1": {
+     "field": "Browser and web platform",
+     "topic": "DOM element offsets",
+     "related_in_this_sense": [
+      "offset"
+     ],
+     "topic_examples": [
+      "offset"
+     ]
+    },
+    "2": {
+     "field": "Files and I/O",
+     "topic": "Path construction",
+     "related_in_this_sense": [
+      "relative"
+     ],
+     "topic_examples": [
+      "data path",
+      "fs.mkdir",
+      "IOException",
+      "normalize",
+      "resolve",
+      "type name"
+     ]
+    }
+   }
+  },
+  {
+   "id": 43,
+   "word": "rfc 7230",
+   "options": {
+    "1": {
+     "field": "HTTP servers and APIs",
+     "topic": "HTTP message lines",
+     "related_in_this_sense": [
+      "HTTP/1.1"
+     ],
+     "topic_examples": [
+      "HTTP/1.1",
+      "request line",
+      "status line"
+     ]
+    },
+    "2": {
+     "field": "Networking and protocols",
+     "topic": "HTTP protocol negotiation",
+     "related_in_this_sense": [
+      "http"
+     ],
+     "topic_examples": [
+      "alpn",
+      "H2",
+      "HTTP/3",
+      "http3",
+      "httpx",
+      "serving"
+     ]
+    }
+   }
+  },
+  {
+   "id": 44,
+   "word": "score",
+   "options": {
+    "1": {
+     "field": "Algorithms and data structures",
+     "topic": "Heuristic answer scoring",
+     "related_in_this_sense": [
+      "mark",
+      "heuristic",
+      "fitness",
+      "scoring function"
+     ],
+     "topic_examples": [
+      "answer",
+      "answered",
+      "heuristic",
+      "hierarchy",
+      "reasonable"
+     ]
+    },
+    "2": {
+     "field": "Machine learning and LLMs",
+     "topic": "Search relevance ranking",
+     "related_in_this_sense": [
+      "rank",
+      "relevance",
+      "relevance score",
+      "similarity score",
+      "match score",
+      "BM25"
+     ],
+     "topic_examples": [
+      "Boost",
+      "irrelevant",
+      "prioritized",
+      "rank",
+      "related",
+      "respective"
+     ]
+    }
+   }
+  },
+  {
+   "id": 45,
+   "word": "sendEmail",
+   "options": {
+    "1": {
+     "field": "Business and product domains",
+     "topic": "Email templates",
+     "related_in_this_sense": [
+      "sendTemplate",
+      "html",
+      "template",
+      "email template"
+     ],
+     "topic_examples": [
+      "emails",
+      "mail",
+      "merge tag",
+      "mjml",
+      "outlook",
+      "transactional emails"
+     ]
+    },
+    "2": {
+     "field": "HTTP servers and APIs",
+     "topic": "Email delivery",
+     "related_in_this_sense": [
+      "EmailService",
+      "sendEmailWithTemplate",
+      "mg.messages.create",
+      "recipients",
+      "retry",
+      "bounce"
+     ],
+     "topic_examples": []
+    }
+   }
+  },
+  {
+   "id": 46,
+   "word": "sending",
+   "options": {
+    "1": {
+     "field": "Distributed systems and messaging",
+     "topic": "Browser message exchange",
+     "related_in_this_sense": [
+      "deliver",
+      "send_message",
+      "sendAll",
+      "sendBeacon",
+      "postMessage",
+      "socket.send"
+     ],
+     "topic_examples": [
+      "chat",
+      "message handler",
+      "message listener",
+      "Slack",
+      "unread count",
+      "window"
+     ]
+    },
+    "2": {
+     "field": "Networking and protocols",
+     "topic": "Email transmission",
+     "related_in_this_sense": [
+      "smtp",
+      "SendGrid",
+      "mailer",
+      "sendEmail",
+      "sendmail",
+      "delivery status"
+     ],
+     "topic_examples": [
+      "bcc",
+      "email",
+      "mail server",
+      "Postmark",
+      "senders",
+      "simple email"
+     ]
+    }
+   }
+  },
+  {
+   "id": 47,
+   "word": "sequencing",
+   "options": {
+    "1": {
+     "field": "Math, numbers and statistics",
+     "topic": "Counter increments",
+     "related_in_this_sense": [
+      "step",
+      "steps",
+      "workflow",
+      "saga",
+      "increment",
+      "diagram"
+     ],
+     "topic_examples": [
+      "aria-current",
+      "incr",
+      "increments",
+      "Interlocked",
+      "plus",
+      "wizard"
+     ]
+    },
+    "2": {
+     "field": "Algorithms and data structures",
+     "topic": "Sequence ordering",
+     "related_in_this_sense": [
+      "order",
+      "ordering",
+      "inorder",
+      "transpose",
+      "swap"
+     ],
+     "topic_examples": [
+      "arity",
+      "order",
+      "ordered",
+      "ordering",
+      "rnn",
+      "sequences"
+     ]
+    }
+   }
+  },
+  {
+   "id": 48,
+   "word": "setContext",
+   "options": {
+    "1": {
+     "field": "Observability, debugging and performance",
+     "topic": "Crash reporting services",
+     "related_in_this_sense": [
+      "addBreadcrumb",
+      "captureException"
+     ],
+     "topic_examples": [
+      "Crashlytics",
+      "crumb",
+      "global error handler",
+      "grouping",
+      "hub",
+      "reprocessing"
+     ]
+    },
+    "2": {
+     "field": "Authentication, identity and access",
+     "topic": "Spring Security",
+     "related_in_this_sense": [
+      "SecurityContext",
+      "SecurityContextHolder"
+     ],
+     "topic_examples": [
+      "hasAuthority",
+      "host path",
+      "privileged",
+      "UserDetails",
+      "UserDetailsService",
+      "username"
+     ]
+    }
+   }
+  },
+  {
+   "id": 49,
+   "word": "significance",
+   "options": {
+    "1": {
+     "field": "Charts and data visualization",
+     "topic": "Confidence interval plots",
+     "related_in_this_sense": [
+      "confidence interval"
+     ],
+     "topic_examples": [
+      "confidence interval"
+     ]
+    },
+    "2": {
+     "field": "General English wording",
+     "topic": "Behavior semantics wording",
+     "related_in_this_sense": [
+      "meaning"
+     ],
+     "topic_examples": [
+      "behavior",
+      "behaviour",
+      "meaning",
+      "meanings",
+      "semantics"
+     ]
+    }
+   }
+  },
+  {
+   "id": 50,
+   "word": "solved",
+   "options": {
+    "1": {
+     "field": "Math, numbers and statistics",
+     "topic": "Numerical solvers",
+     "related_in_this_sense": [
+      "solver",
+      "solution",
+      "resolve",
+      "optimization",
+      "convergence",
+      "objective"
+     ],
+     "topic_examples": []
+    },
+    "2": {
+     "field": "Databases, caching and search",
+     "topic": "Table keys and indexes",
+     "related_in_this_sense": [
+      "constraint",
+      "equation",
+      "Sat",
+      "smt",
+      "satisfiability",
+      "linear system"
+     ],
+     "topic_examples": [
+      "composite index",
+      "compound index",
+      "constraints",
+      "deferred",
+      "drop column",
+      "idb"
+     ]
+    }
+   }
+  },
+  {
+   "id": 51,
+   "word": "string literals",
+   "options": {
+    "1": {
+     "field": "Memory, hardware and low-level systems",
+     "topic": "String interning",
+     "related_in_this_sense": [
+      "string constant",
+      "string value",
+      "wide string",
+      "u8string",
+      "string pool",
+      "string interning"
+     ],
+     "topic_examples": [
+      "char",
+      "flyweight",
+      "intern",
+      "literal",
+      "string interning",
+      "structural sharing"
+     ]
+    },
+    "2": {
+     "field": "Text and strings",
+     "topic": "String literals",
+     "related_in_this_sense": [
+      "quoted string",
+      "literal text",
+      "constant string",
+      "inline string",
+      "double quotes",
+      "single quotes"
+     ],
+     "topic_examples": [
+      "asterisk",
+      "esc",
+      "escaper",
+      "quote",
+      "shell expansion",
+      "text search"
+     ]
+    }
+   }
+  },
+  {
+   "id": 52,
+   "word": "stub implementation",
+   "options": {
+    "1": {
+     "field": "Testing",
+     "topic": "Mock interaction tests",
+     "related_in_this_sense": [
+      "mock implementation"
+     ],
+     "topic_examples": [
+      "AttributeError",
+      "dummy",
+      "fake",
+      "fixture",
+      "intercept",
+      "mocks"
+     ]
+    },
+    "2": {
+     "field": "Errors and exception handling",
+     "topic": "Unimplemented/unsupported",
+     "related_in_this_sense": [
+      "unimplemented"
+     ],
+     "topic_examples": [
+      "abstract method",
+      "nope",
+      "support",
+      "unsupported",
+      "UnsupportedOperationException",
+      "yet"
+     ]
+    }
+   }
+  },
+  {
+   "id": 53,
+   "word": "supporting",
+   "options": {
+    "1": {
+     "field": "Browser and web platform",
+     "topic": "Browser compatibility shims",
+     "related_in_this_sense": [
+      "compatibility",
+      "capability",
+      "feature detection",
+      "platform support",
+      "browser support",
+      "technical support"
+     ],
+     "topic_examples": [
+      "Babel",
+      "browser",
+      "browsers",
+      "compatibility shim",
+      "modifiers",
+      "not supported"
+     ]
+    },
+    "2": {
+     "field": "Errors and exception handling",
+     "topic": "Unimplemented/unsupported",
+     "related_in_this_sense": [
+      "Protocol",
+      "UnsupportedOperationException",
+      "NotImplementedError"
+     ],
+     "topic_examples": [
+      "implement",
+      "not implemented",
+      "not supported",
+      "something",
+      "stub",
+      "todo"
+     ]
+    }
+   }
+  },
+  {
+   "id": 54,
+   "word": "sut",
+   "options": {
+    "1": {
+     "field": "Testing",
+     "topic": "Test suite execution",
+     "related_in_this_sense": [
+      "class under test",
+      "code under test",
+      "component under test",
+      "testee",
+      "target",
+      "test double"
+     ],
+     "topic_examples": [
+      "aborting",
+      "before",
+      "component test",
+      "method sorters",
+      "test.js",
+      "test.only"
+     ]
+    },
+    "2": {
+     "field": "Testing",
+     "topic": "Test subject references",
+     "related_in_this_sense": [
+      "system under test",
+      "subject under test",
+      "unit under test",
+      "uut",
+      "dut",
+      "device under test"
+     ],
+     "topic_examples": [
+      "dut",
+      "RSpec",
+      "subject",
+      "suts"
+     ]
+    }
+   }
+  },
+  {
+   "id": 55,
+   "word": "toml.dump",
+   "options": {
+    "1": {
+     "field": "Databases, caching and search",
+     "topic": "Database backup restoration",
+     "related_in_this_sense": [
+      "dump"
+     ],
+     "topic_examples": [
+      "corrupt",
+      "loading",
+      "rdbms",
+      "recovered",
+      "restore",
+      "saved"
+     ]
+    },
+    "2": {
+     "field": "Configuration and environments",
+     "topic": "Configuration loading",
+     "related_in_this_sense": [
+      "TOML"
+     ],
+     "topic_examples": [
+      "default setting",
+      "general",
+      "inline",
+      "pkl",
+      "precedence",
+      "remap"
+     ]
+    }
+   }
+  },
+  {
+   "id": 56,
+   "word": "TopicRequestor",
+   "options": {
+    "1": {
+     "field": "Distributed systems and messaging",
+     "topic": "Broker message listeners",
+     "related_in_this_sense": [
+      "MessageProducer"
+     ],
+     "topic_examples": [
+      "JmsListener",
+      "JmsTemplate",
+      "MessageConsumer",
+      "MessageProducer",
+      "mq",
+      "RabbitListener"
+     ]
+    },
+    "2": {
+     "field": "Distributed systems and messaging",
+     "topic": "Correlated message replies",
+     "related_in_this_sense": [
+      "request reply"
+     ],
+     "topic_examples": [
+      "ask",
+      "envelope",
+      "inbox",
+      "message header",
+      "message payload",
+      "messaging"
+     ]
+    }
+   }
+  },
+  {
+   "id": 57,
+   "word": "transpiler",
+   "options": {
+    "1": {
+     "field": "Language ecosystems, compilers and runtimes",
+     "topic": "Compiler intermediate representation",
+     "related_in_this_sense": [
+      "source to source compiler",
+      "source-to-source translator",
+      "S2S compiler",
+      "compiler",
+      "code converter",
+      "code generator"
+     ],
+     "topic_examples": [
+      "code generator",
+      "compile",
+      "compiler",
+      "ejs.render",
+      "lambda lifting",
+      "source"
+     ]
+    },
+    "2": {
+     "field": "Build, packaging and release",
+     "topic": "JavaScript bundler optimization",
+     "related_in_this_sense": [
+      "bundler",
+      "minifier",
+      "SWC",
+      "esbuild",
+      "target"
+     ],
+     "topic_examples": [
+      "dead",
+      "lib",
+      "mjs",
+      "optimize",
+      "umd",
+      "vnd"
+     ]
+    }
+   }
+  },
+  {
+   "id": 58,
+   "word": "TTransportException",
+   "options": {
+    "1": {
+     "field": "Distributed systems and messaging",
+     "topic": "Remote procedure calls",
+     "related_in_this_sense": [
+      "RpcError"
+     ],
+     "topic_examples": [
+      "ipc",
+      "JSON-RPC",
+      "rpc",
+      "rpc call",
+      "rpc server",
+      "RpcError"
+     ]
+    },
+    "2": {
+     "field": "HTTP servers and APIs",
+     "topic": "RPC service protocols",
+     "related_in_this_sense": [
+      "Thrift"
+     ],
+     "topic_examples": [
+      "api",
+      "message state",
+      "msg",
+      "ServerCall",
+      "subscribe",
+      "unary"
+     ]
+    }
+   }
+  },
+  {
+   "id": 59,
+   "word": "updater",
+   "options": {
+    "1": {
+     "field": "Testing",
+     "topic": "Test fixture helpers",
+     "related_in_this_sense": [],
+     "topic_examples": [
+      "Composer",
+      "embedded database",
+      "integration test",
+      "seed",
+      "seed data",
+      "Testcontainers"
+     ]
+    },
+    "2": {
+     "field": "Databases, caching and search",
+     "topic": "Schema migration DDL",
+     "related_in_this_sense": [],
+     "topic_examples": [
+      "column names",
+      "down",
+      "materialized view",
+      "object relational mapping",
+      "schema migration",
+      "withColumn"
+     ]
+    }
+   }
+  },
+  {
+   "id": 60,
+   "word": "UseExceptionHandler",
+   "options": {
+    "1": {
+     "field": "HTTP servers and APIs",
+     "topic": "Web error pages",
+     "related_in_this_sense": [
+      "error page"
+     ],
+     "topic_examples": [
+      "error page"
+     ]
+    },
+    "2": {
+     "field": "Errors and exception handling",
+     "topic": "Exception reporting boundaries",
+     "related_in_this_sense": [
+      "error handler"
+     ],
+     "topic_examples": [
+      "Airbrake",
+      "Bugsnag",
+      "caught",
+      "Honeybadger",
+      "uncaught exception",
+      "unhandled"
+     ]
+    }
+   }
+  },
+  {
+   "id": 61,
+   "word": "utility belt",
+   "options": {
+    "1": {
+     "field": "Functional programming",
+     "topic": "Functional TypeScript libraries",
+     "related_in_this_sense": [
+      "Underscore.js"
+     ],
+     "topic_examples": [
+      "fp-ts",
+      "io-ts",
+      "these",
+      "Underscore.js"
+     ]
+    },
+    "2": {
+     "field": "Concurrency and async",
+     "topic": "Change event throttling",
+     "related_in_this_sense": [
+      "utility"
+     ],
+     "topic_examples": [
+      "debouncing",
+      "form control",
+      "Lodash",
+      "lodash.throttle",
+      "useDeferredValue",
+      "utility"
+     ]
+    }
+   }
+  },
+  {
+   "id": 62,
+   "word": "verification",
+   "options": {
+    "1": {
+     "field": "Errors and exception handling",
+     "topic": "Runtime contract validation",
+     "related_in_this_sense": [
+      "validation",
+      "confirmation",
+      "check",
+      "assertion",
+      "invariant"
+     ],
+     "topic_examples": [
+      "decides",
+      "definitely",
+      "implies",
+      "intend",
+      "intended",
+      "rule"
+     ]
+    },
+    "2": {
+     "field": "Authentication, identity and access",
+     "topic": "OTP verification",
+     "related_in_this_sense": [
+      "verify code",
+      "verifyToken",
+      "verify OTP",
+      "phone verification",
+      "captcha",
+      "Twilio Verify"
+     ],
+     "topic_examples": []
+    }
+   }
+  },
+  {
+   "id": 63,
+   "word": "WhileNode",
+   "options": {
+    "1": {
+     "field": "General English wording",
+     "topic": "Permanence wording",
+     "related_in_this_sense": [
+      "while loop"
+     ],
+     "topic_examples": [
+      "continuously",
+      "indefinitely",
+      "infinite",
+      "infinite loop",
+      "permanent",
+      "while loop"
+     ]
+    },
+    "2": {
+     "field": "Core language constructs",
+     "topic": "Loop iteration control",
+     "related_in_this_sense": [
+      "while"
+     ],
+     "topic_examples": [
+      "continuing",
+      "goto",
+      "hot loop",
+      "Leaflet",
+      "repeat",
+      "stepped"
+     ]
+    }
+   }
+  },
+  {
+   "id": 64,
+   "word": "withTransaction",
+   "options": {
+    "1": {
+     "field": "Databases, caching and search",
+     "topic": "Transactional database operations",
+     "related_in_this_sense": [
+      "beginTransaction"
+     ],
+     "topic_examples": [
+      "ConcurrentDictionary",
+      "Delta Lake",
+      "executes",
+      "lock",
+      "pg",
+      "ro"
+     ]
+    },
+    "2": {
+     "field": "General English wording",
+     "topic": "Addition wording",
+     "related_in_this_sense": [
+      "transaction"
+     ],
+     "topic_examples": [
+      "added",
+      "appended",
+      "attached",
+      "created",
+      "inserted",
+      "newly"
+     ]
+    }
+   }
+  }
+ ]
+}

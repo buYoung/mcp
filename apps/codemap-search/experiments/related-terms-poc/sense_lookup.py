@@ -10,9 +10,9 @@ was generated in as a related word (`input_senses`), which a dataset may also gi
 for topics they have none in. For each sense the result lists the words the input was generated with in that sense,
 then the words of its concepts, then the other words of its topics; related words outside every sense (`form` links
 among them) follow per input word. `--reverse` adds the words that list the input as related, for measurement only.
-An input's senses come most similar to the input first: the cosine between the input's embedding and the mean
-embedding of each sense's topic words, both stored in `rt-related/1` (`--no-similarity-order` restores the persona
-count order). Each word appears once, in the first group that reaches it. Nothing is reached through a returned word's own
+An input's senses go by persona count; senses with the same count come most similar to the input first: the cosine
+between the input's embedding and the mean embedding of each sense's topic words, both stored in `rt-related/1`
+(`--no-similarity-order` restores the topic size order). Each word appears once, in the first group that reaches it. Nothing is reached through a returned word's own
 relations or concepts, and nothing is cut off.
 
 Usage: python3 apps/codemap-search/experiments/related-terms-poc/sense_lookup.py token cache '$state'
@@ -293,9 +293,10 @@ def sense_similarity(query, sense, index, vectors, own):
 
 
 def seed_senses(seed, index, vectors=None):
-    """The seed words' senses merged by topic (by field without topic split). With `vectors` and topic split, they
-    go by similarity to the input (`sense_similarity`), most similar first; senses without a similarity come last,
-    and `sense_order` breaks ties."""
+    """The seed words' senses merged by topic (by field without topic split), in `sense_order`. With `vectors` and
+    topic split, senses with the same persona count go by similarity to the input (`sense_similarity`) instead of
+    topic size, most similar first and senses without a similarity after them; review-only senses still come last
+    and a word's own senses before those read through other words' personas. `sense_order` breaks what is left."""
     merged = {}
     for term in seed.terms:
         for sense in index.senses_of(term):
@@ -313,7 +314,8 @@ def seed_senses(seed, index, vectors=None):
         return senses
     own = set(seed.terms) | {word_key(seed.span)}
     similarities = [sense_similarity(query, sense, index, vectors, own) for sense in senses]
-    order = sorted(range(len(senses)), key=lambda i: (similarities[i] is None, -(similarities[i] or 0), i))
+    order = sorted(range(len(senses)), key=lambda i: (senses[i].personas == 0, not senses[i].is_own, -senses[i].personas,
+                                                      similarities[i] is None, -(similarities[i] or 0), i))
     return [senses[i] for i in order]
 
 
@@ -332,8 +334,8 @@ def lookup(query, matches, index, is_direct_included=True, is_reverse_included=F
     `spelling_matches`, when supplied, maps the queries from `spelling_queries` to matcher results and enables
     confirmed spelling alternatives. None preserves the original precomputed-match API. Each interpretation uses
     the same caller options; original meanings are retained, and returned words never become new query seeds.
-    With `is_similarity_ordered`, each seed's senses go by similarity to the seed, from the embeddings stored in
-    `vector_dataset` (`seed_senses`); without it, by persona count as before.
+    With `is_similarity_ordered`, a seed's senses with the same persona count go by similarity to the seed, from the
+    embeddings stored in `vector_dataset` (`seed_senses`); without it, by topic size as before.
     """
     word = canonical_surface(query)
     headwords = index.generated_headwords if is_exact_first else frozenset()
@@ -517,8 +519,8 @@ def main():
     parser.add_argument("--split-senses-by-topic", action=argparse.BooleanOptionalAction, default=True,
                         help="one sense per topic of a word (--no-split-senses-by-topic: earlier behavior, one per field)")
     parser.add_argument("--similarity-order", action=argparse.BooleanOptionalAction, default=True,
-                        help="order each input's senses by similarity to the input, from the --dataset embeddings "
-                             "(--no-similarity-order: earlier behavior, by persona count)")
+                        help="order an input's senses with the same persona count by similarity to the input, from the "
+                             "--dataset embeddings (--no-similarity-order: earlier behavior, by topic size)")
     parser.add_argument("--format", choices=("text", "text-by-input", "json"), default="text",
                         help="text: one call, nearest rings first; text-by-input: the earlier per-input text")
     parser.add_argument("--output")
