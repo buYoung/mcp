@@ -1,8 +1,8 @@
 """Sense lookup PoC: input word -> its senses -> its own related words (direct), words sharing a concept (near)
 or a topic (same topic), one hop.
 
-Reads `rt-sense/2`, the input-scoped relation extension `rt-sense/3` and the word-to-topic layout `rt-sense/4`
-(`sense_mapping_schema.py`), and resolves input through `rt-related/1` with
+Reads `rt-sense/2`, the input-scoped relation extension `rt-sense/3`, the word-to-topic layout `rt-sense/4` and its
+compact storage `rt-sense/5` (`sense_mapping_schema.py`), and resolves input through `rt-related/1` with
 `rtpoc3 related`, exactly like `category_lookup.py`, except that an input with senses of its own is not widened to
 its lemma (`--no-exact-first` restores that widening). A sense is the group of a word's personas that fall in
 one topic (one field with `--no-split-senses-by-topic`). A word's senses are its own, then those of the personas it
@@ -33,21 +33,22 @@ import category_lookup as cl
 from term_canonical import canonical_surface, exact_key, word_key
 from spelling_aliases import spelling_queries, spelling_variants
 from reviewed_relations import INPUT_RELATIONS_SCHEMA, SUPPORTED_SCHEMAS, validate_dataset_layout
-from sense_mapping_schema import MAPPING_SCHEMA, validate_mapping_layout
+from sense_mapping_schema import COMPACT_SCHEMA, MAPPING_SCHEMAS, validate_mapping_layout
 
 # rts3-48356e35e1f1ea28 in the rt-sense/4 layout plus topics mapped by review to words with a single field, then
 # topics re-classified (fields, merges, moves) and topics added by review, then wrong senses fixed by moving or
-# detaching related words (only where an independent recheck agreed) and missing senses mapped by review; earlier
-# versions stay next to it under datasets/
-DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts4-301d57d419380d08/dataset.sqlite3"
+# detaching related words (only where an independent recheck agreed) and missing senses mapped by review, stored in
+# the compact rt-sense/5 layout; earlier versions stay next to it under datasets/
+DEFAULT_SENSE_DATASET = Path(__file__).resolve().parent / "datasets/rts5-75e02862daa29308/dataset.sqlite3"
 SCHEMA = "rt-sense-lookup/2"
 SENSE_SCHEMA = "rt-sense/2"
-READABLE_SCHEMAS = (*SUPPORTED_SCHEMAS, MAPPING_SCHEMA)
+READABLE_SCHEMAS = (*SUPPORTED_SCHEMAS, *MAPPING_SCHEMAS)
 # persona, word, field, concept (NULL in rt-sense/4 when the word maps to the topic alone), topic, and how many
 # generated personas the row stands for (the sense order weight; one row is one persona before rt-sense/4)
 PERSONA_QUERIES = {
-    MAPPING_SCHEMA: "SELECT p.persona, t.word_key, tf.field, p.concept, p.topic, p.source_persona_count FROM personas AS p "
-                    "JOIN terms AS t USING (term_id) JOIN topic_fields AS tf ON tf.topic = p.topic AND tf.rank = 0",
+    **dict.fromkeys(MAPPING_SCHEMAS,
+                    "SELECT p.persona, t.word_key, tf.field, p.concept, p.topic, p.source_persona_count FROM personas AS p "
+                    "JOIN terms AS t USING (term_id) JOIN topic_fields AS tf ON tf.topic = p.topic AND tf.rank = 0"),
     **dict.fromkeys(SUPPORTED_SCHEMAS,
                     "SELECT p.persona, t.word_key, s.field, p.concept, c.topic, 1 FROM personas AS p "
                     "JOIN senses AS s USING (sense) JOIN terms AS t ON t.term_id = p.term_id JOIN concepts AS c USING (concept)"),
@@ -148,7 +149,7 @@ class SenseIndex:
             if meta.get("schema_version") not in READABLE_SCHEMAS:
                 raise SystemExit(f"sense dataset incompatible: {meta.get('schema_version')!r}, expected {READABLE_SCHEMAS}")
             try:
-                if meta["schema_version"] == MAPPING_SCHEMA:
+                if meta["schema_version"] in MAPPING_SCHEMAS:
                     validate_mapping_layout(connection)
                 else:
                     validate_dataset_layout(connection, meta["schema_version"])
@@ -173,8 +174,10 @@ class SenseIndex:
                 persona_info[persona] = (key, field, concept, topic)
                 topic_words[topic].add(key)
             unsorted_direct, reverse, persona_words = defaultdict(list), defaultdict(list), defaultdict(list)
+            # rt-sense/5 keeps a relation's surface only where it differs from the word key
+            surface_column = "coalesce(r.surface_override, r.word_key)" if meta["schema_version"] == COMPACT_SCHEMA else "r.surface"
             for head, key, surface, persona in connection.execute(
-                "SELECT t.word_key, r.word_key, r.surface, r.persona FROM relations AS r JOIN terms AS t USING (term_id) "
+                f"SELECT t.word_key, r.word_key, {surface_column}, r.persona FROM relations AS r JOIN terms AS t USING (term_id) "
                 "ORDER BY r.term_id, r.rank"
             ):
                 surfaces.setdefault(key, surface)
@@ -189,7 +192,7 @@ class SenseIndex:
             if connection.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'input_senses'").fetchone():
                 for key, persona in connection.execute("SELECT word_key, persona FROM input_senses ORDER BY word_key, persona"):
                     input_personas[key].append(persona)
-            if meta["schema_version"] in (INPUT_RELATIONS_SCHEMA, MAPPING_SCHEMA):
+            if meta["schema_version"] in (INPUT_RELATIONS_SCHEMA, *MAPPING_SCHEMAS):
                 for key, persona, related, surface in connection.execute(
                     "SELECT input_word_key,source_persona,related_word_key,surface FROM input_relations "
                     "ORDER BY input_word_key,source_persona,rank,related_word_key"
@@ -512,7 +515,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, epilog=TEXT_EPILOG, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("terms", nargs="*")
     parser.add_argument("--terms-file")
-    parser.add_argument("--sense-dataset", default=DEFAULT_SENSE_DATASET, help="rt-sense/2, rt-sense/3 or rt-sense/4 SQLite")
+    parser.add_argument("--sense-dataset", default=DEFAULT_SENSE_DATASET, help="rt-sense/2, rt-sense/3, rt-sense/4 or rt-sense/5 SQLite")
     parser.add_argument("--dataset", default=cl.DEFAULT_DATASET, help="rt-related/1 SQLite used by rtpoc3 for input resolution")
     parser.add_argument("--rtpoc3", default=cl.DEFAULT_RTPOC3)
     parser.add_argument("--reverse", action="store_true", help="also list words that name the input as related (measurement only)")

@@ -1,6 +1,6 @@
 """Write the review sheets for mapping one-field words to more topics (step 3 of docs/related-terms/sense-mapping-log).
 
-Usage: python3 prepare_mapping_sheets.py <base rt-sense/4 dataset.sqlite3> <output dir> [--pilot]
+Usage: python3 prepare_mapping_sheets.py <base rt-sense/4 or rt-sense/5 dataset.sqlite3> <output dir> [--pilot]
 
 Targets are words with exactly one field (own senses and `input_senses` together) that are headwords of the
 dataset or were added by the recent steps (`sense_word_groups.recent_words`). `--pilot` takes a fixed-seed sample of
@@ -26,6 +26,7 @@ from pathlib import Path
 EXPERIMENTS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(EXPERIMENTS))
 import sense_lookup as sl  # noqa: E402
+from sense_mapping_schema import RELATION_TEXTS  # noqa: E402
 from sense_word_groups import recent_words, word_fields  # noqa: E402
 
 SEED = 20261017
@@ -54,10 +55,10 @@ def word_topics(connection):
     return topics
 
 
-def candidate_scores(key, connection, topics_of, term_id, label_index, primary):
+def candidate_scores(key, connection, relation_texts, topics_of, term_id, label_index, primary):
     scores = Counter()
     if term_id is not None:
-        for related, kind in connection.execute("SELECT word_key, kind FROM relations WHERE term_id = ?", (term_id,)):
+        for related, kind in connection.execute(f"SELECT word_key, kind FROM {relation_texts} WHERE term_id = ?", (term_id,)):
             for topic in topics_of.get(related, ()):
                 scores[topic] += KIND_WEIGHTS.get(kind, 0)
     for (topic,) in connection.execute(
@@ -86,6 +87,7 @@ def main():
     keys = pilot if arguments.pilot else pilot + rest
 
     connection = sqlite3.connect(f"file:{arguments.dataset}?mode=ro", uri=True)
+    relation_texts = RELATION_TEXTS[connection.execute("SELECT value FROM sense_meta WHERE key = 'schema_version'").fetchone()[0]]
     topics_of = word_topics(connection)
     term_ids = dict(connection.execute("SELECT word_key, term_id FROM terms"))
     labels = dict(connection.execute("SELECT topic, label FROM topics"))
@@ -98,14 +100,14 @@ def main():
     for number, key in enumerate(keys, 1):
         term_id = term_ids.get(key)
         related = [s for (s,) in connection.execute(
-            "SELECT surface FROM relations WHERE term_id = ? AND kind <> 'form' ORDER BY rank LIMIT ?", (term_id, RELATED_SHOWN))] if term_id else []
+            f"SELECT surface FROM {relation_texts} WHERE term_id = ? AND kind <> 'form' ORDER BY rank LIMIT ?", (term_id, RELATED_SHOWN))] if term_id else []
         listed_by = [s for (s,) in connection.execute(
-            "SELECT t.surface FROM relations r JOIN terms t USING (term_id) WHERE r.word_key = ? AND r.kind <> 'form' LIMIT ?",
+            f"SELECT t.surface FROM {relation_texts} r JOIN terms t USING (term_id) WHERE r.word_key = ? AND r.kind <> 'form' LIMIT ?",
             (key, LISTED_BY_SHOWN))]
         rows.append({
             "id": f"m{number:05d}", "word": index.surfaces[key], "group": chosen[key], "is_pilot": number <= len(pilot),
             "current": sorted(topics_of[key]), "related": related, "listed_by": listed_by,
-            "candidates": candidate_scores(key, connection, topics_of, term_id, label_index, primary),
+            "candidates": candidate_scores(key, connection, relation_texts, topics_of, term_id, label_index, primary),
         })
     connection.close()
     arguments.output.mkdir(parents=True, exist_ok=True)

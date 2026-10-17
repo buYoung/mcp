@@ -1,0 +1,20 @@
+{
+  "dataset_id": "rts5-75e02862daa29308",
+  "schema_version": "rt-sense/5",
+  "base_dataset": "rts4-301d57d419380d08",
+  "bytes": {
+    "before": 48615424,
+    "after": 31715328
+  },
+  "relations": 592793,
+  "surface_overrides": 364821,
+  "relation_kinds": [
+    "abbreviation",
+    "co_use",
+    "family",
+    "form",
+    "identifier",
+    "near",
+    "synonym"
+  ]
+}

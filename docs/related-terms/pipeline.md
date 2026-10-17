@@ -16,7 +16,8 @@
 | 뜻 `rts4-86c5620af1f181ce` | `rt-sense/4` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 로컬에만 있음) | `sense_lookup.py --sense-dataset`로 지정 | `migrate_sense_dataset.py`, `add_topic_mappings.py` |
 | 뜻 `rts4-e5083ab344e1336d` | `rt-sense/4` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
 | 뜻 `rts4-710c8ba0d79a776a` | `rt-sense/4` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
-| 뜻 `rts4-301d57d419380d08` | `rt-sense/4` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py`의 기본값 | `revise_topics.py`, `add_topic_mappings.py` |
+| 뜻 `rts4-301d57d419380d08` | `rt-sense/4` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
+| 뜻 `rts5-75e02862daa29308` | `rt-sense/5` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py`의 기본값 | `compact_sense_dataset.py` |
 | 카테고리 `rtc2-80e77d8fb9ef2b41` | `rt-category/2` | `PoC/datasets/` (저장소에 포함) | `category_lookup.py`의 기본값 | `build_category_dataset.py` |
 | 관련어 `rtr1-930791c83bea6132` | `rt-related/1` | `T/datasets/` (로컬에만 있음, 약 430MiB) | `rtpoc3 related`, 두 조회 도구의 입력 해석 | `build_related_dataset.py` |
 
@@ -80,7 +81,7 @@ python3 build_related_dataset.py --thesaurus <생성 자료 폴더> \
 
 ## 4. 뜻 데이터셋 `rts3`
 
-단어의 뜻(persona)은 개념(concept)에 속하고, 개념은 주제(topic)에, 주제는 1~3개의 분야(field)에 속한다. 14단계의 `rt-sense/4`부터는 persona가 주제에 바로 속하고, 개념은 없어도 된다.
+단어의 뜻(persona)은 개념(concept)에 속하고, 개념은 주제(topic)에, 주제는 1~3개의 분야(field)에 속한다. 14단계의 `rt-sense/4`부터는 persona가 주제에 바로 속하고, 개념은 없어도 된다. 19단계의 `rt-sense/5`는 `rt-sense/4`와 같은 행을 더 작게 저장한다. 관련어의 종류는 `relation_kinds`의 번호로, 표기는 키와 다를 때만 저장하고, 조회가 읽지 않는 인덱스 두 개와 `term_legacy_categories`가 없다.
 
 | 순서 | 단계 | 스크립트·지침 | 결과 |
 | --- | --- | --- | --- |
@@ -101,7 +102,8 @@ python3 build_related_dataset.py --thesaurus <생성 자료 폴더> \
 | 15 | 분야 매핑 확장. 분야가 하나뿐인 단어에, 설명에 대상이 든 다른 분야의 주제를 연결한다 | `add_topic_mappings.py --mappings <mappings.json>` | `rts4-86c5620af1f181ce` |
 | 16 | 주제 재분류. 주제의 분야와 이름을 다시 매기고, 대상이 같은 주제를 합치고, 잘못 들어간 단어를 옮기고, 빈 주제를 지우고, 빠진 주제를 더한다 | `revise_topics.py --plan <revisions.json>` 뒤 `add_topic_mappings.py --mappings <mappings.json>` | `rts4-0fb3d5bc20c215ba` → `rts4-e5083ab344e1336d` |
 | 17 | 틀린 뜻 수정과 빠진 뜻 연결. 틀린 뜻은 관련어를 맞는 뜻으로 옮기거나 뜻에서 떼어내 고치고, 흔한 단어에 빠진 뜻을 연결한다. 두 번 따로 판정해 둘 다 틀렸다고 한 뜻만 고친다 | `revise_topics.py --plan <revisions.json>` 뒤 `add_topic_mappings.py --mappings <mappings.json>` | `rts4-71cffacbc6f7c0d8` → `rts4-912fe1c9f62131b2` |
-| 18 | 남은 여러 단어 표현의 틀린 뜻 수정. 17단계와 같은 방식으로 판정하고 고친다 | `revise_topics.py --plan <revisions.json>` | `rts4-301d57d419380d08`(현재 기본값) |
+| 18 | 남은 여러 단어 표현의 틀린 뜻 수정. 17단계와 같은 방식으로 판정하고 고친다 | `revise_topics.py --plan <revisions.json>` | `rts4-301d57d419380d08` |
+| 19 | 저장 방식 최적화. 같은 행을 `rt-sense/5`로 옮겨 저장한다. 조회 결과는 바꾸지 않는다 | `compact_sense_dataset.py` | `rts5-75e02862daa29308`(현재 기본값) |
 
 - 1~5단계의 정확한 순서는 5단계만 기록으로 확인했다. 5단계의 입력 그래프는 `T/sense-graph-2-split`이었다. 그 앞 단계는 그래프 폴더 이름(`sense-graph-1` → `sense-graph-2` → `sense-graph-2-reviewed` → `sense-graph-2-split`)으로만 알 수 있다.
 - 6~8단계는 각 데이터셋의 `sense_meta`(`graph`, `base_dataset`, `entries`)로 확인했다.
@@ -127,13 +129,13 @@ python3 build_related_dataset.py --thesaurus <생성 자료 폴더> \
   - 연결은 59건이다. 연결마다 그 주제에 단어 이름의 새 개념을 만들었다. 새 주제는 4개다.
   - 47단어가 한 곳 이상 연결됐다. `requireNonNull`과 `negative testing`은 연결할 분야가 남지 않았다. 둘 다 원래 분야(오류 처리, 테스트)에는 뜻이 이미 있다.
 - 남은 결함은 [알려진 결함](known-defects.md)에 있다.
-- 14~18단계의 과정과 검증은 [뜻 데이터셋 구조 정리와 분야 매핑 확장](sense-mapping-log/README.md)에 있다. 15단계의 단어별 판정은 `rts4-86c5620af1f181ce` 폴더의 `mappings.json`과 `mapping-decisions-a.txt`, `mapping-decisions-b.txt`에 있다. 16단계의 판정은 `rts4-0fb3d5bc20c215ba` 폴더의 `revisions.json`과 `rts4-e5083ab344e1336d` 폴더의 `mappings.json`에 항목마다 이유와 함께 있다. 17단계의 판정은 `rts4-71cffacbc6f7c0d8` 폴더의 `revisions.json`과 `rts4-912fe1c9f62131b2` 폴더의 `mappings.json`에, 18단계의 판정은 `rts4-301d57d419380d08` 폴더의 `revisions.json`에 항목마다 이유와 함께 있다([작업 이력 12단계](sense-mapping-log/12-sense-data-fixes.md), [14단계](sense-mapping-log/14-recheck-and-remaining-n6.md)).
+- 14~19단계의 과정과 검증은 [뜻 데이터셋 구조 정리와 분야 매핑 확장](sense-mapping-log/README.md)에 있다. 15단계의 단어별 판정은 `rts4-86c5620af1f181ce` 폴더의 `mappings.json`과 `mapping-decisions-a.txt`, `mapping-decisions-b.txt`에 있다. 16단계의 판정은 `rts4-0fb3d5bc20c215ba` 폴더의 `revisions.json`과 `rts4-e5083ab344e1336d` 폴더의 `mappings.json`에 항목마다 이유와 함께 있다. 17단계의 판정은 `rts4-71cffacbc6f7c0d8` 폴더의 `revisions.json`과 `rts4-912fe1c9f62131b2` 폴더의 `mappings.json`에, 18단계의 판정은 `rts4-301d57d419380d08` 폴더의 `revisions.json`에 항목마다 이유와 함께 있다([작업 이력 12단계](sense-mapping-log/12-sense-data-fixes.md), [14단계](sense-mapping-log/14-recheck-and-remaining-n6.md)). 19단계는 판정 없이 저장 방식만 바꿨다([작업 이력 16단계](sense-mapping-log/16-compact-storage.md)).
 - 17단계는 처음에 판정을 한 번만 해서 `rts4-78debdbe7f7bab0b` → `rts4-710c8ba0d79a776a`를 만들었다. 재검증에서 두 판정이 엇갈린 수정 15개를 빼고 다시 만든 것이 지금의 17단계 판이다. 처음 판은 앞 기본값이라 저장소에 남아 있다.
 
 새 보정을 적용할 때는 다음을 지킨다.
 - 직전 데이터셋 폴더를 `--base`로 준다. 기존 데이터셋은 바뀌지 않고 새 폴더가 생긴다.
 - 새 개념·주제가 필요하면 `add-entries`를 먼저 실행한다.
-- `add-entries`와 `correct_sense_dataset.py`는 `rt-sense/3` 판만 받는다. 현재 기본값은 `rt-sense/4` 판이라 이 두 도구로 고칠 수 없다. `rt-sense/4` 판에 단어 → 주제 연결을 더하는 도구는 `add_topic_mappings.py`다. 주제의 분야·이름을 고치고 주제를 합치거나 지우는 도구는 `revise_topics.py`다. `revise_topics.py`는 관련어 하나를 같은 단어의 다른 뜻으로 옮기거나 뜻에서 떼어내는 연산과, 검토로 만든 입력 연결을 끊는 연산도 받는다.
+- `add-entries`와 `correct_sense_dataset.py`는 `rt-sense/3` 판만 받는다. 현재 기본값은 `rt-sense/5` 판이라 이 두 도구로 고칠 수 없다. `rt-sense/4`·`rt-sense/5` 판에 단어 → 주제 연결을 더하는 도구는 `add_topic_mappings.py`다. 주제의 분야·이름을 고치고 주제를 합치거나 지우는 도구는 `revise_topics.py`다. `revise_topics.py`는 관련어 하나를 같은 단어의 다른 뜻으로 옮기거나 뜻에서 떼어내는 연산과, 검토로 만든 입력 연결을 끊는 연산도 받는다. 두 도구는 출발 판과 같은 판(`rts4-` 또는 `rts5-`)을 만든다. `migrate_sense_dataset.py`는 `rt-sense/4`를 만들고, `compact_sense_dataset.py`가 이를 `rt-sense/5`로 옮긴다.
 - 결과를 기본값으로 쓰려면 `sense_lookup.py`의 `DEFAULT_SENSE_DATASET`을 바꾼다.
 
 ```sh

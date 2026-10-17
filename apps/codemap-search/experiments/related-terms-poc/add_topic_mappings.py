@@ -1,4 +1,5 @@
-"""Copy an rt-sense/4 dataset into a new one that maps existing words to more topics (`sense_mapping_schema.py`).
+"""Copy an rt-sense/4 or rt-sense/5 dataset into a new one of the same schema that maps existing words to more topics
+(`sense_mapping_schema.py`).
 
 Usage (from the repository root):
   python3 apps/codemap-search/experiments/related-terms-poc/add_topic_mappings.py \\
@@ -23,7 +24,7 @@ import os
 import shutil
 import sqlite3
 
-from sense_mapping_schema import MAPPING_SCHEMA, validate_mapping_layout
+from sense_mapping_schema import DATASET_ID_PREFIXES, MAPPING_SCHEMAS, validate_mapping_layout
 from term_canonical import word_key
 
 
@@ -64,7 +65,7 @@ def mapping_errors(connection, mappings):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--base", required=True, help="rt-sense/4 dataset directory")
+    parser.add_argument("--base", required=True, help="rt-sense/4 or rt-sense/5 dataset directory")
     parser.add_argument("--mappings", required=True)
     parser.add_argument("--output-root", required=True)
     arguments = parser.parse_args()
@@ -73,8 +74,8 @@ def main():
     base = sqlite3.connect(f"file:{base_path}?mode=ro", uri=True)
     try:
         meta = dict(base.execute("SELECT key, value FROM sense_meta"))
-        if meta.get("schema_version") != MAPPING_SCHEMA:
-            raise SystemExit(f"base must be {MAPPING_SCHEMA}, not {meta.get('schema_version')!r}")
+        if meta.get("schema_version") not in MAPPING_SCHEMAS:
+            raise SystemExit(f"base must be one of {MAPPING_SCHEMAS}, not {meta.get('schema_version')!r}")
         if document.get("base_dataset") != meta["dataset_id"]:
             raise SystemExit(f"mappings were reviewed on {document.get('base_dataset')!r}, base is {meta['dataset_id']!r}")
         validate_mapping_layout(base)
@@ -84,8 +85,8 @@ def main():
     if errors:
         raise SystemExit("mappings rejected:\n" + "\n".join(errors[:50]))
     mappings_json = json.dumps(document, ensure_ascii=False, sort_keys=True)
-    digest = hashlib.sha256(f"{MAPPING_SCHEMA}\0{meta['dataset_id']}\0mappings\0{mappings_json}".encode()).hexdigest()
-    dataset_id = f"rts4-{digest[:16]}"
+    digest = hashlib.sha256(f"{meta['schema_version']}\0{meta['dataset_id']}\0mappings\0{mappings_json}".encode()).hexdigest()
+    dataset_id = f"{DATASET_ID_PREFIXES[meta['schema_version']]}-{digest[:16]}"
     output_dir = os.path.join(arguments.output_root, dataset_id)
     os.makedirs(output_dir, exist_ok=False)
     pending_path = os.path.join(output_dir, ".dataset.sqlite3.pending")
@@ -113,7 +114,7 @@ def main():
     finally:
         connection.close()
     shutil.copyfile(arguments.mappings, os.path.join(output_dir, "mappings.json"))
-    report = {"dataset_id": dataset_id, "schema_version": MAPPING_SCHEMA, "base_dataset": meta["dataset_id"],
+    report = {"dataset_id": dataset_id, "schema_version": meta["schema_version"], "base_dataset": meta["dataset_id"],
               "mappings": len(document["mappings"]), "words": len({word_key(m["word"]) for m in document["mappings"]}),
               "input_bindings": sum("via" in m for m in document["mappings"])}
     with open(os.path.join(output_dir, "build-report.json"), "x") as handle:

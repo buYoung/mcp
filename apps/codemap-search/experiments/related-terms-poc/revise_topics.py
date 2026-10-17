@@ -1,4 +1,5 @@
-"""Copy an rt-sense/4 dataset into a new one whose topics are revised by a reviewed plan (`sense_mapping_schema.py`).
+"""Copy an rt-sense/4 or rt-sense/5 dataset into a new one of the same schema whose topics are revised by a reviewed
+plan (`sense_mapping_schema.py`).
 
 Usage (from the repository root):
   python3 apps/codemap-search/experiments/related-terms-poc/revise_topics.py \\
@@ -41,7 +42,7 @@ import os
 import shutil
 import sqlite3
 
-from sense_mapping_schema import MAPPING_SCHEMA, validate_mapping_layout
+from sense_mapping_schema import DATASET_ID_PREFIXES, MAPPING_SCHEMAS, validate_mapping_layout
 from term_canonical import word_key
 
 PLAN_KEYS = ("new_topics", "labels", "fields", "relation_moves", "relation_detaches", "input_detaches", "moves", "merges",
@@ -213,7 +214,7 @@ def table_counts(connection):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--base", required=True, help="rt-sense/4 dataset directory")
+    parser.add_argument("--base", required=True, help="rt-sense/4 or rt-sense/5 dataset directory")
     parser.add_argument("--plan", required=True)
     parser.add_argument("--output-root", required=True)
     arguments = parser.parse_args()
@@ -222,8 +223,8 @@ def main():
     base = sqlite3.connect(f"file:{base_path}?mode=ro", uri=True)
     try:
         meta = dict(base.execute("SELECT key, value FROM sense_meta"))
-        if meta.get("schema_version") != MAPPING_SCHEMA:
-            raise SystemExit(f"base must be {MAPPING_SCHEMA}, not {meta.get('schema_version')!r}")
+        if meta.get("schema_version") not in MAPPING_SCHEMAS:
+            raise SystemExit(f"base must be one of {MAPPING_SCHEMAS}, not {meta.get('schema_version')!r}")
         if plan.get("base_dataset") != meta["dataset_id"]:
             raise SystemExit(f"plan was reviewed on {plan.get('base_dataset')!r}, base is {meta['dataset_id']!r}")
         validate_mapping_layout(base)
@@ -234,8 +235,8 @@ def main():
     if errors:
         raise SystemExit("plan rejected:\n" + "\n".join(errors[:50]))
     plan_json = json.dumps(plan, ensure_ascii=False, sort_keys=True)
-    digest = hashlib.sha256(f"{MAPPING_SCHEMA}\0{meta['dataset_id']}\0revisions\0{plan_json}".encode()).hexdigest()
-    dataset_id = f"rts4-{digest[:16]}"
+    digest = hashlib.sha256(f"{meta['schema_version']}\0{meta['dataset_id']}\0revisions\0{plan_json}".encode()).hexdigest()
+    dataset_id = f"{DATASET_ID_PREFIXES[meta['schema_version']]}-{digest[:16]}"
     output_dir = os.path.join(arguments.output_root, dataset_id)
     os.makedirs(output_dir, exist_ok=False)
     pending_path = os.path.join(output_dir, ".dataset.sqlite3.pending")
@@ -255,7 +256,7 @@ def main():
     finally:
         connection.close()
     shutil.copyfile(arguments.plan, os.path.join(output_dir, "revisions.json"))
-    report = {"dataset_id": dataset_id, "schema_version": MAPPING_SCHEMA, "base_dataset": meta["dataset_id"],
+    report = {"dataset_id": dataset_id, "schema_version": meta["schema_version"], "base_dataset": meta["dataset_id"],
               **{key: len(plan.get(key, [])) for key in PLAN_KEYS}, "before": before, "after": after,
               "revised_relations": len(outcome["revised_relations"]),
               "merged_personas": len(outcome["merged_personas"]), "moved_personas": len(outcome["moved_personas"]),
