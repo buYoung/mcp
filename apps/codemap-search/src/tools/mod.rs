@@ -216,7 +216,7 @@ pub fn server_instructions() -> String {
 
 fn with_related_terms_guidance(mut text: String) -> String {
     if crate::config::get().related_terms.enabled {
-        text.push_str("\n\nUse synonyms for alternative names of a code concept. Before calling, select lowercase semantic search terms from identifiers using code context; keep useful operation compounds and omit irrelevant glue/role labels. Do not pass raw compound identifiers, spaced full names or raw aliases. Follow the tool's input-selection examples, then verify suggestions with search or grep.");
+        text.push_str("\n\nUse synonyms for alternative code names. Select target words first, obey its required mappings exactly, then verify with search or grep.");
     }
     text
 }

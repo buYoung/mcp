@@ -17,7 +17,7 @@ pub(crate) fn definition() -> Value {
             "type": "object", "additionalProperties": false,
             "properties": {"terms": {"type": "array", "minItems": 1, "maxItems": MAX_TERMS,
                 "items": {"type": "string", "minLength": 1},
-                "description": "Select semantic search terms BEFORE calling: lowercase identifier words and useful short operation compounds such as get_all. Remove context-irrelevant glue/role labels. Do not send raw compound identifiers, spaced full names or raw aliases. See the tool examples."}},
+                "description": "Preselect lowercase target words/operation compounds only. Keep inflections and useful get/get_all separately. Required mappings are exact: no extra role, alias or instruction words."}},
             "required": ["terms"]
         }
     })
