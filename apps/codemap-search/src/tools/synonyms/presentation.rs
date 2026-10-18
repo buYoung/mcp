@@ -11,6 +11,9 @@ const MAX_NEAR: usize = 10;
 const MAX_SAME_TOPIC: usize = 10;
 const MAX_LOOKED_UP_INPUTS: usize = 8;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone)]
 struct DisplayGroup {
     field: String,
@@ -19,6 +22,7 @@ struct DisplayGroup {
     spans: Vec<String>,
     words: WordGroups,
     has_evidence: bool,
+    has_omitted_words: bool,
 }
 
 impl DisplayGroup {
@@ -57,6 +61,7 @@ fn grouped_senses(answer: &LookupResult, supported_sense_count: usize) -> Vec<Di
                 spans: Vec::new(),
                 words: WordGroups::default(),
                 has_evidence,
+                has_omitted_words: false,
             });
             groups.len() - 1
         });
@@ -123,11 +128,26 @@ fn place_words(
     words: &mut Vec<String>,
     evidence: Option<&EvidenceSnapshot>,
     placed: &mut HashSet<String>,
-) {
+    stronger: &HashSet<String>,
+    cap: usize,
+) -> bool {
     if let Some(evidence) = evidence {
         words.sort_by_key(|word| !evidence.words.contains_key(&word_key(word)));
     }
-    words.retain(|word| placed.insert(word_key(word)));
+    let mut seen = HashSet::new();
+    let mut has_omitted_words = false;
+    words.retain(|word| {
+        let key = word_key(word);
+        if stronger.contains(&key) {
+            has_omitted_words |= !placed.contains(&key);
+            false
+        } else {
+            !placed.contains(&key) && seen.insert(key)
+        }
+    });
+    // Keep the full count for truncation notes, but claim only the emitted prefix.
+    placed.extend(words.iter().take(cap).map(|word| word_key(word)));
+    has_omitted_words
 }
 
 fn display_words(
@@ -136,19 +156,52 @@ fn display_words(
     evidence: Option<&EvidenceSnapshot>,
 ) {
     let mut placed = HashSet::new();
-    // Preserve direct > unclassified direct > near > same-topic precedence, but
-    // deduplicate only the selected groups. Hidden groups must not claim words.
+    let mut stronger = HashSet::new();
+    let mut current = HashSet::new();
+    // A capped word can appear in a later group of the same relation tier. Still
+    // reserve stronger memberships so a hidden direct word is not relabeled as near.
+    // Only selected groups participate; hidden groups must not claim words.
     for group in groups.iter_mut() {
-        place_words(&mut group.words.direct, evidence, &mut placed);
+        current.extend(group.words.direct.iter().map(|word| word_key(word)));
+        group.has_omitted_words = place_words(
+            &mut group.words.direct,
+            evidence,
+            &mut placed,
+            &stronger,
+            MAX_DIRECT,
+        );
     }
+    stronger.extend(current.drain());
     for group in direct {
-        place_words(&mut group.direct, evidence, &mut placed);
+        current.extend(group.direct.iter().map(|word| word_key(word)));
+        place_words(
+            &mut group.direct,
+            evidence,
+            &mut placed,
+            &stronger,
+            MAX_DIRECT,
+        );
     }
+    stronger.extend(current.drain());
     for group in groups.iter_mut() {
-        place_words(&mut group.words.near, evidence, &mut placed);
+        current.extend(group.words.near.iter().map(|word| word_key(word)));
+        group.has_omitted_words |= place_words(
+            &mut group.words.near,
+            evidence,
+            &mut placed,
+            &stronger,
+            MAX_NEAR,
+        );
     }
+    stronger.extend(current.drain());
     for group in groups {
-        place_words(&mut group.words.same_topic, evidence, &mut placed);
+        group.has_omitted_words |= place_words(
+            &mut group.words.same_topic,
+            evidence,
+            &mut placed,
+            &stronger,
+            MAX_SAME_TOPIC,
+        );
     }
 }
 
@@ -303,7 +356,11 @@ pub(super) fn render(
             );
         }
         if !group.has_words() {
-            text.push_str("Related words are already shown in another group.\n");
+            if group.has_omitted_words {
+                text.push_str("Some related words were omitted by word limits in a stronger relation group.\n");
+            } else {
+                text.push_str("Related words are already shown in another group.\n");
+            }
         }
         render_words(&mut text, "Direct", &group.words.direct, MAX_DIRECT);
         render_words(&mut text, "Near", &group.words.near, MAX_NEAR);

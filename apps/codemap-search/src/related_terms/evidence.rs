@@ -1,6 +1,6 @@
 //! Dictionary-only evidence over published index snapshots, computed off the MCP loop.
 use super::normalize::word_key;
-use super::PreparedDataset;
+use super::RelatedTermsLookup;
 use crate::index::{PublishedIndexSnapshot, SnapshotSource};
 use crate::parser::ExtractedFile;
 use serde::Serialize;
@@ -86,8 +86,8 @@ pub(crate) struct Dictionary {
 }
 
 impl Dictionary {
-    pub fn load(prepared: &PreparedDataset) -> Result<Self, String> {
-        let connection = prepared.open()?;
+    pub fn load(lookup: &mut RelatedTermsLookup) -> Result<Self, String> {
+        let connection = lookup.connection()?;
         let mut statement = connection
             .prepare(
                 "SELECT word_key FROM terms UNION SELECT word_key FROM relations

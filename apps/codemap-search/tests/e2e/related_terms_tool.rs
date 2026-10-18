@@ -268,6 +268,53 @@ async fn test_related_terms_tool_balancing_preserves_supported_prefix() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn test_related_terms_tool_keeps_shared_words_hidden_by_an_earlier_cap() {
+    let repo = tempfile::tempdir().unwrap();
+    let source = tempfile::tempdir().unwrap();
+    let dataset = source.path().join("dataset.sqlite3");
+    create_dataset(&dataset);
+    add_input_parts(&dataset);
+    Connection::open(&dataset)
+        .unwrap()
+        .execute(
+            "UPDATE relations SET word_key='direct1x24' WHERE term_id IN (9000,9001)",
+            [],
+        )
+        .unwrap();
+    let before = fs::read(&dataset).unwrap();
+    configure(repo.path(), &dataset, "");
+    let mut code = "fn token_zebra_zulu() {}\n".to_string();
+    // All 25 words have evidence, so the shared word remains beyond the first 20.
+    for word in 0..25 {
+        code.push_str(&format!("fn direct1x{word:02}() {{}}\n"));
+    }
+    fs::write(repo.path().join("source.rs"), code).unwrap();
+    with_in_process_server(repo.path(), None, |mut client| async move {
+        let result = client
+            .call_tool_until("synonyms", json!({"terms":["token zebra zulu"]}), |text| {
+                text.contains("Codebase evidence: moved back")
+            })
+            .await
+            .unwrap();
+        let text = response_text(&result);
+        assert!(text.contains("Direct (showing 20 of 25)"), "{text}");
+        let shared = text
+            .split("### ")
+            .find(|section| section.contains("[field9]"))
+            .unwrap();
+        assert!(
+            shared.contains("Direct (showing 1 of 1): \"direct1x24\""),
+            "{text}"
+        );
+        assert!(!shared.contains("already shown"), "{text}");
+        assert_eq!(text.matches("\"direct1x24\"").count(), 1, "{text}");
+        assert!(text.contains("removed 0 senses"), "{text}");
+    })
+    .await;
+    assert_eq!(fs::read(&dataset).unwrap(), before);
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn test_related_terms_tool_utf8_output_obeys_client_cap() {
     let repo = tempfile::tempdir().unwrap();
     let source = tempfile::tempdir().unwrap();

@@ -105,18 +105,25 @@ impl RelatedTermsLookup {
         }
     }
 
+    fn engine(&mut self) -> Result<&mut Engine, String> {
+        if self.engine.is_none() {
+            self.engine = Some(Engine::new(self.prepared.open()?, self.options)?);
+        }
+        self.engine
+            .as_mut()
+            .ok_or_else(|| "lookup connection unavailable".into())
+    }
+
+    /// Evidence must read the lookup's open file, not a possibly replaced cache pathname.
+    pub(super) fn connection(&mut self) -> Result<&Connection, String> {
+        Ok(&self.engine()?.connection)
+    }
+
     pub fn lookup(&mut self, input: &str) -> Result<LookupResult, String> {
         if let Some(answer) = self.answers.get(input) {
             return Ok(answer.clone());
         }
-        if self.engine.is_none() {
-            self.engine = Some(Engine::new(self.prepared.open()?, self.options)?);
-        }
-        let answer = self
-            .engine
-            .as_mut()
-            .ok_or("lookup connection unavailable")?
-            .lookup(input)?;
+        let answer = self.engine()?.lookup(input)?;
         if self.answers.len() == 128 {
             if let Some(old) = self.answer_order.pop_front() {
                 self.answers.remove(&old);

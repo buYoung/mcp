@@ -169,19 +169,20 @@ impl RelatedTermsRuntime {
                                 if is_cancelled.load(Ordering::Relaxed) {
                                     return Err("preparation cancelled".into());
                                 }
-                                let mut lookup = RelatedTermsLookup::new(prepared.clone());
-                                // Lazy open and dictionary evidence preparation stay off the MCP loop.
+                                let mut lookup = RelatedTermsLookup::new(prepared);
+                                // Warm lookup and evidence share one open file, off the MCP loop.
                                 lookup.lookup("token")?;
-                                let evidence = Dictionary::load(&prepared).and_then(|dictionary| {
-                                    if is_cancelled.load(Ordering::Relaxed) {
-                                        return Err("preparation cancelled".into());
-                                    }
-                                    EvidenceHandle::start(
-                                        index_source,
-                                        Arc::new(dictionary),
-                                        evidence_options,
-                                    )
-                                });
+                                let evidence =
+                                    Dictionary::load(&mut lookup).and_then(|dictionary| {
+                                        if is_cancelled.load(Ordering::Relaxed) {
+                                            return Err("preparation cancelled".into());
+                                        }
+                                        EvidenceHandle::start(
+                                            index_source,
+                                            Arc::new(dictionary),
+                                            evidence_options,
+                                        )
+                                    });
                                 return Ok(PreparedLookup { lookup, evidence });
                             }
                             FetchStatus::InProgress => {

@@ -15,6 +15,7 @@ CREATE INDEX IF NOT EXISTS related_terms_personas_by_topic ON personas(topic);";
 pub struct PreparedDataset {
     path: PathBuf,
     dataset_id: String,
+    source: Option<SourceIdentity>,
 }
 
 impl PreparedDataset {
@@ -32,6 +33,9 @@ impl PreparedDataset {
         if marker.dataset_id != self.dataset_id || marker.index_version != INDEX_VERSION {
             return Err("related-terms prepared marker is incompatible".into());
         }
+        if marker.source != self.source {
+            return Err("prepared dataset source changed; prepare the dataset again".into());
+        }
         let connection = open_readonly(&self.path)?;
         if dataset_identity(&connection)? != self.dataset_id {
             return Err("prepared dataset identity changed".into());
@@ -41,7 +45,7 @@ impl PreparedDataset {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 struct SourceIdentity {
     path: PathBuf,
     bytes: u64,
@@ -171,7 +175,11 @@ pub fn prepare_dataset(
                 && m.source == source_stamp
         })
     {
-        return Ok(PreparedDataset { path, dataset_id });
+        return Ok(PreparedDataset {
+            path,
+            dataset_id,
+            source: source_stamp,
+        });
     }
     let rebuild_existing = path.is_file()
         && old_marker
@@ -237,7 +245,7 @@ pub fn prepare_dataset(
     let marker = ReadyMarker {
         dataset_id: dataset_id.clone(),
         index_version: INDEX_VERSION,
-        source: source_stamp,
+        source: source_stamp.clone(),
     };
     let mut ready = tempfile::NamedTempFile::new_in(&directory).map_err(|e| e.to_string())?;
     ready
@@ -251,5 +259,9 @@ pub fn prepare_dataset(
     File::open(&directory)
         .and_then(|file| file.sync_all())
         .map_err(|e| e.to_string())?;
-    Ok(PreparedDataset { path, dataset_id })
+    Ok(PreparedDataset {
+        path,
+        dataset_id,
+        source: source_stamp,
+    })
 }
