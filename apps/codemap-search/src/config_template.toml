@@ -1,4 +1,4 @@
-# codemap-config-version: 29
+# codemap-config-version: 30
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -299,6 +299,13 @@ read = "workspace"
 # Extra paths for tools set to "allowed_roots". Relative paths use the workspace root.
 # Symbolic links are checked by their real path.
 allowed_roots = []
+
+[related_terms]
+# Enable related terms (default false); downloads the pinned dataset once when no local path is set.
+# Leave commented to inherit the global preference.
+# enabled = false
+# Optional user-owned dataset; never modified.
+# dataset_path = "/path/to/dataset.sqlite3"
 
 [update]
 # On server start, create this file if missing and add new settings as comments.

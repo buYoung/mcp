@@ -219,6 +219,10 @@ impl EngineSupervisor {
         self.indexer.published_snapshot()
     }
 
+    pub(crate) fn snapshot_source(&self) -> super::SnapshotSource {
+        self.indexer.snapshot_source()
+    }
+
     /// The current codemap snapshot the indexer publishes (cheap `Arc` clone).
     pub fn codemap_snapshot(&self) -> CodemapSnapshot {
         self.indexer.codemap_snapshot()

@@ -14,6 +14,7 @@ pub(crate) mod live_symbols;
 pub mod overview;
 pub mod read;
 pub mod search;
+pub(crate) mod synonyms;
 pub mod task;
 
 use crate::index::EngineSupervisor;
@@ -203,12 +204,21 @@ pub(crate) fn arg_required_str<'a>(
 /// Shared connection-level bootstrap, embedded in the self-contained binary. `server.md` is
 /// the format string, so literal braces in it must be written as `{{` and `}}`.
 pub fn server_instructions() -> String {
-    format!(
-        include_str!("instructions/server.md"),
-        shell_commands = shell_command_replacements()
+    with_related_terms_guidance(
+        format!(
+            include_str!("instructions/server.md"),
+            shell_commands = shell_command_replacements()
+        )
+        .trim_end()
+        .to_string(),
     )
-    .trim_end()
-    .to_string()
+}
+
+fn with_related_terms_guidance(mut text: String) -> String {
+    if crate::config::get().related_terms.enabled {
+        text.push_str("\n\nUse synonyms for alternative names of a code concept. Before calling, select lowercase semantic search terms from identifiers using code context; keep useful operation compounds and omit irrelevant glue/role labels. Do not pass raw compound identifiers, spaced full names or raw aliases. Follow the tool's input-selection examples, then verify suggestions with search or grep.");
+    }
+    text
 }
 
 /// Client-specific guidance, appended only after Codex identifies itself at initialize.
@@ -245,14 +255,15 @@ fn shell_command_replacements() -> &'static str {
 /// `initial_instructions.md`.
 pub fn instructions() -> String {
     let common = include_str!("instructions/tools/initial_instructions.result.md").trim_end();
-    if crate::codemap::looks_like_monorepo_workspace() {
+    let text = if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
             include_str!("instructions/tools/initial_instructions.result.monorepo.md").trim_end()
         )
     } else {
         common.to_string()
-    }
+    };
+    with_related_terms_guidance(text)
 }
 
 /// Removed body-filter arguments must not silently select, bypass or replace task context.
@@ -517,6 +528,12 @@ pub fn list_tools() -> Value {
         .as_array_mut()
         .unwrap()
         .push(analyze::definition());
+    if config.related_terms.enabled {
+        result["tools"]
+            .as_array_mut()
+            .unwrap()
+            .push(synonyms::definition());
+    }
     if let Some(limit) = config.client_output.claude_max_result_chars {
         for tool in result["tools"].as_array_mut().into_iter().flatten() {
             tool["_meta"] = serde_json::json!({ "anthropic/maxResultSizeChars": limit });

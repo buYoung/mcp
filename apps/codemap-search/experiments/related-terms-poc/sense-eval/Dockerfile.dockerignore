@@ -1,0 +1,24 @@
+# Only source, the evaluation driver, and its pinned inputs enter the image.
+# Host checkouts, indexes, datasets, credentials, and build outputs stay outside.
+**
+!apps/
+!apps/codemap-search/
+!apps/codemap-search/Cargo.toml
+!apps/codemap-search/Cargo.lock
+!apps/codemap-search/build.rs
+!apps/codemap-search/README.md
+!apps/codemap-search/src/
+!apps/codemap-search/src/**
+!apps/codemap-search/vendor/
+!apps/codemap-search/vendor/**
+!apps/codemap-search/queries/
+!apps/codemap-search/queries/**
+!apps/codemap-search/experiments/
+!apps/codemap-search/experiments/related-terms-poc/
+!apps/codemap-search/experiments/related-terms-poc/term_canonical.py
+!apps/codemap-search/experiments/related-terms-poc/sense-eval/
+!apps/codemap-search/experiments/related-terms-poc/sense-eval/*.py
+!apps/codemap-search/experiments/related-terms-poc/sense-eval/eval-set.json
+!docs/
+!docs/related-terms/
+!docs/related-terms/sources.md

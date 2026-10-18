@@ -109,10 +109,12 @@ Every file named `auth.toml` is excluded case-insensitively from indexing/search
 
 ## Loading and automatic writes
 
-The current **repository** configuration schema is **29**. This version controls repo templates and migrations only; global config is never stamped or migrated automatically. The marker is a comment:
+Schema 30 adds the optional `[related_terms]` section as comments without changing existing values. The dataset is pinned to the binary release; upgrades with the same dataset id reuse the verified copy under `<global_dir>/related-terms/<dataset_id>/` without downloading or rehashing it. A new pinned id uses a new folder. `dataset_path` bypasses the download and is used only when enabled; relative paths follow the server working directory. Invalid types warn and fall back per key.
+
+The current **repository** configuration schema is **30**. This version controls repo templates and migrations only; global config is never stamped or migrated automatically. The marker is a comment:
 
 ```toml
-# codemap-config-version: 29
+# codemap-config-version: 30
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -285,6 +287,8 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].allowed_roots` | string array | `[]` | External roots available to tools set to `allowed_roots` |
+| `[related_terms].enabled` | bool | `false` | Opt in to related terms; no download or preparation while off |
+| `[related_terms].dataset_path` | string | unset | Optional user-owned sense dataset instead of a download; the original is never modified |
 | `[update].config_auto_update` | bool | `true` | Create missing repo config/auth templates and sync config schema on `mcp` startup |
 
 ### Indexing and file exclusions
@@ -482,7 +486,7 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 29
+# codemap-config-version: 30
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -783,6 +787,12 @@ read = "workspace"
 # Extra paths for tools set to "allowed_roots". Relative paths use the workspace root.
 # Symbolic links are checked by their real path.
 allowed_roots = []
+
+[related_terms]
+# Enable related terms (default false); downloads the pinned dataset once when no local path is set.
+enabled = false
+# Optional user-owned dataset; never modified.
+# dataset_path = "/path/to/dataset.sqlite3"
 
 [update]
 # On server start, create this file if missing and add new settings as comments.

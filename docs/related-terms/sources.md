@@ -4,22 +4,20 @@
 
 - **외부 자료:** 아래 고정 판으로 다시 받을 수 있다. 저장소에는 원자료 파일을 두지 않는다.
 - **LLM 생성 자료:** 다시 받을 곳이 없고 보존하지도 않는다. 데이터셋 자체를 기준으로 쓴다.
-- **라이선스와 저작자 표시:** `apps/codemap-search/experiments/related-terms-poc/ATTRIBUTION.md`에 있다.
 
 ## 외부 사전 자료
 
 관련어 데이터셋 `rtr1-930791c83bea6132`에 들어 있는 외부 자료다. 1라운드 원본 사전(`rt-dataset/1`)과 4라운드 v2 정제 사전을 거쳐 들어왔으며, 두 사전은 보존하지 않는다. 관계 수는 관련어 데이터셋의 빌드 기록에서 옮겼다.
 
-| 자료(출처 ID) | 주소와 고정 판 | 라이선스 | 가져온 항목 | `rtr1`의 관계 수 |
-| --- | --- | --- | --- | ---: |
-| Open English WordNet 2025 (`oewn-2025`) | https://github.com/globalwordnet/english-wordnet — 태그 `2025-edition`, 커밋 `dc343f2683279ecbb13fab4e2fd778d7b162d287`, 파일 `english-wordnet-2025-json.zip` | CC BY 4.0. Princeton WordNet License도 함께 적용 | synset 구성원, sense key, 품사, lexicographer file, 첫 정의, `domain_topic`, `similar`. 반의어는 관련어 데이터셋에서 뺐다 | 331,532 |
-| GitHub Explore (`github-explore-c8d7bc5`) | https://github.com/github/explore — 커밋 `c8d7bc516928a4f17845b767884a80cc53affd57`, `topics/*/index.md` | CC BY 4.0 | topic slug, `display_name`, `aliases`, `related`, `short_description` | 37,813 |
-| Wikidata (`wikidata-sel1`) | https://www.wikidata.org — GitHub Explore의 `wikipedia_url`로 고른 개체. 개체마다 `lastrevid`로 고정했다 | CC0 1.0 | 영어 label, aliases, description | 9,184 |
-| abbreviations-in-code (`abbrcode-bd33b1c`) | https://github.com/abbrcode/abbreviations-in-code — 커밋 `bd33b1c7bbfea159275c88d223482f5da9a01e58`, `data/abbrs/*.json` | MIT | `word`, `abbr`, `degree`, `context` | 612 |
-| software-engineering-abbreviations-acronyms (`se-abbr-8e1d77e`) | https://github.com/wuyichen24/software-engineering-abbreviations-acronyms — 커밋 `8e1d77e99b184106d50a180ba52cb3557273af6d`, `dictionary/**/*.md` | CC0 1.0 | 약어, 전체 이름, 개요 첫 줄 | 716 |
+| 자료(출처 ID) | 주소와 고정 판 | 가져온 항목 | `rtr1`의 관계 수 |
+| --- | --- | --- | ---: |
+| Open English WordNet 2025 (`oewn-2025`) | https://github.com/globalwordnet/english-wordnet — 태그 `2025-edition`, 커밋 `dc343f2683279ecbb13fab4e2fd778d7b162d287`, 파일 `english-wordnet-2025-json.zip` | synset 구성원, sense key, 품사, lexicographer file, 첫 정의, `domain_topic`, `similar`. 반의어는 관련어 데이터셋에서 뺐다 | 331,532 |
+| GitHub Explore (`github-explore-c8d7bc5`) | https://github.com/github/explore — 커밋 `c8d7bc516928a4f17845b767884a80cc53affd57`, `topics/*/index.md` | topic slug, `display_name`, `aliases`, `related`, `short_description` | 37,813 |
+| Wikidata (`wikidata-sel1`) | https://www.wikidata.org — GitHub Explore의 `wikipedia_url`로 고른 개체. 개체마다 `lastrevid`로 고정했다 | 영어 label, aliases, description | 9,184 |
+| abbreviations-in-code (`abbrcode-bd33b1c`) | https://github.com/abbrcode/abbreviations-in-code — 커밋 `bd33b1c7bbfea159275c88d223482f5da9a01e58`, `data/abbrs/*.json` | `word`, `abbr`, `degree`, `context` | 612 |
+| software-engineering-abbreviations-acronyms (`se-abbr-8e1d77e`) | https://github.com/wuyichen24/software-engineering-abbreviations-acronyms — 커밋 `8e1d77e99b184106d50a180ba52cb3557273af6d`, `dictionary/**/*.md` | 약어, 전체 이름, 개요 첫 줄 | 716 |
 
 - Wikidata에서 고른 개체 목록과 각 개체의 `lastrevid`는 1라운드 사전과 함께 보존하지 않는다.
-- Open English WordNet은 복사본에 `LICENSE.md`와 `WNDB_License.txt`를 함께 두도록 요구한다. 관련어 데이터셋을 배포하려면 위 태그의 두 파일을 함께 넣어야 한다. 지금 로컬 데이터셋 폴더에는 라이선스 파일이 없다.
 
 ## LLM 생성 자료
 
@@ -31,7 +29,6 @@
 
 - 생성 지침은 `apps/codemap-search/experiments/related-terms-poc/generation/`에 있다.
 - 생성 결과는 보존하지 않는다. 같은 지침으로 다시 생성해도 결과는 달라진다.
-- 관련어 데이터셋은 LLM 생성 관계의 라이선스를 `NOASSERTION`으로 표시한다.
 
 ## 임베딩 모델
 

@@ -125,10 +125,18 @@ pub struct McpServer {
     registered_task: Option<crate::tools::task::RegisteredTask>,
     global_instructions: global_instructions::GlobalInstructions,
     jev: jev::JevHost,
+    related_terms: Option<crate::related_terms::runtime::RelatedTermsRuntime>,
 }
 
 impl McpServer {
     pub fn new(engine: EngineSupervisor) -> Self {
+        let settings = crate::config::get().related_terms.clone();
+        let related_terms = settings.enabled.then(|| {
+            crate::related_terms::runtime::RelatedTermsRuntime::start(
+                settings,
+                engine.snapshot_source(),
+            )
+        });
         Self {
             engine,
             active_workspace_scope: None,
@@ -139,6 +147,22 @@ impl McpServer {
             registered_task: None,
             global_instructions: global_instructions::GlobalInstructions::default(),
             jev: jev::JevHost::default(),
+            related_terms,
+        }
+    }
+
+    fn synchronize_related_terms(&mut self, settings: &crate::config::RelatedTermsConfig) {
+        if !settings.enabled {
+            self.related_terms = None;
+        } else if self
+            .related_terms
+            .as_ref()
+            .is_none_or(|runtime| !runtime.matches(settings))
+        {
+            self.related_terms = Some(crate::related_terms::runtime::RelatedTermsRuntime::start(
+                settings.clone(),
+                self.engine.snapshot_source(),
+            ));
         }
     }
 
@@ -324,6 +348,7 @@ impl McpServer {
         let started = std::time::Instant::now();
         self.pending_source_files.clear();
         let config = crate::config::get();
+        self.synchronize_related_terms(&config.related_terms);
         if method != "initialize" {
             self.global_instructions
                 .synchronize(config.is_global_instructions_enabled);
@@ -481,6 +506,27 @@ impl McpServer {
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
+            #[cfg(feature = "related-terms-eval")]
+            "related_terms/evaluate" => {
+                let params = params
+                    .and_then(Value::as_object)
+                    .ok_or_else(|| (-32602, "evaluation requires scope and mode".to_string()))?;
+                if params.keys().any(|key| key != "scope" && key != "mode") {
+                    return Err((-32602, "evaluation accepts only scope and mode".into()));
+                }
+                let scope = params.get("scope").and_then(Value::as_str).unwrap_or("");
+                let mode = params.get("mode").and_then(Value::as_str).unwrap_or("");
+                let runtime = self.related_terms.as_mut().ok_or_else(|| {
+                    (
+                        -32602,
+                        "related terms must be enabled for evaluation".to_string(),
+                    )
+                })?;
+                runtime
+                    .configure_evaluation(scope, mode)
+                    .map_err(|reason| (-32602, reason))?;
+                Ok(serde_json::json!({"scope":scope,"mode":mode}))
+            }
             "tools/list" => Ok(crate::tools::list_tools()),
             "tools/call" => {
                 let params = params.ok_or_else(|| (-32602, "Missing params".to_string()))?;
@@ -498,6 +544,26 @@ impl McpServer {
                     "analyze" => {
                         let text = crate::tools::analyze::run(arguments, &self.engine)?;
                         Ok(serde_json::json!({"content": [{"type": "text", "text": text}]}))
+                    }
+                    "synonyms" if crate::config::get().related_terms.enabled => {
+                        self.engine.ensure_alive();
+                        self.engine.trigger_refresh();
+                        let source = self.engine.snapshot_source();
+                        let runtime = self.related_terms.as_mut().ok_or_else(|| {
+                            (-32603, "Related terms runtime unavailable".to_string())
+                        })?;
+                        runtime.set_index_source(source);
+                        let output = crate::tools::synonyms::run(arguments, runtime)?;
+                        let response =
+                            serde_json::json!({"content": [{"type": "text", "text": output.text}]});
+                        #[cfg(feature = "related-terms-eval")]
+                        let response = {
+                            let mut response = response;
+                            response["_meta"] =
+                                serde_json::json!({"related_terms_eval": output.evaluation});
+                            response
+                        };
+                        Ok(response)
                     }
                     "search" => {
                         crate::tools::search::validate_arguments(arguments)?;

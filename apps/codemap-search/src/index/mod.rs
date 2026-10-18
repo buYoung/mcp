@@ -19,6 +19,7 @@ pub use engine::{
     SearchEngine, SearchQueryContext, SearchRankingSignal, SearchResult, SearcherHandle,
     TantivySearchEngine,
 };
+pub(crate) use indexer::SnapshotSource;
 pub use indexer::{
     spawn_indexer, CodemapSnapshot, IndexCommand, IndexerHandle, IndexerStatus,
     PublishedIndexSnapshot, StaticCollectionRecord,

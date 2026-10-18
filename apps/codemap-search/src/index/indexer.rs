@@ -11,7 +11,7 @@
 //! search path and satisfies tantivy's single-writer rule for free; no extra dependency
 //! (e.g. crossbeam) earns its keep for one producer / one consumer at this message rate.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{sync_channel, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
@@ -24,6 +24,14 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 /// key. The stable `(path, range)` record order makes truncation deterministic.
 const STATIC_COLLECTION_RECORDS_PER_KEY_AND_KIND_MAX: usize = 64;
 const INDEXER_RETRY_DELAY_MS: u64 = 1_000;
+static NEXT_PUBLICATION_ID: AtomicU64 = AtomicU64::new(1);
+
+/// A bounded latest-generation feed; subscribing does not request an index refresh.
+#[derive(Clone)]
+pub(crate) struct SnapshotSource {
+    pub id: u64,
+    pub receiver: tokio::sync::watch::Receiver<Arc<PublishedIndexSnapshot>>,
+}
 
 /// Message to the indexer thread.
 pub enum IndexCommand {
@@ -79,6 +87,8 @@ pub type CodemapSnapshot = Arc<Vec<ExtractedFile>>;
 /// in lock-step for every search.
 #[derive(Debug, Clone)]
 pub struct PublishedIndexSnapshot {
+    generation: u64,
+    index_pass_ms: f64,
     codemap: CodemapSnapshot,
     event_index: crate::events::EventIndex,
     implementation_index: crate::implementations::ImplementationIndex,
@@ -222,6 +232,8 @@ impl PublishedIndexSnapshot {
             )
         };
         Self {
+            generation: 0,
+            index_pass_ms: 0.0,
             codemap: files,
             event_index,
             implementation_index,
@@ -245,6 +257,14 @@ impl PublishedIndexSnapshot {
     }
     pub(crate) fn flows(&self) -> &crate::flow::FlowIndex {
         &self.flow_index
+    }
+
+    pub(crate) fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub(crate) fn index_pass_ms(&self) -> f64 {
+        self.index_pass_ms
     }
 
     pub fn codemap(&self) -> CodemapSnapshot {
@@ -346,6 +366,8 @@ pub struct IndexerHandle {
     sender: Option<SyncSender<IndexCommand>>,
     pub status: Arc<IndexerStatus>,
     snapshot: Arc<Mutex<Arc<PublishedIndexSnapshot>>>,
+    publications: tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
+    source_id: u64,
     generation_gate: Arc<RwLock<()>>,
     join_handle: Option<JoinHandle<()>>,
 }
@@ -374,6 +396,13 @@ impl IndexerHandle {
     /// The complete immutable index generation used by collection relation rendering.
     pub fn published_snapshot(&self) -> Arc<PublishedIndexSnapshot> {
         self.snapshot.lock().unwrap().clone()
+    }
+
+    pub(crate) fn snapshot_source(&self) -> SnapshotSource {
+        SnapshotSource {
+            id: self.source_id,
+            receiver: self.publications.subscribe(),
+        }
     }
 
     pub fn search_with_context(
@@ -454,12 +483,15 @@ impl Drop for IndexerHandle {
 pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
     let (sender, receiver) = sync_channel::<IndexCommand>(1);
     let status = Arc::new(IndexerStatus::default());
-    let snapshot: Arc<Mutex<Arc<PublishedIndexSnapshot>>> =
-        Arc::new(Mutex::new(Arc::new(PublishedIndexSnapshot::empty())));
+    let initial = Arc::new(PublishedIndexSnapshot::empty());
+    let (publications, _) = tokio::sync::watch::channel(Arc::clone(&initial));
+    let source_id = NEXT_PUBLICATION_ID.fetch_add(1, Ordering::Relaxed);
+    let snapshot: Arc<Mutex<Arc<PublishedIndexSnapshot>>> = Arc::new(Mutex::new(initial));
     let generation_gate = Arc::new(RwLock::new(()));
 
     let thread_status = Arc::clone(&status);
     let thread_snapshot = Arc::clone(&snapshot);
+    let thread_publications = publications.clone();
     let thread_generation_gate = Arc::clone(&generation_gate);
     let join_handle = std::thread::Builder::new()
         .name("codemap-indexer".to_string())
@@ -468,6 +500,7 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
             let is_initial_successful = run_refresh_pass(
                 &mut engine,
                 &thread_status,
+                &thread_publications,
                 &thread_snapshot,
                 &thread_generation_gate,
                 true,
@@ -503,6 +536,7 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
                     IndexCommand::Refresh => run_refresh_pass(
                         &mut engine,
                         &thread_status,
+                        &thread_publications,
                         &thread_snapshot,
                         &thread_generation_gate,
                         should_retry,
@@ -510,6 +544,7 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
                     IndexCommand::RefreshPaths(paths) => run_paths_pass(
                         &mut engine,
                         &thread_status,
+                        &thread_publications,
                         &thread_snapshot,
                         &thread_generation_gate,
                         paths,
@@ -527,6 +562,8 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
         sender: Some(sender),
         status,
         snapshot,
+        publications,
+        source_id,
         generation_gate,
         join_handle: Some(join_handle),
     }
@@ -537,19 +574,22 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
 fn run_refresh_pass(
     engine: &mut TantivySearchEngine,
     status: &IndexerStatus,
+    publications: &tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
     should_force_publish: bool,
 ) -> bool {
     let _config_scope = crate::config::pin_request();
+    let pass_started = std::time::Instant::now();
     let result = engine.index_files_changed_deferred(&["."]);
     publish_pass_result(
         engine,
         status,
+        publications,
         snapshot,
         generation_gate,
-        result,
-        should_force_publish,
+        result.map(|has_changes| has_changes || should_force_publish),
+        pass_started,
     )
 }
 
@@ -558,41 +598,48 @@ fn run_refresh_pass(
 fn run_paths_pass(
     engine: &mut TantivySearchEngine,
     status: &IndexerStatus,
+    publications: &tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
     paths: &[std::path::PathBuf],
     should_force_publish: bool,
 ) -> bool {
     let _config_scope = crate::config::pin_request();
+    let pass_started = std::time::Instant::now();
     let result = engine.refresh_paths_deferred(paths);
     publish_pass_result(
         engine,
         status,
+        publications,
         snapshot,
         generation_gate,
-        result,
-        should_force_publish,
+        result.map(|has_changes| has_changes || should_force_publish),
+        pass_started,
     )
 }
 
-/// Record a pass result on the shared status and republish the codemap snapshot when the
-/// index changed (or on the initial pass, to hydrate from a warm on-disk index).
+/// Record a pass result and republish the codemap snapshot when requested by the caller.
 fn publish_pass_result(
     engine: &TantivySearchEngine,
     status: &IndexerStatus,
+    publications: &tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
-    result: Result<bool, String>,
-    should_force_publish: bool,
+    should_publish: Result<bool, String>,
+    pass_started: std::time::Instant,
 ) -> bool {
     let publication = (|| -> Result<(), String> {
-        if result? || should_force_publish {
-            let published_snapshot = engine.load_published_snapshot()?;
+        if should_publish? {
+            let mut published_snapshot = engine.load_published_snapshot()?;
+            published_snapshot.generation = NEXT_PUBLICATION_ID.fetch_add(1, Ordering::Relaxed);
             // Build the derived data before taking the short generation lock. Failed
             // reconstruction keeps both the request reader and codemap on the old view.
             let _generation_guard = generation_gate.write().unwrap();
             engine.reload_reader()?;
-            *snapshot.lock().unwrap() = Arc::new(published_snapshot);
+            published_snapshot.index_pass_ms = pass_started.elapsed().as_secs_f64() * 1000.0;
+            let published_snapshot = Arc::new(published_snapshot);
+            *snapshot.lock().unwrap() = Arc::clone(&published_snapshot);
+            publications.send_replace(published_snapshot);
         }
         Ok(())
     })();

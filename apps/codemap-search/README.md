@@ -2,7 +2,7 @@
 
 [한국어](./README.ko.md) | English
 
-A self-contained MCP stdio server and CLI for coding agents. Map a repository, search extracted symbols, documentation and literals with BM25, then confirm the source with embedded `read`, `find` and `grep`. Tree-sitter grammars, Tantivy and ripgrep libraries are compiled into one Rust binary; no system `rg`, language server, external runtime, account or API key is required.
+A self-contained MCP stdio server and CLI for coding agents. Map a repository, search extracted symbols, documentation and literals with BM25, then confirm the source with embedded `read`, `find` and `grep`. Tree-sitter grammars, Tantivy and ripgrep libraries are compiled into one Rust binary; no system `rg`, language server, external runtime, account or API key is required. The default setup makes no network requests. Enabling related terms downloads the pinned dataset once unless `related_terms.dataset_path` supplies a local file; upgrades with the same dataset id reuse it.
 
 ## Install
 
@@ -101,6 +101,13 @@ Synchronization runs on MCP initialization, or the next request after a reloaded
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
 | `analyze` | Inspect index footprint or recorded reading activity as compact JSON | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
+| `synonyms` (opt-in) | Find alternative names by field and topic in the local sense dictionary | `terms`: 1–16 selected search words or short operation compounds |
+
+Set `related_terms.enabled = true` to expose `synonyms`; select semantic search terms before calling, for example `PaymentSource` → `{"terms":["payment"]}`. Do not forward a compound identifier or its mechanically spaced full name; omit context-irrelevant glue and role labels. Preparation runs in the background and reports its status without blocking other tools. Responses show at most 6 display groups and 20 direct, 10 near and 10 same-topic words per group, with truncation notes. Identical field/topics are merged within the same evidence tier; input parts share the display budget without displacing supported senses. The data release is not yet published for this source checkout: set `related_terms.dataset_path` to a local `rt-sense/5` file until it is available. The user's file is copied before indexing.
+
+Once codebase evidence is ready, `synonyms` prioritizes senses and words supported by indexed symbol names. It does not mine new synonyms or remove unsupported senses in production. While evidence is preparing, or when the input or every sense lacks support, it keeps the unfiltered dictionary result. Evidence follows index updates, including branch changes. Dictionary and evidence readiness appear before the word lists. Only `terms` is accepted: fields/topics are response labels, not input filters. Full lookup membership stays unchanged; the diagnostic attempt list shows up to 8 entries and reports omissions.
+
+The offline [Luna/Pi replay](../../docs/related-terms/luna-replay.html) reconstructs the earlier observation logs, including client validation rejections and timeouts. It is not a screen recording or a measurement of these later display improvements.
 
 The MCP tools `search`, `read` and `grep` share the optional boolean `include_seen` (default `false`). Repeated unchanged source is omitted, including short spans, boundary lines and repeats within the same response. `find` always returns its current results and has no `include_seen` option. New source stays, and each affected response contains one `<--removed duplicated-->` marker without repeated source locations or recovery instructions. Set `include_seen=true` to return the current tool result without this deduplication, including after context loss. Other selection, masking, truncation notices and output limits still apply. History is connection-local and clears on initialization, task registration or configuration reload; changed files provide fresh source. This rule also applies when Jev is off.
 
