@@ -9,6 +9,7 @@
 | [원자료와 근거 저장소](sources.md) | 외부 사전 자료와 고정 판, LLM 생성 자료, 임베딩 모델, 코드 저장소 12개 |
 | [알려진 결함](known-defects.md) | 현재 기본 데이터셋에서 확인한 결함, 빠졌을 수 있는 뜻, 확인하지 못한 것 |
 | [에이전트의 조회 도구 사용 평가](agent-usage-eval.md) | 코딩 에이전트가 사용법만 받고 식별자를 단어로 나눠 `sense_lookup.py`에 넣는지 보는 블라인드 평가 스크립트와 결과 |
+| [codemap-search 도입 설계](codemap-integration.md) | 데이터셋 배포, Rust 조회 구현, MCP 도구, 코드베이스 맞춤과 검증 계획 |
 | [뜻 데이터셋 구조 정리와 분야 매핑 확장](sense-mapping-log/README.md) | 평가 세트, `rt-sense/4` 구조, 분야가 하나뿐인 단어의 주제 매핑, 조회 검증의 단계별 기록 |
 | [관련어 사전 조회하기](../../apps/codemap-search/experiments/related-terms-poc/README.related.ko.md) | `rtpoc3 related` 사용법과 관련어 데이터셋 평가 결과 |
 
