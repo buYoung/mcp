@@ -98,7 +98,7 @@ def output_words(text):
     for line in text.splitlines():
         if not line.startswith(("Direct (", "Near (", "Same topic (", "Direct without a sense (")):
             continue
-        match = re.search(r"\(showing [0-9]+ of [0-9]+\): (.*)$", line)
+        match = re.search(r"\(showing [0-9]+ of [0-9]+(?:; [^)]*)?\): (.*)$", line)
         if match:
             words.update(word_key(word) for word in json.loads("[" + match.group(1) + "]"))
     return sorted(words)

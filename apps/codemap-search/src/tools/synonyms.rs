@@ -17,7 +17,7 @@ pub(crate) fn definition() -> Value {
             "type": "object", "additionalProperties": false,
             "properties": {"terms": {"type": "array", "minItems": 1, "maxItems": MAX_TERMS,
                 "items": {"type": "string", "minLength": 1},
-                "description": "Preselect lowercase target words/operation compounds only. Keep inflections and useful get/get_all separately. Required mappings are exact: no extra role, alias or instruction words."}},
+                "description": "Preselect lowercase target words, operation compounds or one-concept technical terms (`event bus`). Keep inflections and useful get/get_all separately. Required mappings are exact: no extra role, alias or instruction words."}},
             "required": ["terms"]
         }
     })
@@ -84,7 +84,8 @@ pub(crate) fn run(
             for answer in &mut answers {
                 #[cfg(feature = "related-terms-eval")]
                 let before = json!({"fields": answer.senses.iter().map(|sense| &sense.field).collect::<Vec<_>>(),
-                    "word_keys": candidate_keys(answer)});
+                    "word_keys": candidate_keys(answer), "resolution": answer.resolution,
+                    "senses": sense_memberships(answer)});
                 let decision = match (&evidence, runtime.dictionary()) {
                     (EvidenceView::Ready(snapshot), Some(dictionary)) => Some(crate::related_terms::overlay::apply(
                         answer, snapshot, dictionary, runtime.is_overlay_enabled(), runtime.should_remove())),
@@ -94,13 +95,16 @@ pub(crate) fn run(
                     (EvidenceView::Ready(snapshot), Some(decision)) => Some(decision.note(snapshot)),
                     _ => None,
                 };
-                let ranking_evidence = match (&evidence, &decision) {
-                    (EvidenceView::Ready(snapshot), Some(decision)) if decision.is_applied => Some(snapshot.as_ref()),
+                // Word presence is display-only, so it also helps when senses stay unfiltered.
+                let word_evidence = match &evidence {
+                    EvidenceView::Ready(snapshot) if runtime.is_overlay_enabled() => Some(snapshot.as_ref()),
                     _ => None,
                 };
                 text.push_str(&presentation::render(answer,
                     decision.as_ref().map_or(0, |decision| decision.supported_sense_count),
-                    ranking_evidence, &readiness, note.as_deref()));
+                    word_evidence,
+                    decision.as_ref().map_or(&[][..], |decision| &decision.sense_evidence),
+                    &readiness, note.as_deref()));
                 #[cfg(feature = "related-terms-eval")]
                 measurements.push(json!({
                     "input": answer.input, "before": before,
@@ -149,6 +153,29 @@ fn candidate_keys(answer: &LookupResult) -> std::collections::BTreeSet<String> {
                 .flat_map(|group| &group.direct),
         )
         .map(|word| crate::related_terms::normalize::word_key(word))
+        .collect()
+}
+
+/// Full relation memberships per sense, so evaluations can audit evidence judgments.
+#[cfg(feature = "related-terms-eval")]
+fn sense_memberships(answer: &LookupResult) -> Vec<Value> {
+    let keys = |words: &[String]| {
+        words
+            .iter()
+            .map(|word| crate::related_terms::normalize::word_key(word))
+            .collect::<Vec<_>>()
+    };
+    answer
+        .senses
+        .iter()
+        .map(|sense| {
+            json!({
+                "span": sense.span, "field": sense.field,
+                "topics": sense.topics.iter().map(|topic| &topic.topic).collect::<Vec<_>>(),
+                "direct": keys(&sense.full_groups.direct), "near": keys(&sense.full_groups.near),
+                "same_topic": keys(&sense.full_groups.same_topic),
+            })
+        })
         .collect()
 }
 

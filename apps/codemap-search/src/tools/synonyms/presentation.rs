@@ -1,6 +1,7 @@
 use crate::related_terms::evidence::EvidenceSnapshot;
 use crate::related_terms::lookup::{Topic, UnsortedDirect, WordGroups};
 use crate::related_terms::normalize::word_key;
+use crate::related_terms::overlay::{SenseEvidence, SenseSupport, MAX_SENSE_TERMS};
 use crate::related_terms::LookupResult;
 use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::fmt::Write;
@@ -22,6 +23,8 @@ struct DisplayGroup {
     spans: Vec<String>,
     words: WordGroups,
     has_evidence: bool,
+    support: SenseSupport,
+    terms: Vec<String>,
     has_omitted_words: bool,
 }
 
@@ -37,7 +40,11 @@ fn quoted(value: &str) -> String {
     serde_json::to_string(value).unwrap_or_else(|_| "\"\"".into())
 }
 
-fn grouped_senses(answer: &LookupResult, supported_sense_count: usize) -> Vec<DisplayGroup> {
+fn grouped_senses(
+    answer: &LookupResult,
+    supported_sense_count: usize,
+    sense_evidence: &[SenseEvidence],
+) -> Vec<DisplayGroup> {
     let mut groups: Vec<DisplayGroup> = Vec::new();
     let mut positions = BTreeMap::new();
     for (index, sense) in answer.senses.iter().enumerate() {
@@ -61,6 +68,8 @@ fn grouped_senses(answer: &LookupResult, supported_sense_count: usize) -> Vec<Di
                 spans: Vec::new(),
                 words: WordGroups::default(),
                 has_evidence,
+                support: SenseSupport::None,
+                terms: Vec::new(),
                 has_omitted_words: false,
             });
             groups.len() - 1
@@ -68,6 +77,14 @@ fn grouped_senses(answer: &LookupResult, supported_sense_count: usize) -> Vec<Di
         let group = &mut groups[position];
         if !group.spans.contains(&sense.span) {
             group.spans.push(sense.span.clone());
+        }
+        if let Some(judged) = sense_evidence.get(index) {
+            group.support = group.support.max(judged.support);
+            for term in &judged.terms {
+                if group.terms.len() < MAX_SENSE_TERMS && !group.terms.contains(term) {
+                    group.terms.push(term.clone());
+                }
+            }
         }
         group
             .words
@@ -237,7 +254,13 @@ fn select_groups(
     (display, direct)
 }
 
-fn render_words(text: &mut String, label: &str, words: &[String], cap: usize) {
+fn render_words(
+    text: &mut String,
+    label: &str,
+    words: &[String],
+    cap: usize,
+    evidence: Option<&EvidenceSnapshot>,
+) {
     if words.is_empty() {
         return;
     }
@@ -248,17 +271,47 @@ fn render_words(text: &mut String, label: &str, words: &[String], cap: usize) {
         .map(|word| quoted(word))
         .collect::<Vec<_>>()
         .join(", ");
+    // `place_words` orders words found in code first, so the count names the shown prefix.
+    let presence = evidence.map_or_else(String::new, |evidence| {
+        let present = words
+            .iter()
+            .take(shown)
+            .filter(|word| evidence.words.contains_key(&word_key(word)))
+            .count();
+        format!("; {present} in code")
+    });
     let _ = writeln!(
         text,
-        "{label} (showing {shown} of {}): {values}",
+        "{label} (showing {shown} of {}{presence}): {values}",
         words.len()
     );
 }
 
+/// Most supported senses only have related words in code, so that common level stays
+/// unlabeled to keep responses small; the description documents the convention.
+fn support_note(group: &DisplayGroup) -> String {
+    match group.support {
+        SenseSupport::SenseTerm => format!(
+            " (code uses {})",
+            group
+                .terms
+                .iter()
+                .map(|term| quoted(term))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        SenseSupport::RelatedWords => String::new(),
+        SenseSupport::None => " (no related words in code)".into(),
+    }
+}
+
+/// `evidence` orders and counts words found in code whenever codebase evidence is ready;
+/// `sense_evidence` is non-empty only when the overlay judged and reordered senses.
 pub(super) fn render(
     answer: &LookupResult,
     supported_sense_count: usize,
     evidence: Option<&EvidenceSnapshot>,
+    sense_evidence: &[SenseEvidence],
     readiness: &str,
     evidence_note: Option<&str>,
 ) -> String {
@@ -319,7 +372,7 @@ pub(super) fn render(
         let _ = writeln!(text, "Not in the dictionary.\n");
         return text;
     }
-    let groups = grouped_senses(answer, supported_sense_count);
+    let groups = grouped_senses(answer, supported_sense_count, sense_evidence);
     let (display, direct) = select_groups(&groups, answer, evidence);
     let _ = writeln!(
         text,
@@ -337,9 +390,14 @@ pub(super) fn render(
             .map(|topic| quoted(&topic.label))
             .collect::<Vec<_>>()
             .join(", ");
+        let support = if sense_evidence.is_empty() {
+            String::new()
+        } else {
+            support_note(group)
+        };
         let _ = writeln!(
             text,
-            "### {} [{}] — {topics}",
+            "### {} [{}] — {topics}{support}",
             quoted(&group.field_label),
             group.field
         );
@@ -362,13 +420,20 @@ pub(super) fn render(
                 text.push_str("Related words are already shown in another group.\n");
             }
         }
-        render_words(&mut text, "Direct", &group.words.direct, MAX_DIRECT);
-        render_words(&mut text, "Near", &group.words.near, MAX_NEAR);
+        render_words(
+            &mut text,
+            "Direct",
+            &group.words.direct,
+            MAX_DIRECT,
+            evidence,
+        );
+        render_words(&mut text, "Near", &group.words.near, MAX_NEAR, evidence);
         render_words(
             &mut text,
             "Same topic",
             &group.words.same_topic,
             MAX_SAME_TOPIC,
+            evidence,
         );
     }
     for group in &direct {
@@ -377,6 +442,7 @@ pub(super) fn render(
             &format!("Direct without a sense ({})", quoted(&group.span)),
             &group.direct,
             MAX_DIRECT,
+            evidence,
         );
     }
     if display.is_empty() && direct.iter().all(|group| group.direct.is_empty()) {

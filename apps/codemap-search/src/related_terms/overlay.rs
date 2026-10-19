@@ -1,8 +1,12 @@
 use super::evidence::{Dictionary, EvidenceSnapshot};
 use super::normalize::word_key;
-use super::LookupResult;
+use super::{LookupResult, SenseResult};
+use crate::parser::split_identifier;
 use serde::Serialize;
 use std::collections::HashSet;
+
+/// Sense terms named per sense; the display names the evidence instead of every match.
+pub(crate) const MAX_SENSE_TERMS: usize = 2;
 
 #[derive(Serialize)]
 pub(crate) struct RemovedSense {
@@ -12,15 +16,46 @@ pub(crate) struct RemovedSense {
     pub reason: &'static str,
 }
 
+/// Code evidence for one sense, weakest first. Same-topic words alone are too generic to
+/// support a sense: on 12 pinned repositories every field had evidence and no sense moved.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum SenseSupport {
+    #[default]
+    None,
+    /// A direct or near relation other than the input's own forms appears in code.
+    RelatedWords,
+    /// A direct sense term that contains the input appears in code (`event bus` for `bus`).
+    SenseTerm,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub(crate) struct SenseEvidence {
+    pub support: SenseSupport,
+    /// Present sense terms that contain the input, at most `MAX_SENSE_TERMS`.
+    pub terms: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct InputPart {
+    pub span: String,
+    pub file_count: u64,
+    pub occurrence_count: u64,
+}
+
 #[derive(Default, Serialize)]
 pub(crate) struct OverlayDecision {
     pub is_input_present: bool,
     pub input_file_count: u64,
     pub input_occurrence_count: u64,
+    /// Present resolved parts of a phrase input that has no dictionary key of its own.
+    pub input_parts: Vec<InputPart>,
     pub is_applied: bool,
     /// The supported prefix after overlay ordering; presentation must keep it first.
     #[serde(skip)]
     pub(crate) supported_sense_count: usize,
+    /// Evidence per sense in the final sense order; empty unless applied.
+    pub sense_evidence: Vec<SenseEvidence>,
     pub moved_sense_count: usize,
     pub removed_sense_count: usize,
     pub removed_senses: Vec<RemovedSense>,
@@ -29,10 +64,28 @@ pub(crate) struct OverlayDecision {
 
 impl OverlayDecision {
     pub fn note(&self, evidence: &EvidenceSnapshot) -> String {
-        let source = format!(
-            "input files: {}, occurrences: {}, generation {}",
-            self.input_file_count, self.input_occurrence_count, evidence.generation
-        );
+        let input = if self.input_parts.is_empty() {
+            format!(
+                "input files: {}, occurrences: {}",
+                self.input_file_count, self.input_occurrence_count
+            )
+        } else {
+            let parts = self
+                .input_parts
+                .iter()
+                .map(|part| {
+                    format!(
+                        "{} (files: {}, occurrences: {})",
+                        serde_json::to_string(&part.span).unwrap_or_default(),
+                        part.file_count,
+                        part.occurrence_count
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("input parts: {parts}")
+        };
+        let source = format!("{input}, generation {}", evidence.generation);
         if self.is_applied {
             format!(
                 "Codebase evidence: moved back {} senses; removed {} senses ({source}).\n",
@@ -86,6 +139,88 @@ fn redisplay(answer: &mut LookupResult, evidence: &EvidenceSnapshot) {
     answer.candidate_count = placed.len();
 }
 
+/// Phrase inputs resolved by parts (`measure worker`) have no dictionary key, so their own
+/// evidence is never counted; they are present when every resolved part is present.
+fn present_parts(answer: &LookupResult, evidence: &EvidenceSnapshot) -> Vec<InputPart> {
+    if answer.resolution.mode != "parts" {
+        return Vec::new();
+    }
+    answer
+        .resolution
+        .seeds
+        .iter()
+        .map(|seed| {
+            evidence
+                .words
+                .get(&word_key(&seed.span))
+                .map(|counts| InputPart {
+                    span: seed.span.clone(),
+                    file_count: counts.file_count,
+                    occurrence_count: counts.occurrence_count,
+                })
+        })
+        .collect::<Option<Vec<_>>>()
+        .unwrap_or_default()
+}
+
+fn tokens(text: &str) -> Vec<String> {
+    text.split_whitespace().flat_map(split_identifier).collect()
+}
+
+/// Inflections and derivations (`workers`, `measured`) name the input itself, not one sense.
+fn is_input_form(token: &str, input: &str) -> bool {
+    let is_plural = |longer: &str, shorter: &str| {
+        longer
+            .strip_prefix(shorter)
+            .is_some_and(|ending| ending == "s" || ending == "es")
+    };
+    token == input
+        || is_plural(token, input)
+        || is_plural(input, token)
+        || (input.len() >= 4
+            && token.len() >= 4
+            && (token.starts_with(input) || input.starts_with(token)))
+}
+
+fn contains_input(word: &[String], input: &[String]) -> bool {
+    !input.is_empty()
+        && word.windows(input.len()).any(|window| {
+            window
+                .iter()
+                .zip(input)
+                .all(|(token, part)| is_input_form(token, part))
+        })
+}
+
+fn sense_evidence(sense: &SenseResult, evidence: &EvidenceSnapshot) -> SenseEvidence {
+    let input = tokens(&sense.span);
+    let mut result = SenseEvidence::default();
+    for (words, is_direct) in [
+        (&sense.full_groups.direct, true),
+        (&sense.full_groups.near, false),
+    ] {
+        for word in words {
+            if !evidence.words.contains_key(&word_key(word)) {
+                continue;
+            }
+            let word_tokens = tokens(word);
+            if !contains_input(&word_tokens, &input) {
+                result.support = result.support.max(SenseSupport::RelatedWords);
+            } else if word_tokens.len() > input.len() {
+                if is_direct {
+                    result.support = SenseSupport::SenseTerm;
+                    if result.terms.len() < MAX_SENSE_TERMS {
+                        result.terms.push(word.clone());
+                    }
+                } else {
+                    result.support = result.support.max(SenseSupport::RelatedWords);
+                }
+            }
+        }
+    }
+    result
+}
+
 pub(crate) fn apply(
     answer: &mut LookupResult,
     evidence: &EvidenceSnapshot,
@@ -94,10 +229,16 @@ pub(crate) fn apply(
     should_remove: bool,
 ) -> OverlayDecision {
     let input_evidence = evidence.words.get(&word_key(&answer.input));
+    let input_parts = if input_evidence.is_some() {
+        Vec::new()
+    } else {
+        present_parts(answer, evidence)
+    };
     let mut decision = OverlayDecision {
-        is_input_present: input_evidence.is_some(),
+        is_input_present: input_evidence.is_some() || !input_parts.is_empty(),
         input_file_count: input_evidence.map_or(0, |counts| counts.file_count),
         input_occurrence_count: input_evidence.map_or(0, |counts| counts.occurrence_count),
+        input_parts,
         reason: "input absent from indexed code",
         ..OverlayDecision::default()
     };
@@ -126,35 +267,40 @@ pub(crate) fn apply(
             .count();
         evidence.field_word_counts.get(field).copied().unwrap_or(0) > input_members
     };
-    let supported = answer
-        .senses
-        .iter()
-        .map(|sense| {
-            field_supported(&sense.field)
-                && sense
-                    .full_word_keys
-                    .iter()
-                    .any(|key| evidence.words.contains_key(key))
-        })
-        .collect::<Vec<_>>();
-    if !supported.iter().any(|value| *value) {
+    // Removal keeps its measured rule: only a sense with no word in code, or whose field has
+    // none, is removable. Evidence levels below only order and label the kept senses.
+    let has_code_word = |sense: &SenseResult| {
+        field_supported(&sense.field)
+            && sense
+                .full_word_keys
+                .iter()
+                .any(|key| evidence.words.contains_key(key))
+    };
+    if !answer.senses.iter().any(has_code_word) {
         decision.reason = "no supporting sense; keeping all senses";
         return decision;
     }
-    decision.is_applied = true;
-    decision.supported_sense_count = supported
+    let judged = answer
+        .senses
         .iter()
-        .filter(|is_supported| **is_supported)
-        .count();
+        .map(|sense| {
+            if field_supported(&sense.field) {
+                sense_evidence(sense, evidence)
+            } else {
+                SenseEvidence::default()
+            }
+        })
+        .collect::<Vec<_>>();
+    decision.is_applied = true;
     decision.reason = "applied";
     let mut ranked = std::mem::take(&mut answer.senses)
         .into_iter()
-        .enumerate()
-        .map(|(index, sense)| (index, supported[index], sense))
+        .zip(judged)
         .collect::<Vec<_>>();
     if should_remove {
-        ranked.retain(|(_, is_supported, sense)| {
-            if !*is_supported {
+        ranked.retain(|(sense, _)| {
+            let is_removable = !has_code_word(sense);
+            if is_removable {
                 decision.removed_senses.push(RemovedSense {
                     field: sense.field.clone(),
                     topics: sense
@@ -170,20 +316,25 @@ pub(crate) fn apply(
                     },
                 });
             }
-            *is_supported
+            !is_removable
         });
         decision.removed_sense_count = decision.removed_senses.len();
-    } else {
-        ranked.sort_by_key(|(_, is_supported, _)| !*is_supported);
-        decision.moved_sense_count = ranked
-            .iter()
-            .enumerate()
-            .filter(|(new_index, (old_index, is_supported, _))| {
-                !*is_supported && new_index > old_index
-            })
-            .count();
     }
-    answer.senses = ranked.into_iter().map(|(_, _, sense)| sense).collect();
+    // A stable sort keeps the dictionary order within each evidence level.
+    let mut ranked = ranked.into_iter().enumerate().collect::<Vec<_>>();
+    ranked.sort_by_key(|(_, (_, judged))| std::cmp::Reverse(judged.support));
+    decision.moved_sense_count = ranked
+        .iter()
+        .enumerate()
+        .filter(|(new_index, (old_index, _))| new_index > old_index)
+        .count();
+    decision.supported_sense_count = ranked
+        .iter()
+        .filter(|(_, (_, judged))| judged.support != SenseSupport::None)
+        .count();
+    let (senses, judged): (Vec<_>, Vec<_>) = ranked.into_iter().map(|(_, pair)| pair).unzip();
+    answer.senses = senses;
+    decision.sense_evidence = judged;
     redisplay(answer, evidence);
     decision
 }

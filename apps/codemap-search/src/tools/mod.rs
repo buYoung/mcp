@@ -204,19 +204,23 @@ pub(crate) fn arg_required_str<'a>(
 /// Shared connection-level bootstrap, embedded in the self-contained binary. `server.md` is
 /// the format string, so literal braces in it must be written as `{{` and `}}`.
 pub fn server_instructions() -> String {
-    with_related_terms_guidance(
-        format!(
-            include_str!("instructions/server.md"),
-            shell_commands = shell_command_replacements()
-        )
-        .trim_end()
-        .to_string(),
+    let mut text = format!(
+        include_str!("instructions/server.md"),
+        shell_commands = shell_command_replacements()
     )
+    .trim_end()
+    .to_string();
+    if crate::config::get().related_terms.enabled {
+        // Codex repeats server instructions in every tool description it lists, so the
+        // selection rules live in `initial_instructions` and the synonyms description.
+        text.push_str("\n\nFor behavior/flow discovery, read the full synonyms description, then call it once with `terms` before the first search/grep.");
+    }
+    text
 }
 
 fn with_related_terms_guidance(mut text: String) -> String {
     if crate::config::get().related_terms.enabled {
-        text.push_str("\n\nFor behavior/flow discovery, first read synonyms' full description and schema, not a clipped tool preview. Select inputs BEFORE calling: use only the argument key `terms` (not `query`), with an array of lowercase target words. Each item is one selected word or a useful short operation compound, never a whole/space-joined domain or type name or an invented alternative. Keep inflections and useful base words (get AND get_all); obey the exact mappings. Then call once before search/grep, even for known names, and verify relevant returned alternatives alongside the originals. Do not force unrelated alternatives.");
+        text.push_str("\n\nFor behavior/flow discovery, first read synonyms' full description and schema, not a clipped tool preview. Select inputs BEFORE calling: use only the argument key `terms` (not `query`), with an array of lowercase targets. Split identifiers into selected words; keep a technical term that names one concept as one spaced item (`event bus`); never send a whole identifier or an invented alternative. Keep inflections and useful base words (get AND get_all); obey the exact mappings. Then call once before search/grep, even for known names, and verify relevant returned alternatives alongside the originals. Do not force unrelated alternatives.");
     }
     text
 }

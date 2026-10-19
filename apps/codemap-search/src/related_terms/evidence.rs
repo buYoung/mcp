@@ -168,9 +168,11 @@ fn texts(file: &ExtractedFile, scope: EvidenceScope) -> impl Iterator<Item = (&s
     } else {
         &[][..]
     };
+    // Data members count as declarations: languages that index them as symbols already do.
     file.symbols
         .iter()
         .map(|symbol| (symbol.name.as_str(), true))
+        .chain(file.member_names.iter().map(|name| (name.as_str(), true)))
         .chain(docstrings.iter().map(|text| (text.as_str(), false)))
         .chain(
             literals

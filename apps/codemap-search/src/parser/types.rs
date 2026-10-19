@@ -209,6 +209,11 @@ pub struct ExtractedFile {
     pub symbols: Vec<ExtractedSymbol>,
     pub literals: Vec<ExtractedLiteral>,
     pub docstrings: Vec<String>,
+    /// Declared data-member names (fields, property signatures, parameter properties, enum
+    /// members) for languages whose symbol query does not index them. Only related-terms
+    /// codebase evidence reads these; search ranking and codemap views ignore them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub member_names: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub navigation: Option<NavigationFile>,
 }

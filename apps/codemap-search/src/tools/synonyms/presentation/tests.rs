@@ -80,7 +80,7 @@ fn render_supported(answer: &LookupResult) -> String {
         words,
         field_word_counts: BTreeMap::new(),
     };
-    render(answer, answer.senses.len(), Some(&evidence), "", None)
+    render(answer, answer.senses.len(), Some(&evidence), &[], "", None)
 }
 
 fn overflowing_words(cap: usize) -> Vec<String> {
@@ -115,12 +115,15 @@ fn test_related_terms_display_caps_place_only_visible_words() {
         }
         let text = render_supported(&answer(vec![first, second]));
         assert!(
-            text.contains(&format!("{label} (showing {cap} of {}):", cap + 1)),
+            text.contains(&format!(
+                "{label} (showing {cap} of {}; {cap} in code):",
+                cap + 1
+            )),
             "{text}"
         );
         let second = text.split("### ").nth(2).unwrap();
         assert!(
-            second.contains(&format!("{label} (showing 1 of 1): \"shared\"")),
+            second.contains(&format!("{label} (showing 1 of 1; 1 in code): \"shared\"")),
             "{text}"
         );
         assert_eq!(text.matches("\"shared\"").count(), 1, "{text}");
@@ -138,7 +141,7 @@ fn test_related_terms_display_caps_place_only_visible_words() {
             direct: vec!["shared".into()],
         },
     ];
-    let text = render(&direct, 0, None, "", None);
+    let text = render(&direct, 0, None, &[], "", None);
     assert!(
         text.contains("Direct without a sense (\"second\") (showing 1 of 1): \"shared\""),
         "{text}"

@@ -276,6 +276,7 @@ pub(super) mod fixtures {
             symbols,
             literals: vec![],
             docstrings: vec![],
+            member_names: vec![],
             navigation: None,
         }
     }

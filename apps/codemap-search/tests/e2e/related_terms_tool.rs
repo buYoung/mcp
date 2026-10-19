@@ -148,9 +148,10 @@ async fn test_related_terms_tool_schema_groups_and_input_cap() {
         let text = response_text(&answer);
         assert!(text.contains("Senses (showing 6 of 8)"), "{text}");
         assert_eq!(text.matches("### ").count(), 6);
-        assert!(text.contains("Direct (showing 20 of 25)"), "{text}");
-        assert!(text.contains("Near (showing 10 of 15)"), "{text}");
-        assert!(text.contains("Same topic (showing 10 of 15)"), "{text}");
+        // Ready evidence appends word presence inside the same parentheses.
+        assert!(text.contains("Direct (showing 20 of 25"), "{text}");
+        assert!(text.contains("Near (showing 10 of 15"), "{text}");
+        assert!(text.contains("Same topic (showing 10 of 15"), "{text}");
         assert!(text.len() <= 100_000);
         let missing = client.call("tools/call", json!({"name":"synonyms","arguments":{"terms":["zzzxmissingzz"]}})).await.unwrap();
         assert!(response_text(&missing).contains("Not in the dictionary"));
@@ -297,13 +298,16 @@ async fn test_related_terms_tool_keeps_shared_words_hidden_by_an_earlier_cap() {
             .await
             .unwrap();
         let text = response_text(&result);
-        assert!(text.contains("Direct (showing 20 of 25)"), "{text}");
+        assert!(
+            text.contains("Direct (showing 20 of 25; 20 in code)"),
+            "{text}"
+        );
         let shared = text
             .split("### ")
             .find(|section| section.contains("[field9]"))
             .unwrap();
         assert!(
-            shared.contains("Direct (showing 1 of 1): \"direct1x24\""),
+            shared.contains("Direct (showing 1 of 1; 1 in code): \"direct1x24\""),
             "{text}"
         );
         assert!(!shared.contains("already shown"), "{text}");
