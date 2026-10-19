@@ -17,7 +17,7 @@ pub(crate) fn definition() -> Value {
             "type": "object", "additionalProperties": false,
             "properties": {"terms": {"type": "array", "minItems": 1, "maxItems": MAX_TERMS,
                 "items": {"type": "string", "minLength": 1},
-                "description": "Preselect lowercase target words, operation compounds or one-concept technical terms (`event bus`). Keep inflections and useful get/get_all separately. Required mappings are exact: no extra role, alias or instruction words."}},
+                "description": "Preselect lowercase target words, operation compounds or one-concept technical terms (`abort signal`). Keep inflections and useful find/find_by separately; add no role, alias or instruction words."}},
             "required": ["terms"]
         }
     })

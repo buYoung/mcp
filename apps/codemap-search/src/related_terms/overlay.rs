@@ -25,7 +25,7 @@ pub(crate) enum SenseSupport {
     None,
     /// A direct or near relation other than the input's own forms appears in code.
     RelatedWords,
-    /// A direct sense term that contains the input appears in code (`event bus` for `bus`).
+    /// A direct sense term that contains the input appears in code (`abort signal` for `signal`).
     SenseTerm,
 }
 
@@ -139,7 +139,7 @@ fn redisplay(answer: &mut LookupResult, evidence: &EvidenceSnapshot) {
     answer.candidate_count = placed.len();
 }
 
-/// Phrase inputs resolved by parts (`measure worker`) have no dictionary key, so their own
+/// Phrase inputs resolved by parts (`draft autosave`) have no dictionary key, so their own
 /// evidence is never counted; they are present when every resolved part is present.
 fn present_parts(answer: &LookupResult, evidence: &EvidenceSnapshot) -> Vec<InputPart> {
     if answer.resolution.mode != "parts" {
@@ -167,7 +167,7 @@ fn tokens(text: &str) -> Vec<String> {
     text.split_whitespace().flat_map(split_identifier).collect()
 }
 
-/// Inflections and derivations (`workers`, `measured`) name the input itself, not one sense.
+/// Inflections and derivations (`drafts`, `saved`) name the input itself, not one sense.
 fn is_input_form(token: &str, input: &str) -> bool {
     let is_plural = |longer: &str, shorter: &str| {
         longer

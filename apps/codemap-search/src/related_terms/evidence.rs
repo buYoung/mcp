@@ -66,17 +66,19 @@ impl EvidenceOptions {
                 Ok("literals") => EvidenceScope::Literals,
                 _ => EvidenceScope::Symbols,
             };
-            return Self {
+            Self {
                 scope,
                 is_overlay_enabled: true,
                 should_remove: std::env::var("CODEMAP_RELATED_TERMS_EVAL_REMOVE").as_deref()
                     == Ok("1"),
                 report_path: std::env::var_os("CODEMAP_RELATED_TERMS_EVAL_REPORT")
                     .map(std::path::PathBuf::from),
-            };
+            }
         }
         #[cfg(not(feature = "related-terms-eval"))]
-        Self::default()
+        {
+            Self::default()
+        }
     }
 }
 

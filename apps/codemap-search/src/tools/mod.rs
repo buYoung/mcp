@@ -220,7 +220,7 @@ pub fn server_instructions() -> String {
 
 fn with_related_terms_guidance(mut text: String) -> String {
     if crate::config::get().related_terms.enabled {
-        text.push_str("\n\nFor behavior/flow discovery, first read synonyms' full description and schema, not a clipped tool preview. Select inputs BEFORE calling: use only the argument key `terms` (not `query`), with an array of lowercase targets. Split identifiers into selected words; keep a technical term that names one concept as one spaced item (`event bus`); never send a whole identifier or an invented alternative. Keep inflections and useful base words (get AND get_all); obey the exact mappings. Then call once before search/grep, even for known names, and verify relevant returned alternatives alongside the originals. Do not force unrelated alternatives.");
+        text.push_str("\n\nFor behavior/flow discovery, first read synonyms' full description and schema, not a clipped tool preview. Select inputs BEFORE calling: use only the argument key `terms` (not `query`), with an array of lowercase targets. Split identifiers into selected words; keep a technical term that names one concept as one spaced item (`abort signal`); never send a whole identifier or an invented alternative. Keep inflections and useful base words (find AND find_by). Then call once before search/grep, even for known names, and verify relevant returned alternatives alongside the originals. Do not force unrelated alternatives.");
     }
     text
 }
