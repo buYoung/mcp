@@ -216,7 +216,7 @@ pub fn server_instructions() -> String {
 
 fn with_related_terms_guidance(mut text: String) -> String {
     if crate::config::get().related_terms.enabled {
-        text.push_str("\n\nUse synonyms for alternative code names. Select target words first, obey its required mappings exactly, then verify with search or grep.");
+        text.push_str("\n\nFor behavior/flow discovery, first read synonyms' full description and schema, not a clipped tool preview. Select inputs BEFORE calling: use only the argument key `terms` (not `query`), with an array of lowercase target words. Each item is one selected word or a useful short operation compound, never a whole/space-joined domain or type name or an invented alternative. Keep inflections and useful base words (get AND get_all); obey the exact mappings. Then call once before search/grep, even for known names, and verify relevant returned alternatives alongside the originals. Do not force unrelated alternatives.");
     }
     text
 }
