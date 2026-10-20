@@ -91,10 +91,7 @@ pub(crate) fn run(
                         answer, snapshot, dictionary, runtime.is_overlay_enabled(), runtime.should_remove())),
                     _ => None,
                 };
-                let note = match (&evidence, &decision) {
-                    (EvidenceView::Ready(snapshot), Some(decision)) => Some(decision.note(snapshot)),
-                    _ => None,
-                };
+                let note = decision.as_ref().map(|decision| decision.note());
                 // Word presence is display-only, so it also helps when senses stay unfiltered.
                 let word_evidence = match &evidence {
                     EvidenceView::Ready(snapshot) if runtime.is_overlay_enabled() => Some(snapshot.as_ref()),

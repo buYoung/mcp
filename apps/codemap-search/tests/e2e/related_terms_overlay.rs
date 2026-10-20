@@ -29,13 +29,6 @@ fn fields(text: &str) -> Vec<&str> {
         .collect()
 }
 
-fn without_generation(text: &str) -> String {
-    regex::Regex::new(r"generation [0-9]+")
-        .unwrap()
-        .replace_all(text, "generation N")
-        .into_owned()
-}
-
 #[tokio::test(flavor = "current_thread")]
 async fn test_related_terms_overlay_updates_after_edits_and_late_dataset_readiness() {
     let repo = tempfile::tempdir().unwrap();
@@ -74,7 +67,8 @@ async fn test_related_terms_overlay_updates_after_edits_and_late_dataset_readine
         }).await.unwrap();
         assert_eq!(fields(response_text(&first)).first(), Some(&"field7"), "{first}");
         assert!(response_text(&first).contains("showing 6 of 8"));
-        assert!(response_text(&first).contains("removed 0 senses"));
+        // Production never removes senses, so the evidence note carries no removal count.
+        assert!(!response_text(&first).contains("; removed "), "{first}");
         let prepared_before = fs::read(root.join("related-terms/local/tool-fixture/dataset.sqlite3")).unwrap();
         let aliases = client.call_tool_until("synonyms", json!({"terms":["AbortSignal"]}), |text| text.contains("input files: 2, occurrences: 2")).await.unwrap();
         assert!(response_text(&aliases).contains("input files: 2, occurrences: 2"), "{aliases}");
@@ -93,9 +87,9 @@ async fn test_related_terms_overlay_updates_after_edits_and_late_dataset_readine
         assert_eq!(fields(shared_text).get(..3), Some(&["field2", "field7", "field8"][..]), "{shared_text}");
         assert_eq!(shared_text.matches("\"context\"").count(), 1, "{shared_text}");
         fs::remove_file(root.join("added.rs")).unwrap();
-        let expected = without_generation(response_text(&edited));
-        let restored = client.call_tool_until("synonyms", json!({"terms":["token"]}), |text| without_generation(text) == expected).await.unwrap();
-        assert_eq!(without_generation(response_text(&restored)), expected);
+        let expected = response_text(&edited).to_string();
+        let restored = client.call_tool_until("synonyms", json!({"terms":["token"]}), |text| text == expected).await.unwrap();
+        assert_eq!(response_text(&restored), expected);
         assert_eq!(fs::read(root.join("related-terms/local/tool-fixture/dataset.sqlite3")).unwrap(), prepared_before);
     }).await;
 }

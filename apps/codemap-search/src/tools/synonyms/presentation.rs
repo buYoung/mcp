@@ -331,45 +331,67 @@ pub(super) fn render(
     if whole != answer.input {
         let _ = writeln!(text, "Identifier words: {}", quoted(&whole));
     }
-    let looked_up = answer
-        .looked_up_inputs
-        .iter()
-        .take(MAX_LOOKED_UP_INPUTS)
-        .map(|word| quoted(word))
-        .collect::<Vec<_>>()
-        .join(", ");
-    let _ = writeln!(text, "Looked up: {looked_up}");
-    if answer.looked_up_inputs.len() > MAX_LOOKED_UP_INPUTS {
+    // Lookup diagnostics that only repeat the input carry no information.
+    let is_single_attempt =
+        answer.looked_up_inputs.len() == 1 && answer.looked_up_inputs[0] == answer.input;
+    if !is_single_attempt {
+        let looked_up = answer
+            .looked_up_inputs
+            .iter()
+            .take(MAX_LOOKED_UP_INPUTS)
+            .map(|word| quoted(word))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(text, "Looked up: {looked_up}");
+        if answer.looked_up_inputs.len() > MAX_LOOKED_UP_INPUTS {
+            let _ = writeln!(
+                text,
+                "Lookup attempts omitted: {} (diagnostic list only).",
+                answer.looked_up_inputs.len() - MAX_LOOKED_UP_INPUTS
+            );
+        }
+    }
+    let is_identity_resolution = answer.resolution.mode == "whole"
+        && matches!(answer.resolution.seeds.as_slice(),
+            [seed] if seed.span == answer.input && seed.terms.len() == 1 && seed.terms[0] == answer.input);
+    if !is_identity_resolution {
+        let resolved = answer
+            .resolution
+            .seeds
+            .iter()
+            .map(|seed| {
+                format!(
+                    "{} => {}",
+                    quoted(&seed.span),
+                    seed.terms
+                        .iter()
+                        .map(|word| quoted(word))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
         let _ = writeln!(
             text,
-            "Lookup attempts omitted: {} (diagnostic list only).",
-            answer.looked_up_inputs.len() - MAX_LOOKED_UP_INPUTS
+            "Resolved inputs ({}): {resolved}",
+            answer.resolution.mode
         );
     }
-    let resolved = answer
-        .resolution
-        .seeds
-        .iter()
-        .map(|seed| {
-            format!(
-                "{} => {}",
-                quoted(&seed.span),
-                seed.terms
-                    .iter()
-                    .map(|word| quoted(word))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("; ");
-    let _ = writeln!(
-        text,
-        "Resolved inputs ({}): {resolved}",
-        answer.resolution.mode
-    );
     if answer.status == "no_match" {
-        let _ = writeln!(text, "Not in the dictionary.\n");
+        let _ = writeln!(text, "Not in the dictionary.");
+        // The dictionary holds English code words, so a non-English word never matches.
+        if answer
+            .input
+            .chars()
+            .any(|c| c.is_alphabetic() && !c.is_ascii())
+        {
+            let _ = writeln!(
+                text,
+                "Dictionary terms are English code words; retry with the English term used in code."
+            );
+        }
+        text.push('\n');
         return text;
     }
     let groups = grouped_senses(answer, supported_sense_count, sense_evidence);

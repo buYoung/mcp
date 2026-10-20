@@ -4,7 +4,7 @@ use super::RelatedTermsLookup;
 use crate::index::{PublishedIndexSnapshot, SnapshotSource};
 use crate::parser::ExtractedFile;
 use serde::Serialize;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::watch;
@@ -171,10 +171,27 @@ fn texts(file: &ExtractedFile, scope: EvidenceScope) -> impl Iterator<Item = (&s
         &[][..]
     };
     // Data members count as declarations: languages that index them as symbols already do.
+    // Imported and called names are code words too, even when a dependency declares them
+    // (`EventEmitter`, `publish`); each distinct name counts once per file.
+    let used = file
+        .navigation
+        .iter()
+        .flat_map(|navigation| {
+            navigation
+                .imports
+                .iter()
+                .flat_map(|import| {
+                    std::iter::once(import.local_name.as_str())
+                        .chain(import.imported_name.as_deref())
+                })
+                .chain(navigation.calls.iter().map(|call| call.name.as_str()))
+        })
+        .collect::<BTreeSet<_>>();
     file.symbols
         .iter()
         .map(|symbol| (symbol.name.as_str(), true))
         .chain(file.member_names.iter().map(|name| (name.as_str(), true)))
+        .chain(used.into_iter().map(|name| (name, true)))
         .chain(docstrings.iter().map(|text| (text.as_str(), false)))
         .chain(
             literals

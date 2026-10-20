@@ -259,7 +259,7 @@ async fn test_related_terms_tool_balancing_preserves_supported_prefix() {
             !text.contains("[field9]"),
             "unsupported input parts must not displace supported senses: {text}"
         );
-        assert!(text.contains("removed 0 senses"), "{text}");
+        assert!(!text.contains("; removed "), "{text}");
         assert!(
             text.find("Codebase evidence:").unwrap() < text.find("Looked up:").unwrap(),
             "{text}"
@@ -312,7 +312,7 @@ async fn test_related_terms_tool_keeps_shared_words_hidden_by_an_earlier_cap() {
         );
         assert!(!shared.contains("already shown"), "{text}");
         assert_eq!(text.matches("\"direct1x24\"").count(), 1, "{text}");
-        assert!(text.contains("removed 0 senses"), "{text}");
+        assert!(!text.contains("; removed "), "{text}");
     })
     .await;
     assert_eq!(fs::read(&dataset).unwrap(), before);

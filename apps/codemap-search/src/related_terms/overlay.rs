@@ -62,8 +62,12 @@ pub(crate) struct OverlayDecision {
     pub reason: &'static str,
 }
 
+fn senses(count: usize) -> String {
+    format!("{count} sense{}", if count == 1 { "" } else { "s" })
+}
+
 impl OverlayDecision {
-    pub fn note(&self, evidence: &EvidenceSnapshot) -> String {
+    pub fn note(&self) -> String {
         let input = if self.input_parts.is_empty() {
             format!(
                 "input files: {}, occurrences: {}",
@@ -85,15 +89,20 @@ impl OverlayDecision {
                 .join(", ");
             format!("input parts: {parts}")
         };
-        let source = format!("{input}, generation {}", evidence.generation);
         if self.is_applied {
+            // Removal only runs in evaluation builds; production responses never carry a count.
+            let removed = if self.removed_sense_count > 0 {
+                format!("; removed {}", senses(self.removed_sense_count))
+            } else {
+                String::new()
+            };
             format!(
-                "Codebase evidence: moved back {} senses; removed {} senses ({source}).\n",
-                self.moved_sense_count, self.removed_sense_count
+                "Codebase evidence: moved back {}{removed} ({input}).\n",
+                senses(self.moved_sense_count)
             )
         } else {
             format!(
-                "Codebase evidence: {} (unfiltered; {source}).\n",
+                "Codebase evidence: {} (unfiltered; {input}).\n",
                 self.reason
             )
         }

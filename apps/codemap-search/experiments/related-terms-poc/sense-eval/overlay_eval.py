@@ -10,6 +10,7 @@ import argparse
 from collections import Counter, defaultdict
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import random
@@ -27,10 +28,17 @@ POC = HERE.parent
 REPO = HERE.parents[4]
 sys.path.insert(0, str(POC))
 from term_canonical import word_key
+from syntax_parts import subparts
 
 SCOPES = ("symbols", "docstrings", "literals")
 MODES = ("off", "demote", "remove")
 SEED = 20261017
+CODE_EXTENSIONS = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".py", ".go", ".rs", ".java", ".kt", ".php",
+                   ".c", ".h", ".cc", ".cpp", ".hpp", ".cs", ".rb", ".swift", ".scala"}
+SKIPPED_DIRECTORIES = {".git", "node_modules", "vendor", "dist", "build", "target", ".codemap"}
+C_LIKE_NOISE = re.compile(r"//[^\n]*|/\*.*?\*/|\"(?:\\.|[^\"\\\n])*\"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`", re.S)
+HASH_LIKE_NOISE = re.compile(r"#[^\n]*|\"\"\"(?:.|\n)*?\"\"\"|'''(?:.|\n)*?'''|\"(?:\\.|[^\"\\\n])*\"|'(?:\\.|[^'\\\n])*'")
+IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def digest(path):
@@ -144,13 +152,63 @@ def ratio(numerator, denominator):
     return numerator / denominator if denominator else None
 
 
-def metrics(rows, evidence):
+def code_identifier_keys(checkout, targets):
+    """Target keys among source identifiers, ignoring comments and string literals.
+
+    Independent of the server's codebase evidence, so it checks how often an `in code` mark agrees
+    with the code itself. Comment and string stripping is approximate but identical across runs.
+    """
+    found = set()
+    for directory, names, files in os.walk(checkout):
+        names[:] = [name for name in names if name not in SKIPPED_DIRECTORIES]
+        for name in files:
+            extension = os.path.splitext(name)[1]
+            if extension not in CODE_EXTENSIONS:
+                continue
+            text = Path(directory, name).read_text(encoding="utf-8", errors="ignore")
+            text = (HASH_LIKE_NOISE if extension in (".py", ".rb") else C_LIKE_NOISE).sub(" ", text)
+            for identifier in set(IDENTIFIER.findall(text)):
+                parts = subparts(identifier)
+                for start in range(len(parts)):
+                    key = ""
+                    for part in parts[start:start + 4]:
+                        key += part
+                        if key in targets:
+                            found.add(key)
+    return found
+
+
+def first_rank(fields, expected):
+    return next((index for index, field in enumerate(fields) if field in expected), None)
+
+
+def rank_changes(judged):
+    """Where the first expected field moved from dictionary order to overlay order."""
+    changes = {"better": [], "worse": [], "same": 0}
+    for row in judged:
+        expected = set(row["expected_fields"])
+        before = first_rank(row["before_fields"], expected)
+        after = first_rank(row["after_fields"], expected)
+        if before is None or after == before:
+            changes["same"] += before is not None
+        elif after is None or after > before:
+            changes["worse"].append(row["id"])
+        else:
+            changes["better"].append(row["id"])
+    return changes
+
+
+def metrics(rows, evidence, code_keys):
     judged = [row for row in rows if row["expected_fields"]]
     keys = evidence["words"]
     returned = sum(len(row["capped_word_keys"]) for row in rows)
     found = sum(sum(key in keys for key in row["capped_word_keys"]) for row in rows)
     uncapped_returned = sum(len(row["after_word_keys"]) for row in rows)
     uncapped_found = sum(sum(key in keys for key in row["after_word_keys"]) for row in rows)
+    in_code = [key for row in rows for key in row["capped_word_keys"] if key in code_keys]
+    marked_in_code = sum(key in keys for key in in_code)
+    applied = [row for row in rows if row["decision"]["is_applied"]]
+    levels = [{sense["support"] for sense in row["decision"].get("sense_evidence", [])} for row in applied]
     return {"inputs": len(rows), "expected_inputs": len(judged),
             "lookup_hits": sum(row["before_hit"] for row in judged),
             "uncapped_hits": sum(row["after_hit"] for row in judged),
@@ -160,7 +218,14 @@ def metrics(rows, evidence):
             "found_words": found, "returned_words": returned, "found_share": ratio(found, returned),
             "uncapped_found_share": ratio(uncapped_found, uncapped_returned),
             "output_bytes": sum(row["output_bytes"] for row in rows),
-            "removed_senses": sum(row["decision"]["removed_sense_count"] for row in rows)}
+            "removed_senses": sum(row["decision"]["removed_sense_count"] for row in rows),
+            # `found_words` counts marks against the evidence itself; these compare with source code.
+            "first_hits": sum(bool(set(row["capped_fields"][:1]) & set(row["expected_fields"])) for row in judged),
+            "code_identifier_words": len(in_code), "code_identifier_words_marked": marked_in_code,
+            "code_identifier_words_unmarked": len(in_code) - marked_in_code,
+            "marked_words_outside_code_identifiers": found - marked_in_code,
+            "applied_inputs": len(applied), "tied_inputs": sum(len(level) <= 1 for level in levels),
+            "rank_changes": rank_changes(judged)}
 
 
 def removal_sample(rows, items):
@@ -210,6 +275,7 @@ def evaluate_repository(name, pin, items, control_items, arguments, fingerprint)
         client.configure("symbols", "off")
         initial = capture_evidence(client, latest)
         print(f"indexed {name}: files={initial['file_count']} index={initial['index_pass_ms']:.1f}ms", flush=True)
+        code_keys = None
         for scope in SCOPES:
             scope_output = output / scope
             scope_output.mkdir(exist_ok=True)
@@ -217,9 +283,13 @@ def evaluate_repository(name, pin, items, control_items, arguments, fingerprint)
             for mode in MODES:
                 client.configure(scope, mode)
                 rows = [measure(client, item) for item in items]
+                if code_keys is None:
+                    # Displayed words are always lookup candidates, so one scan serves every mode.
+                    targets = set().union(*(row["before_word_keys"] for row in rows))
+                    code_keys = code_identifier_keys(arguments.checkouts / name, targets)
                 evidence = evidence_report(latest, scope, rows[-1]["generation"])
                 (scope_output / f"{mode}.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1))
-                modes[mode] = metrics(rows, evidence)
+                modes[mode] = metrics(rows, evidence, code_keys)
                 if mode == "remove":
                     controls = [measure(client, item) for item in control_items]
                     (scope_output / "control.json").write_text(json.dumps(controls, ensure_ascii=False, indent=1))
@@ -234,6 +304,7 @@ def evaluate_repository(name, pin, items, control_items, arguments, fingerprint)
                              "model_evaluation": "deferred by user"}
             print(f"{name} {scope}: expected={modes['off']['expected_inputs']} "
                   f"caps off/demote/remove={modes['off']['capped_hits']}/{modes['demote']['capped_hits']}/{modes['remove']['capped_hits']} "
+                  f"code-unmarked demote={modes['demote']['code_identifier_words_unmarked']} "
                   f"evidence={evidence['elapsed_ms']:.1f}ms index={evidence['index_pass_ms']:.1f}ms", flush=True)
     finally:
         client.close()
