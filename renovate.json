@@ -1,6 +1,13 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ]
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended"],
+    "timezone": "Asia/Seoul",
+    "schedule": ["* 9-12 * * *"],
+    "packageRules": [
+        {
+            "description": "Group minor and patch updates into one PR per package manager",
+            "matchUpdateTypes": ["minor", "patch"],
+            "groupName": "{{manager}} non-major dependencies"
+        }
+    ]
 }
