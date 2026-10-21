@@ -1,6 +1,6 @@
 use super::*;
 use crate::callers::resolution::SourceResolver;
-use crate::parser::{CodeRange, ImportKind};
+use crate::parser::{CodeRange, ExtractedFile, ImportKind};
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
 
@@ -229,6 +229,9 @@ impl ImplementationIndex {
                 }
             }
         }
+        if imported.is_empty() {
+            imported = self.reexported_types(unit, source, &reference.range, head, tail, resolver);
+        }
         imported.sort_by_key(|(id, _, _)| *id);
         imported.dedup_by_key(|(id, _, _)| *id);
         // A qualified name is unique on one classpath; independent monorepo apps may repeat
@@ -246,6 +249,84 @@ impl ImplementationIndex {
             return Some(found);
         }
         self.namespace_member(unit, &source.file_path, namespace, &name, bare)
+    }
+
+    /// Types that a script, Python or Dart module imported as `head` re-exports from the files
+    /// declaring them, with the module files read as evidence and whether each shares the
+    /// importing file's source root.
+    fn reexported_types(
+        &self,
+        unit: &ImplementationUnit,
+        source: &ExtractedFile,
+        reference: &CodeRange,
+        head: &str,
+        tail: &str,
+        resolver: &SourceResolver<'_>,
+    ) -> Vec<(usize, Vec<Location>, bool)> {
+        let language = unit.language.as_str();
+        let mut found = Vec::new();
+        for import in unit.imports.iter().filter(|import| {
+            encloses(&import.scope, reference)
+                && (import.entry.local_name == head
+                    || language == "dart" && import.entry.kind == ImportKind::Glob)
+        }) {
+            let entry = &import.entry;
+            let Some(module) = entry.source.as_deref() else {
+                continue;
+            };
+            let target = match entry.kind {
+                ImportKind::Named if tail.is_empty() => {
+                    entry.imported_name.as_deref().unwrap_or(head)
+                }
+                ImportKind::Namespace if !tail.is_empty() && family(language) == "script" => tail,
+                ImportKind::Glob if tail.is_empty() => head,
+                _ => continue,
+            };
+            let target = target.rsplit('.').next().unwrap_or(target);
+            let modules = match family(language) {
+                "script" => resolver
+                    .script_module(&source.file_path, module)
+                    .into_iter()
+                    .collect(),
+                "python" => resolver
+                    .python_module(&source.file_path, module)
+                    .into_iter()
+                    .collect(),
+                "dart" => resolver.dart_library_files(&source.file_path, module),
+                _ => Vec::new(),
+            };
+            for module in modules {
+                resolver.reset_dependency_tracking();
+                for origin in resolver.export_origins(&module.file_path, target).iter() {
+                    for &id in self.by_name.get(origin.name.as_str()).into_iter().flatten() {
+                        let typ = self.typ(id);
+                        let declaring = &self.files[self.types[id].file].file_path;
+                        if *declaring != origin.file.file_path
+                            || family(&self.unit(id).language) != family(language)
+                            || !typ.parameters.is_empty()
+                            || !typ.is_complete
+                            || !typ.namespace.is_empty()
+                            || family(language) == "script" && !typ.is_exported
+                        {
+                            continue;
+                        }
+                        let mut evidence = vec![Location {
+                            path: source.file_path.clone(),
+                            range: entry.range.clone(),
+                        }];
+                        evidence.extend(
+                            resolver
+                                .source_dependencies()
+                                .into_iter()
+                                .map(|(path, range)| Location { path, range }),
+                        );
+                        evidence.push(self.location(id));
+                        found.push((id, evidence, same_source_root(&source.file_path, declaring)));
+                    }
+                }
+            }
+        }
+        found
     }
 
     /// A type that the reference's package or namespace makes visible without an import.

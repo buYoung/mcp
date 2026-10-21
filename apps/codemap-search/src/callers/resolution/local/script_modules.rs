@@ -1,7 +1,8 @@
 //! TypeScript/JavaScript module specifiers resolved the way `tsc` does: relative paths from the
-//! importing file, then the nearest tsconfig's `compilerOptions.paths` patterns and `baseUrl`.
-//! A specifier names a target only when exactly one indexed file matches; package imports and
-//! ambiguous candidates stay unresolved.
+//! importing file, then the `compilerOptions.paths` patterns and `baseUrl` of the nearest
+//! tsconfig.json, or jsconfig.json in a directory without one, including the configurations it
+//! extends. A specifier names a target only when exactly one indexed file matches; package
+//! imports and ambiguous candidates stay unresolved.
 
 use super::*;
 use serde_json::Value;
@@ -10,7 +11,7 @@ const SCRIPT_EXTENSIONS: [&str; 8] = ["ts", "tsx", "mts", "cts", "js", "jsx", "m
 /// `extends` chains deeper than this are ignored rather than followed.
 const EXTENDS_DEPTH: usize = 5;
 
-/// Module-path settings of one tsconfig after relative `extends`, with directories made absolute.
+/// Module-path settings of one configuration after its `extends`, with directories made absolute.
 #[derive(Default)]
 pub(in crate::callers::resolution) struct ModulePaths {
     base_url: Option<PathBuf>,
@@ -21,6 +22,17 @@ pub(in crate::callers::resolution) struct ModulePaths {
 }
 
 impl ModulePaths {
+    /// Settings a later base configuration declares replace those of earlier ones.
+    fn inherit(&mut self, later: ModulePaths) {
+        if later.base_url.is_some() {
+            self.base_url = later.base_url;
+        }
+        if later.paths_directory.is_some() {
+            self.paths = later.paths;
+            self.paths_directory = later.paths_directory;
+        }
+    }
+
     /// Targets of the exact or longest-prefix `paths` pattern, the order `tsc` tries them.
     fn mapped(&self, specifier: &str) -> Vec<PathBuf> {
         let best = self
@@ -157,29 +169,65 @@ fn strip_json_extensions(text: &str) -> String {
     result
 }
 
-fn read_module_paths(path: &Path, depth: usize) -> Option<ModulePaths> {
-    let text = std::fs::read_to_string(path).ok()?;
-    let value: Value = serde_json::from_str(&strip_json_extensions(&text)).ok()?;
-    let directory = path.parent()?;
-    let mut settings = value
-        .get("extends")
-        .and_then(Value::as_str)
-        .filter(|parent| {
-            depth < EXTENDS_DEPTH && (parent.starts_with("./") || parent.starts_with("../"))
-        })
-        .and_then(|parent| {
-            let parent = directory.join(parent);
-            let parent = if parent
+/// The configuration an `extends` entry names: a path relative to the extending file, or a
+/// package file in a `node_modules` directory between it and the workspace root.
+fn extended_config(directory: &Path, parent: &str, root: &Path) -> Option<PathBuf> {
+    if parent.starts_with("./") || parent.starts_with("../") {
+        let parent = directory.join(parent);
+        return Some(
+            if parent
                 .extension()
                 .is_some_and(|extension| extension == "json")
             {
                 parent
             } else {
                 append_extension(&parent, "json")
-            };
-            read_module_paths(&parent, depth + 1)
-        })
-        .unwrap_or_default();
+            },
+        );
+    }
+    if Path::new(parent).is_absolute() {
+        return None;
+    }
+    let mut current = directory.to_path_buf();
+    loop {
+        let package = current.join("node_modules").join(parent);
+        // The named file, the name with `.json` added, or the package's tsconfig.json.
+        if let Some(config) = [
+            package.clone(),
+            append_extension(&package, "json"),
+            package.join("tsconfig.json"),
+        ]
+        .into_iter()
+        .find(|candidate| candidate.is_file())
+        {
+            return Some(config);
+        }
+        if current.as_path() == root || !current.pop() || !current.starts_with(root) {
+            return None;
+        }
+    }
+}
+
+fn read_module_paths(path: &Path, depth: usize, root: &Path) -> Option<ModulePaths> {
+    let text = std::fs::read_to_string(path).ok()?;
+    let value: Value = serde_json::from_str(&strip_json_extensions(&text)).ok()?;
+    let directory = path.parent()?;
+    // One base configuration, or since TypeScript 5.0 a list whose later entries win.
+    let parents = match value.get("extends") {
+        Some(Value::String(parent)) => vec![parent.as_str()],
+        Some(Value::Array(parents)) => parents.iter().filter_map(Value::as_str).collect(),
+        _ => Vec::new(),
+    };
+    let mut settings = ModulePaths::default();
+    if depth < EXTENDS_DEPTH {
+        for parent in parents {
+            if let Some(inherited) = extended_config(directory, parent, root)
+                .and_then(|config| read_module_paths(&config, depth + 1, root))
+            {
+                settings.inherit(inherited);
+            }
+        }
+    }
     let options = value.get("compilerOptions");
     if let Some(base) = options
         .and_then(|options| options.get("baseUrl"))
@@ -246,8 +294,9 @@ impl<'a> SourceResolver<'a> {
         (found.len() == 1).then(|| found[0])
     }
 
-    /// Settings of the nearest tsconfig.json from the importing file's directory up to the
-    /// workspace root, cached per starting directory.
+    /// Settings of the nearest tsconfig.json, or jsconfig.json where a directory has no
+    /// tsconfig.json, from the importing file's directory up to the workspace root, cached per
+    /// starting directory.
     fn module_paths(&self, importer: &str) -> Option<Rc<ModulePaths>> {
         let start = self.root.join(importer).parent()?.to_path_buf();
         if let Some(cached) = self.module_paths.borrow().get(&start) {
@@ -255,9 +304,12 @@ impl<'a> SourceResolver<'a> {
         }
         let mut directory = start.clone();
         let settings = loop {
-            let config = directory.join("tsconfig.json");
-            if config.is_file() {
-                break read_module_paths(&config, 0).map(Rc::new);
+            if let Some(config) = ["tsconfig.json", "jsconfig.json"]
+                .into_iter()
+                .map(|name| directory.join(name))
+                .find(|config| config.is_file())
+            {
+                break read_module_paths(&config, 0, self.root).map(Rc::new);
             }
             if directory.as_path() == self.root
                 || !directory.pop()

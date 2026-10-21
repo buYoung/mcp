@@ -8,7 +8,7 @@ mod resolve;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use extract::{collect, dart_library_imports};
+pub(crate) use extract::{collect, dart_library_exports, dart_library_imports};
 pub(crate) use index::ImplementationIndex;
 use index::*;
 pub use model::ImplementationFile;

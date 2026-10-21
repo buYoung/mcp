@@ -10,14 +10,6 @@ use crate::implementations::{
 };
 use crate::parser::{ImportEntry, LocalBinding};
 
-/// Which declarations of the target files a call may reach.
-enum Member<'s> {
-    /// A function declared at the top level of the file.
-    TopLevel(&'s str),
-    /// A function stored on the table that a Lua module file returns.
-    OnTable(&'s str, String),
-}
-
 impl<'a> SourceResolver<'a> {
     pub(in crate::callers::resolution) fn module_function(
         &self,
@@ -48,144 +40,157 @@ impl<'a> SourceResolver<'a> {
             return None;
         }
         let imports = &navigation.imports;
-        let (files, member) = match (language, call.receiver.as_deref()) {
-            ("python", None) => {
-                // A star import may rebind any name.
-                if imports
-                    .iter()
-                    .any(|import| import.local_name == "*" || import.kind == ImportKind::Glob)
-                {
-                    return None;
+        // Candidate files with the name declared there, and the Lua module table holding it.
+        let (candidates, table): (Vec<(&'a ExtractedFile, String)>, Option<String>) =
+            match (language, call.receiver.as_deref()) {
+                ("python", None) => {
+                    // A star import may rebind any name.
+                    if imports
+                        .iter()
+                        .any(|import| import.local_name == "*" || import.kind == ImportKind::Glob)
+                    {
+                        return None;
+                    }
+                    let import = only_binding(imports, &call.name)??;
+                    let name = import.imported_name.as_deref().unwrap_or(&call.name);
+                    let module = self.python_module(&file.file_path, import.source.as_deref()?)?;
+                    (self.exported(&module.file_path, name), None)
                 }
-                let import = only_binding(imports, &call.name)??;
-                let name = import.imported_name.as_deref().unwrap_or(&call.name);
-                let module = self.python_module(&file.file_path, import.source.as_deref()?)?;
-                (vec![module], Member::TopLevel(name))
-            }
-            ("python", Some(receiver)) => {
-                let head = receiver.split('.').next().unwrap_or(receiver);
-                if has_binding(&source, at, head, None) {
-                    return None;
+                ("python", Some(receiver)) => {
+                    let head = receiver.split('.').next().unwrap_or(receiver);
+                    if has_binding(&source, at, head, None) {
+                        return None;
+                    }
+                    let mut modules = imports
+                        .iter()
+                        .filter_map(|import| {
+                            let module =
+                                match (import.source.as_deref(), import.imported_name.as_deref()) {
+                                    (Some(package), Some(name)) if package.ends_with('.') => {
+                                        format!("{package}{name}")
+                                    }
+                                    (Some(package), Some(name)) => format!("{package}.{name}"),
+                                    // `import pkg`
+                                    (None, None) => import.local_name.clone(),
+                                    _ => return None,
+                                };
+                            (import.local_name == receiver || module == receiver).then_some(module)
+                        })
+                        .collect::<Vec<_>>();
+                    modules.sort();
+                    modules.dedup();
+                    let [module] = modules.as_slice() else {
+                        return None;
+                    };
+                    let module = self.python_module(&file.file_path, module)?;
+                    (self.exported(&module.file_path, &call.name), None)
                 }
-                let mut modules = imports
-                    .iter()
-                    .filter_map(|import| {
-                        let module =
-                            match (import.source.as_deref(), import.imported_name.as_deref()) {
-                                (Some(package), Some(name)) if package.ends_with('.') => {
-                                    format!("{package}{name}")
-                                }
-                                (Some(package), Some(name)) => format!("{package}.{name}"),
-                                // `import pkg`
-                                (None, None) => import.local_name.clone(),
-                                _ => return None,
-                            };
-                        (import.local_name == receiver || module == receiver).then_some(module)
-                    })
-                    .collect::<Vec<_>>();
-                modules.sort();
-                modules.dedup();
-                let [module] = modules.as_slice() else {
-                    return None;
-                };
-                let module = self.python_module(&file.file_path, module)?;
-                (vec![module], Member::TopLevel(&call.name))
-            }
-            ("kotlin", None) => {
-                // An explicit import outranks the declarations of the file's own package.
-                let (package, name, is_imported) = match only_binding(imports, &call.name)? {
-                    Some(import) => (
-                        import.source.clone()?,
-                        import.imported_name.as_deref().unwrap_or(&call.name),
-                        true,
-                    ),
-                    // Live resolution extracts no package, so both sides use the index.
-                    None => (package_of(file)?, call.name.as_str(), false),
-                };
-                let files = self
-                    .files
-                    .iter()
-                    .filter(|candidate| {
-                        candidate.file_path.ends_with(".kt")
-                            && package_of(candidate).as_deref() == Some(package.as_str())
-                            && (is_imported
-                                || same_source_root(&file.file_path, &candidate.file_path))
-                    })
-                    .collect();
-                (files, Member::TopLevel(name))
-            }
-            ("dart", None) => {
-                // Library-private names are not imported, and the other parts of a library
-                // declare names that would take precedence.
-                let root = source.syntax.tree.root_node();
-                let mut cursor = root.walk();
-                let has_parts = root
-                    .named_children(&mut cursor)
-                    .any(|node| matches!(node.kind(), "part_directive" | "part_of_directive"));
-                if call.name.starts_with('_') || has_parts {
-                    return None;
+                ("kotlin", None) => {
+                    // An explicit import outranks the declarations of the file's own package.
+                    let (package, name, is_imported) = match only_binding(imports, &call.name)? {
+                        Some(import) => (
+                            import.source.clone()?,
+                            import.imported_name.as_deref().unwrap_or(&call.name),
+                            true,
+                        ),
+                        // Live resolution extracts no package, so both sides use the index.
+                        None => (package_of(file)?, call.name.as_str(), false),
+                    };
+                    let files = self
+                        .files
+                        .iter()
+                        .filter(|candidate| {
+                            candidate.file_path.ends_with(".kt")
+                                && package_of(candidate).as_deref() == Some(package.as_str())
+                                && (is_imported
+                                    || same_source_root(&file.file_path, &candidate.file_path))
+                        })
+                        .map(|candidate| (candidate, name.to_string()))
+                        .collect();
+                    (files, None)
                 }
-                let libraries = dart_library_imports(root, source.text.as_bytes())
-                    .into_iter()
-                    .filter(|import| import.shown.is_empty() || import.shown.contains(&call.name))
-                    .map(|import| import.uri)
-                    .collect::<Vec<_>>();
-                let index = self.dart_libraries();
-                let files = self
-                    .files
-                    .iter()
-                    .filter(|candidate| {
-                        libraries
-                            .iter()
-                            .any(|uri| index.matches(&file.file_path, uri, &candidate.file_path))
-                    })
-                    .collect();
-                (files, Member::TopLevel(&call.name))
-            }
-            ("ruby", None) => (
-                self.relative_imports(&file.file_path, imports, &["rb"]),
-                Member::TopLevel(&call.name),
-            ),
-            ("powershell", None) => (
-                self.relative_imports(&file.file_path, imports, &["ps1", "psm1"]),
-                Member::TopLevel(&call.name),
-            ),
-            ("lua", Some(receiver)) => {
-                if !is_simple_identifier(receiver) || has_parameter(at, &source, receiver) {
-                    return None;
+                ("dart", None) => {
+                    // Library-private names are not imported, and the other parts of a library
+                    // declare names that would take precedence.
+                    let root = source.syntax.tree.root_node();
+                    let mut cursor = root.walk();
+                    let has_parts = root
+                        .named_children(&mut cursor)
+                        .any(|node| matches!(node.kind(), "part_directive" | "part_of_directive"));
+                    if call.name.starts_with('_') || has_parts {
+                        return None;
+                    }
+                    let libraries = dart_library_imports(root, source.text.as_bytes())
+                        .into_iter()
+                        .filter(|import| {
+                            import.shown.is_empty() || import.shown.contains(&call.name)
+                        })
+                        .map(|import| import.uri)
+                        .collect::<Vec<_>>();
+                    let index = self.dart_libraries();
+                    let files = self
+                        .files
+                        .iter()
+                        .filter(|candidate| {
+                            libraries.iter().any(|uri| {
+                                index.matches(&file.file_path, uri, &candidate.file_path)
+                            })
+                        })
+                        .flat_map(|library| self.exported(&library.file_path, &call.name))
+                        .collect();
+                    (files, None)
                 }
-                // The nearest declaration of the receiver must be the `require` itself.
-                let import = only_binding(imports, receiver)??;
-                let binding = nearest_binding(&source, at, receiver)?;
-                if !(import.range.start_line <= binding.range.start_line
-                    && binding.range.end_line <= import.range.end_line)
-                {
-                    return None;
+                ("ruby", None) => (
+                    self.relative_imports(&file.file_path, imports, &["rb"])
+                        .into_iter()
+                        .map(|candidate| (candidate, call.name.clone()))
+                        .collect(),
+                    None,
+                ),
+                ("powershell", None) => (
+                    self.relative_imports(&file.file_path, imports, &["ps1", "psm1"])
+                        .into_iter()
+                        .map(|candidate| (candidate, call.name.clone()))
+                        .collect(),
+                    None,
+                ),
+                ("lua", Some(receiver)) => {
+                    if !is_simple_identifier(receiver) || has_parameter(at, &source, receiver) {
+                        return None;
+                    }
+                    // The nearest declaration of the receiver must be the `require` itself.
+                    let import = only_binding(imports, receiver)??;
+                    let binding = nearest_binding(&source, at, receiver)?;
+                    if !(import.range.start_line <= binding.range.start_line
+                        && binding.range.end_line <= import.range.end_line)
+                    {
+                        return None;
+                    }
+                    let module = self.lua_module(import.source.as_deref()?)?;
+                    let table = returned_table(&*self.source(&module.file_path)?)?;
+                    (vec![(module, call.name.clone())], Some(table))
                 }
-                let module = self.lua_module(import.source.as_deref()?)?;
-                let table = returned_table(&*self.source(&module.file_path)?)?;
-                (vec![module], Member::OnTable(&call.name, table))
-            }
-            ("swift", None) => {
-                let module = swift_module(&file.file_path);
-                let files = self
-                    .files
-                    .iter()
-                    .filter(|candidate| {
-                        candidate.file_path.ends_with(".swift")
-                            && swift_module(&candidate.file_path) == module
-                    })
-                    .collect();
-                (files, Member::TopLevel(&call.name))
-            }
-            ("c" | "cpp", None) => {
-                let namespace = namespace_path(at, &source)?;
-                return self.included_definition(&file.file_path, &call.name, &namespace);
-            }
-            _ => return None,
-        };
+                ("swift", None) => {
+                    let module = swift_module(&file.file_path);
+                    let files = self
+                        .files
+                        .iter()
+                        .filter(|candidate| {
+                            candidate.file_path.ends_with(".swift")
+                                && swift_module(&candidate.file_path) == module
+                        })
+                        .map(|candidate| (candidate, call.name.clone()))
+                        .collect();
+                    (files, None)
+                }
+                ("c" | "cpp", None) => {
+                    let namespace = namespace_path(at, &source)?;
+                    return self.included_definition(&file.file_path, &call.name, &namespace);
+                }
+                _ => return None,
+            };
         let mut targets = Vec::new();
-        for target_file in files {
+        for (target_file, name) in candidates {
             let Some(target_source) = self.source(&target_file.file_path) else {
                 continue;
             };
@@ -195,18 +200,15 @@ impl<'a> SourceResolver<'a> {
                     .iter()
                     .filter(|symbol| {
                         symbol.kind == "fn"
-                            && match &member {
-                                Member::TopLevel(name) => {
-                                    symbol.name == *name
-                                        && symbol.owner.is_none()
+                            && symbol.name == name
+                            && match &table {
+                                None => {
+                                    symbol.owner.is_none()
                                         && is_top_level(target_file, symbol)
                                         && (target_file.file_path == file.file_path
                                             || !is_file_private(language, &target_source, symbol))
                                 }
-                                Member::OnTable(name, table) => {
-                                    symbol.name == *name
-                                        && symbol.owner.as_deref() == Some(table.as_str())
-                                }
+                                Some(table) => symbol.owner.as_deref() == Some(table.as_str()),
                             }
                             && current_symbol(&target_source, symbol)
                     })
@@ -239,6 +241,23 @@ impl<'a> SourceResolver<'a> {
         Some(target)
     }
 
+    /// The declarations the module file at `path` exports as `name`, with their declared names.
+    fn exported(&self, path: &str, name: &str) -> Vec<(&'a ExtractedFile, String)> {
+        self.export_origins(path, name)
+            .iter()
+            .map(|origin| (origin.file, origin.name.clone()))
+            .collect()
+    }
+
+    /// Indexed Dart libraries that an import or export URI in the file at `path` names.
+    pub(crate) fn dart_library_files(&self, path: &str, uri: &str) -> Vec<&'a ExtractedFile> {
+        let libraries = self.dart_libraries();
+        self.files
+            .iter()
+            .filter(|file| libraries.matches(path, uri, &file.file_path))
+            .collect()
+    }
+
     /// Indexed Dart libraries by their path below `lib/`.
     fn dart_libraries(&self) -> Rc<DartLibraries> {
         self.dart_libraries
@@ -253,7 +272,7 @@ impl<'a> SourceResolver<'a> {
 
     /// The one indexed file a dotted Python module names: relative to the importing package
     /// for leading dots, otherwise below a directory that is not itself a package.
-    fn python_module(&self, importer: &str, module: &str) -> Option<&'a ExtractedFile> {
+    pub(crate) fn python_module(&self, importer: &str, module: &str) -> Option<&'a ExtractedFile> {
         let levels = module.chars().take_while(|c| *c == '.').count();
         let path = module[levels..].replace('.', "/");
         let names = if path.is_empty() {
@@ -643,7 +662,10 @@ fn is_shadowed(source: &Source, at: Node, name: &str, language: &str) -> bool {
 
 /// The import binding `name` when every import of that name agrees on what it binds: `None`
 /// for disagreeing imports, `Some(None)` when no import binds it.
-fn only_binding<'i>(imports: &'i [ImportEntry], name: &str) -> Option<Option<&'i ImportEntry>> {
+pub(super) fn only_binding<'i>(
+    imports: &'i [ImportEntry],
+    name: &str,
+) -> Option<Option<&'i ImportEntry>> {
     let mut bound = imports.iter().filter(|import| import.local_name == name);
     let Some(first) = bound.next() else {
         return Some(None);
@@ -743,7 +765,7 @@ fn script_relative(module: &str) -> String {
 }
 
 /// Whether no other declaration of the file encloses `symbol`.
-fn is_top_level(file: &ExtractedFile, symbol: &ExtractedSymbol) -> bool {
+pub(super) fn is_top_level(file: &ExtractedFile, symbol: &ExtractedSymbol) -> bool {
     !file.symbols.iter().any(|other| {
         !std::ptr::eq(other, symbol)
             && (other.kind == "fn" || crate::declarations::container(other))

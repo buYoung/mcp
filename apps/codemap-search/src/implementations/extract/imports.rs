@@ -171,27 +171,46 @@ pub(super) fn collect(
     unit.imports.dedup_by(|a, b| a == b);
 }
 
-/// A Dart library imported without a prefix and the names its `show` lists expose, empty when
-/// every public name is exposed.
-pub(crate) struct DartLibraryImport {
+/// A Dart library directive without a prefix: the library URI and the names its `show` and
+/// `hide` lists name. An empty `shown` list exposes every public name not hidden.
+pub(crate) struct DartLibraryDirective {
     pub(crate) uri: String,
     pub(crate) shown: Vec<String>,
+    pub(crate) hidden: Vec<String>,
     pub(crate) range: CodeRange,
 }
 
 /// The library imports of a Dart file whose names are reachable unqualified. Prefixed imports
 /// and imports with a `hide` list are left out.
-pub(crate) fn dart_library_imports(root: Node<'_>, source: &[u8]) -> Vec<DartLibraryImport> {
-    let mut imports = Vec::new();
+pub(crate) fn dart_library_imports(root: Node<'_>, source: &[u8]) -> Vec<DartLibraryDirective> {
+    dart_directives(root, source, "library_import")
+        .into_iter()
+        .filter(|import| import.hidden.is_empty())
+        .collect()
+}
+
+/// The `export` directives of a Dart library.
+pub(crate) fn dart_library_exports(root: Node<'_>, source: &[u8]) -> Vec<DartLibraryDirective> {
+    dart_directives(root, source, "library_export")
+}
+
+fn dart_directives(root: Node<'_>, source: &[u8], kind: &str) -> Vec<DartLibraryDirective> {
+    let mut directives = Vec::new();
     for node in children(root)
         .into_iter()
         .filter(|node| node.kind() == "import_or_export")
     {
+        // An import keeps its URI and combinators in a specification; an export holds them.
         for specification in children(node)
             .into_iter()
-            .filter(|node| node.kind() == "library_import")
-            .flat_map(children)
-            .filter(|node| node.kind() == "import_specification")
+            .filter(|node| node.kind() == kind)
+            .flat_map(|directive| match kind {
+                "library_import" => children(directive)
+                    .into_iter()
+                    .filter(|node| node.kind() == "import_specification")
+                    .collect(),
+                _ => vec![directive],
+            })
         {
             let Some(uri) = specification
                 .child_by_field_name("uri")
@@ -199,30 +218,34 @@ pub(crate) fn dart_library_imports(root: Node<'_>, source: &[u8]) -> Vec<DartLib
             else {
                 continue;
             };
-            let combinators = children(specification)
+            let mut shown = Vec::new();
+            let mut hidden = Vec::new();
+            for combinator in children(specification)
                 .into_iter()
                 .filter(|node| node.kind() == "combinator")
-                .collect::<Vec<_>>();
-            if combinators
-                .iter()
-                .any(|combinator| text(*combinator, source).trim_start().starts_with("hide"))
             {
-                continue;
+                let names = if text(combinator, source).trim_start().starts_with("hide") {
+                    &mut hidden
+                } else {
+                    &mut shown
+                };
+                names.extend(
+                    children(combinator)
+                        .into_iter()
+                        .filter(|node| node.kind() == "identifier")
+                        .map(|node| text(node, source).to_string()),
+                );
             }
-            imports.push(DartLibraryImport {
+            directives.push(DartLibraryDirective {
                 uri: text(uri, source)
                     .trim()
                     .trim_matches(['\'', '"'])
                     .to_string(),
-                shown: combinators
-                    .iter()
-                    .flat_map(|combinator| children(*combinator))
-                    .filter(|node| node.kind() == "identifier")
-                    .map(|node| text(node, source).to_string())
-                    .collect(),
+                shown,
+                hidden,
                 range: range(node),
             });
         }
     }
-    imports
+    directives
 }
