@@ -124,6 +124,12 @@ settings![
         "tool_output"
     ),
     (
+        "output.read",
+        "is_outside_callers_enabled",
+        "is_read_outside_callers_enabled",
+        ""
+    ),
+    (
         "output.grep",
         "max_columns",
         "grep_max_columns",

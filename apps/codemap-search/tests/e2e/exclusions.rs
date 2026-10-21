@@ -3,7 +3,7 @@ use predicates::prelude::PredicateBooleanExt;
 use serde_json::{json, Value};
 use std::fs;
 
-const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 30";
+const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 31";
 
 fn result_text(response: &Value) -> &str {
     response["result"]["content"][0]["text"].as_str().unwrap()

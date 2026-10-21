@@ -111,7 +111,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
 /// This version belongs to repository config only; global files are not schema-synced.
-const CONFIG_VERSION: u32 = 30;
+const CONFIG_VERSION: u32 = 31;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -242,6 +242,8 @@ pub struct ResolvedConfig {
     /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
     /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
     pub read_output_byte_cap: usize,
+    /// Whether `read view=source` may end with callers from outside the window.
+    pub is_read_outside_callers_enabled: bool,
     /// `search` detail-view per-symbol snippet line cap (default 500). A symbol body longer
     /// than this is truncated with an elision marker. Output-size only.
     pub search_detail_snippet_max_lines: usize,
@@ -365,6 +367,7 @@ impl Default for ResolvedConfig {
             grep_max_columns: 0,
             is_overview_stats_enabled: true,
             read_output_byte_cap: 5 * 1024 * 1024,
+            is_read_outside_callers_enabled: true,
             search_detail_snippet_max_lines: 500,
             search_detail_symbol_limit: 100,
             search_detail_byte_cap: 1024 * 1024,
@@ -425,6 +428,7 @@ struct ConfigLayer {
     grep_max_columns: Option<usize>,
     is_overview_stats_enabled: Option<bool>,
     read_output_byte_cap: Option<usize>,
+    is_read_outside_callers_enabled: Option<bool>,
     search_detail_snippet_max_lines: Option<usize>,
     search_detail_symbol_limit: Option<usize>,
     search_detail_byte_cap: Option<usize>,
@@ -787,6 +791,9 @@ fn assign_config_key(
         "read_output_byte_cap" => {
             layer.read_output_byte_cap = as_positive_byte_size(value, key_display, path)
         }
+        "is_read_outside_callers_enabled" => {
+            layer.is_read_outside_callers_enabled = as_bool(value, key_display, path)
+        }
         "search_detail_snippet_max_lines" => {
             layer.search_detail_snippet_max_lines = as_positive_usize(value, key_display, path)
         }
@@ -1005,6 +1012,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .or(global.read_output_byte_cap)
             .or(global.output_byte_cap)
             .unwrap_or(defaults.read_output_byte_cap),
+        is_read_outside_callers_enabled: repo
+            .is_read_outside_callers_enabled
+            .or(global.is_read_outside_callers_enabled)
+            .unwrap_or(defaults.is_read_outside_callers_enabled),
         search_detail_snippet_max_lines: repo
             .search_detail_snippet_max_lines
             .or(global.search_detail_snippet_max_lines)
@@ -1470,6 +1481,13 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 31,
+        key: "is_outside_callers_enabled",
+        placement: KeyPlacement::Subtable("output.read"),
+        english_block: "# read view=source may end with callers from outside the window. Set false to omit them.\n# is_outside_callers_enabled = true",
+        korean_block: "# read view=source 끝에 창 밖 호출자 목록을 덧붙일 수 있습니다. false이면 생략합니다.\n# is_outside_callers_enabled = true",
+    },
     Migration {
         version: 30,
         key: "related_terms",

@@ -329,6 +329,7 @@ pub fn list_tools() -> Value {
     let permissions = &config.filesystem_permissions;
     let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
     let live_view_description = "full (default) returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
+    let read_view_description = "full (default) returns source with declarations and relationships; source returns live source, possibly followed by callers from outside the window; definitions returns declarations only; relations returns identities and supported relationships without source.";
     let unresolved_description = "Unresolved call targets in full/relations: list (default) gives bounded names plus a count; count hides the names.";
     let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
     let debug_description = "Legacy compatibility flag; does not change analysis or output.";
@@ -456,7 +457,7 @@ pub fn list_tools() -> Value {
                             "type": "object",
                             "properties": {
                                 "include_seen": include_seen_schema.clone(),
-                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
+                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": read_view_description },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },

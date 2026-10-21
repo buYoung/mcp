@@ -113,10 +113,12 @@ api_key = "<발급받은 키>"
 
 버전 30은 선택 사항인 `[related_terms]` 구역을 주석으로 추가하며 기존 값을 바꾸지 않습니다. 데이터셋은 바이너리 릴리스에 고정됩니다. 같은 id를 쓰는 업그레이드는 `<global_dir>/related-terms/<dataset_id>/`의 검증된 파일을 다시 내려받거나 해시 검사하지 않습니다. 새 id는 새 폴더를 씁니다. `dataset_path`는 기능이 켜져 있을 때만 사용하며 내려받기를 건너뜁니다. 상대 경로는 서버 작업 디렉터리를 기준으로 합니다. 잘못된 타입은 경고하고 키별 상속값·기본값으로 돌아갑니다.
 
-현재 **로컬 설정** 버전은 **30**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
+버전 31은 `[output.read].is_outside_callers_enabled`를 주석 예시로 추가하며 기존 값을 바꾸지 않습니다. 이 키를 `false`로 설정하지 않으면 `read view=source`는 계속 창 밖 호출자 목록을 덧붙입니다.
+
+현재 **로컬 설정** 버전은 **31**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
 
 ```toml
-# codemap-config-version: 30
+# codemap-config-version: 31
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -233,12 +235,13 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.search].detail_file_limit` | 정수 | `24` | 상세 내용을 표시할 상위 파일 수 |
 | `[output.search].overview_file_limit` | 정수 | `80` | 나머지 간략 목록에 표시할 최대 파일 수 |
 | `[output.search].snippet_max_lines` | 정수 | `500` | 심볼마다 표시할 최대 발췌 줄 수. 긴 본문은 생략 표시 |
-| `[output.search].symbol_limit` | 정수 | `100` | 파일마다 표시할 최대 심볼 수. 초과분은 생략 안내 |
+| `[output.search].symbol_limit` | 정수 | `100` | 파일마다 표시할 최대 심볼 수. 초과분은 생략 안내. 경로·문서 주석으로만 검색된 JSON·YAML·TOML 파일에서 일치하지 않은 키는 개수만 표시 |
 | `[output.search].max_bytes` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 부분 출력 안내를 포함한 검색 응답 전체 크기 제한 |
 | `[output.search].literal_max_chars` | 정수(문자) | `1200` | 일치한 리터럴의 최대 표시 길이. 초과분은 말줄임표로 표시 |
 | `[output.search].literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
 | `[output.search].anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[output.read].max_bytes` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록을 덧붙임. `false`면 생략 |
 | `[output.grep].max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[output.grep].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | grep 응답 한도. 확장 본문은 read 한도도 대체값으로 사용 |
 | `[output.context].is_enabled` | bool | `true` | `search` 호출에서 `caller_context` 생략 시 호출 관계 표시 여부 |
@@ -485,7 +488,7 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 30
+# codemap-config-version: 31
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -550,6 +553,9 @@ max_bytes = "1mb"
 [output.read]
 # read 응답의 최대 크기입니다.
 max_bytes = "5mb"
+
+# read view=source 끝에 창 밖 호출자 목록을 덧붙일 수 있습니다. false이면 생략합니다.
+is_outside_callers_enabled = true
 
 [output.grep]
 # grep 결과에서 한 줄의 최대 길이(바이트)입니다. 0이면 제한이 없습니다.

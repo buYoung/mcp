@@ -1,4 +1,4 @@
-# codemap-config-version: 30
+# codemap-config-version: 31
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -62,6 +62,9 @@ max_bytes = "1mb"
 [output.read]
 # Read response limit.
 max_bytes = "5mb"
+
+# read view=source may end with callers from outside the window. Set false to omit them.
+is_outside_callers_enabled = true
 
 [output.grep]
 # Maximum length of a line in grep results, in bytes. 0 disables the limit.

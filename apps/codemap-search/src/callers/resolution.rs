@@ -24,6 +24,17 @@ pub(crate) struct Target<'a> {
     pub is_precise: bool,
 }
 
+/// How the calls recorded at one scanned line relate to a declaration.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum CallerMatch {
+    /// A call at the line resolves to the declaration.
+    Target,
+    /// A call at the line has a receiver or binding that source resolution cannot confirm.
+    Unresolved,
+    /// Every call at the line resolves elsewhere, or no call is recorded there.
+    Other,
+}
+
 struct Source {
     text: String,
     syntax: SourceSyntax,
@@ -42,6 +53,10 @@ pub(crate) struct SourceResolver<'a> {
     file_conditions: RefCell<HashMap<String, Condition>>,
     stored_sources: Option<&'a HashMap<String, String>>,
     dependency_ranges: RefCell<Vec<(String, CodeRange)>>,
+    /// Nearest tsconfig module-path settings per importing directory.
+    module_paths: RefCell<HashMap<PathBuf, Option<Rc<local::ModulePaths>>>>,
+    /// Names of indexed type declarations, built on first use.
+    type_names: RefCell<Option<Rc<HashSet<&'a str>>>>,
 }
 
 pub(crate) fn supports(path: &str) -> bool {
@@ -250,6 +265,8 @@ impl<'a> SourceResolver<'a> {
             file_conditions: RefCell::new(HashMap::new()),
             stored_sources: None,
             dependency_ranges: RefCell::new(Vec::new()),
+            module_paths: RefCell::new(HashMap::new()),
+            type_names: RefCell::new(None),
         }
     }
 
@@ -688,26 +705,37 @@ impl<'a> SourceResolver<'a> {
             .map(|symbol| super::qualified_name(symbol, &file.file_path))
     }
 
-    pub(super) fn matches_caller(
+    pub(super) fn caller_match(
         &self,
         file: &ExtractedFile,
         name: &str,
         line: usize,
         target_file: &str,
         target: &ExtractedSymbol,
-    ) -> bool {
-        self.calls(file)
-            .iter()
-            .filter(|call| {
-                call.name == name && call.range.start_line <= line && line <= call.range.end_line
-            })
-            .any(|call| {
-                self.resolve_call(file, call).is_some_and(|resolved| {
-                    resolved.file.file_path == target_file
+    ) -> CallerMatch {
+        let mut is_unresolved = false;
+        for call in self.calls(file).iter().filter(|call| {
+            call.name == name && call.range.start_line <= line && line <= call.range.end_line
+        }) {
+            match self.resolve_call(file, call) {
+                Some(resolved)
+                    if resolved.file.file_path == target_file
                         && resolved.symbol.range == target.range
-                        && resolved.symbol.name == target.name
-                })
-            })
+                        && resolved.symbol.name == target.name =>
+                {
+                    return CallerMatch::Target;
+                }
+                Some(_) => {}
+                // Source evidence that the call reaches another definition is not a doubt.
+                None if self.rules_out_local_call(file, call, target_file, target) => {}
+                None => is_unresolved = true,
+            }
+        }
+        if is_unresolved {
+            CallerMatch::Unresolved
+        } else {
+            CallerMatch::Other
+        }
     }
 
     fn lookup(

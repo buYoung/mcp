@@ -80,8 +80,13 @@ class McpSession:
         tools = self.call("tools/list", {})["tools"]
         return next(tool for tool in tools if tool["name"] == "synonyms")
 
-    def configure(self, scope, mode):
-        self.call("related_terms/evaluate", {"scope": scope, "mode": mode})
+    def configure(self, scope, mode, score=None):
+        """`score` is sent only when given. The specificity-ordering code that accepted it was removed,
+        so the current server accepts only None (level ordering)."""
+        params = {"scope": scope, "mode": mode}
+        if score is not None:
+            params["score"] = score
+        self.call("related_terms/evaluate", params)
         self.scope = scope
 
     def lookup(self, terms):

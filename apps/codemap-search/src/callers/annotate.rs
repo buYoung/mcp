@@ -10,6 +10,7 @@ use std::time::Instant;
 use crate::parser::{CallSite, ExtractedFile, ExtractedSymbol, ImportKind};
 
 use super::callees::{discover_callees, discover_callees_with_navigation, DiscoveredCallee};
+use super::resolution::CallerMatch;
 use super::scan::{scan_workspace, ScanResult};
 use super::source::SourceSyntax;
 use super::symbols::{
@@ -34,6 +35,11 @@ const OBSERVATION_SCOPE_CAVEAT: &str =
     "_(no direct caller observed — scope: indexed source eligible for caller lookup, \
 direct `name(` calls; callbacks, higher-order/method-reference passing, macro-wrapped, and \
 event/dispatch calls are not counted; approximate)_";
+
+/// Most unconfirmed call sites listed for a name with one indexed definition. More sites
+/// usually mean a library method shares the spelling (`emit` on an event emitter), so they
+/// are only counted and grep lists them.
+const UNRESOLVED_CALLER_LIST_CAP: usize = 5;
 
 #[derive(Debug, Default)]
 struct NavigationMetrics {
@@ -225,8 +231,27 @@ fn resolve_navigation_call<'a>(
     }
 }
 
+/// One attributed call site. Detail views render [`Self::entry`]; compact views keep the
+/// location to drop sites already visible in the returned source.
+#[derive(Debug, Clone)]
+pub(crate) struct CallerSite {
+    /// Qualified enclosing caller, or `None` for top-level/unindexed code.
+    pub caller: Option<String>,
+    pub path: String,
+    pub line: usize,
+}
+
+impl CallerSite {
+    fn entry(&self) -> String {
+        match &self.caller {
+            Some(caller) => format!("{} ({}:{})", caller, self.path, self.line),
+            None => format!("{}:{} (top-level/unindexed)", self.path, self.line),
+        }
+    }
+}
+
 struct ConfirmedCallers {
-    entries: Vec<String>,
+    entries: Vec<CallerSite>,
     is_partial: bool,
 }
 
@@ -351,20 +376,13 @@ fn precise_navigation_callers(
                 enclosing_fn(call_file, call.range.start_line)
                     .map(|enclosing| qualified_name(enclosing, &call_file.file_path))
             };
-            let entry = match caller_name {
-                Some(name) => {
-                    format!(
-                        "{} ({}:{})",
-                        name, call_file.file_path, call.range.start_line
-                    )
-                }
-                None => format!(
-                    "{}:{} (top-level/unindexed)",
-                    call_file.file_path, call.range.start_line
-                ),
+            let site = CallerSite {
+                caller: caller_name,
+                path: call_file.file_path.clone(),
+                line: call.range.start_line,
             };
-            if seen.insert(entry.clone()) {
-                caller_entries.push(entry);
+            if seen.insert(site.entry()) {
+                caller_entries.push(site);
             }
         }
     }
@@ -396,6 +414,10 @@ struct SymbolAnnotation {
     caller_block: String,
     /// The depth-1 callee block rendered after the caller block (may be empty).
     suffix: String,
+    /// Attributed callers behind the caller block (proven first, then name-matched), uncapped.
+    callers: Vec<CallerSite>,
+    /// Single-definition matches whose receiver did not resolve, as listed in the block.
+    unconfirmed_callers: Vec<CallerSite>,
 }
 
 impl SymbolAnnotation {
@@ -466,6 +488,7 @@ fn render_symbol_annotation(
     runtime_state: AnnotationRuntimeState,
     resolver: &super::resolution::SourceResolver<'_>,
     should_list_unresolved: bool,
+    should_discover_callees: bool,
 ) -> Option<SymbolAnnotation> {
     if byte_budget == 0 {
         return None;
@@ -489,6 +512,8 @@ fn render_symbol_annotation(
     // --- Callers (built into its own block so identical repeats can be deduped per file). ---
     let own_def_count = lookup_compatible_candidates(&sym.name, file_path, false, index).len();
     let mut caller_block = String::new();
+    let mut callers: Vec<CallerSite> = Vec::new();
+    let mut unconfirmed_callers: Vec<CallerSite> = Vec::new();
     let mut used_precise_callers = false;
     let mut precise_caller_entries: HashSet<String> = HashSet::new();
     if let Some(confirmed) = precise_navigation_callers(
@@ -513,10 +538,10 @@ fn render_symbol_annotation(
                 "  - _callers (source/import resolution checked; approximate):_\n"
             });
             for entry in &caller_entries {
-                precise_caller_entries.insert(entry.clone());
+                precise_caller_entries.insert(entry.entry());
             }
             for entry in caller_entries.iter().take(cfg.caller_list_cap) {
-                caller_block.push_str(&format!("    - {entry}\n"));
+                caller_block.push_str(&format!("    - {}\n", entry.entry()));
             }
             if caller_entries.len() > cfg.caller_list_cap {
                 caller_block.push_str(&format!(
@@ -526,6 +551,7 @@ fn render_symbol_annotation(
             }
             used_precise_callers = true;
         }
+        callers = caller_entries;
     }
 
     // Source-confirmed identities survive high spelling counts. Only the
@@ -542,9 +568,11 @@ fn render_symbol_annotation(
     } else {
         let is_common = own_def_count >= cfg.common_name_threshold;
         // Map this name's call-site hits to their enclosing fn.
-        let mut caller_entries: Vec<String> = Vec::new();
+        let mut caller_entries: Vec<CallerSite> = Vec::new();
         let mut seen_callers: HashSet<String> = HashSet::new();
         let mut unattributed_hits = 0usize;
+        let mut unresolved_entries: Vec<CallerSite> = Vec::new();
+        let mut seen_unresolved: HashSet<String> = HashSet::new();
         for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
             if !definition_is_compatible(&hit.file_path, hit.is_member_access, file_path, sym) {
                 continue;
@@ -557,14 +585,22 @@ fn render_symbol_annotation(
                 continue;
             }
             let file = snapshot.iter().find(|f| f.file_path == hit.file_path);
-            if super::resolution::supports(&hit.file_path)
-                && !file.is_some_and(|file| {
-                    resolver.matches_caller(file, &hit.name, hit.line_number, file_path, sym)
-                })
-            {
-                unattributed_hits += 1;
-                continue;
-            }
+            let is_unresolved = if super::resolution::supports(&hit.file_path) {
+                match file.map(|file| {
+                    resolver.caller_match(file, &hit.name, hit.line_number, file_path, sym)
+                }) {
+                    Some(CallerMatch::Target) => false,
+                    // With no other indexed definition, an unresolved receiver (an injected
+                    // field, a parameter) is shown as unconfirmed instead of only counted.
+                    Some(CallerMatch::Unresolved) if own_def_count == 1 => true,
+                    _ => {
+                        unattributed_hits += 1;
+                        continue;
+                    }
+                }
+            } else {
+                false
+            };
             let caller_name = file.and_then(|file| {
                 if super::resolution::supports(&file.file_path) {
                     resolver.caller_name(file, hit.line_number)
@@ -573,27 +609,36 @@ fn render_symbol_annotation(
                         .map(|enclosing| qualified_name(enclosing, &file.file_path))
                 }
             });
-            let entry = match caller_name {
-                Some(qn) => {
-                    format!("{} ({}:{})", qn, hit.file_path, hit.line_number)
-                }
-                None => {
-                    // File absent from snapshot, or line in no symbol range → never drop.
-                    format!(
-                        "{}:{} (top-level/unindexed)",
-                        hit.file_path, hit.line_number
-                    )
-                }
+            // File absent from snapshot, or line in no symbol range → never drop.
+            let site = CallerSite {
+                caller: caller_name,
+                path: hit.file_path.clone(),
+                line: hit.line_number,
             };
+            let entry = site.entry();
             if precise_caller_entries.contains(&entry) {
                 continue;
             }
-            if seen_callers.insert(entry.clone()) {
-                caller_entries.push(entry);
+            if is_unresolved {
+                if seen_unresolved.insert(entry) {
+                    unresolved_entries.push(site);
+                }
+            } else if seen_callers.insert(entry) {
+                caller_entries.push(site);
             }
         }
+        if unresolved_entries.len() > UNRESOLVED_CALLER_LIST_CAP {
+            unattributed_hits += unresolved_entries.len();
+            unresolved_entries.clear();
+        }
         if unattributed_hits > 0 {
-            caller_block.push_str(&format!("  - _`{}` has {own_def_count} definitions; {unattributed_hits} name-matching call site(s) not attributed to this declaration._\n", sym.name));
+            caller_block.push_str(&format!("  - _`{}` has {own_def_count} definitions; {unattributed_hits} name-matching call site(s) not attributed to this declaration; grep \"{}\\(\" lists them._\n", sym.name, regex::escape(&sym.name)));
+        }
+        if !unresolved_entries.is_empty() {
+            caller_block.push_str(&format!("  - _unconfirmed callers (receiver unresolved; only indexed `{}` definition, not source-confirmed):_\n", sym.name));
+            for entry in &unresolved_entries {
+                caller_block.push_str(&format!("    - {}\n", entry.entry()));
+            }
         }
         let scan_truncated = scan.truncated_names.contains(&sym.name);
         if caller_entries.is_empty() {
@@ -636,9 +681,11 @@ fn render_symbol_annotation(
                         break;
                     }
                 }
-                if refs.is_empty() {
+                // Observed but unattributed calls are already reported above, so they never
+                // read as "no direct caller".
+                if refs.is_empty() && unattributed_hits == 0 && unresolved_entries.is_empty() {
                     caller_block.push_str(&format!("  - {OBSERVATION_SCOPE_CAVEAT}\n"));
-                } else {
+                } else if !refs.is_empty() {
                     caller_block.push_str(
                 "  - _referenced in a non-call position (possible callback / handler registration, approximate):_\n",
             );
@@ -676,7 +723,7 @@ fn render_symbol_annotation(
                 );
             }
             for entry in caller_entries.iter().take(shown) {
-                caller_block.push_str(&format!("    - {entry}\n"));
+                caller_block.push_str(&format!("    - {}\n", entry.entry()));
             }
             if caller_entries.len() > shown {
                 caller_block.push_str(&format!(
@@ -690,6 +737,8 @@ fn render_symbol_annotation(
                 );
             }
         }
+        callers.extend(caller_entries);
+        unconfirmed_callers = unresolved_entries;
     } // end caller-list branch (skipped when callers are omitted for too-many-defs)
 
     // --- Callees: depth-1, name-match only. Held in the fixed `suffix` part — never deduped,
@@ -702,19 +751,23 @@ fn render_symbol_annotation(
     // instead of a wall of unactionable lines. ---
     let mut suffix = String::new();
     let current_file = snapshot.iter().find(|file| file.file_path == file_path);
-    let callees: Vec<DiscoveredCallee> = current_file
-        .map(|file| {
-            discover_callees_with_navigation(
-                sym,
-                file,
-                index,
-                runtime_state,
-                cfg.navigation_context_default,
-                root,
-                resolver,
-            )
-        })
-        .unwrap_or_else(|| discover_callees(sym, file_path, index, root));
+    let callees: Vec<DiscoveredCallee> = if !should_discover_callees {
+        Vec::new()
+    } else {
+        current_file
+            .map(|file| {
+                discover_callees_with_navigation(
+                    sym,
+                    file,
+                    index,
+                    runtime_state,
+                    cfg.navigation_context_default,
+                    root,
+                    resolver,
+                )
+            })
+            .unwrap_or_else(|| discover_callees(sym, file_path, index, root))
+    };
     if !callees.is_empty() {
         let unresolved = callees.iter().filter(|callee| callee.is_unresolved).count();
         if unresolved > 0 {
@@ -790,6 +843,8 @@ fn render_symbol_annotation(
         prefix,
         caller_block,
         suffix,
+        callers,
+        unconfirmed_callers,
     };
     // Budget check against the FULL (un-deduped) length: the render-order dedup only ever
     // emits this length or LESS, so reserving the full length keeps the cap safe. Over budget
@@ -803,6 +858,8 @@ fn render_symbol_annotation(
                 prefix: ANNOTATION_OMITTED_MARKER.to_string(),
                 caller_block: String::new(),
                 suffix: String::new(),
+                callers: Vec::new(),
+                unconfirmed_callers: Vec::new(),
             });
         }
         return None;
@@ -913,6 +970,24 @@ impl DetailAnnotations {
         })
     }
 
+    /// Unrendered caller sites of one annotated symbol: attributed callers, then unconfirmed
+    /// single-definition matches. `None` when the symbol was not annotated.
+    pub(crate) fn caller_sites(
+        &self,
+        file_path: &str,
+        start_line: usize,
+        start_col: usize,
+    ) -> Option<(&[CallerSite], &[CallerSite])> {
+        self.exact_annotations
+            .get(&(file_path.to_string(), start_line, start_col))
+            .map(|annotation| {
+                (
+                    annotation.callers.as_slice(),
+                    annotation.unconfirmed_callers.as_slice(),
+                )
+            })
+    }
+
     /// Prepare the annotation for a specific symbol AT ITS EMISSION POINT, deduping its caller
     /// block against the symbols already emitted for this file (`seen`). Returns the prepared
     /// text + record intent, or `None` when the symbol has no annotation. Callers MUST invoke
@@ -977,6 +1052,8 @@ pub fn annotate_results_with_state(
         AnnotationPresentation {
             runtime_state,
             should_list_unresolved: true,
+            should_discover_callees: true,
+            should_skip_ambiguous_names: false,
             resolver: &resolver,
         },
     )
@@ -1000,6 +1077,34 @@ pub(crate) fn annotate_live_results(
         AnnotationPresentation {
             runtime_state: AnnotationRuntimeState::default(),
             should_list_unresolved,
+            should_discover_callees: true,
+            should_skip_ambiguous_names: false,
+            resolver,
+        },
+    )
+}
+
+/// Callers only, for compact source-view trailers: callees are not discovered, names at the
+/// definition-count omission threshold are skipped, and the sub-budget alone bounds the
+/// unrendered annotations so every requested caller list is kept.
+pub(crate) fn annotate_live_callers(
+    requests: &[AnnotationRequest<'_>],
+    snapshot: &[ExtractedFile],
+    cfg: &CallerConfig,
+    root: &Path,
+    resolver: &super::resolution::SourceResolver<'_>,
+) -> Option<DetailAnnotations> {
+    annotate_with_presentation(
+        requests,
+        snapshot,
+        cfg,
+        cfg.annotation_sub_budget,
+        root,
+        AnnotationPresentation {
+            runtime_state: AnnotationRuntimeState::default(),
+            should_list_unresolved: false,
+            should_discover_callees: false,
+            should_skip_ambiguous_names: true,
             resolver,
         },
     )
@@ -1008,6 +1113,10 @@ pub(crate) fn annotate_live_results(
 struct AnnotationPresentation<'a, 'source> {
     runtime_state: AnnotationRuntimeState,
     should_list_unresolved: bool,
+    should_discover_callees: bool,
+    /// Skip names with at least `caller_omit_def_threshold` definitions: their name-matching
+    /// callers are omitted anyway, and resolving their many call sites dominates the cost.
+    should_skip_ambiguous_names: bool,
     resolver: &'a super::resolution::SourceResolver<'source>,
 }
 
@@ -1022,6 +1131,8 @@ fn annotate_with_presentation(
     let AnnotationPresentation {
         runtime_state,
         should_list_unresolved,
+        should_discover_callees,
+        should_skip_ambiguous_names,
         resolver,
     } = presentation;
     let should_trace_navigation_metrics = tracing::enabled!(tracing::Level::DEBUG);
@@ -1058,6 +1169,13 @@ fn annotate_with_presentation(
         metrics
     });
 
+    let is_annotated = |file_path: &str, sym: &ExtractedSymbol| {
+        sym.kind == "fn"
+            && !test_filter.is_excluded(file_path, &sym.range)
+            && (!should_skip_ambiguous_names
+                || lookup_compatible_candidates(&sym.name, file_path, false, &index).len()
+                    < cfg.caller_omit_def_threshold)
+    };
     // Union of every non-fallback matched `fn` name across all detail files → one scan.
     let mut names: Vec<String> = Vec::new();
     for req in requests {
@@ -1067,7 +1185,7 @@ fn annotate_with_presentation(
         for sym in req
             .symbols
             .iter()
-            .filter(|s| s.kind == "fn" && !test_filter.is_excluded(req.file_path, &s.range))
+            .filter(|s| is_annotated(req.file_path, s))
         {
             names.push(sym.name.clone());
         }
@@ -1091,7 +1209,7 @@ fn annotate_with_presentation(
         for sym in req
             .symbols
             .iter()
-            .filter(|s| s.kind == "fn" && !test_filter.is_excluded(req.file_path, &s.range))
+            .filter(|s| is_annotated(req.file_path, s))
         {
             let budget = sub_remaining.min(overall_remaining);
             if budget == 0 {
@@ -1110,6 +1228,7 @@ fn annotate_with_presentation(
                 runtime_state,
                 resolver,
                 should_list_unresolved,
+                should_discover_callees,
             ) {
                 let reserved = annotation.full_len();
                 sub_remaining = sub_remaining.saturating_sub(reserved);
@@ -1234,6 +1353,7 @@ mod tests {
         let annotations = (1..=3).map(|line| (("t.rs".to_string(), line), SymbolAnnotation {
             name: "tick".to_string(), prefix: String::new(), suffix: String::new(),
             caller_block: "  - _callers (approximate; `tick` has 3 definitions):_\n    - driver (t.rs:5)\n".to_string(),
+            callers: Vec::new(), unconfirmed_callers: Vec::new(),
         })).collect();
         DetailAnnotations {
             annotations,

@@ -108,7 +108,7 @@ fn add_input_parts(path: &Path) {
 pub(super) fn configure(repo: &Path, dataset: &Path, extra: &str) {
     fs::create_dir_all(repo.join(".codemap")).unwrap();
     fs::write(repo.join(".codemap/config.toml"), format!(
-        "# codemap-config-version: 30\n[index.refresh]\nwatch = false\nindex_staleness_ms = 1\n[related_terms]\nenabled = true\ndataset_path = {}\n{extra}\n",
+        "# codemap-config-version: 31\n[index.refresh]\nwatch = false\nindex_staleness_ms = 1\n[related_terms]\nenabled = true\ndataset_path = {}\n{extra}\n",
         serde_json::to_string(&dataset.to_string_lossy()).unwrap(),
     )).unwrap();
 }
@@ -339,7 +339,7 @@ async fn test_related_terms_tool_utf8_output_obeys_client_cap() {
 async fn test_related_terms_tool_downloading_does_not_block_search() {
     let repo = tempfile::tempdir().unwrap();
     fs::create_dir_all(repo.path().join(".codemap")).unwrap();
-    fs::write(repo.path().join(".codemap/config.toml"), "# codemap-config-version: 30\n[index.refresh]\nwatch = false\n[related_terms]\nenabled = true\n").unwrap();
+    fs::write(repo.path().join(".codemap/config.toml"), "# codemap-config-version: 31\n[index.refresh]\nwatch = false\n[related_terms]\nenabled = true\n").unwrap();
     let directory = repo.path().join("related-terms/rts5-75e02862daa29308");
     fs::create_dir_all(&directory).unwrap();
     let lock = fs::OpenOptions::new()

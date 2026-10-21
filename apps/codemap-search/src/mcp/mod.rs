@@ -527,6 +527,16 @@ impl McpServer {
                     .map_err(|reason| (-32602, reason))?;
                 Ok(serde_json::json!({"scope":scope,"mode":mode}))
             }
+            #[cfg(feature = "related-terms-eval")]
+            "related_terms/documented_symbols" => {
+                let runtime = self.related_terms.as_ref().ok_or_else(|| {
+                    (
+                        -32602,
+                        "related terms must be enabled for evaluation".to_string(),
+                    )
+                })?;
+                Ok(runtime.documented_symbols())
+            }
             "tools/list" => Ok(crate::tools::list_tools()),
             "tools/call" => {
                 let params = params.ok_or_else(|| (-32602, "Missing params".to_string()))?;

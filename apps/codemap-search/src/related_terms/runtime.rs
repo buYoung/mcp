@@ -127,6 +127,27 @@ impl RelatedTermsRuntime {
         self.index_source.receiver.borrow().generation()
     }
 
+    /// Documented symbols of the published snapshot, so evaluation sets can pair doc-comment
+    /// words with the names the code actually declares.
+    #[cfg(feature = "related-terms-eval")]
+    pub(crate) fn documented_symbols(&self) -> serde_json::Value {
+        let snapshot = Arc::clone(&self.index_source.receiver.borrow());
+        let codemap = snapshot.codemap();
+        let symbols = codemap
+            .iter()
+            .flat_map(|file| {
+                file.symbols.iter().filter_map(move |symbol| {
+                    let docstring = symbol.docstring.as_deref()?;
+                    Some(serde_json::json!({
+                        "path": file.file_path, "name": symbol.name, "kind": symbol.kind,
+                        "owner": symbol.owner, "is_test": symbol.flags.is_test, "docstring": docstring,
+                    }))
+                })
+            })
+            .collect::<Vec<_>>();
+        serde_json::json!({"generation": snapshot.generation(), "symbols": symbols})
+    }
+
     fn synchronize_evidence(&mut self) {
         if let Some(handle) = &self.evidence {
             if handle.source.id != self.index_source.id

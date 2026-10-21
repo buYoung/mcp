@@ -605,7 +605,14 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
         assert!(!is_error(&response), "{response}");
         let out = text(&response);
         match view {
-            "source" => assert_eq!(out, raw),
+            "source" => {
+                // Source rows stay byte-identical; the read window ends with outside callers.
+                let (rows, trailer) = out
+                    .split_once("\n[Callers from outside this window")
+                    .unwrap();
+                assert_eq!(rows, raw);
+                assert!(trailer.ends_with("\n- target L2: caller (L7)"), "{out}");
+            }
             "definitions" => {
                 assert!(out.contains("target [function"), "{out}");
                 for absent in [
@@ -651,7 +658,14 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
         "{out}"
     );
     let alias = client.send_request("tools/call", call("read", serde_json::json!({"path":"src/lib.rs","startLine":"2","end-line":"6","view":"source"}))).await.unwrap();
-    assert_eq!(text(&alias), raw);
+    let alias = text(&alias);
+    assert_eq!(
+        alias
+            .split_once("\n[Callers from outside this window")
+            .unwrap()
+            .0,
+        raw
+    );
     let schema = client
         .send_request("tools/list", serde_json::json!({}))
         .await
@@ -687,6 +701,76 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
             .unwrap();
         assert!(is_error(&response), "{response}");
     }
+}
+
+#[tokio::test]
+async fn test_read_outside_callers_are_capped_folded_and_configurable() {
+    // Long names push sixteen functions with outside callers past the trailer's byte cap.
+    let long = "x".repeat(80);
+    let mut source = String::new();
+    for i in 0..16 {
+        source.push_str(&format!("fn target_{i:02}_{long}() {{}}\n"));
+    }
+    for i in 0..16 {
+        source.push_str(&format!(
+            "fn caller_{i:02}() {{ target_{i:02}_{long}(); }}\n"
+        ));
+    }
+    let settings = "[update]\nconfig_auto_update=false\n";
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", source.as_str()),
+        (".codemap/config.toml", settings),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let header = "\n[Callers from outside this window";
+    let args = serde_json::json!({"file_path":"src/lib.rs","offset":1,"limit":16,"view":"source"});
+    let first = client
+        .send_tool_until(
+            "read",
+            call("read", args.clone())["arguments"].clone(),
+            |out| out.contains(header),
+        )
+        .await
+        .unwrap();
+    let first = text(&first);
+    let start = first.find(header).expect(&first);
+    let (rows, trailer) = (&first[..start], &first[start + 1..]);
+    assert!(trailer.len() <= 1536, "{first}");
+    assert!(trailer.contains("\n- target_00_"), "{first}");
+    assert!(
+        trailer.ends_with(" more function(s) with outside callers (view=relations)"),
+        "{first}"
+    );
+    // A repeated read in the same session folds the delivered rows and trailer.
+    let mut repeat = args.clone();
+    repeat["include_seen"] = false.into();
+    let folded = client
+        .send_request("tools/call", call("read", repeat))
+        .await
+        .unwrap();
+    let folded = text(&folded);
+    assert!(!folded.contains(header), "{folded}");
+    assert!(folded.contains("<--removed duplicated-->"), "{folded}");
+    let seen = client
+        .send_request("tools/call", call("read", args.clone()))
+        .await
+        .unwrap();
+    assert_eq!(text(&seen), first);
+    // Turning the setting off drops the trailer from later reads and keeps the rows.
+    std::fs::write(
+        temp.path().join(".codemap/config.toml"),
+        format!("{settings}[output.read]\nis_outside_callers_enabled = false\n"),
+    )
+    .unwrap();
+    let off = client
+        .send_tool_until("read", call("read", args)["arguments"].clone(), |out| {
+            !out.contains(header)
+        })
+        .await
+        .unwrap();
+    assert!(!is_error(&off), "{off}");
+    assert_eq!(text(&off), rows);
 }
 
 #[tokio::test]
