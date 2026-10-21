@@ -3,6 +3,7 @@ mod declarations;
 mod dispatch;
 mod fields;
 mod imports;
+pub(crate) use imports::dart_library_imports;
 
 use super::*;
 use crate::parser::{CodeRange, ExtractedSymbol, NavigationFile};

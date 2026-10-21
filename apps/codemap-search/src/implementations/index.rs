@@ -79,6 +79,7 @@ pub(crate) struct ImplementationIndex {
     pub(super) proof_digests: HashMap<String, String>,
     pub(super) target_os: Option<String>,
     pub(super) omitted: usize,
+    pub(super) dart_libraries: super::DartLibraries,
 }
 
 impl ImplementationIndex {
@@ -111,6 +112,9 @@ impl ImplementationIndex {
             proof_digests: HashMap::new(),
             target_os,
             omitted: 0,
+            dart_libraries: super::DartLibraries::new(
+                files.iter().map(|file| file.file_path.as_str()),
+            ),
         };
         for (file_id, file) in files.iter().enumerate() {
             let Some(facts) = file

@@ -117,63 +117,6 @@ pub(super) fn collect(
                 scope: range(root),
             });
         }
-        // A Dart library import without a prefix exposes every public name, or only the
-        // `show`n ones; `hide` lists and prefixed imports are left unresolved.
-        if unit.language == "dart" && node.kind() == "import_or_export" {
-            for specification in children(node)
-                .into_iter()
-                .filter(|node| node.kind() == "library_import")
-                .flat_map(children)
-                .filter(|node| node.kind() == "import_specification")
-            {
-                let Some(uri) = specification
-                    .child_by_field_name("uri")
-                    .filter(|_| specification.child_by_field_name("alias").is_none())
-                else {
-                    continue;
-                };
-                let uri = text(uri, source)
-                    .trim()
-                    .trim_matches(['\'', '"'])
-                    .to_string();
-                let combinators = children(specification)
-                    .into_iter()
-                    .filter(|node| node.kind() == "combinator")
-                    .collect::<Vec<_>>();
-                if combinators
-                    .iter()
-                    .any(|combinator| text(*combinator, source).trim_start().starts_with("hide"))
-                {
-                    continue;
-                }
-                let names = combinators
-                    .iter()
-                    .flat_map(|combinator| children(*combinator))
-                    .filter(|node| node.kind() == "identifier")
-                    .map(|node| text(node, source).to_string())
-                    .collect::<Vec<_>>();
-                let entries = if names.is_empty() {
-                    vec![("*".to_string(), None, ImportKind::Glob)]
-                } else {
-                    names
-                        .into_iter()
-                        .map(|name| (name.clone(), Some(name), ImportKind::Named))
-                        .collect()
-                };
-                for (local_name, imported_name, kind) in entries {
-                    unit.imports.push(ScopedImport {
-                        entry: ImportEntry {
-                            local_name,
-                            imported_name,
-                            source: Some(uri.clone()),
-                            kind,
-                            range: range(node),
-                        },
-                        scope: range(root),
-                    });
-                }
-            }
-        }
         if unit.language == "python" && node.kind() == "import_from_statement" {
             let Some(module) = node.child_by_field_name("module_name") else {
                 continue;
@@ -200,5 +143,86 @@ pub(super) fn collect(
             }
         }
     }
+    if unit.language == "dart" {
+        for import in dart_library_imports(root, source) {
+            let entries = if import.shown.is_empty() {
+                vec![("*".to_string(), None, ImportKind::Glob)]
+            } else {
+                import
+                    .shown
+                    .into_iter()
+                    .map(|name| (name.clone(), Some(name), ImportKind::Named))
+                    .collect()
+            };
+            for (local_name, imported_name, kind) in entries {
+                unit.imports.push(ScopedImport {
+                    entry: ImportEntry {
+                        local_name,
+                        imported_name,
+                        source: Some(import.uri.clone()),
+                        kind,
+                        range: import.range.clone(),
+                    },
+                    scope: range(root),
+                });
+            }
+        }
+    }
     unit.imports.dedup_by(|a, b| a == b);
+}
+
+/// A Dart library imported without a prefix and the names its `show` lists expose, empty when
+/// every public name is exposed.
+pub(crate) struct DartLibraryImport {
+    pub(crate) uri: String,
+    pub(crate) shown: Vec<String>,
+    pub(crate) range: CodeRange,
+}
+
+/// The library imports of a Dart file whose names are reachable unqualified. Prefixed imports
+/// and imports with a `hide` list are left out.
+pub(crate) fn dart_library_imports(root: Node<'_>, source: &[u8]) -> Vec<DartLibraryImport> {
+    let mut imports = Vec::new();
+    for node in children(root)
+        .into_iter()
+        .filter(|node| node.kind() == "import_or_export")
+    {
+        for specification in children(node)
+            .into_iter()
+            .filter(|node| node.kind() == "library_import")
+            .flat_map(children)
+            .filter(|node| node.kind() == "import_specification")
+        {
+            let Some(uri) = specification
+                .child_by_field_name("uri")
+                .filter(|_| specification.child_by_field_name("alias").is_none())
+            else {
+                continue;
+            };
+            let combinators = children(specification)
+                .into_iter()
+                .filter(|node| node.kind() == "combinator")
+                .collect::<Vec<_>>();
+            if combinators
+                .iter()
+                .any(|combinator| text(*combinator, source).trim_start().starts_with("hide"))
+            {
+                continue;
+            }
+            imports.push(DartLibraryImport {
+                uri: text(uri, source)
+                    .trim()
+                    .trim_matches(['\'', '"'])
+                    .to_string(),
+                shown: combinators
+                    .iter()
+                    .flat_map(|combinator| children(*combinator))
+                    .filter(|node| node.kind() == "identifier")
+                    .map(|node| text(node, source).to_string())
+                    .collect(),
+                range: range(node),
+            });
+        }
+    }
+    imports
 }

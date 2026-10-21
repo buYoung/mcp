@@ -8,11 +8,12 @@ mod resolve;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use extract::collect;
+pub(crate) use extract::{collect, dart_library_imports};
 pub(crate) use index::ImplementationIndex;
 use index::*;
 pub use model::ImplementationFile;
 pub(crate) use model::*;
+pub(crate) use resolve::{relative_path, same_source_root, DartLibraries};
 
 pub(crate) const TYPES_PER_FILE: usize = 256;
 pub(crate) const METHODS_PER_FILE: usize = 2048;

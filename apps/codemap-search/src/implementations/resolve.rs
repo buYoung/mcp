@@ -13,7 +13,8 @@ fn normalized(name: &str) -> String {
         .replace("::", ".")
         .replace('\\', ".")
 }
-fn relative_path(path: &str, module: &str) -> Option<String> {
+/// `module` joined to the directory of `path`, with `.` and `..` resolved.
+pub(crate) fn relative_path(path: &str, module: &str) -> Option<String> {
     let joined = Path::new(path).parent()?.join(module);
     let mut result = PathBuf::new();
     for part in joined.components() {
@@ -207,7 +208,8 @@ impl ImplementationIndex {
                         })
                         && typ.namespace.is_empty()
                 } else if unit.language == "dart" {
-                    dart_library_matches(&source.file_path, module, target_file)
+                    self.dart_libraries
+                        .matches(&source.file_path, module, target_file)
                         && typ.namespace.is_empty()
                 } else {
                     false
@@ -341,7 +343,7 @@ impl ImplementationIndex {
                 }
                 _ => {
                     import.entry.kind == ImportKind::Glob
-                        && dart_library_matches(path, module, target)
+                        && self.dart_libraries.matches(path, module, target)
                 }
             };
             for &id in self.by_name.get(bare).into_iter().flatten() {
@@ -388,18 +390,50 @@ impl ImplementationIndex {
     }
 }
 
-/// Whether a Dart import URI names `target`: `package:name/x.dart` is that package's
-/// `lib/x.dart`, a URI without a scheme is relative, and `dart:` libraries are not indexed.
-fn dart_library_matches(path: &str, uri: &str, target: &str) -> bool {
-    if let Some(rest) = uri.strip_prefix("package:") {
-        return rest
-            .split_once('/')
-            .is_some_and(|(_, file)| target.ends_with(&format!("lib/{file}")));
+/// Indexed Dart files counted by their path below a package's `lib/` directory, to tell
+/// which workspace package a `package:` import names when several repeat that path.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DartLibraries(HashMap<String, usize>);
+
+impl DartLibraries {
+    pub(crate) fn new<'p>(paths: impl Iterator<Item = &'p str>) -> Self {
+        let mut counts = HashMap::new();
+        for (_, below) in paths
+            .filter(|path| path.ends_with(".dart"))
+            .filter_map(package_library)
+        {
+            *counts.entry(below.to_string()).or_insert(0) += 1;
+        }
+        Self(counts)
     }
-    !uri.contains(':') && relative_path(path, uri).is_some_and(|module| target == module)
+
+    /// Whether a Dart import URI names `target`. `package:name/x.dart` is `lib/x.dart` of that
+    /// package: the only indexed one, else the one in a directory named after the package. A
+    /// URI without a scheme is relative, and `dart:` libraries are not indexed.
+    pub(crate) fn matches(&self, path: &str, uri: &str, target: &str) -> bool {
+        if let Some(rest) = uri.strip_prefix("package:") {
+            let Some((package, file)) = rest.split_once('/') else {
+                return false;
+            };
+            return package_library(target).is_some_and(|(directory, below)| {
+                below == file
+                    && (self.0.get(file) == Some(&1)
+                        || directory.rsplit('/').next() == Some(package))
+            });
+        }
+        !uri.contains(':') && relative_path(path, uri).is_some_and(|module| target == module)
+    }
 }
 
-fn same_source_root(left: &str, right: &str) -> bool {
+/// A path split at its package's `lib/` directory into the package directory and the rest.
+fn package_library(path: &str) -> Option<(&str, &str)> {
+    match path.strip_prefix("lib/") {
+        Some(below) => Some(("", below)),
+        None => path.split_once("/lib/"),
+    }
+}
+
+pub(crate) fn same_source_root(left: &str, right: &str) -> bool {
     // Explicit qualified imports still cannot bridge independent monorepo apps.
     let prefix = |path: &str| {
         if path.starts_with("src/") {

@@ -57,6 +57,10 @@ pub(crate) struct SourceResolver<'a> {
     module_paths: RefCell<HashMap<PathBuf, Option<Rc<local::ModulePaths>>>>,
     /// Names of indexed type declarations, built on first use.
     type_names: RefCell<Option<Rc<HashSet<&'a str>>>>,
+    /// Indexed Dart libraries by their path below `lib/`, built on first use.
+    dart_libraries: RefCell<Option<Rc<crate::implementations::DartLibraries>>>,
+    /// Lookups for calls into other files, built on first use.
+    module_lookups: RefCell<Option<Rc<local::ModuleLookups<'a>>>>,
     /// Typed member calls proven by the implementation index of the same snapshot.
     implementations: Option<&'a crate::implementations::ImplementationIndex>,
     /// Whether each proof file still holds the indexed source generation.
@@ -271,6 +275,8 @@ impl<'a> SourceResolver<'a> {
             dependency_ranges: RefCell::new(Vec::new()),
             module_paths: RefCell::new(HashMap::new()),
             type_names: RefCell::new(None),
+            dart_libraries: RefCell::new(None),
+            module_lookups: RefCell::new(None),
             implementations: None,
             indexed_generations: RefCell::new(HashMap::new()),
         }
@@ -1163,9 +1169,11 @@ impl<'a> SourceResolver<'a> {
     pub(crate) fn resolve_call(&self, file: &ExtractedFile, call: &CallSite) -> Option<Target<'a>> {
         let file = self.files_by_path.get(file.file_path.as_str()).copied()?;
         if local::supports(&file.file_path) {
+            // Members of the enclosing type take precedence over functions of other files.
             return self
                 .resolve_local_call(file, call)
-                .or_else(|| self.dispatched_call(file, call));
+                .or_else(|| self.dispatched_call(file, call))
+                .or_else(|| self.module_function(file, call));
         }
         let source = self.source(&file.file_path)?;
         let node = node_at(&source, &call.range)?;

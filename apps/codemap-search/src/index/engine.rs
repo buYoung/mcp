@@ -198,7 +198,7 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // they are not symbols, so search ranking and codemap views stay unchanged.
 // v36 types more call receivers (fields, static types, bases, C++ and PowerShell parameters)
 // in the persisted implementation facts used for caller attribution.
-const EXTRACTION_FORMAT_VERSION: &str = "v36-typed-call-receivers";
+const EXTRACTION_FORMAT_VERSION: &str = "v37-module-imports";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1617,7 +1617,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v36-typed-call-receivers");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v37-module-imports");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
