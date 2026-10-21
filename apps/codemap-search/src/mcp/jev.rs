@@ -360,12 +360,14 @@ pub(super) async fn live(
         }
     }
     let should_capture = evaluation.is_some();
-    let output = match (is_read, should_capture) {
+    let mut output = match (is_read, should_capture) {
         (true, true) => crate::tools::read::read_file_for_filter(arguments)?,
         (true, false) => crate::tools::read::read_file_with_metadata(arguments)?,
         (false, true) => crate::tools::grep::grep_for_filter(arguments)?,
         (false, false) => crate::tools::grep::grep_with_metadata(arguments)?,
     };
+    // Jev judges source rows only; a caller trailer would bypass its omissions.
+    output.should_list_outside_callers &= !should_capture;
     if !is_content {
         return Ok(PreparedLiveOutput {
             text: output.text,

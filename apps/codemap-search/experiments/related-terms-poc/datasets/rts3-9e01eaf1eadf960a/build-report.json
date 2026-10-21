@@ -1,0 +1,55 @@
+{
+  "dataset_id": "rts3-9e01eaf1eadf960a",
+  "path": "/Users/buyong/.cache/related-terms-usage-1/word-eval/remaining-001/datasets/rts3-9e01eaf1eadf960a/dataset.sqlite3",
+  "schema_version": "rt-sense/3",
+  "base_dataset": "rts3-641a078ef551bfc0",
+  "base_sha256": "e63658b11cdbc34fdfc07b78c6649555b6ee2aefc166d4fa296d190437da1a93",
+  "plan_sha256": "3f728da00305d74d7eb3afea9b98bf43de91b2fcc8c898c4de70613e837e26f2",
+  "before": {
+    "fields": 39,
+    "topics": 2527,
+    "topic_fields": 3046,
+    "concepts": 5326,
+    "terms": 13856,
+    "senses": 29917,
+    "personas": 42623,
+    "input_senses": 331424,
+    "relations": 592794,
+    "input_relations": 9
+  },
+  "after": {
+    "fields": 39,
+    "topics": 2527,
+    "topic_fields": 3046,
+    "concepts": 5326,
+    "terms": 13865,
+    "senses": 29913,
+    "personas": 42618,
+    "input_senses": 331421,
+    "relations": 592793,
+    "input_relations": 9
+  },
+  "delta": {
+    "fields": 0,
+    "topics": 0,
+    "topic_fields": 0,
+    "concepts": 0,
+    "terms": 9,
+    "senses": -4,
+    "personas": -5,
+    "input_senses": -3,
+    "relations": -1,
+    "input_relations": 0
+  },
+  "operations": {
+    "relation_edits_reattribute_same_head": 24,
+    "relation_edits_remove": 1,
+    "terms_added": 9,
+    "input_senses_added": 9,
+    "input_bindings_detached": 12,
+    "personas_removed": 5,
+    "orphan_senses_removed": 4
+  },
+  "foreign_key_errors": [],
+  "status": "complete"
+}

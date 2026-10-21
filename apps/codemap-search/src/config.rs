@@ -111,7 +111,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
 /// This version belongs to repository config only; global files are not schema-synced.
-const CONFIG_VERSION: u32 = 29;
+const CONFIG_VERSION: u32 = 31;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -139,6 +139,13 @@ fn config_template(language: ConfigCommentLanguage) -> &'static str {
     language.select(CONFIG_TEMPLATE, CONFIG_TEMPLATE_KO)
 }
 
+/// Opt-in dataset source. Loading configuration never fetches or prepares the dataset.
+#[derive(Debug, Clone, Default)]
+pub struct RelatedTermsConfig {
+    pub enabled: bool,
+    pub dataset_path: Option<PathBuf>,
+}
+
 /// Fully-resolved configuration. Every field carries a compiled-in default that
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
 #[derive(Debug, Clone)]
@@ -156,6 +163,7 @@ pub struct ResolvedConfig {
     pub event_navigation: EventNavigationConfig,
     /// Optional Jev output filters (`[output.jev]`); all stages are off by default.
     pub jev: JevConfig,
+    pub related_terms: RelatedTermsConfig,
     /// Credentials from repo/global `auth.toml`, separate from behavior settings.
     pub auth: AuthConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
@@ -234,6 +242,8 @@ pub struct ResolvedConfig {
     /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
     /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
     pub read_output_byte_cap: usize,
+    /// Whether `read view=source` may end with callers from outside the window.
+    pub is_read_outside_callers_enabled: bool,
     /// `search` detail-view per-symbol snippet line cap (default 500). A symbol body longer
     /// than this is truncated with an elision marker. Output-size only.
     pub search_detail_snippet_max_lines: usize,
@@ -322,6 +332,7 @@ impl Default for ResolvedConfig {
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
             jev: JevConfig::default(),
+            related_terms: RelatedTermsConfig::default(),
             auth: AuthConfig::default(),
             analysis_target_os: None,
             config_auto_update: true,
@@ -356,6 +367,7 @@ impl Default for ResolvedConfig {
             grep_max_columns: 0,
             is_overview_stats_enabled: true,
             read_output_byte_cap: 5 * 1024 * 1024,
+            is_read_outside_callers_enabled: true,
             search_detail_snippet_max_lines: 500,
             search_detail_symbol_limit: 100,
             search_detail_byte_cap: 1024 * 1024,
@@ -392,6 +404,8 @@ struct ConfigLayer {
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
     jev: jev::JevLayer,
+    related_terms_enabled: Option<bool>,
+    related_terms_dataset_path: Option<PathBuf>,
     analysis_target_os: Option<Option<String>>,
     config_auto_update: Option<bool>,
     is_global_instructions_enabled: Option<bool>,
@@ -414,6 +428,7 @@ struct ConfigLayer {
     grep_max_columns: Option<usize>,
     is_overview_stats_enabled: Option<bool>,
     read_output_byte_cap: Option<usize>,
+    is_read_outside_callers_enabled: Option<bool>,
     search_detail_snippet_max_lines: Option<usize>,
     search_detail_symbol_limit: Option<usize>,
     search_detail_byte_cap: Option<usize>,
@@ -508,7 +523,7 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     let canonical = toml::Value::Table(table.clone());
     for (key, value) in table {
         match key.as_str() {
-            "output" => {}
+            "output" | "related_terms" => {}
             "event_navigation" => {
                 layer.event_navigation = event_navigation::normalize(&value, path)
             }
@@ -672,6 +687,21 @@ fn assign_config_key(
     path: &Path,
 ) -> bool {
     match key {
+        "related_terms_enabled" => {
+            layer.related_terms_enabled = as_bool(value, key_display, path);
+        }
+        "related_terms_dataset_path" => {
+            layer.related_terms_dataset_path = match value.as_str() {
+                Some(value) => Some(PathBuf::from(value)),
+                None => {
+                    warn(&format!(
+                        "config '{key_display}' must be a string: {} — ignored",
+                        path.display()
+                    ));
+                    None
+                }
+            };
+        }
         "output_byte_cap" => {
             layer.output_byte_cap = as_positive_byte_size(value, key_display, path)
         }
@@ -760,6 +790,9 @@ fn assign_config_key(
         "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
         "read_output_byte_cap" => {
             layer.read_output_byte_cap = as_positive_byte_size(value, key_display, path)
+        }
+        "is_read_outside_callers_enabled" => {
+            layer.is_read_outside_callers_enabled = as_bool(value, key_display, path)
         }
         "search_detail_snippet_max_lines" => {
             layer.search_detail_snippet_max_lines = as_positive_usize(value, key_display, path)
@@ -883,6 +916,15 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
         jev: jev::merge(repo.jev, global.jev),
+        related_terms: RelatedTermsConfig {
+            enabled: repo
+                .related_terms_enabled
+                .or(global.related_terms_enabled)
+                .unwrap_or(false),
+            dataset_path: repo
+                .related_terms_dataset_path
+                .or(global.related_terms_dataset_path),
+        },
         auth: AuthConfig::default(),
         analysis_target_os: repo
             .analysis_target_os
@@ -970,6 +1012,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .or(global.read_output_byte_cap)
             .or(global.output_byte_cap)
             .unwrap_or(defaults.read_output_byte_cap),
+        is_read_outside_callers_enabled: repo
+            .is_read_outside_callers_enabled
+            .or(global.is_read_outside_callers_enabled)
+            .unwrap_or(defaults.is_read_outside_callers_enabled),
         search_detail_snippet_max_lines: repo
             .search_detail_snippet_max_lines
             .or(global.search_detail_snippet_max_lines)
@@ -1435,6 +1481,20 @@ impl Migration {
 /// Existing repo files then gain the key (commented, before the first table header) and a
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 31,
+        key: "is_outside_callers_enabled",
+        placement: KeyPlacement::Subtable("output.read"),
+        english_block: "# read view=source may end with callers from outside the window. Set false to omit them.\n# is_outside_callers_enabled = true",
+        korean_block: "# read view=source 끝에 창 밖 호출자 목록을 덧붙일 수 있습니다. false이면 생략합니다.\n# is_outside_callers_enabled = true",
+    },
+    Migration {
+        version: 30,
+        key: "related_terms",
+        placement: KeyPlacement::AfterSubtable("filesystem_permissions"),
+        english_block: "# [related_terms]\n# Enable related terms (default false); downloads the pinned dataset once when no local path is set.\n# enabled = false\n# Optional user-owned dataset; never modified.\n# dataset_path = \"/path/to/dataset.sqlite3\"",
+        korean_block: "# [related_terms]\n# 관련어 기능을 켭니다(기본 false). 로컬 경로가 없으면 고정 데이터셋을 한 번 내려받습니다.\n# enabled = false\n# 선택 사항인 사용자 데이터셋 경로입니다. 원본은 수정하지 않습니다.\n# dataset_path = \"/path/to/dataset.sqlite3\"",
+    },
     Migration {
         version: 24,
         key: "jev",

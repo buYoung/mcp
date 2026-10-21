@@ -283,6 +283,7 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         text: rendered,
         anchors,
         notices,
+        should_list_outside_callers: crate::config::get().is_read_outside_callers_enabled,
         ..LiveOutput::default()
     };
     if let Some(anchor) = output.anchors.first() {

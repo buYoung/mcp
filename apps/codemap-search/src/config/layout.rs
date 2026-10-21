@@ -24,6 +24,13 @@ macro_rules! settings {
 }
 
 settings![
+    ("related_terms", "enabled", "related_terms_enabled", ""),
+    (
+        "related_terms",
+        "dataset_path",
+        "related_terms_dataset_path",
+        ""
+    ),
     (
         "output",
         "is_redact_enabled",
@@ -115,6 +122,12 @@ settings![
         "max_bytes",
         "read_output_byte_cap",
         "tool_output"
+    ),
+    (
+        "output.read",
+        "is_outside_callers_enabled",
+        "is_read_outside_callers_enabled",
+        ""
     ),
     (
         "output.grep",
@@ -289,7 +302,7 @@ pub(super) fn normalize(layer: &mut ConfigLayer, value: &toml::Value, path: &Pat
         }
     }
     layer.jev = super::jev::normalize(&toml::Value::Table(jev), path);
-    for section in ["output", "index", "analysis"] {
+    for section in ["output", "index", "analysis", "related_terms"] {
         if let Some(value) = value.get(section) {
             normalize_table(layer, section, value, path);
         }
@@ -518,6 +531,7 @@ fn order_tables(table: &mut Table, path: &str, next: &mut isize) {
             "index",
             "analysis",
             "filesystem_permissions",
+            "related_terms",
             "update",
         ],
         "output" => &[

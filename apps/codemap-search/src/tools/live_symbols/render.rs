@@ -44,8 +44,20 @@ pub(super) fn annotate(
     if requests.is_empty() {
         return None;
     }
+    crate::callers::annotate_live_results(
+        &requests,
+        snapshot,
+        &caller_config(),
+        cap,
+        root,
+        options.should_list_unresolved,
+        resolver,
+    )
+}
+
+pub(super) fn caller_config() -> CallerConfig {
     let cfg = crate::config::get();
-    let caller_cfg = CallerConfig {
+    CallerConfig {
         scan_cap: cfg.scan_cap,
         caller_list_cap: cfg.caller_list_cap,
         callee_list_cap: cfg.callee_list_cap,
@@ -56,16 +68,7 @@ pub(super) fn annotate(
         navigation_context_default: cfg.navigation_context_default,
         navigation_callsite_budget: cfg.navigation_callsite_budget,
         navigation_store_references: cfg.navigation_store_references,
-    };
-    crate::callers::annotate_live_results(
-        &requests,
-        snapshot,
-        &caller_cfg,
-        cap,
-        root,
-        options.should_list_unresolved,
-        resolver,
-    )
+    }
 }
 
 fn select_chain(

@@ -22,6 +22,8 @@ const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached the configure
 // Small overall budgets retain their existing behavior. Larger multi-file searches
 // share detail space so a single long source line cannot consume all later results.
 const MIN_FILE_OUTPUT_BUDGET_BYTES: usize = 32 * 1024;
+/// Under a client delivery limit, search bodies keep to this fraction of one call's budget.
+const SEARCH_PAGE_BODY_SHARE: usize = 3;
 
 fn search_cap_footer(byte_cap: usize) -> &'static str {
     if byte_cap < 512 {
@@ -1109,10 +1111,17 @@ pub(crate) fn prepare_detail(
                         has_hit_file_budget = true;
                     }
                     // Name list for the remaining symbols (those not already
-                    // shown in detail), count-capped as before.
+                    // shown in detail), count-capped as before. Data keys are
+                    // content, not declarations: listing every key of a JSON/YAML/TOML
+                    // file repeats the file, so unmatched keys are only counted.
                     let mut listed = 0usize;
+                    let mut unlisted_keys = 0usize;
                     for sym in res.matched_symbols.iter() {
                         if snippet_starts.contains(&sym.range.start_line) {
+                            continue;
+                        }
+                        if sym.kind == "key" && !render::symbol_matches_query(sym, &query_tokens) {
+                            unlisted_keys += 1;
                             continue;
                         }
                         if listed >= symbol_limit {
@@ -1124,10 +1133,15 @@ pub(crate) fn prepare_detail(
                         }
                         listed += 1;
                     }
+                    if unlisted_keys > 0 {
+                        text.push_str(&format!(
+                            "- _{unlisted_keys} unmatched keys not listed; read the file for its content._\n"
+                        ));
+                    }
                     let remaining = res
                         .matched_symbols
                         .len()
-                        .saturating_sub(snippet_starts.len() + listed);
+                        .saturating_sub(snippet_starts.len() + listed + unlisted_keys);
                     if remaining > 0 {
                         text.push_str(&format!(
                         "- _… {remaining} more symbols not shown; use overview/read to inspect._\n"
@@ -1281,7 +1295,11 @@ fn finish_detail(
     // Reserve discovery/relationship space before allowing the client to clip the
     // middle of source. Candidate capture and Jev input used the original server cap.
     let reserved_bytes = (byte_cap / 8).min(12 * 1024);
-    let primary_budget_bytes = byte_cap.saturating_sub(reserved_bytes);
+    // An agent resends this page with every later request, so bodies beyond a third of one
+    // call's delivery budget wait behind their read ranges; ranked headings stay.
+    let primary_budget_bytes = byte_cap
+        .saturating_sub(reserved_bytes)
+        .min(byte_cap / SEARCH_PAGE_BODY_SHARE);
     let mut primary_bytes = text.len()
         + grouped_files
             .iter()

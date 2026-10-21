@@ -41,6 +41,7 @@ pub(super) fn extract(
             symbols,
             literals: Vec::new(),
             docstrings: Vec::new(),
+            member_names: Vec::new(),
             navigation: None,
         },
         auxiliary,

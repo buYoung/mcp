@@ -32,4 +32,4 @@ This monorepo contains independent local stdio MCP servers for coding-agent work
 - External dependencies: only when necessary, explain why.
 
 ## User custom rules
-- Absolute rule for `codemap-search`: actively use `codemap-search` for code exploration and repository navigation. Prefer it over generic Read, Grep, Find, shell search, or broad file-reading workflows whenever it is available and suitable; do not skip this rule for convenience.
+- Absolute rule for `codemap-search`: actively use `codemap-search` for code exploration and repository navigation. Prefer it over generic Read, Grep, Find, shell search, or broad file-reading workflows whenever it is available and suitable; do not skip this rule for convenience. `codemap-search`는 MCP야. CLI로 쓰지마.

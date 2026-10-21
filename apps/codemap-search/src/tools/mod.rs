@@ -14,6 +14,7 @@ pub(crate) mod live_symbols;
 pub mod overview;
 pub mod read;
 pub mod search;
+pub(crate) mod synonyms;
 pub mod task;
 
 use crate::index::EngineSupervisor;
@@ -203,12 +204,25 @@ pub(crate) fn arg_required_str<'a>(
 /// Shared connection-level bootstrap, embedded in the self-contained binary. `server.md` is
 /// the format string, so literal braces in it must be written as `{{` and `}}`.
 pub fn server_instructions() -> String {
-    format!(
+    let mut text = format!(
         include_str!("instructions/server.md"),
         shell_commands = shell_command_replacements()
     )
     .trim_end()
-    .to_string()
+    .to_string();
+    if crate::config::get().related_terms.enabled {
+        // Codex repeats server instructions in every tool description it lists, so the
+        // selection rules live in `initial_instructions` and the synonyms description.
+        text.push_str("\n\nFor behavior/flow discovery, read the full synonyms description, then call it once with `terms` before the first search/grep.");
+    }
+    text
+}
+
+fn with_related_terms_guidance(mut text: String) -> String {
+    if crate::config::get().related_terms.enabled {
+        text.push_str("\n\nFor behavior/flow discovery, first read synonyms' full description and schema, not a clipped tool preview. Select inputs BEFORE calling: use only the argument key `terms` (not `query`), with an array of lowercase targets. Split identifiers into selected words; keep a technical term that names one concept as one spaced item (`abort signal`); never send a whole identifier or an invented alternative. Keep inflections and useful base words (find AND find_by). Then call once before search/grep, even for known names, and verify relevant returned alternatives alongside the originals. Do not force unrelated alternatives.");
+    }
+    text
 }
 
 /// Client-specific guidance, appended only after Codex identifies itself at initialize.
@@ -245,14 +259,15 @@ fn shell_command_replacements() -> &'static str {
 /// `initial_instructions.md`.
 pub fn instructions() -> String {
     let common = include_str!("instructions/tools/initial_instructions.result.md").trim_end();
-    if crate::codemap::looks_like_monorepo_workspace() {
+    let text = if crate::codemap::looks_like_monorepo_workspace() {
         format!(
             "{common}\n\n{}",
             include_str!("instructions/tools/initial_instructions.result.monorepo.md").trim_end()
         )
     } else {
         common.to_string()
-    }
+    };
+    with_related_terms_guidance(text)
 }
 
 /// Removed body-filter arguments must not silently select, bypass or replace task context.
@@ -314,6 +329,7 @@ pub fn list_tools() -> Value {
     let permissions = &config.filesystem_permissions;
     let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
     let live_view_description = "full (default) returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
+    let read_view_description = "full (default) returns source with declarations and relationships; source returns live source, possibly followed by callers from outside the window; definitions returns declarations only; relations returns identities and supported relationships without source.";
     let unresolved_description = "Unresolved call targets in full/relations: list (default) gives bounded names plus a count; count hides the names.";
     let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
     let debug_description = "Legacy compatibility flag; does not change analysis or output.";
@@ -441,7 +457,7 @@ pub fn list_tools() -> Value {
                             "type": "object",
                             "properties": {
                                 "include_seen": include_seen_schema.clone(),
-                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": live_view_description },
+                                "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": read_view_description },
                                 "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },
@@ -517,6 +533,12 @@ pub fn list_tools() -> Value {
         .as_array_mut()
         .unwrap()
         .push(analyze::definition());
+    if config.related_terms.enabled {
+        result["tools"]
+            .as_array_mut()
+            .unwrap()
+            .push(synonyms::definition());
+    }
     if let Some(limit) = config.client_output.claude_max_result_chars {
         for tool in result["tools"].as_array_mut().into_iter().flatten() {
             tool["_meta"] = serde_json::json!({ "anthropic/maxResultSizeChars": limit });

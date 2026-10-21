@@ -1,4 +1,4 @@
-# codemap-config-version: 29
+# codemap-config-version: 31
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -63,6 +63,9 @@ max_bytes = "1mb"
 [output.read]
 # read 응답의 최대 크기입니다.
 max_bytes = "5mb"
+
+# read view=source 끝에 창 밖 호출자 목록을 덧붙일 수 있습니다. false이면 생략합니다.
+is_outside_callers_enabled = true
 
 [output.grep]
 # grep 결과에서 한 줄의 최대 길이(바이트)입니다. 0이면 제한이 없습니다.
@@ -300,6 +303,13 @@ read = "workspace"
 # "allowed_roots"를 쓰는 도구에 추가로 허용할 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
 # 심볼릭 링크는 실제 경로를 기준으로 판단합니다.
 allowed_roots = []
+
+[related_terms]
+# 관련어 기능을 켭니다(기본 false). 로컬 경로가 없으면 고정 데이터셋을 한 번 내려받습니다.
+# 주석으로 두면 전역 설정을 상속합니다.
+# enabled = false
+# 선택 사항인 사용자 데이터셋 경로입니다. 원본은 수정하지 않습니다.
+# dataset_path = "/path/to/dataset.sqlite3"
 
 [update]
 # 서버가 시작될 때 이 파일이 없으면 만들고, 새 설정이 생기면 주석으로 추가합니다.

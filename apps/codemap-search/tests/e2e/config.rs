@@ -401,7 +401,7 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let scaffolded = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            scaffolded.starts_with("# codemap-config-version: 29\n"),
+            scaffolded.starts_with("# codemap-config-version: 31\n"),
             "{scaffolded}"
         );
         assert!(scaffolded.contains("\n[output.jev]\n"), "{scaffolded}");
@@ -427,7 +427,7 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let migrated = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            migrated.starts_with("# codemap-config-version: 29\n"),
+            migrated.starts_with("# codemap-config-version: 31\n"),
             "{migrated}"
         );
         assert!(migrated.contains("detail_file_limit = 7\n"), "{migrated}");
@@ -462,7 +462,7 @@ export function dropMe(input: string): string {
         let mut client = McpClient::spawn(temp.path()).await.unwrap();
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let kept = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
-        assert!(kept.starts_with("# codemap-config-version: 29\n"), "{kept}");
+        assert!(kept.starts_with("# codemap-config-version: 31\n"), "{kept}");
         assert!(!kept.contains("_filter_enabled"), "{kept}");
         assert!(!kept.contains("analysis.jev"), "{kept}");
         assert!(!kept.contains("api_key_env"), "{kept}");

@@ -36,6 +36,13 @@
     (function_expression)
   ]) @symbol.fn
 
+;; Data members: related-terms evidence only (`member_names`), not indexed as symbols.
+(field_definition
+  property: [
+    (property_identifier)
+    (private_property_identifier)
+  ] @member.name)
+
 ;; Test Call Expressions
 (call_expression
   function: [

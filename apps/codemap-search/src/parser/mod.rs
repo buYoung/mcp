@@ -421,6 +421,25 @@ fn declarator_name(node: Node, source: &[u8]) -> Option<String> {
     }
 }
 
+/// Data-member name only: a function declarator in the chain is a method prototype (already
+/// a symbol) or a function pointer, not a field.
+fn data_member_name(node: Node, source: &[u8]) -> Option<String> {
+    match node.kind() {
+        "field_identifier" | "identifier" => node_text(node, source),
+        "pointer_declarator" | "array_declarator" | "init_declarator" => node
+            .child_by_field_name("declarator")
+            .and_then(|declarator| data_member_name(declarator, source)),
+        "reference_declarator" | "parenthesized_declarator" | "attributed_declarator" => {
+            let mut cursor = node.walk();
+            let name = node
+                .named_children(&mut cursor)
+                .find_map(|child| data_member_name(child, source));
+            name
+        }
+        _ => None,
+    }
+}
+
 fn field_or_descendant_name(node: Node, source: &[u8]) -> Option<String> {
     if let Some(name) = node.child_by_field_name("name") {
         return node_text(name, source);
@@ -2206,6 +2225,7 @@ impl TreeSitterExtractor {
                     symbols: Vec::new(),
                     literals: Vec::new(),
                     docstrings: Vec::new(),
+                    member_names: Vec::new(),
                     navigation: None,
                 },
                 IndexAuxiliary::default(),
@@ -2225,6 +2245,7 @@ impl TreeSitterExtractor {
 
         let mut symbols = Vec::new();
         let mut literals = Vec::new();
+        let mut member_names = Vec::new();
         let mut navigation = NavigationFile::default();
         let mut seen_calls: HashSet<String> = HashSet::new();
         let mut seen_imports: HashSet<String> = HashSet::new();
@@ -2290,6 +2311,13 @@ impl TreeSitterExtractor {
                     if let Ok(text) = capture.node.utf8_text(source) {
                         symbol_name = Some(text.to_string());
                     }
+                } else if name == "member.name" {
+                    if let Ok(text) = capture.node.utf8_text(source) {
+                        // `#` marks JavaScript private names; it is not part of the word.
+                        member_names.push(text.trim_start_matches('#').to_string());
+                    }
+                } else if name == "member.declarator" {
+                    member_names.extend(data_member_name(capture.node, source));
                 } else if name == "fn_name" {
                     if let Ok(text) = capture.node.utf8_text(source) {
                         let t = text.trim();
@@ -2625,6 +2653,7 @@ impl TreeSitterExtractor {
                 symbols,
                 literals,
                 docstrings,
+                member_names,
                 navigation,
             },
             auxiliary,
@@ -2645,6 +2674,7 @@ impl TreeSitterExtractor {
             symbols: Vec::new(),
             literals: Vec::new(),
             docstrings: Vec::new(),
+            member_names: Vec::new(),
             navigation: Some(NavigationFile::default()),
         };
         let mut auxiliary = IndexAuxiliary::default();
@@ -2721,6 +2751,8 @@ fn merge_composite_part(
     for docstring in part.docstrings {
         push_unique(&mut extracted.docstrings, docstring);
     }
+    // Embedded parts are disjoint source regions; repeated names are separate declarations.
+    extracted.member_names.extend(part.member_names);
     if let (Some(target), Some(source)) = (&mut extracted.navigation, part.navigation) {
         if let Some(facts) = source.implementations {
             if let Some(existing) = &mut target.implementations {

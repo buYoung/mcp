@@ -109,10 +109,14 @@ Every file named `auth.toml` is excluded case-insensitively from indexing/search
 
 ## Loading and automatic writes
 
-The current **repository** configuration schema is **29**. This version controls repo templates and migrations only; global config is never stamped or migrated automatically. The marker is a comment:
+Schema 30 adds the optional `[related_terms]` section as comments without changing existing values. The dataset is pinned to the binary release; upgrades with the same dataset id reuse the verified copy under `<global_dir>/related-terms/<dataset_id>/` without downloading or rehashing it. A new pinned id uses a new folder. `dataset_path` bypasses the download and is used only when enabled; relative paths follow the server working directory. Invalid types warn and fall back per key.
+
+Schema 31 adds `[output.read].is_outside_callers_enabled` as a commented example without changing existing values. `read view=source` keeps ending with callers from outside the window unless the key is set to `false`.
+
+The current **repository** configuration schema is **31**. This version controls repo templates and migrations only; global config is never stamped or migrated automatically. The marker is a comment:
 
 ```toml
-# codemap-config-version: 29
+# codemap-config-version: 31
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -232,12 +236,13 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.search].detail_file_limit` | integer | `24` | Number of top-ranked files `search` renders as details before the ranked tail |
 | `[output.search].overview_file_limit` | integer | `80` | Max file headers in `search`'s compact ranked tail |
 | `[output.search].snippet_max_lines` | integer | `500` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
-| `[output.search].symbol_limit` | integer | `100` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note |
+| `[output.search].symbol_limit` | integer | `100` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note. In JSON/YAML/TOML files matched only by path or docstring, unmatched keys are counted, not listed |
 | `[output.search].max_bytes` | integer bytes or size string | `"1mb"` (`1048576`) | Output size limit in bytes for one `search` response, including the partial-output footer |
 | `[output.search].literal_max_chars` | integer (chars) | `1200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
 | `[output.search].literal_limit` | integer | `60` | Max matched literals rendered per file in `search` detail view |
 | `[output.search].anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[output.read].max_bytes` | integer bytes or size string | `"5mb"` (`5242880`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | Let `read view=source` end with callers from outside the window for the functions it shows; `false` omits the list |
 | `[output.grep].max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
 | `[output.grep].max_bytes` | integer bytes or size string | common budget | Grep response ceiling; expanded bodies can also fall back to read |
 | `[output.context].is_enabled` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
@@ -285,6 +290,8 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].allowed_roots` | string array | `[]` | External roots available to tools set to `allowed_roots` |
+| `[related_terms].enabled` | bool | `false` | Opt in to related terms; no download or preparation while off |
+| `[related_terms].dataset_path` | string | unset | Optional user-owned sense dataset instead of a download; the original is never modified |
 | `[update].config_auto_update` | bool | `true` | Create missing repo config/auth templates and sync config schema on `mcp` startup |
 
 ### Indexing and file exclusions
@@ -482,7 +489,7 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 29
+# codemap-config-version: 31
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -546,6 +553,9 @@ max_bytes = "1mb"
 [output.read]
 # Read response limit.
 max_bytes = "5mb"
+
+# read view=source may end with callers from outside the window. Set false to omit them.
+is_outside_callers_enabled = true
 
 [output.grep]
 # Maximum length of a line in grep results, in bytes. 0 disables the limit.
@@ -783,6 +793,12 @@ read = "workspace"
 # Extra paths for tools set to "allowed_roots". Relative paths use the workspace root.
 # Symbolic links are checked by their real path.
 allowed_roots = []
+
+[related_terms]
+# Enable related terms (default false); downloads the pinned dataset once when no local path is set.
+enabled = false
+# Optional user-owned dataset; never modified.
+# dataset_path = "/path/to/dataset.sqlite3"
 
 [update]
 # On server start, create this file if missing and add new settings as comments.

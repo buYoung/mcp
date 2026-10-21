@@ -11,6 +11,10 @@ keywords = ["mcp", "code-search", "tree-sitter", "tantivy", "ripgrep"]
 categories = ["command-line-utilities", "development-tools"]
 exclude = [".codemap/", ".codemap-index/", "/docs", "/tests/fixtures", "/experiments", "/validation"]
 
+# Non-default instrumentation for local related-terms measurements, not production policy.
+[features]
+related-terms-eval = []
+
 [dependencies]
 # CLI Argument parsing
 clap = { version = "4.6", features = ["derive"] }
@@ -90,6 +94,9 @@ rusqlite = { version = "0.40.2", features = ["bundled"] }
 blake3 = "1.8.7"
 # PII checksum/date validation; no Presidio or Python runtime is required.
 sha2 = "0.11.0"
+# Read the pinned related-terms archive without an external runtime.
+tar = { version = "0.4", default-features = false }
+zstd = "0.13.3"
 time = "0.3"
 
 # Async MCP server communication
@@ -101,7 +108,7 @@ tokio = { version = "1.52", features = ["full"] }
 # aws-lc-rs default, avoiding cmake/NASM requirements on the cross-built legs. Certificate
 # verification uses the OS trust store through rustls-platform-verifier. No compression,
 # cookies, JSON or HTTP/2 features: the transport posts one JSON body per batch over HTTP/1.1.
-reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "blocking"] }
 rustls = { version = "0.23.4", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 
 # Directory scanning and file path iteration
