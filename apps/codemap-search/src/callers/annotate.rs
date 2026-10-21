@@ -978,13 +978,22 @@ impl DetailAnnotations {
         })
     }
 
-    /// Unrendered caller sites of one annotated symbol: attributed callers, then unconfirmed
-    /// single-definition matches. `None` when the symbol was not annotated.
     /// Whether the work stopped at the caller's deadline.
     pub(crate) fn is_partial(&self) -> bool {
         self.is_partial
     }
 
+    /// These results as if the work had stopped at its deadline right after finding them.
+    #[cfg(test)]
+    pub(crate) fn stopped_at_deadline(self) -> Self {
+        Self {
+            is_partial: true,
+            ..self
+        }
+    }
+
+    /// Unrendered caller sites of one annotated symbol: attributed callers, then unconfirmed
+    /// single-definition matches. `None` when the symbol was not annotated.
     pub(crate) fn caller_sites(
         &self,
         file_path: &str,
