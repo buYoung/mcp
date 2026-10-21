@@ -25,6 +25,26 @@
               "endLine": 13,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "Rule",
+              "importedName": "com.example.Rule",
+              "source": "com.example.Rule",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 24
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [

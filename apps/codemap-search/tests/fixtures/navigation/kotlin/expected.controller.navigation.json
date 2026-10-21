@@ -25,6 +25,26 @@
               "endLine": 14,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "PostMapping",
+              "importedName": "org.springframework.web.bind.annotation.PostMapping",
+              "source": "org.springframework.web.bind.annotation.PostMapping",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 59
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [

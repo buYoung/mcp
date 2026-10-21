@@ -45,6 +45,46 @@
               "endLine": 25,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "OrderMapper",
+              "importedName": "com.example.OrderMapper",
+              "source": "com.example.OrderMapper",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 31
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 25,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "Service",
+              "importedName": "org.springframework.stereotype.Service",
+              "source": "org.springframework.stereotype.Service",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 46
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 25,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [

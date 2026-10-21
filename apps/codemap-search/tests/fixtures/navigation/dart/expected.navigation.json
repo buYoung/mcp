@@ -25,6 +25,25 @@
               "endLine": 9,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "*",
+              "source": "package:demo/helper.dart",
+              "kind": "glob",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 35
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [],

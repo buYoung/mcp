@@ -83,7 +83,15 @@ pub(crate) struct ImplementationIndex {
 
 impl ImplementationIndex {
     pub(crate) fn build(files: Arc<Vec<ExtractedFile>>, sources: &HashMap<String, String>) -> Self {
-        let root = std::env::current_dir().unwrap_or_default();
+        Self::build_at(files, sources, &std::env::current_dir().unwrap_or_default())
+    }
+
+    /// Builds for a workspace at `root`, where module settings such as tsconfig files live.
+    pub(crate) fn build_at(
+        files: Arc<Vec<ExtractedFile>>,
+        sources: &HashMap<String, String>,
+        root: &std::path::Path,
+    ) -> Self {
         let target_os = crate::config::get().analysis_target_os.clone();
         let mut index = Self {
             files: Arc::clone(&files),
@@ -147,7 +155,7 @@ impl ImplementationIndex {
             }
         }
         let resolver =
-            crate::callers::resolution::SourceResolver::from_stored_sources(&files, &root, sources);
+            crate::callers::resolution::SourceResolver::from_stored_sources(&files, root, sources);
         index.connect(&resolver, sources);
         for (id, method) in index.methods.iter().enumerate() {
             index

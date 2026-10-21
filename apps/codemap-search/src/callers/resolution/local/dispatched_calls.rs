@@ -65,9 +65,19 @@ mod tests {
     /// A source file and the expected targets of named calls, by call line where given.
     type OneLineCase<'a> = (&'a str, &'a str, &'a [(&'a str, &'a str)]);
     type LineCase<'a> = (&'a str, &'a str, &'a [(usize, &'a str, &'a str)]);
+    /// Files of one workspace, the calling file and line, the call name and its target.
+    type CrossFileCase<'a> = (&'a [(&'a str, &'a str)], &'a str, usize, &'a str, &'a str);
+    type UnresolvedCase<'a> = (&'a [(&'a str, &'a str)], &'a str, usize, &'a str);
 
     /// Targets of the calls named `name` on `line` of `caller`, as `path:line`, or `-`.
     fn targets(entries: &[(&str, &str)], caller: &str, line: usize, name: &str) -> Vec<String> {
+        // Module settings such as tsconfig files are read from the workspace on disk.
+        let root = tempfile::tempdir().unwrap();
+        for (path, source) in entries {
+            let path = root.path().join(path);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, source).unwrap();
+        }
         let sources: HashMap<String, String> = entries
             .iter()
             .map(|(path, source)| (path.to_string(), source.to_string()))
@@ -78,11 +88,12 @@ mod tests {
                 .map(|(path, source)| TreeSitterExtractor::new().extract(source, path).unwrap())
                 .collect::<Vec<_>>(),
         );
-        let index = crate::implementations::ImplementationIndex::build(
+        let index = crate::implementations::ImplementationIndex::build_at(
             std::sync::Arc::clone(&files),
             &sources,
+            root.path(),
         );
-        let resolver = SourceResolver::from_stored_sources(&files, Path::new("."), &sources)
+        let resolver = SourceResolver::from_stored_sources(&files, root.path(), &sources)
             .with_implementations(&index);
         let file = files.iter().find(|file| file.file_path == caller).unwrap();
         resolver
@@ -260,6 +271,93 @@ mod tests {
             targets(&package, "app/Closer.kt", 4, "close"),
             ["app/Ledger.kt:3"]
         );
+    }
+
+    #[test]
+    fn module_and_namespace_imports_reach_types_in_other_files() {
+        let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+        let cases: &[CrossFileCase<'_>] = &[
+            // Kotlin packages: an import, and the same package in another directory.
+            (&[
+                ("src/main/kotlin/app/store/Store.kt", "package app.store\nclass Store {\n  fun save() {}\n}\n"),
+                ("src/main/kotlin/app/api/Api.kt", "package app.api\nimport app.store.Store\nclass Api(private val store: Store) {\n  fun run() {\n    store.save()\n  }\n}\n"),
+            ], "src/main/kotlin/app/api/Api.kt", 5, "save", "src/main/kotlin/app/store/Store.kt:3"),
+            (&[
+                ("src/main/kotlin/a/Ledger.kt", "package app\nclass Ledger {\n  fun close() {}\n}\n"),
+                ("src/main/kotlin/b/Closer.kt", "package app\nclass Closer(private val ledger: Ledger) {\n  fun run() {\n    ledger.close()\n  }\n}\n"),
+            ], "src/main/kotlin/b/Closer.kt", 4, "close", "src/main/kotlin/a/Ledger.kt:3"),
+            // C#: a `using` namespace and an enclosing namespace, across directories.
+            (&[
+                ("Services/Store.cs", "namespace App.Services {\n  public class Store {\n    public void Save() {}\n  }\n}\n"),
+                ("Api/Api.cs", "using App.Services;\nnamespace App.Api {\n  class Api {\n    void Run(Store store) { store.Save(); }\n  }\n}\n"),
+            ], "Api/Api.cs", 4, "Save", "Services/Store.cs:3"),
+            (&[
+                ("Core/Clock.cs", "namespace App;\npublic class Clock {\n  public void Tick() {}\n}\n"),
+                ("Api/Timer.cs", "namespace App.Api;\nclass Timer {\n  void Run(Clock clock) { clock.Tick(); }\n}\n"),
+            ], "Api/Timer.cs", 3, "Tick", "Core/Clock.cs:3"),
+            // PHP: `use` and the file's own namespace.
+            (&[
+                ("src/Services/Store.php", "<?php\nnamespace App\\Services;\nclass Store {\n  public function save() {}\n}\n"),
+                ("src/Http/Api.php", "<?php\nnamespace App\\Http;\nuse App\\Services\\Store;\nclass Api {\n  public function run(Store $store) { $store->save(); }\n}\n"),
+            ], "src/Http/Api.php", 5, "save", "src/Services/Store.php:4"),
+            (&[
+                ("src/Http/Helper.php", "<?php\nnamespace App\\Http;\nclass Helper {\n  public function help() {}\n}\n"),
+                ("src/Http/Sub/Api.php", "<?php\nnamespace App\\Http;\nclass Api {\n  public function run(Helper $helper) { $helper->help(); }\n}\n"),
+            ], "src/Http/Sub/Api.php", 4, "help", "src/Http/Helper.php:4"),
+            // TypeScript tsconfig `paths`.
+            (&[
+                ("tsconfig.json", "{ \"compilerOptions\": { \"baseUrl\": \".\", \"paths\": { \"@app/*\": [\"src/*\"] } } }\n"),
+                ("src/store.ts", "export class Store {\n  save() {}\n}\n"),
+                ("src/api/api.ts", "import { Store } from '@app/store';\nexport function run(store: Store) {\n  store.save();\n}\n"),
+            ], "src/api/api.ts", 3, "save", "src/store.ts:2"),
+            // Python absolute imports, Dart `package:` imports and Ruby `require_relative`.
+            (&[
+                ("pkg/store.py", "class Store:\n    def save(self): pass\n"),
+                ("app/api.py", "from pkg.store import Store\ndef run(store: Store):\n    store.save()\n"),
+            ], "app/api.py", 3, "save", "pkg/store.py:2"),
+            (&[
+                ("lib/store.dart", "class Store {\n  void save() {}\n}\n"),
+                ("lib/api/api.dart", "import 'package:app/store.dart';\nvoid run(Store store) {\n  store.save();\n}\n"),
+            ], "lib/api/api.dart", 3, "save", "lib/store.dart:2"),
+            (&[
+                ("lib/store.rb", "class Store\n  def save\n  end\nend\n"),
+                ("lib/api.rb", "require_relative 'store'\nclass Api\n  def initialize\n    @store = Store.new\n  end\n  def run\n    @store.save\n  end\nend\n"),
+            ], "lib/api.rb", 7, "save", "lib/store.rb:2"),
+        ];
+        let mut failures = Vec::new();
+        for (entries, caller, line, name, target) in cases {
+            let found = targets(entries, caller, *line, name);
+            if found.is_empty() || found.iter().any(|found| found != target) {
+                failures.push(format!(
+                    "{caller}:{line} {name}: {found:?}, expected {target}"
+                ));
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
+    }
+
+    #[test]
+    fn ambiguous_or_prefixed_imports_leave_types_unresolved() {
+        let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+        let cases: &[UnresolvedCase<'_>] = &[
+            (&[
+                ("One/Store.cs", "namespace App.One {\n  public class Store {\n    public void Save() {}\n  }\n}\n"),
+                ("Two/Store.cs", "namespace App.Two {\n  public class Store {\n    public void Save() {}\n  }\n}\n"),
+                ("Api/Api.cs", "using App.One;\nusing App.Two;\nnamespace App.Api {\n  class Api {\n    void Run(Store store) { store.Save(); }\n  }\n}\n"),
+            ], "Api/Api.cs", 5, "Save"),
+            (&[
+                ("a/pkg/store.py", "class Store:\n    def save(self): pass\n"),
+                ("b/pkg/store.py", "class Store:\n    def save(self): pass\n"),
+                ("app/api.py", "from pkg.store import Store\ndef run(store: Store):\n    store.save()\n"),
+            ], "app/api.py", 3, "save"),
+            (&[
+                ("lib/store.dart", "class Store {\n  void save() {}\n}\n"),
+                ("lib/api.dart", "import 'store.dart' as data;\nvoid run(Store store) {\n  store.save();\n}\n"),
+            ], "lib/api.dart", 3, "save"),
+        ];
+        for (entries, caller, line, name) in cases {
+            assert_eq!(targets(entries, caller, *line, name), ["-"], "{caller}");
+        }
     }
 
     #[test]

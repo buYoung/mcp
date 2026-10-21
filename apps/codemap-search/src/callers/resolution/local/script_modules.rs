@@ -212,7 +212,7 @@ fn read_module_paths(path: &Path, depth: usize) -> Option<ModulePaths> {
 impl<'a> SourceResolver<'a> {
     /// The single indexed file `specifier` names from `importer`, or `None` for packages and
     /// ambiguous or missing targets.
-    pub(super) fn script_module(
+    pub(crate) fn script_module(
         &self,
         importer: &str,
         specifier: &str,
