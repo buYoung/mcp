@@ -13,7 +13,7 @@ mod typed_fields;
 pub(super) use module_functions::ModuleLookups;
 use module_functions::{is_top_level, only_binding};
 pub(super) use reexports::ExportLookup;
-pub(super) use script_modules::ModulePaths;
+pub(super) use script_modules::{ModulePaths, WorkspacePackages};
 
 pub(super) fn supports(path: &str) -> bool {
     crate::lang::spec_for_path(Path::new(path)).is_some_and(|spec| {

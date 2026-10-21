@@ -63,6 +63,8 @@ pub(crate) struct SourceResolver<'a> {
     module_lookups: RefCell<Option<Rc<local::ModuleLookups<'a>>>>,
     /// Declarations each module exports by name, followed through re-exports.
     export_origins: RefCell<HashMap<(String, String), local::ExportLookup<'a>>>,
+    /// Workspace package manifests by declared name, read on first use.
+    workspace_packages: RefCell<Option<Rc<local::WorkspacePackages>>>,
     /// Typed member calls proven by the implementation index of the same snapshot.
     implementations: Option<&'a crate::implementations::ImplementationIndex>,
     /// Whether each proof file still holds the indexed source generation.
@@ -280,6 +282,7 @@ impl<'a> SourceResolver<'a> {
             dart_libraries: RefCell::new(None),
             module_lookups: RefCell::new(None),
             export_origins: RefCell::new(HashMap::new()),
+            workspace_packages: RefCell::new(None),
             implementations: None,
             indexed_generations: RefCell::new(HashMap::new()),
         }
