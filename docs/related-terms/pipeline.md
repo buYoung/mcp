@@ -14,10 +14,10 @@
 | --- | --- | --- | --- | --- |
 | 뜻 `rts3-48356e35e1f1ea28` | `rt-sense/3` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 로컬에만 있음) | `sense_lookup.py --sense-dataset`로 지정 | `build_sense_dataset.py`, `correct_sense_dataset.py` |
 | 뜻 `rts4-86c5620af1f181ce` | `rt-sense/4` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 로컬에만 있음) | `sense_lookup.py --sense-dataset`로 지정 | `migrate_sense_dataset.py`, `add_topic_mappings.py` |
-| 뜻 `rts4-e5083ab344e1336d` | `rt-sense/4` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
-| 뜻 `rts4-710c8ba0d79a776a` | `rt-sense/4` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
-| 뜻 `rts4-301d57d419380d08` | `rt-sense/4` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
-| 뜻 `rts5-75e02862daa29308` | `rt-sense/5` | `PoC/datasets/` (저장소에 포함) | `sense_lookup.py`의 기본값 | `compact_sense_dataset.py` |
+| 뜻 `rts4-e5083ab344e1336d` | `rt-sense/4` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 로컬에만 있음) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
+| 뜻 `rts4-710c8ba0d79a776a` | `rt-sense/4` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 로컬에만 있음) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
+| 뜻 `rts4-301d57d419380d08` | `rt-sense/4` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 로컬에만 있음) | `sense_lookup.py --sense-dataset`로 지정 | `revise_topics.py`, `add_topic_mappings.py` |
+| 뜻 `rts5-75e02862daa29308` | `rt-sense/5` | `PoC/datasets/` (입력 파일만 저장소에 포함, `dataset.sqlite3`는 GitHub 릴리스 `related-terms-data-rts5-75e02862daa29308`에 공개) | `sense_lookup.py`의 기본값 | `compact_sense_dataset.py` |
 | 카테고리 `rtc2-80e77d8fb9ef2b41` | `rt-category/2` | `PoC/datasets/` (저장소에 포함) | `category_lookup.py`의 기본값 | `build_category_dataset.py` |
 | 관련어 `rtr1-930791c83bea6132` | `rt-related/1` | `T/datasets/` (로컬에만 있음, 약 430MiB) | `rtpoc3 related`, 두 조회 도구의 입력 해석 | `build_related_dataset.py` |
 

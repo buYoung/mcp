@@ -11,6 +11,8 @@
 | `dataset.sqlite3` | 데이터셋 본체(31.7MB, `rt-sense/5`). 조회 스크립트는 이 파일만 읽습니다 |
 | `build-report.json` | 만들 때의 기록(크기, 관련어 수, 관련어 종류) |
 
+`dataset.sqlite3`는 저장소에 들어 있지 않습니다. GitHub 릴리스 `related-terms-data-rts5-75e02862daa29308`에서 `rts5-75e02862daa29308.tar.zst`를 받아 이 폴더에 풀면 됩니다. 릴리스 본문에 압축 파일과 추출 파일의 SHA-256이 있습니다.
+
 이 판은 바로 앞 판 `rts4-301d57d419380d08`과 내용이 같고 저장 방식만 다릅니다. 관련어의 종류는 번호로, 관련어의 표기는 키와 다를 때만 저장합니다. sqlite를 직접 읽을 때는 `relation_texts` 뷰에서 종류 이름과 표기를 그대로 읽을 수 있습니다.
 
 틀린 뜻 수정(관련어 옮기기·떼어내기, 단어 뜻 옮기기)은 `rts4-71cffacbc6f7c0d8`과 `rts4-301d57d419380d08`의 `revisions.json`에, 빠진 뜻 연결은 `rts4-912fe1c9f62131b2`의 `mappings.json`에, 주제 재분류(분야 수정, 합치기, 단어 옮기기, 빈 주제 삭제, 새 주제)는 `rts4-0fb3d5bc20c215ba`의 `revisions.json`에 항목마다 이유와 함께 있습니다.
