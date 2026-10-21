@@ -1892,4 +1892,42 @@ mod tests {
             "subsequent omit blocks (byte-identical) collapse to a back-reference: {rendered:?}"
         );
     }
+
+    #[test]
+    fn unconfirmed_callers_are_listed_up_to_the_cap_then_counted_with_an_escaped_grep() {
+        // One indexed `$emit`; calls on untyped parameters leave the receiver unresolved.
+        for count in [UNRESOLVED_CALLER_LIST_CAP, UNRESOLVED_CALLER_LIST_CAP + 1] {
+            let mut source = String::from("class Bus {\n  $emit(name: string) {}\n}\n");
+            for i in 0..count {
+                source.push_str(&format!(
+                    "function send{i}(bus: any) {{ bus.$emit('x'); }}\n"
+                ));
+            }
+            let (_dir, root) = crate::callers::fixtures::write_repo(&[("bus.ts", &source)]);
+            let snapshot = vec![parsed_file(&root, "bus.ts")];
+            let requests = [AnnotationRequest {
+                file_path: "bus.ts",
+                symbols: &snapshot[0].symbols,
+                is_fallback: false,
+            }];
+            let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+            let text = note(&ann, "bus.ts", 2);
+            let listed = (0..count)
+                .filter(|i| text.contains(&format!("send{i} (bus.ts:")))
+                .count();
+            if count <= UNRESOLVED_CALLER_LIST_CAP {
+                assert!(text.contains("unconfirmed callers"), "{text}");
+                assert_eq!(listed, count, "{text}");
+            } else {
+                assert!(!text.contains("unconfirmed callers"), "{text}");
+                assert_eq!(listed, 0, "{text}");
+                assert!(
+                    text.contains(&format!(
+                        "{count} name-matching call site(s) not attributed to this declaration; grep \"\\$emit\\(\" lists them"
+                    )),
+                    "{text}"
+                );
+            }
+        }
+    }
 }

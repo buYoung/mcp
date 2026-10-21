@@ -697,10 +697,14 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
             && applied.contains_key("queue_ms"),
         "{applied:?}"
     );
+    // A search between the first snapshot publication and the end of warm-up sees results
+    // it cannot yet verify, so it bypasses as stale; later searches see the same snapshot.
     assert!(
         stages.iter().all(|stage| (stage["tool"] == "search"
             && (stage["outcome"] == "applied"
-                || (stage["outcome"] == "bypassed" && stage["status"] == "no_ranked_candidates")))
+                || (stage["outcome"] == "bypassed"
+                    && ["no_ranked_candidates", "bypassed:stale_snapshot"]
+                        .contains(&stage["status"].as_str()))))
             || (stage["tool"] == "read"
                 && stage["outcome"] == "bypassed"
                 && stage["status"] == "bypassed:no_complete_bodies")),
@@ -928,4 +932,42 @@ async fn test_jev_stale_files_are_protected_and_metadata_only_files_are_not_read
         counts["omitted"], "1",
         "keepMe (verified, judged 0.99) is omitted: {applied:?}"
     );
+}
+
+#[tokio::test]
+async fn test_jev_filtered_read_has_no_outside_caller_trailer() {
+    // `keepMe` has a caller below the read window.
+    let source = format!(
+        "{BUDGET_TS}\nexport function spend(): number {{\n  return keepMe(10, \"x\", 5);\n}}\n"
+    );
+    let temp = create_mock_repo(&[
+        (".codemap/config.toml", FILTER_ONLY),
+        ("src/budget.ts", source.as_str()),
+    ])
+    .unwrap();
+    let evaluator = Arc::new(body_judge(&[]));
+    with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+        let arguments = json!({ "file_path": "src/budget.ts", "offset": 1, "limit": 8, "view": "source", "include_seen": true });
+        let header = "[Callers from outside this window";
+        // Without Jev the window ends with its outside caller once the index is ready.
+        let started = std::time::Instant::now();
+        let plain = loop {
+            let response = client.plain_call("read", arguments.clone()).await.unwrap();
+            let text = response_text(&response).to_string();
+            if text.contains(header) || started.elapsed() > Duration::from_secs(15) {
+                break text;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        };
+        assert!(plain.contains(header) && plain.contains("spend ("), "{plain}");
+        // A filtered read judges source rows only, so no trailer can bypass its omissions.
+        let filtered = client
+            .call("tools/call", json!({ "name": "read", "arguments": arguments }))
+            .await
+            .unwrap();
+        let filtered = response_text(&filtered);
+        assert!(!filtered.contains(header), "{filtered}");
+        assert!(filtered.contains("1→export function keepMe"), "{filtered}");
+    })
+    .await;
 }

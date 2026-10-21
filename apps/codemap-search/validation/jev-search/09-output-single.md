@@ -94,7 +94,7 @@
 | 구분 | 확인 내용 |
 | --- | --- |
 | 관측 | 도구 54번에서 `processPendingMeasurements`를 읽었다. 도구 58번은 그 이름을 `path="src/techAdmin"` 안에서만 검색했다. |
-| 직접 작동 원인 | 공유 함수의 소유 디렉터리 밖 호출자는 이 검색 범위에 들어오지 않는다. 실제 ServiceCandidate 호출은 `src/modules/serviceCandidate/service/service-candidate.service.ts:612`에 있다. |
+| 직접 작동 원인 | 공유 함수의 소유 디렉터리 밖 호출자는 이 검색 범위에 들어오지 않는다. 실제 ServiceCandidate 호출은 이 범위 밖의 다른 모듈에 있다. |
 | 전달 여부 | 해당 파일 경로와 `ServiceCandidateService`는 이번 MCP 결과 전체에 없다. 대상 파일 해시는 고정 채점표와 일치한다. |
 | 결과 | 최종 답변 29행은 TechAdmin 내부 장비 매핑 호출자 세 곳만 열거하고 ServiceCandidate의 재처리 연결을 빠뜨렸다. |
 | 원인이 아닌 것으로 확인한 범위 | 이 호출자 근거가 클라이언트 절단이나 표시 예산의 본문 지연으로 사라진 것은 아니다. 두 지표가 모두 0이고 해당 파일 자체를 확보하지 않았다. |

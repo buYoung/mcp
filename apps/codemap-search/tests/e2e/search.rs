@@ -779,3 +779,92 @@ fn test_bm25_partial_failure_non_utf8() {
         .success()
         .stdout(predicates::str::contains("src/lib.rs"));
 }
+
+#[tokio::test]
+async fn test_path_matched_data_file_lists_matching_keys_and_counts_the_rest() {
+    // More keys share a query word than the five shown in detail; none matches every word,
+    // so the file ranks in by its path.
+    let matching = [
+        "retry", "limit", "mode", "region", "currency", "timeout", "owner",
+    ];
+    let mut data = String::from("{\n");
+    for key in matching {
+        data.push_str(&format!("  \"payment_{key}\": 1,\n"));
+    }
+    data.push_str("  \"color\": 1,\n  \"theme\": 1,\n  \"size\": 1\n}\n");
+    let temp = create_mock_repo(&[
+        ("config/payment-settings.json", data.as_str()),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update=false\n",
+        ),
+    ])
+    .unwrap();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+        .await
+        .unwrap();
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({"query":"payment settings","caller_context":false}),
+            |text| text.contains("config/payment-settings.json"),
+        )
+        .await
+        .unwrap();
+    let output = response["result"]["content"][0]["text"].as_str().unwrap();
+    for key in matching {
+        assert!(output.contains(&format!("payment_{key}")), "{output}");
+    }
+    assert!(
+        output.contains("- _3 unmatched keys not listed; read the file for its content._"),
+        "{output}"
+    );
+    for key in ["color", "theme", "size"] {
+        assert!(!output.contains(&format!("Symbol: {key} ")), "{output}");
+    }
+}
+
+#[tokio::test]
+async fn test_search_bodies_keep_to_a_third_of_the_client_delivery_limit() {
+    // Four matching bodies fit under the client limit together but exceed a third of it.
+    let sources: Vec<(String, String)> = (0..4)
+        .map(|i| {
+            let steps: String = (0..60)
+                .map(|n| format!("  const step{n} = entries.length + {n};\n"))
+                .collect();
+            (
+                format!("src/ledger{i}.ts"),
+                format!("export function reconcileLedger{i}(entries: number[]): number {{\n{steps}  return entries.length;\n}}\n"),
+            )
+        })
+        .collect();
+    let mut files: Vec<(&str, &str)> = sources
+        .iter()
+        .map(|(path, source)| (path.as_str(), source.as_str()))
+        .collect();
+    files.push((
+        ".codemap/config.toml",
+        "[update]\nconfig_auto_update=false\n[output.client]\npi_max_bytes = 24000\n",
+    ));
+    let temp = create_mock_repo(&files).unwrap();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+        .await
+        .unwrap();
+    let response = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({"query":"reconcile ledger","caller_context":false}),
+            |text| (0..4).all(|i| text.contains(&format!("src/ledger{i}.ts"))),
+        )
+        .await
+        .unwrap();
+    let output = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(output.len() <= 24000, "{}", output.len());
+    for i in 0..4 {
+        assert!(output.contains(&format!("src/ledger{i}.ts")), "{output}");
+    }
+    assert!(
+        output.contains("Body deferred by delivery budget, not a relevance judgment"),
+        "{output}"
+    );
+}
