@@ -6,6 +6,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-21
+
+### Added
+
+- Added an opt-in `synonyms` tool with a local dictionary that ranks meanings by how terms are used in your codebase.
+- Added caller summaries beyond the displayed range in `read view=source`, with `[output.read].is_outside_callers_enabled` to turn them off.
+- Added client-wide code navigation instructions management, with injected guidance in English.
+
+### Improved
+
+- Improved caller and callee detection for typed method calls and for functions imported from other files.
+- Followed re-exports in TypeScript, JavaScript, Python, and Dart to resolve calls to their original declarations.
+- Resolved JS/TS workspace package imports to source entry points, including `exports` subpaths.
+- Limited caller summary lookups to 250ms per read, keeping callers found so far and noting when the limit is reached.
+- Reduced data-file search output by showing counts for unmatched keys and limiting source text.
+
+### Fixed
+
+- Fixed long `else if` chains preventing an entire repository's index from updating.
+- Fixed secret masking hiding code after operators and missing values assigned in short variable declarations.
+
+### Changed
+
+- Moved task registration from `initial_instructions` to the new `register_task` tool; `initial_instructions` now takes no arguments.
+- Triggered a one-time automatic rebuild of existing indexes for expanded caller detection and codebase evidence.
+
 ## [0.11.0] - 2026-09-28
 
 ### Added
