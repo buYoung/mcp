@@ -11,7 +11,7 @@ use crate::parser::{CallSite, ExtractedFile, ExtractedSymbol, ImportKind};
 
 use super::callees::{discover_callees, discover_callees_with_navigation, DiscoveredCallee};
 use super::resolution::CallerMatch;
-use super::scan::{scan_workspace, ScanResult};
+use super::scan::{scan_workspace, IndexedFiles, ScanOptions, ScanResult};
 use super::source::SourceSyntax;
 use super::symbols::{
     build_navigation_index, build_symbol_index, definition_is_compatible, enclosing_fn,
@@ -489,6 +489,8 @@ fn render_symbol_annotation(
     resolver: &super::resolution::SourceResolver<'_>,
     should_list_unresolved: bool,
     should_discover_callees: bool,
+    deadline: Option<Instant>,
+    is_cut_short: &mut bool,
 ) -> Option<SymbolAnnotation> {
     if byte_budget == 0 {
         return None;
@@ -574,6 +576,10 @@ fn render_symbol_annotation(
         let mut unresolved_entries: Vec<CallerSite> = Vec::new();
         let mut seen_unresolved: HashSet<String> = HashSet::new();
         for hit in scan.hits.iter().filter(|h| h.name == sym.name && h.is_call) {
+            if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                *is_cut_short = true;
+                break;
+            }
             if !definition_is_compatible(&hit.file_path, hit.is_member_access, file_path, sym) {
                 continue;
             }
@@ -888,6 +894,8 @@ pub struct AnnotationRequest<'a> {
 pub struct DetailAnnotations {
     annotations: HashMap<(String, usize), SymbolAnnotation>,
     exact_annotations: HashMap<(String, usize, usize), SymbolAnnotation>,
+    /// Work stopped at the caller's deadline, so caller lists may be incomplete.
+    is_partial: bool,
 }
 
 /// Caller-block dedup state owned by the renderer across emitted symbols: `name → already-emitted
@@ -970,6 +978,20 @@ impl DetailAnnotations {
         })
     }
 
+    /// Whether the work stopped at the caller's deadline.
+    pub(crate) fn is_partial(&self) -> bool {
+        self.is_partial
+    }
+
+    /// These results as if the work had stopped at its deadline right after finding them.
+    #[cfg(test)]
+    pub(crate) fn stopped_at_deadline(self) -> Self {
+        Self {
+            is_partial: true,
+            ..self
+        }
+    }
+
     /// Unrendered caller sites of one annotated symbol: attributed callers, then unconfirmed
     /// single-definition matches. `None` when the symbol was not annotated.
     pub(crate) fn caller_sites(
@@ -1031,18 +1053,25 @@ pub fn annotate_results(
         available_bytes,
         root,
         AnnotationRuntimeState::default(),
+        None,
     )
 }
 
-pub fn annotate_results_with_state(
+/// `implementations` must be built from `snapshot`; it proves typed member calls.
+pub(crate) fn annotate_results_with_state(
     requests: &[AnnotationRequest<'_>],
     snapshot: &[ExtractedFile],
     cfg: &CallerConfig,
     available_bytes: usize,
     root: &Path,
     runtime_state: AnnotationRuntimeState,
+    implementations: Option<&crate::implementations::ImplementationIndex>,
 ) -> Option<DetailAnnotations> {
     let resolver = super::resolution::SourceResolver::new(snapshot, root);
+    let resolver = match implementations {
+        Some(index) => resolver.with_implementations(index),
+        None => resolver,
+    };
     annotate_with_presentation(
         requests,
         snapshot,
@@ -1055,6 +1084,7 @@ pub fn annotate_results_with_state(
             should_discover_callees: true,
             should_skip_ambiguous_names: false,
             resolver: &resolver,
+            limits: None,
         },
     )
 }
@@ -1080,8 +1110,18 @@ pub(crate) fn annotate_live_results(
             should_discover_callees: true,
             should_skip_ambiguous_names: false,
             resolver,
+            limits: None,
         },
     )
+}
+
+/// What a caller-only annotation may rely on: the snapshot's modification stamps, which tell
+/// unchanged indexed files whose recorded calls the scan can trust, and a deadline after which
+/// it stops and reports partial results.
+pub(crate) struct LiveCallerLimits<'a> {
+    /// The nanosecond modification stamp of each indexed file at extraction.
+    pub(crate) indexed_mtime: &'a dyn Fn(&str) -> Option<u64>,
+    pub(crate) deadline: Instant,
 }
 
 /// Callers only, for compact source-view trailers: callees are not discovered, names at the
@@ -1093,6 +1133,7 @@ pub(crate) fn annotate_live_callers(
     cfg: &CallerConfig,
     root: &Path,
     resolver: &super::resolution::SourceResolver<'_>,
+    limits: LiveCallerLimits<'_>,
 ) -> Option<DetailAnnotations> {
     annotate_with_presentation(
         requests,
@@ -1106,6 +1147,7 @@ pub(crate) fn annotate_live_callers(
             should_discover_callees: false,
             should_skip_ambiguous_names: true,
             resolver,
+            limits: Some(limits),
         },
     )
 }
@@ -1118,6 +1160,8 @@ struct AnnotationPresentation<'a, 'source> {
     /// callers are omitted anyway, and resolving their many call sites dominates the cost.
     should_skip_ambiguous_names: bool,
     resolver: &'a super::resolution::SourceResolver<'source>,
+    /// Caller-only shortcuts and deadline; search annotations take none.
+    limits: Option<LiveCallerLimits<'a>>,
 }
 
 fn annotate_with_presentation(
@@ -1134,6 +1178,7 @@ fn annotate_with_presentation(
         should_discover_callees,
         should_skip_ambiguous_names,
         resolver,
+        limits,
     } = presentation;
     let should_trace_navigation_metrics = tracing::enabled!(tracing::Level::DEBUG);
     let annotation_started = should_trace_navigation_metrics.then(Instant::now);
@@ -1192,7 +1237,23 @@ fn annotate_with_presentation(
     }
     names.sort();
     names.dedup();
-    let scan = scan_workspace(&names, cfg, root, &index)?;
+    let files_by_path: HashMap<&str, &ExtractedFile> = match &limits {
+        Some(_) => snapshot
+            .iter()
+            .map(|file| (file.file_path.as_str(), file))
+            .collect(),
+        None => HashMap::new(),
+    };
+    let scan_options = ScanOptions {
+        unchanged_calls: limits.as_ref().map(|limits| IndexedFiles {
+            files: &files_by_path,
+            mtime: limits.indexed_mtime,
+        }),
+        deadline: limits.as_ref().map(|limits| limits.deadline),
+    };
+    let scan = scan_workspace(&names, cfg, root, &index, &scan_options)?;
+    let deadline = scan_options.deadline;
+    let mut is_partial = scan.is_past_deadline;
 
     let mut annotations: HashMap<(String, usize), SymbolAnnotation> = HashMap::new();
     let mut exact_annotations = HashMap::new();
@@ -1202,7 +1263,7 @@ fn annotate_with_presentation(
     // less, so the reserved cap is never exceeded at emission time.
     let mut sub_remaining = cfg.annotation_sub_budget;
     let mut overall_remaining = available_bytes;
-    for req in requests {
+    'requests: for req in requests {
         if req.is_fallback || !index.can_attribute_calls(req.file_path) {
             continue;
         }
@@ -1214,6 +1275,10 @@ fn annotate_with_presentation(
             let budget = sub_remaining.min(overall_remaining);
             if budget == 0 {
                 break;
+            }
+            if is_partial || deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                is_partial = true;
+                break 'requests;
             }
             if let Some(annotation) = render_symbol_annotation(
                 sym,
@@ -1229,6 +1294,8 @@ fn annotate_with_presentation(
                 resolver,
                 should_list_unresolved,
                 should_discover_callees,
+                deadline,
+                &mut is_partial,
             ) {
                 let reserved = annotation.full_len();
                 sub_remaining = sub_remaining.saturating_sub(reserved);
@@ -1282,6 +1349,7 @@ fn annotate_with_presentation(
     Some(DetailAnnotations {
         annotations,
         exact_annotations,
+        is_partial,
     })
 }
 
@@ -1358,6 +1426,7 @@ mod tests {
         DetailAnnotations {
             annotations,
             exact_annotations: HashMap::new(),
+            is_partial: false,
         }
     }
 
@@ -1891,5 +1960,43 @@ mod tests {
             rendered[1].contains("same as `poll` above"),
             "subsequent omit blocks (byte-identical) collapse to a back-reference: {rendered:?}"
         );
+    }
+
+    #[test]
+    fn unconfirmed_callers_are_listed_up_to_the_cap_then_counted_with_an_escaped_grep() {
+        // One indexed `$emit`; calls on untyped parameters leave the receiver unresolved.
+        for count in [UNRESOLVED_CALLER_LIST_CAP, UNRESOLVED_CALLER_LIST_CAP + 1] {
+            let mut source = String::from("class Bus {\n  $emit(name: string) {}\n}\n");
+            for i in 0..count {
+                source.push_str(&format!(
+                    "function send{i}(bus: any) {{ bus.$emit('x'); }}\n"
+                ));
+            }
+            let (_dir, root) = crate::callers::fixtures::write_repo(&[("bus.ts", &source)]);
+            let snapshot = vec![parsed_file(&root, "bus.ts")];
+            let requests = [AnnotationRequest {
+                file_path: "bus.ts",
+                symbols: &snapshot[0].symbols,
+                is_fallback: false,
+            }];
+            let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+            let text = note(&ann, "bus.ts", 2);
+            let listed = (0..count)
+                .filter(|i| text.contains(&format!("send{i} (bus.ts:")))
+                .count();
+            if count <= UNRESOLVED_CALLER_LIST_CAP {
+                assert!(text.contains("unconfirmed callers"), "{text}");
+                assert_eq!(listed, count, "{text}");
+            } else {
+                assert!(!text.contains("unconfirmed callers"), "{text}");
+                assert_eq!(listed, 0, "{text}");
+                assert!(
+                    text.contains(&format!(
+                        "{count} name-matching call site(s) not attributed to this declaration; grep \"\\$emit\\(\" lists them"
+                    )),
+                    "{text}"
+                );
+            }
+        }
     }
 }

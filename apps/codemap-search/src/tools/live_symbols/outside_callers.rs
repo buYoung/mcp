@@ -1,10 +1,14 @@
 //! Caller trailer for `read view=source`: who calls the functions in the window from outside
 //! it. Source rows above the trailer stay byte-for-byte unchanged.
 
+use std::path::Path;
+use std::time::{Duration, Instant};
+
 use super::structure::callable;
 use super::LiveOutput;
-use crate::callers::{AnnotationRequest, CallerSite};
+use crate::callers::{AnnotationRequest, CallerSite, DetailAnnotations, LiveCallerLimits};
 use crate::index::EngineSupervisor;
+use crate::parser::{ExtractedFile, ExtractedSymbol};
 
 /// Functions overlapping one window whose callers are looked up.
 const FUNCTION_LOOKUP_LIMIT: usize = 16;
@@ -12,6 +16,11 @@ const FUNCTION_LOOKUP_LIMIT: usize = 16;
 const CALLERS_PER_FUNCTION: usize = 3;
 /// Bytes for the whole trailer, including its header.
 const TRAILER_BYTE_CAP: usize = 1536;
+/// Time for looking up one window's callers. Callers found by then are listed with a note
+/// that the lookup stopped, so a slow lookup cannot make the read itself slow.
+const TRAILER_TIME_BUDGET: Duration = Duration::from_millis(250);
+const PARTIAL_LINE: &str =
+    "\n- caller lookup stopped at its time limit; more outside callers may exist (view=relations)";
 pub(crate) const HEADER: &str = "[Callers from outside this window (static analysis, approximate)]";
 
 /// The trailer for a read window, within `byte_cap` bytes and never above [`TRAILER_BYTE_CAP`].
@@ -21,6 +30,7 @@ pub(super) fn trailer(
     output: &LiveOutput,
     byte_cap: usize,
 ) -> Option<String> {
+    let started = Instant::now();
     let byte_cap = byte_cap.min(TRAILER_BYTE_CAP);
     // Room for the closing omission line is kept whenever a function line is added.
     let reserve = omission_line(FUNCTION_LOOKUP_LIMIT).len();
@@ -77,14 +87,59 @@ pub(super) fn trailer(
             is_fallback: false,
         })
         .collect();
-    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root);
-    let annotations = crate::callers::annotate_live_callers(
+    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root)
+        .with_implementations(snapshot.implementations());
+    let indexed_mtime = |path: &str| snapshot.source_mtime(path);
+    let annotations = lookup_callers(
         &requests,
         &source_files,
-        &super::render::caller_config(),
         &root,
         &resolver,
+        &indexed_mtime,
+        started,
     )?;
+    trailer_text(path, (start, end), &functions, &annotations, byte_cap)
+}
+
+/// Callers of the requested functions, looked up until [`TRAILER_TIME_BUDGET`] after `started`.
+fn lookup_callers(
+    requests: &[AnnotationRequest<'_>],
+    files: &[ExtractedFile],
+    root: &Path,
+    resolver: &crate::callers::resolution::SourceResolver<'_>,
+    indexed_mtime: &dyn Fn(&str) -> Option<u64>,
+    started: Instant,
+) -> Option<DetailAnnotations> {
+    crate::callers::annotate_live_callers(
+        requests,
+        files,
+        &super::render::caller_config(),
+        root,
+        resolver,
+        LiveCallerLimits {
+            indexed_mtime,
+            deadline: started + TRAILER_TIME_BUDGET,
+        },
+    )
+}
+
+/// The trailer for `functions` of `path` overlapping lines `start..=end`, within `byte_cap`;
+/// `None` when none of them is called from outside those lines.
+fn trailer_text(
+    path: &str,
+    (start, end): (usize, usize),
+    functions: &[&ExtractedSymbol],
+    annotations: &DetailAnnotations,
+    byte_cap: usize,
+) -> Option<String> {
+    // Room for the closing omission line is kept whenever a function line is added. A stopped
+    // lookup also keeps room for saying so; complete trailers keep their whole budget.
+    let reserve = omission_line(FUNCTION_LOOKUP_LIMIT).len()
+        + if annotations.is_partial() {
+            PARTIAL_LINE.len()
+        } else {
+            0
+        };
     let is_outside = |site: &&CallerSite| site.path != path || site.line < start || end < site.line;
     let mut text = String::from(HEADER);
     let mut omitted_functions = 0;
@@ -140,6 +195,9 @@ pub(super) fn trailer(
     if omitted_functions > 0 {
         text.push_str(&omission_line(omitted_functions));
     }
+    if annotations.is_partial() {
+        text.push_str(PARTIAL_LINE);
+    }
     Some(text)
 }
 
@@ -191,4 +249,72 @@ fn label(group: &CallerGroup<'_>, path: &str) -> String {
         ""
     };
     format!("{mark}{caller} ({location})")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::{CodeExtractor, TreeSitterExtractor};
+
+    #[test]
+    fn caller_lookup_stops_at_its_time_limit_and_says_so() {
+        assert_eq!(TRAILER_TIME_BUDGET, Duration::from_millis(250));
+        let path = "src/lib.rs";
+        let source = "fn target() {}\nfn caller() {\n    target();\n}\n";
+        let temp = tempfile::tempdir().unwrap();
+        std::fs::create_dir(temp.path().join("src")).unwrap();
+        std::fs::write(temp.path().join(path), source).unwrap();
+        let files = [TreeSitterExtractor::new().extract(source, path).unwrap()];
+        let functions: Vec<_> = files[0]
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.name == "target")
+            .collect();
+        let requests = [AnnotationRequest {
+            file_path: path,
+            symbols: std::slice::from_ref(functions[0]),
+            is_fallback: false,
+        }];
+        let resolver = crate::callers::resolution::SourceResolver::new(&files, temp.path());
+        let no_stamp = |_: &str| -> Option<u64> { None };
+        let lookup = |started| {
+            lookup_callers(
+                &requests,
+                &files,
+                temp.path(),
+                &resolver,
+                &no_stamp,
+                started,
+            )
+            .unwrap()
+        };
+        let text_for = |annotations: &DetailAnnotations| {
+            trailer_text(path, (1, 1), &functions, annotations, TRAILER_BYTE_CAP)
+        };
+        let listed = format!("{HEADER}\n- target L1: caller (L3)");
+
+        // A deadline far ahead stays out of reach even on a loaded test machine.
+        let complete = lookup(Instant::now() + Duration::from_secs(3600));
+        assert!(!complete.is_partial());
+        assert_eq!(text_for(&complete), Some(listed.clone()));
+
+        // A lookup that started a whole budget ago stops at once, so the read window goes
+        // without a trailer.
+        let stopped = lookup(Instant::now() - TRAILER_TIME_BUDGET);
+        assert!(stopped.is_partial());
+        assert_eq!(text_for(&stopped), None);
+
+        // Callers found before the limit stay listed, followed by the notice.
+        let cut_short = lookup(Instant::now() + Duration::from_secs(3600)).stopped_at_deadline();
+        assert_eq!(
+            text_for(&cut_short),
+            Some(format!("{listed}{PARTIAL_LINE}"))
+        );
+        // The notice never pushes a trailer past its byte cap: without room for it, the function
+        // line gives way.
+        let cap = listed.len() + omission_line(FUNCTION_LOOKUP_LIMIT).len();
+        let capped = |annotations| trailer_text(path, (1, 1), &functions, annotations, cap);
+        assert_eq!(capped(&complete), Some(listed));
+        assert_eq!(capped(&cut_short), None);
+    }
 }

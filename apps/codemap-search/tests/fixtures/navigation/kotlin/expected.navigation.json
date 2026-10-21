@@ -25,6 +25,26 @@
               "endLine": 15,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "UserAlias",
+              "importedName": "com.example.User",
+              "source": "com.example.User",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 37
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 15,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [

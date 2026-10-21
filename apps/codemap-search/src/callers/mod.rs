@@ -40,10 +40,13 @@ mod source;
 mod symbols;
 pub(crate) mod test_code;
 
-pub(crate) use annotate::{annotate_live_callers, annotate_live_results, CallerSite};
+pub(crate) use annotate::{
+    annotate_live_callers, annotate_live_results, annotate_results_with_state, CallerSite,
+    LiveCallerLimits,
+};
 pub use annotate::{
-    annotate_results, annotate_results_with_state, AnnotationRequest, CallerBlockDedup,
-    DetailAnnotations, PreparedAnnotation, ANNOTATION_OMITTED_MARKER,
+    annotate_results, AnnotationRequest, CallerBlockDedup, DetailAnnotations, PreparedAnnotation,
+    ANNOTATION_OMITTED_MARKER,
 };
 
 use crate::lang::spec_for_ext;

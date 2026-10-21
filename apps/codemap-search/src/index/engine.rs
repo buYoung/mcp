@@ -196,7 +196,9 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v25 bundles Groovy quoted declarations and the Zsh scanner termination fix.
 // v35 persists TypeScript/JavaScript/C/C++ data-member names for related-terms evidence;
 // they are not symbols, so search ranking and codemap views stay unchanged.
-const EXTRACTION_FORMAT_VERSION: &str = "v35-data-member-names";
+// v36 types more call receivers (fields, static types, bases, C++ and PowerShell parameters)
+// in the persisted implementation facts used for caller attribution.
+const EXTRACTION_FORMAT_VERSION: &str = "v38-bounded-flow-statements";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1338,6 +1340,25 @@ mod tests {
     }
 
     #[test]
+    fn test_long_else_if_chain_keeps_the_index_publishable() {
+        let directory = tempdir().unwrap();
+        let file = directory.path().join("chain.js");
+        let branches: String = (1..40)
+            .map(|value| format!(" else if (x === {value}) {{ return {value}; }}"))
+            .collect();
+        fs::write(
+            &file,
+            format!("function chain_probe(x) {{\n  if (x === 0) {{ return 0; }}{branches}\n  return -1;\n}}\n"),
+        )
+        .unwrap();
+        let mut engine =
+            TantivySearchEngine::new(directory.path().join("index").to_str().unwrap()).unwrap();
+        engine.index_files(&[file.to_str().unwrap()]).unwrap();
+        assert_eq!(engine.search("chain_probe", 10).unwrap().len(), 1);
+        assert_eq!(engine.load_published_snapshot().unwrap().codemap().len(), 1);
+    }
+
+    #[test]
     fn test_deferred_deletion_publishes_matching_search_and_codemap() {
         let directory = tempdir().unwrap();
         let file = directory.path().join("source.rs");
@@ -1615,7 +1636,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v35-data-member-names");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v38-bounded-flow-statements");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

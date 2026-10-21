@@ -945,6 +945,7 @@ pub(crate) fn prepare_detail(
                 available,
                 &root,
                 runtime_state,
+                Some(published_snapshot.implementations()),
             )
         } else {
             None

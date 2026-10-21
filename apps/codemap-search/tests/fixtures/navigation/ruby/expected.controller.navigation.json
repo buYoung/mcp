@@ -61,7 +61,32 @@
         ],
         "types": [],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "parse",
+            "range": {
+              "startLine": 3,
+              "startCol": 13,
+              "endLine": 3,
+              "endCol": 28
+            },
+            "receiver": {
+              "name": "Request",
+              "arguments": [],
+              "range": {
+                "startLine": 3,
+                "startCol": 13,
+                "endLine": 3,
+                "endCol": 28
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "handle",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "type"
+          }
+        ]
       }
     ],
     "omitted": 0

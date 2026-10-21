@@ -104,6 +104,21 @@ pub struct DispatchCall {
     pub enclosing_symbol: Option<String>,
     pub argument_count: Option<usize>,
     pub conditions: Vec<String>,
+    #[serde(default)]
+    pub receiver_kind: ReceiverKind,
+}
+
+/// How a call's receiver relates to its type.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ReceiverKind {
+    /// A value of the type: dispatch may reach an override.
+    #[default]
+    Value,
+    /// The type itself: static members, never replaced at runtime.
+    Type,
+    /// The base of the enclosing type (`super`): the named member runs, not an override.
+    Base,
 }
 
 pub(crate) fn digest(source: &[u8]) -> String {

@@ -120,7 +120,8 @@
             "namespace": "Service",
             "enclosingSymbol": "Run",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           },
           {
             "name": "Save",
@@ -143,7 +144,8 @@
             "namespace": "Service",
             "enclosingSymbol": "Run",
             "argumentCount": 1,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

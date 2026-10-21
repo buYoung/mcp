@@ -25,6 +25,26 @@
               "endLine": 14,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "PostMapping",
+              "importedName": "org.springframework.web.bind.annotation.PostMapping",
+              "source": "org.springframework.web.bind.annotation.PostMapping",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 59
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 14,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [
@@ -112,7 +132,80 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "parse",
+            "range": {
+              "startLine": 9,
+              "startCol": 23,
+              "endLine": 9,
+              "endCol": 41
+            },
+            "receiver": {
+              "name": "OrderParser",
+              "arguments": [],
+              "range": {
+                "startLine": 9,
+                "startCol": 23,
+                "endLine": 9,
+                "endCol": 41
+              }
+            },
+            "namespace": "CheckoutController",
+            "enclosingSymbol": "post",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "submit",
+            "range": {
+              "startLine": 10,
+              "startCol": 23,
+              "endLine": 10,
+              "endCol": 46
+            },
+            "receiver": {
+              "name": "CheckoutService",
+              "arguments": [],
+              "range": {
+                "startLine": 10,
+                "startCol": 23,
+                "endLine": 10,
+                "endCol": 46
+              }
+            },
+            "namespace": "CheckoutController",
+            "enclosingSymbol": "post",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "ok",
+            "range": {
+              "startLine": 11,
+              "startCol": 16,
+              "endLine": 11,
+              "endCol": 42
+            },
+            "receiver": {
+              "name": "ResponseEntity",
+              "arguments": [],
+              "range": {
+                "startLine": 11,
+                "startCol": 16,
+                "endLine": 11,
+                "endCol": 42
+              }
+            },
+            "namespace": "CheckoutController",
+            "enclosingSymbol": "post",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "type"
+          }
+        ]
       }
     ],
     "omitted": 0

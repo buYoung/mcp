@@ -141,7 +141,8 @@
             "namespace": "ScalaFlow",
             "enclosingSymbol": "callerScala",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

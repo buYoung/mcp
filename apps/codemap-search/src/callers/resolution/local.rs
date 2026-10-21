@@ -4,10 +4,16 @@
 
 use super::*;
 
+mod dispatched_calls;
+mod module_functions;
+mod reexports;
 mod script_modules;
 mod typed_fields;
 
-pub(super) use script_modules::ModulePaths;
+pub(super) use module_functions::ModuleLookups;
+use module_functions::{is_top_level, only_binding};
+pub(super) use reexports::ExportLookup;
+pub(super) use script_modules::{ModulePaths, WorkspacePackages};
 
 pub(super) fn supports(path: &str) -> bool {
     crate::lang::spec_for_path(Path::new(path)).is_some_and(|spec| {
@@ -613,32 +619,88 @@ impl<'a> SourceResolver<'a> {
             return None;
         }
         let import = imports[0];
-        let target_file = self.script_module(&file.file_path, import.source.as_deref()?)?;
-        let target_source = self.source(&target_file.file_path)?;
+        let module = self.script_module(&file.file_path, import.source.as_deref()?)?;
         let name = if call.receiver.is_some() {
             call.name.as_str()
         } else {
             import.imported_name.as_deref()?
         };
-        let targets = target_file
-            .symbols
-            .iter()
-            .filter(|symbol| symbol.name == name)
-            .map(|symbol| Target {
-                file: target_file,
-                symbol,
-                is_precise: true,
-            })
-            .filter(|target| {
-                target.file.file_path == target_file.file_path
-                    && target.symbol.kind == "fn"
-                    && target.symbol.owner.is_none()
-                    && target.symbol.flags.is_exported
-                    && current_symbol(&target_source, target.symbol)
-            })
-            .collect();
+        // The module declares the function or re-exports it from the module that does.
+        let mut targets = Vec::new();
+        for origin in self.export_origins(&module.file_path, name).iter() {
+            let Some(origin_source) = self.source(&origin.file.file_path) else {
+                continue;
+            };
+            targets.extend(
+                origin
+                    .file
+                    .symbols
+                    .iter()
+                    .filter(|symbol| {
+                        symbol.name == origin.name
+                            && symbol.kind == "fn"
+                            && symbol.owner.is_none()
+                            && symbol.flags.is_exported
+                            && current_symbol(&origin_source, symbol)
+                    })
+                    .map(|symbol| Target {
+                        file: origin.file,
+                        symbol,
+                        is_precise: true,
+                    }),
+            );
+        }
         unique(targets)
     }
+}
+
+/// Targets of the calls named `name` on `line` of `caller`, as `path:line`, or `-`.
+#[cfg(test)]
+fn targets(entries: &[(&str, &str)], caller: &str, line: usize, name: &str) -> Vec<String> {
+    // Module settings such as tsconfig files are read from the workspace on disk.
+    let root = tempfile::tempdir().unwrap();
+    for (path, source) in entries {
+        let path = root.path().join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, source).unwrap();
+    }
+    let sources: HashMap<String, String> = entries
+        .iter()
+        .map(|(path, source)| (path.to_string(), source.to_string()))
+        .collect();
+    let files = std::sync::Arc::new(
+        entries
+            .iter()
+            .map(|(path, source)| {
+                crate::parser::TreeSitterExtractor::new()
+                    .extract(source, path)
+                    .unwrap()
+            })
+            .collect::<Vec<_>>(),
+    );
+    let index = crate::implementations::ImplementationIndex::build_at(
+        std::sync::Arc::clone(&files),
+        &sources,
+        root.path(),
+    );
+    let resolver = SourceResolver::from_stored_sources(&files, root.path(), &sources)
+        .with_implementations(&index);
+    let file = files.iter().find(|file| file.file_path == caller).unwrap();
+    resolver
+        .calls(file)
+        .iter()
+        .filter(|call| call.range.start_line == line && call.name == name)
+        .map(|call| {
+            resolver
+                .resolve_call(file, call)
+                .map_or("-".into(), |target| {
+                    format!(
+                        "{}:{}",
+                        target.file.file_path, target.symbol.range.start_line
+                    )
+                })
+        })
+        .collect()
 }
 
 #[cfg(test)]

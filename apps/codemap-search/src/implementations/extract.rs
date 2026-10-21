@@ -1,7 +1,9 @@
 //! Extract compact type facts from the parser's existing tree, never from free-text matches.
 mod declarations;
 mod dispatch;
+mod fields;
 mod imports;
+pub(crate) use imports::{dart_library_exports, dart_library_imports};
 
 use super::*;
 use crate::parser::{CodeRange, ExtractedSymbol, NavigationFile};

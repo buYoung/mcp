@@ -592,6 +592,20 @@ pub(crate) fn stored_index_key(path: &Path, abs_cwd: &Path) -> String {
 /// Distinct from [`relative_index_path`]: this keeps the two-step (canonical-then-raw)
 /// fallback and does only the backslash→slash replacement (no leading `./`/`/` strip),
 /// so the caller-scan display path stays byte-identical.
+/// [`workspace_display_path`] of an entry from a walk that does not follow links. Such a walk
+/// reaches a non-link entry only through real directories, so its path below the walk root is
+/// already the canonical relative path and needs no filesystem lookup.
+pub(crate) fn walk_entry_display_path(
+    entry: &ignore::DirEntry,
+    canonical_root: &Path,
+    raw_root: &Path,
+) -> String {
+    match entry.path().strip_prefix(raw_root) {
+        Ok(relative) if !entry.path_is_symlink() => relative.to_string_lossy().replace('\\', "/"),
+        _ => workspace_display_path(entry.path(), canonical_root, raw_root),
+    }
+}
+
 pub(crate) fn workspace_display_path(
     entry_path: &Path,
     canonical_root: &Path,

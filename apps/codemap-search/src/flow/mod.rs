@@ -35,6 +35,10 @@ pub(crate) struct RequestBudget {
 
 pub(crate) const NODES_PER_FILE: usize = 4096;
 pub(crate) const FUNCTIONS_PER_FILE: usize = 256;
+/// Statement lists nested in one summarized body, as each `else if` of a chain nests the next
+/// branch. Every level adds four levels to the stored index document, which must stay within
+/// the 128 levels its JSON decoder accepts.
+pub(crate) const STATEMENT_DEPTH: usize = 24;
 #[cfg(test)]
 pub(crate) const NODES_PER_QUERY: usize = 4096;
 #[cfg(test)]
