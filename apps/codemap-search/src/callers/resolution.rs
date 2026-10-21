@@ -47,7 +47,11 @@ pub(crate) struct SourceResolver<'a> {
     root: &'a Path,
     names: HashMap<&'a str, Vec<Target<'a>>>,
     sources: RefCell<HashMap<String, Option<Rc<Source>>>>,
-    manifests: RefCell<HashMap<PathBuf, Option<toml::Value>>>,
+    manifests: RefCell<HashMap<PathBuf, Option<Rc<toml::Value>>>>,
+    /// Indexed files by the paths lookups named, since each lookup resolves links on disk.
+    file_lookups: RefCell<HashMap<PathBuf, Option<&'a ExtractedFile>>>,
+    /// The nearest manifest of each name above each starting directory.
+    nearest_files: RefCell<HashMap<(PathBuf, String), Option<PathBuf>>>,
     test_filter: super::test_code::TestCodeFilter,
     target_os: Option<String>,
     file_conditions: RefCell<HashMap<String, Condition>>,
@@ -272,6 +276,8 @@ impl<'a> SourceResolver<'a> {
             names,
             sources: RefCell::new(HashMap::new()),
             manifests: RefCell::new(HashMap::new()),
+            file_lookups: RefCell::new(HashMap::new()),
+            nearest_files: RefCell::new(HashMap::new()),
             test_filter: super::test_code::TestCodeFilter::from_config(root),
             target_os: crate::config::get().analysis_target_os.clone(),
             file_conditions: RefCell::new(HashMap::new()),
@@ -411,13 +417,25 @@ impl<'a> SourceResolver<'a> {
     }
 
     fn file(&self, path: &Path) -> Option<&'a ExtractedFile> {
+        if let Some(found) = self.file_lookups.borrow().get(path) {
+            return *found;
+        }
         let key = crate::workspace::workspace_relative_key(path, self.root);
-        self.files_by_path.get(key.as_str()).copied()
+        let found = self.files_by_path.get(key.as_str()).copied();
+        self.file_lookups
+            .borrow_mut()
+            .insert(path.to_path_buf(), found);
+        found
     }
 
     fn nearest(&self, path: &str, name: &str) -> Option<PathBuf> {
-        let mut directory = self.root.join(path).parent()?.to_path_buf();
-        loop {
+        let start = self.root.join(path).parent()?.to_path_buf();
+        let key = (start, name.to_string());
+        if let Some(found) = self.nearest_files.borrow().get(&key) {
+            return found.clone();
+        }
+        let mut directory = key.0.clone();
+        let found = loop {
             let candidate = directory.join(name);
             let exists = self.stored_sources.map_or_else(
                 || candidate.is_file(),
@@ -428,24 +446,29 @@ impl<'a> SourceResolver<'a> {
                 },
             );
             if exists {
-                return Some(directory.join(name));
+                break Some(directory.join(name));
             }
             if directory == self.root || !directory.starts_with(self.root) || !directory.pop() {
-                return None;
+                break None;
             }
-        }
+        };
+        self.nearest_files.borrow_mut().insert(key, found.clone());
+        found
     }
 
-    fn manifest(&self, path: &Path) -> Option<toml::Value> {
-        self.record_dependency(
-            &crate::workspace::workspace_relative_key(path, self.root),
-            &CodeRange {
-                start_line: 1,
-                start_col: 1,
-                end_line: 1,
-                end_col: 1,
-            },
-        );
+    fn manifest(&self, path: &Path) -> Option<Rc<toml::Value>> {
+        // Only stored sources record dependencies, so live lookups skip resolving the key.
+        if self.stored_sources.is_some() {
+            self.record_dependency(
+                &crate::workspace::workspace_relative_key(path, self.root),
+                &CodeRange {
+                    start_line: 1,
+                    start_col: 1,
+                    end_line: 1,
+                    end_col: 1,
+                },
+            );
+        }
         if let Some(value) = self.manifests.borrow().get(path) {
             return value.clone();
         }
@@ -455,7 +478,9 @@ impl<'a> SourceResolver<'a> {
                 .cloned(),
             None => std::fs::read_to_string(path).ok(),
         };
-        let value = content.and_then(|text| toml::from_str(&text).ok());
+        let value = content
+            .and_then(|text| toml::from_str(&text).ok())
+            .map(Rc::new);
         self.manifests
             .borrow_mut()
             .insert(path.to_path_buf(), value.clone());

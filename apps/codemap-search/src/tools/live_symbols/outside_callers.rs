@@ -1,9 +1,11 @@
 //! Caller trailer for `read view=source`: who calls the functions in the window from outside
 //! it. Source rows above the trailer stay byte-for-byte unchanged.
 
+use std::time::{Duration, Instant};
+
 use super::structure::callable;
 use super::LiveOutput;
-use crate::callers::{AnnotationRequest, CallerSite};
+use crate::callers::{AnnotationRequest, CallerSite, LiveCallerLimits};
 use crate::index::EngineSupervisor;
 
 /// Functions overlapping one window whose callers are looked up.
@@ -12,6 +14,11 @@ const FUNCTION_LOOKUP_LIMIT: usize = 16;
 const CALLERS_PER_FUNCTION: usize = 3;
 /// Bytes for the whole trailer, including its header.
 const TRAILER_BYTE_CAP: usize = 1536;
+/// Time for looking up one window's callers. Callers found by then are listed with a note
+/// that the lookup stopped, so a slow lookup cannot make the read itself slow.
+const TRAILER_TIME_BUDGET: Duration = Duration::from_millis(250);
+const PARTIAL_LINE: &str =
+    "\n- caller lookup stopped at its time limit; more outside callers may exist (view=relations)";
 pub(crate) const HEADER: &str = "[Callers from outside this window (static analysis, approximate)]";
 
 /// The trailer for a read window, within `byte_cap` bytes and never above [`TRAILER_BYTE_CAP`].
@@ -21,6 +28,7 @@ pub(super) fn trailer(
     output: &LiveOutput,
     byte_cap: usize,
 ) -> Option<String> {
+    let deadline = Instant::now() + TRAILER_TIME_BUDGET;
     let byte_cap = byte_cap.min(TRAILER_BYTE_CAP);
     // Room for the closing omission line is kept whenever a function line is added.
     let reserve = omission_line(FUNCTION_LOOKUP_LIMIT).len();
@@ -79,13 +87,25 @@ pub(super) fn trailer(
         .collect();
     let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root)
         .with_implementations(snapshot.implementations());
+    let indexed_mtime = |path: &str| snapshot.source_mtime(path);
     let annotations = crate::callers::annotate_live_callers(
         &requests,
         &source_files,
         &super::render::caller_config(),
         &root,
         &resolver,
+        LiveCallerLimits {
+            indexed_mtime: &indexed_mtime,
+            deadline,
+        },
     )?;
+    // A stopped lookup keeps room for saying so; complete trailers keep their whole budget.
+    let reserve = reserve
+        + if annotations.is_partial() {
+            PARTIAL_LINE.len()
+        } else {
+            0
+        };
     let is_outside = |site: &&CallerSite| site.path != path || site.line < start || end < site.line;
     let mut text = String::from(HEADER);
     let mut omitted_functions = 0;
@@ -140,6 +160,9 @@ pub(super) fn trailer(
     }
     if omitted_functions > 0 {
         text.push_str(&omission_line(omitted_functions));
+    }
+    if annotations.is_partial() {
+        text.push_str(PARTIAL_LINE);
     }
     Some(text)
 }

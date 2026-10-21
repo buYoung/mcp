@@ -42,6 +42,7 @@ pub(crate) mod test_code;
 
 pub(crate) use annotate::{
     annotate_live_callers, annotate_live_results, annotate_results_with_state, CallerSite,
+    LiveCallerLimits,
 };
 pub use annotate::{
     annotate_results, AnnotationRequest, CallerBlockDedup, DetailAnnotations, PreparedAnnotation,
