@@ -180,6 +180,78 @@
         "implementations": [],
         "calls": [
           {
+            "name": "audit",
+            "range": {
+              "startLine": 14,
+              "startCol": 22,
+              "endLine": 14,
+              "endCol": 69
+            },
+            "receiver": {
+              "name": "AuditEvent",
+              "arguments": [],
+              "range": {
+                "startLine": 14,
+                "startCol": 22,
+                "endLine": 14,
+                "endCol": 69
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 2,
+            "conditions": [],
+            "receiverKind": "type"
+          },
+          {
+            "name": "reserve",
+            "range": {
+              "startLine": 16,
+              "startCol": 9,
+              "endLine": 16,
+              "endCol": 34
+            },
+            "receiver": {
+              "name": "Inventory",
+              "arguments": [],
+              "range": {
+                "startLine": 16,
+                "startCol": 9,
+                "endLine": 16,
+                "endCol": 34
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "save",
+            "range": {
+              "startLine": 17,
+              "startCol": 9,
+              "endLine": 17,
+              "endCol": 24
+            },
+            "receiver": {
+              "name": "OrderRepo",
+              "arguments": [],
+              "range": {
+                "startLine": 17,
+                "startCol": 9,
+                "endLine": 17,
+                "endCol": 24
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
             "name": "commit",
             "range": {
               "startLine": 18,
@@ -200,7 +272,8 @@
             "namespace": "CheckoutService",
             "enclosingSymbol": "submit",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

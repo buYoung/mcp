@@ -1031,18 +1031,25 @@ pub fn annotate_results(
         available_bytes,
         root,
         AnnotationRuntimeState::default(),
+        None,
     )
 }
 
-pub fn annotate_results_with_state(
+/// `implementations` must be built from `snapshot`; it proves typed member calls.
+pub(crate) fn annotate_results_with_state(
     requests: &[AnnotationRequest<'_>],
     snapshot: &[ExtractedFile],
     cfg: &CallerConfig,
     available_bytes: usize,
     root: &Path,
     runtime_state: AnnotationRuntimeState,
+    implementations: Option<&crate::implementations::ImplementationIndex>,
 ) -> Option<DetailAnnotations> {
     let resolver = super::resolution::SourceResolver::new(snapshot, root);
+    let resolver = match implementations {
+        Some(index) => resolver.with_implementations(index),
+        None => resolver,
+    };
     annotate_with_presentation(
         requests,
         snapshot,

@@ -77,7 +77,8 @@ pub(super) fn trailer(
             is_fallback: false,
         })
         .collect();
-    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root);
+    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root)
+        .with_implementations(snapshot.implementations());
     let annotations = crate::callers::annotate_live_callers(
         &requests,
         &source_files,

@@ -121,7 +121,8 @@
             "namespace": "SwiftFlow",
             "enclosingSymbol": "callerSwift",
             "argumentCount": null,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

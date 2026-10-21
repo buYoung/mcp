@@ -114,6 +114,32 @@
         "implementations": [],
         "calls": [
           {
+            "name": "filter",
+            "range": {
+              "startLine": 5,
+              "startCol": 24,
+              "endLine": 5,
+              "endCol": 67
+            },
+            "receiver": {
+              "name": "List",
+              "arguments": [
+                "Rule"
+              ],
+              "range": {
+                "startLine": 5,
+                "startCol": 24,
+                "endLine": 5,
+                "endCol": 67
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": null,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
             "name": "emptyList",
             "range": {
               "startLine": 8,
@@ -134,7 +160,8 @@
             "namespace": "OrderPolicy",
             "enclosingSymbol": "evaluate",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

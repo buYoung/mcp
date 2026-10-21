@@ -57,6 +57,10 @@ pub(crate) struct SourceResolver<'a> {
     module_paths: RefCell<HashMap<PathBuf, Option<Rc<local::ModulePaths>>>>,
     /// Names of indexed type declarations, built on first use.
     type_names: RefCell<Option<Rc<HashSet<&'a str>>>>,
+    /// Typed member calls proven by the implementation index of the same snapshot.
+    implementations: Option<&'a crate::implementations::ImplementationIndex>,
+    /// Whether each proof file still holds the indexed source generation.
+    indexed_generations: RefCell<HashMap<String, bool>>,
 }
 
 pub(crate) fn supports(path: &str) -> bool {
@@ -267,7 +271,18 @@ impl<'a> SourceResolver<'a> {
             dependency_ranges: RefCell::new(Vec::new()),
             module_paths: RefCell::new(HashMap::new()),
             type_names: RefCell::new(None),
+            implementations: None,
+            indexed_generations: RefCell::new(HashMap::new()),
         }
+    }
+
+    /// Also resolve typed member calls proven by `index`, built from the same `files`.
+    pub(crate) fn with_implementations(
+        mut self,
+        index: &'a crate::implementations::ImplementationIndex,
+    ) -> Self {
+        self.implementations = Some(index);
+        self
     }
 
     pub(crate) fn from_stored_sources(
@@ -1148,7 +1163,9 @@ impl<'a> SourceResolver<'a> {
     pub(crate) fn resolve_call(&self, file: &ExtractedFile, call: &CallSite) -> Option<Target<'a>> {
         let file = self.files_by_path.get(file.file_path.as_str()).copied()?;
         if local::supports(&file.file_path) {
-            return self.resolve_local_call(file, call);
+            return self
+                .resolve_local_call(file, call)
+                .or_else(|| self.dispatched_call(file, call));
         }
         let source = self.source(&file.file_path)?;
         let node = node_at(&source, &call.range)?;

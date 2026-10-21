@@ -190,7 +190,32 @@
             }
           ],
           "implementations": [],
-          "calls": []
+          "calls": [
+            {
+              "name": "start",
+              "range": {
+                "startLine": 7,
+                "startCol": 21,
+                "endLine": 7,
+                "endCol": 35
+              },
+              "receiver": {
+                "name": "Helper",
+                "arguments": [],
+                "range": {
+                  "startLine": 7,
+                  "startCol": 21,
+                  "endLine": 7,
+                  "endCol": 35
+                }
+              },
+              "namespace": "Worker",
+              "enclosingSymbol": "run",
+              "argumentCount": 0,
+              "conditions": [],
+              "receiverKind": "type"
+            }
+          ]
         }
       ],
       "omitted": 0

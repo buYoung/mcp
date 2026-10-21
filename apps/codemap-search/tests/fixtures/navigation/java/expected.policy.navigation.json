@@ -119,6 +119,32 @@
         "implementations": [],
         "calls": [
           {
+            "name": "stream",
+            "range": {
+              "startLine": 11,
+              "startCol": 33,
+              "endLine": 11,
+              "endCol": 47
+            },
+            "receiver": {
+              "name": "List",
+              "arguments": [
+                "Rule"
+              ],
+              "range": {
+                "startLine": 11,
+                "startCol": 33,
+                "endLine": 11,
+                "endCol": 47
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
             "name": "isEmpty",
             "range": {
               "startLine": 15,
@@ -143,7 +169,34 @@
             "argumentCount": 0,
             "conditions": [
               "conditional declaration requires unavailable compile/runtime facts"
-            ]
+            ],
+            "receiverKind": "value"
+          },
+          {
+            "name": "of",
+            "range": {
+              "startLine": 16,
+              "startCol": 20,
+              "endLine": 16,
+              "endCol": 29
+            },
+            "receiver": {
+              "name": "List",
+              "arguments": [],
+              "range": {
+                "startLine": 16,
+                "startCol": 20,
+                "endLine": 16,
+                "endCol": 29
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ],
+            "receiverKind": "type"
           }
         ]
       }

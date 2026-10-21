@@ -196,7 +196,9 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v25 bundles Groovy quoted declarations and the Zsh scanner termination fix.
 // v35 persists TypeScript/JavaScript/C/C++ data-member names for related-terms evidence;
 // they are not symbols, so search ranking and codemap views stay unchanged.
-const EXTRACTION_FORMAT_VERSION: &str = "v35-data-member-names";
+// v36 types more call receivers (fields, static types, bases, C++ and PowerShell parameters)
+// in the persisted implementation facts used for caller attribution.
+const EXTRACTION_FORMAT_VERSION: &str = "v36-typed-call-receivers";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1615,7 +1617,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v35-data-member-names");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v36-typed-call-receivers");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

@@ -31,7 +31,8 @@ pub(super) fn build(
     let filtered = filter.filter_snapshot(&source_files, |file| {
         grouped.contains_key(file.file_path.as_str())
     });
-    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root);
+    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root)
+        .with_implementations(snapshot.implementations());
     let mut outlines = Vec::new();
     for (i, file) in output.files.iter().take(count).enumerate() {
         let path = &file.file_path;

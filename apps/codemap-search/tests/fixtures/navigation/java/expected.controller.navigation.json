@@ -172,7 +172,80 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "parse",
+            "range": {
+              "startLine": 15,
+              "startCol": 33,
+              "endLine": 15,
+              "endCol": 51
+            },
+            "receiver": {
+              "name": "OrderParser",
+              "arguments": [],
+              "range": {
+                "startLine": 15,
+                "startCol": 33,
+                "endLine": 15,
+                "endCol": 51
+              }
+            },
+            "namespace": "CheckoutController",
+            "enclosingSymbol": "post",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "submit",
+            "range": {
+              "startLine": 16,
+              "startCol": 27,
+              "endLine": 16,
+              "endCol": 50
+            },
+            "receiver": {
+              "name": "CheckoutService",
+              "arguments": [],
+              "range": {
+                "startLine": 16,
+                "startCol": 27,
+                "endLine": 16,
+                "endCol": 50
+              }
+            },
+            "namespace": "CheckoutController",
+            "enclosingSymbol": "post",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "ok",
+            "range": {
+              "startLine": 17,
+              "startCol": 16,
+              "endLine": 17,
+              "endCol": 42
+            },
+            "receiver": {
+              "name": "ResponseEntity",
+              "arguments": [],
+              "range": {
+                "startLine": 17,
+                "startCol": 16,
+                "endLine": 17,
+                "endCol": 42
+              }
+            },
+            "namespace": "CheckoutController",
+            "enclosingSymbol": "post",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "type"
+          }
+        ]
       }
     ],
     "omitted": 0

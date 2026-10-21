@@ -119,7 +119,8 @@
             "namespace": "Policy",
             "enclosingSymbol": "Allow",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

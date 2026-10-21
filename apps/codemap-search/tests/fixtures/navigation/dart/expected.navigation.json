@@ -100,7 +100,32 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "targetDart",
+            "range": {
+              "startLine": 6,
+              "startCol": 5,
+              "endLine": 6,
+              "endCol": 17
+            },
+            "receiver": {
+              "name": "DartFlow",
+              "arguments": [],
+              "range": {
+                "startLine": 6,
+                "startCol": 5,
+                "endLine": 6,
+                "endCol": 17
+              }
+            },
+            "namespace": "DartFlow",
+            "enclosingSymbol": "callerDart",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

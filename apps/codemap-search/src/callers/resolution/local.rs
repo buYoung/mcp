@@ -4,6 +4,7 @@
 
 use super::*;
 
+mod dispatched_calls;
 mod script_modules;
 mod typed_fields;
 

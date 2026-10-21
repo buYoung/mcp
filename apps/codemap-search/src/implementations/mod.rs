@@ -20,6 +20,7 @@ pub(crate) const CALLS_PER_FILE: usize = 2048;
 pub(crate) const TYPES_PER_SNAPSHOT: usize = 32_768;
 pub(crate) const METHODS_PER_SNAPSHOT: usize = 131_072;
 pub(crate) const CANDIDATES_PER_QUERY: usize = 512;
+pub(crate) const DIRECT_CALLS_PER_SNAPSHOT: usize = 262_144;
 pub(crate) const OUTPUT_ROWS_PER_QUERY: usize = 128;
 pub(crate) const INHERITANCE_DEPTH: usize = 32;
 

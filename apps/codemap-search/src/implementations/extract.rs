@@ -1,6 +1,7 @@
 //! Extract compact type facts from the parser's existing tree, never from free-text matches.
 mod declarations;
 mod dispatch;
+mod fields;
 mod imports;
 
 use super::*;

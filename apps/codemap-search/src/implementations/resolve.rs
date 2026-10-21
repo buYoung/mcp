@@ -187,7 +187,6 @@ impl ImplementationIndex {
                         "java" | "kotlin" | "scala" | "groovy"
                     ) {
                         normalized(&typ.qualified_name) == normalized(target)
-                            && same_source_root(&source.file_path, target_file)
                     } else {
                         false
                     };
@@ -201,14 +200,20 @@ impl ImplementationIndex {
                             },
                             self.location(id),
                         ],
+                        same_source_root(&source.file_path, target_file),
                     ));
                 }
             }
         }
-        imported.sort_by_key(|(id, _)| *id);
-        imported.dedup_by_key(|(id, _)| *id);
+        imported.sort_by_key(|(id, _, _)| *id);
+        imported.dedup_by_key(|(id, _, _)| *id);
+        // A qualified name is unique on one classpath; independent monorepo apps may repeat
+        // it, and then only the importing app's own declaration is the target.
+        if imported.len() > 1 {
+            imported.retain(|(_, _, is_same_root)| *is_same_root);
+        }
         if imported.len() == 1 {
-            return imported.pop();
+            return imported.pop().map(|(id, evidence, _)| (id, evidence));
         }
         if !imported.is_empty() {
             return None;
@@ -228,12 +233,19 @@ impl ImplementationIndex {
                 .filter(|id| {
                     let typ = self.typ(*id);
                     let target = &self.files[self.types[*id].file].file_path;
+                    // A reference inside a type carries that type in its namespace; the
+                    // package itself is the namespace the reference sits in or under.
+                    let package = normalized(&typ.namespace);
+                    let scope = normalized(namespace);
                     self.unit(*id).language == unit.language
                         && typ.parameters.is_empty()
                         && typ.is_complete
                         && Path::new(target).parent() == Path::new(&source.file_path).parent()
                         && (normalized(&typ.qualified_name) == name
-                            || name == typ.name && typ.namespace == namespace)
+                            || name == typ.name
+                                && (scope == package
+                                    || package.is_empty()
+                                    || scope.starts_with(&format!("{package}."))))
                 })
                 .collect::<Vec<_>>();
             if candidates.len() == 1 {
@@ -263,6 +275,9 @@ impl ImplementationIndex {
 fn same_source_root(left: &str, right: &str) -> bool {
     // Explicit qualified imports still cannot bridge independent monorepo apps.
     let prefix = |path: &str| {
+        if path.starts_with("src/") {
+            return Some(String::new());
+        }
         path.split_once("/src/")
             .map(|(prefix, _)| prefix.to_string())
     };

@@ -42,6 +42,22 @@ pub(super) struct Call {
     pub declaration: usize,
     pub evidence: Vec<Location>,
 }
+/// A typed call whose receiver type and member lookup single out one method that is neither
+/// abstract nor overridden, so the static target is also the runtime target.
+#[derive(Clone, Debug)]
+pub(super) struct DirectCall {
+    pub range: CodeRange,
+    pub name: String,
+    pub method: usize,
+    pub evidence: Vec<Location>,
+}
+
+/// The method a typed call reaches and every file its proof reads.
+pub(crate) struct DirectTarget<'a> {
+    pub path: &'a str,
+    pub range: &'a CodeRange,
+    pub proof_paths: Vec<&'a str>,
+}
 
 /// Coordinates refer to the same published symbol generation. Source text is not duplicated.
 #[derive(Clone, Debug)]
@@ -52,6 +68,8 @@ pub(crate) struct ImplementationIndex {
     pub(super) parents: Vec<Vec<Parent>>,
     pub(super) links: Vec<Link>,
     pub(super) calls: Vec<Call>,
+    pub(super) direct_calls: HashMap<String, Vec<DirectCall>>,
+    pub(super) direct_call_count: usize,
     pub(super) by_name: HashMap<String, Vec<usize>>,
     pub(super) methods_by_path: HashMap<String, Vec<usize>>,
     pub(super) calls_by_path: HashMap<String, Vec<usize>>,
@@ -74,6 +92,8 @@ impl ImplementationIndex {
             parents: Vec::new(),
             links: Vec::new(),
             calls: Vec::new(),
+            direct_calls: HashMap::new(),
+            direct_call_count: 0,
             by_name: HashMap::new(),
             methods_by_path: HashMap::new(),
             calls_by_path: HashMap::new(),
@@ -157,6 +177,38 @@ impl ImplementationIndex {
                 .push(id);
         }
         index
+    }
+
+    /// The single concrete method a typed call at `range` in `path` resolves to.
+    pub(crate) fn direct_call(
+        &self,
+        path: &str,
+        range: &CodeRange,
+        name: &str,
+    ) -> Option<DirectTarget<'_>> {
+        let (caller_path, calls) = self.direct_calls.get_key_value(path)?;
+        let call = calls
+            .iter()
+            .find(|call| call.range == *range && call.name == name)?;
+        let method = &self.methods[call.method];
+        let mut proof_paths: Vec<&str> = call
+            .evidence
+            .iter()
+            .map(|location| location.path.as_str())
+            .chain([caller_path.as_str(), method.location.path.as_str()])
+            .collect();
+        proof_paths.sort_unstable();
+        proof_paths.dedup();
+        Some(DirectTarget {
+            path: &method.location.path,
+            range: &method.location.range,
+            proof_paths,
+        })
+    }
+
+    /// Digest of the source generation every recorded fact for `path` came from.
+    pub(crate) fn proof_digest(&self, path: &str) -> Option<&str> {
+        self.proof_digests.get(path).map(String::as_str)
     }
 
     pub(super) fn unit(&self, id: usize) -> &ImplementationUnit {
