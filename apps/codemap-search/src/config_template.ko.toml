@@ -160,7 +160,7 @@ exceptions = []
 
 [output.jev]
 # TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+# 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
 # TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
 # 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
 

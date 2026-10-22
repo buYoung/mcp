@@ -669,9 +669,10 @@ impl McpServer {
                         }))
                     }
                     "initial_instructions" => {
-                        if !arguments.as_object().is_some_and(|args| args.is_empty()) {
-                            return Err((-32602, "initial_instructions takes no arguments. Call it with {}. Use register_task for Jev task context.".into()));
-                        }
+                        // Clients holding an older tool list may still send the former task
+                        // arguments. The guidance never depends on arguments, so ignore them:
+                        // keep the current registration and render the root overview.
+                        let no_arguments = serde_json::json!({});
                         let text = if crate::codemap::looks_like_monorepo_workspace() {
                             // Match `overview` lifecycle behavior so the initial response can
                             // include the same root scope selection without a second MCP call.
@@ -679,7 +680,7 @@ impl McpServer {
                             self.engine.trigger_refresh();
                             let ctx = ToolContext {
                                 engine: &self.engine,
-                                arguments,
+                                arguments: &no_arguments,
                                 active_workspace_scope: self.active_workspace_scope.as_deref(),
                             };
                             let root_overview = crate::tools::overview::run(&ctx)?;

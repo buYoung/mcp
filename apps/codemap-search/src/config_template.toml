@@ -159,7 +159,7 @@ exceptions = []
 
 [output.jev]
 # Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
-# Register the task first with initial_instructions(task_query, questions).
+# Register the task with register_task(task_query, questions) before using an enabled filter.
 # Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
 # If neither auth file supplies a key, TYPESAFE_API_KEY is used.
 

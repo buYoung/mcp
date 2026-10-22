@@ -897,7 +897,7 @@ Jev is off by default. `enabled=true` permits filtering only for tools in `scope
 
 ### Task registration
 
-`initial_instructions({})`, `find` and root `overview` require no task registration, regardless of Jev settings. `initial_instructions` takes no arguments and preserves the current registration.
+`initial_instructions({})`, `find` and root `overview` require no task registration, regardless of Jev settings. `initial_instructions` takes no arguments; it ignores any that older clients still send and preserves the current registration.
 
 Before using an enabled Jev filter, the main agent derives focused yes/no questions from the user's task and registers them once through `register_task`. Registration is unnecessary while Jev is disabled. The tool remains available across configuration reloads, and a pre-registered task can be used after enabling a filter. A valid registration requires `task_query` and `questions`; text-only registration returns an error result (`isError: true`). Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. Clients that previously registered through `initial_instructions` must switch to `register_task`. The following object is the input to `register_task`:
 
