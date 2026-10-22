@@ -96,7 +96,7 @@ MCP 초기화 시 또는 설정 변경을 다시 읽은 뒤 다음 요청에서 
 | 도구 | 용도 | 주요 인자 |
 |---|---|---|
 | `initial_instructions` | 등록한 작업을 바꾸지 않고 탐색 안내 반환 | 없음; `{}`로 호출 |
-| `register_task` | 켜진 Jev 필터를 쓰기 전에 작업 등록 | `task_query`, `questions`(필수), `match` |
+| `register_task` | 켜진 Jev 필터를 쓰기 전에 작업 등록. Jev가 켜졌을 때만 목록에 나옴 | `task_query`, `questions`(필수), `match` |
 | `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |

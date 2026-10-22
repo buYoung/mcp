@@ -215,7 +215,7 @@ fn require_task<'a>(
     task: Option<&'a crate::tools::task::RegisteredTask>,
     tool: &str,
 ) -> Result<&'a crate::tools::task::RegisteredTask, (i64, String)> {
-    task.ok_or_else(|| (-32602, format!("Jev {tool} requires task_query and questions registered through register_task. Register the user's complete task and focused yes/no criteria, then retry.")))
+    task.ok_or_else(|| (-32602, format!("Jev {tool} requires task_query and questions registered through register_task. Register the user's complete task and focused yes/no criteria, then retry. If register_task is missing from the tool list, the list was loaded before Jev was enabled; reconnect the MCP client to load it.")))
 }
 
 /// Root maps remain local and usable before task registration. Non-root views use

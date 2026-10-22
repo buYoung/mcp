@@ -94,7 +94,7 @@ Synchronization runs on MCP initialization, or the next request after a reloaded
 | Tool | Use | Main arguments |
 |---|---|---|
 | `initial_instructions` | Load navigation guidance without changing the registered task | None; call with `{}` |
-| `register_task` | Register the task before using an enabled Jev filter | `task_query`, `questions` (required), `match` |
+| `register_task` | Register the task before using an enabled Jev filter; listed only while Jev is enabled | `task_query`, `questions` (required), `match` |
 | `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format` |
 | `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |

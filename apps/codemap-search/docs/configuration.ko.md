@@ -900,7 +900,7 @@ Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는
 
 `initial_instructions({})`·`find`·루트 `overview`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않습니다. 이전 클라이언트가 인자를 보내도 무시하고 기존 등록을 유지합니다.
 
-주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않습니다. 설정을 다시 불러와도 도구는 계속 제공하며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
+주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않으므로, `tools/list`는 `enabled`가 true이고 `scope`가 비어 있지 않을 때만 `register_task`를 보여 줍니다. 설정을 다시 불러와 Jev를 켜기 전에 도구 목록을 받은 클라이언트는 다시 연결해야 이 도구가 보입니다. 서버는 등록 호출을 계속 받으며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
 
 ```json
 {

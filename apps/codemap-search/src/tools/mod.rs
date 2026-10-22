@@ -519,16 +519,20 @@ pub fn list_tools() -> Value {
                     }
                 ]
     });
-    // Clients may cache the tool list; configuration reloads must not hide registration.
-    result["tools"].as_array_mut().unwrap().insert(
-        1,
-        serde_json::json!({
-            "name": "register_task",
-            "description": include_str!("instructions/tools/register_task.md").trim_end(),
-            "annotations": { "readOnlyHint": true, "openWorldHint": false },
-            "inputSchema": task::schema()
-        }),
-    );
+    // Registration only feeds enabled Jev filters, so it is listed only then. A client that
+    // cached this list before a configuration reload enabled Jev must reconnect to see it;
+    // registration calls stay accepted either way.
+    if jev.is_any_enabled() {
+        result["tools"].as_array_mut().unwrap().insert(
+            1,
+            serde_json::json!({
+                "name": "register_task",
+                "description": include_str!("instructions/tools/register_task.md").trim_end(),
+                "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                "inputSchema": task::schema()
+            }),
+        );
+    }
     result["tools"]
         .as_array_mut()
         .unwrap()
