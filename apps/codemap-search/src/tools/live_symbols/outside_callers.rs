@@ -21,6 +21,8 @@ const TRAILER_BYTE_CAP: usize = 1536;
 const TRAILER_TIME_BUDGET: Duration = Duration::from_millis(250);
 const PARTIAL_LINE: &str =
     "\n- caller lookup stopped at its time limit; more outside callers may exist (view=relations)";
+const TIME_LIMIT_REASON: &str =
+    "the lookup reached its time limit before finding any; more may exist (view=relations)";
 pub(crate) const HEADER: &str = "[Callers from outside this window (static analysis, approximate)]";
 
 /// The trailer for a read window, within `byte_cap` bytes and never above [`TRAILER_BYTE_CAP`].
@@ -41,14 +43,21 @@ pub(super) fn trailer(
         return None;
     };
     let (start, end) = anchor.start_line.zip(anchor.end_line)?;
-    if engine.is_warming() || engine.is_dead() || engine.last_error().is_some() {
-        return None;
-    }
     let root = std::env::current_dir().ok()?;
     let path = anchor.file_path.as_str();
+    let source_path = root.join(path);
+    // Files the index never parses for declarations have no callers to report.
+    if crate::lang::spec_for_path(&source_path).is_none()
+        || !crate::workspace::walk_root_is_visible(&source_path, true)
+    {
+        return None;
+    }
+    if let Some(reason) = index_state_reason(engine) {
+        return Some(unavailable_line(reason));
+    }
     let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
     if filter.is_file_excluded(path)
-        || crate::workspace::source_encoding_exclusion(&root.join(path)).is_some()
+        || crate::workspace::source_encoding_exclusion(&source_path).is_some()
     {
         return None;
     }
@@ -56,15 +65,17 @@ pub(super) fn trailer(
     let source_files = snapshot.codemap();
     let indexed = source_files.iter().find(|file| file.file_path == path);
     // Stale or unindexed files would attribute callers to the wrong lines.
-    if super::diagnostics::unavailable(indexed, anchor, &root, snapshot.flows().digest(path))
-        .is_some()
+    if let Some(reason) =
+        super::diagnostics::unavailable_reason(indexed, &source_path, snapshot.flows().digest(path))
     {
-        return None;
+        return Some(unavailable_line(&reason));
     }
     let filtered = filter.filter_snapshot(&source_files, |file| file.file_path == path);
     let file = filtered.iter().find(|file| file.file_path == path)?;
     if file.macro_expansion().is_some() {
-        return None;
+        return Some(unavailable_line(
+            "not supported for files indexed with macro expansion",
+        ));
     }
     let functions: Vec<_> = file
         .symbols
@@ -101,6 +112,25 @@ pub(super) fn trailer(
     trailer_text(path, (start, end), &functions, &annotations, byte_cap)
 }
 
+/// Said in place of a trailer when callers cannot be looked up, so a missing trailer is never
+/// taken to mean that no outside caller exists. Its prefix differs from [`HEADER`], which only
+/// starts an actual caller list.
+fn unavailable_line(reason: &str) -> String {
+    format!("[Outside callers unavailable: {reason}.]")
+}
+
+fn index_state_reason(engine: &EngineSupervisor) -> Option<&'static str> {
+    if engine.is_warming() {
+        Some("the index is warming up; retry shortly")
+    } else if engine.is_dead() {
+        Some("the indexer is not running")
+    } else if engine.last_error().is_some() {
+        Some("the last background index refresh failed; retry after it succeeds")
+    } else {
+        None
+    }
+}
+
 /// Callers of the requested functions, looked up until [`TRAILER_TIME_BUDGET`] after `started`.
 fn lookup_callers(
     requests: &[AnnotationRequest<'_>],
@@ -124,7 +154,8 @@ fn lookup_callers(
 }
 
 /// The trailer for `functions` of `path` overlapping lines `start..=end`, within `byte_cap`;
-/// `None` when none of them is called from outside those lines.
+/// `None` when none of them is called from outside those lines, and a notice instead when the
+/// lookup stopped at its time limit before finding any.
 fn trailer_text(
     path: &str,
     (start, end): (usize, usize),
@@ -190,7 +221,9 @@ fn trailer_text(
         text.push_str(&line);
     }
     if text.len() == HEADER.len() {
-        return None;
+        // A lookup cut short before it found anyone must not read as "no outside callers".
+        return (annotations.is_partial() && omitted_functions == 0)
+            .then(|| unavailable_line(TIME_LIMIT_REASON));
     }
     if omitted_functions > 0 {
         text.push_str(&omission_line(omitted_functions));
@@ -298,11 +331,14 @@ mod tests {
         assert!(!complete.is_partial());
         assert_eq!(text_for(&complete), Some(listed.clone()));
 
-        // A lookup that started a whole budget ago stops at once, so the read window goes
-        // without a trailer.
+        // A lookup that started a whole budget ago stops at once and says so, instead of
+        // looking like a window without outside callers.
         let stopped = lookup(Instant::now() - TRAILER_TIME_BUDGET);
         assert!(stopped.is_partial());
-        assert_eq!(text_for(&stopped), None);
+        assert_eq!(
+            text_for(&stopped),
+            Some(unavailable_line(TIME_LIMIT_REASON))
+        );
 
         // Callers found before the limit stay listed, followed by the notice.
         let cut_short = lookup(Instant::now() + Duration::from_secs(3600)).stopped_at_deadline();

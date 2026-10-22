@@ -811,12 +811,20 @@ async fn test_live_callable_expansion_deduplicates_and_uses_live_boundaries() {
     .unwrap();
     let fresh = client.send_request("tools/call",call("read",serde_json::json!({"file_path":"src/lib.rs","offset":3,"expand":"callable","view":"source"}))).await.unwrap();
     let out = text(&fresh);
+    // Until the index sees the edit, the window says why it lists no outside callers.
+    let rows = match out.rsplit_once("\n[Outside callers unavailable: ") {
+        Some((rows, reason)) => {
+            assert!(reason.starts_with("source changed since indexing"), "{out}");
+            rows
+        }
+        None => out.as_str(),
+    };
     assert!(
-        out.starts_with("     2→fn fresh()") && out.ends_with("     4→}"),
+        rows.starts_with("     2→fn fresh()") && rows.ends_with("     4→}"),
         "{out}"
     );
     assert!(
-        !out.contains("inserted") && !out.contains("fn next"),
+        !rows.contains("inserted") && !rows.contains("fn next"),
         "{out}"
     );
 }

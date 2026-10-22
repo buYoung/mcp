@@ -11,7 +11,7 @@
 //! search path and satisfies tantivy's single-writer rule for free; no extra dependency
 //! (e.g. crossbeam) earns its keep for one producer / one consumer at this message rate.
 
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::mpsc::{sync_channel, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
@@ -24,6 +24,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 /// key. The stable `(path, range)` record order makes truncation deterministic.
 const STATIC_COLLECTION_RECORDS_PER_KEY_AND_KIND_MAX: usize = 64;
 const INDEXER_RETRY_DELAY_MS: u64 = 1_000;
+/// Ceiling of the doubling retry delay while passes keep failing.
+const INDEXER_MAX_RETRY_DELAY_MS: u64 = 30_000;
 static NEXT_PUBLICATION_ID: AtomicU64 = AtomicU64::new(1);
 
 /// A bounded latest-generation feed; subscribing does not request an index refresh.
@@ -72,6 +74,9 @@ pub struct IndexerStatus {
     /// Last background refresh error, if any, so a failing refresh surfaces as a note
     /// instead of silently serving stale results.
     pub last_error: Mutex<Option<String>>,
+    /// Failed passes in a row, apart from waiting for another process's writer. Drives the
+    /// retry backoff and one warning per failure streak.
+    pub consecutive_failures: AtomicUsize,
     /// Set once the indexer thread is gone (panicked or exited): the receiver is dropped, so
     /// `trigger_refresh` observes `Disconnected`. Results then stay frozen at the last
     /// commit, so responses warn instead of implying freshness.
@@ -514,9 +519,7 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
             loop {
                 let should_retry = pending.is_some();
                 let command = if let Some(pending_command) = pending.take() {
-                    let command = match receiver
-                        .recv_timeout(std::time::Duration::from_millis(INDEXER_RETRY_DELAY_MS))
-                    {
+                    let command = match receiver.recv_timeout(retry_delay(&thread_status)) {
                         Ok(command) => pending_command.merge(command),
                         Err(RecvTimeoutError::Timeout) => pending_command,
                         Err(RecvTimeoutError::Disconnected) => break,
@@ -647,19 +650,39 @@ fn publish_pass_result(
     match publication {
         Ok(()) => {
             *last_error = None;
+            let failures = status.consecutive_failures.swap(0, Ordering::Relaxed);
+            if failures > 0 {
+                tracing::info!(failures, "background index refresh recovered");
+            }
             status.initial_index_done.store(true, Ordering::Release);
             true
         }
         Err(error) => {
-            if last_error.as_ref() != Some(&error) {
-                if engine.is_waiting_for_writer {
+            if engine.is_waiting_for_writer {
+                if last_error.as_ref() != Some(&error) {
                     tracing::debug!("background index refresh waiting for writer: {}", error);
-                } else {
-                    tracing::warn!("background index refresh failed: {}", error);
                 }
+            } else if status.consecutive_failures.fetch_add(1, Ordering::Relaxed) == 0 {
+                // Messages often name a fresh temporary file, so one warning per failure
+                // streak instead of one per distinct message; retries log at debug level.
+                tracing::warn!("background index refresh failed: {}", error);
+            } else {
+                tracing::debug!("background index refresh still failing: {}", error);
             }
             *last_error = Some(error);
             false
         }
     }
+}
+
+/// Wait before retrying a failed pass: the base delay while another process holds the writer,
+/// doubling per consecutive failure up to [`INDEXER_MAX_RETRY_DELAY_MS`] otherwise. A new
+/// change event still wakes the loop at once.
+fn retry_delay(status: &IndexerStatus) -> std::time::Duration {
+    let failures = status
+        .consecutive_failures
+        .load(Ordering::Relaxed)
+        .clamp(1, 16) as u32;
+    let delay = INDEXER_RETRY_DELAY_MS.saturating_mul(1 << (failures - 1));
+    std::time::Duration::from_millis(delay.min(INDEXER_MAX_RETRY_DELAY_MS))
 }

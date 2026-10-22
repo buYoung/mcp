@@ -491,6 +491,16 @@ impl TantivySearchEngine {
         })
     }
 
+    /// A fresh handle for one write pass. Tantivy reads `.managed.json` once per opened index
+    /// and rewrites the whole file from that copy. Processes sharing this directory take turns
+    /// as the writer, so writing through the handle opened at startup dropped the files
+    /// other processes had registered since, and garbage collection never removed them.
+    fn open_for_write(&self) -> Result<Index, String> {
+        let directory = tantivy::directory::MmapDirectory::open(&self.index_path)
+            .map_err(|error| error.to_string())?;
+        Index::open(directory).map_err(|error| error.to_string())
+    }
+
     fn get_indexed_mtimes(&self) -> Result<HashMap<String, u64>, String> {
         // A competing writer may have committed since this process last published.
         // Read its mtimes without advancing the request reader ahead of the codemap.
@@ -816,17 +826,29 @@ impl TantivySearchEngine {
         let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let mut macro_expander =
             super::MacroExpander::new(&root, crate::config::get().macro_expansion.clone());
-        let mut writer = match self.index.writer(50_000_000) {
-            Ok(w) => w,
-            Err(tantivy::TantivyError::LockFailure(e, _)) => {
-                self.indexed_mtimes_cache = None;
-                self.is_waiting_for_writer =
-                    matches!(e, tantivy::directory::error::LockError::LockBusy);
-                return Err(format!(
-                    "Index writer lock unavailable; refresh deferred for retry: {e:?}"
-                ));
+        let managed_path = Path::new(&self.index_path).join(".managed.json");
+        let mut attempts = 0;
+        let (write_index, mut writer) = loop {
+            attempts += 1;
+            let managed_before = std::fs::read(&managed_path).ok();
+            let write_index = self.open_for_write()?;
+            let writer = match write_index.writer(50_000_000) {
+                Ok(w) => w,
+                Err(tantivy::TantivyError::LockFailure(e, _)) => {
+                    self.indexed_mtimes_cache = None;
+                    self.is_waiting_for_writer =
+                        matches!(e, tantivy::directory::error::LockError::LockBusy);
+                    return Err(format!(
+                        "Index writer lock unavailable; refresh deferred for retry: {e:?}"
+                    ));
+                }
+                Err(e) => return Err(e.to_string()),
+            };
+            // Another writer may have registered files after the list was read and before the
+            // lock was taken. With the lock held the list stays put, so one more open settles it.
+            if attempts == 3 || std::fs::read(&managed_path).ok() == managed_before {
+                break (write_index, writer);
             }
-            Err(e) => return Err(e.to_string()),
         };
 
         for rel_path in &to_delete {
@@ -976,6 +998,8 @@ impl TantivySearchEngine {
         }
 
         writer.commit().map_err(|e| e.to_string())?;
+        // Still the writer, so no other process is creating segment files.
+        super::segment_files::remove_orphans(&write_index, Path::new(&self.index_path));
         if should_reload_reader {
             self.reader.reload().map_err(|error| error.to_string())?;
         }

@@ -12,6 +12,7 @@ mod path_role;
 mod preprocess;
 pub use preprocess::MacroExpander;
 mod ranking;
+mod segment_files;
 mod supervisor;
 mod watcher;
 
