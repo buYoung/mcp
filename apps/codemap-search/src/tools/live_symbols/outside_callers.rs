@@ -85,16 +85,32 @@ pub(super) fn trailer(
     if functions.is_empty() {
         return None;
     }
-    let requests: Vec<_> = functions
+    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root)
+        .with_implementations(snapshot.implementations());
+    // Calls reach a C/C++ prototype's definition, so its callers are those of the definition.
+    let targets: Vec<Target<'_>> = functions
         .iter()
-        .map(|symbol| AnnotationRequest {
-            file_path: path,
-            symbols: std::slice::from_ref(*symbol),
+        .map(|symbol| {
+            let (target_path, target) = resolver
+                .prototype_definition(path, symbol)
+                .map_or((path, *symbol), |(file, definition)| {
+                    (file.file_path.as_str(), definition)
+                });
+            Target {
+                symbol,
+                path: target_path,
+                target,
+            }
+        })
+        .collect();
+    let requests: Vec<_> = targets
+        .iter()
+        .map(|target| AnnotationRequest {
+            file_path: target.path,
+            symbols: std::slice::from_ref(target.target),
             is_fallback: false,
         })
         .collect();
-    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root)
-        .with_implementations(snapshot.implementations());
     let indexed_mtime = |path: &str| snapshot.source_mtime(path);
     let annotations = lookup_callers(
         &requests,
@@ -104,7 +120,15 @@ pub(super) fn trailer(
         &indexed_mtime,
         started,
     )?;
-    trailer_text(path, (start, end), &functions, &annotations, byte_cap)
+    trailer_text(path, (start, end), &targets, &annotations, byte_cap)
+}
+
+/// A function in the window and the symbol whose callers are listed for it: itself, or the
+/// definition of a prototype.
+struct Target<'a> {
+    symbol: &'a ExtractedSymbol,
+    path: &'a str,
+    target: &'a ExtractedSymbol,
 }
 
 /// Said in place of a trailer when callers cannot be looked up, so a missing trailer is never
@@ -156,7 +180,7 @@ fn lookup_callers(
 fn trailer_text(
     path: &str,
     (start, end): (usize, usize),
-    functions: &[&ExtractedSymbol],
+    functions: &[Target<'_>],
     annotations: &DetailAnnotations,
     byte_cap: usize,
 ) -> Option<String> {
@@ -171,10 +195,13 @@ fn trailer_text(
     let is_outside = |site: &&CallerSite| site.path != path || site.line < start || end < site.line;
     let mut text = String::from(HEADER);
     let mut omitted_functions = 0;
-    for symbol in functions {
-        let Some((callers, unconfirmed)) =
-            annotations.caller_sites(path, symbol.range.start_line, symbol.range.start_col)
-        else {
+    for function in functions {
+        let symbol = function.symbol;
+        let Some((callers, unconfirmed)) = annotations.caller_sites(
+            function.path,
+            function.target.range.start_line,
+            function.target.range.start_col,
+        ) else {
             continue;
         };
         let mut sites: Vec<_> = callers
@@ -200,8 +227,18 @@ fn trailer_text(
             .map(|group| label(group, path))
             .collect();
         let name = symbol.name.split_whitespace().collect::<Vec<_>>().join(" ");
+        let definition = if std::ptr::eq(function.target, symbol) {
+            String::new()
+        } else if function.path == path {
+            format!(", defined at L{}", function.target.range.start_line)
+        } else {
+            format!(
+                ", defined at {}:{}",
+                function.path, function.target.range.start_line
+            )
+        };
         let mut line = format!(
-            "\n- {name} L{}: {}",
+            "\n- {name} L{}{definition}: {}",
             symbol.range.start_line,
             shown.join(", ")
         );
@@ -318,8 +355,16 @@ mod tests {
             )
             .unwrap()
         };
+        let targets: Vec<_> = functions
+            .iter()
+            .map(|symbol| Target {
+                symbol,
+                path,
+                target: symbol,
+            })
+            .collect();
         let text_for = |annotations: &DetailAnnotations| {
-            trailer_text(path, (1, 1), &functions, annotations, TRAILER_BYTE_CAP)
+            trailer_text(path, (1, 1), &targets, annotations, TRAILER_BYTE_CAP)
         };
         let listed = format!("{HEADER}\n- target L1: caller (L3)");
 
@@ -346,7 +391,7 @@ mod tests {
         // The notice never pushes a trailer past its byte cap: without room for it, the function
         // line gives way.
         let cap = listed.len() + omission_line(FUNCTION_LOOKUP_LIMIT).len();
-        let capped = |annotations| trailer_text(path, (1, 1), &functions, annotations, cap);
+        let capped = |annotations| trailer_text(path, (1, 1), &targets, annotations, cap);
         assert_eq!(capped(&complete), Some(listed));
         assert_eq!(capped(&cut_short), None);
     }
