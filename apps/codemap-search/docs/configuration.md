@@ -244,7 +244,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.search].literal_limit` | integer | `60` | Max matched literals rendered per file in `search` detail view |
 | `[output.search].anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[output.read].max_bytes` | integer bytes or size string | `"5mb"` (`5242880`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
-| `[output.read].is_outside_callers_enabled` | bool | `true` | Let `read view=source` end with callers from outside the window for the functions it shows, and with other places using the same keys; `false` omits both lists |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | Let `read view=source` end with callers from outside the window for the functions it shows, with other places using the same keys, and with how failures are handled: what the window throws and, at those callers, the enclosing `catch`/`except`/`rescue` clauses, Rust `?`/`unwrap`/`expect` and Go `err` checks; `false` omits all three lists |
 | `[output.grep].max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
 | `[output.grep].max_bytes` | integer bytes or size string | common budget | Grep response ceiling; expanded bodies can also fall back to read |
 | `[output.context].is_enabled` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |

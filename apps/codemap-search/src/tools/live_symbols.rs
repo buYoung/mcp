@@ -2,6 +2,7 @@
 pub(crate) mod callable;
 mod context;
 mod diagnostics;
+mod failure_handling;
 pub(crate) mod jev;
 mod locations;
 mod outside_callers;
@@ -267,6 +268,27 @@ fn frame(
 /// Source rows stay byte-for-byte compatible; a read window may end with its outside callers.
 /// Rich views reserve every returned source row and file heading before sharing one bounded
 /// context budget across files.
+/// The failure trailer of a single-window source read.
+fn failure_trailer(
+    output: &LiveOutput,
+    callers: &[failure_handling::FunctionCallers],
+    byte_cap: usize,
+) -> Option<String> {
+    if !output.should_list_outside_callers {
+        return None;
+    }
+    let [anchor] = output.anchors.as_slice() else {
+        return None;
+    };
+    let window = anchor.start_line.zip(anchor.end_line)?;
+    let root = std::env::current_dir().ok()?;
+    let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
+    if filter.is_file_excluded(&anchor.file_path) {
+        return None;
+    }
+    failure_handling::trailer(&root, &anchor.file_path, window, callers, byte_cap)
+}
+
 fn render(
     engine: &EngineSupervisor,
     output: LiveOutput,
@@ -295,12 +317,18 @@ fn render(
         }
         // The trailer is auxiliary: it only uses the room left under the cap.
         let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
-        if let Some(trailer) = outside_callers::trailer(engine, &output, room) {
+        let mut callers = Vec::new();
+        if let Some(trailer) = outside_callers::trailer(engine, &output, room, &mut callers) {
             text.push('\n');
             text.push_str(&trailer);
         }
         let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
         if let Some(trailer) = shared_keys::trailer(engine, &output, room) {
+            text.push('\n');
+            text.push_str(&trailer);
+        }
+        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
+        if let Some(trailer) = failure_trailer(&output, &callers, room) {
             text.push('\n');
             text.push_str(&trailer);
         }
