@@ -55,13 +55,17 @@ impl MacroExpander {
                 auxiliary = Some(expanded_auxiliary);
                 info
             }
-            // Nothing was expanded, so the original-source extraction stays whole.
+            // Nothing was expanded, so the original-source extraction stays whole. The file
+            // and its build settings are recorded so a change to either retries it.
             Err(error) => MacroExpansionInfo {
                 notice: format!(
                     "Macro expansion unresolved: {error}. Declarations, calls and constant references come from the original source."
                 ),
                 symbols: Vec::new(),
-                inputs: vec![input_stamp(&path)],
+                inputs: std::iter::once(path.clone())
+                    .chain(command::settings_inputs(&self.root, &path, &self.config))
+                    .map(|input| input_stamp(&input))
+                    .collect(),
                 active_lines: None,
             },
         };
@@ -224,6 +228,24 @@ impl MacroExpander {
 
 pub(super) fn is_eligible(path: &Path) -> bool {
     Dialect::for_path(path).is_some()
+}
+
+/// Whether a native file is a header, which other files include rather than compile.
+pub(super) fn is_header(path: &Path) -> bool {
+    is_eligible(path)
+        && matches!(
+            path.extension().and_then(|extension| extension.to_str()),
+            Some("h" | "hh" | "hpp" | "hxx")
+        )
+}
+
+/// Whether a changed path can alter how native files expand: a native source or header,
+/// or a compilation database or flags file.
+pub(super) fn is_native_input(path: &Path) -> bool {
+    is_eligible(path)
+        || path
+            .file_name()
+            .is_some_and(|name| name == "compile_commands.json" || name == "compile_flags.txt")
 }
 
 pub(crate) fn input_stamp(path: &Path) -> MacroInputStamp {
