@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-23
+
+### Added
+
+- Added up to three workspace path suggestions when `read`, `grep`, or `find` targets a missing path.
+- Added cross-file matches for string keys and uppercase constants used as call arguments in `read view=source`; indexes rebuild once.
+- Added `auto`/`on`/`off` indexing modes; `auto` starts on demand and skips non-repository folders or workspaces over a configurable file-count limit.
+
+### Improved
+
+- Linked C/C++ header declarations to unique definitions and their callers, including calls through indirect includes.
+- Resolved C++ member calls through `this`, typed variables, and class names, excluding overloads and inheritance.
+- Limited C/C++ macro reprocessing to files whose inputs changed.
+- Reduced analysis time during initial indexing of large repositories.
+- Explained omitted caller summaries with index status, file status, or timeout details.
+- Reduced repeated warnings and backed off failed background index updates to retry at intervals of up to 30 seconds.
+
+### Fixed
+
+- Fixed `initial_instructions` errors from older clients by ignoring legacy arguments.
+- Fixed obsolete index files accumulating on disk after updates.
+- Fixed missing caller summaries and false stale-result warnings while another process writes to the shared index.
+- Restored caller information in C/C++ files with macro expansion enabled.
+- Fixed unnecessary index updates from ignored file changes, while preserving updates needed for C/C++ macro expansion.
+- Fixed nested repositories losing indexed files because of a parent repository's ignore rules.
+- Fixed outdated generated config comments during upgrades while preserving their language and existing settings.
+- Fixed search errors for queries such as `symbol:*` by falling back to plain-term search.
+
+### Changed
+
+- Changed default `read`, `grep`, and `find` access from `workspace` to `anywhere`, leaving existing settings unchanged.
+- Hid `register_task` from the tool list when all Jev filters are disabled; direct calls still work.
+
 ## [0.12.0] - 2026-10-21
 
 ### Added
