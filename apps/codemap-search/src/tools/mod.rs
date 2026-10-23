@@ -12,6 +12,7 @@ pub mod grep;
 pub(crate) mod live_options;
 pub(crate) mod live_symbols;
 pub mod overview;
+pub(crate) mod path_suggestions;
 pub mod read;
 pub mod search;
 pub(crate) mod synonyms;

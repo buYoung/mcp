@@ -183,9 +183,17 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
     };
 
     if !base.is_dir() {
+        let suggestions = if base.exists() {
+            String::new()
+        } else {
+            super::path_suggestions::note(&base)
+        };
         return Err((
             -32602,
-            format!("Search path is not a directory: {}", base.display()),
+            format!(
+                "Search path is not a directory: {}{suggestions}",
+                base.display()
+            ),
         ));
     }
 
