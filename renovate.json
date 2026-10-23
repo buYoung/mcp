@@ -8,6 +8,12 @@
             "description": "Group minor and patch updates into one PR per package manager",
             "matchUpdateTypes": ["minor", "patch"],
             "groupName": "{{manager}} non-major dependencies"
+        },
+        {
+            "description": "Keep find-msvc-tools pinned: cc 1.2.x on Windows expects the u32 FILE_ATTRIBUTE_TEMPORARY that 0.1.13 changed to i32 (see apps/codemap-search/Cargo.toml)",
+            "matchManagers": ["cargo"],
+            "matchPackageNames": ["find-msvc-tools"],
+            "enabled": false
         }
     ]
 }
