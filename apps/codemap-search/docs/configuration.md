@@ -113,7 +113,7 @@ Schema 30 adds the optional `[related_terms]` section as comments without changi
 
 Schema 31 adds `[output.read].is_outside_callers_enabled` as a commented example without changing existing values. `read view=source` keeps ending with callers from outside the window unless the key is set to `false`.
 
-Schema 32 adds `[index].mode` and `[index].auto_max_files` as commented examples. Unset, they follow the `auto` rules in [When indexing starts](#when-indexing-starts), including in existing repositories.
+Schema 32 adds `[index].mode` and `[index].auto_max_files` as commented examples. Unset, they follow the `auto` rules in [When indexing starts](#when-indexing-starts), including in existing repositories. This sync also replaces retired generated comments in files from schema 29 onward, such as the old hint to register a task through `initial_instructions`; values and user notes stay unchanged.
 
 The current **repository** configuration schema is **32**. This version controls repo templates and migrations only; global config is never stamped or migrated automatically. The marker is a comment:
 

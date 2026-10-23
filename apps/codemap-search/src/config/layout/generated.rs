@@ -1,6 +1,9 @@
 //! Refresh only recognized generated prose; retain user notes, assignments and string contents.
 
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
+
+use crate::config_locale::ConfigCommentLanguage;
 
 use super::super::{
     config_template, config_value_ranges, CONFIG_TEMPLATE, CONFIG_TEMPLATE_KO, MIGRATIONS,
@@ -64,8 +67,25 @@ fn setting_descriptions(template: &str) -> BTreeMap<(&str, &str), String> {
     descriptions
 }
 
+/// The language of a file's generated comments, so a sync keeps it. The OS locale decides only
+/// when neither template's prose dominates, for example in a hand-written file.
+pub(in crate::config) fn comment_language(contents: &str) -> ConfigCommentLanguage {
+    let english: BTreeSet<&str> = prose_lines(CONFIG_TEMPLATE).collect();
+    let korean: BTreeSet<&str> = prose_lines(CONFIG_TEMPLATE_KO).collect();
+    let (mut english_lines, mut korean_lines) = (0usize, 0usize);
+    for line in prose_lines(contents) {
+        english_lines += usize::from(english.contains(line));
+        korean_lines += usize::from(korean.contains(line));
+    }
+    match english_lines.cmp(&korean_lines) {
+        Ordering::Greater => ConfigCommentLanguage::English,
+        Ordering::Less => ConfigCommentLanguage::Korean,
+        Ordering::Equal => crate::config_locale::config_comment_language(),
+    }
+}
+
 pub(super) fn refresh(contents: &str) -> String {
-    let template = config_template(crate::config_locale::config_comment_language());
+    let template = config_template(comment_language(contents));
     let descriptions = setting_descriptions(template);
     let mut generated: BTreeSet<&str> = [CONFIG_TEMPLATE, CONFIG_TEMPLATE_KO, LEGACY_COMMENTS]
         .into_iter()

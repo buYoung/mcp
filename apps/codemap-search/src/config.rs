@@ -18,7 +18,8 @@
 //! retaining configured values and inheritance; for every key introduced since the file's
 //! stamped version it appends that key's commented block (presence-guarded so an existing
 //! key — set or commented — is never duplicated) and re-stamps the version marker. The sync
-//! normally adds commented keys. The one-time v6 transition also materializes directory
+//! normally adds commented keys and replaces retired generated comments with the current ones;
+//! user notes and values are kept. The one-time v6 transition also materializes directory
 //! exclusions; from v6 onward that array is never automatically changed. Sync never
 //! rewrites a file already at the current version, never touches any git file, and
 //! warns rather than crashing on failure. Keeping `.codemap/` out of `git status` is the
@@ -1926,7 +1927,7 @@ fn migrate_existing(path: &Path, existing: &str) {
         file_version,
         CONFIG_VERSION,
         MIGRATIONS,
-        config_comment_language(),
+        layout::comment_language(&existing),
     ) else {
         return; // already current — never touch the user's file
     };
@@ -1961,6 +1962,18 @@ fn migrate_existing(path: &Path, existing: &str) {
             Err(error) => {
                 warn(&format!(
                     "config Jev migration skipped for {}: {error}",
+                    path.display()
+                ));
+                return;
+            }
+        };
+    } else {
+        // Both v29 passes above already refresh generated prose.
+        updated = match layout::refresh_comments(&updated, path) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!(
+                    "config comment refresh skipped for {}: {error}",
                     path.display()
                 ));
                 return;
