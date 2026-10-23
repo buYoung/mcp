@@ -26,13 +26,11 @@ const TIME_LIMIT_REASON: &str =
 pub(crate) const HEADER: &str = "[Callers from outside this window (static analysis, approximate)]";
 
 /// The trailer for a read window, within `byte_cap` bytes and never above [`TRAILER_BYTE_CAP`].
-/// Nothing is looked up when the space cannot hold a header and one function line. The
-/// confirmed outside call sites found per function are added to `found`.
+/// Nothing is looked up when the space cannot hold a header and one function line.
 pub(super) fn trailer(
     engine: &EngineSupervisor,
     output: &LiveOutput,
     byte_cap: usize,
-    found: &mut Vec<super::failure_handling::FunctionCallers>,
 ) -> Option<String> {
     let started = Instant::now();
     let byte_cap = byte_cap.min(TRAILER_BYTE_CAP);
@@ -122,27 +120,6 @@ pub(super) fn trailer(
         &indexed_mtime,
         started,
     )?;
-    for function in &targets {
-        let Some((callers, _)) = annotations.caller_sites(
-            function.path,
-            function.target.range.start_line,
-            function.target.range.start_col,
-        ) else {
-            continue;
-        };
-        let sites: Vec<_> = callers
-            .iter()
-            .filter(|site| site.path != path || site.line < start || end < site.line)
-            .cloned()
-            .collect();
-        if !sites.is_empty() {
-            found.push(super::failure_handling::FunctionCallers {
-                name: function.symbol.name.clone(),
-                line: function.symbol.range.start_line,
-                sites,
-            });
-        }
-    }
     trailer_text(path, (start, end), &targets, &annotations, byte_cap)
 }
 
