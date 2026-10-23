@@ -480,7 +480,7 @@ powershell = ["Describe", "Context", "It"]
 
 ### Index freshness
 
-With `watch = true`, file changes refresh the index in the background. `index.refresh.watch_debounce_ms` combines nearby changes into one refresh. When file watching is off or unavailable, `search`/`overview` request background refreshes at intervals controlled by `index.refresh.index_staleness_ms` and return the last available results immediately.
+With `watch = true`, file changes refresh the index in the background. `index.refresh.watch_debounce_ms` combines nearby changes into one refresh. Changes in paths hidden by `.gitignore`, `.ignore` or `.codemapignore` are dropped like excluded directories, and a change to one of those files triggers a full walk. When file watching is off or unavailable, `search`/`overview` request background refreshes at intervals controlled by `index.refresh.index_staleness_ms` and return the last available results immediately.
 
 With `indexer_auto_restart = true`, the next `search`/`overview` attempts recovery if background indexing stops. Recovery attempts are capped per server run. With it disabled, results remain frozen until restart. Live `read`/`find`/`grep` remains available in either case.
 

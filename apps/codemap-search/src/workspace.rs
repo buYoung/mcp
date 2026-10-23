@@ -14,6 +14,8 @@
 
 pub(crate) mod exclusions;
 
+use std::collections::{HashMap, HashSet};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -454,6 +456,42 @@ pub(crate) fn walk_root_is_visible(root: &Path, respect: bool) -> bool {
         current = next;
     }
     true
+}
+
+/// Whether event paths are hidden by the ignore rules of the index walk, with directory
+/// listings kept for one batch of filesystem events.
+#[derive(Default)]
+pub(crate) struct IgnoreProbe {
+    /// Visible entry names per directory; `None` when the directory itself is hidden.
+    directories: HashMap<PathBuf, Option<HashSet<OsString>>>,
+}
+
+impl IgnoreProbe {
+    /// True for an existing path that ignore files or excluded directories hide. A missing
+    /// path is never hidden, so a deletion still reaches the index.
+    pub(crate) fn is_ignored(&mut self, path: &Path) -> bool {
+        let (Some(parent), Some(name)) = (path.parent(), path.file_name()) else {
+            return false;
+        };
+        if !path.exists() {
+            return false;
+        }
+        self.directories
+            .entry(parent.to_path_buf())
+            .or_insert_with(|| {
+                walk_root_is_visible(parent, true).then(|| {
+                    build_base_walker(parent, true)
+                        .max_depth(Some(1))
+                        .build()
+                        .filter_map(Result::ok)
+                        .filter(|entry| entry.depth() == 1)
+                        .map(|entry| entry.file_name().to_owned())
+                        .collect()
+                })
+            })
+            .as_ref()
+            .is_none_or(|names| !names.contains(name))
+    }
 }
 
 /// Build an `ignore::WalkBuilder` rooted at `root`. By default it respects

@@ -220,6 +220,23 @@ fn run_debounce_loop(
             }
         }
 
+        // Ignore files decide what the walk indexes, so a change to one reconciles fully.
+        // Other paths hidden by ignore rules are dropped like excluded directories, except
+        // native inputs while macro expansion is on: an ignored generated header or
+        // compilation database still changes how the indexed files expand.
+        if !batch.needs_full_walk {
+            if batch.paths.iter().any(|path| is_ignore_file(path)) {
+                batch.needs_full_walk = true;
+            } else {
+                let is_expanding = crate::config::get().macro_expansion.is_enabled;
+                let mut probe = crate::workspace::IgnoreProbe::default();
+                batch.paths.retain(|path| {
+                    (is_expanding && super::preprocess::is_native_input(path))
+                        || !probe.is_ignored(path)
+                });
+            }
+        }
+
         let command = if batch.needs_full_walk {
             IndexCommand::Refresh
         } else if !batch.paths.is_empty() {
@@ -325,6 +342,14 @@ fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
         directory = parent.parent();
     }
     EventPathKind::Candidate
+}
+
+fn is_ignore_file(path: &Path) -> bool {
+    path.file_name().is_some_and(|name| {
+        name == ".gitignore"
+            || name == ".ignore"
+            || name == crate::workspace::CODEMAP_IGNORE_FILENAME
+    })
 }
 
 /// Current HEAD commit hash via the `git` CLI, or `None` when unavailable (not a git
