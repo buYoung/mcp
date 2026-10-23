@@ -1,6 +1,6 @@
 //! Syntax adapters supply source facts; they do not identify event APIs.
 use super::model::{Location, Value};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -676,4 +676,74 @@ pub(crate) struct Program {
     pub jvm: super::jvm::Jvm,
     pub scala: super::scala::Scala,
     pub rust_scopes: BTreeMap<usize, Vec<super::rust_names::RustScope>>,
+    pub type_index: TypeIndex,
+}
+
+/// Lookups over the declared types, built once every type is collected. Type resolution
+/// runs for most evaluated expressions, so scanning `types` there made large repositories
+/// spend nearly all of their analysis time formatting qualified names.
+#[derive(Default)]
+pub(crate) struct TypeIndex {
+    /// Owner keys of every declared type.
+    pub owners: HashSet<String>,
+    /// Owners by `{namespace}.{name}`, using the namespace of the declaring source (empty
+    /// when it has none). Sorted, so a namespace prefix can be range-scanned.
+    pub by_qualified: BTreeMap<String, BTreeSet<String>>,
+    /// Owners by (namespace, name), for declaring sources that have a namespace entry.
+    pub by_namespace_name: HashMap<(String, String), BTreeSet<String>>,
+    /// Owners by declared name.
+    pub by_name: HashMap<String, BTreeSet<String>>,
+    /// The first source index of each path.
+    pub source_indexes: HashMap<String, usize>,
+}
+
+impl TypeIndex {
+    pub fn new(program: &Program) -> Self {
+        let mut index = Self::default();
+        for ((path, name), owner) in &program.types {
+            let namespace = program.namespaces.get(path);
+            index.owners.insert(owner.clone());
+            index
+                .by_qualified
+                .entry(format!(
+                    "{}.{name}",
+                    namespace.map(String::as_str).unwrap_or_default()
+                ))
+                .or_default()
+                .insert(owner.clone());
+            if let Some(namespace) = namespace {
+                index
+                    .by_namespace_name
+                    .entry((namespace.clone(), name.clone()))
+                    .or_default()
+                    .insert(owner.clone());
+            }
+            index
+                .by_name
+                .entry(name.clone())
+                .or_default()
+                .insert(owner.clone());
+        }
+        for (position, source) in program.sources.iter().enumerate() {
+            index
+                .source_indexes
+                .entry(source.path.clone())
+                .or_insert(position);
+        }
+        index
+    }
+
+    /// Owners whose qualified name is exactly `qualified`.
+    pub fn qualified(&self, qualified: &str) -> impl Iterator<Item = &String> {
+        self.by_qualified.get(qualified).into_iter().flatten()
+    }
+
+    /// Owners whose qualified name continues `prefix` with a `.`.
+    pub fn under_prefix<'a>(&'a self, prefix: &str) -> impl Iterator<Item = &'a String> {
+        let start = format!("{prefix}.");
+        self.by_qualified
+            .range(start.clone()..)
+            .take_while(move |(qualified, _)| qualified.starts_with(&start))
+            .flat_map(|(_, owners)| owners)
+    }
 }
