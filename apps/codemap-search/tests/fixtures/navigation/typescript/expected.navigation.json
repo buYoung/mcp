@@ -156,7 +156,32 @@
             "namespace": "",
             "enclosingSymbol": "run",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "flush",
+            "range": {
+              "startLine": 8,
+              "startCol": 5,
+              "endLine": 8,
+              "endCol": 18
+            },
+            "receiver": {
+              "name": "Cache",
+              "arguments": [],
+              "range": {
+                "startLine": 8,
+                "startCol": 5,
+                "endLine": 8,
+                "endCol": 18
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "type"
           }
         ]
       }

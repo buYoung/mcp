@@ -44,8 +44,20 @@ pub(super) fn annotate(
     if requests.is_empty() {
         return None;
     }
+    crate::callers::annotate_live_results(
+        &requests,
+        snapshot,
+        &caller_config(),
+        cap,
+        root,
+        options.should_list_unresolved,
+        resolver,
+    )
+}
+
+pub(super) fn caller_config() -> CallerConfig {
     let cfg = crate::config::get();
-    let caller_cfg = CallerConfig {
+    CallerConfig {
         scan_cap: cfg.scan_cap,
         caller_list_cap: cfg.caller_list_cap,
         callee_list_cap: cfg.callee_list_cap,
@@ -56,16 +68,7 @@ pub(super) fn annotate(
         navigation_context_default: cfg.navigation_context_default,
         navigation_callsite_budget: cfg.navigation_callsite_budget,
         navigation_store_references: cfg.navigation_store_references,
-    };
-    crate::callers::annotate_live_results(
-        &requests,
-        snapshot,
-        &caller_cfg,
-        cap,
-        root,
-        options.should_list_unresolved,
-        resolver,
-    )
+    }
 }
 
 fn select_chain(
@@ -201,32 +204,23 @@ pub(super) fn render(
         for (position, &i) in callables.iter().enumerate() {
             let symbol = &outline.file.symbols[i];
             let indent = "  ".repeat(outline.chain(i).len().saturating_sub(1));
-            let detail = if outline.file.macro_expansion().is_some() {
-                "  - [Call and constant-reference attribution unresolved after preprocessing.]\n"
-                    .into()
-            } else {
-                annotations
-                    .and_then(|annotations| {
-                        annotations.render_live_relations(
-                            path,
-                            symbol.range.start_line,
-                            Some(symbol.range.start_col),
-                        )
-                    })
-                    .unwrap_or_else(|| {
-                        "  - [Caller/callee unavailable or omitted by scan/output budget.]\n".into()
-                    })
-            };
+            let detail = annotations
+                .and_then(|annotations| {
+                    annotations.render_live_relations(
+                        path,
+                        symbol.range.start_line,
+                        Some(symbol.range.start_col),
+                    )
+                })
+                .unwrap_or_else(|| {
+                    "  - [Caller/callee unavailable or omitted by scan/output budget.]\n".into()
+                });
             let detail = super::locations::calls(&detail, path);
             let mut detail = detail
                 .lines()
                 .map(|line| format!("{indent}{line}\n"))
                 .collect::<String>();
-            if let Some(rows) = outline
-                .references
-                .get(&i)
-                .filter(|_| outline.file.macro_expansion().is_none())
-            {
+            if let Some(rows) = outline.references.get(&i) {
                 detail.push_str(&format!(
                     "{indent}  - _references (constants; same-file or explicit source import):_\n"
                 ));

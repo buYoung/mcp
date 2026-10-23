@@ -134,7 +134,32 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "flush",
+            "range": {
+              "startLine": 8,
+              "startCol": 3,
+              "endLine": 8,
+              "endCol": 16
+            },
+            "receiver": {
+              "name": "Cache",
+              "arguments": [],
+              "range": {
+                "startLine": 8,
+                "startCol": 3,
+                "endLine": 8,
+                "endCol": 16
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "type"
+          }
+        ]
       }
     ],
     "omitted": 0

@@ -112,7 +112,32 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "ok",
+            "range": {
+              "startLine": 8,
+              "startCol": 16,
+              "endLine": 8,
+              "endCol": 37
+            },
+            "receiver": {
+              "name": "Response",
+              "arguments": [],
+              "range": {
+                "startLine": 8,
+                "startCol": 16,
+                "endLine": 8,
+                "endCol": 37
+              }
+            },
+            "namespace": "CheckoutController",
+            "enclosingSymbol": "post",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "type"
+          }
+        ]
       }
     ],
     "omitted": 0

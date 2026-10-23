@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Luna · Pi Replay</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--panel:#11151d;--line:#2b3342;--text:#e4e9f2;--muted:#a0aec2;--orange:#f2b074;--blue:#94ccff;--green:#9bddad;--red:#ffa0aa;--violet:#d0b5ff;--mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;--sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#202330 0,transparent 52%),var(--bg);color:var(--text);font:14px/1.6 var(--sans)}button,select,input{font:inherit}button,select,summary,input[type=range],input[type=checkbox]{cursor:pointer}button,select{color:var(--text);background:#19202b;border:1px solid var(--line);border-radius:7px}button{padding:7px 11px;transition:background .15s,border-color .15s}button:hover:not(:disabled){background:#263042;border-color:#71819a}button:disabled{opacity:.38;cursor:not-allowed}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--orange);outline-offset:4px}a{color:var(--blue)}svg{width:18px;height:18px;fill:currentColor;flex:none;vertical-align:middle}h1,h2,p{margin:0}h1{font-size:clamp(25px,4vw,39px);font-weight:650;letter-spacing:-1.2px}h2{font-size:16px}code,pre{font-family:var(--mono)}pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.7}main{max-width:1370px;margin:0 auto;padding:38px 28px 28px}.eyebrow{font:12px var(--mono);letter-spacing:2px;color:var(--orange);margin-bottom:8px}.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:20px}.sub{color:var(--muted);max-width:740px;margin-top:9px}.counts{display:flex;gap:7px;flex-wrap:wrap;flex:none}.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--muted);background:#131923}.chip.complete{color:var(--green);border-color:#315a42}.chip.timeout,.chip.rejected,.chip.error{color:var(--red);border-color:#75434b}.chip.partial{color:var(--orange);border-color:#70513a}.chip.returned{color:var(--green)}.chip.redacted{color:var(--violet)}.notice{border-left:3px solid var(--orange);background:#211c18;color:#eac7a7;padding:9px 14px;border-radius:0 6px 6px 0;font-size:12px;margin-bottom:20px}.selectbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin-bottom:12px}.selectbar label{color:var(--muted);font:12px var(--mono)}.selectbar select{padding:10px 12px;width:100%;min-width:0}.quick{display:flex;gap:6px}.quick button{font-size:12px}.player{border:1px solid #3a4354;border-radius:12px;overflow:hidden;box-shadow:0 24px 90px #0005;background:#0e1219}.titlebar{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#1b202b;border-bottom:1px solid var(--line);padding:11px 16px;font:12px var(--mono)}.brand{color:var(--orange);font-size:18px;font-weight:700;margin-right:10px}.titlepath{color:#bec8d8;overflow-wrap:anywhere}.model{color:var(--muted);font-size:11px}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 228px;height:590px;min-height:360px;max-height:72vh}.terminal{overflow:auto;padding:20px 24px 30px;scrollbar-color:#48536a transparent;overscroll-behavior:contain}.terminal-header{font:11px var(--mono);color:#8f9eb3;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap}.message{margin-bottom:20px}.message-header{display:flex;align-items:center;gap:8px;margin-bottom:7px;font:11px var(--mono);color:var(--muted);flex-wrap:wrap}.role{font-size:12px;font-weight:700;color:var(--orange)}.role.assistant{color:var(--green)}.message-time{margin-left:auto;color:#a9b5c7;font-size:10px}.prompt-box{border-left:2px solid var(--orange);padding:10px 14px;background:#1a1b20;border-radius:0 6px 6px 0}.answer-box{padding:8px 14px;border-left:2px solid var(--green);background:#111d19}.system-line{font:11px/1.7 var(--mono);color:var(--muted);margin:13px 0;overflow-wrap:anywhere}.system-line.end{color:var(--green);border-top:1px dashed var(--line);padding-top:14px}.system-line.timeout{color:var(--red)}.tool{border:1px solid #30425a;background:#121b29;border-radius:7px;margin:12px 0;overflow:hidden}.tool-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 12px;border-bottom:1px solid #283b52;font:11px var(--mono)}.tool-name{color:var(--blue);font-weight:650}.tool-top .chip{font-size:10px;padding:1px 7px}.tool-args{padding:9px 12px;color:#c2d8ef;max-height:210px;overflow:auto;font-size:11px}.tool-result{border-top:1px solid #2b3b50;padding:10px 12px;background:#101720}.tool-result summary{font:11px var(--mono);color:#b7cadf;list-style-position:inside}.tool-result pre{margin-top:9px;color:#d4deeb;max-height:340px;overflow:auto;padding-right:8px}.tool-result[open].full pre{max-height:none}.tool-result .expand{margin-top:9px;font:11px var(--mono)}.tool.rejected,.tool.error{border-color:#75434b;background:#25191f}.tool.rejected .tool-top,.tool.error .tool-top{border-color:#593441}.tool.partial{border-style:dashed;border-color:#80603e}.result-flags{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0}.result-flags .chip{font-size:10px}.source{color:#a5b4ca;font:10px var(--mono);margin-top:8px;overflow-wrap:anywhere}.call-note{font:11px var(--mono);padding:8px 12px;color:var(--orange)}.rail{border-left:1px solid var(--line);background:#111620;overflow:auto;padding:14px 11px;scrollbar-color:#48536a transparent}.rail-title{font:11px var(--mono);letter-spacing:1px;color:var(--muted);padding:0 7px 11px}.event-list{list-style:none;padding:0;margin:0}.event-list button{width:100%;border:1px solid transparent;background:transparent;text-align:left;padding:9px 8px;margin-bottom:3px;border-radius:6px;display:flex;gap:9px;align-items:flex-start;color:#9aa9bf;font-size:11px}.event-list button.active{background:#2b251f;border-color:#70513a;color:#f5ceaa}.event-list button.seen:not(.active){color:#d6deea}.event-number{font:10px var(--mono);margin-top:2px;min-width:17px}.event-label{overflow-wrap:anywhere}.event-label small{display:block;color:#8f9eb3;font:9px var(--mono);margin-top:2px}.empty{padding:40px 20px;color:var(--muted);max-width:700px}.empty h2{color:var(--orange);margin-bottom:13px}.empty pre{border-left:2px solid var(--line);padding:14px;margin-top:20px}.controls{border-top:1px solid var(--line);background:#181e29;padding:13px 16px}.progress-label{display:flex;justify-content:space-between;gap:10px;font:10px var(--mono);color:var(--muted);margin-bottom:4px}.seek{width:100%;accent-color:var(--orange);margin:3px 0 12px}.control-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.control-row button{display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:36px}.control-row .play{min-width:97px;background:var(--orange);border-color:var(--orange);color:#21170e;font-weight:700}.control-row .play:hover:not(:disabled){background:#ffd0a4}.speed-label{font-size:11px;color:var(--muted);margin-left:8px}.speed{padding:6px}.gap-label{margin-left:auto;font-size:11px;color:#c6d0df;display:flex;align-items:center;gap:6px}.gap-label input{accent-color:var(--orange)}.footerline{display:flex;gap:12px;justify-content:space-between;color:var(--muted);font:10px var(--mono);padding-top:10px}.stage-state{color:var(--orange)}.lower{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-top:20px}.info{border:1px solid var(--line);border-radius:9px;background:#121721;padding:14px 16px}.info>summary{font-size:13px;font-weight:600}.info p,.info li{color:var(--muted);font-size:12px}.info p{margin-top:10px}.info ul{padding-left:18px;margin-bottom:2px}.info code{font-size:10px;overflow-wrap:anywhere}.case-facts{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.legend{display:flex;gap:15px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:12px}.legend span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--blue);margin-right:6px}.legend span:nth-child(2)::before{background:var(--red)}.legend span:nth-child(3)::before{background:var(--orange)}footer{margin-top:22px;display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;color:var(--muted);font-size:11px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.running-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--orange);margin-right:6px}.running-dot.playing{animation:pulse 1s ease-in-out infinite}@keyframes pulse{50%{opacity:.25}}
+@media(max-width:1050px){.intro{align-items:flex-start;flex-direction:column;gap:12px}.workspace{grid-template-columns:minmax(0,1fr) 185px}.quick{display:none}}
+@media(max-width:700px){main{padding:22px 12px}.workspace{display:block;height:62vh;max-height:none}.terminal{height:100%;padding:15px 12px}.rail{display:none}.titlebar{padding:9px 12px;align-items:flex-start}.model{max-width:130px;text-align:right}.titlepath{font-size:10px}.selectbar{grid-template-columns:auto minmax(0,1fr)}.selectbar>button{display:none}.lower{grid-template-columns:1fr}.controls{padding:11px}.control-row{gap:6px}.gap-label{margin-left:0;flex-basis:100%;margin-top:6px}.speed-label{margin-left:auto}.footerline{font-size:9px}.message-time{flex-basis:100%;margin-left:0}.counts .chip{font-size:11px}.notice{font-size:11px}.tool-top{font-size:10px}pre{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main>
+  <header class="intro"><div><div class="eyebrow">OBSERVED, NOT SIMULATED</div><h1>Luna <span style="color:var(--muted);font-weight:350">/</span> Pi Replay</h1><p class="sub">Luna가 어떤 입력으로 도구를 호출하고, 어떤 결과를 받은 뒤 답했는지.<br>기존 Pi 관측 기록을 터미널 안에서 순서대로 재생합니다.</p></div><div id="counts" class="counts" aria-label="관측 결과"></div></header>
+  <div class="notice"><strong>개선 전 관측 기록입니다.</strong> 화면 녹화가 아닌 로그 기반 재구성입니다. 기록되지 않은 타이핑·토큰 생성·추론은 만들어 넣지 않았습니다.</div>
+  <div class="selectbar"><label for="case-select">과제</label><select id="case-select"></select><div class="quick"><button id="recovery-shortcut" type="button">입력 거절 → 복구 보기</button><button id="timeout-shortcut" type="button">중단 기록 보기</button></div></div>
+  <section class="player" aria-label="Pi 스타일 관측 리플레이">
+    <div class="titlebar"><div class="titlepath"><span class="brand">pi</span><span id="session-title"></span></div><div id="model" class="model"></div></div>
+    <div class="workspace"><div class="terminal" id="terminal" tabindex="0" aria-label="재구성된 터미널 출력"></div><aside class="rail" aria-label="재생 단계"><div class="rail-title">EVENTS / 기록 순서</div><ol class="event-list" id="event-list"></ol></aside></div>
+    <div class="controls">
+      <div class="progress-label"><span id="position"></span><span id="record-time"></span></div>
+      <label class="sr-only" for="seek">재생 위치</label><input class="seek" id="seek" type="range" min="0" max="1000" value="0" step="1">
+      <div class="control-row">
+        <button id="restart" type="button" title="처음으로 (Home)" aria-label="처음으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h2v14H4zm16 0v14L8 12z"/></svg></button>
+        <button id="previous" type="button" title="이전 단계 (←)" aria-label="이전 단계"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-9 7 9 7z"/></svg></button>
+        <button class="play" id="play" type="button" aria-label="재생"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="play-icon" d="m7 4 14 8-14 8z"/></svg><span id="play-label">재생</span></button>
+        <button id="next" type="button" title="다음 단계 (→)" aria-label="다음 단계"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 9 7-9 7z"/></svg></button>
+        <button id="end" type="button" title="끝으로 (End)" aria-label="끝으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5h2v14h-2zM4 5l12 7-12 7z"/></svg></button>
+        <label for="speed" class="speed-label">배속</label><select class="speed" id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select>
+        <label class="gap-label"><input id="compress" type="checkbox" checked>2초 넘는 기록 공백 축약</label>
+      </div>
+      <div class="footerline"><span><span class="running-dot" id="running-dot"></span><span class="stage-state" id="stage-state" aria-live="polite"></span></span><span>Space 재생/정지 · ← → 단계 이동</span></div>
+    </div>
+  </section>
+  <div class="legend"><span>호출 제안과 실제 실행을 구별</span><span>클라이언트 입력 거절도 보존</span><span>기록 공백은 미수집 구간</span></div>
+  <section class="lower" aria-label="관측 범위와 재구성 방식">
+    <details class="info" open><summary>이 과제에서 확인된 것</summary><div id="case-facts" class="case-facts"></div><p id="case-note"></p><p id="coverage"></p></details>
+    <details class="info"><summary>재구성 기준과 한계</summary><ul><li>화면은 Pi 스타일로 직접 구현했습니다. 원래 터미널의 픽셀·커서 이동을 녹화한 자료는 아닙니다.</li><li>기록된 시각은 UTC입니다. 공백 축약을 끄면 원래 이벤트 간격으로 재생합니다. 배속·공백 축약은 원자료를 바꾸지 않습니다.</li><li>결과 패널은 모델에게 전달된 텍스트를 사용합니다. 외부에서 이미 잘린 결과는 복원하지 않습니다.</li><li>중단 직전 남은 호출 인자는 실행 증거가 아닙니다. 실행 기록이 없는 제안은 별도로 표시합니다.</li><li>비정상 추가 속성에 섞인 내부 서술·제어 토큰은 숨겼습니다. 숨긴 장면에는 표시를 붙였습니다.</li><li>k03에는 감독자 답신이 있습니다. 실작업 3개를 포함한 미실행 4개는 재생하거나 결과를 추정하지 않습니다.</li><li>HTML을 여는 것만으로 모델·MCP·외부 서버를 호출하지 않습니다.</li></ul><p id="provenance"></p></details>
+  </section>
+  <footer><span>Vanilla HTML · CSS · JavaScript / 외부 의존성 없음</span><span><a href="https://arnehilmann.github.io/cinescript/cinescript-template.html" target="_blank" rel="noreferrer noopener">CineScript 기능 예시</a>를 참고한 독립 구현 · 원자료는 별도 보존</span></footer>
+  <div id="announcement" class="sr-only" aria-live="polite"></div>
+</main>
+<script id="replay-data" type="application/json">__REPLAY_DATA__</script>
+<script id="replay-code">
+(() => {
+  'use strict';
+  // Pure timeline logic is exported for a dependency-free Node smoke check.
+  function schedule(frames, compress) {
+    let elapsedMs = 0;
+    return frames.map((frame, index) => {
+      if (index) elapsedMs += Math.min(Math.max(0, frame.atMs - frames[index - 1].atMs), compress ? 2000 : Infinity);
+      return elapsedMs;
+    });
+  }
+  function cursorAt(eventTimesMs, positionMs) {
+    let index = 0;
+    while (index + 1 < eventTimesMs.length && eventTimesMs[index + 1] <= positionMs) index++;
+    return index;
+  }
+  function nextPosition(positionMs, elapsedMs, speed, endMs) {
+    return Math.min(endMs, Math.max(0, positionMs + Math.max(0, elapsedMs) * speed));
+  }
+  globalThis.PiReplayCore = Object.freeze({ schedule, cursorAt, nextPosition });
+  if (typeof document === 'undefined') return;
+  const data = JSON.parse(document.getElementById('replay-data').textContent);
+  const $ = id => document.getElementById(id);
+  const statusNames = { complete:'완료', timeout:'시간 초과', 'not-run':'미실행', interrupted:'중단' };
+  const stateNames = { proposed:'호출 제안', running:'실제 실행', partial:'부분 제안 · 실행 기록 없음', returned:'반환 완료', rejected:'실행 전 거절', error:'도구 오류' };
+  const labels = { prompt:'원래 과제', setup:'MCP 연결 확인', assistant:'Luna 답변', intent:'호출 제안', dispatch:'실제 도구 실행', result:'모델이 받은 결과', end:'실행 종료' };
+  let current, eventTimesMs = [], cursor = 0, playheadMs = 0, isPlaying = false, frameRequest = 0, lastTickMs = 0;
+  const terminal = $('terminal');
+  function node(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+  function chip(text, kind) { return node('span', 'chip ' + (kind || ''), text); }
+  function seconds(ms) {
+    if (ms == null) return '시각 미수집';
+    const seconds = Math.max(0, ms) / 1000;
+    return seconds >= 60 ? Math.floor(seconds / 60) + ':' + (seconds % 60).toFixed(1).padStart(4,'0') : seconds.toFixed(1) + 's';
+  }
+  function timeLabel(frame) { return frame.timestamp ? frame.timestamp.slice(11,23) + ' UTC · +' + seconds(frame.atMs) : '입력 시각 미수집'; }
+  function toolName(name) { return name.replace('mcp__rterms_usage_6d4kwd__',''); }
+  function source(frame) { return node('div','source',frame.source); }
+  function renderMessage(frame, role) {
+    const item = node('article','message');
+    const heading = node('div','message-header');
+    heading.append(node('span','role ' + (role === 'Luna' ? 'assistant' : ''),role), node('span','message-time',timeLabel(frame)));
+    const box = node('div',role === 'Luna' ? 'answer-box' : 'prompt-box');
+    box.append(node('pre','',frame.text)); item.append(heading,box,source(frame)); return item;
+  }
+  function createTool(frame) {
+    const article = node('article','tool ' + (frame.state || 'proposed'));
+    const top = node('div','tool-top');
+    top.append(node('span','tool-name',toolName(frame.tool)),chip(stateNames[frame.state || 'proposed'],frame.state),node('span','message-time',timeLabel(frame)));
+    article.append(top,node('pre','tool-args',JSON.stringify(frame.arguments || {},null,2)));
+    if (frame.redacted) article.append(node('div','call-note','비정상 추가 속성 내용 생략 · 인자 구조만 표시'));
+    if (frame.tool === 'contact_supervisor') article.append(node('div','call-note','감독자 = 상위 에이전트. 특정 도구 사용 지시는 없었습니다.'));
+    return article;
+  }
+  function updateToolState(article, state, frame) {
+    article.className = 'tool ' + state;
+    const old = article.querySelector('.tool-top .chip');
+    old.replaceWith(chip(stateNames[state],state));
+    article.querySelector('.message-time').textContent = timeLabel(frame);
+  }
+  function renderResult(article, frame, detailStates) {
+    updateToolState(article, frame.state, frame);
+    const detail = node('details','tool-result');
+    detail.dataset.callId = frame.callId;
+    detail.open = detailStates.has(frame.callId) ? detailStates.get(frame.callId) : true;
+    const duration = frame.durationMs == null ? '' : ' · 도구 실행 ' + frame.durationMs + 'ms';
+    detail.append(node('summary','', '모델에 전달된 출력 · ' + frame.text.length.toLocaleString('ko-KR') + '자' + duration));
+    const flags = node('div','result-flags');
+    if (frame.evidencePreparing) flags.append(chip('사전 응답 성공 / 코드 근거 준비 중','partial'));
+    if (frame.truncated) flags.append(chip('원래 전달 결과가 이미 잘림','partial'));
+    if (frame.redacted) flags.append(chip('오류 요약 · 일부 내용 비공개','redacted'));
+    if (frame.rawEqualsVisible === false) flags.append(chip('원본과 가시 결과 다름','partial'));
+    if (flags.childNodes.length) detail.append(flags);
+    detail.append(node('pre','',frame.text));
+    const expand = node('button','expand','출력 영역 펼치기'); expand.type = 'button';
+    expand.addEventListener('click', () => { pause(); detail.classList.toggle('full'); expand.textContent = detail.classList.contains('full') ? '출력 영역 접기' : '출력 영역 펼치기'; });
+    detail.append(expand,source(frame));
+    detail.querySelector('summary').addEventListener('click', pause);
+    article.append(detail);
+  }
+  function renderTerminal() {
+    const detailStates = new Map([...terminal.querySelectorAll('details')].map(item => [item.dataset.callId,item.open]));
+    terminal.replaceChildren();
+    const info = node('div','terminal-header');
+    info.append(node('span','',current.repository),node('span','',current.id + ' · ' + statusNames[current.status]),node('span','', '기록 기반 재구성'));
+    terminal.append(info);
+    if (!current.frames.length) {
+      const empty = node('div','empty'); empty.append(node('h2','','이 과제는 실행하지 않았습니다.'),node('p','','사용자가 추가 관측을 중단했습니다. 계획된 요청만 남아 있으며 도구 사용이나 결과를 재생할 수 없습니다.'),node('pre','',current.task)); terminal.append(empty); return;
+    }
+    const calls = new Map();
+    for (const frame of current.frames.slice(0,cursor + 1)) {
+      if (frame.kind === 'prompt') terminal.append(renderMessage(frame,'사용자'));
+      else if (frame.kind === 'assistant') terminal.append(renderMessage(frame,'Luna'));
+      else if (frame.kind === 'setup') terminal.append(node('div','system-line','✓ ' + frame.text + ' · 도구 ' + frame.toolCount + '개 · ' + timeLabel(frame)));
+      else if (frame.kind === 'intent' || frame.kind === 'dispatch') {
+        let article = calls.get(frame.callId);
+        if (!article) { article = createTool(frame); calls.set(frame.callId,article); terminal.append(article); }
+        if (frame.kind === 'dispatch') updateToolState(article,'running',frame);
+      } else if (frame.kind === 'result') {
+        let article = calls.get(frame.callId);
+        if (!article) { article = createTool({ ...frame, arguments:{} }); calls.set(frame.callId,article); terminal.append(article); }
+        renderResult(article,frame,detailStates);
+      } else if (frame.kind === 'end') {
+        const text = frame.text + (frame.status === 'timeout' ? '\n도구 실행이 기록되지 않았습니다. 부분 호출 제안을 실행 결과로 세지 않습니다.' : '');
+        const end = node('div','system-line end ' + frame.status,text); end.style.whiteSpace = 'pre-wrap'; terminal.append(end,source(frame));
+      }
+    }
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+  function renderRail() {
+    const list = $('event-list'); list.replaceChildren();
+    current.frames.forEach((frame,index) => {
+      const item = node('li',''); const button = node('button',index === cursor ? 'active' : index < cursor ? 'seen' : '');
+      button.type = 'button'; button.id = 'event-' + index; button.setAttribute('aria-current',index === cursor ? 'step' : 'false');
+      const label = node('span','event-label',frame.kind === 'intent' && frame.state === 'partial' ? '미완성 호출 제안' : labels[frame.kind]);
+      label.append(node('small','', '+' + seconds(frame.atMs) + (frame.tool ? ' · ' + toolName(frame.tool) : '')));
+      button.append(node('span','event-number',String(index + 1).padStart(2,'0')),label);
+      button.addEventListener('click',()=>{ jump(index); $('event-' + index)?.focus(); }); item.append(button); list.append(item);
+    });
+  }
+  function controls() {
+    const hasFrames = current.frames.length > 0;
+    const atEnd = !hasFrames || cursor >= current.frames.length - 1;
+    $('previous').disabled = !hasFrames || cursor === 0;
+    $('next').disabled = atEnd;
+    $('end').disabled = atEnd;
+    $('restart').disabled = !hasFrames;
+    $('play').disabled = !hasFrames;
+    $('seek').disabled = !hasFrames;
+    $('seek').value = eventTimesMs.at(-1) ? Math.round(playheadMs / eventTimesMs.at(-1) * 1000) : 0;
+    $('seek').setAttribute('aria-valuetext', hasFrames ? (cursor + 1) + '/' + current.frames.length + ' 단계' : '미실행');
+    $('position').textContent = hasFrames ? '재생 단계 ' + (cursor + 1) + ' / ' + current.frames.length : '재생할 기록 없음';
+    $('record-time').textContent = hasFrames ? '마지막 기록 +' + seconds(current.frames[cursor].atMs) + ' / 전체 ' + seconds(current.durationMs) : '—';
+    $('play-label').textContent = isPlaying ? '일시정지' : atEnd && hasFrames ? '다시 재생' : '재생';
+    $('play').setAttribute('aria-label',$('play-label').textContent);
+    $('play-icon').setAttribute('d', isPlaying ? 'M6 4h4v16H6zm8 0h4v16h-4z' : 'm7 4 14 8-14 8z');
+    $('running-dot').classList.toggle('playing',isPlaying);
+    $('stage-state').textContent = isPlaying ? '재생 중 · 이벤트 사이 구간은 기록 공백' : atEnd && hasFrames ? '기록 끝' : hasFrames ? '일시정지 · 단계별로 확인할 수 있습니다' : '사용자 결정으로 미실행';
+  }
+  function draw() { renderTerminal(); renderRail(); controls(); }
+  function pause() { isPlaying = false; cancelAnimationFrame(frameRequest); controls(); }
+  function jump(index) { pause(); cursor = Math.max(0,Math.min(index,current.frames.length - 1)); playheadMs = eventTimesMs[cursor] || 0; draw(); }
+  function tick(nowMs) {
+    if (!isPlaying) return;
+    playheadMs = nextPosition(playheadMs,nowMs - lastTickMs,Number($('speed').value),eventTimesMs.at(-1) || 0);
+    lastTickMs = nowMs;
+    const next = cursorAt(eventTimesMs,playheadMs);
+    if (next !== cursor) { cursor = next; draw(); } else controls();
+    if (playheadMs >= (eventTimesMs.at(-1) || 0)) { pause(); return; }
+    frameRequest = requestAnimationFrame(tick);
+  }
+  function play() {
+    if (!current.frames.length) return;
+    if (cursor === current.frames.length - 1) { cursor = 0; playheadMs = 0; draw(); }
+    isPlaying = true; lastTickMs = performance.now(); controls(); frameRequest = requestAnimationFrame(tick);
+  }
+  function choose(id) {
+    isPlaying = false; cancelAnimationFrame(frameRequest);
+    current = data.cases.find(item => item.id === id) || data.cases[0];
+    $('case-select').value = current.id; eventTimesMs = schedule(current.frames,$('compress').checked); cursor = 0; playheadMs = 0;
+    $('session-title').textContent = current.id + ' / ' + current.repository;
+    $('model').textContent = current.model ? 'gpt-6-luna · ' + current.thinking + '\n실제 관측' : '관측 없음';
+    const facts = $('case-facts'); facts.replaceChildren(chip(statusNames[current.status],current.status));
+    if (current.frames.length) facts.append(chip('synonyms 실행 ' + current.calls + '회'),chip('실행 전 거절 ' + current.rejections + '회'),chip('감독자 개입 ' + current.supervisorCalls + '회'));
+    $('case-note').textContent = current.status === 'timeout' ? '600초 제한으로 중단됐습니다. 도구 호출 인자가 일부 남았지만 실행 이벤트나 결과는 없습니다. 원인은 미확인입니다.' : current.status === 'not-run' ? '요청은 계획에 있었지만 추가 관측 중단 결정 이후 실행하지 않았습니다.' : '공개 답변과 실제 도구 결과만 재생합니다. 호출률이나 답의 후보 일치는 정확도·개인화 효과를 증명하지 않습니다.';
+    $('coverage').textContent = current.startedAt ? '로그 수집 범위: ' + current.startedAt.replace('T',' ').replace('Z',' UTC') + '부터 ' + seconds(current.durationMs) + '. 전체 작업 시간과 동일하다고 가정하지 않습니다.' : '실행 시각·사용 결과 없음.';
+    $('announcement').textContent = current.id + ', ' + statusNames[current.status];
+    draw();
+  }
+  for (const status of ['complete','timeout','not-run','interrupted']) {
+    const cases = data.cases.filter(item => item.status === status); if (!cases.length) continue;
+    $('counts').append(chip(statusNames[status] + ' ' + cases.length,status));
+    const group = node('optgroup',''); group.label = statusNames[status] + ' · ' + cases.length + '개';
+    for (const item of cases) { const option = node('option','',item.id + ' · ' + item.title + ' / ' + item.repository); option.value = item.id; group.append(option); }
+    $('case-select').append(group);
+  }
+  $('provenance').append(node('span','', '관측 기준 HEAD '),node('code','',data.sourceHead),node('br'));
+  $('provenance').append(node('span','', '당시 일반 빌드 SHA-256 '),node('code','',data.binarySha256),node('br'),node('span','', '최초 설정 실패 ' + data.omittedSetupAttempts + '회는 관측 집계에서 제외했습니다.'));
+  $('case-select').addEventListener('change',event=>choose(event.target.value));
+  $('play').addEventListener('click',()=>isPlaying ? pause() : play());
+  $('restart').addEventListener('click',()=>jump(0));
+  $('previous').addEventListener('click',()=>jump(cursor - 1));
+  $('next').addEventListener('click',()=>jump(cursor + 1));
+  $('end').addEventListener('click',()=>jump(current.frames.length - 1));
+  $('seek').addEventListener('input',event=>{
+    const requestedPositionMs = Number(event.target.value) / 1000 * (eventTimesMs.at(-1) || 0);
+    pause(); playheadMs = requestedPositionMs; cursor = cursorAt(eventTimesMs,playheadMs); draw();
+  });
+  $('compress').addEventListener('change',()=>{ pause(); eventTimesMs = schedule(current.frames,$('compress').checked); playheadMs = eventTimesMs[cursor] || 0; controls(); });
+  $('recovery-shortcut').addEventListener('click',()=>choose('k06'));
+  $('timeout-shortcut').addEventListener('click',()=>choose('k08'));
+  document.addEventListener('keydown',event=>{
+    if (event.altKey || event.ctrlKey || event.metaKey || ['INPUT','SELECT','TEXTAREA'].includes(event.target.tagName)) return;
+    if (!current.frames.length) return;
+    if (event.code === 'Space' && !['BUTTON','SUMMARY'].includes(event.target.tagName)) { event.preventDefault(); isPlaying ? pause() : play(); }
+    else if (event.key === 'ArrowRight') { event.preventDefault(); jump(cursor + 1); }
+    else if (event.key === 'ArrowLeft') { event.preventDefault(); jump(cursor - 1); }
+    else if (event.key === 'Home') { event.preventDefault(); jump(0); }
+    else if (event.key === 'End') { event.preventDefault(); jump(current.frames.length - 1); }
+  });
+  document.addEventListener('visibilitychange',()=>{ if (document.hidden) pause(); });
+  choose('k01');
+})();
+</script>
+</body>
+</html>

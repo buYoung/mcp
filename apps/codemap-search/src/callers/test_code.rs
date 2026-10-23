@@ -505,6 +505,7 @@ impl TestCodeFilter {
                         .collect(),
                     literals: Vec::new(),
                     docstrings: Vec::new(),
+                    member_names: Vec::new(),
                     navigation,
                 }
             })
@@ -705,6 +706,7 @@ mod tests {
                 symbols: Vec::new(),
                 literals: Vec::new(),
                 docstrings: Vec::new(),
+                member_names: Vec::new(),
                 navigation: None,
             })
             .collect();

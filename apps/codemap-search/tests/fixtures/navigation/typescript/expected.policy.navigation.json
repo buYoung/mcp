@@ -174,7 +174,32 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "keys",
+            "range": {
+              "startLine": 14,
+              "startCol": 41,
+              "endLine": 14,
+              "endCol": 62
+            },
+            "receiver": {
+              "name": "Object",
+              "arguments": [],
+              "range": {
+                "startLine": 14,
+                "startCol": 41,
+                "endLine": 14,
+                "endCol": 62
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "type"
+          }
+        ]
       }
     ],
     "omitted": 0

@@ -192,7 +192,8 @@
             "namespace": "CheckoutService",
             "enclosingSymbol": "submit",
             "argumentCount": 1,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

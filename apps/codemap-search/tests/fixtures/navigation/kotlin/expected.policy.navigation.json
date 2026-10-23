@@ -25,6 +25,26 @@
               "endLine": 13,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "Rule",
+              "importedName": "com.example.Rule",
+              "source": "com.example.Rule",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 24
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 13,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [
@@ -114,6 +134,32 @@
         "implementations": [],
         "calls": [
           {
+            "name": "filter",
+            "range": {
+              "startLine": 5,
+              "startCol": 24,
+              "endLine": 5,
+              "endCol": 67
+            },
+            "receiver": {
+              "name": "List",
+              "arguments": [
+                "Rule"
+              ],
+              "range": {
+                "startLine": 5,
+                "startCol": 24,
+                "endLine": 5,
+                "endCol": 67
+              }
+            },
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": null,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
             "name": "emptyList",
             "range": {
               "startLine": 8,
@@ -134,7 +180,8 @@
             "namespace": "OrderPolicy",
             "enclosingSymbol": "evaluate",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

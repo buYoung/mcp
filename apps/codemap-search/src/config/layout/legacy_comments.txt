@@ -213,6 +213,7 @@
 # Read response size limit in bytes, including line numbers and context.
 # Reconnect MCP after changes so Claude reloads tools/list. The value below is an inactive example.
 # Reconnect MCP after changing this setting so Claude reloads the tool definitions.
+# Register the task first with initial_instructions(task_query, questions).
 # Relative paths start at the workspace root. Omitted searches source parents up to that root.
 # Relative paths start at the workspace root; absolute paths are allowed.
 # Repository and monorepo project root overviews include indexed-file language statistics.
@@ -407,6 +408,7 @@
 # 숫자 설정은 양의 정수이며 output.grep.max_columns만 0도 허용합니다.
 # 심볼마다 표시할 최대 호출 대상 수입니다.
 # 심볼마다 표시할 최대 호출자 또는 함수 호출 외의 참조 수입니다.
+# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
 # 아래 값은 비활성 예시이며 서버가 클라이언트 설정 파일을 자동 수정하지 않습니다.
 # 아래 값은 예시입니다. 기본 상태에서는 공통 한도를 지정하지 않습니다.
 # 언어별 목록은 상속한 기본값을 대체합니다. []는 해당 목록을 끄고 키·언어를 생략하면 상속합니다.
@@ -486,3 +488,11 @@
 # 확장에 실패하면 원문 선언과 실패 사유를 표시합니다. 이 섹션의 설정을 변경하면
 # 확장한 grep은 페이지를 나누거나 단일 본문이 한도를 넘었음을 안내합니다.
 # 확장한 함수 본문은 페이지를 나누고, 확장하지 않은 응답이 초과하면 범위 축소를 요청합니다.
+# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
+# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
+# If neither auth file supplies a key, TYPESAFE_API_KEY is used.
+# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
+# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
+# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
+# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.

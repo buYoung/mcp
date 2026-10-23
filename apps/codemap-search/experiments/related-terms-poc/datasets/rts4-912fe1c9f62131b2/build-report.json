@@ -1,0 +1,8 @@
+{
+  "dataset_id": "rts4-912fe1c9f62131b2",
+  "schema_version": "rt-sense/4",
+  "base_dataset": "rts4-71cffacbc6f7c0d8",
+  "mappings": 233,
+  "words": 206,
+  "input_bindings": 19
+}

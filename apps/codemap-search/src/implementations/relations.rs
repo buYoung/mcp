@@ -197,6 +197,7 @@ impl ImplementationIndex {
             .iter()
             .map(|link| link.declaration)
             .collect::<HashSet<_>>();
+        let replaceable = self.replaceable_methods(&declarations);
         for (file_id, file) in files.iter().enumerate() {
             let Some(facts) = file
                 .navigation
@@ -229,6 +230,14 @@ impl ImplementationIndex {
                     ) else {
                         continue;
                     };
+                    self.record_direct_call(
+                        owner,
+                        &file.file_path,
+                        call,
+                        &evidence,
+                        &replaceable,
+                        sources,
+                    );
                     let mut candidates = self.call_methods(owner, &call.name, call.argument_count);
                     if candidates.is_empty() {
                         for parent in self.ancestors(owner) {
@@ -269,6 +278,135 @@ impl ImplementationIndex {
                 }
             }
         }
+    }
+
+    /// Methods a runtime receiver may replace: abstract ones, linked declarations and any
+    /// method a subtype redeclares under the same name, whatever its signature.
+    fn replaceable_methods(&self, declarations: &HashSet<usize>) -> HashSet<usize> {
+        let mut replaceable = declarations.clone();
+        for owner in 0..self.types.len() {
+            if self.types[owner].methods.is_empty() {
+                continue;
+            }
+            let names = self.types[owner]
+                .methods
+                .iter()
+                .map(|id| self.methods[*id].declaration.name.as_str())
+                .collect::<HashSet<_>>();
+            for parent in self.ancestors(owner) {
+                replaceable.extend(
+                    self.types[parent.owner]
+                        .methods
+                        .iter()
+                        .copied()
+                        .filter(|base| {
+                            names.contains(self.methods[*base].declaration.name.as_str())
+                        }),
+                );
+            }
+        }
+        replaceable
+            .extend((0..self.methods.len()).filter(|id| self.methods[*id].declaration.is_abstract));
+        replaceable
+    }
+
+    /// Remember a typed call whose member lookup singles out a method no runtime receiver can
+    /// replace, for caller attribution beyond implementation navigation.
+    fn record_direct_call(
+        &mut self,
+        owner: usize,
+        path: &str,
+        call: &DispatchCall,
+        type_evidence: &[Location],
+        replaceable: &HashSet<usize>,
+        sources: &HashMap<String, String>,
+    ) {
+        if self.direct_call_count >= DIRECT_CALLS_PER_SNAPSHOT {
+            self.omitted += 1;
+            return;
+        }
+        let Some((method, mut evidence)) = self.direct_method(owner, path, call) else {
+            return;
+        };
+        // Static, `super` and private member calls name the member that runs.
+        let is_fixed = call.receiver_kind != ReceiverKind::Value
+            || self.methods[method].declaration.is_private;
+        if !is_fixed && replaceable.contains(&method) {
+            return;
+        }
+        evidence.extend(type_evidence.iter().cloned());
+        evidence.push(self.location(owner));
+        self.remember_proof(&evidence, sources);
+        self.direct_call_count += 1;
+        self.direct_calls
+            .entry(path.to_string())
+            .or_default()
+            .push(DirectCall {
+                range: call.range.clone(),
+                name: call.name.clone(),
+                method,
+                evidence,
+            });
+    }
+
+    /// The one method `call` reaches on `owner`: its own member (private members only from
+    /// inside `owner`, static ones from inside or through the type), else the single inherited
+    /// candidate.
+    fn direct_method(
+        &self,
+        owner: usize,
+        path: &str,
+        call: &DispatchCall,
+    ) -> Option<(usize, Vec<Location>)> {
+        let is_inside = self.files[self.types[owner].file].file_path == path
+            && super::resolve::encloses(&self.typ(owner).range, &call.range);
+        let allows_static = is_inside || call.receiver_kind == ReceiverKind::Type;
+        let own = self.named_methods(owner, call, is_inside, allows_static);
+        if !own.is_empty() {
+            return (own.len() == 1).then(|| (own[0], Vec::new()));
+        }
+        let mut candidates = Vec::new();
+        let mut evidence = Vec::new();
+        for parent in self.ancestors(owner) {
+            let methods = self.named_methods(parent.owner, call, false, allows_static);
+            if !methods.is_empty() {
+                candidates.extend(methods);
+                evidence.extend(parent.evidence);
+            }
+        }
+        candidates.sort_unstable();
+        candidates.dedup();
+        (candidates.len() == 1).then(|| (candidates[0], evidence))
+    }
+
+    /// Methods of `owner` named like `call`; overloads must be singled out by argument count.
+    fn named_methods(
+        &self,
+        owner: usize,
+        call: &DispatchCall,
+        allows_private: bool,
+        allows_static: bool,
+    ) -> Vec<usize> {
+        let named = self.types[owner]
+            .methods
+            .iter()
+            .copied()
+            .filter(|id| {
+                let method = &self.methods[*id].declaration;
+                method.name == call.name
+                    && (allows_private || !method.is_private)
+                    && (allows_static || !method.is_static)
+            })
+            .collect::<Vec<_>>();
+        if named.len() < 2 {
+            return named;
+        }
+        named
+            .into_iter()
+            .filter(|id| {
+                call.argument_count == Some(self.methods[*id].declaration.parameters.len())
+            })
+            .collect()
     }
 
     fn call_methods(&self, owner: usize, name: &str, count: Option<usize>) -> Vec<usize> {

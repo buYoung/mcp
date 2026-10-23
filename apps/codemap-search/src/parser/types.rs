@@ -156,6 +156,18 @@ pub struct NavigationFile {
     pub local_bindings: Vec<LocalBinding>,
     #[serde(default)]
     pub imports: Vec<ImportEntry>,
+    /// Upper-snake-case constant names by line, from a lexical scan of the indexed source.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub key_sites: Vec<KeySite>,
+}
+
+/// One use of an upper-snake-case constant name. Code that shares such a name, like code that
+/// shares a string key, may meet through a queue, event, hook or cache; nothing is resolved.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct KeySite {
+    pub name: String,
+    pub line: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -171,6 +183,10 @@ pub struct MacroExpansionInfo {
 }
 
 impl MacroExpansionInfo {
+    /// Whether preprocessing succeeded; only successful expansion records active lines.
+    pub fn is_expanded(&self) -> bool {
+        self.active_lines.is_some()
+    }
     pub fn is_expanded_symbol(&self, symbol: &ExtractedSymbol) -> bool {
         self.symbols
             .iter()
@@ -209,6 +225,11 @@ pub struct ExtractedFile {
     pub symbols: Vec<ExtractedSymbol>,
     pub literals: Vec<ExtractedLiteral>,
     pub docstrings: Vec<String>,
+    /// Declared data-member names (fields, property signatures, parameter properties, enum
+    /// members) for languages whose symbol query does not index them. Only related-terms
+    /// codebase evidence reads these; search ranking and codemap views ignore them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub member_names: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub navigation: Option<NavigationFile>,
 }
@@ -216,6 +237,12 @@ pub struct ExtractedFile {
 impl ExtractedFile {
     pub fn macro_expansion(&self) -> Option<&MacroExpansionInfo> {
         self.navigation.as_ref()?.macro_expansion.as_ref()
+    }
+    /// Whether declarations come from successful macro expansion, whose line mapping does not
+    /// carry type evidence, events or flows.
+    pub fn is_macro_expanded(&self) -> bool {
+        self.macro_expansion()
+            .is_some_and(MacroExpansionInfo::is_expanded)
     }
 }
 

@@ -101,7 +101,9 @@ pub(crate) fn run(
         .map_err(|error| (-32603, format!("Analysis unavailable: {error:#}")))?;
     let mut value = report.to_value();
     if options.target == Target::Index {
-        value["index_state"] = json!(if engine.is_dead() {
+        value["index_state"] = json!(if !engine.is_active() {
+            "not indexed"
+        } else if engine.is_dead() {
             "frozen"
         } else if engine.is_warming() {
             "warming"

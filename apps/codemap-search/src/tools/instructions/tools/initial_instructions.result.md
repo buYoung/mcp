@@ -4,7 +4,7 @@ Within an MCP connection, search/read/grep omit unchanged source already deliver
 
 Full output groups declarations and their relationships under numbered file headings, followed by one results section per file. Methods stay under their owner. Pathless L42 refers to the current file heading; foreign locations keep paths.
 
-For source-only text discovery, prefer grep view=source_grouped with expand=none; read view=source for missing ranges. Search may group non-call reference locations and reuse labeled analysis notes. A body deferred by the delivery budget is unshown evidence, not an unrelatedness judgment; its read range restores it.
+For source-only text discovery, prefer grep view=source_grouped with expand=none; read view=source for missing ranges. A read view=source may end with callers from outside the window for the functions it shows; follow them to find what reaches a function (entry points). Search may group non-call reference locations and reuse labeled analysis notes. A body deferred by the delivery budget is unshown evidence, not an unrelatedness judgment; its read range restores it.
 
 Relationships obey scope, exclusions, freshness and shared output budgets. Source/model/candidate and precise/unresolved labels distinguish evidence; static calls, callback passing and event registration do not prove runtime execution or delivery order. Source routes distinguish callback candidates, argument transfer and data consumers without classifying events.
 

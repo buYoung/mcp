@@ -24,6 +24,9 @@ pub(super) struct SourceHistory {
     files: HashMap<PathBuf, SourceFile>,
     pending: HashMap<PathBuf, SourceFile>,
     line_count: usize,
+    /// Read caller trailers already delivered, keyed by file and trailer text.
+    trailers: HashSet<blake3::Hash>,
+    pending_trailers: Vec<blake3::Hash>,
 }
 #[derive(Default)]
 pub(super) struct FoldedSource {
@@ -48,6 +51,12 @@ fn display_path(path: &str) -> String {
     }
     path.strip_prefix("./").unwrap_or(path).to_owned()
 }
+fn read_path(arguments: &Value) -> Option<String> {
+    ["file_path", "path", "file", "query"]
+        .iter()
+        .find_map(|key| crate::tools::get_arg(arguments, key).and_then(Value::as_str))
+        .map(display_path)
+}
 fn source_row(line: &str) -> Option<LineKey> {
     let (number, body) = line.trim_start().split_once('→')?;
     let number = number.parse::<usize>().ok().filter(|n| *n > 0)?;
@@ -68,10 +77,7 @@ fn rows(tool: &str, arguments: &Value, text: &str) -> Vec<Row> {
         return Vec::new();
     }
     let mut path = if tool == "read" {
-        ["file_path", "path", "file", "query"]
-            .iter()
-            .find_map(|key| crate::tools::get_arg(arguments, key).and_then(Value::as_str))
-            .map(display_path)
+        read_path(arguments)
     } else {
         None
     };
@@ -163,15 +169,20 @@ impl SourceHistory {
         self.files.clear();
         self.pending.clear();
         self.line_count = 0;
+        self.trailers.clear();
+        self.pending_trailers.clear();
     }
     pub fn begin_request(&mut self) {
         self.discard_pending();
     }
     pub fn discard_pending(&mut self) {
         self.pending.clear();
+        self.pending_trailers.clear();
     }
     /// Successful write/flush is not acknowledgement of client context retention.
     pub fn commit_written(&mut self) {
+        self.trailers
+            .extend(std::mem::take(&mut self.pending_trailers));
         for (path, source) in std::mem::take(&mut self.pending) {
             if self.line_count.saturating_add(source.lines.len()) > MAX_SOURCE_LINES
                 || self.files.len() >= MAX_SOURCE_FILES
@@ -238,6 +249,26 @@ impl SourceHistory {
         }
         let should_fold =
             crate::tools::get_arg(arguments, "include_seen").and_then(Value::as_bool) != Some(true);
+        // A read's caller trailer follows its source rows; an unchanged repeat is folded too.
+        // It starts after the newline that ends the last row, so the two edits never overlap.
+        let mut trailer_edit = None;
+        let trailer_start = (tool == "read")
+            .then(|| {
+                text.find(&format!(
+                    "\n{}",
+                    crate::tools::live_symbols::OUTSIDE_CALLERS_HEADER
+                ))
+            })
+            .flatten()
+            .map(|newline| newline + 1);
+        if let (Some(start), Some(path)) = (trailer_start, read_path(arguments)) {
+            let key = blake3::hash(format!("{path}\0{}", &text[start..]).as_bytes());
+            if should_fold && self.trailers.contains(&key) {
+                trailer_edit = Some(start..text.len());
+            } else {
+                self.pending_trailers.push(key);
+            }
+        }
         let mut edits = Vec::new();
         if should_fold {
             let mut start = 0;
@@ -266,6 +297,10 @@ impl SourceHistory {
                 edits.push(first.start..last.end);
                 start = end;
             }
+        }
+        if let Some(range) = trailer_edit {
+            folded.spans += 1;
+            edits.push(range);
         }
         if !edits.is_empty() {
             let mut output = String::with_capacity(text.len());

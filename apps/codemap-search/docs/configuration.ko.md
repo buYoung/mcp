@@ -8,7 +8,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 
 ## 섹션 구성과 출력 한도
 
-동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 네 클라이언트 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
+동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 네 클라이언트 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep 한도 예시, 빌드 설정 경로, 색인 시작 방식과 그 파일 수 한도, 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
 
 | 섹션 | 범위 |
 |---|---|
@@ -93,12 +93,17 @@ codemap 전역 디렉터리의 `global-instructions.json`에 실제 적용 경�
 
 ### 인증정보 (`auth.toml`)
 
-Jev API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)의 `[jev].api_key`에 저장합니다. 우선순위는 **저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수**입니다. 키가 없거나 빈 문자열·공백뿐이면 다음 값을 사용합니다. 파일 읽기 실패·잘못된 TOML·자료형은 경고 후 다음 값으로 대체하며, 키 값이나 파서의 소스 발췌는 출력하지 않습니다. 알 수 없는 섹션·키도 값을 출력하지 않고 경고한 뒤 무시합니다.
+decision 모델 API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)에 저장합니다. TypeSafe 키는 `[jev].api_key`, OpenRouter 키는 `[openrouter].api_key`에 넣습니다. 키마다 따로 **저장소 auth → 전역 auth → 고정된 환경 변수**(`TYPESAFE_API_KEY` 또는 `OPENROUTER_API_KEY`) 순서로 읽으며, `[output.jev].model`이 선택한 제공자의 키만 사용합니다. 키가 없거나 빈 문자열·공백뿐이면 다음 값을 사용합니다. 파일 읽기 실패·잘못된 TOML·자료형은 경고 후 다음 값으로 대체하며, 키 값이나 파서의 소스 발췌는 출력하지 않습니다. 알 수 없는 섹션·키도 값을 출력하지 않고 경고한 뒤 무시합니다.
+
+OpenRouter 키는 decision 전용입니다. OpenRouter Decisions API(`https://openrouter.ai/api/alpha/decisions`)로만 보내며 채팅 등 다른 OpenRouter API에는 쓰지 않습니다. decision을 지원하지 않는 모델은 OpenRouter가 모델 실행 전에 HTTP 400으로 거부합니다([OpenRouter decision 모델](#openrouter-decision-모델) 참고).
 
 ```toml
 # .codemap/auth.toml — 버전 관리에서 제외하세요
 [jev]
-api_key = "<발급받은 키>"
+api_key = "<발급받은 TypeSafe 키>"
+
+[openrouter]
+api_key = "<발급받은 OpenRouter 키>"
 ```
 
 `config_auto_update = true`이면 MCP 시작 시 누락된 저장소 `auth.toml`을 인증정보가 없는 현지화 템플릿으로 만듭니다. 기존 파일은 덮어쓰지 않으며 환경 변수의 키를 복사하지 않습니다. Unix에서는 소유자만 읽고 쓰는 `0600` 권한으로 생성하고, Windows에서는 파일시스템의 상속 ACL을 사용합니다. 전역 인증 파일은 자동 생성하지 않습니다. 모델·활성화·요청 제한은 `config.toml`의 `[output.jev]`에서 관리합니다.
@@ -111,10 +116,16 @@ api_key = "<발급받은 키>"
 
 버전 29는 네 `*_filter_enabled` 설정을 `enabled`와 `scope`로 바꿉니다. 기존 저장소의 활성 설정은 전역에서 상속한 도구별 선택까지 포함해 현재 적용 중인 조합으로 한 번 변환합니다. 변환 이후 명시된 scope 목록은 전역 목록을 대체합니다. 갱신하지 않은 파일의 옛 설정은 호환용으로만 읽으며 같은 파일에서는 새 설정이 우선합니다. 옛 스위치의 주석 예시는 제거합니다. 기존 파일에서 생략한 새 설정은 계속 상속하며, 새 템플릿은 `enabled=false`를 포함한 모든 Jev 기본값을 주석 해제 상태로 제공합니다.
 
-현재 **로컬 설정** 버전은 **29**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
+버전 30은 선택 사항인 `[related_terms]` 구역을 주석으로 추가하며 기존 값을 바꾸지 않습니다. 데이터셋은 바이너리 릴리스에 고정됩니다. 같은 id를 쓰는 업그레이드는 `<global_dir>/related-terms/<dataset_id>/`의 검증된 파일을 다시 내려받거나 해시 검사하지 않습니다. 새 id는 새 폴더를 씁니다. `dataset_path`는 기능이 켜져 있을 때만 사용하며 내려받기를 건너뜁니다. 상대 경로는 서버 작업 디렉터리를 기준으로 합니다. 잘못된 타입은 경고하고 키별 상속값·기본값으로 돌아갑니다.
+
+버전 31은 `[output.read].is_outside_callers_enabled`를 주석 예시로 추가하며 기존 값을 바꾸지 않습니다. 이 키를 `false`로 설정하지 않으면 `read view=source`는 계속 창 밖 호출자 목록을 덧붙입니다.
+
+버전 32는 `[index].mode`와 `[index].auto_max_files`를 주석 예시로 추가합니다. 값을 정하지 않으면 기존 저장소에서도 [색인 시작 시점](#색인-시작-시점)의 `auto` 규칙을 따릅니다. 이번 전환은 버전 29 이상 파일에 남은 이전 자동 생성 주석(예: `initial_instructions`로 작업을 등록하라는 안내)도 현재 설명으로 바꿉니다. 값과 사용자 메모는 바꾸지 않습니다.
+
+현재 **로컬 설정** 버전은 **32**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
 
 ```toml
-# codemap-config-version: 29
+# codemap-config-version: 32
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -201,10 +212,10 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `index.refresh.index_staleness_ms`, `index.refresh.indexer_auto_restart` | 이후 갱신·복구 판단 |
 | `index.max_file_bytes` | 이후 탐색·갱신부터 적용하며, 이 값만 바꾸면 전체 갱신을 요청하지 않음 |
 | `index.store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
-| `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
+| `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
 | `[global_instructions].enabled` (사용자 전역 전용) | MCP 초기화 또는 활성화 값 변경을 다시 읽은 뒤 다음 요청. 갱신한 파일은 새 에이전트 세션에서 읽음 |
-| `auth.toml`의 `[jev].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
+| `auth.toml`의 `[jev].api_key`, `[openrouter].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
 | `[output.client].claude_max_result_chars` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
 | `[output.client].codex_output_token_limit` | 최종 전달 한도는 재로드 후 적용; 클라이언트는 codex-config를 다시 병합 |
 | `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트 변경 불필요 |
@@ -231,12 +242,13 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.search].detail_file_limit` | 정수 | `24` | 상세 내용을 표시할 상위 파일 수 |
 | `[output.search].overview_file_limit` | 정수 | `80` | 나머지 간략 목록에 표시할 최대 파일 수 |
 | `[output.search].snippet_max_lines` | 정수 | `500` | 심볼마다 표시할 최대 발췌 줄 수. 긴 본문은 생략 표시 |
-| `[output.search].symbol_limit` | 정수 | `100` | 파일마다 표시할 최대 심볼 수. 초과분은 생략 안내 |
+| `[output.search].symbol_limit` | 정수 | `100` | 파일마다 표시할 최대 심볼 수. 초과분은 생략 안내. 경로·문서 주석으로만 검색된 JSON·YAML·TOML 파일에서 일치하지 않은 키는 개수만 표시 |
 | `[output.search].max_bytes` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 부분 출력 안내를 포함한 검색 응답 전체 크기 제한 |
 | `[output.search].literal_max_chars` | 정수(문자) | `1200` | 일치한 리터럴의 최대 표시 길이. 초과분은 말줄임표로 표시 |
 | `[output.search].literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
 | `[output.search].anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[output.read].max_bytes` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록과 같은 키를 쓰는 다른 위치를 덧붙임. `false`면 둘 다 생략 |
 | `[output.grep].max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[output.grep].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | grep 응답 한도. 확장 본문은 read 한도도 대체값으로 사용 |
 | `[output.context].is_enabled` | bool | `true` | `search` 호출에서 `caller_context` 생략 시 호출 관계 표시 여부 |
@@ -252,6 +264,8 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.redact].sensitive_fields` | 문자열 배열 | `[]` | 내장 민감 필드명에 추가할 이름. 대소문자와 구분자를 정규화한 뒤 정확히 일치해야 함 |
 | `[output.redact].rules` | 인라인 테이블 배열 | `[]` | 추가 정규식 규칙. 각 항목에 `id`, `pattern` 필요 |
 | `[output.redact].exceptions` | 인라인 테이블 배열 | `[]` | `rule_id`와 탐지된 `value`가 모두 정확히 일치하는 예외 |
+| `[index].mode` | `"auto"`, `"on"`, `"off"` | `"auto"` | MCP 서버가 작업공간을 색인하는 시점. [색인 시작 시점](#색인-시작-시점) 참고 |
+| `[index].auto_max_files` | 정수 | `50000` | `auto` 모드가 색인하는 최대 색인 대상 파일 수 |
 | `[index].path` | 문자열 | `".codemap/index"` | 색인 저장 위치. 절대 경로나 작업공간 루트 기준 상대 경로 |
 | `[index].max_file_bytes` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 파싱·색인 전 건너뛸 파일 크기 기준 |
 | `[index].store_references` | bool | `false` | 함수 호출 외의 참조 위치 저장 |
@@ -271,20 +285,34 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.context.exclude].test_attributes` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 속성·어노테이션 패턴. 언어별 목록을 상속값 대신 적용 |
 | `[output.context.exclude].test_decorators` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 데코레이터 패턴. []는 해당 언어 목록 해제 |
 | `[output.context.exclude].test_calls` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 테스트 호출 패턴. []는 해당 언어 목록 해제 |
-| `[filesystem_permissions].find` | 문자열 | `"workspace"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
-| `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
-| `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].find` | 문자열 | `"anywhere"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].grep` | 문자열 | `"anywhere"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].read` | 문자열 | `"anywhere"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
+| `[related_terms].enabled` | bool | `false` | 관련어 기능을 켬. 꺼져 있으면 내려받기·준비 작업을 하지 않음 |
+| `[related_terms].dataset_path` | string | 없음 | 내려받기 대신 사용할 사용자 뜻 데이터셋 경로. 원본은 수정하지 않음 |
 | `[update].config_auto_update` | bool | `true` | MCP 시작 시 누락된 저장소 config/auth 템플릿 생성과 config 스키마 갱신 |
 | `[output.jev].enabled` | bool | `false` | 전체 스위치. false이면 scope와 무관하게 모든 Jev 출력 필터를 끔 |
 | `[output.jev].scope` | 문자열 배열 | `["overview", "search", "read", "grep"]` | enabled일 때 적용할 전체 도구 목록. []는 적용 안 함, 저장소 목록이 전역 목록을 대체 |
-| `[output.jev].model` | 문자열 | `"jev-1.13.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. 별칭 이름은 검증에 실패 |
+| `[output.jev].model` | 문자열 | `"jev-1.14.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. Jev 버전은 TypeSafe, `제작자/모델` ID는 [OpenRouter](#openrouter-decision-모델)를 사용. 별칭 이름은 검증에 실패 |
 | `[output.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
 | `[output.jev].max_in_flight_requests` | 정수, 1~3 | `3` | 동시에 진행하는 HTTP 요청 수(3이 런타임 상한) |
 | `[output.jev].request_spacing_ms` | 정수(ms), 300 이상 | `300` | 요청 시작 사이의 최소 간격(300이 런타임 하한) |
 | `[output.jev].max_batch_bytes` | 정수 바이트 또는 크기 문자열, 1~168000 | `168000` | 배치 하나의 인코딩된 요청 바이트(168000이 런타임 상한). 들어가지 않는 질문은 명시적 실패 |
 | `[output.jev].pool_idle_timeout_ms` | 양의 정수(ms), 최대 7일 | `30000` | 유휴 HTTPS 연결 유지 시간 |
 | `[output.jev].search_filter_min_unrelated_probability` | 유한한 수, `0.5 < 값 <= 1.0` | `0.70`(잠정값) | 기준별 거짓 확률 임계값. all/any로 개별 판단을 조합 |
+
+### 색인 시작 시점
+
+`[index].mode`는 MCP 서버가 작업공간을 탐색해 색인하는 시점을 정합니다.
+
+| 모드 | 동작 |
+|---|---|
+| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `overview`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
+| `"on"` | 이 확인 없이 서버 시작 때 색인합니다. |
+| `"off"` | 작업공간을 색인하지 않습니다. |
+
+`auto` 모드가 색인하지 않으면(예: 저장소 여러 개를 담은 폴더) `search`와 `overview`는 이유와 함께 `Index unavailable:`을 반환합니다. 이유에는 한두 단계 아래에서 찾은 저장소를 세 개까지 적습니다. `read`, `grep`, `find`는 색인한 선언·호출자 없이 실제 파일 결과를 계속 반환합니다. 저장소 밖에서는 `.codemap/` 디렉터리를 만들지 않습니다. 설정 파일을 생성하지 않고, 빈 임시 색인은 서버가 끝나면 지워지는 임시 디렉터리에 둡니다. 파일 수 한도는 첫 색인 도구 호출 때 확인하므로, 한도를 넘는 저장소에도 시작 시 `.codemap/`은 생깁니다. 이런 작업공간을 색인하려면 `.codemap/config.toml`이나 전역 설정에 `mode = "on"`을 쓰고 서버를 재시작하세요.
 
 ### 색인과 파일 제외
 
@@ -325,11 +353,11 @@ max_output_bytes = "8mb"
 
 [컴파일 데이터베이스](https://clang.llvm.org/docs/JSONCompilationDatabase.html)의 작업 디렉터리, 헤더 경로, 매크로 정의, 대상 플랫폼과 언어 표준을 반영합니다. `arguments` 배열을 `command` 문자열보다 우선하고, 문자열은 셸 평가 없이 인자로 분리합니다. 설정한 Clang/NASM만 실행하며 데이터베이스의 래퍼나 프로젝트 빌드 명령을 실행하지 않습니다. 기록된 컴파일러 이름의 `++`와 명시적인 `-x`는 C/C++ 파서 선택에도 반영합니다. 출력·의존성 파일 생성 인자는 제거합니다. 지원하지 않는 옵션·언어, 응답 파일, 컴파일러 플러그인은 미해결 사유로 표시합니다. 별도 툴체인의 시스템 헤더·대상 플랫폼은 사용자가 공급해야 하며, query-driver 자동 탐색과 모든 컴파일러 옵션 호환성은 구현하지 않았습니다.
 
-확장에 성공하면 활성 선언으로 목록을 갱신하고 원문에서 추출한 매크로 정의도 보존합니다. 생성된 선언에는 `macro expansion`과 원본 파일·줄 범위를 표시하며, 헤더 선언을 포함한 소스의 선언으로 오연결하지 않습니다. 확장 토큰의 열 위치와 호출·상수 참조 연결은 **미해결**입니다. 이 파일에서 추정한 정의 링크나 `(precise)`를 출력하지 않습니다. `read`·`grep`의 원문은 그대로 유지합니다.
+확장에 성공하면 활성 선언으로 목록을 갱신하고 원문에서 추출한 매크로 정의도 보존합니다. 생성된 선언에는 `macro expansion`과 원본 파일·줄 범위를 표시하며, 헤더 선언을 포함한 소스의 선언으로 오연결하지 않습니다. 확장 토큰의 열 위치는 **미해결**입니다. 호출과 상수 참조는 원문의 활성 줄에서 가져오므로 호출자·피호출자를 확장하지 않은 파일과 같은 방식으로 찾습니다. 매크로 본문 안에만 있는 호출은 보이지 않습니다. `read`·`grep`의 원문은 그대로 유지합니다.
 
-도구·헤더 누락, 시간·출력 제한, 지원하지 않는 확장 결과, `#line`·`%line` 재지정은 `Macro expansion unresolved`에 이유를 표시하고 원문 선언을 유지합니다. NASM은 `-Le -Lm -Lf` 지원 버전이 필요하며 2.16.03으로 확인했습니다. 확장 목록을 얻는 조립 단계의 출력은 null 장치로 보내며 생성된 프로그램을 실행하지 않습니다. 조립기가 검증한 label·global만 선언 입력으로 변환하며, 일반 ASM 파서가 명령어의 피연산자를 다시 해석하지 않습니다. 자동 생성된 `..@` 매크로 지역 label은 제외합니다. 고정된 FFmpeg `x86inc.asm`의 매크로도 명시한 아키텍처·형식 인자로 확인했으며, FFmpeg 전체 빌드를 검증했다는 뜻은 아닙니다. GNU assembler 고유 `.macro` 확장, 다른 ASM 방언과 모든 저장소의 빌드 설정을 검증한 것은 아닙니다.
+도구·헤더 누락, 시간·출력 제한, 지원하지 않는 확장 결과, `#line`·`%line` 재지정은 `Macro expansion unresolved`에 이유를 표시하고 호출과 상수 참조를 포함한 원문 추출 결과를 유지합니다. 이때 호출자·피호출자는 확장하지 않은 파일과 같은 방식으로 찾습니다. NASM은 `-Le -Lm -Lf` 지원 버전이 필요하며 2.16.03으로 확인했습니다. 확장 목록을 얻는 조립 단계의 출력은 null 장치로 보내며 생성된 프로그램을 실행하지 않습니다. 조립기가 검증한 label·global만 선언 입력으로 변환하며, 일반 ASM 파서가 명령어의 피연산자를 다시 해석하지 않습니다. 자동 생성된 `..@` 매크로 지역 label은 제외합니다. 고정된 FFmpeg `x86inc.asm`의 매크로도 명시한 아키텍처·형식 인자로 확인했으며, FFmpeg 전체 빌드를 검증했다는 뜻은 아닙니다. GNU assembler 고유 `.macro` 확장, 다른 ASM 방언과 모든 저장소의 빌드 설정을 검증한 것은 아닙니다.
 
-설정 변경은 전체 색인 갱신을 요청합니다. 활성화된 동안 작업 공간 파일 변경도 C/C++/ASM을 다시 대조하며, 기록한 외부 헤더·빌드 설정은 도구 요청 시 최대 1초 간격으로 변경 여부를 확인합니다. 전처리에 실패한 뒤 외부 의존성을 새로 준비했다면 갱신 또는 재시작이 필요할 수 있습니다. 제한은 파일별 프로세스 기준이며 저장소 전체 제한이 아닙니다. macOS arm64에서 검증했고 Windows/Linux 실행은 미확인입니다.
+설정 변경은 전체 색인 갱신을 요청합니다. 활성화된 동안 C/C++/ASM 소스·헤더, `compile_commands.json`·`compile_flags.txt`, 그 밖에 기록한 확장 입력이 바뀌면 전체 탐색으로 C/C++/ASM을 다시 대조합니다. 다른 파일 변경은 경로 단위로 갱신합니다. 기록한 입력이 바뀐 파일만 다시 전처리합니다. 확장에 성공하면 파일 자신, 전처리가 읽은 모든 파일, 빌드 설정 후보를 기록합니다. 빌드 설정 후보는 설정한 `compilation_database`이거나, 사용한 위치까지의 더 가까운 `compile_commands.json`·`compile_flags.txt` 위치들입니다. 그래서 더 가까운 위치에 새로 만들어도 변경으로 봅니다. 확장에 실패하면 파일 자신과 빌드 설정 후보를 기록합니다. 그중 하나나 확장 설정이 바뀌거나, 전에 색인하지 않은 헤더가 새로 생기면 다시 시도합니다. 기존 헤더를 고치는 것만으로는 다시 시도하지 않습니다. 작업공간 밖에 의존성을 설치했다면 해당 파일이나 빌드 설정 파일을 touch해 다시 시도하세요. 확장이 켜져 있으면 감시는 ignore된 C/C++/ASM 파일과 빌드 설정 파일 변경도 반영합니다. 생성된 헤더와 빌드 설정 파일은 흔히 ignore되기 때문입니다. 기록한 외부 헤더·빌드 설정은 도구 요청 시 최대 1초 간격으로 변경 여부를 확인합니다. 제한은 파일별 프로세스 기준이며 저장소 전체 제한이 아닙니다. macOS arm64에서 검증했고 Windows/Linux 실행은 미확인입니다.
 
 ### 민감값 마스킹
 
@@ -464,15 +492,15 @@ powershell = ["Describe", "Context", "It"]
 
 `read`, `find`, `grep`에 각각 다음 정책을 지정합니다.
 
-- `workspace`: 현재 작업공간 안만 접근합니다(기본값).
+- `workspace`: 현재 작업공간 안만 접근합니다.
 - `allowed_roots`: 작업공간과 지정한 외부 루트에 접근합니다.
-- `anywhere`: 서버 프로세스가 접근할 수 있는 모든 경로에 접근합니다.
+- `anywhere`: 서버 프로세스가 접근할 수 있는 모든 경로에 접근합니다(기본값).
 
 `allowed_roots` 항목은 비어 있지 않은 문자열이어야 합니다. 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다. 존재하는 경로 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고, 아직 없는 뒷부분은 유지합니다. 상위 경로 이동으로 허용된 범위를 넓힐 수는 없습니다. 이 권한은 `search`·`overview`의 색인 범위를 넓히지 않습니다.
 
 ### 색인 갱신
 
-`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. 감시를 끄거나 사용할 수 없으면 `search`/`overview`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
+`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. `.gitignore`, `.ignore`, `.codemapignore`가 숨기는 경로의 변경은 제외 디렉터리처럼 버리고, 이 파일들이 바뀌면 전체 탐색을 합니다. 감시를 끄거나 사용할 수 없으면 `search`/`overview`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
 
 `indexer_auto_restart = true`이면 백그라운드 색인 중단 후 다음 `search`/`overview`가 복구를 시도합니다. 서버 실행 중 복구 횟수에는 제한이 있습니다. 끄면 재시작 전까지 결과가 고정됩니다. 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
 
@@ -481,7 +509,7 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 29
+# codemap-config-version: 32
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -546,6 +574,9 @@ max_bytes = "1mb"
 [output.read]
 # read 응답의 최대 크기입니다.
 max_bytes = "5mb"
+
+# read view=source 끝에 창 밖 호출자 목록을 덧붙일 수 있습니다. false이면 생략합니다.
+is_outside_callers_enabled = true
 
 [output.grep]
 # grep 결과에서 한 줄의 최대 길이(바이트)입니다. 0이면 제한이 없습니다.
@@ -639,10 +670,10 @@ rules = []
 exceptions = []
 
 [output.jev]
-# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# decision 모델(TypeSafe Jev 또는 OpenRouter)로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
 # 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
-# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
-# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
+# API 키는 여기가 아닌 auth.toml의 [jev].api_key(TypeSafe) 또는 [openrouter].api_key에 저장하세요.
+# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY 환경 변수를 사용합니다.
 
 # 모든 Jev 출력 필터를 켜거나 끕니다. false이면 모든 도구가 로컬로 동작합니다.
 enabled = false
@@ -651,8 +682,15 @@ enabled = false
 # 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
 scope = ["overview", "search", "read", "grep"]
 
-# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
-model = "jev-1.13.0"
+# 사용할 decision 모델입니다(기본 jev-1.14.0). Jev 버전은 TypeSafe를, 제작자/모델 ID는
+# OpenRouter Decisions API만 사용하며 decision을 지원하지 않는 모델은 거부됩니다. 별칭은 쓸 수 없습니다.
+# OpenRouter decision 모델(컨텍스트 64k 이상):
+#   openai/gpt-6-luna-decisions, typesafe/jev-1.14, typesafe/jev-1.13,
+#   perplexity/pplx-decider-v1.2, perplexity/pplx-decider-flash-v1.2,
+#   nace-ai/drex-max, nace-ai/drex-v2.0, nace-ai/drex-v1.5, respan/span-02,
+#   upstage/solar-decide, upstage/solar-decide-flash, cloudflare/clef,
+#   cloudflare/clef-omni, liquid/d1, inception/mercury-decide
+model = "jev-1.14.0"
 
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 timeout_ms = 45000
@@ -711,6 +749,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
+# 전역 설정이 적용되도록 주석으로 둡니다.
+# mode = "auto"
+
+# "auto" 모드가 색인하는 최대 파일 수입니다. 더 큰 작업공간은 mode = "on"이 필요합니다.
+# auto_max_files = 50000
+
 # 색인을 저장할 경로입니다. 상대 경로는 작업공간 루트 기준입니다. 바꾼 뒤에는 서버를 재시작하세요.
 path = ".codemap/index"
 
@@ -774,15 +822,21 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # find, grep, read가 파일에 접근할 수 있는 범위입니다.
 # "workspace"는 작업공간만, "allowed_roots"는 작업공간과 allowed_roots의 경로, "anywhere"는 모든 경로를 허용합니다.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # "allowed_roots"를 쓰는 도구에 추가로 허용할 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
 # 심볼릭 링크는 실제 경로를 기준으로 판단합니다.
 allowed_roots = []
+
+[related_terms]
+# 관련어 기능을 켭니다(기본 false). 로컬 경로가 없으면 고정 데이터셋을 한 번 내려받습니다.
+enabled = false
+# 선택 사항인 사용자 데이터셋 경로입니다. 원본은 수정하지 않습니다.
+# dataset_path = "/path/to/dataset.sqlite3"
 
 [update]
 # 서버가 시작될 때 이 파일이 없으면 만들고, 새 설정이 생기면 주석으로 추가합니다.
@@ -790,7 +844,9 @@ allowed_roots = []
 config_auto_update = true
 ```
 
-### 기본 작업공간 권한
+### 작업공간 전용 권한
+
+세 도구를 모두 작업공간에 제한합니다.
 
 ```toml
 [filesystem_permissions]
@@ -812,9 +868,9 @@ read = "workspace"
 allowed_roots = ["G:/shared/source", "D:/vendor-src"]
 ```
 
-### 전체 디스크 접근
+### `find`만 전체 디스크 접근
 
-한 도구에 전체 디스크 접근을 허용하는 예시입니다. 서버 실행 환경이 별도로 격리되어 있지 않다면 `allowed_roots`를 우선 사용하세요.
+기본값인 전체 디스크 접근을 `find`에만 남기고 `grep`과 `read`는 작업공간에 제한합니다.
 
 ```toml
 [filesystem_permissions]
@@ -876,15 +932,24 @@ search_filter_min_unrelated_probability = 0.70
 
 ```sh
 export TYPESAFE_API_KEY="<발급받은 키>"   # 요청 시점에 읽는 대체값이며 auth.toml로 복사하지 않습니다
+export OPENROUTER_API_KEY="<발급받은 키>" # OpenRouter decision 모델에 쓰는 같은 방식의 대체값입니다
+```
+
+TypeSafe 대신 OpenRouter decision 모델을 쓰려면 모델에 OpenRouter ID를 지정합니다.
+
+```toml
+[output.jev]
+enabled = true
+model = "openai/gpt-6-luna-decisions"
 ```
 
 Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `overview`, `search`, `read`, `grep`을 받으며 기본값은 네 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. `initial_instructions`, 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
 
 ### 작업 질문 등록
 
-`initial_instructions({})`·`find`·루트 `overview`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않고 기존 등록을 유지합니다.
+`initial_instructions({})`·`find`·루트 `overview`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않습니다. 이전 클라이언트가 인자를 보내도 무시하고 기존 등록을 유지합니다.
 
-주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않습니다. 설정을 다시 불러와도 도구는 계속 제공하며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
+주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않으므로, `tools/list`는 `enabled`가 true이고 `scope`가 비어 있지 않을 때만 `register_task`를 보여 줍니다. 설정을 다시 불러와 Jev를 켜기 전에 도구 목록을 받은 클라이언트는 다시 연결해야 이 도구가 보입니다. 서버는 등록 호출을 계속 받으며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
 
 ```json
 {
@@ -949,9 +1014,33 @@ Read·grep은 실제로 읽은 같은 버퍼에서 함수 경계와 반환 행�
 
 현재 과제·질문, all/any 조합, 불확실 보존, 연결된 본문 보호, 전송 예산과 절대 마감을 search와 공유합니다. 원래 페이지와 렌더링을 먼저 확정한 뒤 생략 부분만 바꾸므로, 평가 도중 파일이 바뀌어도 새 버퍼와 섞지 않고 생략한 만큼 다음 페이지를 채우지 않습니다. 공통 중복 제거는 Jev 뒤에 적용하며 find는 제외합니다.
 
-### TypeSafe에 전송하는 데이터
+### 제공자에 전송하는 데이터
 
-활성화된 search·read·grep이 마스킹한 목적·등록 질문·도구 인수·판단 대상 함수 본문과 제공된 지원 근거를 전송합니다. 전송 전에 마스킹하지만 모든 민감값을 탐지할 수는 없습니다. API 키는 HTTPS 인증에만 사용합니다. 기본 제공자 모델은 `jev-1.13.0`입니다.
+활성화된 search·read·grep이 마스킹한 목적·등록 질문·도구 인수·판단 대상 함수 본문과 제공된 지원 근거를 모델이 선택한 제공자(TypeSafe, 또는 OpenRouter와 해당 모델의 원본 제공자)에 전송합니다. 전송 전에 마스킹하지만 모든 민감값을 탐지할 수는 없습니다. API 키는 HTTPS 인증에만 사용합니다. 기본 제공자 모델은 `jev-1.14.0`입니다.
+
+### OpenRouter decision 모델
+
+제작자 접두어가 있는 모델 ID(`제작자/모델`)는 OpenRouter를 선택합니다. 요청은 `[openrouter].api_key`(대체값 `OPENROUTER_API_KEY`)로 OpenRouter Decisions API인 `POST https://openrouter.ai/api/alpha/decisions`에만 보냅니다. 요청·응답 형식이 TypeSafe와 같아 위의 질문·예산·임계값·전송 한도를 그대로 적용합니다. `jev-1.14.0` 같은 Jev 버전은 계속 TypeSafe와 그 키를 사용합니다.
+
+- **decision 모델 전용.** 이 엔드포인트에 채팅·임베딩 모델이나 없는 모델을 보내면 OpenRouter가 모델 실행 전에 HTTP 400(`Model … does not exist`)으로 거부합니다. 이때 단계는 `http_status`로 대체 처리되고 도구는 일반 결과를 반환합니다.
+- **고정 ID.** OpenRouter는 정식 슬러그를 보고합니다. 요청 ID에서 `:변형` 접미사를 뺀 값이거나, 그 뒤에 `-YYYYMMDD` 출시일이 붙은 값입니다(예: `openai/gpt-6-luna-decisions` 요청에 `openai/gpt-6-luna-decisions-20261006`으로 응답). 그 밖의 응답 모델은 검증에 실패합니다. `~typesafe/jev-latest` 같은 별칭(`~제작자/모델`)은 가리키는 버전이 바뀔 수 있어 요청을 보내기 전에 거부합니다.
+- **컨텍스트.** 운영 예산은 64k 토큰 이상의 컨텍스트를 전제합니다. OpenRouter는 텍스트가 약 32KB를 넘는 Jev 요청을 TypeSafe의 long-context 모드로 실행하며, 이 모드는 더 느리고 정확도가 낮습니다. 문제가 되면 `max_batch_bytes`를 낮추세요.
+
+다음 OpenRouter decision 모델은 2026-10-24에 이 런타임의 요청 형식을 받았고 64k 이상의 컨텍스트를 제공합니다.
+
+| 제작사 | 모델 ID |
+| --- | --- |
+| OpenAI | `openai/gpt-6-luna-decisions` |
+| TypeSafe | `typesafe/jev-1.14`, `typesafe/jev-1.13` |
+| Perplexity | `perplexity/pplx-decider-v1.2`, `perplexity/pplx-decider-flash-v1.2` |
+| Nace.AI | `nace-ai/drex-max`, `nace-ai/drex-v2.0`, `nace-ai/drex-v1.5` |
+| Respan | `respan/span-02` |
+| Upstage | `upstage/solar-decide`, `upstage/solar-decide-flash` |
+| Cloudflare | `cloudflare/clef`, `cloudflare/clef-omni` |
+| Liquid AI | `liquid/d1` |
+| Inception | `inception/mercury-decide` |
+
+`scaledown/classify-1`은 decision 모델이지만 자체 문서 스키마 외의 객체 state 필드를 거부합니다. 컨텍스트가 더 작은 모델은 운영 예산을 담을 수 없습니다. 목록은 바뀔 수 있으므로 현재 decision 모델은 `GET https://openrouter.ai/api/v1/models?output_modalities=decisions`로 확인하세요.
 
 ### 전송 한도
 

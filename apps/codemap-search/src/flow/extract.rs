@@ -16,6 +16,8 @@ struct Collector<'a> {
     declarations: HashMap<usize, Vec<usize>>,
     active_function: usize,
     statements_visited: usize,
+    /// Branch statement lists open around the statement being summarized.
+    statement_depth: usize,
 }
 
 pub(crate) fn collect(
@@ -49,6 +51,7 @@ pub(crate) fn collect(
         declarations: HashMap::new(),
         active_function: 0,
         statements_visited: 0,
+        statement_depth: 0,
     };
     collector.unit.functions.push(FunctionSummary {
         name: "<module>".into(),
@@ -760,17 +763,28 @@ impl<'a> Collector<'a> {
         self.push(node, ExpressionKind::Unknown { reason, inputs })
     }
     fn branch_statements(&mut self, node: Node<'a>, function: usize) -> Vec<Statement> {
+        if self.statement_depth >= STATEMENT_DEPTH {
+            let reason = "statement nesting budget exceeded".to_string();
+            self.issue(node, &reason);
+            return vec![Statement {
+                range: range(node),
+                kind: StatementKind::Barrier {
+                    reason,
+                    expressions: Vec::new(),
+                },
+            }];
+        }
+        self.statement_depth += 1;
+        let mut result = Vec::new();
         if is_statement_container(node) {
-            let mut result = Vec::new();
             for child in children(node) {
                 self.statement(child, function, &mut result);
             }
-            result
         } else {
-            let mut result = Vec::new();
             self.statement(node, function, &mut result);
-            result
         }
+        self.statement_depth -= 1;
+        result
     }
     fn branch_expression(&mut self, node: Node<'a>, depth: usize) -> NodeId {
         if is_statement_container(node) {

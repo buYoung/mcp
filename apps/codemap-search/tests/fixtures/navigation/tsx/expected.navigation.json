@@ -46,7 +46,32 @@
         ],
         "types": [],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "title",
+            "range": {
+              "startLine": 7,
+              "startCol": 14,
+              "endLine": 7,
+              "endCol": 27
+            },
+            "receiver": {
+              "name": "Panel",
+              "arguments": [],
+              "range": {
+                "startLine": 7,
+                "startCol": 14,
+                "endLine": 7,
+                "endCol": 27
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "View",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "type"
+          }
+        ]
       }
     ],
     "omitted": 0

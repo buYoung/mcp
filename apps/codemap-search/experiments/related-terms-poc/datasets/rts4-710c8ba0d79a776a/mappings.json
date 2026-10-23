@@ -1,0 +1,1422 @@
+{
+ "base_dataset": "rts4-78debdbe7f7bab0b",
+ "mappings": [
+  {
+   "word": "transaction",
+   "topic": "t302",
+   "reason": "transaction은 Spring 등에서 전파(propagation) 규칙과 함께 쓰이는 트랜잭션 개념이다",
+   "entry": "n1-00001"
+  },
+  {
+   "word": "schema",
+   "topic": "x77",
+   "reason": "schema는 Avro·Protobuf 등에서 스키마 진화와 호환성을 다룰 때 쓰인다",
+   "entry": "n1-00002"
+  },
+  {
+   "word": "filter",
+   "topic": "t379.2",
+   "reason": "filter는 컬렉션 요소를 조건으로 골라내는 대표 연산 이름이다",
+   "entry": "n1-00003"
+  },
+  {
+   "word": "scope",
+   "topic": "t630",
+   "reason": "scope는 전역 스코프와 변수 스코프를 가리키는 말로 쓰인다",
+   "entry": "n1-00004"
+  },
+  {
+   "word": "cache",
+   "topic": "t256",
+   "reason": "cache는 LRU/LFU 등 메모리 내 캐시와 축출 정책을 가리킨다",
+   "entry": "n1-00005"
+  },
+  {
+   "word": "cache",
+   "topic": "x165",
+   "reason": "cache는 CPU 캐시와 지역성(cache line, cache friendly)을 가리키기도 한다",
+   "entry": "n1-00005"
+  },
+  {
+   "word": "cache",
+   "topic": "t246.2",
+   "reason": "cache는 분산 캐시의 항목과 cache-aside 접근을 가리킨다",
+   "entry": "n1-00005"
+  },
+  {
+   "word": "permissions",
+   "topic": "t15.8",
+   "reason": "permissions는 샌드박스 권한과 파일 권한 제한을 가리키는 말로 쓰인다",
+   "entry": "n1-00006"
+  },
+  {
+   "word": "permissions",
+   "topic": "t119.2",
+   "reason": "permissions는 SQL의 GRANT 권한 부여 맥락에서 쓰인다",
+   "entry": "n1-00006"
+  },
+  {
+   "word": "permissions",
+   "topic": "t15.2",
+   "reason": "permission은 허용·승인을 뜻하는 일반 표현으로 쓰인다",
+   "entry": "n1-00006"
+  },
+  {
+   "word": "merge",
+   "topic": "t336",
+   "reason": "merge는 컬렉션이나 스트림을 합치는 연산을 직접 가리킨다",
+   "entry": "n1-00007"
+  },
+  {
+   "word": "merge",
+   "topic": "t763",
+   "reason": "merge는 merged 같은 결합 상태 표현의 기본형이다",
+   "entry": "n1-00007"
+  },
+  {
+   "word": "serialization",
+   "topic": "t160.7",
+   "reason": "serialization은 값이 직렬화·인코딩된다는 서술 표현으로 쓰인다",
+   "entry": "n1-00008",
+   "via": "serializes"
+  },
+  {
+   "word": "overflow",
+   "topic": "t243",
+   "reason": "overflow는 버퍼 용량 초과(buffer overflow)를 뜻한다",
+   "entry": "n1-00010"
+  },
+  {
+   "word": "ownership",
+   "topic": "t26.5",
+   "reason": "ownership은 원시 포인터를 통한 소유권 이전 맥락에서 쓰인다",
+   "entry": "n1-00011"
+  },
+  {
+   "word": "ownership",
+   "topic": "t821.1",
+   "reason": "ownership은 소유자와 비공개 접근을 뜻하는 일반 표현으로 쓰인다",
+   "entry": "n1-00011"
+  },
+  {
+   "word": "metadata",
+   "topic": "x75",
+   "reason": "metadata는 데이터 카탈로그와 거버넌스에서 핵심이 되는 용어이다",
+   "entry": "n1-00013"
+  },
+  {
+   "word": "assertion",
+   "topic": "t1033",
+   "reason": "assertion은 불가능하거나 잘못된 상태를 검증하는 assert와 그 오류를 가리킨다",
+   "entry": "n1-00014"
+  },
+  {
+   "word": "predicate",
+   "topic": "t218.3",
+   "reason": "predicate는 SQL의 WHERE 조건 술어를 가리키기도 한다",
+   "entry": "n1-00018"
+  },
+  {
+   "word": "priority",
+   "topic": "t129.3",
+   "reason": "priority는 중요도를 나타내는 일반 표현으로 쓰인다",
+   "entry": "n1-00019"
+  },
+  {
+   "word": "send",
+   "topic": "t869",
+   "reason": "send는 전송·푸시를 뜻하는 일반 동사 표현이다",
+   "entry": "n1-00020"
+  },
+  {
+   "word": "async",
+   "topic": "x314",
+   "reason": "async는 async/await 비동기 함수 선언 구문을 직접 가리킨다",
+   "entry": "n1-00021"
+  },
+  {
+   "word": "allocation",
+   "topic": "t59.3",
+   "reason": "allocation은 아레나와 메모리 풀 등 메모리 할당 관리를 가리킨다",
+   "entry": "n1-00022"
+  },
+  {
+   "word": "await",
+   "topic": "x314",
+   "reason": "await는 async/await 구문의 키워드이다",
+   "entry": "n1-00023"
+  },
+  {
+   "word": "task",
+   "topic": "t165.2",
+   "reason": "task는 Task.Run 등 병렬·백그라운드 작업 단위를 가리킨다",
+   "entry": "n1-00024"
+  },
+  {
+   "word": "task",
+   "topic": "t319.2",
+   "reason": "task는 이벤트 루프의 태스크/마이크로태스크 큐 개념에 쓰인다",
+   "entry": "n1-00024"
+  },
+  {
+   "word": "match",
+   "topic": "t550.4",
+   "reason": "match는 구조적 패턴 매칭 구문(match 표현)을 가리킨다",
+   "entry": "n1-00025"
+  },
+  {
+   "word": "position",
+   "topic": "t222",
+   "reason": "position은 점의 좌표 위치를 뜻하는 기하 맥락에서 쓰인다",
+   "entry": "n1-00026"
+  },
+  {
+   "word": "worker",
+   "topic": "t165.2",
+   "reason": "worker는 병렬 처리와 백그라운드 작업을 수행하는 실행 주체를 가리킨다",
+   "entry": "n1-00027"
+  },
+  {
+   "word": "placeholder",
+   "topic": "t785",
+   "reason": "placeholder는 이름 있는 자리표시자(named placeholder)로 인자를 바인딩할 때 쓰인다",
+   "entry": "n1-00028"
+  },
+  {
+   "word": "concurrency",
+   "topic": "x201",
+   "reason": "concurrency는 hardware_concurrency처럼 스레드 풀 크기 산정에 쓰인다",
+   "entry": "n1-00029"
+  },
+  {
+   "word": "route",
+   "topic": "x262",
+   "reason": "route는 IP 라우팅 테이블과 정적 경로 설정을 가리키기도 한다",
+   "entry": "n1-00030"
+  },
+  {
+   "word": "consumer",
+   "topic": "t85.3",
+   "reason": "consumer는 소비자 그룹에서 메시지를 나눠 소비하는 주체이다",
+   "entry": "n1-00031"
+  },
+  {
+   "word": "stack",
+   "topic": "t606.2",
+   "reason": "stack은 VStack·ZStack 같은 인터페이스 레이아웃 배치를 가리킨다",
+   "entry": "n1-00032"
+  },
+  {
+   "word": "service",
+   "topic": "t43.1",
+   "reason": "service는 .NET 서비스 등록과 서비스 공급자 해석에 쓰인다",
+   "entry": "n1-00033"
+  },
+  {
+   "word": "service",
+   "topic": "t940",
+   "reason": "service는 서비스 레지스트리와 디스커버리 대상이다",
+   "entry": "n1-00033"
+  },
+  {
+   "word": "connect",
+   "topic": "t25.3",
+   "reason": "connect는 데이터베이스 클라이언트 연결을 여는 동작을 가리킨다",
+   "entry": "n1-00035"
+  },
+  {
+   "word": "write",
+   "topic": "t615.2",
+   "reason": "write는 fs.writeFile 같은 파일 쓰기 API를 가리킨다",
+   "entry": "n1-00036"
+  },
+  {
+   "word": "write",
+   "topic": "t212.4",
+   "reason": "write는 writing/written의 기본형으로 쓰기 활동 표현에 쓰인다",
+   "entry": "n1-00036"
+  },
+  {
+   "word": "pagination",
+   "topic": "x213",
+   "reason": "pagination은 오프셋·키셋 방식의 쿼리 결과 페이징을 가리킨다",
+   "entry": "n1-00038"
+  },
+  {
+   "word": "lambda",
+   "topic": "x240",
+   "reason": "lambda는 익명 함수와 람다 표현식을 가리키는 대표 용어이다",
+   "entry": "n1-00040"
+  },
+  {
+   "word": "render",
+   "topic": "t346.6",
+   "reason": "render는 템플릿을 실행해 문자열을 만드는 render_to_string 계열에 쓰인다",
+   "entry": "n1-00043"
+  },
+  {
+   "word": "limit",
+   "topic": "x272",
+   "reason": "limit는 rlimit·ulimit 같은 프로세스 자원 제한에 쓰인다",
+   "entry": "n1-00044"
+  },
+  {
+   "word": "limit",
+   "topic": "t851",
+   "reason": "limit는 p-limit처럼 동시 실행 수를 제한하는 라이브러리 이름에 쓰인다",
+   "entry": "n1-00044"
+  },
+  {
+   "word": "idempotency",
+   "topic": "t89.3",
+   "reason": "idempotency는 Ansible 등 인프라 선언의 멱등성을 가리킨다",
+   "entry": "n1-00046"
+  },
+  {
+   "word": "model",
+   "topic": "t148.1",
+   "reason": "model은 사전학습 모델을 불러오는 코드(AutoModel 등)에서 쓰인다",
+   "entry": "n1-00052"
+  },
+  {
+   "word": "pattern",
+   "topic": "t550.4",
+   "reason": "pattern은 구조적 패턴 매칭의 패턴을 가리킨다",
+   "entry": "n1-00053"
+  },
+  {
+   "word": "size",
+   "topic": "t167.2",
+   "reason": "size는 sizeof처럼 값의 저장 크기를 재는 데 쓰인다",
+   "entry": "n1-00058"
+  },
+  {
+   "word": "mock",
+   "topic": "t244.8",
+   "reason": "mock은 의존성을 대체하는 테스트 더블을 가리킨다",
+   "entry": "n1-00059"
+  },
+  {
+   "word": "interval",
+   "topic": "t310.4",
+   "reason": "interval은 시작과 끝으로 한정된 날짜·시간 구간을 가리키기도 한다",
+   "entry": "n1-00060"
+  },
+  {
+   "word": "defer",
+   "topic": "t213.1",
+   "reason": "defer는 Q.defer처럼 프로미스 라이브러리의 Deferred 객체에 쓰인다",
+   "entry": "n1-00061"
+  },
+  {
+   "word": "provider",
+   "topic": "t43.1",
+   "reason": "provider는 .NET 서비스 공급자(IServiceProvider)를 가리킨다",
+   "entry": "n1-00063"
+  },
+  {
+   "word": "remove",
+   "topic": "t505",
+   "reason": "remove는 제거를 뜻하는 일반 동사 표현이다",
+   "entry": "n1-00064"
+  },
+  {
+   "word": "currency",
+   "topic": "x251",
+   "reason": "currency는 금액 값 타입에서 통화 단위를 나타낸다",
+   "entry": "n1-00066"
+  },
+  {
+   "word": "sync",
+   "topic": "t917.2",
+   "reason": "sync는 Go의 sync 패키지(Mutex, WaitGroup 등)를 가리킨다",
+   "entry": "n1-00068"
+  },
+  {
+   "word": "backward compatibility",
+   "topic": "t610.3",
+   "reason": "backward compatibility는 하위 호환성 요구사항을 직접 가리킨다",
+   "entry": "n1-00069"
+  },
+  {
+   "word": "column",
+   "topic": "t944.2",
+   "reason": "column은 터미널 화면의 열 수(cols)를 가리키기도 한다",
+   "entry": "n1-00070"
+  },
+  {
+   "word": "Protocol",
+   "topic": "x172",
+   "reason": "Protocol은 Swift·Python의 프로토콜 기반 인터페이스와 구조적 타이핑을 가리킨다",
+   "entry": "n1-00071"
+  },
+  {
+   "word": "output",
+   "topic": "t273.1",
+   "reason": "output은 출력을 쓰거나 캡처한다는 표현에 쓰인다",
+   "entry": "n1-00077"
+  },
+  {
+   "word": "extension",
+   "topic": "t729",
+   "reason": "extension은 extend/extended 계열의 확장 표현으로 쓰인다",
+   "entry": "n1-00079"
+  },
+  {
+   "word": "drop",
+   "topic": "t505",
+   "reason": "drop은 제거를 뜻하는 일반 영어 표현(dropping)으로 식별자에 쓰인다",
+   "entry": "n1-00081"
+  },
+  {
+   "word": "Observable",
+   "topic": "t526.2",
+   "reason": "Observable은 Angular NgRx와 RxJS 상태 관리의 핵심 타입이다",
+   "entry": "n1-00082"
+  },
+  {
+   "word": "Observable",
+   "topic": "x162",
+   "reason": "java.util.Observable처럼 옵저버 패턴에서 알림을 발행하는 대상을 가리킨다",
+   "entry": "n1-00082"
+  },
+  {
+   "word": "body",
+   "topic": "t508.2",
+   "reason": "body는 HTML body 요소(document.body)를 가리킨다",
+   "entry": "n1-00083"
+  },
+  {
+   "word": "build",
+   "topic": "x195",
+   "reason": "build는 npm run build, cargo build 같은 빌드 도구 명령 이름이다",
+   "entry": "n1-00084"
+  },
+  {
+   "word": "Parameters",
+   "topic": "t37.2",
+   "reason": "Parameters는 입력과 설정을 가리키는 일반 매개변수 표현이다",
+   "entry": "n1-00086"
+  },
+  {
+   "word": "artifact",
+   "topic": "t706.1",
+   "reason": "artifact는 Maven의 artifactId 등 JVM 산출물 게시 용어이다",
+   "entry": "n1-00089"
+  },
+  {
+   "word": "abort",
+   "topic": "t539",
+   "reason": "abort는 종료와 중단을 뜻하는 일반 표현으로 쓰인다",
+   "entry": "n1-00091"
+  },
+  {
+   "word": "document",
+   "topic": "t494",
+   "reason": "document는 XML/HTML 파서가 다루는 문서 객체(XmlDocument 등)를 가리킨다",
+   "entry": "n1-00092"
+  },
+  {
+   "word": "encode",
+   "topic": "t160.7",
+   "reason": "encode는 값을 인코딩된 형태로 만든다는 직렬화 표현이다",
+   "entry": "n1-00096"
+  },
+  {
+   "word": "block",
+   "topic": "t128.3",
+   "reason": "block은 Mono.block()처럼 비동기 작업 완료를 기다리는 동작을 가리킨다",
+   "entry": "n1-00099"
+  },
+  {
+   "word": "keep alive",
+   "topic": "t169.3",
+   "reason": "keep alive는 하트비트로 세션과 리스 소유를 유지하는 의미로 쓰인다",
+   "entry": "n1-00102"
+  },
+  {
+   "word": "mapping",
+   "topic": "t120",
+   "reason": "mapping은 표 기반 대응 관계(lookup table)를 가리키는 이름으로 쓰인다",
+   "entry": "n1-00103"
+  },
+  {
+   "word": "vector",
+   "topic": "t112.3",
+   "reason": "vector는 C++ std::vector 컨테이너 이름이다",
+   "entry": "n1-00105"
+  },
+  {
+   "word": "serialize",
+   "topic": "t160.7",
+   "reason": "serialize는 값을 직렬화한다는 일반 표현으로 쓰인다",
+   "entry": "n1-00107"
+  },
+  {
+   "word": "span",
+   "topic": "t508.2",
+   "reason": "span은 HTML span 요소를 가리킨다",
+   "entry": "n1-00108"
+  },
+  {
+   "word": "interrupt",
+   "topic": "t528.11",
+   "reason": "interrupt는 하드웨어 인터럽트 핸들러 등록(attachInterrupt)에 쓰인다",
+   "entry": "n1-00115"
+  },
+  {
+   "word": "command",
+   "topic": "t339.1",
+   "reason": "command는 셸 스크립트의 명령과 명령 치환을 가리킨다",
+   "entry": "n1-00119"
+  },
+  {
+   "word": "acknowledgment",
+   "topic": "t24.2",
+   "reason": "acknowledgment는 소비자의 메시지 확인(ack) 응답을 뜻한다",
+   "entry": "n1-00123",
+   "via": "acknowledge"
+  },
+  {
+   "word": "acknowledgment",
+   "topic": "t85.2",
+   "reason": "acknowledgment는 Kafka 오프셋 확인에 쓰이는 Acknowledgment 개념이다",
+   "entry": "n1-00123",
+   "via": "acknowledge"
+  },
+  {
+   "word": "color",
+   "topic": "t889",
+   "reason": "color는 레드블랙 트리 노드의 색상 필드를 가리킨다",
+   "entry": "n1-00131"
+  },
+  {
+   "word": "escaping",
+   "topic": "t495.3",
+   "reason": "escaping은 특수 문자 이스케이프 처리를 직접 가리킨다",
+   "entry": "n1-00132"
+  },
+  {
+   "word": "routing",
+   "topic": "x262",
+   "reason": "routing은 라우팅 테이블 기반 IP 경로 설정을 뜻하기도 한다",
+   "entry": "n1-00134"
+  },
+  {
+   "word": "verify",
+   "topic": "t123",
+   "reason": "verify는 확인과 검증을 뜻하는 일반 동사 표현이다",
+   "entry": "n1-00135"
+  },
+  {
+   "word": "conflict",
+   "topic": "t682.1",
+   "reason": "conflict는 값이 충돌하거나 일치하지 않음을 뜻하는 일반 표현이다",
+   "entry": "n1-00136"
+  },
+  {
+   "word": "watch",
+   "topic": "t781.1",
+   "reason": "watch는 관찰과 감시를 뜻하는 일반 표현으로 쓰인다",
+   "entry": "n1-00140"
+  },
+  {
+   "word": "receiver",
+   "topic": "t528.2",
+   "reason": "receiver는 Django 시그널 receiver처럼 이벤트 수신 리스너를 가리킨다",
+   "entry": "n1-00143",
+   "via": "sender"
+  },
+  {
+   "word": "rotation",
+   "topic": "t308.4",
+   "reason": "rotation은 배열과 시퀀스를 회전시키는 연산(std::rotate)을 가리킨다",
+   "entry": "n1-00148"
+  },
+  {
+   "word": "cron",
+   "topic": "t326.2",
+   "reason": "cron은 크론 스케줄과 작업 지시 표현이다",
+   "entry": "n1-00150"
+  },
+  {
+   "word": "history",
+   "topic": "x60",
+   "reason": "history는 브라우저 History API(pushState 등)를 가리킨다",
+   "entry": "n1-00157"
+  },
+  {
+   "word": "volatile",
+   "topic": "x166",
+   "reason": "volatile은 가시성과 순서 보장을 위한 메모리 순서 키워드로 쓰인다",
+   "entry": "n1-00161"
+  },
+  {
+   "word": "debug",
+   "topic": "t371",
+   "reason": "debug는 JavaScript console.debug 메서드 이름으로 쓰인다",
+   "entry": "n1-00163"
+  },
+  {
+   "word": "page",
+   "topic": "t856",
+   "reason": "page는 PDF와 인쇄 문서의 쪽을 가리킨다",
+   "entry": "n1-00170"
+  },
+  {
+   "word": "projection",
+   "topic": "t840.2",
+   "reason": "projection은 Rust Pin의 핀 투영(pin projection)을 가리킨다",
+   "entry": "n1-00171",
+   "via": "proj"
+  },
+  {
+   "word": "client",
+   "topic": "t65.3",
+   "reason": "client는 클라이언트-서버 통신에서 클라이언트 역할을 가리킨다",
+   "entry": "n1-00174"
+  },
+  {
+   "word": "membership",
+   "topic": "t15.6",
+   "reason": "membership은 사용자의 그룹과 역할 소속을 나타낸다",
+   "entry": "n1-00179"
+  },
+  {
+   "word": "resume",
+   "topic": "x108",
+   "reason": "resume은 중단 뒤 계속 진행한다는 일반 표현으로 쓰인다",
+   "entry": "n1-00180"
+  },
+  {
+   "word": "verification",
+   "topic": "t123",
+   "reason": "verification은 verify의 명사형으로 검증 표현에 쓰인다",
+   "entry": "n1-00182"
+  },
+  {
+   "word": "defaults",
+   "topic": "t364",
+   "reason": "defaults는 기본 설정값 묶음을 가리킨다",
+   "entry": "n1-00185"
+  },
+  {
+   "word": "indentation",
+   "topic": "x86",
+   "reason": "indentation은 편집기의 들여쓰기 편집 기능과 설정에 쓰인다",
+   "entry": "n1-00186",
+   "via": "auto-indent"
+  },
+  {
+   "word": "mmap",
+   "topic": "x224",
+   "reason": "mmap은 파일을 메모리에 매핑해 읽고 쓰는 입출력 API이다",
+   "entry": "n1-00188"
+  },
+  {
+   "word": "flatMap",
+   "topic": "t524",
+   "reason": "flatMap은 중첩 시퀀스를 평탄화하는 연산이다",
+   "entry": "n1-00193"
+  },
+  {
+   "word": "invoke",
+   "topic": "t212.2",
+   "reason": "invoke는 호출과 실행을 뜻하는 일반 표현으로 쓰인다",
+   "entry": "n1-00195"
+  },
+  {
+   "word": "sum",
+   "topic": "x252",
+   "reason": "sum은 숫자의 합계를 구하는 연산이다",
+   "entry": "n1-00199"
+  },
+  {
+   "word": "issue",
+   "topic": "t51.3",
+   "reason": "issue는 문제를 가리키는 일반 표현으로 쓰인다",
+   "entry": "n1-00202"
+  },
+  {
+   "word": "ranking",
+   "topic": "t726.1",
+   "reason": "ranking은 SQL 윈도 순위 함수의 순위 계산을 가리킨다",
+   "entry": "n1-00203",
+   "via": "rank"
+  },
+  {
+   "word": "validate",
+   "topic": "t123",
+   "reason": "validate는 검사와 확인을 뜻하는 대표 동사이다",
+   "entry": "n1-00207"
+  },
+  {
+   "word": "call",
+   "topic": "t212.2",
+   "reason": "call은 호출을 뜻하는 일반 표현으로 쓰인다",
+   "entry": "n1-00209"
+  },
+  {
+   "word": "call",
+   "topic": "t203.2",
+   "reason": "call은 동작을 호출하고 실행한다는 표현으로 쓰인다",
+   "entry": "n1-00209"
+  },
+  {
+   "word": "extract",
+   "topic": "x222",
+   "reason": "extract는 IDE의 메서드·함수 추출 리팩터링 명령이다",
+   "entry": "n1-00212"
+  },
+  {
+   "word": "local storage",
+   "topic": "x153",
+   "reason": "local storage는 모바일 기기의 로컬 저장소를 가리키기도 한다",
+   "entry": "n1-00217"
+  },
+  {
+   "word": "skip",
+   "topic": "t506",
+   "reason": "skip은 무언가를 건너뛴다는 일반 표현이다",
+   "entry": "n1-00222"
+  },
+  {
+   "word": "hydration",
+   "topic": "t461",
+   "reason": "hydration은 저장된 데이터로 객체를 채워 복원하는 동작이다",
+   "entry": "n1-00224"
+  },
+  {
+   "word": "delegate",
+   "topic": "t233.3",
+   "reason": "delegate는 jQuery delegate 등 이벤트 위임을 가리킨다",
+   "entry": "n1-00232"
+  },
+  {
+   "word": "mfa",
+   "topic": "t530.1",
+   "reason": "mfa는 Erlang과 Elixir의 모듈-함수-인자(MFA) 표기이다",
+   "entry": "n1-00234"
+  },
+  {
+   "word": "save",
+   "topic": "t744.3",
+   "reason": "save는 값을 저장했다는 지속성 표현으로 쓰인다",
+   "entry": "n1-00235"
+  },
+  {
+   "word": "distribution",
+   "topic": "x133",
+   "reason": "distribution은 확률 분포를 가리킨다",
+   "entry": "n1-00239"
+  },
+  {
+   "word": "ignore",
+   "topic": "t506",
+   "reason": "ignore는 무언가를 건너뛰고 빼놓는 동사로 쓰인다",
+   "entry": "n1-00241"
+  },
+  {
+   "word": "ignore",
+   "topic": "t486.2",
+   "reason": "ignored 형태로 값이나 작업을 무시하고 버린다는 표현에 쓰인다",
+   "entry": "n1-00241"
+  },
+  {
+   "word": "opcode",
+   "topic": "t605",
+   "reason": "opcode는 WebSocket이나 DNS 같은 프레임 헤더의 연산 코드 필드를 가리킨다",
+   "entry": "n1-00249"
+  },
+  {
+   "word": "references",
+   "topic": "t643.3",
+   "reason": "references는 C++ 등에서 참조 매개변수와 참조 반환을 뜻한다",
+   "entry": "n1-00263"
+  },
+  {
+   "word": "trait",
+   "topic": "x172",
+   "reason": "trait는 인터페이스처럼 동작 계약을 선언하는 언어 구성 요소다",
+   "entry": "n1-00265"
+  },
+  {
+   "word": "allow",
+   "topic": "t534",
+   "reason": "allow는 문서에서 무엇을 가능하게 한다는 일반 영어 동사로 쓰인다",
+   "entry": "n1-00266"
+  },
+  {
+   "word": "check",
+   "topic": "t123",
+   "reason": "check는 검증한다는 의미의 일반 동사로 쓰인다",
+   "entry": "n1-00267"
+  },
+  {
+   "word": "resolver",
+   "topic": "t95.3",
+   "reason": "resolver는 Spring의 argument resolver처럼 요청 값을 해석하는 객체를 가리킨다",
+   "entry": "n1-00272"
+  },
+  {
+   "word": "runner",
+   "topic": "t326.1",
+   "reason": "runner는 명령이나 자식 프로세스를 실행하는 CommandRunner류 객체를 가리킨다",
+   "entry": "n1-00273"
+  },
+  {
+   "word": "steps",
+   "topic": "x42",
+   "reason": "steps는 마법사와 스테퍼 컴포넌트의 단계 목록을 뜻한다",
+   "entry": "n1-00276"
+  },
+  {
+   "word": "steps",
+   "topic": "t27.1",
+   "reason": "steps는 Cucumber 등 BDD의 스텝 정의를 뜻한다",
+   "entry": "n1-00276"
+  },
+  {
+   "word": "total",
+   "topic": "x252",
+   "reason": "total은 값들을 합산한 합계를 뜻한다",
+   "entry": "n1-00278"
+  },
+  {
+   "word": "deny",
+   "topic": "t119.2",
+   "reason": "deny는 SQL Server의 DENY 권한 문에 쓰인다",
+   "entry": "n1-00291"
+  },
+  {
+   "word": "move",
+   "topic": "t897",
+   "reason": "move는 이동과 이름 변경, 소유권 이전을 뜻하는 일반 동사다",
+   "entry": "n1-00294"
+  },
+  {
+   "word": "query string",
+   "topic": "t621",
+   "reason": "query string은 프런트엔드에서 URL 쿼리 매개변수를 읽는 대상이다",
+   "entry": "n1-00297"
+  },
+  {
+   "word": "Combine",
+   "topic": "t336",
+   "reason": "combine은 컬렉션이나 스트림을 합치는 동사로 쓰인다",
+   "entry": "n1-00300"
+  },
+  {
+   "word": "cwd",
+   "topic": "x271",
+   "reason": "cwd는 프로세스의 현재 작업 디렉터리를 뜻한다",
+   "entry": "n1-00301"
+  },
+  {
+   "word": "escape sequence",
+   "topic": "t495.3",
+   "reason": "escape sequence는 특수 문자를 이스케이프하는 표기 자체를 가리킨다",
+   "entry": "n1-00306"
+  },
+  {
+   "word": "preload",
+   "topic": "x186",
+   "reason": "preload는 link rel=preload 리소스 힌트를 뜻한다",
+   "entry": "n1-00313"
+  },
+  {
+   "word": "shared state",
+   "topic": "t501.2",
+   "reason": "shared state는 프런트엔드의 전역 상태 저장소를 뜻하기도 한다",
+   "entry": "n1-00314"
+  },
+  {
+   "word": "termination",
+   "topic": "t539",
+   "reason": "termination은 종료를 뜻하는 일반 표현이다",
+   "entry": "n1-00317"
+  },
+  {
+   "word": "termination",
+   "topic": "t551.2",
+   "reason": "termination은 프로세스 종료와 종료 상태를 가리킨다",
+   "entry": "n1-00317"
+  },
+  {
+   "word": "effect",
+   "topic": "t77",
+   "reason": "effect는 fade 같은 UI 시각 효과와 애니메이션 효과를 가리키는 말로 쓰인다",
+   "entry": "n1-00321"
+  },
+  {
+   "word": "learning rate",
+   "topic": "t717.3",
+   "reason": "learning rate는 그래디언트 부스팅과 AdaBoost 같은 예측 모델 적합의 하이퍼파라미터로 쓰인다",
+   "entry": "n1-00327"
+  },
+  {
+   "word": "overwrite",
+   "topic": "t819",
+   "reason": "overwrite는 override와 replace 계열의 덮어쓰기 표현 그 자체다",
+   "entry": "n1-00330"
+  },
+  {
+   "word": "syntax highlighting",
+   "topic": "t739",
+   "reason": "syntax highlighting은 코드 에디터의 핵심 기능으로 에디터 API 주제에 속한다",
+   "entry": "n1-00334"
+  },
+  {
+   "word": "loader",
+   "topic": "t62.7",
+   "reason": "loader는 동적 라이브러리를 로드하고 링크하는 로더를 가리킨다",
+   "entry": "n1-00343"
+  },
+  {
+   "word": "loader",
+   "topic": "t866.1",
+   "reason": "loader는 모듈이나 클래스를 동적으로 불러오는 ModuleLoader, ClassLoader 같은 이름에 쓰인다",
+   "entry": "n1-00343"
+  },
+  {
+   "word": "reference counting",
+   "topic": "t444.2",
+   "reason": "reference counting은 원자적 증감으로 유지하는 refcount 구현을 가리킨다",
+   "entry": "n1-00347"
+  },
+  {
+   "word": "resolved",
+   "topic": "t777.1",
+   "reason": "resolved는 모듈과 의존성 해석이 끝난 결과를 뜻하며 resolve 계열 단어다",
+   "entry": "n1-00348"
+  },
+  {
+   "word": "analyzer",
+   "topic": "t125.1",
+   "reason": "analyzer는 린터와 정적 분석기처럼 코드를 분석하는 도구를 가리킨다",
+   "entry": "n1-00355"
+  },
+  {
+   "word": "last",
+   "topic": "t568.1",
+   "reason": "last는 lastUpdated처럼 가장 최근을 뜻하는 일반 영어 표현으로 쓰인다",
+   "entry": "n1-00361"
+  },
+  {
+   "word": "mime",
+   "topic": "t12.2",
+   "reason": "mime은 확장자와 시그니처로 파일 형식을 판별하는 MIME 타입 조회에 쓰인다",
+   "entry": "n1-00363"
+  },
+  {
+   "word": "permission denied",
+   "topic": "x56",
+   "reason": "permission denied는 위치와 카메라 등 브라우저 권한 요청이 거부될 때의 오류 상태다",
+   "entry": "n1-00364"
+  },
+  {
+   "word": "recover",
+   "topic": "t512.2",
+   "reason": "recover는 장애와 크래시에서 복구하는 동작을 뜻한다",
+   "entry": "n1-00366"
+  },
+  {
+   "word": "traceback",
+   "topic": "t347.2",
+   "reason": "traceback은 예외와 스택 트레이스를 출력하는 진단 출력 결과를 가리킨다",
+   "entry": "n1-00367"
+  },
+  {
+   "word": "use",
+   "topic": "t316.2",
+   "reason": "use는 Kotlin의 use 블록처럼 자원을 자동으로 닫는 범위를 만든다",
+   "entry": "n1-00368"
+  },
+  {
+   "word": "Instant",
+   "topic": "t433.2",
+   "reason": "Instant는 Instant.now처럼 현재 시각을 읽는 시간 값 타입이다",
+   "entry": "n1-00376"
+  },
+  {
+   "word": "caching",
+   "topic": "t48.10",
+   "reason": "caching은 Cache-Control 등 HTTP 캐시 동작을 가리키는 말로 쓰인다",
+   "entry": "n1-00385"
+  },
+  {
+   "word": "content",
+   "topic": "x22",
+   "reason": "content는 CMS와 게시 플랫폼에서 글과 미디어 콘텐츠를 가리킨다",
+   "entry": "n1-00386"
+  },
+  {
+   "word": "LLVM",
+   "topic": "t311",
+   "reason": "LLVM은 Clang과 lld를 포함한 컴파일러 툴체인 자체를 가리킨다",
+   "entry": "n1-00390"
+  },
+  {
+   "word": "memory usage",
+   "topic": "t167.2",
+   "reason": "memory usage는 pandas memory_usage나 sizeof처럼 값의 메모리 점유량 측정을 가리킨다",
+   "entry": "n1-00391"
+  },
+  {
+   "word": "page size",
+   "topic": "t856",
+   "reason": "page size는 PDF와 인쇄 문서의 A4 같은 용지 크기를 가리킨다",
+   "entry": "n1-00393"
+  },
+  {
+   "word": "terminate",
+   "topic": "t569.2",
+   "reason": "terminate는 Popen.terminate처럼 프로세스를 종료시키는 동작이다",
+   "entry": "n1-00396"
+  },
+  {
+   "word": "async/await",
+   "topic": "x314",
+   "reason": "async/await는 비동기 함수 선언과 호출 문법 자체를 가리킨다",
+   "entry": "n1-00402",
+   "via": "async await"
+  },
+  {
+   "word": "evaluation",
+   "topic": "t353.2",
+   "reason": "evaluation은 표현식 평가 순서와 단락 평가 규칙을 가리키는 말로 쓰인다",
+   "entry": "n1-00405"
+  },
+  {
+   "word": "gpu",
+   "topic": "x304",
+   "reason": "gpu는 nvidia-smi 등으로 GPU 사용률과 메모리를 점검하는 맥락에서 쓰인다",
+   "entry": "n1-00408"
+  },
+  {
+   "word": "not null",
+   "topic": "x212",
+   "reason": "not null은 SQL의 IS NOT NULL 조건식에서 널 여부를 검사하는 데 쓰인다",
+   "entry": "n1-00414"
+  },
+  {
+   "word": "quote",
+   "topic": "x206",
+   "reason": "quote는 CSV 읽기와 쓰기의 인용 문자 옵션 이름으로 쓰인다",
+   "entry": "n1-00416"
+  },
+  {
+   "word": "quote",
+   "topic": "t495.3",
+   "reason": "quote는 shlex.quote처럼 특수 문자를 이스케이프하는 동작을 뜻하기도 한다",
+   "entry": "n1-00416"
+  },
+  {
+   "word": "registration",
+   "topic": "t941",
+   "reason": "registration은 서비스 디스커버리에 서비스를 등록하는 동작을 뜻한다",
+   "entry": "n1-00417"
+  },
+  {
+   "word": "scheduling",
+   "topic": "t268.2",
+   "reason": "scheduling은 cron 표현식과 스케줄러 트리거로 작업을 예약하는 뜻으로 쓰인다",
+   "entry": "n1-00419",
+   "via": "schedule"
+  },
+  {
+   "word": "scheduling",
+   "topic": "t319.2",
+   "reason": "scheduling은 이벤트 루프의 콜백과 마이크로태스크를 예약하는 뜻으로도 쓰인다",
+   "entry": "n1-00419",
+   "via": "reschedule"
+  },
+  {
+   "word": "client secret",
+   "topic": "t20.1",
+   "reason": "client secret은 서비스에 제공하는 클라이언트 자격 증명으로 쓰인다",
+   "entry": "n1-00427"
+  },
+  {
+   "word": "constraints",
+   "topic": "t635.2",
+   "reason": "constraints는 Bean Validation 같은 입력 필드 검증 제약을 가리킨다",
+   "entry": "n1-00428"
+  },
+  {
+   "word": "devtools",
+   "topic": "x259",
+   "reason": "devtools는 Flutter DevTools 같은 Flutter 프로젝트 디버깅 도구를 가리킨다",
+   "entry": "n1-00429"
+  },
+  {
+   "word": "show",
+   "topic": "t691.1",
+   "reason": "show는 DataFrame.show처럼 객체를 텍스트로 출력해 보여주는 동작을 뜻한다",
+   "entry": "n1-00437"
+  },
+  {
+   "word": "substitution",
+   "topic": "t899",
+   "reason": "substitution은 대체 또는 교체라는 일반 영어 의미로 식별자에 쓰인다",
+   "entry": "n1-00439",
+   "via": "replacement"
+  },
+  {
+   "word": "cache hit",
+   "topic": "x165",
+   "reason": "cache hit는 CPU 캐시 적중 여부를 논할 때에도 쓰이는 용어다",
+   "entry": "n1-00449"
+  },
+  {
+   "word": "reproducibility",
+   "topic": "t244.6",
+   "reason": "reproducibility는 버그를 재현할 수 있는지를 가리키는 말로 쓰인다",
+   "entry": "n1-00455",
+   "via": "reproducible"
+  },
+  {
+   "word": "rules",
+   "topic": "t864",
+   "reason": "rules는 CSS 규칙(선택자와 선언 묶음)을 가리킨다",
+   "entry": "n1-00456"
+  },
+  {
+   "word": "time series",
+   "topic": "x82",
+   "reason": "time series는 InfluxDB 같은 시계열 데이터베이스를 가리키기도 한다",
+   "entry": "n1-00458"
+  },
+  {
+   "word": "actions",
+   "topic": "t97.1",
+   "reason": "actions는 WordPress의 do_action 계열 액션 훅을 가리키기도 한다",
+   "entry": "n1-00461"
+  },
+  {
+   "word": "duplicate",
+   "topic": "t513",
+   "reason": "duplicate는 복사 또는 복제를 뜻하는 일반 영어 표현으로 쓰인다",
+   "entry": "n1-00465"
+  },
+  {
+   "word": "thread safe",
+   "topic": "t360",
+   "reason": "thread safe는 ConcurrentHashMap 같은 스레드 안전 컬렉션을 가리키는 말로 쓰인다",
+   "entry": "n1-00479"
+  },
+  {
+   "word": "truncation",
+   "topic": "t952.1",
+   "reason": "truncation은 문자열을 원하는 길이로 잘라내는 동작을 뜻한다",
+   "entry": "n1-00480",
+   "via": "truncates"
+  },
+  {
+   "word": "truncation",
+   "topic": "t284",
+   "reason": "truncation은 0 방향 절삭이라는 반올림 방식의 하나로도 쓰인다",
+   "entry": "n1-00480",
+   "via": "truncates"
+  },
+  {
+   "word": "tsconfig.json",
+   "topic": "t39.6",
+   "reason": "tsconfig.json은 TypeScript 프로젝트의 빌드 설정을 선언하는 매니페스트 파일이다",
+   "entry": "n1-00481"
+  },
+  {
+   "word": "values",
+   "topic": "t529",
+   "reason": "values는 컬렉션에 담긴 개별 값(원소)들을 가리키는 일반 식별자로 쓰인다",
+   "entry": "n1-00484"
+  },
+  {
+   "word": "enter",
+   "topic": "t305.3",
+   "reason": "enter는 상태 기계에서 특정 상태로 진입하는 전이를 뜻한다",
+   "entry": "n1-00492"
+  },
+  {
+   "word": "ipc",
+   "topic": "x270",
+   "reason": "ipc는 같은 호스트 안의 프로세스 간 통신 자체를 가리키는 말이다",
+   "entry": "n1-00496"
+  },
+  {
+   "word": "maximum",
+   "topic": "t997",
+   "reason": "maximum은 집합에서 가장 큰 값을 고르는 최댓값 선택에도 쓰인다",
+   "entry": "n1-00497"
+  },
+  {
+   "word": "onboarding",
+   "topic": "x197",
+   "reason": "onboarding은 인사 시스템의 직원 입사 절차를 가리키기도 한다",
+   "entry": "n1-00499"
+  },
+  {
+   "word": "onboarding",
+   "topic": "x9",
+   "reason": "onboarding은 판매자의 상점과 결제사 연동 설정 절차를 가리키기도 한다",
+   "entry": "n1-00499"
+  },
+  {
+   "word": "src",
+   "topic": "t39.10",
+   "reason": "src는 프로젝트의 소스 파일 디렉터리를 가리키는 관용 이름이다",
+   "entry": "n1-00501"
+  },
+  {
+   "word": "account",
+   "topic": "t170.4",
+   "reason": "account는 이체와 자동이체에 쓰이는 은행 계좌를 뜻하기도 한다",
+   "entry": "n1-00504"
+  },
+  {
+   "word": "batching",
+   "topic": "t45.4",
+   "reason": "batching은 리액트의 상태 갱신 일괄 처리를 가리킨다",
+   "entry": "n1-00506",
+   "via": "batcher"
+  },
+  {
+   "word": "batching",
+   "topic": "t85.4",
+   "reason": "batching은 메시지나 레코드를 묶음 단위로 처리하는 방식을 가리킨다",
+   "entry": "n1-00506",
+   "via": "batch processing"
+  },
+  {
+   "word": "batching",
+   "topic": "t487.2",
+   "reason": "batching은 데이터베이스 행을 묶어서 대량 삽입하는 방식에도 쓰인다",
+   "entry": "n1-00506",
+   "via": "batcher"
+  },
+  {
+   "word": "conflict resolution",
+   "topic": "t39.2",
+   "reason": "conflict resolution은 의존성 버전 충돌을 해소하는 전략을 뜻하기도 한다",
+   "entry": "n1-00507"
+  },
+  {
+   "word": "integrity",
+   "topic": "x190",
+   "reason": "integrity는 script 태그의 하위 리소스 무결성 속성 이름이기도 하다",
+   "entry": "n1-00512"
+  },
+  {
+   "word": "issue tracker",
+   "topic": "t232",
+   "reason": "issue tracker는 Jira 같은 이슈 추적 도구 자체를 가리킨다",
+   "entry": "n1-00513"
+  },
+  {
+   "word": "mkdir",
+   "topic": "x268",
+   "reason": "mkdir은 대표적인 유닉스 명령어 이름이다",
+   "entry": "n1-00519"
+  },
+  {
+   "word": "URLSearchParams",
+   "topic": "t621",
+   "reason": "URLSearchParams는 URL 쿼리 매개변수를 읽는 접근자다",
+   "entry": "n1-00539"
+  },
+  {
+   "word": "bindings",
+   "topic": "t43.4",
+   "reason": "bindings는 의존성 주입 컨테이너의 바인딩 등록을 뜻하기도 한다",
+   "entry": "n1-00542"
+  },
+  {
+   "word": "bindings",
+   "topic": "t43.3",
+   "reason": "bindings는 Guice나 Dagger 같은 JVM 주입 프레임워크의 바인딩을 뜻한다",
+   "entry": "n1-00542"
+  },
+  {
+   "word": "deferred",
+   "topic": "t679.4",
+   "reason": "deferred는 리액트의 지연된 값(useDeferredValue)을 가리키는 이름으로 쓰인다",
+   "entry": "n1-00546"
+  },
+  {
+   "word": "elf",
+   "topic": "x281",
+   "reason": "elf는 섹션 구조를 가진 실행 파일 형식으로 readelf 같은 도구로 검사한다",
+   "entry": "n1-00547"
+  },
+  {
+   "word": "encrypt",
+   "topic": "t80.3",
+   "reason": "encrypt는 비대칭 또는 블록 암호로 데이터를 암호화하는 동작 자체를 가리킨다",
+   "entry": "n1-00548"
+  },
+  {
+   "word": "members",
+   "topic": "t224.1",
+   "reason": "members는 클래스의 인스턴스 멤버와 정적 멤버를 가리키기도 한다",
+   "entry": "n1-00554"
+  },
+  {
+   "word": "Serde",
+   "topic": "t635.6",
+   "reason": "Kafka Streams의 Serde처럼 스키마 레지스트리 기반 직렬화·역직렬화 쌍을 가리킨다",
+   "entry": "n1-00562"
+  },
+  {
+   "word": "candidate",
+   "topic": "t79.3",
+   "reason": "검색·추천에서 순위를 매길 후보 결과 집합을 가리킨다",
+   "entry": "n1-00570",
+   "via": "appropriate"
+  },
+  {
+   "word": "cls",
+   "topic": "t149.2",
+   "reason": "cls는 className 조합 헬퍼 변수명으로 흔히 쓰인다",
+   "entry": "n1-00571"
+  },
+  {
+   "word": "CMake",
+   "topic": "t39.6",
+   "reason": "CMake는 CMakeLists.txt로 빌드 구성을 선언하는 빌드 설정 도구다",
+   "entry": "n1-00572"
+  },
+  {
+   "word": "delegation",
+   "topic": "t641",
+   "reason": "delegation은 책임을 넘긴다는 일반 영어 표현으로 쓰인다",
+   "entry": "n1-00575"
+  },
+  {
+   "word": "enable",
+   "topic": "x101",
+   "reason": "enable은 기능을 켠다는 일반 영어 표현으로 쓰인다",
+   "entry": "n1-00578"
+  },
+  {
+   "word": "enable",
+   "topic": "t534",
+   "reason": "enable은 가능하게 한다, 허용한다는 의미의 일반 영어 동사로 쓰인다",
+   "entry": "n1-00578"
+  },
+  {
+   "word": "feature detection",
+   "topic": "t947",
+   "reason": "feature detection은 컴퓨터 비전의 특징점 검출을 가리킨다",
+   "entry": "n1-00580"
+  },
+  {
+   "word": "fs",
+   "topic": "t397.2",
+   "reason": "fs는 FileStream 같은 파일 스트림 핸들 변수명으로 흔히 쓰인다",
+   "entry": "n1-00582"
+  },
+  {
+   "word": "fs",
+   "topic": "t615.1",
+   "reason": "fs는 C#·C++의 파일 스트림 객체 변수명으로 쓰인다",
+   "entry": "n1-00582"
+  },
+  {
+   "word": "global state",
+   "topic": "t630",
+   "reason": "global state는 전역 변수와 전역 범위에 두는 상태를 가리킨다",
+   "entry": "n1-00583"
+  },
+  {
+   "word": "path.join",
+   "topic": "t831",
+   "reason": "path.join은 경로 결합 함수 자체를 가리킨다",
+   "entry": "n1-00594"
+  },
+  {
+   "word": "resource leak",
+   "topic": "x267",
+   "reason": "resource leak은 연결·파일 디스크립터 같은 비메모리 자원 누수를 가리킨다",
+   "entry": "n1-00598",
+   "via": "connection leak"
+  },
+  {
+   "word": "similarity",
+   "topic": "x116",
+   "reason": "similarity는 같거나 비슷하다는 일반 영어 표현으로도 쓰인다",
+   "entry": "n1-00602"
+  },
+  {
+   "word": "authorize",
+   "topic": "t89.2",
+   "reason": "authorize는 ASP.NET의 [Authorize] 인가 규칙 적용을 가리킨다",
+   "entry": "n1-00613"
+  },
+  {
+   "word": "callbacks",
+   "topic": "t528.3",
+   "reason": "callbacks는 콜백 함수 등록과 호출 자체를 가리킨다",
+   "entry": "n1-00615"
+  },
+  {
+   "word": "direction",
+   "topic": "x171",
+   "reason": "direction은 rtl/ltr 텍스트 방향 설정에도 쓰인다",
+   "entry": "n1-00621"
+  },
+  {
+   "word": "file watcher",
+   "topic": "t91.2",
+   "reason": "file watcher는 fsnotify, WatchService 같은 파일 변경 감시 도구를 가리킨다",
+   "entry": "n1-00624"
+  },
+  {
+   "word": "file watcher",
+   "topic": "t31.3",
+   "reason": "file watcher는 VS Code의 FileSystemWatcher를 가리킨다",
+   "entry": "n1-00624"
+  },
+  {
+   "word": "initial state",
+   "topic": "t814",
+   "reason": "initial state는 초기 상태를 뜻하는 일반 영어 표현이다",
+   "entry": "n1-00628"
+  },
+  {
+   "word": "requirement",
+   "topic": "t789",
+   "reason": "requirement는 반드시 필요한 조건을 뜻하는 일반 영어 표현이다",
+   "entry": "n1-00637"
+  },
+  {
+   "word": "rsa",
+   "topic": "t80.5",
+   "reason": "rsa는 SSH 공개키 인증의 id_rsa 키 쌍에 쓰인다",
+   "entry": "n1-00638"
+  },
+  {
+   "word": "SSH",
+   "topic": "x158",
+   "reason": "SSH 터널과 점프 호스트를 통한 포트 노출을 가리키는 이름으로 쓰인다",
+   "entry": "n1-00641"
+  },
+  {
+   "word": "second",
+   "topic": "t308.2",
+   "reason": "Lisp 계열의 second 접근자처럼 시퀀스의 서수 위치 원소를 가리킨다",
+   "entry": "n1-00650"
+  },
+  {
+   "word": "third",
+   "topic": "t308.2",
+   "reason": "third 접근자나 thirdItem처럼 시퀀스의 서수 위치 원소를 가리킨다",
+   "entry": "n1-00651"
+  },
+  {
+   "word": "detects",
+   "topic": "t477",
+   "reason": "detect 동사의 일반 탐지 표현으로 쓰인다",
+   "entry": "n1-00655"
+  }
+ ]
+}

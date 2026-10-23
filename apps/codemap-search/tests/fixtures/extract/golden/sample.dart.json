@@ -82,6 +82,25 @@
                 "endLine": 11,
                 "endCol": 1
               }
+            },
+            {
+              "entry": {
+                "localName": "*",
+                "source": "package:demo/helper.dart",
+                "kind": "glob",
+                "range": {
+                  "startLine": 1,
+                  "startCol": 1,
+                  "endLine": 1,
+                  "endCol": 35
+                }
+              },
+              "scope": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 11,
+                "endCol": 1
+              }
             }
           ],
           "shadows": [],
@@ -136,7 +155,32 @@
             }
           ],
           "implementations": [],
-          "calls": []
+          "calls": [
+            {
+              "name": "start",
+              "range": {
+                "startLine": 8,
+                "startCol": 5,
+                "endLine": 8,
+                "endCol": 19
+              },
+              "receiver": {
+                "name": "Helper",
+                "arguments": [],
+                "range": {
+                  "startLine": 8,
+                  "startCol": 5,
+                  "endLine": 8,
+                  "endCol": 19
+                }
+              },
+              "namespace": "Worker",
+              "enclosingSymbol": "run",
+              "argumentCount": 0,
+              "conditions": [],
+              "receiverKind": "type"
+            }
+          ]
         }
       ],
       "omitted": 0

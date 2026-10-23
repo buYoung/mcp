@@ -108,6 +108,9 @@
     "Open a connection and return a status message.",
     "@deprecated use connection_open instead"
   ],
+  "memberNames": [
+    "fd"
+  ],
   "navigation": {
     "calls": [],
     "references": [],

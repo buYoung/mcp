@@ -1,0 +1,50 @@
+{
+  "dataset_id": "rts3-08b1780cc2880c26",
+  "path": "datasets/rts3-08b1780cc2880c26/dataset.sqlite3",
+  "schema_version": "rt-sense/3",
+  "base_dataset": "rts3-25df1cf41d0d8247",
+  "base_sha256": "8492f40d43bea9ff993a5ce9962a691c51c434b8cd1f37b057533758429a0aec",
+  "plan_sha256": "6e7254c3206b0f499c78af4074dd38a3c784d4137c44ef02b6c19edcc2d0bf3b",
+  "before": {
+    "fields": 39,
+    "topics": 2657,
+    "topic_fields": 3176,
+    "concepts": 6768,
+    "terms": 14603,
+    "senses": 31354,
+    "personas": 44060,
+    "input_senses": 331421,
+    "relations": 592793,
+    "input_relations": 9
+  },
+  "after": {
+    "fields": 39,
+    "topics": 2657,
+    "topic_fields": 3176,
+    "concepts": 6768,
+    "terms": 17556,
+    "senses": 31354,
+    "personas": 44060,
+    "input_senses": 334442,
+    "relations": 592793,
+    "input_relations": 9
+  },
+  "delta": {
+    "fields": 0,
+    "topics": 0,
+    "topic_fields": 0,
+    "concepts": 0,
+    "terms": 2953,
+    "senses": 0,
+    "personas": 0,
+    "input_senses": 3021,
+    "relations": 0,
+    "input_relations": 0
+  },
+  "operations": {
+    "terms_added": 2953,
+    "input_senses_added": 3021
+  },
+  "foreign_key_errors": [],
+  "status": "complete"
+}

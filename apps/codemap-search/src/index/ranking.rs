@@ -418,6 +418,7 @@ fn candidate_from_doc(
             symbols: Vec::new(),
             literals: Vec::new(),
             docstrings: Vec::new(),
+            member_names: Vec::new(),
             navigation: None,
         });
 
@@ -672,47 +673,62 @@ impl SearcherHandle {
 
         let query_tokens = QueryTokens::parse(query_str);
 
-        let query = match parse_query_catching_panic(|| query_parser.parse_query(query_str)) {
-            Some(Ok(q)) => q,
-            // Primary parse failed or panicked (e.g. a bare `*` in tantivy 0.26):
-            // retry with the shared tokenizer's plain term query. If the tokenizer found no
-            // identifier terms, strip special characters to spaces as the last fallback.
-            _ => {
-                let escaped = if query_tokens.is_empty() {
-                    query_str
-                        .to_lowercase()
-                        .chars()
-                        .map(|c| {
-                            if c.is_alphanumeric() || c.is_whitespace() {
-                                c
-                            } else {
-                                ' '
-                            }
-                        })
-                        .collect()
-                } else {
-                    query_tokens.search_text().to_string()
-                };
-                if escaped.trim().is_empty() {
-                    return Ok(Vec::new());
+        // The shared tokenizer's plain term query. If the tokenizer found no identifier
+        // terms, special characters become spaces. `None` means nothing is searchable.
+        let plain_query = || -> Result<Option<Box<dyn Query>>, String> {
+            let escaped = if query_tokens.is_empty() {
+                query_str
+                    .to_lowercase()
+                    .chars()
+                    .map(|c| {
+                        if c.is_alphanumeric() || c.is_whitespace() {
+                            c
+                        } else {
+                            ' '
+                        }
+                    })
+                    .collect()
+            } else {
+                query_tokens.search_text().to_string()
+            };
+            if escaped.trim().is_empty() {
+                return Ok(None);
+            }
+            match parse_query_catching_panic(|| query_parser.parse_query(&escaped)) {
+                Some(Ok(q)) => Ok(Some(q)),
+                // The plain fallback has no meaningful exclusion-only query.
+                // Tantivy also reports this when its analyzer drops every token.
+                Some(Err(tantivy::query::QueryParserError::AllButQueryForbidden)) | None => {
+                    Ok(None)
                 }
-                match parse_query_catching_panic(|| query_parser.parse_query(&escaped)) {
-                    Some(Ok(q)) => q,
-                    // The plain fallback has no meaningful exclusion-only query.
-                    // Tantivy also reports this when its analyzer drops every token.
-                    Some(Err(tantivy::query::QueryParserError::AllButQueryForbidden)) => {
-                        return Ok(Vec::new())
-                    }
-                    Some(Err(e)) => return Err(e.to_string()),
-                    None => return Ok(Vec::new()),
-                }
+                Some(Err(e)) => Err(e.to_string()),
             }
         };
 
+        let query = match parse_query_catching_panic(|| query_parser.parse_query(query_str)) {
+            Some(Ok(q)) => q,
+            // Primary parse failed or panicked (e.g. a bare `*` in tantivy 0.26).
+            _ => match plain_query()? {
+                Some(q) => q,
+                None => return Ok(Vec::new()),
+            },
+        };
+
         let query = restrict_to_scope(query, self.file_path_field, workspace_scope)?;
-        let top_docs = searcher
-            .search(&query, &TopDocs::with_limit(limit).order_by_score())
-            .map_err(|e| e.to_string())?;
+        let top_docs = match searcher.search(&query, &TopDocs::with_limit(limit).order_by_score()) {
+            Ok(top_docs) => top_docs,
+            // A parsed query can still fail to run: tantivy 0.27 turns `symbol:*` into an
+            // exists query that requires a fast field. Search its plain terms instead.
+            Err(_) => {
+                let Some(plain) = plain_query()? else {
+                    return Ok(Vec::new());
+                };
+                let plain = restrict_to_scope(plain, self.file_path_field, workspace_scope)?;
+                searcher
+                    .search(&plain, &TopDocs::with_limit(limit).order_by_score())
+                    .map_err(|e| e.to_string())?
+            }
+        };
 
         let mut candidates = Vec::new();
         let mut seen_paths = HashSet::new();

@@ -1,5 +1,6 @@
 //! Independent batching of questions that share one state, bounded by encoded request
-//! bytes and by a documented token estimate for both published Jev 1.13 context limits.
+//! bytes and by a documented token estimate for both published Jev context limits (1.13 and
+//! 1.14 share them).
 //!
 //! Token estimation: the provider tokenizer is not published, so the runtime estimates
 //! `ceil(bytes / ESTIMATED_BYTES_PER_TOKEN)` over the compact JSON encoding of each part.

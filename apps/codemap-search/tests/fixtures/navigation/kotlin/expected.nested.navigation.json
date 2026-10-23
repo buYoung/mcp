@@ -45,6 +45,46 @@
               "endLine": 25,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "OrderMapper",
+              "importedName": "com.example.OrderMapper",
+              "source": "com.example.OrderMapper",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 31
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 25,
+              "endCol": 1
+            }
+          },
+          {
+            "entry": {
+              "localName": "Service",
+              "importedName": "org.springframework.stereotype.Service",
+              "source": "org.springframework.stereotype.Service",
+              "kind": "named",
+              "range": {
+                "startLine": 2,
+                "startCol": 1,
+                "endLine": 2,
+                "endCol": 46
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 25,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [
@@ -155,6 +195,150 @@
         "implementations": [],
         "calls": [
           {
+            "name": "map",
+            "range": {
+              "startLine": 12,
+              "startCol": 29,
+              "endLine": 12,
+              "endCol": 46
+            },
+            "receiver": {
+              "name": "OrderMapper",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 29,
+                "endLine": 12,
+                "endCol": 46
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "audit",
+            "range": {
+              "startLine": 13,
+              "startCol": 21,
+              "endLine": 13,
+              "endCol": 67
+            },
+            "receiver": {
+              "name": "AuditEvent",
+              "arguments": [],
+              "range": {
+                "startLine": 13,
+                "startCol": 21,
+                "endLine": 13,
+                "endCol": 67
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 2,
+            "conditions": [],
+            "receiverKind": "type"
+          },
+          {
+            "name": "reserve",
+            "range": {
+              "startLine": 15,
+              "startCol": 9,
+              "endLine": 15,
+              "endCol": 33
+            },
+            "receiver": {
+              "name": "Inventory",
+              "arguments": [],
+              "range": {
+                "startLine": 15,
+                "startCol": 9,
+                "endLine": 15,
+                "endCol": 33
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "save",
+            "range": {
+              "startLine": 16,
+              "startCol": 9,
+              "endLine": 16,
+              "endCol": 29
+            },
+            "receiver": {
+              "name": "OrderRepository",
+              "arguments": [],
+              "range": {
+                "startLine": 16,
+                "startCol": 9,
+                "endLine": 16,
+                "endCol": 29
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "from",
+            "range": {
+              "startLine": 18,
+              "startCol": 16,
+              "endLine": 18,
+              "endCol": 33
+            },
+            "receiver": {
+              "name": "Receipt",
+              "arguments": [],
+              "range": {
+                "startLine": 18,
+                "startCol": 16,
+                "endLine": 18,
+                "endCol": 33
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "submit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "type"
+          },
+          {
+            "name": "from",
+            "range": {
+              "startLine": 22,
+              "startCol": 32,
+              "endLine": 22,
+              "endCol": 57
+            },
+            "receiver": {
+              "name": "Receipt",
+              "arguments": [],
+              "range": {
+                "startLine": 22,
+                "startCol": 32,
+                "endLine": 22,
+                "endCol": 57
+              }
+            },
+            "namespace": "CheckoutService",
+            "enclosingSymbol": "empty",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "type"
+          },
+          {
             "name": "OrderDto",
             "range": {
               "startLine": 22,
@@ -175,7 +359,8 @@
             "namespace": "CheckoutService",
             "enclosingSymbol": "empty",
             "argumentCount": 1,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

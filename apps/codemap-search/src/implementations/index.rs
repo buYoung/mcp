@@ -42,6 +42,22 @@ pub(super) struct Call {
     pub declaration: usize,
     pub evidence: Vec<Location>,
 }
+/// A typed call whose receiver type and member lookup single out one method that is neither
+/// abstract nor overridden, so the static target is also the runtime target.
+#[derive(Clone, Debug)]
+pub(super) struct DirectCall {
+    pub range: CodeRange,
+    pub name: String,
+    pub method: usize,
+    pub evidence: Vec<Location>,
+}
+
+/// The method a typed call reaches and every file its proof reads.
+pub(crate) struct DirectTarget<'a> {
+    pub path: &'a str,
+    pub range: &'a CodeRange,
+    pub proof_paths: Vec<&'a str>,
+}
 
 /// Coordinates refer to the same published symbol generation. Source text is not duplicated.
 #[derive(Clone, Debug)]
@@ -52,6 +68,8 @@ pub(crate) struct ImplementationIndex {
     pub(super) parents: Vec<Vec<Parent>>,
     pub(super) links: Vec<Link>,
     pub(super) calls: Vec<Call>,
+    pub(super) direct_calls: HashMap<String, Vec<DirectCall>>,
+    pub(super) direct_call_count: usize,
     pub(super) by_name: HashMap<String, Vec<usize>>,
     pub(super) methods_by_path: HashMap<String, Vec<usize>>,
     pub(super) calls_by_path: HashMap<String, Vec<usize>>,
@@ -61,11 +79,20 @@ pub(crate) struct ImplementationIndex {
     pub(super) proof_digests: HashMap<String, String>,
     pub(super) target_os: Option<String>,
     pub(super) omitted: usize,
+    pub(super) dart_libraries: super::DartLibraries,
 }
 
 impl ImplementationIndex {
     pub(crate) fn build(files: Arc<Vec<ExtractedFile>>, sources: &HashMap<String, String>) -> Self {
-        let root = std::env::current_dir().unwrap_or_default();
+        Self::build_at(files, sources, &std::env::current_dir().unwrap_or_default())
+    }
+
+    /// Builds for a workspace at `root`, where module settings such as tsconfig files live.
+    pub(crate) fn build_at(
+        files: Arc<Vec<ExtractedFile>>,
+        sources: &HashMap<String, String>,
+        root: &std::path::Path,
+    ) -> Self {
         let target_os = crate::config::get().analysis_target_os.clone();
         let mut index = Self {
             files: Arc::clone(&files),
@@ -74,6 +101,8 @@ impl ImplementationIndex {
             parents: Vec::new(),
             links: Vec::new(),
             calls: Vec::new(),
+            direct_calls: HashMap::new(),
+            direct_call_count: 0,
             by_name: HashMap::new(),
             methods_by_path: HashMap::new(),
             calls_by_path: HashMap::new(),
@@ -83,6 +112,9 @@ impl ImplementationIndex {
             proof_digests: HashMap::new(),
             target_os,
             omitted: 0,
+            dart_libraries: super::DartLibraries::new(
+                files.iter().map(|file| file.file_path.as_str()),
+            ),
         };
         for (file_id, file) in files.iter().enumerate() {
             let Some(facts) = file
@@ -94,11 +126,7 @@ impl ImplementationIndex {
             };
             // Preprocessed ranges require a complete type-evidence source map. Original
             // declarations remain available through ordinary symbol navigation.
-            if file
-                .navigation
-                .as_ref()
-                .is_some_and(|nav| nav.macro_expansion.is_some())
-            {
+            if file.is_macro_expanded() {
                 continue;
             }
             index
@@ -127,7 +155,7 @@ impl ImplementationIndex {
             }
         }
         let resolver =
-            crate::callers::resolution::SourceResolver::from_stored_sources(&files, &root, sources);
+            crate::callers::resolution::SourceResolver::from_stored_sources(&files, root, sources);
         index.connect(&resolver, sources);
         for (id, method) in index.methods.iter().enumerate() {
             index
@@ -157,6 +185,38 @@ impl ImplementationIndex {
                 .push(id);
         }
         index
+    }
+
+    /// The single concrete method a typed call at `range` in `path` resolves to.
+    pub(crate) fn direct_call(
+        &self,
+        path: &str,
+        range: &CodeRange,
+        name: &str,
+    ) -> Option<DirectTarget<'_>> {
+        let (caller_path, calls) = self.direct_calls.get_key_value(path)?;
+        let call = calls
+            .iter()
+            .find(|call| call.range == *range && call.name == name)?;
+        let method = &self.methods[call.method];
+        let mut proof_paths: Vec<&str> = call
+            .evidence
+            .iter()
+            .map(|location| location.path.as_str())
+            .chain([caller_path.as_str(), method.location.path.as_str()])
+            .collect();
+        proof_paths.sort_unstable();
+        proof_paths.dedup();
+        Some(DirectTarget {
+            path: &method.location.path,
+            range: &method.location.range,
+            proof_paths,
+        })
+    }
+
+    /// Digest of the source generation every recorded fact for `path` came from.
+    pub(crate) fn proof_digest(&self, path: &str) -> Option<&str> {
+        self.proof_digests.get(path).map(String::as_str)
     }
 
     pub(super) fn unit(&self, id: usize) -> &ImplementationUnit {

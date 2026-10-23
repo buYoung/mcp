@@ -266,7 +266,7 @@ impl Interpreter<'_, '_> {
             }
             let owner = self.analyzer.owner(actual, self.source_index);
             if owner.is_empty()
-                || !self.analyzer.program.types.values().any(|v| v == &owner)
+                || !self.analyzer.program.type_index.owners.contains(&owner)
                 || self.analyzer.program.generic_types.contains(&owner)
                 || self
                     .analyzer

@@ -152,7 +152,8 @@
             "namespace": "",
             "enclosingSymbol": "run",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           },
           {
             "name": "save",
@@ -175,7 +176,8 @@
             "namespace": "",
             "enclosingSymbol": "run",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

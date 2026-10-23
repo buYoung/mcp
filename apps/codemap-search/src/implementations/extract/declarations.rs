@@ -273,6 +273,7 @@ pub(super) fn parameter_nodes(node: Node<'_>) -> Vec<Node<'_>> {
                 "function_value_parameters",
                 "function_parameter_declaration",
                 "formal_parameter_list",
+                "class_method_parameter_list",
             ],
         )
     });
@@ -300,6 +301,16 @@ pub(super) fn parameter_nodes(node: Node<'_>) -> Vec<Node<'_>> {
 }
 
 pub(super) fn parameter_type<'a>(node: Node<'a>) -> Option<Node<'a>> {
+    // A bracketed PowerShell type literal names the type in its `type_spec`.
+    let typ = declared_parameter_type(node)?;
+    Some(if typ.kind() == "type_literal" {
+        child(typ, &["type_spec"]).unwrap_or(typ)
+    } else {
+        typ
+    })
+}
+
+fn declared_parameter_type<'a>(node: Node<'a>) -> Option<Node<'a>> {
     node.child_by_field_name("type")
         .or_else(|| {
             child(
@@ -324,7 +335,7 @@ pub(super) fn parameter_type<'a>(node: Node<'a>) -> Option<Node<'a>> {
                     "script_parameter",
                 ],
             )
-            .and_then(parameter_type)
+            .and_then(declared_parameter_type)
         })
 }
 
@@ -342,13 +353,27 @@ pub(super) fn parameter_name(node: Node<'_>, source: &[u8]) -> Option<String> {
                     "variable",
                 ],
             )
-        })?;
+        })
+        .or_else(|| declarator_name(node))?;
     let name = compact(text(value, source));
     (!name.is_empty()
         && name
             .chars()
             .all(|c| c.is_alphanumeric() || "_$".contains(c)))
     .then_some(name)
+}
+
+/// The identifier inside C/C++ reference, pointer and array declarators.
+fn declarator_name(node: Node<'_>) -> Option<Node<'_>> {
+    let mut current = node.child_by_field_name("declarator")?;
+    loop {
+        if current.kind() == "identifier" {
+            return Some(current);
+        }
+        current = current
+            .child_by_field_name("declarator")
+            .or_else(|| child(current, &["identifier"]))?;
+    }
 }
 
 fn parameter_text(node: Node<'_>, source: &[u8], language: &str) -> Option<String> {

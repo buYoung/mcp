@@ -46,5 +46,10 @@
     declarator: (identifier) @symbol.name) @symbol.const
   (#eq? @constant.qualifier "const"))
 
+;; Struct/union data members: related-terms evidence only (`member_names`), not symbols.
+;; The extractor skips declarators that resolve through a function declarator.
+(field_declaration
+  declarator: (_) @member.declarator)
+
 ;; String literals for BM25 index.
 (string_literal) @literal.string

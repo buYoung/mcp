@@ -321,7 +321,11 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
 
     let base = resolve_for_filesystem_tool(path, FilesystemTool::Grep)?;
     if !base.exists() {
-        return Err((-32602, format!("Search path does not exist: {path}")));
+        let suggestions = super::path_suggestions::note(&base);
+        return Err((
+            -32602,
+            format!("Search path does not exist: {path}{suggestions}"),
+        ));
     }
     let cwd = current_dir()?;
     let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);

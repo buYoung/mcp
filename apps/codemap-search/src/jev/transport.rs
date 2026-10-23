@@ -11,7 +11,7 @@
 //!   `Authorization: Bearer`, rustls with the `ring` provider and the OS trust store;
 //! - response bodies are read up to [`MAX_RESPONSE_BODY_BYTES`] and abandoned beyond it.
 
-use super::{BoxFuture, JevError, ENDPOINT, MAX_RESPONSE_BODY_BYTES};
+use super::{BoxFuture, JevError, Provider, MAX_RESPONSE_BODY_BYTES};
 use std::time::{Duration, Instant};
 
 /// A credential that never prints. `expose` is the only way to read it.
@@ -124,7 +124,7 @@ impl HttpsSettings {
     }
 }
 
-/// Asynchronous HTTPS transport to [`ENDPOINT`] over rustls (ring provider, OS trust
+/// Asynchronous HTTPS transport to one provider endpoint over rustls (ring provider, OS trust
 /// store). Connections are pooled and reused within `pool_idle_timeout`; POSTs are never
 /// retried and redirects are never followed.
 pub struct HttpsTransport {
@@ -143,8 +143,18 @@ impl std::fmt::Debug for HttpsTransport {
 }
 
 impl HttpsTransport {
+    /// TypeSafe's endpoint ([`super::ENDPOINT`]).
     pub fn new(api_key: SecretString, settings: HttpsSettings) -> Result<Self, JevError> {
-        Self::build(api_key, settings, ENDPOINT.to_string())
+        Self::for_provider(Provider::TypeSafe, api_key, settings)
+    }
+
+    /// The fixed endpoint of `provider`; the key is sent to no other location.
+    pub fn for_provider(
+        provider: Provider,
+        api_key: SecretString,
+        settings: HttpsSettings,
+    ) -> Result<Self, JevError> {
+        Self::build(api_key, settings, provider.endpoint().to_string())
     }
 
     /// Test-only: the same client policy against a local listener, so redirect, retry,

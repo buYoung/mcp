@@ -99,8 +99,9 @@ pub(super) fn run(group: &str, languages: &BTreeSet<String>, limit: usize) {
     let expected_consumers =
         read_json(&corpus.join("remaining-routes/results/consumers.evaluation.json"));
     let reused = if group == "consumers" {
-        let report_path = std::env::var("CODEMAP_SOURCE_ROUTES_EXPANDED_REPORT")
-            .unwrap_or_else(|_| "docs/briefs/evidence/source-routes/expanded-native.json".into());
+        let report_path = std::env::var("CODEMAP_SOURCE_ROUTES_EXPANDED_REPORT").expect(
+            "expanded report path is required; write it first with the expanded group's CODEMAP_SOURCE_ROUTES_REPORT",
+        );
         let report = read_report(&app.parent().unwrap().parent().unwrap().join(report_path));
         assert_eq!(report["group"], "expanded");
         assert_eq!(

@@ -62,7 +62,15 @@ fn quote(value: &str) -> Option<(usize, String, bool)> {
 
 fn assignments() -> &'static Regex {
     static RULE: OnceLock<Regex> = OnceLock::new();
-    RULE.get_or_init(|| Regex::new(r#"\b(?P<key>[A-Za-z_][A-Za-z0-9_.-]*)["']?[ \t]*(?::[ \t]*(?:&(?:'static[ \t]+)?str|String|string|str))?[ \t]*(?:=|:)[ \t]*"#).unwrap())
+    RULE.get_or_init(|| Regex::new(r#"\b(?P<key>[A-Za-z_][A-Za-z0-9_.-]*)["']?[ \t]*(?::[ \t]*(?:&(?:'static[ \t]+)?str|String|string|str))?[ \t]*(?P<separator>:=|=|:)[ \t]*"#).unwrap())
+}
+
+/// Comparison, arrow, match and path operators start with an assignment character but assign
+/// nothing; masking after them hides code (`token == input`, `Token::Comma`, `token =>`).
+fn is_operator(text: &str) -> bool {
+    ["==", "=>", "=~", "::"]
+        .iter()
+        .any(|operator| text.starts_with(operator))
 }
 
 pub(super) fn detect(source: &str, path: Option<&Path>) -> Vec<Candidate> {
@@ -80,6 +88,11 @@ pub(super) fn detect(source: &str, path: Option<&Path>) -> Vec<Candidate> {
     for found in assignments().captures_iter(source) {
         let matched = found.get(0).unwrap();
         if matched.start() < consumed || !rules::is_sensitive_key(&found["key"]) {
+            continue;
+        }
+        // Line configs keep raw values: `KEY==value` assigns `=value` there.
+        let separator = found.name("separator").unwrap();
+        if !is_line_config && is_operator(&source[separator.start()..]) {
             continue;
         }
         let mut start = matched.end();

@@ -4,7 +4,11 @@ mod context;
 mod diagnostics;
 pub(crate) mod jev;
 mod locations;
+mod outside_callers;
 mod references;
+mod shared_keys;
+
+pub(crate) use outside_callers::HEADER as OUTSIDE_CALLERS_HEADER;
 mod render;
 mod structure;
 
@@ -41,6 +45,8 @@ pub(crate) struct LiveOutput {
     // Source view retains the original text, including these prefixes.
     pub path_prefixes: Vec<std::ops::Range<usize>>,
     pub jev: jev::Capture,
+    /// A read window: source view appends callers from outside it.
+    pub should_list_outside_callers: bool,
 }
 
 impl LiveOutput {
@@ -258,8 +264,9 @@ fn frame(
     text
 }
 
-/// Source stays byte-for-byte compatible. Rich views reserve every returned source
-/// row and file heading before sharing one bounded context budget across files.
+/// Source rows stay byte-for-byte compatible; a read window may end with its outside callers.
+/// Rich views reserve every returned source row and file heading before sharing one bounded
+/// context budget across files.
 fn render(
     engine: &EngineSupervisor,
     output: LiveOutput,
@@ -268,14 +275,16 @@ fn render(
     copies: &mut Vec<jev::SourceCopy>,
 ) -> Result<String, (i64, String)> {
     if options.view == LiveView::Source {
+        let mut output = output;
         copies.push(jev::SourceCopy {
             original: 0..output.text.len(),
             rendered_start: 0,
         });
-        let text = if output.notices.is_empty() {
-            output.text
+        let source = std::mem::take(&mut output.text);
+        let mut text = if output.notices.is_empty() {
+            source
         } else {
-            format!("{}\n{}", output.text, output.notices.join("\n"))
+            format!("{source}\n{}", output.notices.join("\n"))
         };
         if output_byte_cap.is_some_and(|cap| text.len() > cap) {
             return Err((
@@ -283,6 +292,17 @@ fn render(
                 "Source output plus expansion notices exceeds the output cap; narrow the request."
                     .into(),
             ));
+        }
+        // The trailer is auxiliary: it only uses the room left under the cap.
+        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
+        if let Some(trailer) = outside_callers::trailer(engine, &output, room) {
+            text.push('\n');
+            text.push_str(&trailer);
+        }
+        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
+        if let Some(trailer) = shared_keys::trailer(engine, &output, room) {
+            text.push('\n');
+            text.push_str(&trailer);
         }
         return Ok(text);
     }

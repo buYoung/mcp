@@ -31,6 +31,7 @@ fn name_node(node: Node<'_>) -> Option<Node<'_>> {
             &[
                 "dotted_name",
                 "qualified_name",
+                "qualified_identifier",
                 "scoped_identifier",
                 "identifier",
                 "namespace_name",
@@ -77,7 +78,7 @@ pub(super) fn collect(
             "java" | "kotlin" | "scala" | "groovy" | "csharp"
         ) && matches!(
             node.kind(),
-            "import_declaration" | "import_header" | "using_directive"
+            "import_declaration" | "import_header" | "import" | "using_directive"
         ) {
             if modifier(node, "static", source) {
                 continue;
@@ -142,5 +143,109 @@ pub(super) fn collect(
             }
         }
     }
+    if unit.language == "dart" {
+        for import in dart_library_imports(root, source) {
+            let entries = if import.shown.is_empty() {
+                vec![("*".to_string(), None, ImportKind::Glob)]
+            } else {
+                import
+                    .shown
+                    .into_iter()
+                    .map(|name| (name.clone(), Some(name), ImportKind::Named))
+                    .collect()
+            };
+            for (local_name, imported_name, kind) in entries {
+                unit.imports.push(ScopedImport {
+                    entry: ImportEntry {
+                        local_name,
+                        imported_name,
+                        source: Some(import.uri.clone()),
+                        kind,
+                        range: import.range.clone(),
+                    },
+                    scope: range(root),
+                });
+            }
+        }
+    }
     unit.imports.dedup_by(|a, b| a == b);
+}
+
+/// A Dart library directive without a prefix: the library URI and the names its `show` and
+/// `hide` lists name. An empty `shown` list exposes every public name not hidden.
+pub(crate) struct DartLibraryDirective {
+    pub(crate) uri: String,
+    pub(crate) shown: Vec<String>,
+    pub(crate) hidden: Vec<String>,
+    pub(crate) range: CodeRange,
+}
+
+/// The library imports of a Dart file whose names are reachable unqualified. Prefixed imports
+/// and imports with a `hide` list are left out.
+pub(crate) fn dart_library_imports(root: Node<'_>, source: &[u8]) -> Vec<DartLibraryDirective> {
+    dart_directives(root, source, "library_import")
+        .into_iter()
+        .filter(|import| import.hidden.is_empty())
+        .collect()
+}
+
+/// The `export` directives of a Dart library.
+pub(crate) fn dart_library_exports(root: Node<'_>, source: &[u8]) -> Vec<DartLibraryDirective> {
+    dart_directives(root, source, "library_export")
+}
+
+fn dart_directives(root: Node<'_>, source: &[u8], kind: &str) -> Vec<DartLibraryDirective> {
+    let mut directives = Vec::new();
+    for node in children(root)
+        .into_iter()
+        .filter(|node| node.kind() == "import_or_export")
+    {
+        // An import keeps its URI and combinators in a specification; an export holds them.
+        for specification in children(node)
+            .into_iter()
+            .filter(|node| node.kind() == kind)
+            .flat_map(|directive| match kind {
+                "library_import" => children(directive)
+                    .into_iter()
+                    .filter(|node| node.kind() == "import_specification")
+                    .collect(),
+                _ => vec![directive],
+            })
+        {
+            let Some(uri) = specification
+                .child_by_field_name("uri")
+                .filter(|_| specification.child_by_field_name("alias").is_none())
+            else {
+                continue;
+            };
+            let mut shown = Vec::new();
+            let mut hidden = Vec::new();
+            for combinator in children(specification)
+                .into_iter()
+                .filter(|node| node.kind() == "combinator")
+            {
+                let names = if text(combinator, source).trim_start().starts_with("hide") {
+                    &mut hidden
+                } else {
+                    &mut shown
+                };
+                names.extend(
+                    children(combinator)
+                        .into_iter()
+                        .filter(|node| node.kind() == "identifier")
+                        .map(|node| text(node, source).to_string()),
+                );
+            }
+            directives.push(DartLibraryDirective {
+                uri: text(uri, source)
+                    .trim()
+                    .trim_matches(['\'', '"'])
+                    .to_string(),
+                shown,
+                hidden,
+                range: range(node),
+            });
+        }
+    }
+    directives
 }

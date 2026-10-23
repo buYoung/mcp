@@ -307,7 +307,32 @@
               "namespace": "Demo.Worker",
               "enclosingSymbol": "run",
               "argumentCount": 0,
-              "conditions": []
+              "conditions": [],
+              "receiverKind": "value"
+            },
+            {
+              "name": "now",
+              "range": {
+                "startLine": 18,
+                "startCol": 9,
+                "endLine": 18,
+                "endCol": 24
+              },
+              "receiver": {
+                "name": "AppClock",
+                "arguments": [],
+                "range": {
+                  "startLine": 18,
+                  "startCol": 9,
+                  "endLine": 18,
+                  "endCol": 24
+                }
+              },
+              "namespace": "Demo.Worker",
+              "enclosingSymbol": "run",
+              "argumentCount": 0,
+              "conditions": [],
+              "receiverKind": "type"
             }
           ]
         }

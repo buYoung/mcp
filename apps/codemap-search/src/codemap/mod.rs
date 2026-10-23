@@ -459,6 +459,7 @@ mod tests {
             symbols,
             literals: vec![],
             docstrings: vec![],
+            member_names: vec![],
             navigation: None,
         }
     }
@@ -707,6 +708,7 @@ mod tests {
                 line: 1,
             }],
             docstrings: vec!["A check function\nwith multiple lines".to_string()],
+            member_names: vec![],
             navigation: None,
         };
 

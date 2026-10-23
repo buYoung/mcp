@@ -1,0 +1,8092 @@
+{
+ "base_dataset": "rts4-3b9284a3b42c2917",
+ "reviewer": "Claude Opus 5.5",
+ "mappings": [
+  {
+   "word": "FileSensor",
+   "topic": "t362",
+   "field": "files-io",
+   "label": "File watching/hot reload",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Oozie",
+   "topic": "t305.2",
+   "field": "distributed-systems",
+   "label": "Workflow execution",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "lazy route",
+   "topic": "t249.1",
+   "field": "build-release",
+   "label": "JavaScript bundler optimization",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "croak",
+   "topic": "x131",
+   "field": "languages-compilers",
+   "label": "Perl ecosystem",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Qlik",
+   "topic": "t293.3",
+   "field": "data-engineering",
+   "label": "Warehouse analytics",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "matrix factorization",
+   "topic": "x250",
+   "field": "math-numerics",
+   "label": "Linear algebra operations",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Vite plugin",
+   "topic": "t42.1",
+   "field": "software-design",
+   "label": "Plugin lifecycle",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "mypyc",
+   "topic": "t125.3",
+   "field": "type-systems",
+   "label": "Python typing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "skipinitialspace",
+   "topic": "t391.2",
+   "field": "text-processing",
+   "label": "CSV record I/O",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "skipinitialspace",
+   "topic": "t67.1",
+   "field": "data-engineering",
+   "label": "Dataframe table operations",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "TorchServe",
+   "topic": "t282.1",
+   "field": "web-backend",
+   "label": "HTTP server endpoints",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "CPAN",
+   "topic": "t706.3",
+   "field": "build-release",
+   "label": "Language package registries",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "MPICH",
+   "topic": "t497.3",
+   "field": "ml-ai",
+   "label": "MPI message passing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Nuke",
+   "topic": "t799",
+   "field": "mobile-desktop",
+   "label": "Apple platform development",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "create-dmg",
+   "topic": "t564",
+   "field": "build-release",
+   "label": "Build artifacts",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "cross site script inclusion",
+   "topic": "t16",
+   "field": "browser-platform",
+   "label": "Browser cross-origin policies",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "confused deputy",
+   "topic": "t15.3",
+   "field": "auth-identity",
+   "label": "Authorization checks",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "ElevenLabs",
+   "topic": "t775",
+   "field": "ml-ai",
+   "label": "Model inference",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Web Bluetooth",
+   "topic": "t686.2",
+   "field": "mobile-desktop",
+   "label": "Bluetooth LE communication",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "ticketing",
+   "topic": "t51.4",
+   "field": "docs-collaboration",
+   "label": "Support ticket handling",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "GITHUB_REPOSITORY",
+   "topic": "t30",
+   "field": "build-release",
+   "label": "CI workflow execution",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "GITHUB_REPOSITORY",
+   "topic": "t466.2",
+   "field": "configuration",
+   "label": "Environment configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Metal Performance Shaders",
+   "topic": "t345.1",
+   "field": "graphics-media",
+   "label": "GPU shader programs",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Metal Performance Shaders",
+   "topic": "t799",
+   "field": "mobile-desktop",
+   "label": "Apple platform development",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "ijson",
+   "topic": "t241.1",
+   "field": "files-io",
+   "label": "Buffered stream I/O",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "constexpr function",
+   "topic": "t372",
+   "field": "languages-compilers",
+   "label": "Compile-time constants",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "fs/promises",
+   "topic": "t1041",
+   "field": "concurrency-async",
+   "label": "Node.js promise adapters",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "test splitting",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "IcoMoon",
+   "topic": "t108.4",
+   "field": "graphics-media",
+   "label": "Vector graphics",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "AppCode",
+   "topic": "t799",
+   "field": "mobile-desktop",
+   "label": "Apple platform development",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "flask-jwt-extended",
+   "topic": "t933",
+   "field": "web-backend",
+   "label": "Python web serving",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "fromNullable",
+   "topic": "t209.1",
+   "field": "type-systems",
+   "label": "Nullable value handling",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Soda",
+   "topic": "t635.1",
+   "field": "data-formats",
+   "label": "Data quality checks",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "react-native-vision-camera",
+   "topic": "t137.1",
+   "field": "graphics-media",
+   "label": "Camera microphone recording",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "collada",
+   "topic": "t494",
+   "field": "data-formats",
+   "label": "XML/HTML markup",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "flask-security",
+   "topic": "t933",
+   "field": "web-backend",
+   "label": "Python web serving",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "SonarLint",
+   "topic": "t400.2",
+   "field": "testing",
+   "label": "SonarQube quality gates",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Web MIDI API",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "std::forward",
+   "topic": "t596.2",
+   "field": "type-systems",
+   "label": "Generic type declarations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Zod",
+   "topic": "t390.1",
+   "field": "frontend-ui",
+   "label": "Form field state",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Zod",
+   "topic": "t511.1",
+   "field": "type-systems",
+   "label": "TypeScript type tooling",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "global interpreter lock",
+   "topic": "x248",
+   "field": "languages-compilers",
+   "label": "Python versions and alternative runtimes",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "billing cycle",
+   "topic": "t408.1",
+   "field": "time-locale",
+   "label": "Calendar schedules",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "hnsw",
+   "topic": "t354.1",
+   "field": "algorithms-data-structures",
+   "label": "Graph path search",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "hnsw",
+   "topic": "t56.3",
+   "field": "databases-storage",
+   "label": "Search indexing",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "generic write",
+   "topic": "t17.2",
+   "field": "os-shell",
+   "label": "Filesystem permissions",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "generic write",
+   "topic": "t922.1",
+   "field": "files-io",
+   "label": "File opening modes",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "pseudo element",
+   "topic": "t106.8",
+   "field": "frontend-ui",
+   "label": "CSS pseudo-elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "test and set",
+   "topic": "t22.1",
+   "field": "systems-low-level",
+   "label": "Machine instructions",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "color scale",
+   "topic": "t207.1",
+   "field": "graphics-media",
+   "label": "Color channels and spaces",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "PlatformIO",
+   "topic": "t181.4",
+   "field": "build-release",
+   "label": "Cross-compilation toolchains",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "PlatformIO",
+   "topic": "t31.1",
+   "field": "editors-ide",
+   "label": "VS Code extensions",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "mailkit",
+   "topic": "t90.6",
+   "field": "networking",
+   "label": "Mail transports",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Web Audio API",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "xen",
+   "topic": "t670.1",
+   "field": "cloud-infrastructure",
+   "label": "Infrastructure compute services",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "articles",
+   "topic": "x22",
+   "field": "business-domains",
+   "label": "Content publishing platforms",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "hc",
+   "topic": "t164.3",
+   "field": "web-styling",
+   "label": "Color theme selection",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "network graph",
+   "topic": "t264.2",
+   "field": "data-visualization",
+   "label": "Graph diagram rendering",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ibd",
+   "topic": "t22.4",
+   "field": "systems-low-level",
+   "label": "MySQL table files",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "base64 encode",
+   "topic": "t691.3",
+   "field": "data-formats",
+   "label": "Data transcoding",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "c2",
+   "topic": "t874",
+   "field": "security",
+   "label": "Malware incident response",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "SignInManager",
+   "topic": "t89.2",
+   "field": "web-backend",
+   "label": "ASP.NET authorization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "toLocaleString",
+   "topic": "t595.1",
+   "field": "text-processing",
+   "label": "Format string interpolation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Phabricator",
+   "topic": "t232",
+   "field": "docs-collaboration",
+   "label": "Issue tracking tools",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "stripe.checkout.sessions.create",
+   "topic": "t282.3",
+   "field": "web-backend",
+   "label": "Service SDK integration",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Underscore.js",
+   "topic": "t809",
+   "field": "functional-programming",
+   "label": "Functional TypeScript libraries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "trybuild",
+   "topic": "t387.1",
+   "field": "languages-compilers",
+   "label": "Cargo compiler tooling",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "aab",
+   "topic": "x193",
+   "field": "build-release",
+   "label": "Mobile app release builds",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "pointer exited",
+   "topic": "t335.3",
+   "field": "mobile-desktop",
+   "label": "Microsoft native UI",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "pointer exited",
+   "topic": "t275.2",
+   "field": "frontend-ui",
+   "label": "Tap interactions",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "b plus tree",
+   "topic": "t152.1",
+   "field": "algorithms-data-structures",
+   "label": "Balanced search trees",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "unchecked exception",
+   "topic": "t135.7",
+   "field": "language-constructs",
+   "label": "Java runtime exceptions",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "jws",
+   "topic": "t80.4",
+   "field": "security",
+   "label": "Digital signature verification",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "depend",
+   "topic": "t681",
+   "field": "general-wording",
+   "label": "Requirement wording",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "gil",
+   "topic": "x248",
+   "field": "languages-compilers",
+   "label": "Python versions and alternative runtimes",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "repeat forever",
+   "topic": "t600.1",
+   "field": "language-constructs",
+   "label": "Loop iteration control",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "line diff",
+   "topic": "t295",
+   "field": "version-control",
+   "label": "Change comparison",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ingester",
+   "topic": "t293.1",
+   "field": "data-engineering",
+   "label": "Change capture connectors",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "query submitted",
+   "topic": "t390.1",
+   "field": "frontend-ui",
+   "label": "Form field state",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "activity indicator",
+   "topic": "t421",
+   "field": "mobile-desktop",
+   "label": "UI views/controls",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Renovate",
+   "topic": "t145.1",
+   "field": "version-control",
+   "label": "Pull request review",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "kinesis firehose",
+   "topic": "t488",
+   "field": "distributed-systems",
+   "label": "Data stream processing",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "AF_UNIX",
+   "topic": "x270",
+   "field": "os-shell",
+   "label": "Local inter-process communication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "WASI",
+   "topic": "t659.1",
+   "field": "os-shell",
+   "label": "System call boundaries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "asn1",
+   "topic": "t413",
+   "field": "security",
+   "label": "Cryptography standards",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "sln",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "sln",
+   "topic": "t39.10",
+   "field": "build-release",
+   "label": "Project workspaces",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "$/cancelRequest",
+   "topic": "t269.1",
+   "field": "concurrency-async",
+   "label": "Cancellation tokens",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "-std",
+   "topic": "t181.3",
+   "field": "build-release",
+   "label": "Native compiler options",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": ".a",
+   "topic": "t564",
+   "field": "build-release",
+   "label": "Build artifacts",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": ".s",
+   "topic": "t161.1",
+   "field": "languages-compilers",
+   "label": "Compiler intermediate representation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": ".t",
+   "topic": "x131",
+   "field": "languages-compilers",
+   "label": "Perl ecosystem",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "/dev/ttyUSB0",
+   "topic": "x227",
+   "field": "files-io",
+   "label": "Device files",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "/dev/ttyUSB0",
+   "topic": "t659.2",
+   "field": "os-shell",
+   "label": "Kernel device drivers",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "1password",
+   "topic": "t159.4",
+   "field": "auth-identity",
+   "label": "Token credentials",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "2fa",
+   "topic": "t20.1",
+   "field": "security",
+   "label": "Authentication credentials",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "3D Secure",
+   "topic": "t749.2",
+   "field": "auth-identity",
+   "label": "One-time authentication factors",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "__enable_irq",
+   "topic": "t262.2",
+   "field": "concurrency-async",
+   "label": "Interrupt masking",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ABCMeta",
+   "topic": "x172",
+   "field": "type-systems",
+   "label": "Interfaces and traits",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Abseil",
+   "topic": "t255",
+   "field": "languages-compilers",
+   "label": "C++ toolchains",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "absolute expiration",
+   "topic": "t420.3",
+   "field": "time-locale",
+   "label": "Record timestamp fields",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "accdb",
+   "topic": "x70",
+   "field": "business-domains",
+   "label": "Office suite documents",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Access-Control-Allow-Origin",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "accessibility audit",
+   "topic": "t925",
+   "field": "testing",
+   "label": "Analysis reports",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "account recovery",
+   "topic": "t660.4",
+   "field": "security",
+   "label": "Account recovery codes",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "aclcat",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "action group",
+   "topic": "t54",
+   "field": "observability-debugging",
+   "label": "Monitoring thresholds",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "active element",
+   "topic": "t321.1",
+   "field": "browser-platform",
+   "label": "DOM element manipulation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ada",
+   "topic": "x69",
+   "field": "business-domains",
+   "label": "Legal policies and consent",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "adaptive concurrency",
+   "topic": "x201",
+   "field": "concurrency-async",
+   "label": "Parallelism sizing",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ad hoc query",
+   "topic": "t293.3",
+   "field": "data-engineering",
+   "label": "Warehouse analytics",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Adler-32",
+   "topic": "t173.1",
+   "field": "security",
+   "label": "Content integrity hashes",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "A-Frame",
+   "topic": "x89",
+   "field": "frontend-ui",
+   "label": "Alternative frontend frameworks",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "AGP",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "ai",
+   "topic": "t108.4",
+   "field": "graphics-media",
+   "label": "Vector graphics",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "aio",
+   "topic": "t397.3",
+   "field": "files-io",
+   "label": "POSIX descriptor I/O",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ajax",
+   "topic": "t282.2",
+   "field": "web-backend",
+   "label": "HTTP client requests",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "alb",
+   "topic": "t662.2",
+   "field": "cloud-infrastructure",
+   "label": "Service port exposure",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "algebraic data type",
+   "topic": "t96",
+   "field": "functional-programming",
+   "label": "Functional type abstractions",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "allocations",
+   "topic": "t650.1",
+   "field": "observability-debugging",
+   "label": "Heap memory diagnostics",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "alpn",
+   "topic": "t221.1",
+   "field": "security",
+   "label": "TLS client configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "am",
+   "topic": "t208.3",
+   "field": "mobile-desktop",
+   "label": "Android app components",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Amazon Aurora",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Amazon Cognito",
+   "topic": "t73.1",
+   "field": "cloud-infrastructure",
+   "label": "AWS SDK authentication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Amazon RDS",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "amt",
+   "topic": "x251",
+   "field": "math-numerics",
+   "label": "Money amounts",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "announceForAccessibility",
+   "topic": "t786.2",
+   "field": "mobile-desktop",
+   "label": "React Native interfaces",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "anonymous function",
+   "topic": "x240",
+   "field": "language-constructs",
+   "label": "Function values",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ansible-vault",
+   "topic": "t154",
+   "field": "security",
+   "label": "Secrets management",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "ANSI escape code",
+   "topic": "t415",
+   "field": "os-shell",
+   "label": "ANSI terminal escapes",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Apache Commons CSV",
+   "topic": "t418.1",
+   "field": "text-processing",
+   "label": "Delimited text files",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Apache Doris",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Drill",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Druid",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Flink",
+   "topic": "t488",
+   "field": "distributed-systems",
+   "label": "Data stream processing",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Hive",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "apache httpd",
+   "topic": "x295",
+   "field": "web-backend",
+   "label": "Static asset serving",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "apache parquet",
+   "topic": "t12.3",
+   "field": "data-formats",
+   "label": "Tabular data exports",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Pinot",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache POI",
+   "topic": "t12.3",
+   "field": "data-formats",
+   "label": "Tabular data exports",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Samza",
+   "topic": "t488",
+   "field": "distributed-systems",
+   "label": "Data stream processing",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Storm",
+   "topic": "t488",
+   "field": "distributed-systems",
+   "label": "Data stream processing",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Apache Thrift",
+   "topic": "t636",
+   "field": "web-backend",
+   "label": "RPC service protocols",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "API Blueprint",
+   "topic": "t412.2",
+   "field": "web-backend",
+   "label": "REST API interfaces",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "ApiController",
+   "topic": "t88.1",
+   "field": "web-backend",
+   "label": "HTTP request handlers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "app.config.js",
+   "topic": "t289.1",
+   "field": "configuration",
+   "label": "Configuration loading",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "AppArmor",
+   "topic": "x274",
+   "field": "os-shell",
+   "label": "Namespace and root isolation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "app bundle",
+   "topic": "x193",
+   "field": "build-release",
+   "label": "Mobile app release builds",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "app icon",
+   "topic": "t207.2",
+   "field": "graphics-media",
+   "label": "Raster image formats",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Apple Pay",
+   "topic": "t799",
+   "field": "mobile-desktop",
+   "label": "Apple platform development",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Application Gateway",
+   "topic": "t369.3",
+   "field": "networking",
+   "label": "Ingress load balancing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "application json",
+   "topic": "t385",
+   "field": "web-backend",
+   "label": "HTTP representation encoding",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "app link",
+   "topic": "x151",
+   "field": "mobile-desktop",
+   "label": "Mobile deep links",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "App Transport Security",
+   "topic": "t221.4",
+   "field": "security",
+   "label": "HTTPS browser security",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "ArchUnit",
+   "topic": "t13.1",
+   "field": "testing",
+   "label": "Assertion matchers",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "argc",
+   "topic": "x129",
+   "field": "language-constructs",
+   "label": "Program entry points",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ARM_CLIENT_ID",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ARM_CLIENT_ID",
+   "topic": "t466.2",
+   "field": "configuration",
+   "label": "Environment configuration",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "arm-none-eabi-gcc",
+   "topic": "t181.4",
+   "field": "build-release",
+   "label": "Cross-compilation toolchains",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "arm-none-eabi-gcc",
+   "topic": "t62.3",
+   "field": "languages-compilers",
+   "label": "Compiler linker flags",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "around",
+   "topic": "x279",
+   "field": "software-design",
+   "label": "Aspect-oriented programming",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Array.prototype.with",
+   "topic": "t684",
+   "field": "algorithms-data-structures",
+   "label": "Indexed element access",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "array copy",
+   "topic": "t331.1",
+   "field": "algorithms-data-structures",
+   "label": "Collection helpers",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Arrow Flight",
+   "topic": "t636",
+   "field": "web-backend",
+   "label": "RPC service protocols",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "art direction",
+   "topic": "t760",
+   "field": "web-styling",
+   "label": "Responsive CSS layout",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "asan",
+   "topic": "t84.4",
+   "field": "observability-debugging",
+   "label": "Memory leak diagnosis",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "asgiref",
+   "topic": "t128.1",
+   "field": "concurrency-async",
+   "label": "Python asyncio tasks",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "asia pacific",
+   "topic": "t618.3",
+   "field": "cloud-infrastructure",
+   "label": "Cloud deployment locations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ASP.NET Identity",
+   "topic": "t89.2",
+   "field": "web-backend",
+   "label": "ASP.NET authorization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "asprintf",
+   "topic": "t595.1",
+   "field": "text-processing",
+   "label": "Format string interpolation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "aspx",
+   "topic": "t352.2",
+   "field": "web-backend",
+   "label": "Template view rendering",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "assembly language",
+   "topic": "t161.1",
+   "field": "languages-compilers",
+   "label": "Compiler intermediate representation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ast.walk",
+   "topic": "t11.6",
+   "field": "languages-compilers",
+   "label": "Syntax tree construction",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "AsynchronousFileChannel",
+   "topic": "t127.2",
+   "field": "concurrency-async",
+   "label": "Java NIO channels",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "asyncpg",
+   "topic": "t129.1",
+   "field": "concurrency-async",
+   "label": "Async event loops",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "AsyncWriteExt",
+   "topic": "t52",
+   "field": "concurrency-async",
+   "label": "Asynchronous I/O",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Atlantis",
+   "topic": "t145.1",
+   "field": "version-control",
+   "label": "Pull request review",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "audio context",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Authlib",
+   "topic": "t933",
+   "field": "web-backend",
+   "label": "Python web serving",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "auto launch",
+   "topic": "t942",
+   "field": "os-shell",
+   "label": "Service control management",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "AVPlayer",
+   "topic": "t87.2",
+   "field": "mobile-desktop",
+   "label": "Cocoa application APIs",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "AWS_ACCESS_KEY_ID",
+   "topic": "t20.1",
+   "field": "security",
+   "label": "Authentication credentials",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "AWS CodeBuild",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "aws_security_group",
+   "topic": "t703",
+   "field": "networking",
+   "label": "Firewall/NAT rules",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "aws_vpc",
+   "topic": "t381.3",
+   "field": "networking",
+   "label": "IP network addressing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "axe-core",
+   "topic": "t237.1",
+   "field": "testing",
+   "label": "Browser end-to-end tests",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Azure AD",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "azure cloud shell",
+   "topic": "t326.4",
+   "field": "os-shell",
+   "label": "Interactive shell terminals",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Azure Data Factory",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Azure Event Hubs",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Azure Front Door",
+   "topic": "t325.1",
+   "field": "networking",
+   "label": "CDN delivery",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Azure ML",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Azure Repos",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Azure Synapse",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Azure Translator",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Azure Translator",
+   "topic": "t939",
+   "field": "ml-ai",
+   "label": "Natural language processing",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Azure Virtual Network",
+   "topic": "t381.3",
+   "field": "networking",
+   "label": "IP network addressing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "backlink",
+   "topic": "t664.1",
+   "field": "docs-collaboration",
+   "label": "Hyperlink targets",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "back stack",
+   "topic": "x143",
+   "field": "mobile-desktop",
+   "label": "Android Jetpack and third-party libraries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "barrier",
+   "topic": "x166",
+   "field": "systems-low-level",
+   "label": "Memory ordering and barriers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "basedpyright",
+   "topic": "t125.3",
+   "field": "type-systems",
+   "label": "Python typing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "base element",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "bash-language-server",
+   "topic": "t339.1",
+   "field": "os-shell",
+   "label": "Shell execution",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "bazelrc",
+   "topic": "t289.1",
+   "field": "configuration",
+   "label": "Configuration loading",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Beanstalkd",
+   "topic": "t285.1",
+   "field": "distributed-systems",
+   "label": "Queue message delivery",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "bearer",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Bearer Auth",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "becomes",
+   "topic": "t185",
+   "field": "cloud-infrastructure",
+   "label": "Ansible privilege escalation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "becomes",
+   "topic": "t783",
+   "field": "general-wording",
+   "label": "Modification wording",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "beeline",
+   "topic": "t694.1",
+   "field": "observability-debugging",
+   "label": "APM telemetry",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "belongs",
+   "topic": "t646.1",
+   "field": "software-design",
+   "label": "Object relationships",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "BFG Repo-Cleaner",
+   "topic": "t20.2",
+   "field": "security",
+   "label": "Secret leak scanning",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "bidi",
+   "topic": "x171",
+   "field": "time-locale",
+   "label": "Text direction in localization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "bidirectional text",
+   "topic": "x171",
+   "field": "time-locale",
+   "label": "Text direction in localization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Bigtable",
+   "topic": "t618.1",
+   "field": "cloud-infrastructure",
+   "label": "Google Cloud integration",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "BitmapFactory",
+   "topic": "x125",
+   "field": "graphics-media",
+   "label": "Native image and 2D graphics libraries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Bitrise",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "BLAKE2",
+   "topic": "t446.3",
+   "field": "algorithms-data-structures",
+   "label": "Hash function computation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "BLAKE3",
+   "topic": "t446.3",
+   "field": "algorithms-data-structures",
+   "label": "Hash function computation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Blazor Hybrid",
+   "topic": "x89",
+   "field": "frontend-ui",
+   "label": "Alternative frontend frameworks",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "blocking io",
+   "topic": "t397.3",
+   "field": "files-io",
+   "label": "POSIX descriptor I/O",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "BlockOperation",
+   "topic": "t87.4",
+   "field": "mobile-desktop",
+   "label": "Dispatch queues",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Boost.Asio",
+   "topic": "t90.5",
+   "field": "networking",
+   "label": "Network terminology",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "borrow checker",
+   "topic": "t228",
+   "field": "languages-compilers",
+   "label": "Control-flow analysis",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "boto3.client",
+   "topic": "t282.3",
+   "field": "web-backend",
+   "label": "Service SDK integration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "bottle",
+   "topic": "t39.9",
+   "field": "build-release",
+   "label": "System package installation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Brave",
+   "topic": "t210",
+   "field": "browser-platform",
+   "label": "Browser engine identification",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "bring",
+   "topic": "t897",
+   "field": "general-wording",
+   "label": "Movement wording",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "broken pipe",
+   "topic": "t326.5",
+   "field": "os-shell",
+   "label": "Standard stream piping",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "browser automation",
+   "topic": "t403",
+   "field": "browser-platform",
+   "label": "Chrome/DevTools",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "browser history",
+   "topic": "x60",
+   "field": "browser-platform",
+   "label": "History and window navigation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "bst",
+   "topic": "t117.1",
+   "field": "time-locale",
+   "label": "Zoned date-time APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "btn",
+   "topic": "t164.2",
+   "field": "web-styling",
+   "label": "Component design systems",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "BTreeMap",
+   "topic": "t250",
+   "field": "languages-compilers",
+   "label": "Rust standard libraries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "BTreeSet",
+   "topic": "t250",
+   "field": "languages-compilers",
+   "label": "Rust standard libraries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "buffer overrun",
+   "topic": "t251.2",
+   "field": "security",
+   "label": "Vulnerability exploit analysis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "build-dependencies",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "BuildKit",
+   "topic": "t180",
+   "field": "build-release",
+   "label": "Build caching",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Buildpacks",
+   "topic": "t248",
+   "field": "build-release",
+   "label": "Build stages",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Bun",
+   "topic": "t39.8",
+   "field": "build-release",
+   "label": "Package installation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Bun",
+   "topic": "t522.4",
+   "field": "languages-compilers",
+   "label": "Deno runtime",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Burp Suite",
+   "topic": "t369.2",
+   "field": "networking",
+   "label": "Forward proxies",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "cabal.project",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Cacheable",
+   "topic": "t709",
+   "field": "web-backend",
+   "label": "Spring framework services",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "CacheEvict",
+   "topic": "t709",
+   "field": "web-backend",
+   "label": "Spring framework services",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "CacheManager",
+   "topic": "t709",
+   "field": "web-backend",
+   "label": "Spring framework services",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Caddy",
+   "topic": "x295",
+   "field": "web-backend",
+   "label": "Static asset serving",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "call by need",
+   "topic": "t131.5",
+   "field": "language-constructs",
+   "label": "Lazy evaluation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Camera2",
+   "topic": "x143",
+   "field": "mobile-desktop",
+   "label": "Android Jetpack and third-party libraries",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "CanvasRenderingContext2D",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "captureMessage",
+   "topic": "t281.6",
+   "field": "error-handling",
+   "label": "Exception reporting boundaries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "cargo embed",
+   "topic": "t387.1",
+   "field": "languages-compilers",
+   "label": "Cargo compiler tooling",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "cargo-fuzz",
+   "topic": "t387.1",
+   "field": "languages-compilers",
+   "label": "Cargo compiler tooling",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "cargo-zigbuild",
+   "topic": "t387.1",
+   "field": "languages-compilers",
+   "label": "Cargo compiler tooling",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "cbt",
+   "topic": "t277.3",
+   "field": "databases-storage",
+   "label": "Wide-column databases",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ccls",
+   "topic": "t255",
+   "field": "languages-compilers",
+   "label": "C++ toolchains",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "chakra",
+   "topic": "x91",
+   "field": "frontend-ui",
+   "label": "UI component libraries",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "check_password",
+   "topic": "t141.1",
+   "field": "auth-identity",
+   "label": "Login sessions",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "CIDER",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "c int",
+   "topic": "t690.2",
+   "field": "language-constructs",
+   "label": "Foreign interface boundaries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Citus",
+   "topic": "x83",
+   "field": "distributed-systems",
+   "label": "Consistency models and replication",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "class hierarchy",
+   "topic": "t646.1",
+   "field": "software-design",
+   "label": "Object relationships",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "clean-css",
+   "topic": "t769",
+   "field": "build-release",
+   "label": "Code minification",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "client side routing",
+   "topic": "x60",
+   "field": "browser-platform",
+   "label": "History and window navigation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Cline",
+   "topic": "t982.1",
+   "field": "ml-ai",
+   "label": "LLM tool invocation",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "clocksource",
+   "topic": "t433.4",
+   "field": "time-locale",
+   "label": "Clock calibration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "clocksource",
+   "topic": "t659.2",
+   "field": "os-shell",
+   "label": "Kernel device drivers",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "cloexec",
+   "topic": "t326.1",
+   "field": "os-shell",
+   "label": "Subprocess command execution",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "closure scope",
+   "topic": "t301.2",
+   "field": "functional-programming",
+   "label": "Callable function values",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Cloud Composer",
+   "topic": "t618.1",
+   "field": "cloud-infrastructure",
+   "label": "Google Cloud integration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Cloudflare Access",
+   "topic": "t996",
+   "field": "networking",
+   "label": "Identity-aware network access",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Cloudflare Images",
+   "topic": "t426",
+   "field": "cloud-infrastructure",
+   "label": "Cloudflare platform",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "cloud shell",
+   "topic": "t326.4",
+   "field": "os-shell",
+   "label": "Interactive shell terminals",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Cloud Spanner",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "cluster ip",
+   "topic": "t90.1",
+   "field": "networking",
+   "label": "IP socket addresses",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "CockroachDB",
+   "topic": "x83",
+   "field": "distributed-systems",
+   "label": "Consistency models and replication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "code editor",
+   "topic": "t657.1",
+   "field": "frontend-ui",
+   "label": "Rich text editors",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Codemagic",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "CodeQL",
+   "topic": "t228",
+   "field": "languages-compilers",
+   "label": "Control-flow analysis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "CodeRabbit",
+   "topic": "t184.5",
+   "field": "ml-ai",
+   "label": "AI agent orchestration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Cognito",
+   "topic": "t73.1",
+   "field": "cloud-infrastructure",
+   "label": "AWS SDK authentication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "collection view",
+   "topic": "t850",
+   "field": "mobile-desktop",
+   "label": "UI views/controls",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "columnar format",
+   "topic": "t12.3",
+   "field": "data-formats",
+   "label": "Tabular data exports",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "come",
+   "topic": "t803",
+   "field": "general-wording",
+   "label": "Occurrence wording",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "component library",
+   "topic": "x91",
+   "field": "frontend-ui",
+   "label": "UI component libraries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "compose.yml",
+   "topic": "t169.4",
+   "field": "cloud-infrastructure",
+   "label": "Compose startup checks",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "concurrent queue",
+   "topic": "t112.1",
+   "field": "algorithms-data-structures",
+   "label": "Queue and deque operations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "config set",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "container registry",
+   "topic": "t28.2",
+   "field": "build-release",
+   "label": "Release automation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "content description",
+   "topic": "x144",
+   "field": "mobile-desktop",
+   "label": "Android views and Compose UI",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "contextBridge",
+   "topic": "t44.2",
+   "field": "security",
+   "label": "Sandbox hardening",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "contextBridge",
+   "topic": "x147",
+   "field": "mobile-desktop",
+   "label": "Desktop UI toolkits",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "cookbook",
+   "topic": "t365",
+   "field": "cloud-infrastructure",
+   "label": "Infrastructure configuration management",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "cool",
+   "topic": "t731",
+   "field": "general-wording",
+   "label": "Correctness wording",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Copilot Chat",
+   "topic": "t184.3",
+   "field": "ml-ai",
+   "label": "Language model requests",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "core dump",
+   "topic": "t569.2",
+   "field": "os-shell",
+   "label": "Process termination",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Core ML",
+   "topic": "t717.2",
+   "field": "ml-ai",
+   "label": "Model inference runtimes",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "core web vitals",
+   "topic": "t694.1",
+   "field": "observability-debugging",
+   "label": "APM telemetry",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "cpanfile",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "cpanm",
+   "topic": "t39.8",
+   "field": "build-release",
+   "label": "Package installation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "crash dump",
+   "topic": "t569.2",
+   "field": "os-shell",
+   "label": "Process termination",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "create block",
+   "topic": "x41",
+   "field": "frontend-ui",
+   "label": "WordPress block editing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "createGain",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "createImageBitmap",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "createImageData",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "createOscillator",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "cred",
+   "topic": "t159.4",
+   "field": "auth-identity",
+   "label": "Token credentials",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Criterion",
+   "topic": "t84.5",
+   "field": "observability-debugging",
+   "label": "Latency benchmarks",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "cron schedule",
+   "topic": "t326.2",
+   "field": "os-shell",
+   "label": "Scheduled job directives",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "cross origin isolation",
+   "topic": "t384.1",
+   "field": "security",
+   "label": "Content security policies",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "cross region replication",
+   "topic": "t618.3",
+   "field": "cloud-infrastructure",
+   "label": "Cloud deployment locations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "CryptoKit",
+   "topic": "t799",
+   "field": "mobile-desktop",
+   "label": "Apple platform development",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "csproj",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "CSSO",
+   "topic": "t769",
+   "field": "build-release",
+   "label": "Code minification",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "cub",
+   "topic": "t497.2",
+   "field": "ml-ai",
+   "label": "GPU compute kernels",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "cubic bezier",
+   "topic": "t108.4",
+   "field": "graphics-media",
+   "label": "Vector graphics",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "currency format",
+   "topic": "t261.2",
+   "field": "business-domains",
+   "label": "Cart price calculation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "current directory",
+   "topic": "x271",
+   "field": "os-shell",
+   "label": "Process environment and working directory",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "curry",
+   "topic": "t203.3",
+   "field": "language-constructs",
+   "label": "Partial application",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "CustomPaint",
+   "topic": "t108.1",
+   "field": "graphics-media",
+   "label": "Canvas drawing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "cyan",
+   "topic": "t207.1",
+   "field": "graphics-media",
+   "label": "Color channels and spaces",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "d1",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Dagger",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Dapper",
+   "topic": "t694.2",
+   "field": "observability-debugging",
+   "label": "Distributed trace instrumentation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "data in transit",
+   "topic": "t80.3",
+   "field": "security",
+   "label": "Encryption operations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "data quality",
+   "topic": "x75",
+   "field": "data-engineering",
+   "label": "Data catalog and governance",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "data replication",
+   "topic": "t150.1",
+   "field": "databases-storage",
+   "label": "Replica failover",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "data warehouse",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "DBeaver",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ddsketch",
+   "topic": "x1",
+   "field": "algorithms-data-structures",
+   "label": "Quantile sketches",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "deal",
+   "topic": "x105",
+   "field": "general-wording",
+   "label": "Handling wording",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "deb",
+   "topic": "t39.9",
+   "field": "build-release",
+   "label": "System package installation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "decoy",
+   "topic": "t874",
+   "field": "security",
+   "label": "Malware incident response",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "decoys",
+   "topic": "t874",
+   "field": "security",
+   "label": "Malware incident response",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "DeepL",
+   "topic": "t939",
+   "field": "ml-ai",
+   "label": "Natural language processing",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Delve",
+   "topic": "t382.1",
+   "field": "languages-compilers",
+   "label": "Go project tooling",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "deno.json",
+   "topic": "t522.4",
+   "field": "languages-compilers",
+   "label": "Deno runtime",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "deployment strategy",
+   "topic": "t361.1",
+   "field": "cloud-infrastructure",
+   "label": "Kubernetes deployment manifests",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Dev Containers",
+   "topic": "x200",
+   "field": "cloud-infrastructure",
+   "label": "Development virtual machines",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Dhall",
+   "topic": "t289.1",
+   "field": "configuration",
+   "label": "Configuration loading",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "did",
+   "topic": "t735.1",
+   "field": "frontend-ui",
+   "label": "Component effect lifecycle",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "didn",
+   "topic": "t270",
+   "field": "general-wording",
+   "label": "Inability wording",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "differs",
+   "topic": "t470",
+   "field": "general-wording",
+   "label": "Miscellaneous distinction wording",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "diffusion",
+   "topic": "t205",
+   "field": "version-control",
+   "label": "Code repositories",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "dirname",
+   "topic": "x268",
+   "field": "os-shell",
+   "label": "Common Unix commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "disallow",
+   "topic": "t15.2",
+   "field": "auth-identity",
+   "label": "Permission wording",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "dispatcher timer",
+   "topic": "t268.1",
+   "field": "time-locale",
+   "label": "Interval timers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "DispatchQueue.sync",
+   "topic": "t87.4",
+   "field": "mobile-desktop",
+   "label": "Dispatch queues",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "disposition",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "distinct count",
+   "topic": "t119.1",
+   "field": "databases-storage",
+   "label": "SQL select construction",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "div element",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "django-allauth",
+   "topic": "t933",
+   "field": "web-backend",
+   "label": "Python web serving",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Django ORM",
+   "topic": "t933",
+   "field": "web-backend",
+   "label": "Python web serving",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Django template",
+   "topic": "t352.2",
+   "field": "web-backend",
+   "label": "Template view rendering",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "dmg",
+   "topic": "t564",
+   "field": "build-release",
+   "label": "Build artifacts",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "dnssec",
+   "topic": "t80.4",
+   "field": "security",
+   "label": "Digital signature verification",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Docker layer caching",
+   "topic": "t64.1",
+   "field": "cloud-infrastructure",
+   "label": "Docker image builds",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "docker secrets",
+   "topic": "t493",
+   "field": "cloud-infrastructure",
+   "label": "Docker Swarm orchestration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "docsrs",
+   "topic": "t82.1",
+   "field": "docs-collaboration",
+   "label": "Documentation references",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "doesn",
+   "topic": "t270",
+   "field": "general-wording",
+   "label": "Inability wording",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "domain socket",
+   "topic": "x270",
+   "field": "os-shell",
+   "label": "Local inter-process communication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "doris",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "double tap",
+   "topic": "x57",
+   "field": "browser-platform",
+   "label": "DOM event types",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "dql",
+   "topic": "t694.1",
+   "field": "observability-debugging",
+   "label": "APM telemetry",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Drag and Drop API",
+   "topic": "t502",
+   "field": "frontend-ui",
+   "label": "Drag and drop",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "drone",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "dropbox",
+   "topic": "t71.2",
+   "field": "cloud-infrastructure",
+   "label": "Object storage access",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "dsymutil",
+   "topic": "t62.2",
+   "field": "languages-compilers",
+   "label": "Debug build symbols",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "dune",
+   "topic": "t181.2",
+   "field": "build-release",
+   "label": "Incremental build graphs",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Durable Functions",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "dwh",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Dygraphs",
+   "topic": "t101.4",
+   "field": "data-visualization",
+   "label": "Time series plots",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "DynamoDBClient",
+   "topic": "t277.2",
+   "field": "databases-storage",
+   "label": "DynamoDB clients",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "DynamoDBClient",
+   "topic": "t73.1",
+   "field": "cloud-infrastructure",
+   "label": "AWS SDK authentication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "EAS Build",
+   "topic": "x193",
+   "field": "build-release",
+   "label": "Mobile app release builds",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "ech",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ed",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "elb",
+   "topic": "t662.2",
+   "field": "cloud-infrastructure",
+   "label": "Service port exposure",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "elisp",
+   "topic": "t713.2",
+   "field": "languages-compilers",
+   "label": "Lisp list primitives",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "endregion",
+   "topic": "x86",
+   "field": "editors-ide",
+   "label": "Editor text editing features",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "entity expansion",
+   "topic": "t965",
+   "field": "security",
+   "label": "Request forgery",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Entra ID",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "epoll",
+   "topic": "t659.1",
+   "field": "os-shell",
+   "label": "System call boundaries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "error logging",
+   "topic": "t281.6",
+   "field": "error-handling",
+   "label": "Exception reporting boundaries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "error reporting",
+   "topic": "t281.6",
+   "field": "error-handling",
+   "label": "Exception reporting boundaries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "es384",
+   "topic": "t136",
+   "field": "auth-identity",
+   "label": "JSON Web Tokens",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "es512",
+   "topic": "t136",
+   "field": "auth-identity",
+   "label": "JSON Web Tokens",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "escalate",
+   "topic": "t44.3",
+   "field": "security",
+   "label": "Privilege escalation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "escapeHtml",
+   "topic": "t795",
+   "field": "text-processing",
+   "label": "Text sanitization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "esm",
+   "topic": "t866.1",
+   "field": "language-constructs",
+   "label": "Module import resolution",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Espresso",
+   "topic": "x155",
+   "field": "mobile-desktop",
+   "label": "Mobile UI testing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "europe",
+   "topic": "t618.3",
+   "field": "cloud-infrastructure",
+   "label": "Cloud deployment locations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "event store",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ExoPlayer",
+   "topic": "x143",
+   "field": "mobile-desktop",
+   "label": "Android Jetpack and third-party libraries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "explorer",
+   "topic": "t210",
+   "field": "browser-platform",
+   "label": "Browser engine identification",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "explorer",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "extending",
+   "topic": "t729",
+   "field": "general-wording",
+   "label": "Extension wording",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "External Secrets",
+   "topic": "t361.2",
+   "field": "cloud-infrastructure",
+   "label": "Kubernetes custom resources",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Fabric",
+   "topic": "t273.3",
+   "field": "observability-debugging",
+   "label": "Crash reporting services",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Fabric",
+   "topic": "t616.2",
+   "field": "frontend-ui",
+   "label": "Fabric.js canvas controls",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Fabric.js",
+   "topic": "t108.1",
+   "field": "graphics-media",
+   "label": "Canvas drawing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "fastapi-users",
+   "topic": "t801",
+   "field": "web-backend",
+   "label": "Typed Python APIs",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "fast-csv",
+   "topic": "t391.2",
+   "field": "text-processing",
+   "label": "CSV record I/O",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Fibonacci",
+   "topic": "t617",
+   "field": "math-numerics",
+   "label": "GCD and LCM",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "fillRect",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "FIPS",
+   "topic": "t492",
+   "field": "data-visualization",
+   "label": "Geospatial web maps",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Firebase Auth",
+   "topic": "t174.1",
+   "field": "cloud-infrastructure",
+   "label": "Firebase application services",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Firebase Cloud Messaging",
+   "topic": "x154",
+   "field": "mobile-desktop",
+   "label": "Mobile push notifications",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Firecracker",
+   "topic": "t704.1",
+   "field": "os-shell",
+   "label": "Virtual machine guests",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Firecracker",
+   "topic": "t245.1",
+   "field": "cloud-infrastructure",
+   "label": "OCI container runtimes",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Flagsmith",
+   "topic": "t21.2",
+   "field": "configuration",
+   "label": "Feature flags",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "flake.nix",
+   "topic": "t466.1",
+   "field": "configuration",
+   "label": "Directory environment loading",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Flake8",
+   "topic": "t155.6",
+   "field": "languages-compilers",
+   "label": "Python formatting tools",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "flask group",
+   "topic": "t933",
+   "field": "web-backend",
+   "label": "Python web serving",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Flask-Login",
+   "topic": "t89.1",
+   "field": "web-backend",
+   "label": "Server route handlers",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "floating",
+   "topic": "t337.1",
+   "field": "frontend-ui",
+   "label": "Anchored popup components",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Flutter",
+   "topic": "t501.4",
+   "field": "frontend-ui",
+   "label": "Flutter widget state",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "fly",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "forRoot",
+   "topic": "t350",
+   "field": "frontend-ui",
+   "label": "Angular application components",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Foundation",
+   "topic": "t164.2",
+   "field": "web-styling",
+   "label": "Component design systems",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "FoundationDB",
+   "topic": "x83",
+   "field": "distributed-systems",
+   "label": "Consistency models and replication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "fpga",
+   "topic": "t640",
+   "field": "systems-low-level",
+   "label": "Embedded firmware",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "freed",
+   "topic": "t59.1",
+   "field": "systems-low-level",
+   "label": "Heap allocation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "freedesktop",
+   "topic": "t661",
+   "field": "configuration",
+   "label": "User configuration directories",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "FreeRTOS",
+   "topic": "t252.2",
+   "field": "concurrency-async",
+   "label": "Preemptive CPU scheduling",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "free text",
+   "topic": "t56.3",
+   "field": "databases-storage",
+   "label": "Search indexing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "fuchsia",
+   "topic": "t164.1",
+   "field": "web-styling",
+   "label": "CSS style properties",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "fugitive",
+   "topic": "t1044.1",
+   "field": "editors-ide",
+   "label": "Neovim language navigation",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "FutureWarning",
+   "topic": "t347.11",
+   "field": "observability-debugging",
+   "label": "Python warning emission",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "fzf",
+   "topic": "t326.4",
+   "field": "os-shell",
+   "label": "Interactive shell terminals",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "gdb-multiarch",
+   "topic": "t439.1",
+   "field": "observability-debugging",
+   "label": "Debugger sessions",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "gem",
+   "topic": "t39.8",
+   "field": "build-release",
+   "label": "Package installation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "generator function",
+   "topic": "t128.4",
+   "field": "concurrency-async",
+   "label": "Coroutine suspension",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "geographic",
+   "topic": "t101.3",
+   "field": "data-visualization",
+   "label": "Geographic chart interaction",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "gesture",
+   "topic": "t421",
+   "field": "mobile-desktop",
+   "label": "UI views/controls",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "getComputedStyle",
+   "topic": "t321.1",
+   "field": "browser-platform",
+   "label": "DOM element manipulation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "getDisplayMedia",
+   "topic": "x56",
+   "field": "browser-platform",
+   "label": "Device and media permission APIs",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "GetIt",
+   "topic": "t43.4",
+   "field": "software-design",
+   "label": "IoC container wiring",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "gimbal lock",
+   "topic": "x135",
+   "field": "math-numerics",
+   "label": "Trigonometry and constants",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Git Bash",
+   "topic": "x173",
+   "field": "version-control",
+   "label": "Git client tools",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "GIT_DIR",
+   "topic": "t466.2",
+   "field": "configuration",
+   "label": "Environment configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "git-filter-repo",
+   "topic": "t20.2",
+   "field": "security",
+   "label": "Secret leak scanning",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "GITHUB_ACTOR",
+   "topic": "t30",
+   "field": "build-release",
+   "label": "CI workflow execution",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "GitHub code search",
+   "topic": "t624",
+   "field": "version-control",
+   "label": "GitHub developer services",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "github copilot",
+   "topic": "t184.3",
+   "field": "ml-ai",
+   "label": "Language model requests",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "GITHUB_EVENT_PATH",
+   "topic": "t30",
+   "field": "build-release",
+   "label": "CI workflow execution",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "GitHub Releases",
+   "topic": "t624",
+   "field": "version-control",
+   "label": "GitHub developer services",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "GITHUB_REPOSITORY_OWNER",
+   "topic": "t30",
+   "field": "build-release",
+   "label": "CI workflow execution",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "gitignore rules",
+   "topic": "x174",
+   "field": "version-control",
+   "label": "Git ignore rules",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "glob pattern",
+   "topic": "t339.1",
+   "field": "os-shell",
+   "label": "Shell execution",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Godot",
+   "topic": "x122",
+   "field": "graphics-media",
+   "label": "2D and 3D game frameworks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "go-git",
+   "topic": "t140.5",
+   "field": "version-control",
+   "label": "Repository transport",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Go modules",
+   "topic": "t382.1",
+   "field": "languages-compilers",
+   "label": "Go project tooling",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Google Artifact Registry",
+   "topic": "t706.3",
+   "field": "build-release",
+   "label": "Language package registries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Google Cloud Build",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Google Docs",
+   "topic": "t82.5",
+   "field": "docs-collaboration",
+   "label": "Documentation wikis",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Google Workspace",
+   "topic": "t159.7",
+   "field": "auth-identity",
+   "label": "Single sign on",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "GoReleaser",
+   "topic": "t28.2",
+   "field": "build-release",
+   "label": "Release automation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Gradio",
+   "topic": "t448",
+   "field": "ml-ai",
+   "label": "Machine learning",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "grammar.js",
+   "topic": "t11.2",
+   "field": "languages-compilers",
+   "label": "Grammar definitions",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "graphene",
+   "topic": "t933",
+   "field": "web-backend",
+   "label": "Python web serving",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "gray-matter",
+   "topic": "t118.1",
+   "field": "docs-collaboration",
+   "label": "Static site generation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "greptimedb",
+   "topic": "x82",
+   "field": "databases-storage",
+   "label": "Time series databases",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "GROQ",
+   "topic": "t239",
+   "field": "databases-storage",
+   "label": "Document databases",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "GrowthBook",
+   "topic": "t21.2",
+   "field": "configuration",
+   "label": "Feature flags",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ha",
+   "topic": "x217",
+   "field": "distributed-systems",
+   "label": "Cluster high availability",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "HAL_Delay",
+   "topic": "t268.4",
+   "field": "time-locale",
+   "label": "Embedded system ticks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Hangfire",
+   "topic": "t268.2",
+   "field": "time-locale",
+   "label": "Scheduled job triggers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "happen",
+   "topic": "t803",
+   "field": "general-wording",
+   "label": "Occurrence wording",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "har",
+   "topic": "t403",
+   "field": "browser-platform",
+   "label": "Chrome/DevTools",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "hardware abstraction layer",
+   "topic": "t659.2",
+   "field": "os-shell",
+   "label": "Kernel device drivers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "hash collision",
+   "topic": "t173.1",
+   "field": "security",
+   "label": "Content integrity hashes",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "hashlib",
+   "topic": "t446.3",
+   "field": "algorithms-data-structures",
+   "label": "Hash function computation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Hazelcast",
+   "topic": "x83",
+   "field": "distributed-systems",
+   "label": "Consistency models and replication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "headless browser",
+   "topic": "t403",
+   "field": "browser-platform",
+   "label": "Chrome/DevTools",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "health endpoint",
+   "topic": "t282.1",
+   "field": "web-backend",
+   "label": "HTTP server endpoints",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "healthz",
+   "topic": "t282.1",
+   "field": "web-backend",
+   "label": "HTTP server endpoints",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "heap dump",
+   "topic": "t59.4",
+   "field": "systems-low-level",
+   "label": "Heap diagnostics",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "HEEx",
+   "topic": "t352.2",
+   "field": "web-backend",
+   "label": "Template view rendering",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "high contrast",
+   "topic": "t164.3",
+   "field": "web-styling",
+   "label": "Color theme selection",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Hilt",
+   "topic": "x143",
+   "field": "mobile-desktop",
+   "label": "Android Jetpack and third-party libraries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Hive",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "hkt",
+   "topic": "t596.2",
+   "field": "type-systems",
+   "label": "Generic type declarations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "hll",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "hls",
+   "topic": "t722",
+   "field": "languages-compilers",
+   "label": "Haskell",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "hof",
+   "topic": "t301.2",
+   "field": "functional-programming",
+   "label": "Callable function values",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Homebrew Cask",
+   "topic": "t39.9",
+   "field": "build-release",
+   "label": "System package installation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "hot module replacement",
+   "topic": "t906",
+   "field": "build-release",
+   "label": "JS bundling",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Houdini",
+   "topic": "t164.1",
+   "field": "web-styling",
+   "label": "CSS style properties",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "hrtime",
+   "topic": "t858",
+   "field": "os-shell",
+   "label": "Node.js process APIs",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "hsts",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "htaccess",
+   "topic": "x295",
+   "field": "web-backend",
+   "label": "Static asset serving",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "HTMLAudioElement",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "HTMLVideoElement",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "icns",
+   "topic": "t207.2",
+   "field": "graphics-media",
+   "label": "Raster image formats",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "idb",
+   "topic": "t257.2",
+   "field": "browser-platform",
+   "label": "Browser data persistence",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "iframe element",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "il",
+   "topic": "t161.1",
+   "field": "languages-compilers",
+   "label": "Compiler intermediate representation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "image digest",
+   "topic": "t173.1",
+   "field": "security",
+   "label": "Content integrity hashes",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "image element",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "image registry",
+   "topic": "t28.2",
+   "field": "build-release",
+   "label": "Release automation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Impala",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "importantForAccessibility",
+   "topic": "x144",
+   "field": "mobile-desktop",
+   "label": "Android views and Compose UI",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "index out of bounds",
+   "topic": "x88",
+   "field": "error-handling",
+   "label": "Out-of-bounds and missing-key errors",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "indirect prompt injection",
+   "topic": "x255",
+   "field": "ml-ai",
+   "label": "LLM safety evaluation",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Infinispan",
+   "topic": "x83",
+   "field": "distributed-systems",
+   "label": "Consistency models and replication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ingress controller",
+   "topic": "t361.3",
+   "field": "cloud-infrastructure",
+   "label": "Cluster ingress policies",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ini",
+   "topic": "t537",
+   "field": "data-formats",
+   "label": "Data representation formats",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "inline assembly",
+   "topic": "t161.1",
+   "field": "languages-compilers",
+   "label": "Compiler intermediate representation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "insecure",
+   "topic": "x115",
+   "field": "general-wording",
+   "label": "Safety wording",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "internet gateway",
+   "topic": "t381.3",
+   "field": "networking",
+   "label": "IP network addressing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "interrupt controller",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "interrupt handler",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "interrupt service routine",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "IonMonkey",
+   "topic": "t210",
+   "field": "browser-platform",
+   "label": "Browser engine identification",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "ioread32",
+   "topic": "t659.2",
+   "field": "os-shell",
+   "label": "Kernel device drivers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ioremap",
+   "topic": "t659.2",
+   "field": "os-shell",
+   "label": "Kernel device drivers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "io_uring",
+   "topic": "t659.1",
+   "field": "os-shell",
+   "label": "System call boundaries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "iowrite32",
+   "topic": "t659.2",
+   "field": "os-shell",
+   "label": "Kernel device drivers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ipp",
+   "topic": "t612.2",
+   "field": "languages-compilers",
+   "label": "Header inclusion",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "irq",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ISO 4217",
+   "topic": "t261.2",
+   "field": "business-domains",
+   "label": "Cart price calculation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "isolation level",
+   "topic": "t576.3",
+   "field": "concurrency-async",
+   "label": "Shared state races",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Istio",
+   "topic": "t940",
+   "field": "distributed-systems",
+   "label": "Service discovery",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "it",
+   "topic": "x103",
+   "field": "general-wording",
+   "label": "Generic noun wording",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "JasperReports",
+   "topic": "t856",
+   "field": "data-formats",
+   "label": "Print document formats",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Joern",
+   "topic": "t228",
+   "field": "languages-compilers",
+   "label": "Control-flow analysis",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Jsonnet",
+   "topic": "t289.1",
+   "field": "configuration",
+   "label": "Configuration loading",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "jsonp",
+   "topic": "t16",
+   "field": "browser-platform",
+   "label": "Browser cross-origin policies",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "JupyterLab",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Kaniko",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Keep a Changelog",
+   "topic": "t82.1",
+   "field": "docs-collaboration",
+   "label": "Documentation references",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "key connector",
+   "topic": "t159.7",
+   "field": "auth-identity",
+   "label": "Single sign on",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "keyframes",
+   "topic": "t872.1",
+   "field": "graphics-media",
+   "label": "Animation frame timing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "keyspace notification",
+   "topic": "t876.3",
+   "field": "databases-storage",
+   "label": "Redis application clients",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "keytab",
+   "topic": "t20.1",
+   "field": "security",
+   "label": "Authentication credentials",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Kibana",
+   "topic": "t56.4",
+   "field": "databases-storage",
+   "label": "Elasticsearch queries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Kibana",
+   "topic": "x79",
+   "field": "data-visualization",
+   "label": "BI and dashboard tools",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Kinesis Data Streams",
+   "topic": "t429.2",
+   "field": "data-engineering",
+   "label": "Stateful stream processing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Kingfisher",
+   "topic": "t799",
+   "field": "mobile-desktop",
+   "label": "Apple platform development",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "known",
+   "topic": "t628",
+   "field": "general-wording",
+   "label": "Certainty wording",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Kombu",
+   "topic": "t297.2",
+   "field": "concurrency-async",
+   "label": "Message work queues",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Konva",
+   "topic": "t108.1",
+   "field": "graphics-media",
+   "label": "Canvas drawing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Kotlin Multiplatform",
+   "topic": "t313.3",
+   "field": "languages-compilers",
+   "label": "Android Kotlin development",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Kotlin Multiplatform",
+   "topic": "t87.8",
+   "field": "mobile-desktop",
+   "label": "Platform targeting",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "kpi",
+   "topic": "x67",
+   "field": "business-domains",
+   "label": "Business revenue metrics",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "kts",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "KTX",
+   "topic": "x143",
+   "field": "mobile-desktop",
+   "label": "Android Jetpack and third-party libraries",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "KubernetesPodOperator",
+   "topic": "t169.1",
+   "field": "cloud-infrastructure",
+   "label": "Kubernetes pod configuration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Kusto",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Kusto",
+   "topic": "t694.1",
+   "field": "observability-debugging",
+   "label": "APM telemetry",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Kyverno",
+   "topic": "t44.2",
+   "field": "security",
+   "label": "Sandbox hardening",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "l2",
+   "topic": "x165",
+   "field": "systems-low-level",
+   "label": "CPU caches and locality",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "l2",
+   "topic": "t791.1",
+   "field": "networking",
+   "label": "Interface addressing",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Lambda@Edge",
+   "topic": "t325.1",
+   "field": "networking",
+   "label": "CDN delivery",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "lambda lifting",
+   "topic": "t161.1",
+   "field": "languages-compilers",
+   "label": "Compiler intermediate representation",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Langfuse",
+   "topic": "t694.1",
+   "field": "observability-debugging",
+   "label": "APM telemetry",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "LangSmith",
+   "topic": "t694.1",
+   "field": "observability-debugging",
+   "label": "APM telemetry",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "language analyzer",
+   "topic": "t227.2",
+   "field": "text-processing",
+   "label": "Unicode word segmentation",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "late data",
+   "topic": "t812",
+   "field": "distributed-systems",
+   "label": "Message delivery ordering",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "LaunchDarkly",
+   "topic": "t21.2",
+   "field": "configuration",
+   "label": "Feature flags",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Lazarus",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "lazyfree",
+   "topic": "x211",
+   "field": "databases-storage",
+   "label": "Database engine internals and configuration",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ld",
+   "topic": "t181.3",
+   "field": "build-release",
+   "label": "Native compiler options",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "LDAP injection",
+   "topic": "t34.1",
+   "field": "auth-identity",
+   "label": "Directory authentication",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "LDAPS",
+   "topic": "t221.1",
+   "field": "security",
+   "label": "TLS client configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "ldif",
+   "topic": "t537",
+   "field": "data-formats",
+   "label": "Data representation formats",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "leap",
+   "topic": "t778.2",
+   "field": "math-numerics",
+   "label": "Leap year calculation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "least significant bit",
+   "topic": "t198.3",
+   "field": "math-numerics",
+   "label": "Integer bit significance",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "libcurl",
+   "topic": "t668",
+   "field": "networking",
+   "label": "URL protocol schemes",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "libpam",
+   "topic": "x159",
+   "field": "os-shell",
+   "label": "Privilege elevation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "LibreSSL",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "link element",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "linker flags",
+   "topic": "t181.3",
+   "field": "build-release",
+   "label": "Native compiler options",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "list format",
+   "topic": "t315.2",
+   "field": "time-locale",
+   "label": "Locale value formatting",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "listpack",
+   "topic": "x211",
+   "field": "databases-storage",
+   "label": "Database engine internals and configuration",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "livekit",
+   "topic": "t1016",
+   "field": "networking",
+   "label": "WebRTC connection negotiation",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "LiveView",
+   "topic": "x297",
+   "field": "web-backend",
+   "label": "Erlang and Elixir web serving",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "localectl",
+   "topic": "t49.2",
+   "field": "os-shell",
+   "label": "Systemd services",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "lock renewal",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "log-based CDC",
+   "topic": "x211",
+   "field": "databases-storage",
+   "label": "Database engine internals and configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "logical plan",
+   "topic": "t67.2",
+   "field": "data-engineering",
+   "label": "Spark distributed analytics",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "login_required",
+   "topic": "t89.1",
+   "field": "web-backend",
+   "label": "Server route handlers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "logrotate",
+   "topic": "x268",
+   "field": "os-shell",
+   "label": "Common Unix commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Logstash",
+   "topic": "t293.2",
+   "field": "data-engineering",
+   "label": "ETL transformations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "longest common prefix",
+   "topic": "t685.4",
+   "field": "text-processing",
+   "label": "String substring APIs",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "long ptr",
+   "topic": "x35",
+   "field": "mobile-desktop",
+   "label": "Windows native API types",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "LookML",
+   "topic": "x79",
+   "field": "data-visualization",
+   "label": "BI and dashboard tools",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "lossless compression",
+   "topic": "t678.1",
+   "field": "graphics-media",
+   "label": "Image encoding formats",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "lsb",
+   "topic": "t198.3",
+   "field": "math-numerics",
+   "label": "Integer bit significance",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Maestro",
+   "topic": "x155",
+   "field": "mobile-desktop",
+   "label": "Mobile UI testing",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "magenta",
+   "topic": "t207.1",
+   "field": "graphics-media",
+   "label": "Color channels and spaces",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "mailcatcher",
+   "topic": "t532.3",
+   "field": "business-domains",
+   "label": "Email transmission",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Makefile.PL",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "make_password",
+   "topic": "t1035",
+   "field": "auth-identity",
+   "label": "User accounts",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "mamba",
+   "topic": "t543.1",
+   "field": "build-release",
+   "label": "Conda activation commands",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "man in the middle",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Map Kit",
+   "topic": "t492",
+   "field": "data-visualization",
+   "label": "Geospatial web maps",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "map view",
+   "topic": "t492",
+   "field": "data-visualization",
+   "label": "Geospatial web maps",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "mask type",
+   "topic": "x300",
+   "field": "web-styling",
+   "label": "CSS visual effects",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Massif",
+   "topic": "t401.5",
+   "field": "observability-debugging",
+   "label": "Allocator heap profiles",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "md5",
+   "topic": "t446.3",
+   "field": "algorithms-data-structures",
+   "label": "Hash function computation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "mDNS",
+   "topic": "t940",
+   "field": "distributed-systems",
+   "label": "Service discovery",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "media element",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Media Foundation",
+   "topic": "t238.2",
+   "field": "mobile-desktop",
+   "label": "Windows binary integration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Media Session API",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "mediasoup",
+   "topic": "t1016",
+   "field": "networking",
+   "label": "WebRTC connection negotiation",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "MediaSource",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "memmap2",
+   "topic": "t234.3",
+   "field": "systems-low-level",
+   "label": "Virtual memory mappings",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "memory safety",
+   "topic": "t251.2",
+   "field": "security",
+   "label": "Vulnerability exploit analysis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Microsoft Entra ID",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "migration guide",
+   "topic": "t82.1",
+   "field": "docs-collaboration",
+   "label": "Documentation references",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "mixed content",
+   "topic": "t409",
+   "field": "browser-platform",
+   "label": "Browser origin security",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "mixer",
+   "topic": "x124",
+   "field": "graphics-media",
+   "label": "Native audio libraries and APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "model state",
+   "topic": "t144.2",
+   "field": "web-backend",
+   "label": "Request data mapping",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "mpi4py",
+   "topic": "t497.3",
+   "field": "ml-ai",
+   "label": "MPI message passing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "MPS",
+   "topic": "t696.1",
+   "field": "editors-ide",
+   "label": "JetBrains IDE platforms",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "MQTT",
+   "topic": "t193.5",
+   "field": "networking",
+   "label": "Asynchronous transports",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "MSAL",
+   "topic": "t109",
+   "field": "cloud-infrastructure",
+   "label": "Microsoft Azure",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "multicolumn",
+   "topic": "t70.2",
+   "field": "databases-storage",
+   "label": "Table keys and indexes",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "multi root workspace",
+   "topic": "t688",
+   "field": "editors-ide",
+   "label": "VS Code editor",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Myers",
+   "topic": "t140.8",
+   "field": "version-control",
+   "label": "Revision diffs",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "napi-rs",
+   "topic": "t127.4",
+   "field": "concurrency-async",
+   "label": "Node.js runtime APIs",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Narrator",
+   "topic": "t1006",
+   "field": "graphics-media",
+   "label": "Speech synthesis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "nat gateway",
+   "topic": "t703",
+   "field": "networking",
+   "label": "Firewall/NAT rules",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "native menu",
+   "topic": "x146",
+   "field": "mobile-desktop",
+   "label": "Desktop OS integration",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "NavController",
+   "topic": "x143",
+   "field": "mobile-desktop",
+   "label": "Android Jetpack and third-party libraries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Navigation Component",
+   "topic": "t106.2",
+   "field": "frontend-ui",
+   "label": "Mobile navigation stacks",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "navigation-compose",
+   "topic": "t106.2",
+   "field": "frontend-ui",
+   "label": "Mobile navigation stacks",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "navigator.language",
+   "topic": "t210",
+   "field": "browser-platform",
+   "label": "Browser engine identification",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "navigator.languages",
+   "topic": "t210",
+   "field": "browser-platform",
+   "label": "Browser engine identification",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "navigator.locks",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Needleman-Wunsch",
+   "topic": "t58.2",
+   "field": "web-styling",
+   "label": "Biological sequence alignment",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Nerves",
+   "topic": "t640",
+   "field": "systems-low-level",
+   "label": "Embedded firmware",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "nested interrupts",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "network acl",
+   "topic": "t703",
+   "field": "networking",
+   "label": "Firewall/NAT rules",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "network load balancer",
+   "topic": "t662.2",
+   "field": "cloud-infrastructure",
+   "label": "Service port exposure",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "nexe",
+   "topic": "t87.1",
+   "field": "mobile-desktop",
+   "label": "Application packaging",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "nginx ingress",
+   "topic": "t369.3",
+   "field": "networking",
+   "label": "Ingress load balancing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "nmi",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "node:readline",
+   "topic": "t127.4",
+   "field": "concurrency-async",
+   "label": "Node.js runtime APIs",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "node:stream",
+   "topic": "t127.4",
+   "field": "concurrency-async",
+   "label": "Node.js runtime APIs",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "NSKeyedArchiver",
+   "topic": "t87.2",
+   "field": "mobile-desktop",
+   "label": "Cocoa application APIs",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "ntohl",
+   "topic": "t381.2",
+   "field": "networking",
+   "label": "IPv4 socket structures",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "nuttx",
+   "topic": "t171.1",
+   "field": "systems-low-level",
+   "label": "RTOS microcontroller firmware",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "nvic",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "NVIC_EnableIRQ",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "oas",
+   "topic": "t412.2",
+   "field": "web-backend",
+   "label": "REST API interfaces",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "oauth2-proxy",
+   "topic": "t996",
+   "field": "networking",
+   "label": "Identity-aware network access",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "object oriented programming",
+   "topic": "t6.1",
+   "field": "language-constructs",
+   "label": "Class inheritance",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "object result",
+   "topic": "t973",
+   "field": "web-backend",
+   "label": "HTTP status codes",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ocsp",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "octree",
+   "topic": "t222",
+   "field": "graphics-media",
+   "label": "Geometric measurement points",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "OData",
+   "topic": "t412.2",
+   "field": "web-backend",
+   "label": "REST API interfaces",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "oem",
+   "topic": "t283.4",
+   "field": "time-locale",
+   "label": "Optical character recognition",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "offset pagination",
+   "topic": "t119.1",
+   "field": "databases-storage",
+   "label": "SQL select construction",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "onFocus",
+   "topic": "x57",
+   "field": "browser-platform",
+   "label": "DOM event types",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "onSubmit",
+   "topic": "x57",
+   "field": "browser-platform",
+   "label": "DOM event types",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "onTouchStart",
+   "topic": "x57",
+   "field": "browser-platform",
+   "label": "DOM event types",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "oom score",
+   "topic": "x272",
+   "field": "os-shell",
+   "label": "Process resource limits",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "opam",
+   "topic": "t39.8",
+   "field": "build-release",
+   "label": "Package installation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "OpenCL",
+   "topic": "t345.1",
+   "field": "graphics-media",
+   "label": "GPU shader programs",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "OpenCV",
+   "topic": "x136",
+   "field": "ml-ai",
+   "label": "Computer vision models and tasks",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "OpenMPI",
+   "topic": "t497.3",
+   "field": "ml-ai",
+   "label": "MPI message passing",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "OpenOCD",
+   "topic": "t439.1",
+   "field": "observability-debugging",
+   "label": "Debugger sessions",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "OpenSSH",
+   "topic": "x158",
+   "field": "networking",
+   "label": "Tunneling and port exposure",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "openssl s_client",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "oplog",
+   "topic": "t293.1",
+   "field": "data-engineering",
+   "label": "Change capture connectors",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Optimizely",
+   "topic": "t21.2",
+   "field": "configuration",
+   "label": "Feature flags",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "OTA update",
+   "topic": "t786.2",
+   "field": "mobile-desktop",
+   "label": "React Native interfaces",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "p50",
+   "topic": "x134",
+   "field": "math-numerics",
+   "label": "Quantiles and order statistics",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "p95",
+   "topic": "x134",
+   "field": "math-numerics",
+   "label": "Quantiles and order statistics",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "package lock",
+   "topic": "t173.2",
+   "field": "security",
+   "label": "Dependency lockfile checksums",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "package-lock.json",
+   "topic": "t173.2",
+   "field": "security",
+   "label": "Dependency lockfile checksums",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "pacman",
+   "topic": "t607.2",
+   "field": "os-shell",
+   "label": "POSIX Linux runtimes",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Paket",
+   "topic": "t39.8",
+   "field": "build-release",
+   "label": "Package installation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "pallets",
+   "topic": "t933",
+   "field": "web-backend",
+   "label": "Python web serving",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Panama",
+   "topic": "t204",
+   "field": "languages-compilers",
+   "label": "Native library bindings",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Pandera",
+   "topic": "t67.1",
+   "field": "data-engineering",
+   "label": "Dataframe table operations",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Pandoc",
+   "topic": "t856",
+   "field": "data-formats",
+   "label": "Print document formats",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "parameter info",
+   "topic": "t31.2",
+   "field": "editors-ide",
+   "label": "Code completion",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "parseArgs",
+   "topic": "t127.4",
+   "field": "concurrency-async",
+   "label": "Node.js runtime APIs",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "passkey",
+   "topic": "t20.1",
+   "field": "security",
+   "label": "Authentication credentials",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "passport.authenticate",
+   "topic": "x55",
+   "field": "auth-identity",
+   "label": "Authentication frameworks and libraries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "passport-local",
+   "topic": "t829",
+   "field": "web-backend",
+   "label": "HTTP middleware",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "PasswordEncoder",
+   "topic": "t660.1",
+   "field": "security",
+   "label": "Password hash verification",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "patch file",
+   "topic": "x175",
+   "field": "version-control",
+   "label": "Git patch files",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "path_provider",
+   "topic": "x226",
+   "field": "files-io",
+   "label": "Standard directory locations",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "PendingDeprecationWarning",
+   "topic": "t347.11",
+   "field": "observability-debugging",
+   "label": "Python warning emission",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "permission_required",
+   "topic": "t89.1",
+   "field": "web-backend",
+   "label": "Server route handlers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "pessimistic locking",
+   "topic": "t576.1",
+   "field": "concurrency-async",
+   "label": "Mutex critical sections",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "pgvector",
+   "topic": "t56.10",
+   "field": "databases-storage",
+   "label": "Milvus vector storage",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "PHPStan",
+   "topic": "t125.1",
+   "field": "type-systems",
+   "label": "Semantic code analysis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Pinot",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "pip-tools",
+   "topic": "t155.2",
+   "field": "languages-compilers",
+   "label": "Python package configuration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "PKGBUILD",
+   "topic": "t39.9",
+   "field": "build-release",
+   "label": "System package installation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "pkl",
+   "topic": "t289.1",
+   "field": "configuration",
+   "label": "Configuration loading",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "playbackRate",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Plug",
+   "topic": "t829",
+   "field": "web-backend",
+   "label": "HTTP middleware",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "poetry build",
+   "topic": "t155.2",
+   "field": "languages-compilers",
+   "label": "Python package configuration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "poetry publish",
+   "topic": "t155.2",
+   "field": "languages-compilers",
+   "label": "Python package configuration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Polly",
+   "topic": "t808",
+   "field": "languages-compilers",
+   "label": "Compiler optimization",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Pomerium",
+   "topic": "t996",
+   "field": "networking",
+   "label": "Identity-aware network access",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "popover attribute",
+   "topic": "t337.1",
+   "field": "frontend-ui",
+   "label": "Anchored popup components",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Portable Executable",
+   "topic": "t238.2",
+   "field": "mobile-desktop",
+   "label": "Windows binary integration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Porter",
+   "topic": "t795",
+   "field": "text-processing",
+   "label": "Text sanitization",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "pprof",
+   "topic": "t382.1",
+   "field": "languages-compilers",
+   "label": "Go project tooling",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "preflight request",
+   "topic": "t412.1",
+   "field": "web-backend",
+   "label": "HTTP method routing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "private subnet",
+   "topic": "t381.3",
+   "field": "networking",
+   "label": "IP network addressing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "probe-rs",
+   "topic": "t439.1",
+   "field": "observability-debugging",
+   "label": "Debugger sessions",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "project.clj",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Project Panama",
+   "topic": "t200.1",
+   "field": "systems-low-level",
+   "label": "Native ABI interfaces",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "pub.dev",
+   "topic": "t706.3",
+   "field": "build-release",
+   "label": "Language package registries",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "pub get",
+   "topic": "t39.8",
+   "field": "build-release",
+   "label": "Package installation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "public subnet",
+   "topic": "t381.3",
+   "field": "networking",
+   "label": "IP network addressing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "PublishCommand",
+   "topic": "t73.1",
+   "field": "cloud-infrastructure",
+   "label": "AWS SDK authentication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "pubspec.yaml",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "PureScript",
+   "topic": "t772",
+   "field": "languages-compilers",
+   "label": "ML-family languages",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "purposes",
+   "topic": "t368.1",
+   "field": "security",
+   "label": "Privacy consent policies",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "putImageData",
+   "topic": "x61",
+   "field": "browser-platform",
+   "label": "HTML document structure and elements",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "pyocd",
+   "topic": "t439.1",
+   "field": "observability-debugging",
+   "label": "Debugger sessions",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Pysa",
+   "topic": "t228",
+   "field": "languages-compilers",
+   "label": "Control-flow analysis",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "pytest-cov",
+   "topic": "t155.3",
+   "field": "languages-compilers",
+   "label": "Pytest configuration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "py-tree-sitter",
+   "topic": "t11.6",
+   "field": "languages-compilers",
+   "label": "Syntax tree construction",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Qdrant",
+   "topic": "t56.10",
+   "field": "databases-storage",
+   "label": "Milvus vector storage",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "qmake",
+   "topic": "t181.2",
+   "field": "build-release",
+   "label": "Incremental build graphs",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Qodana",
+   "topic": "t228",
+   "field": "languages-compilers",
+   "label": "Control-flow analysis",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Quartz",
+   "topic": "t165.1",
+   "field": "concurrency-async",
+   "label": "Background job queues",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Quartz",
+   "topic": "x125",
+   "field": "graphics-media",
+   "label": "Native image and 2D graphics libraries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "quicklist",
+   "topic": "x211",
+   "field": "databases-storage",
+   "label": "Database engine internals and configuration",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "radio button",
+   "topic": "t390.1",
+   "field": "frontend-ui",
+   "label": "Form field state",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "radio control",
+   "topic": "t390.1",
+   "field": "frontend-ui",
+   "label": "Form field state",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "raf",
+   "topic": "x59",
+   "field": "browser-platform",
+   "label": "Frame scheduling callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "RateLimit-Limit",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Ray",
+   "topic": "x137",
+   "field": "ml-ai",
+   "label": "Distributed and mixed-precision training",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "rds",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "RDS Proxy",
+   "topic": "t25.1",
+   "field": "databases-storage",
+   "label": "Connection pool acquisition",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "react-native-maps",
+   "topic": "t492",
+   "field": "data-visualization",
+   "label": "Geospatial web maps",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "ReactPHP",
+   "topic": "t839",
+   "field": "languages-compilers",
+   "label": "PHP dependency ecosystem",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Realtime Database",
+   "topic": "t239",
+   "field": "databases-storage",
+   "label": "Document databases",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "ReceiveMessageCommand",
+   "topic": "t73.1",
+   "field": "cloud-infrastructure",
+   "label": "AWS SDK authentication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "reciprocal",
+   "topic": "t875",
+   "field": "math-numerics",
+   "label": "Ratios",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "RedisBloom",
+   "topic": "t379.1",
+   "field": "algorithms-data-structures",
+   "label": "Membership checks",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "redox",
+   "topic": "t607.2",
+   "field": "os-shell",
+   "label": "POSIX Linux runtimes",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "rejectUnauthorized",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "request_irq",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "request_irq",
+   "topic": "t659.2",
+   "field": "os-shell",
+   "label": "Kernel device drivers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "required check",
+   "topic": "t30",
+   "field": "build-release",
+   "label": "CI workflow execution",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "resource policy",
+   "topic": "t71.3",
+   "field": "cloud-infrastructure",
+   "label": "Bucket permissions",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "RisingWave",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "rkt",
+   "topic": "t245.1",
+   "field": "cloud-infrastructure",
+   "label": "OCI container runtimes",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "rng",
+   "topic": "x160",
+   "field": "security",
+   "label": "Secure random generation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "rngs",
+   "topic": "x160",
+   "field": "security",
+   "label": "Secure random generation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "rootless Docker",
+   "topic": "t44.2",
+   "field": "security",
+   "label": "Sandbox hardening",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Roslyn",
+   "topic": "t125.1",
+   "field": "type-systems",
+   "label": "Semantic code analysis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Rouge",
+   "topic": "t118.2",
+   "field": "docs-collaboration",
+   "label": "Markdown code blocks",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "route table",
+   "topic": "x262",
+   "field": "networking",
+   "label": "IP routing",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "rpath",
+   "topic": "x275",
+   "field": "os-shell",
+   "label": "Shared library resolution",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "rrf",
+   "topic": "t79.3",
+   "field": "ml-ai",
+   "label": "Search relevance ranking",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "rsyslog",
+   "topic": "t49.2",
+   "field": "os-shell",
+   "label": "Systemd services",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "RTIC",
+   "topic": "t528.11",
+   "field": "concurrency-async",
+   "label": "Hardware interrupt callbacks",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "runc",
+   "topic": "x274",
+   "field": "os-shell",
+   "label": "Namespace and root isolation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "RxSwift",
+   "topic": "t335.2",
+   "field": "mobile-desktop",
+   "label": "Observable view model binding",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "same site cookie",
+   "topic": "t409",
+   "field": "browser-platform",
+   "label": "Browser origin security",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Sanctum",
+   "topic": "t839",
+   "field": "languages-compilers",
+   "label": "PHP dependency ecosystem",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "sbrk",
+   "topic": "t659.1",
+   "field": "os-shell",
+   "label": "System call boundaries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "screen density",
+   "topic": "x144",
+   "field": "mobile-desktop",
+   "label": "Android views and Compose UI",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "screen reader",
+   "topic": "t1006",
+   "field": "graphics-media",
+   "label": "Speech synthesis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "sdiff",
+   "topic": "t471.1",
+   "field": "algorithms-data-structures",
+   "label": "Sequence diff computation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "SDWebImage",
+   "topic": "t799",
+   "field": "mobile-desktop",
+   "label": "Apple platform development",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "search bar",
+   "topic": "t390.1",
+   "field": "frontend-ui",
+   "label": "Form field state",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "search in files",
+   "topic": "t328.1",
+   "field": "editors-ide",
+   "label": "Indexed code search",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "security key",
+   "topic": "t20.1",
+   "field": "security",
+   "label": "Authentication credentials",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "self hosted runner",
+   "topic": "t49.1",
+   "field": "os-shell",
+   "label": "Build agent services",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "self signed",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Semgrep",
+   "topic": "t228",
+   "field": "languages-compilers",
+   "label": "Control-flow analysis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Semmle",
+   "topic": "t228",
+   "field": "languages-compilers",
+   "label": "Control-flow analysis",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "sendPush",
+   "topic": "t686.1",
+   "field": "mobile-desktop",
+   "label": "Notification center delivery",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "SequenceMatcher",
+   "topic": "x170",
+   "field": "text-processing",
+   "label": "Fuzzy string matching",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "server name indication",
+   "topic": "t221.1",
+   "field": "security",
+   "label": "TLS client configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "server sent events",
+   "topic": "t214.3",
+   "field": "browser-platform",
+   "label": "XMLHttpRequest transport",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "session fixation",
+   "topic": "t44.3",
+   "field": "security",
+   "label": "Privilege escalation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "setImmediate",
+   "topic": "t127.4",
+   "field": "concurrency-async",
+   "label": "Node.js runtime APIs",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "set_password",
+   "topic": "t647",
+   "field": "auth-identity",
+   "label": "User models",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "setup.py",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "shadow-cljs",
+   "topic": "t906",
+   "field": "build-release",
+   "label": "JS bundling",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "shared preferences",
+   "topic": "x153",
+   "field": "mobile-desktop",
+   "label": "Mobile local storage",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Sigma.js",
+   "topic": "t264.2",
+   "field": "data-visualization",
+   "label": "Graph diagram rendering",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "sign extension",
+   "topic": "t69.1",
+   "field": "systems-low-level",
+   "label": "Bit manipulation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "silver",
+   "topic": "t293.3",
+   "field": "data-engineering",
+   "label": "Warehouse analytics",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "simpleperf",
+   "topic": "t788",
+   "field": "mobile-desktop",
+   "label": "Android SDK configuration",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "simplified",
+   "topic": "t283.1",
+   "field": "time-locale",
+   "label": "Locale negotiation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "sixel",
+   "topic": "t415",
+   "field": "os-shell",
+   "label": "ANSI terminal escapes",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "slab",
+   "topic": "t246.2",
+   "field": "databases-storage",
+   "label": "Distributed cache management",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Slack",
+   "topic": "t478.1",
+   "field": "docs-collaboration",
+   "label": "Discussion replies",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "slices.Index",
+   "topic": "t382.3",
+   "field": "languages-compilers",
+   "label": "Go sorting",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "slices.SortFunc",
+   "topic": "t382.3",
+   "field": "languages-compilers",
+   "label": "Go sorting",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "sliding expiration",
+   "topic": "t392",
+   "field": "auth-identity",
+   "label": "Cookie session security",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "SLSA",
+   "topic": "t464",
+   "field": "build-release",
+   "label": "Reproducible builds",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Smith-Waterman",
+   "topic": "t58.2",
+   "field": "web-styling",
+   "label": "Biological sequence alignment",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "socket2",
+   "topic": "x156",
+   "field": "networking",
+   "label": "Socket options",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "SocketChannel",
+   "topic": "t90.4",
+   "field": "networking",
+   "label": "Socket clients",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "socket option",
+   "topic": "x156",
+   "field": "networking",
+   "label": "Socket options",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "socket timeout",
+   "topic": "t90.4",
+   "field": "networking",
+   "label": "Socket clients",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Sorbet",
+   "topic": "t918",
+   "field": "languages-compilers",
+   "label": "Ruby development ecosystem",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "sort merge join",
+   "topic": "t441.2",
+   "field": "algorithms-data-structures",
+   "label": "Merge algorithms",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "sort_unstable",
+   "topic": "t250",
+   "field": "languages-compilers",
+   "label": "Rust standard libraries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "SourceBuffer",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "span element",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Spring Batch",
+   "topic": "t709",
+   "field": "web-backend",
+   "label": "Spring framework services",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "spring profile",
+   "topic": "t94.1",
+   "field": "web-backend",
+   "label": "Spring Boot configuration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "spring-retry",
+   "topic": "t709",
+   "field": "web-backend",
+   "label": "Spring framework services",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "sprite",
+   "topic": "x301",
+   "field": "web-styling",
+   "label": "Sprite techniques",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "sqflite",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "squash",
+   "topic": "t64.1",
+   "field": "cloud-infrastructure",
+   "label": "Docker image builds",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "srp",
+   "topic": "t712.1",
+   "field": "auth-identity",
+   "label": "Nonce authentication challenges",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ssl.create_default_context",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "SSLv3",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "staging area",
+   "topic": "t293.2",
+   "field": "data-engineering",
+   "label": "ETL transformations",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "StarRocks",
+   "topic": "t70.3",
+   "field": "databases-storage",
+   "label": "Relational database systems",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "static library",
+   "topic": "t564",
+   "field": "build-release",
+   "label": "Build artifacts",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "std::atomic",
+   "topic": "x166",
+   "field": "systems-low-level",
+   "label": "Memory ordering and barriers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "std::atomic_ref",
+   "topic": "x166",
+   "field": "systems-low-level",
+   "label": "Memory ordering and barriers",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "stdclass",
+   "topic": "t839",
+   "field": "languages-compilers",
+   "label": "PHP dependency ecosystem",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "stdint.h",
+   "topic": "t198.2",
+   "field": "math-numerics",
+   "label": "Machine integer bounds",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "stepper",
+   "topic": "x42",
+   "field": "frontend-ui",
+   "label": "Guided user setup",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "ST-Link",
+   "topic": "t439.1",
+   "field": "observability-debugging",
+   "label": "Debugger sessions",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "stm32cubeide",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "stopword",
+   "topic": "t817.1",
+   "field": "text-processing",
+   "label": "Word dictionaries",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "strcpy",
+   "topic": "t160.8",
+   "field": "text-processing",
+   "label": "String operations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "strict transport security",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Stripe webhook",
+   "topic": "t1019",
+   "field": "web-backend",
+   "label": "Webhook event payloads",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "strncpy",
+   "topic": "t160.8",
+   "field": "text-processing",
+   "label": "String operations",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "strndup",
+   "topic": "t160.8",
+   "field": "text-processing",
+   "label": "String operations",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "struct.pack",
+   "topic": "t201.1",
+   "field": "data-formats",
+   "label": "Binary serialization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "struct.unpack",
+   "topic": "t201.1",
+   "field": "data-formats",
+   "label": "Binary serialization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "sts",
+   "topic": "t159.4",
+   "field": "auth-identity",
+   "label": "Token credentials",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "subtle",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "sumdb",
+   "topic": "t382.1",
+   "field": "languages-compilers",
+   "label": "Go project tooling",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "super resolution",
+   "topic": "x136",
+   "field": "ml-ai",
+   "label": "Computer vision models and tasks",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "SwiftData",
+   "topic": "t274.2",
+   "field": "databases-storage",
+   "label": "Persistence contexts",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Swoole",
+   "topic": "t839",
+   "field": "languages-compilers",
+   "label": "PHP dependency ecosystem",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "sys.argv",
+   "topic": "t992",
+   "field": "languages-compilers",
+   "label": "Python standard library",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "systemd-nspawn",
+   "topic": "t245.2",
+   "field": "cloud-infrastructure",
+   "label": "Linux container isolation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "table cell",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "table header",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "table row",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "TalkBack",
+   "topic": "t1006",
+   "field": "graphics-media",
+   "label": "Speech synthesis",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "tarpaulin",
+   "topic": "t387.1",
+   "field": "languages-compilers",
+   "label": "Cargo compiler tooling",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "tco",
+   "topic": "t808",
+   "field": "languages-compilers",
+   "label": "Compiler optimization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "TensorFlow Lite",
+   "topic": "x143",
+   "field": "mobile-desktop",
+   "label": "Android Jetpack and third-party libraries",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "Tesseract",
+   "topic": "t283.4",
+   "field": "time-locale",
+   "label": "Optical character recognition",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Testing Library",
+   "topic": "t407.1",
+   "field": "frontend-ui",
+   "label": "Client component rendering",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "testpaths",
+   "topic": "t45.1",
+   "field": "testing",
+   "label": "Test suite execution",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "testroutes",
+   "topic": "t237.2",
+   "field": "testing",
+   "label": "Integration tests",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "textarea",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "text transform",
+   "topic": "t633.2",
+   "field": "web-styling",
+   "label": "Web typography",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "TFS",
+   "topic": "t28.1",
+   "field": "build-release",
+   "label": "CI build pipelines",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "th",
+   "topic": "t508.2",
+   "field": "data-formats",
+   "label": "HTML markup elements",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "thenApply",
+   "topic": "t859",
+   "field": "concurrency-async",
+   "label": "Promise chaining",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "thenCompose",
+   "topic": "t859",
+   "field": "concurrency-async",
+   "label": "Promise chaining",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "throttling",
+   "topic": "t292",
+   "field": "concurrency-async",
+   "label": "Change event throttling",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "TiDB",
+   "topic": "t150.2",
+   "field": "databases-storage",
+   "label": "Database sharding",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Timber",
+   "topic": "t352.2",
+   "field": "web-backend",
+   "label": "Template view rendering",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Timber",
+   "topic": "t347.1",
+   "field": "observability-debugging",
+   "label": "Logger output configuration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "tls handshake",
+   "topic": "t221.1",
+   "field": "security",
+   "label": "TLS client configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "token filter",
+   "topic": "t795",
+   "field": "text-processing",
+   "label": "Text sanitization",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Tokens Studio",
+   "topic": "t12.5",
+   "field": "data-formats",
+   "label": "Design token conversion",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "toolbar item",
+   "topic": "t107",
+   "field": "frontend-ui",
+   "label": "Button controls",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "tool poisoning",
+   "topic": "t982.1",
+   "field": "ml-ai",
+   "label": "LLM tool invocation",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "to_parquet",
+   "topic": "t12.3",
+   "field": "data-formats",
+   "label": "Tabular data exports",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "torchaudio",
+   "topic": "t476",
+   "field": "ml-ai",
+   "label": "Speech transcription",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "tower",
+   "topic": "t35.4",
+   "field": "software-design",
+   "label": "Request middleware",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "trace context",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "tracepoint",
+   "topic": "t401.2",
+   "field": "observability-debugging",
+   "label": "Runtime profiling",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "tracestate",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "transaction isolation",
+   "topic": "t576.3",
+   "field": "concurrency-async",
+   "label": "Shared state races",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "tree-sitter-cli",
+   "topic": "t11.6",
+   "field": "languages-compilers",
+   "label": "Syntax tree construction",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "trigger_error",
+   "topic": "t839",
+   "field": "languages-compilers",
+   "label": "PHP dependency ecosystem",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Trino",
+   "topic": "t870",
+   "field": "databases-storage",
+   "label": "SQL query planning",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Trivy",
+   "topic": "t64.2",
+   "field": "cloud-infrastructure",
+   "label": "Container registry publishing",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "trust managers",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "trust store",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "ts.forEachChild",
+   "topic": "t11.6",
+   "field": "languages-compilers",
+   "label": "Syntax tree construction",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Turbine",
+   "topic": "x32",
+   "field": "testing",
+   "label": "Asynchronous test waiting",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "twos complement",
+   "topic": "t69.1",
+   "field": "systems-low-level",
+   "label": "Bit manipulation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "typed results",
+   "topic": "t655.3",
+   "field": "software-design",
+   "label": "ASP.NET web controllers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "typescript-language-server",
+   "topic": "t511.1",
+   "field": "type-systems",
+   "label": "TypeScript type tooling",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "TypeSpec",
+   "topic": "t412.2",
+   "field": "web-backend",
+   "label": "REST API interfaces",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "ua",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "uart",
+   "topic": "t297.7",
+   "field": "concurrency-async",
+   "label": "Serial port communication",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "unhandled promise rejection",
+   "topic": "t281.6",
+   "field": "error-handling",
+   "label": "Exception reporting boundaries",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Unity",
+   "topic": "t43.4",
+   "field": "software-design",
+   "label": "IoC container wiring",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Unity",
+   "topic": "x122",
+   "field": "graphics-media",
+   "label": "2D and 3D game frameworks",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "unix socket",
+   "topic": "x270",
+   "field": "os-shell",
+   "label": "Local inter-process communication",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Unleash",
+   "topic": "t21.2",
+   "field": "configuration",
+   "label": "Feature flags",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "untracked file",
+   "topic": "x174",
+   "field": "version-control",
+   "label": "Git ignore rules",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "upgrade guide",
+   "topic": "t82.1",
+   "field": "docs-collaboration",
+   "label": "Documentation references",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "url encoding",
+   "topic": "t747.1",
+   "field": "browser-platform",
+   "label": "Website addresses",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "usart",
+   "topic": "t297.7",
+   "field": "concurrency-async",
+   "label": "Serial port communication",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "UseAuthentication",
+   "topic": "t89.2",
+   "field": "web-backend",
+   "label": "ASP.NET authorization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "UseAuthentication",
+   "topic": "t35.4",
+   "field": "software-design",
+   "label": "Request middleware",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "UseAuthorization",
+   "topic": "t89.2",
+   "field": "web-backend",
+   "label": "ASP.NET authorization",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "UseAuthorization",
+   "topic": "t35.4",
+   "field": "software-design",
+   "label": "Request middleware",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "useFakeTimers",
+   "topic": "t5.1",
+   "field": "testing",
+   "label": "Mock interaction tests",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "user agent string",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "UserNotifications",
+   "topic": "t174.2",
+   "field": "cloud-infrastructure",
+   "label": "Push notification permissions",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "util-linux",
+   "topic": "x268",
+   "field": "os-shell",
+   "label": "Common Unix commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "uv.lock",
+   "topic": "t155.2",
+   "field": "languages-compilers",
+   "label": "Python package configuration",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "vadd",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "values.yaml",
+   "topic": "t289.1",
+   "field": "configuration",
+   "label": "Configuration loading",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "vcf",
+   "topic": "t537",
+   "field": "data-formats",
+   "label": "Data representation formats",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "VCL",
+   "topic": "t325.1",
+   "field": "networking",
+   "label": "CDN delivery",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "vdim",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Vector Remap Language",
+   "topic": "t286.1",
+   "field": "observability-debugging",
+   "label": "Log ingestion pipelines",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vector search",
+   "topic": "t56.3",
+   "field": "databases-storage",
+   "label": "Search indexing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Vespa",
+   "topic": "t79.1",
+   "field": "ml-ai",
+   "label": "Vector similarity search",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "vgetattr",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "VictoriaMetrics",
+   "topic": "x82",
+   "field": "databases-storage",
+   "label": "Time series databases",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vimrc",
+   "topic": "t339.2",
+   "field": "os-shell",
+   "label": "Tool configuration files",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "vinfo",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "violin",
+   "topic": "t956",
+   "field": "data-visualization",
+   "label": "Statistical plotting",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "virtual private cloud",
+   "topic": "t381.3",
+   "field": "networking",
+   "label": "IP network addressing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "vismember",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vlinks",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vpc",
+   "topic": "t381.3",
+   "field": "networking",
+   "label": "IP network addressing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "vrandmember",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vrange",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vrem",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vrl",
+   "topic": "t286.1",
+   "field": "observability-debugging",
+   "label": "Log ingestion pipelines",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vsetattr",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "vsim",
+   "topic": "t665",
+   "field": "databases-storage",
+   "label": "Redis commands",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "walker",
+   "topic": "t474.1",
+   "field": "files-io",
+   "label": "Recursive directory walking",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Warden",
+   "topic": "t35.4",
+   "field": "software-design",
+   "label": "Request middleware",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "was",
+   "topic": "t707",
+   "field": "web-backend",
+   "label": "Spring MVC/Java servlets",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "wasm32",
+   "topic": "t181.4",
+   "field": "build-release",
+   "label": "Cross-compilation toolchains",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "wasm-pack",
+   "topic": "x195",
+   "field": "build-release",
+   "label": "Build tool commands",
+   "group": "recent",
+   "source": "field"
+  },
+  {
+   "word": "WebAuthn",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "WebGPU",
+   "topic": "x62",
+   "field": "browser-platform",
+   "label": "Platform capability APIs",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "webhook secret",
+   "topic": "t1019",
+   "field": "web-backend",
+   "label": "Webhook event payloads",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "Web Speech API",
+   "topic": "t1006",
+   "field": "graphics-media",
+   "label": "Speech synthesis",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Web Speech API",
+   "topic": "t476",
+   "field": "ml-ai",
+   "label": "Speech transcription",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "web-tree-sitter",
+   "topic": "t11.6",
+   "field": "languages-compilers",
+   "label": "Syntax tree construction",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "whl",
+   "topic": "t39.8",
+   "field": "build-release",
+   "label": "Package installation",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "window manager",
+   "topic": "t238.1",
+   "field": "mobile-desktop",
+   "label": "Native application windows",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Windsurf",
+   "topic": "t982.1",
+   "field": "ml-ai",
+   "label": "LLM tool invocation",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "WireMock",
+   "topic": "t412.2",
+   "field": "web-backend",
+   "label": "REST API interfaces",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "word break",
+   "topic": "t633.2",
+   "field": "web-styling",
+   "label": "Web typography",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "writel",
+   "topic": "t659.2",
+   "field": "os-shell",
+   "label": "Kernel device drivers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "WWW-Authenticate",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "X.509",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "X509Certificate",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "x509 certificates",
+   "topic": "t65.4",
+   "field": "networking",
+   "label": "TLS handshake",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Xcode",
+   "topic": "t739",
+   "field": "editors-ide",
+   "label": "Code editors",
+   "group": "original",
+   "source": "field"
+  },
+  {
+   "word": "xcodeproj",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "xcworkspace",
+   "topic": "t39.6",
+   "field": "build-release",
+   "label": "Build project configuration",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "xdg",
+   "topic": "x149",
+   "field": "mobile-desktop",
+   "label": "Linux desktop environment",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "xff",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "xhr",
+   "topic": "t282.2",
+   "field": "web-backend",
+   "label": "HTTP client requests",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "xmlenc",
+   "topic": "t508.1",
+   "field": "data-formats",
+   "label": "XML parsing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "xmlsec",
+   "topic": "t508.1",
+   "field": "data-formats",
+   "label": "XML parsing",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "X-RateLimit-Limit",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "X-RateLimit-Remaining",
+   "topic": "t88.3",
+   "field": "web-backend",
+   "label": "HTTP headers",
+   "group": "original",
+   "source": "candidate"
+  },
+  {
+   "word": "Yjs",
+   "topic": "t277.5",
+   "field": "databases-storage",
+   "label": "Replicated data types",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "Zeppelin",
+   "topic": "t583.1",
+   "field": "data-visualization",
+   "label": "Notebook figures",
+   "group": "recent",
+   "source": "candidate"
+  },
+  {
+   "word": "zypper",
+   "topic": "t39.9",
+   "field": "build-release",
+   "label": "System package installation",
+   "group": "recent",
+   "source": "candidate"
+  }
+ ],
+ "fields_without_topic": [
+  {
+   "word": "SNTP",
+   "field": "networking"
+  },
+  {
+   "word": "Samsung Internet",
+   "field": "mobile-desktop"
+  },
+  {
+   "word": "soak test",
+   "field": "testing"
+  },
+  {
+   "word": "lora",
+   "field": "networking"
+  },
+  {
+   "word": "reg multi sz",
+   "field": "os-shell"
+  },
+  {
+   "word": "kinesis firehose",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "escaped path",
+   "field": "text-processing"
+  },
+  {
+   "word": "appsettings.json",
+   "field": "web-backend"
+  },
+  {
+   "word": "Access-Control-Allow-Origin",
+   "field": "security"
+  },
+  {
+   "word": "adaptive bitrate",
+   "field": "networking"
+  },
+  {
+   "word": "Amazon MQ",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Amazon Polly",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Amazon SNS",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Amazon Translate",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "ann",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "approximate nearest neighbor",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "architecture decision record",
+   "field": "software-design"
+  },
+  {
+   "word": "async await",
+   "field": "language-constructs"
+  },
+  {
+   "word": "async fn",
+   "field": "language-constructs"
+  },
+  {
+   "word": "atob",
+   "field": "browser-platform"
+  },
+  {
+   "word": "awaitable",
+   "field": "language-constructs"
+  },
+  {
+   "word": "AWS CodeBuild",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "AWS CodeCommit",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "bankers rounding",
+   "field": "business-domains"
+  },
+  {
+   "word": "been",
+   "field": "general-wording"
+  },
+  {
+   "word": "being",
+   "field": "general-wording"
+  },
+  {
+   "word": "bezier curve",
+   "field": "math-numerics"
+  },
+  {
+   "word": "bff",
+   "field": "distributed-systems"
+  },
+  {
+   "word": "binary exponentiation",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "Boyer-Moore",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "bpmn",
+   "field": "business-domains"
+  },
+  {
+   "word": "btoa",
+   "field": "browser-platform"
+  },
+  {
+   "word": "build.zig",
+   "field": "languages-compilers"
+  },
+  {
+   "word": "CalDAV",
+   "field": "networking"
+  },
+  {
+   "word": "chronyd",
+   "field": "networking"
+  },
+  {
+   "word": "CloudFront",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "COBOL",
+   "field": "languages-compilers"
+  },
+  {
+   "word": "configuration set",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Crystal",
+   "field": "languages-compilers"
+  },
+  {
+   "word": "dast",
+   "field": "testing"
+  },
+  {
+   "word": "Databricks",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "distributed tracing",
+   "field": "distributed-systems"
+  },
+  {
+   "word": "Espresso",
+   "field": "testing"
+  },
+  {
+   "word": "extended Euclidean",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "firehose",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Fortran",
+   "field": "languages-compilers"
+  },
+  {
+   "word": "Framer Motion",
+   "field": "frontend-ui"
+  },
+  {
+   "word": "fraud detection",
+   "field": "security"
+  },
+  {
+   "word": "Gatling",
+   "field": "testing"
+  },
+  {
+   "word": "glsl",
+   "field": "languages-compilers"
+  },
+  {
+   "word": "gradient descent",
+   "field": "math-numerics"
+  },
+  {
+   "word": "greatest common divisor",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "imap",
+   "field": "networking"
+  },
+  {
+   "word": "Jaeger",
+   "field": "distributed-systems"
+  },
+  {
+   "word": "JMeter",
+   "field": "testing"
+  },
+  {
+   "word": "key management service",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Kinesis Data Analytics",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Kinesis Data Firehose",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Kinesis Data Streams",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "Knuth-Morris-Pratt",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "langid",
+   "field": "text-processing"
+  },
+  {
+   "word": "latch",
+   "field": "systems-low-level"
+  },
+  {
+   "word": "Live Share",
+   "field": "docs-collaboration"
+  },
+  {
+   "word": "load test",
+   "field": "testing"
+  },
+  {
+   "word": "Lua",
+   "field": "languages-compilers"
+  },
+  {
+   "word": "Manacher",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "Mathlib",
+   "field": "math-numerics"
+  },
+  {
+   "word": "mib",
+   "field": "networking"
+  },
+  {
+   "word": "MWAA",
+   "field": "cloud-infrastructure"
+  },
+  {
+   "word": "natural language processing",
+   "field": "text-processing"
+  },
+  {
+   "word": "nlp",
+   "field": "text-processing"
+  },
+  {
+   "word": "NTP server",
+   "field": "networking"
+  },
+  {
+   "word": "Orleans",
+   "field": "distributed-systems"
+  },
+  {
+   "word": "plsql",
+   "field": "languages-compilers"
+  },
+  {
+   "word": "Ray",
+   "field": "distributed-systems"
+  },
+  {
+   "word": "Ray",
+   "field": "graphics-media"
+  },
+  {
+   "word": "Shiny",
+   "field": "web-backend"
+  },
+  {
+   "word": "soak",
+   "field": "testing"
+  },
+  {
+   "word": "stress",
+   "field": "testing"
+  },
+  {
+   "word": "stress test",
+   "field": "testing"
+  },
+  {
+   "word": "string search algorithm",
+   "field": "algorithms-data-structures"
+  },
+  {
+   "word": "TalkBack",
+   "field": "mobile-desktop"
+  },
+  {
+   "word": "TradingView",
+   "field": "business-domains"
+  },
+  {
+   "word": "vimscript",
+   "field": "languages-compilers"
+  },
+  {
+   "word": "watermarking",
+   "field": "graphics-media"
+  },
+  {
+   "word": "web worker",
+   "field": "browser-platform"
+  },
+  {
+   "word": "Web Workers",
+   "field": "browser-platform"
+  },
+  {
+   "word": "workers kv",
+   "field": "databases-storage"
+  },
+  {
+   "word": "Zig",
+   "field": "languages-compilers"
+  }
+ ]
+}

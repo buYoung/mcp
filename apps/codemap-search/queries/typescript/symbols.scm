@@ -45,6 +45,31 @@
 (variable_declarator
   name: (identifier) @symbol.name) @symbol.variable
 
+;; Data members: related-terms evidence only (`member_names`), not indexed as symbols.
+(public_field_definition
+  name: [
+    (property_identifier)
+    (private_property_identifier)
+  ] @member.name)
+
+(property_signature
+  name: (property_identifier) @member.name)
+
+;; Constructor parameter properties (`private readonly service: Service`).
+(required_parameter
+  (accessibility_modifier)
+  pattern: (identifier) @member.name)
+
+(optional_parameter
+  (accessibility_modifier)
+  pattern: (identifier) @member.name)
+
+(enum_body
+  name: (property_identifier) @member.name)
+
+(enum_assignment
+  name: (property_identifier) @member.name)
+
 ;; Test Call Expressions
 (call_expression
   function: [

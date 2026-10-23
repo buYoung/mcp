@@ -1,0 +1,6513 @@
+{
+ "base_dataset": "rts4-912fe1c9f62131b2",
+ "relation_moves": [
+  {
+   "word": "_BV",
+   "related": "(1 << n)",
+   "topic": "t171.4",
+   "into": "t69.1",
+   "entry": "n6b-00002",
+   "judged_word": "(1 << n)",
+   "reason": "(1 << n)은 비트 마스크 표현이고 펌웨어 플래싱과 무관하다"
+  },
+  {
+   "word": "cron",
+   "related": "*/5 * * * *",
+   "topic": "t347.3",
+   "into": "t326.2",
+   "entry": "n6b-00004",
+   "judged_word": "*/5 * * * *",
+   "reason": "cron 표현식은 예약 작업 지시이며 로그 파일 회전이 아니다"
+  },
+  {
+   "word": "continue on error",
+   "related": "-ErrorAction SilentlyContinue",
+   "topic": "t30",
+   "into": "t281.3",
+   "entry": "n6b-00007",
+   "judged_word": "-ErrorAction SilentlyContinue",
+   "reason": "PowerShell 오류 처리 매개변수이며 CI 워크플로 실행 자체가 아니다"
+  },
+  {
+   "word": "cron",
+   "related": "0 0 * * *",
+   "topic": "t347.3",
+   "into": "t326.2",
+   "entry": "n6b-00008",
+   "judged_word": "0 0 * * *",
+   "reason": "cron 표현식은 예약 작업 지시이며 로그 파일 회전이 아니다"
+  },
+  {
+   "word": "word",
+   "related": "16-bit word",
+   "topic": "t227.2",
+   "into": "t197",
+   "entry": "n6b-00009",
+   "judged_word": "16-bit word",
+   "reason": "16비트 워드는 이진 데이터 배치 용어이고 유니코드 단어 분리가 아니다"
+  },
+  {
+   "word": "message body",
+   "related": "256 KB",
+   "topic": "t533",
+   "into": "t72",
+   "entry": "n6b-00010",
+   "judged_word": "256 KB",
+   "reason": "256 KB는 메시지 큐 메시지 크기 한도이며 이메일 본문 도메인이 아니다"
+  },
+  {
+   "word": "u32",
+   "related": "32 bit unsigned",
+   "topic": "t160.3",
+   "into": "t198.2",
+   "entry": "n6b-00011",
+   "judged_word": "32 bit unsigned",
+   "reason": "32비트 부호 없는 정수는 정수 자료형이고 텍스트 인코딩 변환이 아니다"
+  },
+  {
+   "word": "poisoned lock",
+   "related": "abandoned mutex",
+   "topic": "t167.1",
+   "into": "t576.8",
+   "entry": "n6b-00014",
+   "judged_word": "abandoned mutex",
+   "reason": "버려진 뮤텍스는 중독된 락 복구 개념이며 스택 트레이스가 아니다"
+  },
+  {
+   "word": "positive",
+   "related": "above zero",
+   "topic": "t573.1",
+   "into": "t10.1",
+   "entry": "n6b-00015",
+   "judged_word": "above zero",
+   "reason": "above zero는 양수 표현이며 정규식 양방향 탐색과 무관하다"
+  },
+  {
+   "word": "exclusive",
+   "related": "ACCESS EXCLUSIVE",
+   "topic": "t310.2",
+   "into": "t576.2",
+   "entry": "n6b-00017",
+   "judged_word": "ACCESS EXCLUSIVE",
+   "reason": "ACCESS EXCLUSIVE는 PostgreSQL 잠금 모드이며 구간 경계가 아니다"
+  },
+  {
+   "word": "ownership",
+   "related": "account ownership",
+   "topic": "t643.2",
+   "into": "t821.1",
+   "entry": "n6b-00018",
+   "judged_word": "account ownership",
+   "reason": "계정 소유권은 Rust 소유권 연산이 아니라 소유 표현에 속한다"
+  },
+  {
+   "word": "reconciliation",
+   "related": "account reconciliation",
+   "topic": "t450.2",
+   "into": "t170.1",
+   "entry": "n6b-00019",
+   "judged_word": "account reconciliation",
+   "reason": "계정 조정은 가상 DOM 재조정이 아니라 원장 전기이다"
+  },
+  {
+   "word": "manual ack",
+   "related": "ack timeout",
+   "topic": "t1043",
+   "into": "t24.2",
+   "entry": "n6b-00020",
+   "judged_word": "ack timeout",
+   "reason": "확인 응답 시간 초과는 복수 표현이 아니라 소비자 확인 응답이다"
+  },
+  {
+   "word": "save",
+   "related": "ActiveRecord save",
+   "topic": "t214.4",
+   "into": "t487.1",
+   "entry": "n6b-00022",
+   "judged_word": "ActiveRecord save",
+   "reason": "ActiveRecord save는 레코드 저장이며 파일 선택 대화상자가 아니다"
+  },
+  {
+   "word": "arc",
+   "related": "Adaptive Replacement Cache",
+   "topic": "t87.2",
+   "into": "t246.1",
+   "entry": "n6b-00023",
+   "judged_word": "Adaptive Replacement Cache",
+   "reason": "Adaptive Replacement Cache는 캐시 알고리즘이며 Cocoa API가 아니다"
+  },
+  {
+   "word": "alpha",
+   "related": "alpha release",
+   "topic": "t207.1",
+   "into": "t267",
+   "entry": "n6b-00024",
+   "judged_word": "alpha release",
+   "reason": "알파 릴리스는 사전 배포 단계이며 알파 색상 채널이 아니다"
+  },
+  {
+   "word": "from_dict",
+   "related": "alternate constructor",
+   "topic": "t67.1",
+   "into": "t395.3",
+   "entry": "n6b-00026",
+   "judged_word": "alternate constructor",
+   "reason": "대체 생성자는 팩토리 메서드이며 데이터프레임 연산이 아니다"
+  },
+  {
+   "word": "jfr",
+   "related": "always-on profiling",
+   "topic": "t313.1",
+   "into": "t401.3",
+   "entry": "n6b-00027",
+   "judged_word": "always-on profiling",
+   "reason": "상시 프로파일링은 JVM 프로파일링 관점이며 클래스 런타임이 아니다"
+  },
+  {
+   "word": "time complexity",
+   "related": "amortized complexity",
+   "topic": "t433.1",
+   "into": "t115.2",
+   "entry": "n6b-00028",
+   "judged_word": "amortized complexity",
+   "reason": "상환 복잡도는 알고리즘 복잡도이며 실행 시간 측정이 아니다"
+  },
+  {
+   "word": "dac",
+   "related": "analog output",
+   "topic": "t17.2",
+   "into": "t171.3",
+   "entry": "n6b-00029",
+   "judged_word": "analog output",
+   "reason": "아날로그 출력은 주변장치 레지스터 접근이며 파일 권한이 아니다"
+  },
+  {
+   "word": "escape character",
+   "related": "ansi escape",
+   "topic": "t11.3",
+   "into": "t554",
+   "entry": "n6b-00031",
+   "judged_word": "ansi escape",
+   "reason": "ANSI 이스케이프는 문자열 이스케이프 문자이며 어휘 토큰 스트림이 아니다"
+  },
+  {
+   "word": "REST",
+   "related": "api request file",
+   "topic": "t105.1",
+   "into": "t412.2",
+   "entry": "n6b-00032",
+   "judged_word": "api request file",
+   "reason": "API 요청 파일은 REST 인터페이스이며 rest 매개변수가 아니다"
+  },
+  {
+   "word": "app store",
+   "related": "app listing",
+   "topic": "t170.2",
+   "into": "t87.7",
+   "entry": "n6b-00033",
+   "judged_word": "app listing",
+   "reason": "앱 목록은 스토어 등록 정보이며 결제 게이트웨이가 아니다"
+  },
+  {
+   "word": "std::rotate",
+   "related": "array rotation",
+   "topic": "t69.1",
+   "into": "t308.4",
+   "entry": "n6b-00035",
+   "judged_word": "array rotation",
+   "reason": "배열 회전은 시퀀스 회전이며 비트 조작이 아니다"
+  },
+  {
+   "word": "binary heap",
+   "related": "array-based heap",
+   "topic": "t91.1",
+   "into": "t846",
+   "entry": "n6b-00038",
+   "judged_word": "array-based heap",
+   "reason": "배열 기반 힙은 우선순위 큐이며 시퀀스 삽입이 아니다"
+  },
+  {
+   "word": "charCodeAt",
+   "related": "ASCII code",
+   "topic": "t211.1",
+   "into": "t160.2",
+   "entry": "n6b-00039",
+   "judged_word": "ASCII code",
+   "reason": "ASCII 코드는 문자 코드 포인트이며 대칭 암호 연산이 아니다"
+  },
+  {
+   "word": "Starlette",
+   "related": "ASGI framework",
+   "topic": "t125.3",
+   "into": "t581",
+   "entry": "n6b-00040",
+   "judged_word": "ASGI framework",
+   "reason": "ASGI 프레임워크는 ASGI 웹 서버 계열이며 파이썬 타이핑이 아니다"
+  },
+  {
+   "word": "assertion error",
+   "related": "AssertionError: expected",
+   "topic": "t8.3",
+   "into": "t13.1",
+   "entry": "n6b-00042",
+   "judged_word": "AssertionError: expected",
+   "reason": "AssertionError 메시지는 단언 매처 결과이며 관계 연산자가 아니다"
+  },
+  {
+   "word": "smp",
+   "related": "asymmetric multiprocessing",
+   "topic": "t704.1",
+   "into": "t955",
+   "entry": "n6b-00043",
+   "judged_word": "asymmetric multiprocessing",
+   "reason": "비대칭 멀티프로세싱은 CPU 토폴로지 개념이며 가상 머신 게스트가 아니다"
+  },
+  {
+   "word": "call",
+   "related": "async call",
+   "topic": "t135.2",
+   "into": "t212.2",
+   "entry": "n6b-00045",
+   "judged_word": "async call",
+   "reason": "async call은 호출 표현이며 연산자 오버로딩이 아니다"
+  },
+  {
+   "word": "build time",
+   "related": "at build time",
+   "topic": "t164.1",
+   "into": "t372",
+   "entry": "n6b-00047",
+   "judged_word": "at build time",
+   "reason": "빌드 시점은 컴파일 시점 개념이며 CSS 스타일 속성이 아니다"
+  },
+  {
+   "word": "arc",
+   "related": "atomic reference counting",
+   "topic": "t87.2",
+   "into": "t307.1",
+   "entry": "n6b-00048",
+   "judged_word": "atomic reference counting",
+   "reason": "원자적 참조 카운팅은 Rust Arc이며 Cocoa API가 아니다"
+  },
+  {
+   "word": "primitives",
+   "related": "atomic types",
+   "topic": "t18.10",
+   "into": "t225.1",
+   "entry": "n6b-00049",
+   "judged_word": "atomic types",
+   "reason": "원자 타입은 기본 자료형 용어이며 헤드리스 UI 요소가 아니다"
+  },
+  {
+   "word": "arc",
+   "related": "atomically reference counted",
+   "topic": "t87.2",
+   "into": "t307.1",
+   "entry": "n6b-00050",
+   "judged_word": "atomically reference counted",
+   "reason": "원자적 참조 카운트는 Rust Arc이며 Cocoa API가 아니다"
+  },
+  {
+   "word": "microphone",
+   "related": "audio input",
+   "topic": "t137.2",
+   "into": "t137.1",
+   "entry": "n6b-00052",
+   "judged_word": "audio input",
+   "reason": "오디오 입력은 마이크 녹음이며 화면 캡처가 아니다"
+  },
+  {
+   "word": "sampling",
+   "related": "audio sampling",
+   "topic": "t694.2",
+   "into": "t903",
+   "entry": "n6b-00053",
+   "judged_word": "audio sampling",
+   "reason": "오디오 샘플링은 신호 샘플링이며 분산 추적 샘플링이 아니다"
+  },
+  {
+   "word": "error type",
+   "related": "authentication error",
+   "topic": "t55.1",
+   "into": "t547.1",
+   "entry": "n6b-00054",
+   "judged_word": "authentication error",
+   "reason": "인증 오류는 오류 종류 이름이며 대수적 자료형 변형 개념이 아니다"
+  },
+  {
+   "word": "epsilon",
+   "related": "avoid division by zero",
+   "topic": "t21.1",
+   "into": "t442.2",
+   "entry": "n6b-00056",
+   "judged_word": "avoid division by zero",
+   "reason": "0 나누기 방지는 부동소수점 엡실론 용도이며 활성 상태가 아니다"
+  },
+  {
+   "word": "Step Functions",
+   "related": "AWS Step Functions",
+   "topic": "t551.1",
+   "into": "t305.2",
+   "entry": "n6b-00058",
+   "judged_word": "AWS Step Functions",
+   "reason": "Step Functions는 워크플로 실행이며 작업 결과 처리가 아니다"
+  },
+  {
+   "word": "trigger",
+   "related": "Azure Functions trigger",
+   "topic": "t528.2",
+   "into": "t206",
+   "entry": "n6b-00059",
+   "judged_word": "Azure Functions trigger",
+   "reason": "Azure Functions 트리거는 서버리스 실행 트리거이며 이벤트 발행 리스너가 아니다"
+  },
+  {
+   "word": "backwards",
+   "related": "back compat",
+   "topic": "t78.1",
+   "into": "t86.1",
+   "entry": "n6b-00060",
+   "judged_word": "back compat",
+   "reason": "하위 호환은 API 호환성이며 신경망 역전파가 아니다"
+  },
+  {
+   "word": "image pull backoff",
+   "related": "back-off pulling image",
+   "topic": "t159.2",
+   "into": "t64.3",
+   "entry": "n6b-00061",
+   "judged_word": "back-off pulling image",
+   "reason": "이미지 풀 백오프는 쿠버네티스 이미지 풀 오류이며 HTTP 기본 인증이 아니다"
+  },
+  {
+   "word": "upstream",
+   "related": "backend server",
+   "topic": "t140.6",
+   "into": "t369.3",
+   "entry": "n6b-00062",
+   "judged_word": "backend server",
+   "reason": "백엔드 서버는 프록시 업스트림이며 브랜치 참조가 아니다"
+  },
+  {
+   "word": "Sidekiq",
+   "related": "background jobs",
+   "topic": "t918",
+   "into": "t165.1",
+   "entry": "n6b-00063",
+   "judged_word": "background jobs",
+   "reason": "백그라운드 작업은 일반 작업 큐 개념이며 루비 생태계 항목이 아니다"
+  },
+  {
+   "word": "backing",
+   "related": "backing service",
+   "topic": "t114.3",
+   "into": "t35.3",
+   "entry": "n6b-00064",
+   "judged_word": "backing service",
+   "reason": "백킹 서비스는 하부 구현 표현이며 바이트 배열 저장이 아니다"
+  },
+  {
+   "word": "fail fast",
+   "related": "bail out early",
+   "topic": "t30",
+   "into": "t518",
+   "entry": "n6b-00065",
+   "judged_word": "bail out early",
+   "reason": "일찍 빠져나오기는 가드 절이며 CI 워크플로 실행이 아니다"
+  },
+  {
+   "word": "build time config",
+   "related": "baked-in config",
+   "topic": "t612.3",
+   "into": "t289.1",
+   "entry": "n6b-00066",
+   "judged_word": "baked-in config",
+   "reason": "빌드에 포함된 설정은 구성 관리이며 매크로 확장이 아니다"
+  },
+  {
+   "word": "reconciliation",
+   "related": "bank reconciliation",
+   "topic": "t450.2",
+   "into": "t170.1",
+   "entry": "n6b-00067",
+   "judged_word": "bank reconciliation",
+   "reason": "은행 대사는 원장 전기이며 가상 DOM 재조정이 아니다"
+  },
+  {
+   "word": "href",
+   "related": "base href",
+   "topic": "t107",
+   "into": "t747.1",
+   "entry": "n6b-00068",
+   "judged_word": "base href",
+   "reason": "base href는 문서 기준 주소이며 버튼 컨트롤이 아니다"
+  },
+  {
+   "word": "sensible defaults",
+   "related": "baseline config",
+   "topic": "t15.6",
+   "into": "t289.1",
+   "entry": "n6b-00069",
+   "judged_word": "baseline config",
+   "reason": "기준 설정은 구성 로딩이며 역할 할당이 아니다"
+  },
+  {
+   "word": "shell command",
+   "related": "bash tool",
+   "topic": "t14.1",
+   "into": "t326.1",
+   "entry": "n6b-00070",
+   "judged_word": "bash tool",
+   "reason": "bash 도구는 셸 명령 실행 도구이며 허용 목록 필터링이 아니다"
+  },
+  {
+   "word": "interactive",
+   "related": "batch mode",
+   "topic": "t337.3",
+   "into": "t326.4",
+   "entry": "n6b-00071",
+   "judged_word": "batch mode",
+   "reason": "배치 모드는 비대화형 실행이며 내비게이션 서랍이 아니다"
+  },
+  {
+   "word": "inference",
+   "related": "batch prediction",
+   "topic": "t125.2",
+   "into": "t717.2",
+   "entry": "n6b-00072",
+   "judged_word": "batch prediction",
+   "reason": "배치 예측은 모델 추론이며 컴파일러 타입 추론이 아니다"
+  },
+  {
+   "word": "beginning",
+   "related": "beginning of file",
+   "topic": "t573.1",
+   "into": "t935.1",
+   "entry": "n6b-00074",
+   "judged_word": "beginning of file",
+   "reason": "파일 시작은 파일 포인터 위치이며 정규식 일치 처리가 아니다"
+  },
+  {
+   "word": "Instant",
+   "related": "benchmark start",
+   "topic": "t117.1",
+   "into": "t433.1",
+   "entry": "n6b-00075",
+   "judged_word": "benchmark start",
+   "reason": "벤치마크 시작은 경과 시간 측정이며 시간대 날짜 API가 아니다"
+  },
+  {
+   "word": "greedy",
+   "related": "best first",
+   "topic": "t573.1",
+   "into": "t399",
+   "entry": "n6b-00076",
+   "judged_word": "best first",
+   "reason": "best first는 탐욕 탐색 알고리즘이며 정규식 일치가 아니다"
+  },
+  {
+   "word": "bits",
+   "related": "binary string",
+   "topic": "t198.2",
+   "into": "t69.1",
+   "entry": "n6b-00078",
+   "judged_word": "binary string",
+   "reason": "이진 문자열은 비트 표현 문자열이며 정수 범위 개념이 아니다"
+  },
+  {
+   "word": "ephemeral port",
+   "related": "bind port 0",
+   "topic": "t747.1",
+   "into": "t90.1",
+   "entry": "n6b-00079",
+   "judged_word": "bind port 0",
+   "reason": "포트 0 바인딩은 소켓 주소 지정이며 웹사이트 주소가 아니다"
+  },
+  {
+   "word": "ephemeral port",
+   "related": "bind to port 0",
+   "topic": "t747.1",
+   "into": "t90.1",
+   "entry": "n6b-00080",
+   "judged_word": "bind to port 0",
+   "reason": "포트 0 바인딩은 소켓 주소 지정이며 웹사이트 주소가 아니다"
+  },
+  {
+   "word": "rpc client",
+   "related": "bitcoind RPC",
+   "topic": "t46.1",
+   "into": "t375.1",
+   "entry": "n6b-00081",
+   "judged_word": "bitcoind RPC",
+   "reason": "RPC 호출 인터페이스일 뿐 재시도 정책이 아니다"
+  },
+  {
+   "word": "blank",
+   "related": "blank template",
+   "topic": "t683.1",
+   "into": "t595.2",
+   "entry": "n6b-00082",
+   "judged_word": "blank template",
+   "reason": "빈 템플릿은 공백 정규화가 아니라 문자열 템플릿 전개와 관련된다"
+  },
+  {
+   "word": "fs.writeFileSync",
+   "related": "blocking write",
+   "topic": "t525",
+   "into": "t615.2",
+   "entry": "n6b-00083",
+   "judged_word": "blocking write",
+   "reason": "동기 쓰기는 파일 쓰기 API이며 파일시스템 오류 항목이 아니다"
+  },
+  {
+   "word": "or",
+   "related": "boolean or",
+   "topic": "t209.2",
+   "into": "t218.4",
+   "entry": "n6b-00084",
+   "judged_word": "boolean or",
+   "reason": "boolean or는 불리언 논리합이지 기본값 초기화가 아니다"
+  },
+  {
+   "word": "Less",
+   "related": "bootstrap 3 less",
+   "topic": "t8.2",
+   "into": "t796.1",
+   "entry": "n6b-00085",
+   "judged_word": "bootstrap 3 less",
+   "reason": "Bootstrap 3 Less는 스타일시트 전처리기이며 정렬 비교자와 무관하다"
+  },
+  {
+   "word": "jsonl",
+   "related": "bq load --source_format=NEWLINE_DELIMITED_JSON",
+   "topic": "t23",
+   "into": "t242.4",
+   "entry": "n6b-00088",
+   "judged_word": "bq load --source_format=NEWLINE_DELIMITED_JSON",
+   "reason": "bq load의 JSONL 형식 옵션은 모델 평가가 아니라 JSON 레코드 형식이다"
+  },
+  {
+   "word": "nested loop",
+   "related": "break out of nested loops",
+   "topic": "t4.1",
+   "into": "t600.1",
+   "entry": "n6b-00090",
+   "judged_word": "break out of nested loops",
+   "reason": "중첩 반복문 탈출은 표 셀이 아니라 반복 제어 흐름이다"
+  },
+  {
+   "word": "broadcast",
+   "related": "broadcast storm",
+   "topic": "t431.1",
+   "into": "t235.3",
+   "entry": "n6b-00091",
+   "judged_word": "broadcast storm",
+   "reason": "브로드캐스트 스톰은 네트워크 현상이며 데이터프레임 변환이 아니다"
+  },
+  {
+   "word": "bom",
+   "related": "Browser Object Model",
+   "topic": "t160.3",
+   "into": "t450.3",
+   "entry": "n6b-00093",
+   "judged_word": "Browser Object Model",
+   "reason": "Browser Object Model은 바이트 순서 표식이 아니라 브라우저 런타임 객체 모델이다"
+  },
+  {
+   "word": "lookbehind",
+   "related": "browser support",
+   "topic": "t573.1",
+   "into": "t610.2",
+   "entry": "n6b-00094",
+   "judged_word": "browser support",
+   "reason": "브라우저 지원은 정규식 매칭 처리가 아니라 브라우저 호환성 문제이다"
+  },
+  {
+   "word": "buffered reader",
+   "related": "buffered stream",
+   "topic": "t11.8",
+   "into": "t242.1",
+   "entry": "n6b-00095",
+   "judged_word": "buffered stream",
+   "reason": "버퍼 스트림은 입력 텍스트 스캐닝이 아니라 버퍼링 입출력이다"
+  },
+  {
+   "word": "doc generator",
+   "related": "build docs",
+   "topic": "t511.3",
+   "into": "t288.2",
+   "entry": "n6b-00096",
+   "judged_word": "build docs",
+   "reason": "문서 빌드는 타입 별칭 선언과 무관하며 문서 생성 도구의 작업이다"
+  },
+  {
+   "word": "build time",
+   "related": "build timestamp",
+   "topic": "t164.1",
+   "into": "t372",
+   "entry": "n6b-00098",
+   "judged_word": "build timestamp",
+   "reason": "빌드 타임스탬프는 CSS 스타일 속성이 아니라 빌드 시점에 박히는 상수이다"
+  },
+  {
+   "word": "remaining",
+   "related": "bytes remaining",
+   "topic": "t105.1",
+   "into": "t243",
+   "entry": "n6b-00103",
+   "judged_word": "bytes remaining",
+   "reason": "남은 바이트 수는 호출 매개변수가 아니라 버퍼 용량 개념이다"
+  },
+  {
+   "word": "cc",
+   "related": "C compiler",
+   "topic": "t734.1",
+   "into": "t255",
+   "entry": "n6b-00104",
+   "judged_word": "C compiler",
+   "reason": "C 컴파일러는 저작권 표기가 아니라 네이티브 컴파일러 도구이다"
+  },
+  {
+   "word": "CLion",
+   "related": "C++ IDE",
+   "topic": "t311",
+   "into": "t696.1",
+   "entry": "n6b-00106",
+   "judged_word": "C++ IDE",
+   "reason": "C++ IDE는 LLVM/Clang 도구 체인이 아니라 JetBrains 등 IDE 플랫폼이다"
+  },
+  {
+   "word": "cache warming",
+   "related": "cache preloading",
+   "topic": "t268.2",
+   "into": "t258.1",
+   "entry": "n6b-00107",
+   "judged_word": "cache preloading",
+   "reason": "캐시 프리로딩은 스케줄 작업 트리거가 아니라 선행 적재이다"
+  },
+  {
+   "word": "canonical",
+   "related": "canonical encoding",
+   "topic": "t0.1",
+   "into": "t266.2",
+   "entry": "n6b-00110",
+   "judged_word": "canonical encoding",
+   "reason": "정규 인코딩은 경로 구성이 아니라 정규화와 관련된다"
+  },
+  {
+   "word": "background",
+   "related": "canvas background",
+   "topic": "t49.3",
+   "into": "t108.1",
+   "entry": "n6b-00111",
+   "judged_word": "canvas background",
+   "reason": "캔버스 배경은 셸 작업 제어가 아니라 캔버스 그리기이다"
+  },
+  {
+   "word": "captured",
+   "related": "captured stdout",
+   "topic": "t573.1",
+   "into": "t326.5",
+   "entry": "n6b-00114",
+   "judged_word": "captured stdout",
+   "reason": "캡처된 표준 출력은 정규식 캡처 그룹이 아니라 표준 스트림 캡처이다"
+  },
+  {
+   "word": "prepare",
+   "related": "cargo prepare",
+   "topic": "t761",
+   "into": "t638",
+   "entry": "n6b-00115",
+   "judged_word": "cargo prepare",
+   "reason": "cargo prepare는 조정 역할이 아니라 빌드 작업 실행기의 준비 단계이다"
+  },
+  {
+   "word": "match",
+   "related": "case-insensitive match",
+   "topic": "t561.1",
+   "into": "t573.3",
+   "entry": "n6b-00116",
+   "judged_word": "case-insensitive match",
+   "reason": "대소문자 무시 일치는 SQL 실행이 아니라 문자열 패턴 매칭이다"
+  },
+  {
+   "word": "catch block",
+   "related": "catch (_)",
+   "topic": "t35.4",
+   "into": "t281.3",
+   "entry": "n6b-00117",
+   "judged_word": "catch (_)",
+   "reason": "catch (_)는 요청 미들웨어가 아니라 예외 처리 구문이다"
+  },
+  {
+   "word": "catch block",
+   "related": "catch (Exception ex)",
+   "topic": "t35.4",
+   "into": "t281.3",
+   "entry": "n6b-00118",
+   "judged_word": "catch (Exception ex)",
+   "reason": "catch (Exception ex)는 요청 미들웨어가 아니라 예외 처리 구문이다"
+  },
+  {
+   "word": "catch all",
+   "related": "catch-all clause",
+   "topic": "t589.1",
+   "into": "t578.2",
+   "entry": "n6b-00121",
+   "judged_word": "catch-all clause",
+   "reason": "catch-all 절은 클라이언트 라우팅보다 기본 케이스 또는 예외 절을 뜻한다"
+  },
+  {
+   "word": "image crop",
+   "related": "center crop",
+   "topic": "t26.1",
+   "into": "t223",
+   "entry": "n6b-00124",
+   "judged_word": "center crop",
+   "reason": "센터 크롭은 데이터 조회가 아니라 이미지 크기 처리이다"
+  },
+  {
+   "word": "zip",
+   "related": "central directory",
+   "topic": "t608",
+   "into": "t138.2",
+   "entry": "n6b-00125",
+   "judged_word": "central directory",
+   "reason": "central directory는 튜플이 아니라 ZIP 압축 파일 구조이다"
+  },
+  {
+   "word": "configuration",
+   "related": "centralized configuration",
+   "topic": "t90.1",
+   "into": "t99",
+   "entry": "n6b-00127",
+   "judged_word": "centralized configuration",
+   "reason": "중앙 집중 설정은 IP 소켓 주소가 아니라 애플리케이션 설정이다"
+  },
+  {
+   "word": "spoofing",
+   "related": "certificate validation",
+   "topic": "t532.5",
+   "into": "t221.1",
+   "entry": "n6b-00129",
+   "judged_word": "certificate validation",
+   "reason": "인증서 검증은 발신자 인증 위장이 아니라 TLS 클라이언트 설정이다"
+  },
+  {
+   "word": "cr",
+   "related": "change review",
+   "topic": "t418.2",
+   "into": "t145.1",
+   "entry": "n6b-00131",
+   "judged_word": "change review",
+   "reason": "변경 리뷰는 줄바꿈 처리가 아니라 풀 리퀘스트 리뷰이다"
+  },
+  {
+   "word": "ord",
+   "related": "char to integer",
+   "topic": "t8.2",
+   "into": "t160.2",
+   "entry": "n6b-00133",
+   "judged_word": "char to integer",
+   "reason": "문자를 정수로 바꾸는 것은 정렬 비교자가 아니라 문자 코드 포인트이다"
+  },
+  {
+   "word": "text message",
+   "related": "character limit",
+   "topic": "t24.1",
+   "into": "t1005.1",
+   "entry": "n6b-00134",
+   "judged_word": "character limit",
+   "reason": "글자 수 제한은 AMQP 발행이 아니라 문자 메시지 전송과 관련된다"
+  },
+  {
+   "word": "church encoding",
+   "related": "church pairs",
+   "topic": "t198.2",
+   "into": "t721.1",
+   "entry": "n6b-00136",
+   "judged_word": "church pairs",
+   "reason": "Church 쌍은 정수 범위가 아니라 람다 인코딩이다"
+  },
+  {
+   "word": "builds",
+   "related": "ci builds",
+   "topic": "t39.2",
+   "into": "t28.1",
+   "entry": "n6b-00137",
+   "judged_word": "ci builds",
+   "reason": "CI 빌드는 의존성 그래프 해석이 아니라 CI 빌드 파이프라인이다"
+  },
+  {
+   "word": "per environment",
+   "related": "CI/CD environments",
+   "topic": "t20.5",
+   "into": "t466.2",
+   "entry": "n6b-00138",
+   "judged_word": "CI/CD environments",
+   "reason": "CI/CD 환경은 비밀 값 마스킹이 아니라 환경 설정이다"
+  },
+  {
+   "word": "cleanup",
+   "related": "cleanup job",
+   "topic": "t244.2",
+   "into": "t863",
+   "entry": "n6b-00140",
+   "judged_word": "cleanup job",
+   "reason": "정리 작업은 코드 리팩터링이 아니라 보존 정책에 따른 데이터 정리이다"
+  },
+  {
+   "word": "flags",
+   "related": "cli flags",
+   "topic": "t69.1",
+   "into": "t37.1",
+   "entry": "n6b-00141",
+   "judged_word": "cli flags",
+   "reason": "CLI 플래그는 비트 조작이 아니라 명령행 인자 처리이다"
+  },
+  {
+   "word": "local cache",
+   "related": "client side caching",
+   "topic": "t134.1",
+   "into": "t246.1",
+   "entry": "n6b-00142",
+   "judged_word": "client side caching",
+   "reason": "클라이언트 측 캐싱은 원자적 파일 교체가 아니라 로컬 캐시 운용이다"
+  },
+  {
+   "word": "index",
+   "related": "clustered index",
+   "topic": "t957.1",
+   "into": "t70.2",
+   "entry": "n6b-00144",
+   "judged_word": "clustered index",
+   "reason": "클러스터형 인덱스는 Git 인덱스가 아니라 테이블 키와 인덱스이다"
+  },
+  {
+   "word": "collation",
+   "related": "collating order",
+   "topic": "t560",
+   "into": "t343.1",
+   "entry": "n6b-00146",
+   "judged_word": "collating order",
+   "reason": "콜레이션 순서는 정규식이 아니라 로케일 기반 문자열 정렬이다"
+  },
+  {
+   "word": "icc",
+   "related": "color management system",
+   "topic": "t208.3",
+   "into": "t207.1",
+   "entry": "n6b-00148",
+   "judged_word": "color management system",
+   "reason": "색상 관리 시스템은 안드로이드 컴포넌트가 아니라 색상 공간 개념이다"
+  },
+  {
+   "word": "block comment",
+   "related": "comment block",
+   "topic": "t391.3",
+   "into": "t288.2",
+   "entry": "n6b-00150",
+   "judged_word": "comment block",
+   "reason": "주석 블록은 구분자 문자열 파싱이 아니라 소스 주석이다"
+  },
+  {
+   "word": "product catalog",
+   "related": "commerce manager",
+   "topic": "t56.3",
+   "into": "t261.1",
+   "entry": "n6b-00151",
+   "judged_word": "commerce manager",
+   "reason": "Commerce Manager는 검색 색인이 아니라 상품 카탈로그 관리 도구이다"
+  },
+  {
+   "word": "avsc",
+   "related": "complex types",
+   "topic": "t85.1",
+   "into": "t201.1",
+   "entry": "n6b-00153",
+   "judged_word": "complex types",
+   "reason": "Avro 복합 타입은 Kafka 클라이언트 연동이 아니라 이진 직렬화 스키마이다"
+  },
+  {
+   "word": "primitives",
+   "related": "concurrency primitives",
+   "topic": "t18.10",
+   "into": "t132.1",
+   "entry": "n6b-00155",
+   "judged_word": "concurrency primitives",
+   "reason": "동시성 프리미티브는 헤드리스 UI 프리미티브가 아니라 동기화 도구이다"
+  },
+  {
+   "word": "conditionally",
+   "related": "conditional logic",
+   "topic": "t450.2",
+   "into": "t531",
+   "entry": "n6b-00157",
+   "judged_word": "conditional logic",
+   "reason": "조건 로직은 가상 DOM 재조정이 아니라 조건 분기이다"
+  },
+  {
+   "word": "conditional",
+   "related": "conditional logic",
+   "topic": "t450.2",
+   "into": "t531",
+   "entry": "n6b-00157",
+   "judged_word": "conditional logic",
+   "reason": "조건 로직은 가상 DOM 재조정이 아니라 조건 분기이다"
+  },
+  {
+   "word": "conditionally",
+   "related": "conditional statement",
+   "topic": "t450.2",
+   "into": "t531",
+   "entry": "n6b-00158",
+   "judged_word": "conditional statement",
+   "reason": "조건문은 가상 DOM 재조정이 아니라 조건 분기이다"
+  },
+  {
+   "word": "conditional",
+   "related": "conditional statement",
+   "topic": "t450.2",
+   "into": "t531",
+   "entry": "n6b-00158",
+   "judged_word": "conditional statement",
+   "reason": "조건문은 가상 DOM 재조정이 아니라 조건 분기이다"
+  },
+  {
+   "word": "defineConfig",
+   "related": "config helper",
+   "topic": "t118.1",
+   "into": "t39.6",
+   "entry": "n6b-00161",
+   "judged_word": "config helper",
+   "reason": "config helper는 설정 정의 도우미이며 정적 사이트 생성이 아니라 빌드 프로젝트 설정에 해당한다"
+  },
+  {
+   "word": "config key",
+   "related": "config name",
+   "topic": "t595.1",
+   "into": "t366",
+   "entry": "n6b-00162",
+   "judged_word": "config name",
+   "reason": "설정 이름은 문자열 보간이 아니라 설정 값 접근의 키 이름이다"
+  },
+  {
+   "word": "conn",
+   "related": "connection object",
+   "topic": "t397.3",
+   "into": "t193.4",
+   "entry": "n6b-00164",
+   "judged_word": "connection object",
+   "reason": "연결 객체는 POSIX 파일 디스크립터 I/O가 아니라 네트워크/DB 연결 핸들이다"
+  },
+  {
+   "word": "connection string",
+   "related": "connection options",
+   "topic": "t660.1",
+   "into": "t25.4",
+   "entry": "n6b-00165",
+   "judged_word": "connection options",
+   "reason": "연결 옵션은 비밀번호 해시 검증이 아니라 데이터베이스 연결 설정이다"
+  },
+  {
+   "word": "options",
+   "related": "connection options",
+   "topic": "t16",
+   "into": "t289.1",
+   "entry": "n6b-00165",
+   "judged_word": "connection options",
+   "reason": "connection options는 CORS의 OPTIONS 요청이 아니라 연결 설정 옵션 객체이다"
+  },
+  {
+   "word": "csp",
+   "related": "constraint satisfaction",
+   "topic": "t297.1",
+   "into": "t168",
+   "entry": "n6b-00166",
+   "judged_word": "constraint satisfaction",
+   "reason": "제약 충족은 CSP 중 제약 충족 문제를 뜻하며 동시성 채널(CSP)이 아니다"
+  },
+  {
+   "word": "csp",
+   "related": "Constraint Satisfaction Problem",
+   "topic": "t297.1",
+   "into": "t168",
+   "entry": "n6b-00167",
+   "judged_word": "Constraint Satisfaction Problem",
+   "reason": "Constraint Satisfaction Problem은 조합 탐색 문제이며 동시성 채널과 무관하다"
+  },
+  {
+   "word": "NTFS",
+   "related": "convert /fs:ntfs",
+   "topic": "t71.3",
+   "into": "t645",
+   "entry": "n6b-00169",
+   "judged_word": "convert /fs:ntfs",
+   "reason": "convert /fs:ntfs는 NTFS 파일시스템 변환 명령이며 버킷 권한과 무관하다"
+  },
+  {
+   "word": "party",
+   "related": "cookie third-party",
+   "topic": "t249.1",
+   "into": "t409",
+   "entry": "n6b-00170",
+   "judged_word": "cookie third-party",
+   "reason": "cookie third-party는 서드파티 쿠키(브라우저 출처 보안)이며 번들러 최적화가 아니다"
+  },
+  {
+   "word": "path2",
+   "related": "copyFile(src, dest)",
+   "topic": "t0.1",
+   "into": "t393.1",
+   "entry": "n6b-00172",
+   "judged_word": "copyFile(src, dest)",
+   "reason": "copyFile(src, dest)는 파일 복사 함수이며 경로 구성이 아니다"
+  },
+  {
+   "word": "compound index",
+   "related": "covered query",
+   "topic": "t8.4",
+   "into": "t870",
+   "entry": "n6b-00175",
+   "judged_word": "covered query",
+   "reason": "covered query는 인덱스가 질의를 덮는 쿼리 계획 개념이며 정렬 키가 아니다"
+  },
+  {
+   "word": "schema",
+   "related": "CREATE SCHEMA",
+   "topic": "t25.1",
+   "into": "t70.1",
+   "entry": "n6b-00178",
+   "judged_word": "CREATE SCHEMA",
+   "reason": "CREATE SCHEMA는 스키마 DDL이며 연결 풀 획득과 무관하다"
+  },
+  {
+   "word": "cron",
+   "related": "cron file",
+   "topic": "t347.3",
+   "into": "t326.2",
+   "entry": "n6b-00180",
+   "judged_word": "cron file",
+   "reason": "cron 파일은 예약 작업 정의이며 로그 파일 회전이 아니다"
+  },
+  {
+   "word": "cron",
+   "related": "crontab -e",
+   "topic": "t347.3",
+   "into": "t326.2",
+   "entry": "n6b-00181",
+   "judged_word": "crontab -e",
+   "reason": "crontab -e는 예약 작업 편집 명령이며 로그 회전이 아니다"
+  },
+  {
+   "word": "cron",
+   "related": "crontab -l",
+   "topic": "t347.3",
+   "into": "t326.2",
+   "entry": "n6b-00182",
+   "judged_word": "crontab -l",
+   "reason": "crontab -l은 예약 작업 목록 명령이며 로그 회전이 아니다"
+  },
+  {
+   "word": "cron",
+   "related": "crontab -r",
+   "topic": "t347.3",
+   "into": "t326.2",
+   "entry": "n6b-00183",
+   "judged_word": "crontab -r",
+   "reason": "crontab -r은 예약 작업 삭제 명령이며 로그 회전이 아니다"
+  },
+  {
+   "word": "cron",
+   "related": "crontab file",
+   "topic": "t347.3",
+   "into": "t326.2",
+   "entry": "n6b-00184",
+   "judged_word": "crontab file",
+   "reason": "crontab 파일은 예약 작업 정의이며 로그 파일 회전이 아니다"
+  },
+  {
+   "word": "etags",
+   "related": "ctags -e",
+   "topic": "t48.10",
+   "into": "t419.1",
+   "entry": "n6b-00186",
+   "judged_word": "ctags -e",
+   "reason": "ctags -e는 Emacs 태그 파일 생성이며 HTTP 캐시 검증과 무관하다"
+  },
+  {
+   "word": "ux",
+   "related": "customer experience",
+   "topic": "t163.2",
+   "into": "t106.5",
+   "entry": "n6b-00189",
+   "judged_word": "customer experience",
+   "reason": "고객 경험은 앱 일시정지 생명주기가 아니라 UX 용어이다"
+  },
+  {
+   "word": "classList",
+   "related": "data attributes",
+   "topic": "t149.2",
+   "into": "t149.4",
+   "entry": "n6b-00190",
+   "judged_word": "data attributes",
+   "reason": "data attributes는 유틸리티 클래스 조합이 아니라 DOM 속성 조작과 관련된다"
+  },
+  {
+   "word": "backend",
+   "related": "database backend",
+   "topic": "t325.1",
+   "into": "t317",
+   "entry": "n6b-00193",
+   "judged_word": "database backend",
+   "reason": "database backend는 CDN 전달이 아니라 데이터베이스 연결 백엔드이다"
+  },
+  {
+   "word": "dbms",
+   "related": "database server",
+   "topic": "t512.2",
+   "into": "t70.3",
+   "entry": "n6b-00194",
+   "judged_word": "database server",
+   "reason": "데이터베이스 서버는 DBMS 자체를 뜻하며 서비스 장애 복구가 아니다"
+  },
+  {
+   "word": "Temporal",
+   "related": "Date replacement",
+   "topic": "t165.4",
+   "into": "t779",
+   "entry": "n6b-00195",
+   "judged_word": "Date replacement",
+   "reason": "Date 대체물은 Temporal 같은 날짜 시간 라이브러리이며 커맨드 액션이 아니다"
+  },
+  {
+   "word": "attached",
+   "related": "debugger attached",
+   "topic": "t38",
+   "into": "t439.1",
+   "entry": "n6b-00199",
+   "judged_word": "debugger attached",
+   "reason": "debugger attached는 디버거 연결 상태이며 추가 표현이 아니다"
+  },
+  {
+   "word": "decimal",
+   "related": "decimal integer",
+   "topic": "t261.2",
+   "into": "t440",
+   "entry": "n6b-00200",
+   "judged_word": "decimal integer",
+   "reason": "십진 정수는 진법 표기이며 장바구니 가격 계산이 아니다"
+  },
+  {
+   "word": "decimal",
+   "related": "decimal to binary",
+   "topic": "t261.2",
+   "into": "t440",
+   "entry": "n6b-00203",
+   "judged_word": "decimal to binary",
+   "reason": "decimal to binary는 진법 변환이며 장바구니 가격 계산이 아니다"
+  },
+  {
+   "word": "decimal",
+   "related": "decimal to hex",
+   "topic": "t261.2",
+   "into": "t440",
+   "entry": "n6b-00204",
+   "judged_word": "decimal to hex",
+   "reason": "decimal to hex는 진법 변환이며 장바구니 가격 계산이 아니다"
+  },
+  {
+   "word": "decimal",
+   "related": "decimal vs hex",
+   "topic": "t261.2",
+   "into": "t440",
+   "entry": "n6b-00205",
+   "judged_word": "decimal vs hex",
+   "reason": "decimal vs hex는 진법 비교이며 장바구니 가격 계산이 아니다"
+  },
+  {
+   "word": "flatten",
+   "related": "deep flatten",
+   "topic": "t96",
+   "into": "t524",
+   "entry": "n6b-00208",
+   "judged_word": "deep flatten",
+   "reason": "deep flatten은 중첩 시퀀스 평탄화이며 함수형 타입 추상화가 아니다"
+  },
+  {
+   "word": "ini file",
+   "related": "DEFAULT section",
+   "topic": "t155.3",
+   "into": "t289.2",
+   "entry": "n6b-00210",
+   "judged_word": "DEFAULT section",
+   "reason": "DEFAULT 섹션은 INI 설정 파일의 섹션이며 pytest 설정이 아니다"
+  },
+  {
+   "word": "sensible defaults",
+   "related": "default values",
+   "topic": "t15.6",
+   "into": "t289.1",
+   "entry": "n6b-00212",
+   "judged_word": "default values",
+   "reason": "기본값은 역할 할당이 아니라 설정 로딩의 기본 값이다"
+  },
+  {
+   "word": "del",
+   "related": "del command",
+   "topic": "t307.4",
+   "into": "t453.1",
+   "entry": "n6b-00214",
+   "judged_word": "del command",
+   "reason": "del 명령은 항목 삭제 명령이며 가비지 컬렉션 참조가 아니다"
+  },
+  {
+   "word": "unlink",
+   "related": "deleted but open",
+   "topic": "t90.2",
+   "into": "t453.1",
+   "entry": "n6b-00218",
+   "judged_word": "deleted but open",
+   "reason": "deleted but open은 열린 파일의 삭제 상태이며 유닉스 도메인 소켓이 아니다"
+  },
+  {
+   "word": "incremental index",
+   "related": "delta index",
+   "topic": "t528.8",
+   "into": "t487.4",
+   "entry": "n6b-00221",
+   "judged_word": "delta index",
+   "reason": "델타 인덱스는 증분 색인이며 반응형 구독이 아니다"
+  },
+  {
+   "word": "util.deprecate",
+   "related": "deprecate(fn, msg, code)",
+   "topic": "t346.3",
+   "into": "t86.2",
+   "entry": "n6b-00223",
+   "judged_word": "deprecate(fn, msg, code)",
+   "reason": "deprecate(fn, msg, code)는 Node.js 사용 중단 알림 함수이며 바이트코드 해석이 아니다"
+  },
+  {
+   "word": "deprecation warning",
+   "related": "deprecation notices",
+   "topic": "t313.1",
+   "into": "t86.2",
+   "entry": "n6b-00224",
+   "judged_word": "deprecation notices",
+   "reason": "deprecation notices는 사용 중단 안내이며 JVM 클래스 런타임이 아니다"
+  },
+  {
+   "word": "destination",
+   "related": "destination port",
+   "topic": "t134.1",
+   "into": "t90.1",
+   "entry": "n6b-00226",
+   "judged_word": "destination port",
+   "reason": "destination port는 네트워크 목적지 포트이며 파일 교체와 무관하다"
+  },
+  {
+   "word": "cfg",
+   "related": "detectron2 cfg",
+   "topic": "t228",
+   "into": "t289.1",
+   "entry": "n6b-00228",
+   "judged_word": "detectron2 cfg",
+   "reason": "detectron2 cfg는 설정 객체이며 제어 흐름 그래프가 아니다"
+  },
+  {
+   "word": "req",
+   "related": "dev requirements",
+   "topic": "t282.1",
+   "into": "t155.2",
+   "entry": "n6b-00229",
+   "judged_word": "dev requirements",
+   "reason": "dev requirements는 파이썬 개발 의존성 파일이며 HTTP 요청이 아니다"
+  },
+  {
+   "word": "console.assert",
+   "related": "devtools console",
+   "topic": "t13.1",
+   "into": "t371",
+   "entry": "n6b-00231",
+   "judged_word": "devtools console",
+   "reason": "devtools console은 콘솔 로깅 도구이며 단언 매처가 아니다"
+  },
+  {
+   "word": "har",
+   "related": "devtools network",
+   "topic": "t88.2",
+   "into": "t403",
+   "entry": "n6b-00232",
+   "judged_word": "devtools network",
+   "reason": "devtools network는 크롬 개발자 도구 패널이며 HTTP 클라이언트 응답이 아니다"
+  },
+  {
+   "word": "factory",
+   "related": "DI container",
+   "topic": "t186.1",
+   "into": "t43.4",
+   "entry": "n6b-00233",
+   "judged_word": "DI container",
+   "reason": "DI 컨테이너는 IoC 컨테이너이며 트랜잭션 DB 작업이 아니다"
+  },
+  {
+   "word": "RuntimeError",
+   "related": "dictionary changed size during iteration",
+   "topic": "t129.1",
+   "into": "t131.2",
+   "entry": "n6b-00234",
+   "judged_word": "dictionary changed size during iteration",
+   "reason": "이 메시지는 파이썬 반복 중 변경 오류이며 비동기 이벤트 루프와 무관하다"
+  },
+  {
+   "word": "left to right",
+   "related": "direction: ltr",
+   "topic": "t353.2",
+   "into": "t194",
+   "entry": "n6b-00236",
+   "judged_word": "direction: ltr",
+   "reason": "direction: ltr은 텍스트 방향 CSS이며 표현식 평가 순서가 아니다"
+  },
+  {
+   "word": "walker",
+   "related": "directory walker",
+   "topic": "t1045.1",
+   "into": "t474.1",
+   "entry": "n6b-00238",
+   "judged_word": "directory walker",
+   "reason": "디렉터리 워커는 파일시스템 재귀 순회이며 AST 방문자가 아니다"
+  },
+  {
+   "word": "imshow",
+   "related": "display image",
+   "topic": "t497.1",
+   "into": "t207.3",
+   "entry": "n6b-00239",
+   "judged_word": "display image",
+   "reason": "display image는 이미지 표시이며 행렬 텐서 연산이 아니다"
+  },
+  {
+   "word": "adjacency matrix",
+   "related": "distance matrix",
+   "topic": "t442.2",
+   "into": "t354.1",
+   "entry": "n6b-00240",
+   "judged_word": "distance matrix",
+   "reason": "거리 행렬은 그래프 최단 경로 행렬이며 부동소수점 산술이 아니다"
+  },
+  {
+   "word": "Floyd-Warshall",
+   "related": "distance matrix",
+   "topic": "t442.2",
+   "into": "t354.1",
+   "entry": "n6b-00240",
+   "judged_word": "distance matrix",
+   "reason": "거리 행렬은 그래프 최단 경로 행렬이며 부동소수점 산술이 아니다"
+  },
+  {
+   "word": "Django",
+   "related": "django template language",
+   "topic": "t723.1",
+   "into": "t352.2",
+   "entry": "n6b-00241",
+   "judged_word": "django template language",
+   "reason": "장고 템플릿 언어는 애플리케이션 이름 표기가 아니라 템플릿 렌더링 구성요소이다"
+  },
+  {
+   "word": "po",
+   "related": "django-admin makemessages",
+   "topic": "t170.3",
+   "into": "t315.4",
+   "entry": "n6b-00242",
+   "judged_word": "django-admin makemessages",
+   "reason": "makemessages는 gettext 번역 카탈로그 추출 명령이며 주문 청구와 무관하다"
+  },
+  {
+   "word": "dl",
+   "related": "dl element",
+   "topic": "t78.1",
+   "into": "t436.1",
+   "entry": "n6b-00243",
+   "judged_word": "dl element",
+   "reason": "dl element는 HTML 정의 목록 요소이며 딥러닝과 무관하다"
+  },
+  {
+   "word": "resolve",
+   "related": "dns resolve",
+   "topic": "t215.2",
+   "into": "t489.1",
+   "entry": "n6b-00244",
+   "judged_word": "dns resolve",
+   "reason": "dns resolve는 호스트 이름 조회이며 언어의 식별자 이름 해석이 아니다"
+  },
+  {
+   "word": "servers",
+   "related": "dns servers",
+   "topic": "t276.1",
+   "into": "t90.5",
+   "entry": "n6b-00245",
+   "judged_word": "dns servers",
+   "reason": "dns servers는 네트워크 용어이며 설정 덮어쓰기 순서와 무관하다"
+  },
+  {
+   "word": "doc generator",
+   "related": "doc tool",
+   "topic": "t511.3",
+   "into": "t288.2",
+   "entry": "n6b-00246",
+   "judged_word": "doc tool",
+   "reason": "doc tool은 문서 생성 도구이며 타입 별칭 선언과 무관하다"
+  },
+  {
+   "word": "layers",
+   "related": "docker layer",
+   "topic": "t33",
+   "into": "t64.1",
+   "entry": "n6b-00247",
+   "judged_word": "docker layer",
+   "reason": "docker layer는 도커 이미지 계층이며 신경망 계층이 아니다"
+  },
+  {
+   "word": "doc",
+   "related": "documentation string",
+   "topic": "t35.5",
+   "into": "t288.2",
+   "entry": "n6b-00249",
+   "judged_word": "documentation string",
+   "reason": "documentation string은 파이썬 독스트링이며 함수 데코레이터가 아니다"
+  },
+  {
+   "word": "drop",
+   "related": "drop table if exists",
+   "topic": "t274.1",
+   "into": "t70.1",
+   "entry": "n6b-00254",
+   "judged_word": "drop table if exists",
+   "reason": "DROP TABLE IF EXISTS는 스키마 DDL이며 엔티티 연관이 아니다"
+  },
+  {
+   "word": "DTrace",
+   "related": "dtrace -l",
+   "topic": "t50.1",
+   "into": "t659.3",
+   "entry": "n6b-00255",
+   "judged_word": "dtrace -l",
+   "reason": "dtrace -l는 프로브 추적 명령 옵션이며 그룹 집계가 아니다"
+  },
+  {
+   "word": "DTrace",
+   "related": "dtrace -n",
+   "topic": "t50.1",
+   "into": "t659.3",
+   "entry": "n6b-00256",
+   "judged_word": "dtrace -n",
+   "reason": "dtrace -n는 프로브 추적 명령 옵션이며 그룹 집계가 아니다"
+  },
+  {
+   "word": "DTrace",
+   "related": "dtrace -p",
+   "topic": "t50.1",
+   "into": "t659.3",
+   "entry": "n6b-00257",
+   "judged_word": "dtrace -p",
+   "reason": "dtrace -p는 프로브 추적 명령 옵션이며 그룹 집계가 아니다"
+  },
+  {
+   "word": "DTrace",
+   "related": "dtrace -s",
+   "topic": "t50.1",
+   "into": "t659.3",
+   "entry": "n6b-00258",
+   "judged_word": "dtrace -s",
+   "reason": "dtrace -s는 프로브 추적 명령 옵션이며 그룹 집계가 아니다"
+  },
+  {
+   "word": "to_csv",
+   "related": "dump csv",
+   "topic": "t615.1",
+   "into": "t12.3",
+   "entry": "n6b-00259",
+   "judged_word": "dump csv",
+   "reason": "dump csv는 CSV 내보내기이며 네이티브 파일 스트림이 아니다"
+  },
+  {
+   "word": "durable",
+   "related": "durable exchange",
+   "topic": "t134.4",
+   "into": "t24.1",
+   "entry": "n6b-00260",
+   "judged_word": "durable exchange",
+   "reason": "durable exchange는 AMQP 교환기 설정이며 파일 내구성 플러시가 아니다"
+  },
+  {
+   "word": "duck typing",
+   "related": "dynamically typed",
+   "topic": "t131.2",
+   "into": "t515.1",
+   "entry": "n6b-00262",
+   "judged_word": "dynamically typed",
+   "reason": "dynamically typed는 동적 타입 언어 용어이며 이터레이터 순회가 아니다"
+  },
+  {
+   "word": "Supabase",
+   "related": "edge function",
+   "topic": "t34.3",
+   "into": "t1029",
+   "entry": "n6b-00264",
+   "judged_word": "edge function",
+   "reason": "edge function은 인증이 아니라 관리형 백엔드의 서버리스 함수이다"
+  },
+  {
+   "word": "programming",
+   "related": "eeprom programming",
+   "topic": "t646.1",
+   "into": "t171.4",
+   "entry": "n6b-00265",
+   "judged_word": "eeprom programming",
+   "reason": "EEPROM 프로그래밍은 펌웨어 기록이며 객체 관계와 무관하다"
+  },
+  {
+   "word": "RFC 2822",
+   "related": "email date",
+   "topic": "t48.10",
+   "into": "t532.3",
+   "entry": "n6b-00268",
+   "judged_word": "email date",
+   "reason": "email date는 이메일 Date 헤더이며 HTTP 캐시 검증이 아니다"
+  },
+  {
+   "word": "related terms",
+   "related": "embedding similarity",
+   "topic": "t832",
+   "into": "t79.3",
+   "entry": "n6b-00270",
+   "judged_word": "embedding similarity",
+   "reason": "embedding similarity는 의미 유사도 순위이며 모듈 경로 별칭이 아니다"
+  },
+  {
+   "word": "broadcast",
+   "related": "emit to all",
+   "topic": "t431.1",
+   "into": "t528.2",
+   "entry": "n6b-00271",
+   "judged_word": "emit to all",
+   "reason": "emit to all은 이벤트 브로드캐스트이며 데이터프레임 변환이 아니다"
+  },
+  {
+   "word": "catch block",
+   "related": "empty catch",
+   "topic": "t35.4",
+   "into": "t281.3",
+   "entry": "n6b-00272",
+   "judged_word": "empty catch",
+   "reason": "empty catch는 예외 처리 블록이며 요청 미들웨어가 아니다"
+  },
+  {
+   "word": "catch block",
+   "related": "empty catch block",
+   "topic": "t35.4",
+   "into": "t281.3",
+   "entry": "n6b-00273",
+   "judged_word": "empty catch block",
+   "reason": "empty catch block은 예외 처리 블록이며 요청 미들웨어가 아니다"
+  },
+  {
+   "word": "strtok",
+   "related": "empty tokens",
+   "topic": "t607.2",
+   "into": "t391.3",
+   "entry": "n6b-00274",
+   "judged_word": "empty tokens",
+   "reason": "empty tokens는 strtok의 구분자 문자열 파싱 결과이며 POSIX 런타임이 아니다"
+  },
+  {
+   "word": "StopIteration",
+   "related": "end of iteration",
+   "topic": "t209.2",
+   "into": "t600.3",
+   "entry": "n6b-00276",
+   "judged_word": "end of iteration",
+   "reason": "end of iteration은 이터레이터 종료 예외이며 기본값 초기화가 아니다"
+  },
+  {
+   "word": "anchor",
+   "related": "end of string",
+   "topic": "t699.3",
+   "into": "t573.1",
+   "entry": "n6b-00277",
+   "judged_word": "end of string",
+   "reason": "end of string은 정규식 끝 앵커이며 CSS 요소 위치가 아니다"
+  },
+  {
+   "word": "endpoint",
+   "related": "endpoint routing",
+   "topic": "t169.2",
+   "into": "t89.1",
+   "entry": "n6b-00278",
+   "judged_word": "endpoint routing",
+   "reason": "endpoint routing은 요청 경로 라우팅이며 생존 상태 점검이 아니다"
+  },
+  {
+   "word": "enter",
+   "related": "enter key",
+   "topic": "t101.3",
+   "into": "t715",
+   "entry": "n6b-00279",
+   "judged_word": "enter key",
+   "reason": "enter key는 키보드 키이며 지도 차트 상호작용이 아니다"
+  },
+  {
+   "word": "per environment",
+   "related": "environment settings",
+   "topic": "t20.5",
+   "into": "t466.2",
+   "entry": "n6b-00281",
+   "judged_word": "environment settings",
+   "reason": "environment settings는 환경별 설정이며 비밀값 가리기가 아니다"
+  },
+  {
+   "word": "config key",
+   "related": "environment variable key",
+   "topic": "t86.2",
+   "into": "t366",
+   "entry": "n6b-00282",
+   "judged_word": "environment variable key",
+   "reason": "환경 변수 키는 설정 값 접근이며 폐기 안내와 무관하다"
+  },
+  {
+   "word": "in memory database",
+   "related": "ephemeral database",
+   "topic": "t234.4",
+   "into": "t435.1",
+   "entry": "n6b-00284",
+   "judged_word": "ephemeral database",
+   "reason": "ephemeral database는 임베디드 테스트용 데이터베이스이며 프로세스 메모리 측정이 아니다"
+  },
+  {
+   "word": "ephemeral port",
+   "related": "ephemeral port exhaustion",
+   "topic": "t747.1",
+   "into": "t90.1",
+   "entry": "n6b-00285",
+   "judged_word": "ephemeral port exhaustion",
+   "reason": "ephemeral port exhaustion은 소켓 포트 고갈이며 웹사이트 주소가 아니다"
+  },
+  {
+   "word": "mutation test",
+   "related": "equivalent mutant",
+   "topic": "t400.1",
+   "into": "t983",
+   "entry": "n6b-00287",
+   "judged_word": "equivalent mutant",
+   "reason": "equivalent mutant는 변이 테스트 용어이며 커버리지 임계 보고가 아니다"
+  },
+  {
+   "word": "ok",
+   "related": "errno 0",
+   "topic": "t88.2",
+   "into": "t551.1",
+   "entry": "n6b-00288",
+   "judged_word": "errno 0",
+   "reason": "errno 0은 작업 성공 결과이며 HTTP 응답이 아니다"
+  },
+  {
+   "word": "error callback",
+   "related": "error listener",
+   "topic": "t214.3",
+   "into": "t281.5",
+   "entry": "n6b-00289",
+   "judged_word": "error listener",
+   "reason": "error listener는 오류 콜백 계열이며 XHR 전송 전용 의미가 아니다"
+  },
+  {
+   "word": "error type",
+   "related": "error name",
+   "topic": "t55.1",
+   "into": "t547.1",
+   "entry": "n6b-00290",
+   "judged_word": "error name",
+   "reason": "error name은 오류 종류 이름이며 대수적 데이터 변형이 아니다"
+  },
+  {
+   "word": "error recovery",
+   "related": "error tolerant parsing",
+   "topic": "t68.2",
+   "into": "t11.9",
+   "entry": "n6b-00293",
+   "judged_word": "error tolerant parsing",
+   "reason": "error tolerant parsing은 파서 오류 복구이며 서킷 브레이커가 아니다"
+  },
+  {
+   "word": "error recovery",
+   "related": "error-tolerant parser",
+   "topic": "t68.2",
+   "into": "t11.9",
+   "entry": "n6b-00294",
+   "judged_word": "error-tolerant parser",
+   "reason": "error-tolerant parser는 파서 오류 복구이며 서킷 브레이커가 아니다"
+  },
+  {
+   "word": "etags",
+   "related": "etags --regex",
+   "topic": "t48.10",
+   "into": "t419.1",
+   "entry": "n6b-00297",
+   "judged_word": "etags --regex",
+   "reason": "etags는 편집기 태그 색인 도구이며 HTTP 캐시와 무관하다"
+  },
+  {
+   "word": "etl",
+   "related": "ETL (Extract, Transform, Load)",
+   "topic": "t659.3",
+   "into": "t293.2",
+   "entry": "n6b-00298",
+   "judged_word": "ETL (Extract, Transform, Load)",
+   "reason": "ETL(Extract, Transform, Load)은 데이터 변환 파이프라인이며 커널 추적이 아니다"
+  },
+  {
+   "word": "bubble",
+   "related": "event bubble",
+   "topic": "t281.3",
+   "into": "t233.3",
+   "entry": "n6b-00299",
+   "judged_word": "event bubble",
+   "reason": "event bubble은 DOM 이벤트 전파이며 예외 제어 흐름이 아니다"
+  },
+  {
+   "word": "capturing",
+   "related": "event capture",
+   "topic": "t394",
+   "into": "t233.3",
+   "entry": "n6b-00300",
+   "judged_word": "event capture",
+   "reason": "event capture는 DOM 이벤트 캡처 단계이며 메모리 복사가 아니다"
+  },
+  {
+   "word": "props",
+   "related": "event handler props",
+   "topic": "t782.3",
+   "into": "t450.1",
+   "entry": "n6b-00301",
+   "judged_word": "event handler props",
+   "reason": "event handler props는 컴포넌트 속성이며 객체 복사 병합이 아니다"
+  },
+  {
+   "word": "every",
+   "related": "every hour",
+   "topic": "t609",
+   "into": "t268.1",
+   "entry": "n6b-00303",
+   "judged_word": "every hour",
+   "reason": "every hour는 주기 실행 간격이며 완전성 표현이 아니다"
+  },
+  {
+   "word": "every",
+   "related": "every second",
+   "topic": "t609",
+   "into": "t268.1",
+   "entry": "n6b-00304",
+   "judged_word": "every second",
+   "reason": "every second는 주기 실행 간격이며 완전성 표현이 아니다"
+  },
+  {
+   "word": "err",
+   "related": "except Exception as err",
+   "topic": "t326.5",
+   "into": "t281.2",
+   "entry": "n6b-00305",
+   "judged_word": "except Exception as err",
+   "reason": "except Exception as err는 예외 바인딩 구문이며 표준 스트림 파이핑이 아니다"
+  },
+  {
+   "word": "ignore pattern",
+   "related": "exclude glob",
+   "topic": "t573.1",
+   "into": "t562.1",
+   "entry": "n6b-00308",
+   "judged_word": "exclude glob",
+   "reason": "exclude glob은 글롭 제외 패턴이며 정규식 처리가 아니다"
+  },
+  {
+   "word": "child process",
+   "related": "exit event",
+   "topic": "t160.3",
+   "into": "t126.1",
+   "entry": "n6b-00311",
+   "judged_word": "exit event",
+   "reason": "exit event는 자식 프로세스 종료 이벤트이며 텍스트 인코딩 변환이 아니다"
+  },
+  {
+   "word": "feature flag",
+   "related": "experiment toggle",
+   "topic": "t196",
+   "into": "t21.2",
+   "entry": "n6b-00313",
+   "judged_word": "experiment toggle",
+   "reason": "experiment toggle은 기능 플래그이며 숫자 정밀도 변형이 아니다"
+  },
+  {
+   "word": "nested route",
+   "related": "Expo Router",
+   "topic": "t496.4",
+   "into": "t589.1",
+   "entry": "n6b-00314",
+   "judged_word": "Expo Router",
+   "reason": "Expo Router는 클라이언트 라우팅 라이브러리이며 트리 순회 알고리즘이 아니다"
+  },
+  {
+   "word": "unset",
+   "related": "export -n",
+   "topic": "t209.1",
+   "into": "t466.2",
+   "entry": "n6b-00315",
+   "judged_word": "export -n",
+   "reason": "export -n은 셸 변수의 내보내기 속성을 해제하며 널 허용 값 처리가 아니다"
+  },
+  {
+   "word": "expr",
+   "related": "expression node",
+   "topic": "t62.3",
+   "into": "t11.5",
+   "entry": "n6b-00316",
+   "judged_word": "expression node",
+   "reason": "expression node는 구문 트리 노드이며 컴파일러 링커 플래그가 아니다"
+  },
+  {
+   "word": "extract",
+   "related": "Extract<T, U>",
+   "topic": "t138.2",
+   "into": "t486.1",
+   "entry": "n6b-00318",
+   "judged_word": "Extract<T, U>",
+   "reason": "Extract<T, U>는 조건부 타입 유틸리티이며 압축 해제가 아니다"
+  },
+  {
+   "word": "small multiples",
+   "related": "faceted plot",
+   "topic": "t4.1",
+   "into": "t535.2",
+   "entry": "n6b-00319",
+   "judged_word": "faceted plot",
+   "reason": "faceted plot은 소형 다중 차트이며 표 셀이 아니다"
+  },
+  {
+   "word": "filter",
+   "related": "faceted search",
+   "topic": "t35.7",
+   "into": "t588.1",
+   "entry": "n6b-00320",
+   "judged_word": "faceted search",
+   "reason": "faceted search는 검색 결과 필터링이며 HTTP 필터 훅이 아니다"
+  },
+  {
+   "word": "graceful degradation",
+   "related": "fail soft",
+   "topic": "t610.2",
+   "into": "t68.2",
+   "entry": "n6b-00322",
+   "judged_word": "fail soft",
+   "reason": "fail soft는 일반 결함 허용 개념이며 브라우저 호환 심과 무관하다"
+  },
+  {
+   "word": "error callback",
+   "related": "failure closure",
+   "topic": "t214.3",
+   "into": "t281.5",
+   "entry": "n6b-00323",
+   "judged_word": "failure closure",
+   "reason": "failure closure는 오류 콜백이며 XMLHttpRequest 전송과 무관하다"
+  },
+  {
+   "word": "features",
+   "related": "feature vector",
+   "topic": "t247",
+   "into": "t717.3",
+   "entry": "n6b-00326",
+   "judged_word": "feature vector",
+   "reason": "feature vector는 머신러닝 특징 벡터이며 빌드 선택 기능과 무관하다"
+  },
+  {
+   "word": "container_of",
+   "related": "field offset",
+   "topic": "t659.2",
+   "into": "t1039.1",
+   "entry": "n6b-00327",
+   "judged_word": "field offset",
+   "reason": "field offset은 구조체 필드 위치이며 커널 디바이스 드라이버 주제 자체가 아니다"
+  },
+  {
+   "word": "field",
+   "related": "field validation",
+   "topic": "t528.8",
+   "into": "t390.1",
+   "entry": "n6b-00328",
+   "judged_word": "field validation",
+   "reason": "field validation은 폼 필드 검증이며 반응형 구독과 무관하다"
+  },
+  {
+   "word": "FSEvents",
+   "related": "file change notifications",
+   "topic": "t87.1",
+   "into": "t362",
+   "entry": "n6b-00329",
+   "judged_word": "file change notifications",
+   "reason": "파일 변경 알림은 파일 감시이며 애플리케이션 패키징과 무관하다"
+  },
+  {
+   "word": "wrote",
+   "related": "file created",
+   "topic": "t92.1",
+   "into": "t744.3",
+   "entry": "n6b-00330",
+   "judged_word": "file created",
+   "reason": "file created는 쓰기 결과 메시지이며 시퀀스 저장소 증가와 무관하다"
+  },
+  {
+   "word": "magic number",
+   "related": "file magic",
+   "topic": "t738",
+   "into": "t12.2",
+   "entry": "n6b-00331",
+   "judged_word": "file magic",
+   "reason": "file magic은 파일 형식 판별용 매직 넘버이며 리터럴 상수 문제가 아니다"
+  },
+  {
+   "word": "file picker",
+   "related": "file open dialog",
+   "topic": "t1017",
+   "into": "t214.4",
+   "entry": "n6b-00332",
+   "judged_word": "file open dialog",
+   "reason": "file open dialog는 파일 선택 대화상자이며 청크 업로드 서버와 무관하다"
+  },
+  {
+   "word": "owner",
+   "related": "file ownership",
+   "topic": "t204",
+   "into": "t17.2",
+   "entry": "n6b-00333",
+   "judged_word": "file ownership",
+   "reason": "file ownership은 파일 소유자 권한이며 네이티브 라이브러리 바인딩과 무관하다"
+  },
+  {
+   "word": "FileManager",
+   "related": "file service",
+   "topic": "t953",
+   "into": "t44.4",
+   "entry": "n6b-00334",
+   "judged_word": "file service",
+   "reason": "file service는 파일 처리 서비스이며 콘텐츠 URL 식별자 주제와 무관하다"
+  },
+  {
+   "word": "FileManager",
+   "related": "file system helper",
+   "topic": "t953",
+   "into": "t44.4",
+   "entry": "n6b-00335",
+   "judged_word": "file system helper",
+   "reason": "file system helper는 파일시스템 보조 도구이며 콘텐츠 URL 식별자와 무관하다"
+  },
+  {
+   "word": "field",
+   "related": "final field",
+   "topic": "t4.3",
+   "into": "t495.2",
+   "entry": "n6b-00336",
+   "judged_word": "final field",
+   "reason": "final field는 변경 불가 필드이며 플롯 격자 열과 무관하다"
+  },
+  {
+   "word": "first",
+   "related": "first element",
+   "topic": "t32.1",
+   "into": "t308.2",
+   "entry": "n6b-00339",
+   "judged_word": "first element",
+   "reason": "first element는 시퀀스의 첫 요소이며 시작 초기화 문구가 아니다"
+  },
+  {
+   "word": "flatten",
+   "related": "flatten dict",
+   "topic": "t96",
+   "into": "t460.1",
+   "entry": "n6b-00340",
+   "judged_word": "flatten dict",
+   "reason": "flatten dict는 중첩 딕셔너리 평탄화이며 함수형 타입 추상화와 무관하다"
+  },
+  {
+   "word": "flatten",
+   "related": "flatten list",
+   "topic": "t96",
+   "into": "t524",
+   "entry": "n6b-00341",
+   "judged_word": "flatten list",
+   "reason": "flatten list는 목록 평탄화이며 함수형 타입 추상화 주제가 아니다"
+  },
+  {
+   "word": "flatten",
+   "related": "flatten nested",
+   "topic": "t96",
+   "into": "t524",
+   "entry": "n6b-00342",
+   "judged_word": "flatten nested",
+   "reason": "flatten nested는 중첩 구조 평탄화이며 함수형 타입 추상화 주제가 아니다"
+  },
+  {
+   "word": "underflow",
+   "related": "float underflow",
+   "topic": "t252.2",
+   "into": "t442.2",
+   "entry": "n6b-00343",
+   "judged_word": "float underflow",
+   "reason": "float underflow는 부동소수점 언더플로이며 CPU 스케줄링과 무관하다"
+  },
+  {
+   "word": "underflow",
+   "related": "floating point underflow",
+   "topic": "t252.2",
+   "into": "t442.2",
+   "entry": "n6b-00344",
+   "judged_word": "floating point underflow",
+   "reason": "floating point underflow는 부동소수점 연산 문제이며 CPU 스케줄링과 무관하다"
+  },
+  {
+   "word": "Flux",
+   "related": "flux get kustomizations",
+   "topic": "t501.1",
+   "into": "t361.1",
+   "entry": "n6b-00345",
+   "judged_word": "flux get kustomizations",
+   "reason": "flux get kustomizations는 Flux CD 명령이며 Redux 액션과 무관하다"
+  },
+  {
+   "word": "sum",
+   "related": "footer total",
+   "topic": "t50.3",
+   "into": "x252",
+   "entry": "n6b-00346",
+   "judged_word": "footer total",
+   "reason": "footer total은 표 하단 합계이며 시퀀스 폴드 주제가 아니다"
+  },
+  {
+   "word": "read lines",
+   "related": "for line in file",
+   "topic": "t160.3",
+   "into": "t242.6",
+   "entry": "n6b-00347",
+   "judged_word": "for line in file",
+   "reason": "for line in file은 줄 단위 읽기이며 텍스트 인코딩 변환과 무관하다"
+  },
+  {
+   "word": "force",
+   "related": "force close",
+   "topic": "t373.1",
+   "into": "t569.2",
+   "entry": "n6b-00348",
+   "judged_word": "force close",
+   "reason": "force close는 강제 종료이며 타입 캐스트와 무관하다"
+  },
+  {
+   "word": "createPresignedPost",
+   "related": "form upload",
+   "topic": "t71.3",
+   "into": "t71.4",
+   "entry": "n6b-00349",
+   "judged_word": "form upload",
+   "reason": "form upload는 폼 방식 업로드이며 버킷 권한 주제와 다르다"
+  },
+  {
+   "word": "forward",
+   "related": "forward-only cursor",
+   "topic": "t78.1",
+   "into": "t242.2",
+   "entry": "n6b-00350",
+   "judged_word": "forward-only cursor",
+   "reason": "forward-only cursor는 단방향 스캔 커서이며 신경망 순전파와 무관하다"
+  },
+  {
+   "word": "precision",
+   "related": "fractional seconds precision",
+   "topic": "t23",
+   "into": "t196",
+   "entry": "n6b-00351",
+   "judged_word": "fractional seconds precision",
+   "reason": "fractional seconds precision은 시간 소수 자릿수이며 모델 평가 정밀도가 아니다"
+  },
+  {
+   "word": "partial",
+   "related": "fragment template",
+   "topic": "t827",
+   "into": "t352.1",
+   "entry": "n6b-00352",
+   "judged_word": "fragment template",
+   "reason": "fragment template은 템플릿 조각이며 부분 갱신 표현과 무관하다"
+  },
+  {
+   "word": "video frame",
+   "related": "frame timestamp",
+   "topic": "t207.1",
+   "into": "t644",
+   "entry": "n6b-00353",
+   "judged_word": "frame timestamp",
+   "reason": "frame timestamp는 미디어 프레임 시각이며 색상 채널과 무관하다"
+  },
+  {
+   "word": "multiset",
+   "related": "frequency map",
+   "topic": "t334.1",
+   "into": "t84.1",
+   "entry": "n6b-00354",
+   "judged_word": "frequency map",
+   "reason": "frequency map은 빈도 집계이며 소스 텍스트 위치와 무관하다"
+  },
+  {
+   "word": "layout",
+   "related": "front matter layout",
+   "topic": "t200.2",
+   "into": "t352.2",
+   "entry": "n6b-00356",
+   "judged_word": "front matter layout",
+   "reason": "front matter layout은 템플릿 레이아웃 지정이며 구조체 메모리 배치와 무관하다"
+  },
+  {
+   "word": "exact match",
+   "related": "full match",
+   "topic": "t561.1",
+   "into": "t573.1",
+   "entry": "n6b-00357",
+   "judged_word": "full match",
+   "reason": "full match는 정규식 전체 일치이며 SQL 문 실행과 무관하다"
+  },
+  {
+   "word": "indexing",
+   "related": "full-text indexing",
+   "topic": "t684",
+   "into": "t56.3",
+   "entry": "n6b-00358",
+   "judged_word": "full-text indexing",
+   "reason": "full-text indexing은 검색 색인이며 인덱스 요소 접근과 무관하다"
+  },
+  {
+   "word": "name",
+   "related": "fully qualified name",
+   "topic": "t347.1",
+   "into": "t405.2",
+   "entry": "n6b-00359",
+   "judged_word": "fully qualified name",
+   "reason": "fully qualified name은 완전한 이름 개념이며 로거 출력 설정이 아니다"
+  },
+  {
+   "word": "fn",
+   "related": "function type",
+   "topic": "t394",
+   "into": "t301.2",
+   "entry": "n6b-00361",
+   "judged_word": "function type",
+   "reason": "function type은 함수 타입이며 메모리 복사와 무관하다"
+  },
+  {
+   "word": "matcher",
+   "related": "fuzzy matcher",
+   "topic": "t374.1",
+   "into": "t573.3",
+   "entry": "n6b-00362",
+   "judged_word": "fuzzy matcher",
+   "reason": "fuzzy matcher는 유사 일치 도구이며 런타임 계약 검증과 무관하다"
+  },
+  {
+   "word": "microservice",
+   "related": "gateway service",
+   "topic": "t68.2",
+   "into": "t162.1",
+   "entry": "n6b-00364",
+   "judged_word": "gateway service",
+   "reason": "gateway service는 API 게이트웨이이며 서킷 브레이커 정책 자체가 아니다"
+  },
+  {
+   "word": "type inference",
+   "related": "generic inference",
+   "topic": "t215.1",
+   "into": "t1022",
+   "entry": "n6b-00365",
+   "judged_word": "generic inference",
+   "reason": "generic inference는 제네릭 타입 추론이며 변수 바인딩 주제가 아니다"
+  },
+  {
+   "word": "prepare",
+   "related": "get ready",
+   "topic": "t761",
+   "into": "x112",
+   "entry": "n6b-00367",
+   "judged_word": "get ready",
+   "reason": "get ready는 준비 상태 표현이며 조정 역할과 무관하다"
+  },
+  {
+   "word": "evtx",
+   "related": "Get-WinEvent -ListLog",
+   "topic": "t874",
+   "into": "t559",
+   "entry": "n6b-00368",
+   "judged_word": "Get-WinEvent -ListLog",
+   "reason": "Get-WinEvent -ListLog는 윈도우 이벤트 로그 조회이며 악성코드 대응 주제가 아니다"
+  },
+  {
+   "word": "GitHub CLI",
+   "related": "gh repo clone",
+   "topic": "t42.1",
+   "into": "t624",
+   "entry": "n6b-00369",
+   "judged_word": "gh repo clone",
+   "reason": "gh repo clone은 GitHub CLI 명령이며 플러그인 수명주기와 무관하다"
+  },
+  {
+   "word": "GitHub CLI",
+   "related": "gh repo create",
+   "topic": "t42.1",
+   "into": "t624",
+   "entry": "n6b-00370",
+   "judged_word": "gh repo create",
+   "reason": "gh repo create는 GitHub CLI 명령이며 플러그인 수명주기와 무관하다"
+  },
+  {
+   "word": "local repository",
+   "related": "git clone",
+   "topic": "t156",
+   "into": "t140.5",
+   "entry": "n6b-00372",
+   "judged_word": "git clone",
+   "reason": "git clone은 저장소 복제이며 커밋 훅 주제가 아니다"
+  },
+  {
+   "word": "signed off by",
+   "related": "git commit --signoff",
+   "topic": "t659.2",
+   "into": "t145.2",
+   "entry": "n6b-00373",
+   "judged_word": "git commit --signoff",
+   "reason": "git commit --signoff는 커밋 서명 줄 추가이며 커널 디바이스 드라이버와 무관하다"
+  },
+  {
+   "word": "user.name",
+   "related": "git config user.name",
+   "topic": "t642",
+   "into": "t1037",
+   "entry": "n6b-00374",
+   "judged_word": "git config user.name",
+   "reason": "git config user.name은 git 사용자 설정이며 사용자 프로필이 아니다"
+  },
+  {
+   "word": "credentials",
+   "related": "git credential helper",
+   "topic": "t16",
+   "into": "t20.1",
+   "entry": "n6b-00375",
+   "judged_word": "git credential helper",
+   "reason": "git credential helper는 인증 정보 저장 도구이며 브라우저 교차 출처 정책과 무관하다"
+  },
+  {
+   "word": "pack",
+   "related": "git index-pack",
+   "topic": "t200.2",
+   "into": "t192",
+   "entry": "n6b-00376",
+   "judged_word": "git index-pack",
+   "reason": "git index-pack은 팩 파일 색인이며 구조체 메모리 배치와 무관하다"
+  },
+  {
+   "word": "remote repository",
+   "related": "git remote get-url",
+   "topic": "t141.1",
+   "into": "t140.5",
+   "entry": "n6b-00378",
+   "judged_word": "git remote get-url",
+   "reason": "git remote get-url은 원격 저장소 설정이며 로그인 세션과 무관하다"
+  },
+  {
+   "word": "remote repository",
+   "related": "git remote rename",
+   "topic": "t141.1",
+   "into": "t140.5",
+   "entry": "n6b-00379",
+   "judged_word": "git remote rename",
+   "reason": "git remote rename은 원격 저장소 설정이며 로그인 세션과 무관하다"
+  },
+  {
+   "word": "remote repository",
+   "related": "git remote set-url",
+   "topic": "t141.1",
+   "into": "t140.5",
+   "entry": "n6b-00380",
+   "judged_word": "git remote set-url",
+   "reason": "git remote set-url은 원격 저장소 설정이며 로그인 세션과 무관하다"
+  },
+  {
+   "word": "per environment",
+   "related": "GitHub environments",
+   "topic": "t20.5",
+   "into": "t466.2",
+   "entry": "n6b-00381",
+   "judged_word": "GitHub environments",
+   "reason": "GitHub environments는 배포 환경이며 비밀값 가리기 주제가 아니다"
+  },
+  {
+   "word": "code owner",
+   "related": "gitignore syntax",
+   "topic": "t145.1",
+   "into": "t562.1",
+   "entry": "n6b-00382",
+   "judged_word": "gitignore syntax",
+   "reason": "gitignore syntax는 글롭 패턴 문법이며 풀 리퀘스트 검토 주제가 아니다"
+  },
+  {
+   "word": "CODEOWNERS",
+   "related": "gitignore syntax",
+   "topic": "t145.1",
+   "into": "t562.1",
+   "entry": "n6b-00382",
+   "judged_word": "gitignore syntax",
+   "reason": "gitignore syntax는 글롭 패턴 문법이며 풀 리퀘스트 검토 주제가 아니다"
+  },
+  {
+   "word": "per environment",
+   "related": "GitLab environments",
+   "topic": "t20.5",
+   "into": "t466.2",
+   "entry": "n6b-00384",
+   "judged_word": "GitLab environments",
+   "reason": "GitLab environments는 배포 환경이며 비밀값 가리기 주제가 아니다"
+  },
+  {
+   "word": "iife",
+   "related": "global build",
+   "topic": "t301.2",
+   "into": "t249.1",
+   "entry": "n6b-00385",
+   "judged_word": "global build",
+   "reason": "global build는 전역 변수 번들 산출물이며 함수 값 주제가 아니다"
+  },
+  {
+   "word": "iterate",
+   "related": "go through",
+   "topic": "t474.1",
+   "into": "t131.2",
+   "entry": "n6b-00388",
+   "judged_word": "go through",
+   "reason": "go through는 반복 순회 표현이며 재귀 디렉터리 탐색 주제가 아니다"
+  },
+  {
+   "word": "GoLand",
+   "related": "golang ide",
+   "topic": "t439.2",
+   "into": "t696.1",
+   "entry": "n6b-00389",
+   "judged_word": "golang ide",
+   "reason": "golang ide는 Go용 IDE이며 네이티브 크래시 디버깅과 무관하다"
+  },
+  {
+   "word": "shared subscription",
+   "related": "Google Pub/Sub subscription",
+   "topic": "t150.1",
+   "into": "t285.3",
+   "entry": "n6b-00390",
+   "judged_word": "Google Pub/Sub subscription",
+   "reason": "Google Pub/Sub subscription은 메시지 구독이며 복제본 장애 조치가 아니다"
+  },
+  {
+   "word": "keys",
+   "related": "gpg keys",
+   "topic": "t135.1",
+   "into": "t80.5",
+   "entry": "n6b-00391",
+   "judged_word": "gpg keys",
+   "reason": "gpg keys는 암호화 키이며 객체 속성 키가 아니다"
+  },
+  {
+   "word": "rules",
+   "related": "grammar rules",
+   "topic": "t15.4",
+   "into": "t11.2",
+   "entry": "n6b-00392",
+   "judged_word": "grammar rules",
+   "reason": "grammar rules는 문법 규칙이며 인가 정책과 무관하다"
+  },
+  {
+   "word": "gives",
+   "related": "grant access",
+   "topic": "t764.1",
+   "into": "t15.6",
+   "entry": "n6b-00393",
+   "judged_word": "grant access",
+   "reason": "grant access는 접근 권한 부여이며 상관된 메시지 응답과 무관하다"
+  },
+  {
+   "word": "jsonl",
+   "related": "grep jsonl",
+   "topic": "t23",
+   "into": "t242.4",
+   "entry": "n6b-00395",
+   "judged_word": "grep jsonl",
+   "reason": "grep jsonl은 줄 단위 JSON 검색이며 모델 평가와 무관하다"
+  },
+  {
+   "word": "consumer lag",
+   "related": "group lag",
+   "topic": "t727.1",
+   "into": "t85.2",
+   "entry": "n6b-00396",
+   "judged_word": "group lag",
+   "reason": "group lag은 컨슈머 그룹 지연이며 경보 확대 주제가 아니다"
+  },
+  {
+   "word": "gevent",
+   "related": "gunicorn -k gevent",
+   "topic": "t127.1",
+   "into": "t49.4",
+   "entry": "n6b-00398",
+   "judged_word": "gunicorn -k gevent",
+   "reason": "gunicorn -k gevent는 Gunicorn 워커 설정이며 이벤트 루프 준비 상태와 무관하다"
+  },
+  {
+   "word": "off by one",
+   "related": "half-open range",
+   "topic": "t804",
+   "into": "t310.2",
+   "entry": "n6b-00400",
+   "judged_word": "half-open range",
+   "reason": "half-open range는 구간 경계 개념이며 끝 표현 주제가 아니다"
+  },
+  {
+   "word": "pnpm",
+   "related": "hard links",
+   "topic": "t915",
+   "into": "t474.2",
+   "entry": "n6b-00402",
+   "judged_word": "hard links",
+   "reason": "하드 링크는 pnpm 저장소 방식이 아니라 파일시스템 개념이며 Next.js 도구와 무관하다"
+  },
+  {
+   "word": "createHash",
+   "related": "hash stream",
+   "topic": "t160.3",
+   "into": "t173.1",
+   "entry": "n6b-00403",
+   "judged_word": "hash stream",
+   "reason": "해시 스트림은 해시 계산용 스트림이며 텍스트 인코딩 변환이 아니다"
+  },
+  {
+   "word": "call by name",
+   "related": "Haskell lazy",
+   "topic": "t612.3",
+   "into": "t498.2",
+   "entry": "n6b-00405",
+   "judged_word": "Haskell lazy",
+   "reason": "Haskell의 지연 평가는 평가 전략이지 소스 매크로 확장이 아니다"
+  },
+  {
+   "word": "raw",
+   "related": "headerless PCM",
+   "topic": "t140.8",
+   "into": "t1032",
+   "entry": "n6b-00406",
+   "judged_word": "headerless PCM",
+   "reason": "헤더 없는 PCM은 원시 오디오 형식이며 버전 관리 diff와 무관하다"
+  },
+  {
+   "word": "H2",
+   "related": "heading level 2",
+   "topic": "t65.1",
+   "into": "t106.4",
+   "entry": "n6b-00407",
+   "judged_word": "heading level 2",
+   "reason": "heading level 2는 HTML 제목 수준 h2이며 HTTP/2 협상이 아니다"
+  },
+  {
+   "word": "time format",
+   "related": "hh:mm a",
+   "topic": "t391.3",
+   "into": "t315.2",
+   "entry": "n6b-00410",
+   "judged_word": "hh:mm a",
+   "reason": "hh:mm a는 12시간제 시각 서식 패턴이며 구분자 문자열 파싱이 아니다"
+  },
+  {
+   "word": "fp-ts",
+   "related": "higher kinded types",
+   "topic": "t128.3",
+   "into": "t96",
+   "entry": "n6b-00412",
+   "judged_word": "higher kinded types",
+   "reason": "고차 종류 타입은 함수형 타입 추상화이며 비동기 작업 조율이 아니다"
+  },
+  {
+   "word": "sig",
+   "related": "HMAC signature",
+   "topic": "t105.1",
+   "into": "t80.4",
+   "entry": "n6b-00414",
+   "judged_word": "HMAC signature",
+   "reason": "HMAC 서명은 암호 서명이며 함수 시그니처(호출 매개변수)가 아니다"
+  },
+  {
+   "word": "home directory",
+   "related": "home folder",
+   "topic": "t660.1",
+   "into": "t661",
+   "entry": "n6b-00415",
+   "judged_word": "home folder",
+   "reason": "홈 폴더는 사용자 홈 디렉터리이며 비밀번호 해시 검증과 무관하다"
+  },
+  {
+   "word": "missing key",
+   "related": "i18n missing key",
+   "topic": "t635.2",
+   "into": "t315.4",
+   "entry": "n6b-00420",
+   "judged_word": "i18n missing key",
+   "reason": "i18n 누락 키는 번역 카탈로그 조회 문제이며 입력 필드 검증이 아니다"
+  },
+  {
+   "word": "Squoosh",
+   "related": "image codecs",
+   "topic": "t346.5",
+   "into": "t678.1",
+   "entry": "n6b-00421",
+   "judged_word": "image codecs",
+   "reason": "이미지 코덱은 이미지 인코딩 형식이며 WebAssembly 런타임이 아니다"
+  },
+  {
+   "word": "jpg",
+   "related": "image export",
+   "topic": "t642",
+   "into": "t678.1",
+   "entry": "n6b-00422",
+   "judged_word": "image export",
+   "reason": "이미지 내보내기는 이미지 인코딩 작업이며 사용자 프로필이 아니다"
+  },
+  {
+   "word": "implicit",
+   "related": "implicit grant",
+   "topic": "t929",
+   "into": "t159.3",
+   "entry": "n6b-00423",
+   "judged_word": "implicit grant",
+   "reason": "implicit grant는 OAuth 암시적 승인 방식이며 Scala 암시적 값이 아니다"
+  },
+  {
+   "word": "fs.promises",
+   "related": "import fs from",
+   "topic": "t213.1",
+   "into": "t405.1",
+   "entry": "n6b-00424",
+   "judged_word": "import fs from",
+   "reason": "import fs from은 모듈 가져오기 구문이며 프로미스 수명주기가 아니다"
+  },
+  {
+   "word": "Pandas",
+   "related": "import pandas as pd",
+   "topic": "t117.1",
+   "into": "t67.1",
+   "entry": "n6b-00425",
+   "judged_word": "import pandas as pd",
+   "reason": "import pandas as pd는 데이터프레임 라이브러리 가져오기이며 시간대 날짜 API가 아니다"
+  },
+  {
+   "word": "xxHash",
+   "related": "incremental hashing",
+   "topic": "t22.2",
+   "into": "t446.3",
+   "entry": "n6b-00429",
+   "judged_word": "incremental hashing",
+   "reason": "점진적 해싱은 해시 갱신 API 방식이며 SIMD 처리와 무관하다"
+  },
+  {
+   "word": "loop variable",
+   "related": "induction variable",
+   "topic": "t166.2",
+   "into": "t600.1",
+   "entry": "n6b-00431",
+   "judged_word": "induction variable",
+   "reason": "유도 변수는 반복문 변수이며 녹음 일시정지 제어가 아니다"
+  },
+  {
+   "word": "wrote",
+   "related": "info log",
+   "topic": "t92.1",
+   "into": "t294.1",
+   "entry": "n6b-00433",
+   "judged_word": "info log",
+   "reason": "info 로그는 기록되는 로그 수준이며 시퀀스 저장 공간 증가가 아니다"
+  },
+  {
+   "word": "instructions",
+   "related": "install instructions",
+   "topic": "t15.4",
+   "into": "t82.6",
+   "entry": "n6b-00439",
+   "judged_word": "install instructions",
+   "reason": "설치 안내는 시작 가이드 문서이며 인가 정책이 아니다"
+  },
+  {
+   "word": "constant expression",
+   "related": "integral constant expression",
+   "topic": "t200.2",
+   "into": "t372",
+   "entry": "n6b-00441",
+   "judged_word": "integral constant expression",
+   "reason": "정수 상수 표현식은 컴파일 타임 상수 개념이며 구조체 메모리 배치가 아니다"
+  },
+  {
+   "word": "integrity",
+   "related": "integrity checks",
+   "topic": "t15.3",
+   "into": "t173.1",
+   "entry": "n6b-00442",
+   "judged_word": "integrity checks",
+   "reason": "무결성 검사는 해시 기반 변조 검증이며 인가 검사가 아니다"
+  },
+  {
+   "word": "integrity",
+   "related": "integrity field",
+   "topic": "t15.3",
+   "into": "t173.1",
+   "entry": "n6b-00443",
+   "judged_word": "integrity field",
+   "reason": "integrity 필드는 해시 기반 무결성 값이며 인가 검사가 아니다"
+  },
+  {
+   "word": "command line interface",
+   "related": "interactive prompt",
+   "topic": "t679.2",
+   "into": "t326.4",
+   "entry": "n6b-00444",
+   "judged_word": "interactive prompt",
+   "reason": "대화형 프롬프트는 셸 터미널 상호작용이며 로딩 표시기가 아니다"
+  },
+  {
+   "word": "interpret",
+   "related": "interpreted language",
+   "topic": "t326.1",
+   "into": "t558.1",
+   "entry": "n6b-00446",
+   "judged_word": "interpreted language",
+   "reason": "인터프리터 언어는 인터프리터 평가 개념이며 하위 프로세스 실행이 아니다"
+  },
+  {
+   "word": "positive",
+   "related": "invalid: not positive",
+   "topic": "t573.1",
+   "into": "t635.2",
+   "entry": "n6b-00448",
+   "judged_word": "invalid: not positive",
+   "reason": "invalid: not positive는 입력 검증 오류 메시지이며 정규식 매치 처리가 아니다"
+  },
+  {
+   "word": "invitation",
+   "related": "invitations table",
+   "topic": "t212.1",
+   "into": "t19.2",
+   "entry": "n6b-00449",
+   "judged_word": "invitations table",
+   "reason": "invitations 테이블은 멤버 초대 데이터이며 실행 상태 전이 표현이 아니다"
+  },
+  {
+   "word": "iso",
+   "related": "ISO week",
+   "topic": "t704.1",
+   "into": "t420.1",
+   "entry": "n6b-00455",
+   "judged_word": "ISO week",
+   "reason": "ISO week는 ISO 8601 주차 날짜 개념이며 ISO 디스크 이미지가 아니다"
+  },
+  {
+   "word": "read lines",
+   "related": "iterate lines",
+   "topic": "t160.3",
+   "into": "t242.6",
+   "entry": "n6b-00456",
+   "judged_word": "iterate lines",
+   "reason": "줄 단위 반복은 줄 기반 입력 읽기이며 텍스트 인코딩 변환이 아니다"
+  },
+  {
+   "word": "connection string",
+   "related": "jdbc url",
+   "topic": "t46.2",
+   "into": "t25.4",
+   "entry": "n6b-00457",
+   "judged_word": "jdbc url",
+   "reason": "JDBC URL은 데이터베이스 연결 설정이며 클라이언트 연결 타임아웃이 아니다"
+  },
+  {
+   "word": "jsonl",
+   "related": "jq --stream",
+   "topic": "t23",
+   "into": "t242.4",
+   "entry": "n6b-00459",
+   "judged_word": "jq --stream",
+   "reason": "jq --stream은 JSON 스트리밍 파싱이며 모델 평가가 아니다"
+  },
+  {
+   "word": "rpc call",
+   "related": "json-rpc call",
+   "topic": "t375.2",
+   "into": "t375.1",
+   "entry": "n6b-00462",
+   "judged_word": "json-rpc call",
+   "reason": "JSON-RPC 호출은 원격 프로시저 호출이며 Electron IPC 브리지가 아니다"
+  },
+  {
+   "word": "day",
+   "related": "julian day",
+   "topic": "t315.5",
+   "into": "t408.2",
+   "entry": "n6b-00463",
+   "judged_word": "julian day",
+   "reason": "율리우스 일은 날짜 필드 개념이며 복수형 선택과 무관하다"
+  },
+  {
+   "word": "anchor",
+   "related": "jump link",
+   "topic": "t95.1",
+   "into": "t664.1",
+   "entry": "n6b-00464",
+   "judged_word": "jump link",
+   "reason": "점프 링크는 문서 내 앵커 링크이며 YAML 앵커가 아니다"
+  },
+  {
+   "word": "session.user",
+   "related": "JWT session",
+   "topic": "t642",
+   "into": "t141.1",
+   "entry": "n6b-00466",
+   "judged_word": "JWT session",
+   "reason": "JWT 세션은 로그인 세션 방식이며 사용자 프로필 필드가 아니다"
+  },
+  {
+   "word": "end to end encryption",
+   "related": "key verification",
+   "topic": "t237.1",
+   "into": "t80.3",
+   "entry": "n6b-00467",
+   "judged_word": "key verification",
+   "reason": "키 검증은 종단 간 암호화 키 확인이며 브라우저 e2e 테스트가 아니다"
+  },
+  {
+   "word": "accessibility",
+   "related": "keyboard accessible",
+   "topic": "t18.7",
+   "into": "t18.9",
+   "entry": "n6b-00468",
+   "judged_word": "keyboard accessible",
+   "reason": "키보드 접근성은 키보드 포커스 탐색 문제이며 색 대비가 아니다"
+  },
+  {
+   "word": "related terms",
+   "related": "keyword suggestions",
+   "topic": "t832",
+   "into": "t56.1",
+   "entry": "n6b-00469",
+   "judged_word": "keyword suggestions",
+   "reason": "키워드 제안은 검색 질의 확장이며 모듈 경로 별칭이 아니다"
+  },
+  {
+   "word": "namespace",
+   "related": "kubectl -n",
+   "topic": "t508.1",
+   "into": "t361.1",
+   "entry": "n6b-00474",
+   "judged_word": "kubectl -n",
+   "reason": "kubectl -n은 쿠버네티스 네임스페이스 지정이며 XML 네임스페이스가 아니다"
+  },
+  {
+   "word": "lag",
+   "related": "lag function",
+   "topic": "t299.2",
+   "into": "t726.1",
+   "entry": "n6b-00476",
+   "judged_word": "lag function",
+   "reason": "lag 함수는 SQL 분석 윈도 함수이며 운영 지표 모니터링이 아니다"
+  },
+  {
+   "word": "lag",
+   "related": "lag operator",
+   "topic": "t299.2",
+   "into": "t726.1",
+   "entry": "n6b-00477",
+   "judged_word": "lag operator",
+   "reason": "lag 연산자는 값을 이전 행으로 미는 윈도 연산이며 운영 지표 모니터링이 아니다"
+  },
+  {
+   "word": "source language",
+   "related": "language detection",
+   "topic": "t161.1",
+   "into": "t315.6",
+   "entry": "n6b-00479",
+   "judged_word": "language detection",
+   "reason": "언어 감지는 기계 번역의 원문 언어 판별이며 컴파일러 중간 표현이 아니다"
+  },
+  {
+   "word": "prime",
+   "related": "large prime",
+   "topic": "t258.2",
+   "into": "t617",
+   "entry": "n6b-00480",
+   "judged_word": "large prime",
+   "reason": "큰 소수는 정수론 개념이며 캐시 프리페치 워밍업이 아니다"
+  },
+  {
+   "word": "layout",
+   "related": "layout: default",
+   "topic": "t200.2",
+   "into": "t352.2",
+   "entry": "n6b-00483",
+   "judged_word": "layout: default",
+   "reason": "layout: default는 템플릿 뷰의 레이아웃 지정이며 구조체 메모리 배치와 무관하다"
+  },
+  {
+   "word": "evaluated",
+   "related": "lazily evaluated",
+   "topic": "t299.4",
+   "into": "t498.2",
+   "entry": "n6b-00484",
+   "judged_word": "lazily evaluated",
+   "reason": "lazily evaluated는 지연 평가 전략이며 모델 평가 지표와 무관하다"
+  },
+  {
+   "word": "least common multiple",
+   "related": "lcm formula",
+   "topic": "t198.2",
+   "into": "t617",
+   "entry": "n6b-00485",
+   "judged_word": "lcm formula",
+   "reason": "최소공배수는 정수론 연산이며 기계 정수 경계 주제가 아니다"
+  },
+  {
+   "word": "least common multiple",
+   "related": "lcm function",
+   "topic": "t198.2",
+   "into": "t617",
+   "entry": "n6b-00486",
+   "judged_word": "lcm function",
+   "reason": "최소공배수는 정수론 연산이며 기계 정수 경계 주제가 아니다"
+  },
+  {
+   "word": "least common multiple",
+   "related": "lcm in Go",
+   "topic": "t198.2",
+   "into": "t617",
+   "entry": "n6b-00487",
+   "judged_word": "lcm in Go",
+   "reason": "최소공배수는 정수론 연산이며 기계 정수 경계 주제가 아니다"
+  },
+  {
+   "word": "least common multiple",
+   "related": "lcm in Haskell",
+   "topic": "t198.2",
+   "into": "t617",
+   "entry": "n6b-00488",
+   "judged_word": "lcm in Haskell",
+   "reason": "최소공배수는 정수론 연산이며 기계 정수 경계 주제가 아니다"
+  },
+  {
+   "word": "line",
+   "related": "line end",
+   "topic": "t101.4",
+   "into": "t334.1",
+   "entry": "n6b-00493",
+   "judged_word": "line end",
+   "reason": "line end는 소스 텍스트의 줄 끝 위치이며 시계열 차트와 무관하다"
+  },
+  {
+   "word": "line",
+   "related": "line index",
+   "topic": "t145.3",
+   "into": "t334.1",
+   "entry": "n6b-00494",
+   "judged_word": "line index",
+   "reason": "line index는 소스 텍스트 줄 위치이며 커밋 이력 주제가 아니다"
+  },
+  {
+   "word": "offset",
+   "related": "line offset",
+   "topic": "t823",
+   "into": "t334.1",
+   "entry": "n6b-00495",
+   "judged_word": "line offset",
+   "reason": "line offset은 소스 텍스트 줄 위치이며 결과 페이지네이션이 아니다"
+  },
+  {
+   "word": "line",
+   "related": "line offset",
+   "topic": "t145.3",
+   "into": "t334.1",
+   "entry": "n6b-00495",
+   "judged_word": "line offset",
+   "reason": "line offset은 소스 텍스트 줄 위치이며 커밋 이력 주제가 아니다"
+  },
+  {
+   "word": "counting sort",
+   "related": "linear time sort",
+   "topic": "t84.1",
+   "into": "t8.5",
+   "entry": "n6b-00497",
+   "judged_word": "linear time sort",
+   "reason": "선형 시간 정렬은 정렬 알고리즘이며 빈도 히스토그램 자체가 아니다"
+  },
+  {
+   "word": "Intl.ListFormat",
+   "related": "list formatter",
+   "topic": "t115.1",
+   "into": "t391.1",
+   "entry": "n6b-00501",
+   "judged_word": "list formatter",
+   "reason": "list formatter는 Intl.ListFormat의 지역화 목록 서식이며 순차 컬렉션이 아니다"
+  },
+  {
+   "word": "Luigi",
+   "related": "local scheduler",
+   "topic": "t507.1",
+   "into": "t104.1",
+   "entry": "n6b-00503",
+   "judged_word": "local scheduler",
+   "reason": "local scheduler는 Luigi의 로컬 작업 스케줄러이며 목적지 표현이 아니다"
+  },
+  {
+   "word": "catalog",
+   "related": "locale catalog",
+   "topic": "t261.1",
+   "into": "t315.4",
+   "entry": "n6b-00505",
+   "judged_word": "locale catalog",
+   "reason": "locale catalog는 번역 메시지 카탈로그이며 상품 카탈로그가 아니다"
+  },
+  {
+   "word": "collecting",
+   "related": "log collection",
+   "topic": "t50.3",
+   "into": "t286.1",
+   "entry": "n6b-00507",
+   "judged_word": "log collection",
+   "reason": "log collection은 로그 수집이며 시퀀스 접기 연산이 아니다"
+  },
+  {
+   "word": "logging",
+   "related": "logging library",
+   "topic": "t93.1",
+   "into": "t347.1",
+   "entry": "n6b-00513",
+   "judged_word": "logging library",
+   "reason": "logging library는 로깅 라이브러리이며 콘솔 출력 자체가 아니다"
+  },
+  {
+   "word": "logical operator",
+   "related": "logic operator",
+   "topic": "t870",
+   "into": "t218.4",
+   "entry": "n6b-00515",
+   "judged_word": "logic operator",
+   "reason": "logic operator는 논리 연산자이며 SQL 쿼리 계획과 무관하다"
+  },
+  {
+   "word": "nested loop",
+   "related": "loop interchange",
+   "topic": "t4.1",
+   "into": "t600.1",
+   "entry": "n6b-00521",
+   "judged_word": "loop interchange",
+   "reason": "loop interchange는 컴파일러의 루프 순서 교환 최적화이며 표 셀과 무관하다"
+  },
+  {
+   "word": "widening",
+   "related": "lossless conversion",
+   "topic": "t228",
+   "into": "t373.1",
+   "entry": "n6b-00522",
+   "judged_word": "lossless conversion",
+   "reason": "lossless conversion은 확장 형변환이며 제어 흐름 분석 주제가 아니다"
+  },
+  {
+   "word": "lo",
+   "related": "low bound",
+   "topic": "t90.1",
+   "into": "t310.3",
+   "entry": "n6b-00523",
+   "judged_word": "low bound",
+   "reason": "low bound는 이진 탐색의 하한이며 루프백 인터페이스 lo가 아니다"
+  },
+  {
+   "word": "hidden file",
+   "related": "ls -a",
+   "topic": "t656",
+   "into": "t474.1",
+   "entry": "n6b-00524",
+   "judged_word": "ls -a",
+   "reason": "ls -a는 숨김 파일 목록 명령이며 웹 접근성과 무관하다"
+  },
+  {
+   "word": "epsilon",
+   "related": "machine precision",
+   "topic": "t21.1",
+   "into": "t442.2",
+   "entry": "n6b-00526",
+   "judged_word": "machine precision",
+   "reason": "machine precision은 부동소수점 엡실론이며 활성화 상태와 무관하다"
+  },
+  {
+   "word": "grid lines",
+   "related": "major gridlines",
+   "topic": "t207.1",
+   "into": "t101.2",
+   "entry": "n6b-00529",
+   "judged_word": "major gridlines",
+   "reason": "major gridlines는 차트 축의 눈금선이며 색상 채널과 무관하다"
+  },
+  {
+   "word": "rebuild",
+   "related": "make -B",
+   "topic": "t892.1",
+   "into": "t181.2",
+   "entry": "n6b-00530",
+   "judged_word": "make -B",
+   "reason": "make -B는 빌드를 강제 재실행하며 데이터베이스 인덱스 재구축이 아니다"
+  },
+  {
+   "word": "variable",
+   "related": "Makefile variable",
+   "topic": "t164.1",
+   "into": "t466.2",
+   "entry": "n6b-00531",
+   "judged_word": "Makefile variable",
+   "reason": "Makefile 변수는 CSS 변수가 아니며 빌드 환경 변수이다"
+  },
+  {
+   "word": "populate",
+   "related": "manage.py loaddata",
+   "topic": "t108.1",
+   "into": "t45.2",
+   "entry": "n6b-00532",
+   "judged_word": "manage.py loaddata",
+   "reason": "manage.py loaddata는 픽스처를 불러오는 명령이며 캔버스 그리기가 아니다"
+  },
+  {
+   "word": "managed",
+   "related": "managed instance group",
+   "topic": "t346.2",
+   "into": "t670.3",
+   "entry": "n6b-00533",
+   "judged_word": "managed instance group",
+   "reason": "managed instance group은 클라우드 인스턴스 그룹이며 JIT 컴파일과 무관하다"
+  },
+  {
+   "word": "mapping",
+   "related": "map keys",
+   "topic": "t234.3",
+   "into": "t468.1",
+   "entry": "n6b-00535",
+   "judged_word": "map keys",
+   "reason": "map keys는 딕셔너리 키 변환이며 가상 메모리 매핑이 아니다"
+  },
+  {
+   "word": "mapped",
+   "related": "map over",
+   "topic": "t234.1",
+   "into": "t40.1",
+   "entry": "n6b-00536",
+   "judged_word": "map over",
+   "reason": "map over는 시퀀스에 map을 적용하는 뜻이며 네이티브 힙 할당이 아니다"
+  },
+  {
+   "word": "attribution",
+   "related": "marketing attribution",
+   "topic": "t427.3",
+   "into": "t75",
+   "entry": "n6b-00541",
+   "judged_word": "marketing attribution",
+   "reason": "marketing attribution은 마케팅 기여도 분석이며 차트 확대 컨트롤과 무관하다"
+  },
+  {
+   "word": "match",
+   "related": "matching algorithm",
+   "topic": "t561.1",
+   "into": "t573.3",
+   "entry": "n6b-00543",
+   "judged_word": "matching algorithm",
+   "reason": "matching algorithm은 매칭 알고리즘이며 SQL 문 실행과 무관하다"
+  },
+  {
+   "word": "nesting",
+   "related": "matching brackets",
+   "topic": "t796.1",
+   "into": "t322",
+   "entry": "n6b-00544",
+   "judged_word": "matching brackets",
+   "reason": "matching brackets는 구분자 짝 맞춤이며 스타일시트 전처리와 무관하다"
+  },
+  {
+   "word": "product",
+   "related": "math product",
+   "topic": "t261.1",
+   "into": "t259",
+   "entry": "n6b-00545",
+   "judged_word": "math product",
+   "reason": "math product는 수학의 곱이며 상품 카탈로그가 아니다"
+  },
+  {
+   "word": "least common multiple",
+   "related": "mathjs lcm",
+   "topic": "t198.2",
+   "into": "t617",
+   "entry": "n6b-00546",
+   "judged_word": "mathjs lcm",
+   "reason": "최소공배수는 정수론 연산이며 기계 정수 경계 주제가 아니다"
+  },
+  {
+   "word": "repositories",
+   "related": "Maven repository",
+   "topic": "t274.3",
+   "into": "t706.1",
+   "entry": "n6b-00550",
+   "judged_word": "Maven repository",
+   "reason": "Maven repository는 아티팩트 저장소이며 ORM 저장소가 아니다"
+  },
+  {
+   "word": "max heap",
+   "related": "max-heap property",
+   "topic": "t650.2",
+   "into": "t846",
+   "entry": "n6b-00551",
+   "judged_word": "max-heap property",
+   "reason": "max-heap property는 힙 자료구조 성질이며 JVM 최대 힙이 아니다"
+  },
+  {
+   "word": "jemalloc",
+   "related": "memory allocator",
+   "topic": "t510",
+   "into": "t59.1",
+   "entry": "n6b-00553",
+   "judged_word": "memory allocator",
+   "reason": "memory allocator는 힙 할당기이며 쓰기 시 복사 스냅샷이 아니다"
+  },
+  {
+   "word": "ecc",
+   "related": "memory scrubbing",
+   "topic": "t80.2",
+   "into": "t822.1",
+   "entry": "n6b-00556",
+   "judged_word": "memory scrubbing",
+   "reason": "memory scrubbing은 ECC 메모리 오류 정정이며 타원곡선 암호와 무관하다"
+  },
+  {
+   "word": "develop",
+   "related": "merge into develop",
+   "topic": "t334.1",
+   "into": "t229.2",
+   "entry": "n6b-00558",
+   "judged_word": "merge into develop",
+   "reason": "merge into develop은 브랜치 병합이며 소스 텍스트 위치가 아니다"
+  },
+  {
+   "word": "Instruments",
+   "related": "Metal System Trace",
+   "topic": "t499.1",
+   "into": "t401.2",
+   "entry": "n6b-00559",
+   "judged_word": "Metal System Trace",
+   "reason": "Metal System Trace는 Instruments의 GPU 추적 템플릿이며 힙 수명 진단이 아니다"
+  },
+  {
+   "word": "usage",
+   "related": "metered usage",
+   "topic": "t37.1",
+   "into": "t29.7",
+   "entry": "n6b-00560",
+   "judged_word": "metered usage",
+   "reason": "metered usage는 사용량 측정 과금이며 CLI 인자 처리와 무관하다"
+  },
+  {
+   "word": "tag",
+   "related": "metric tags",
+   "topic": "t86.6",
+   "into": "t694.2",
+   "entry": "n6b-00561",
+   "judged_word": "metric tags",
+   "reason": "메트릭 태그는 측정값에 붙이는 레이블이지 릴리스 태그가 아니다"
+  },
+  {
+   "word": "orchestrator",
+   "related": "microservices orchestration",
+   "topic": "t354.2",
+   "into": "t305.1",
+   "entry": "n6b-00562",
+   "judged_word": "microservices orchestration",
+   "reason": "마이크로서비스 오케스트레이션은 위상 정렬이 아니라 서비스 조율(사가) 개념이다"
+  },
+  {
+   "word": "mod",
+   "related": "mod loader",
+   "topic": "t778.1",
+   "into": "t866.1",
+   "entry": "n6b-00563",
+   "judged_word": "mod loader",
+   "reason": "mod loader는 모듈/모드 로더이며 나머지 연산과 무관하다"
+  },
+  {
+   "word": "nn.Module",
+   "related": "module subclass",
+   "topic": "t148.1",
+   "into": "t6.1",
+   "entry": "n6b-00564",
+   "judged_word": "module subclass",
+   "reason": "module subclass는 nn.Module을 상속한 클래스이며 사전학습 모델 로딩이 아니다"
+  },
+  {
+   "word": "BSON",
+   "related": "mongodb driver",
+   "topic": "t201.1",
+   "into": "t239",
+   "entry": "n6b-00566",
+   "judged_word": "mongodb driver",
+   "reason": "MongoDB 드라이버는 데이터베이스 클라이언트 라이브러리이지 바이너리 직렬화 자체가 아니다"
+  },
+  {
+   "word": "mon",
+   "related": "monitor script",
+   "topic": "t408.2",
+   "into": "t299.2",
+   "entry": "n6b-00567",
+   "judged_word": "monitor script",
+   "reason": "monitor script의 mon은 모니터링이며 요일 날짜 필드가 아니다"
+  },
+  {
+   "word": "root",
+   "related": "monorepo root",
+   "topic": "t44.3",
+   "into": "t172.1",
+   "entry": "n6b-00568",
+   "judged_word": "monorepo root",
+   "reason": "모노레포 루트는 작업 공간 경로이며 권한 상승의 root가 아니다"
+  },
+  {
+   "word": "sub",
+   "related": "mqtt subscribe",
+   "topic": "t136",
+   "into": "t285.3",
+   "entry": "n6b-00571",
+   "judged_word": "mqtt subscribe",
+   "reason": "MQTT subscribe의 sub는 토픽 구독이며 JWT subject 클레임이 아니다"
+  },
+  {
+   "word": "textarea",
+   "related": "multiline text field",
+   "topic": "t657.1",
+   "into": "t657.2",
+   "entry": "n6b-00572",
+   "judged_word": "multiline text field",
+   "reason": "여러 줄 텍스트 필드는 textarea이며 리치 텍스트 편집기가 아니다"
+  },
+  {
+   "word": "positive",
+   "related": "must be positive",
+   "topic": "t573.1",
+   "into": "t635.2",
+   "entry": "n6b-00573",
+   "judged_word": "must be positive",
+   "reason": "must be positive는 입력값 검증 메시지이며 정규식 lookahead가 아니다"
+  },
+  {
+   "word": "useSyncExternalStore",
+   "related": "mutable store",
+   "topic": "t233.1",
+   "into": "t501.2",
+   "entry": "n6b-00574",
+   "judged_word": "mutable store",
+   "reason": "mutable store는 외부 상태 저장소이며 DOM 이벤트 리스너가 아니다"
+  },
+  {
+   "word": "nested route",
+   "related": "named views",
+   "topic": "t496.4",
+   "into": "t724.1",
+   "entry": "n6b-00578",
+   "judged_word": "named views",
+   "reason": "named views는 라우터의 이름 붙은 뷰 레이아웃이며 트리 순회 알고리즘이 아니다"
+  },
+  {
+   "word": "durable",
+   "related": "NATS durable consumer",
+   "topic": "t134.4",
+   "into": "t24.1",
+   "entry": "n6b-00579",
+   "judged_word": "NATS durable consumer",
+   "reason": "NATS durable consumer는 메시지 소비자 지속성이며 파일 내구성 플러시가 아니다"
+  },
+  {
+   "word": "netcat",
+   "related": "nc -l",
+   "topic": "t900.1",
+   "into": "t90.4",
+   "entry": "n6b-00580",
+   "judged_word": "nc -l",
+   "reason": "nc -l은 netcat 리슨 명령이며 제한 우회 표현이 아니다"
+  },
+  {
+   "word": "negative",
+   "related": "negative infinity",
+   "topic": "t334.1",
+   "into": "t10.1",
+   "entry": "n6b-00581",
+   "judged_word": "negative infinity",
+   "reason": "음의 무한대는 부동소수점 값이며 소스 텍스트 위치와 무관하다"
+  },
+  {
+   "word": "activation",
+   "related": "neuron output",
+   "topic": "t19.4",
+   "into": "t33",
+   "entry": "n6b-00582",
+   "judged_word": "neuron output",
+   "reason": "뉴런 출력은 신경망 활성화 값이며 라이선스 활성화가 아니다"
+  },
+  {
+   "word": "accept",
+   "related": "new connection",
+   "topic": "t12.1",
+   "into": "t90.3",
+   "entry": "n6b-00583",
+   "judged_word": "new connection",
+   "reason": "new connection은 서버 accept로 받는 소켓 연결이며 Accept 헤더가 아니다"
+  },
+  {
+   "word": "placeholder",
+   "related": "next/image placeholder",
+   "topic": "t595.1",
+   "into": "t679.2",
+   "entry": "n6b-00585",
+   "judged_word": "next/image placeholder",
+   "reason": "next/image placeholder는 이미지 로딩 자리표시이며 문자열 보간 자리표시자가 아니다"
+  },
+  {
+   "word": "RE2",
+   "related": "no backreferences",
+   "topic": "t310.4",
+   "into": "t573.1",
+   "entry": "n6b-00586",
+   "judged_word": "no backreferences",
+   "reason": "RE2의 역참조 미지원은 정규식 엔진 특성이며 날짜 범위와 무관하다"
+  },
+  {
+   "word": "process.env",
+   "related": "Node.js process",
+   "topic": "t466.2",
+   "into": "t858",
+   "entry": "n6b-00587",
+   "judged_word": "Node.js process",
+   "reason": "Node.js process는 프로세스 객체 API이며 환경 설정 자체가 아니다"
+  },
+  {
+   "word": "opaque type",
+   "related": "nominal type",
+   "topic": "t472.2",
+   "into": "t230.1",
+   "entry": "n6b-00588",
+   "judged_word": "nominal type",
+   "reason": "명목 타입은 이름으로 구분하는 타입 체계이며 불투명 타입의 캡슐화가 아니다"
+  },
+  {
+   "word": "call",
+   "related": "non-blocking call",
+   "topic": "t135.2",
+   "into": "t212.2",
+   "entry": "n6b-00589",
+   "judged_word": "non-blocking call",
+   "reason": "non-blocking call은 비동기 호출이며 call 연산자 오버로딩이 아니다"
+  },
+  {
+   "word": "Dijkstra",
+   "related": "nonnegative edge weights",
+   "topic": "t589.1",
+   "into": "t354.1",
+   "entry": "n6b-00590",
+   "judged_word": "nonnegative edge weights",
+   "reason": "음이 아닌 간선 가중치는 Dijkstra의 전제 조건이며 클라이언트 라우팅과 무관하다"
+  },
+  {
+   "word": "sendNotification",
+   "related": "notification preferences",
+   "topic": "t282.1",
+   "into": "t174.2",
+   "entry": "n6b-00594",
+   "judged_word": "notification preferences",
+   "reason": "알림 환경설정은 HTTP 엔드포인트 개념이 아니라 푸시 알림 설정이다"
+  },
+  {
+   "word": "sendNotification",
+   "related": "notification settings",
+   "topic": "t282.1",
+   "into": "t174.2",
+   "entry": "n6b-00595",
+   "judged_word": "notification settings",
+   "reason": "알림 설정은 HTTP 엔드포인트 개념이 아니라 푸시 알림 설정이다"
+  },
+  {
+   "word": "AttributeError",
+   "related": "null attribute",
+   "topic": "t5.1",
+   "into": "t209.1",
+   "entry": "n6b-00596",
+   "judged_word": "null attribute",
+   "reason": "null attribute는 null 값 처리 문제이며 목 상호작용 테스트가 아니다"
+  },
+  {
+   "word": "nvmrc",
+   "related": "nvm ls",
+   "topic": "t86.4",
+   "into": "t39.7",
+   "entry": "n6b-00598",
+   "judged_word": "nvm ls",
+   "reason": "nvm ls는 설치된 노드 버전 조회이며 장기 지원 개념이 아니다"
+  },
+  {
+   "word": "nvmrc",
+   "related": "nvm use",
+   "topic": "t86.4",
+   "into": "t39.7",
+   "entry": "n6b-00599",
+   "judged_word": "nvm use",
+   "reason": "nvm use는 노드 버전 전환이며 장기 지원 개념이 아니다"
+  },
+  {
+   "word": "Avro",
+   "related": "Obj magic bytes",
+   "topic": "t85.1",
+   "into": "t201.1",
+   "entry": "n6b-00600",
+   "judged_word": "Obj magic bytes",
+   "reason": "Obj 매직 바이트는 Avro 파일 헤더이며 Kafka 클라이언트 연동이 아니다"
+  },
+  {
+   "word": "sender",
+   "related": "object sender",
+   "topic": "t161.1",
+   "into": "t528.2",
+   "entry": "n6b-00601",
+   "judged_word": "object sender",
+   "reason": "object sender는 이벤트 핸들러의 발신자 인자이며 컴파일러 중간 표현이 아니다"
+  },
+  {
+   "word": "lazy init",
+   "related": "on-demand initialization",
+   "topic": "t576.3",
+   "into": "t498.1",
+   "entry": "n6b-00605",
+   "judged_word": "on-demand initialization",
+   "reason": "on-demand initialization은 지연 초기화이며 공유 상태 경쟁 자체가 아니다"
+  },
+  {
+   "word": "xxHash",
+   "related": "one-shot hash",
+   "topic": "t22.2",
+   "into": "t446.3",
+   "entry": "n6b-00606",
+   "judged_word": "one-shot hash",
+   "reason": "one-shot hash는 단일 호출 해시 계산이며 SIMD 처리 자체가 아니다"
+  },
+  {
+   "word": "onOpenChange",
+   "related": "open state change",
+   "topic": "t390.1",
+   "into": "t320",
+   "entry": "n6b-00607",
+   "judged_word": "open state change",
+   "reason": "open state change는 열림 상태 변경 이벤트이며 폼 필드 상태가 아니다"
+  },
+  {
+   "word": "opened",
+   "related": "opened event",
+   "topic": "t203.2",
+   "into": "t320",
+   "entry": "n6b-00608",
+   "judged_word": "opened event",
+   "reason": "opened event는 열림 이벤트이며 실행 표현이 아니다"
+  },
+  {
+   "word": "opening",
+   "related": "opening a file",
+   "topic": "t32.1",
+   "into": "t397.2",
+   "entry": "n6b-00609",
+   "judged_word": "opening a file",
+   "reason": "파일 열기는 파일 핸들 개념이며 시작 초기화 표현이 아니다"
+  },
+  {
+   "word": "opens",
+   "related": "opens a file descriptor",
+   "topic": "t32.1",
+   "into": "t397.3",
+   "entry": "n6b-00610",
+   "judged_word": "opens a file descriptor",
+   "reason": "파일 디스크립터 열기는 POSIX 디스크립터 I/O이며 시작 초기화 표현이 아니다"
+  },
+  {
+   "word": "feature flag",
+   "related": "ops toggle",
+   "topic": "t196",
+   "into": "t21.2",
+   "entry": "n6b-00611",
+   "judged_word": "ops toggle",
+   "reason": "ops toggle은 운영 기능 플래그이며 수치 정밀도와 무관하다"
+  },
+  {
+   "word": "traversal",
+   "related": "optics traversal",
+   "topic": "t0.1",
+   "into": "t183",
+   "entry": "n6b-00612",
+   "judged_word": "optics traversal",
+   "reason": "optics traversal은 함수형 옵틱이며 경로 구성이 아니다"
+  },
+  {
+   "word": "problem",
+   "related": "optimization problem",
+   "topic": "t88.1",
+   "into": "t168",
+   "entry": "n6b-00613",
+   "judged_word": "optimization problem",
+   "reason": "optimization problem은 조합 탐색 문제이며 HTTP 문제 응답 핸들러가 아니다"
+  },
+  {
+   "word": "LinkedHashSet",
+   "related": "ordered hash set",
+   "topic": "t279.2",
+   "into": "t811",
+   "entry": "n6b-00616",
+   "judged_word": "ordered hash set",
+   "reason": "ordered hash set은 삽입 순서 보존 컬렉션이며 범주 그룹화가 아니다"
+  },
+  {
+   "word": "Box",
+   "related": "owned pointer",
+   "topic": "t596.3",
+   "into": "t307.3",
+   "entry": "n6b-00622",
+   "judged_word": "owned pointer",
+   "reason": "owned pointer는 Box의 소유 포인터 의미이며 소거된 존재 타입이 아니다"
+  },
+  {
+   "word": "binary",
+   "related": "package.json bin",
+   "topic": "t114.2",
+   "into": "t564",
+   "entry": "n6b-00626",
+   "judged_word": "package.json bin",
+   "reason": "package.json bin은 실행 파일 진입점 필드이며 바이너리 스트림 모드가 아니다"
+  },
+  {
+   "word": "unpack",
+   "related": "packed binary",
+   "topic": "t131.4",
+   "into": "t200.3",
+   "entry": "n6b-00627",
+   "judged_word": "packed binary",
+   "reason": "packed binary는 바이너리 패킹 형식이며 이터러블 언패킹이 아니다"
+  },
+  {
+   "word": "drop",
+   "related": "packet drop",
+   "topic": "t70.1",
+   "into": "t703",
+   "entry": "n6b-00628",
+   "judged_word": "packet drop",
+   "reason": "packet drop은 방화벽 DROP 규칙이며 DDL의 DROP이 아니다"
+  },
+  {
+   "word": "wire format",
+   "related": "packet format",
+   "topic": "t86.1",
+   "into": "t605",
+   "entry": "n6b-00629",
+   "judged_word": "packet format",
+   "reason": "packet format은 패킷 프레이밍이며 API 호환성 개념이 아니다"
+  },
+  {
+   "word": "layout",
+   "related": "page layout",
+   "topic": "t200.2",
+   "into": "t416",
+   "entry": "n6b-00631",
+   "judged_word": "page layout",
+   "reason": "page layout은 웹 페이지 배치이며 구조체 메모리 레이아웃이 아니다"
+  },
+  {
+   "word": "visit",
+   "related": "page visit",
+   "topic": "t1045.1",
+   "into": "t589.1",
+   "entry": "n6b-00632",
+   "judged_word": "page visit",
+   "reason": "page visit은 페이지 방문 탐색이며 AST 방문자 패턴이 아니다"
+  },
+  {
+   "word": "RuntimeError",
+   "related": "panic: runtime error",
+   "topic": "t129.1",
+   "into": "t281.4",
+   "entry": "n6b-00634",
+   "judged_word": "panic: runtime error",
+   "reason": "panic: runtime error는 Go 런타임 오류이며 비동기 이벤트 루프가 아니다"
+  },
+  {
+   "word": "graceful degradation",
+   "related": "partial failure",
+   "topic": "t610.2",
+   "into": "t68.2",
+   "entry": "n6b-00636",
+   "judged_word": "partial failure",
+   "reason": "partial failure는 분산 시스템의 부분 장애이며 브라우저 호환 심이 아니다"
+  },
+  {
+   "word": "partition key",
+   "related": "partition field",
+   "topic": "t296.2",
+   "into": "t828.1",
+   "entry": "n6b-00638",
+   "judged_word": "partition field",
+   "reason": "partition field는 데이터 분할 기준 필드이며 생성된 엔티티 키가 아니다"
+  },
+  {
+   "word": "matcher",
+   "related": "pattern matcher",
+   "topic": "t374.1",
+   "into": "t573.3",
+   "entry": "n6b-00644",
+   "judged_word": "pattern matcher",
+   "reason": "pattern matcher는 패턴 매칭 도구이고 런타임 계약 검증이 아니다"
+  },
+  {
+   "word": "PCI DSS",
+   "related": "payment card industry",
+   "topic": "t294.1",
+   "into": "t170.2",
+   "entry": "n6b-00647",
+   "judged_word": "payment card industry",
+   "reason": "payment card industry는 결제 보안 표준이며 이벤트 로깅이 아니다"
+  },
+  {
+   "word": "PCI DSS",
+   "related": "Payment Card Industry Data Security Standard",
+   "topic": "t294.1",
+   "into": "t170.2",
+   "entry": "n6b-00648",
+   "judged_word": "Payment Card Industry Data Security Standard",
+   "reason": "PCI DSS 전체 이름은 결제 보안 표준이며 이벤트 로깅이 아니다"
+  },
+  {
+   "word": "PayPal",
+   "related": "paypal order",
+   "topic": "t159.3",
+   "into": "t833",
+   "entry": "n6b-00649",
+   "judged_word": "paypal order",
+   "reason": "paypal order는 PayPal 주문 API 객체이며 OAuth 토큰이 아니다"
+  },
+  {
+   "word": "sender",
+   "related": "peer address",
+   "topic": "t454",
+   "into": "t90.1",
+   "entry": "n6b-00650",
+   "judged_word": "peer address",
+   "reason": "peer address는 소켓의 상대방 주소이고 배송 상태가 아니다"
+  },
+  {
+   "word": "feature flag",
+   "related": "permission toggle",
+   "topic": "t196",
+   "into": "t21.2",
+   "entry": "n6b-00654",
+   "judged_word": "permission toggle",
+   "reason": "permission toggle은 기능 플래그형 스위치이고 수치 정밀도와 무관하다"
+  },
+  {
+   "word": "foreground service",
+   "related": "persistent notification",
+   "topic": "t49.3",
+   "into": "t174.2",
+   "entry": "n6b-00655",
+   "judged_word": "persistent notification",
+   "reason": "persistent notification은 안드로이드 알림이며 셸 작업 제어가 아니다"
+  },
+  {
+   "word": "mask",
+   "related": "phone mask",
+   "topic": "t108.4",
+   "into": "t368.3",
+   "entry": "n6b-00657",
+   "judged_word": "phone mask",
+   "reason": "phone mask는 전화번호 입력 마스크 또는 마스킹이며 벡터 그래픽 마스크가 아니다"
+  },
+  {
+   "word": "hard delete",
+   "related": "physical delete",
+   "topic": "t274.1",
+   "into": "t453.2",
+   "entry": "n6b-00658",
+   "judged_word": "physical delete",
+   "reason": "physical delete는 행을 실제로 지우는 하드 삭제이며 엔티티 연관이 아니다"
+  },
+  {
+   "word": "hard delete",
+   "related": "physical deletion",
+   "topic": "t274.1",
+   "into": "t453.2",
+   "entry": "n6b-00659",
+   "judged_word": "physical deletion",
+   "reason": "physical deletion은 행을 실제로 지우는 하드 삭제이며 엔티티 연관이 아니다"
+  },
+  {
+   "word": "Pick",
+   "related": "Pick<T, K>",
+   "topic": "t140.3",
+   "into": "t355.1",
+   "entry": "n6b-00660",
+   "judged_word": "Pick<T, K>",
+   "reason": "Pick<T, K>는 타입스크립트 유틸리티 타입이고 git cherry-pick이 아니다"
+  },
+  {
+   "word": "Pin",
+   "related": "pin to CPU",
+   "topic": "t121",
+   "into": "t840.2",
+   "entry": "n6b-00662",
+   "judged_word": "pin to CPU",
+   "reason": "pin to CPU는 스레드를 CPU에 고정하는 것이고 러스트 Pin 변환이 아니다"
+  },
+  {
+   "word": "plus",
+   "related": "Plus plan",
+   "topic": "t76.2",
+   "into": "t111.1",
+   "entry": "n6b-00666",
+   "judged_word": "Plus plan",
+   "reason": "Plus plan은 구독 요금제이며 URL의 더하기 부호 인코딩이 아니다"
+  },
+  {
+   "word": "empty dir",
+   "related": "pod volume",
+   "topic": "t1001",
+   "into": "t169.1",
+   "entry": "n6b-00668",
+   "judged_word": "pod volume",
+   "reason": "pod volume은 쿠버네티스 파드 볼륨이며 임시 데이터 개념만을 뜻하지 않는다"
+  },
+  {
+   "word": "core-js",
+   "related": "polyfill service",
+   "topic": "t40.1",
+   "into": "t610.2",
+   "entry": "n6b-00670",
+   "judged_word": "polyfill service",
+   "reason": "polyfill service는 브라우저 호환 폴리필 서비스이며 시퀀스 변환이 아니다"
+  },
+  {
+   "word": "composition root",
+   "related": "poor man's DI",
+   "topic": "t37.1",
+   "into": "t43.4",
+   "entry": "n6b-00671",
+   "judged_word": "poor man's DI",
+   "reason": "poor man's DI는 수동 의존성 주입이며 CLI 인자 처리가 아니다"
+  },
+  {
+   "word": "underflow",
+   "related": "pop empty",
+   "topic": "t252.2",
+   "into": "t112.1",
+   "entry": "n6b-00672",
+   "judged_word": "pop empty",
+   "reason": "pop empty는 빈 자료구조에서 꺼내는 오류이며 CPU 스케줄링이 아니다"
+  },
+  {
+   "word": "popular",
+   "related": "popular sort",
+   "topic": "t968.1",
+   "into": "t8.4",
+   "entry": "n6b-00673",
+   "judged_word": "popular sort",
+   "reason": "popular sort는 인기순 정렬이며 일반 형용사 의미가 아니다"
+  },
+  {
+   "word": "ephemeral port",
+   "related": "port assignment",
+   "topic": "t747.1",
+   "into": "t90.1",
+   "entry": "n6b-00674",
+   "judged_word": "port assignment",
+   "reason": "port assignment는 포트 할당이며 웹사이트 주소 개념이 아니다"
+  },
+  {
+   "word": "relative",
+   "related": "position: relative",
+   "topic": "t0.1",
+   "into": "t699.3",
+   "entry": "n6b-00675",
+   "judged_word": "position: relative",
+   "reason": "position: relative는 CSS 위치 지정이며 파일 경로 구성이 아니다"
+  },
+  {
+   "word": "shell command",
+   "related": "powershell -Command",
+   "topic": "t14.1",
+   "into": "t326.1",
+   "entry": "n6b-00676",
+   "judged_word": "powershell -Command",
+   "reason": "powershell -Command는 하위 프로세스 명령 실행이며 허용 목록 필터링이 아니다"
+  },
+  {
+   "word": "precision",
+   "related": "precision highp float",
+   "topic": "t23",
+   "into": "t196",
+   "entry": "n6b-00678",
+   "judged_word": "precision highp float",
+   "reason": "precision highp float는 셰이더 정밀도 한정자이며 모델 평가 정밀도가 아니다"
+  },
+  {
+   "word": "precision",
+   "related": "precision mediump float",
+   "topic": "t23",
+   "into": "t196",
+   "entry": "n6b-00679",
+   "judged_word": "precision mediump float",
+   "reason": "precision mediump float는 셰이더 정밀도 한정자이며 모델 평가 정밀도가 아니다"
+  },
+  {
+   "word": "preference",
+   "related": "Preferences window",
+   "topic": "t283.1",
+   "into": "t303.1",
+   "entry": "n6b-00680",
+   "judged_word": "Preferences window",
+   "reason": "Preferences window는 설정 화면이며 로케일 협상이 아니다"
+  },
+  {
+   "word": "prevent",
+   "related": "prevent injection",
+   "topic": "t569.1",
+   "into": "t410.2",
+   "entry": "n6b-00683",
+   "judged_word": "prevent injection",
+   "reason": "prevent injection은 주입 공격 방지이며 정상 종료와 무관하다"
+  },
+  {
+   "word": "primary",
+   "related": "primary database",
+   "topic": "t107",
+   "into": "t150.1",
+   "entry": "n6b-00684",
+   "judged_word": "primary database",
+   "reason": "primary database는 주 데이터베이스이며 기본 버튼과 무관하다"
+  },
+  {
+   "word": "findUserById",
+   "related": "primary key lookup",
+   "topic": "t128.3",
+   "into": "t588.2",
+   "entry": "n6b-00685",
+   "judged_word": "primary key lookup",
+   "reason": "primary key lookup은 키 조회이며 비동기 작업 조율이 아니다"
+  },
+  {
+   "word": "product catalog",
+   "related": "product attributes",
+   "topic": "t56.3",
+   "into": "t261.1",
+   "entry": "n6b-00689",
+   "judged_word": "product attributes",
+   "reason": "product attributes는 상품 카탈로그 데이터이며 검색 색인 자체가 아니다"
+  },
+  {
+   "word": "product catalog",
+   "related": "product information",
+   "topic": "t56.3",
+   "into": "t261.1",
+   "entry": "n6b-00690",
+   "judged_word": "product information",
+   "reason": "product information은 상품 카탈로그 데이터이며 검색 색인 자체가 아니다"
+  },
+  {
+   "word": "Dagger",
+   "related": "programmable CI/CD",
+   "topic": "t43.3",
+   "into": "t28.1",
+   "entry": "n6b-00691",
+   "judged_word": "programmable CI/CD",
+   "reason": "programmable CI/CD는 Dagger CI 엔진이며 JVM 주입 프레임워크가 아니다"
+  },
+  {
+   "word": "GitLab",
+   "related": "project access token",
+   "topic": "t626",
+   "into": "t159.4",
+   "entry": "n6b-00693",
+   "judged_word": "project access token",
+   "reason": "project access token은 토큰 자격 증명이며 CI/CD 파이프라인 자체가 아니다"
+  },
+  {
+   "word": "dependency graph",
+   "related": "project graph",
+   "topic": "t21.2",
+   "into": "t39.2",
+   "entry": "n6b-00694",
+   "judged_word": "project graph",
+   "reason": "project graph는 모노레포 빌드 그래프이며 기능 플래그와 무관하다"
+  },
+  {
+   "word": "monorepo",
+   "related": "project graph",
+   "topic": "t21.2",
+   "into": "t180",
+   "entry": "n6b-00694",
+   "judged_word": "project graph",
+   "reason": "project graph는 모노레포 빌드 그래프이며 기능 플래그와 무관하다"
+  },
+  {
+   "word": "project settings",
+   "related": "project preferences",
+   "topic": "t511.1",
+   "into": "t155.5",
+   "entry": "n6b-00695",
+   "judged_word": "project preferences",
+   "reason": "project preferences는 프로젝트 설정이며 타입스크립트 타입 도구가 아니다"
+  },
+  {
+   "word": "homepage",
+   "related": "project url",
+   "topic": "t137.2",
+   "into": "t747.1",
+   "entry": "n6b-00696",
+   "judged_word": "project url",
+   "reason": "project url은 프로젝트 홈페이지 주소이며 화면 캡처와 무관하다"
+  },
+  {
+   "word": "project settings",
+   "related": "project-level settings",
+   "topic": "t511.1",
+   "into": "t155.5",
+   "entry": "n6b-00697",
+   "judged_word": "project-level settings",
+   "reason": "project-level settings는 프로젝트 설정이며 타입스크립트 타입 도구가 아니다"
+  },
+  {
+   "word": "RE2",
+   "related": "Prometheus regex",
+   "topic": "t310.4",
+   "into": "t573.1",
+   "entry": "n6b-00698",
+   "judged_word": "Prometheus regex",
+   "reason": "Prometheus regex는 RE2 정규식이며 날짜 범위와 무관하다"
+  },
+  {
+   "word": "RE2",
+   "related": "Prometheus relabel regex",
+   "topic": "t310.4",
+   "into": "t573.1",
+   "entry": "n6b-00699",
+   "judged_word": "Prometheus relabel regex",
+   "reason": "Prometheus relabel regex는 RE2 정규식이며 날짜 범위와 무관하다"
+  },
+  {
+   "word": "prompt engineering",
+   "related": "prompt crafting",
+   "topic": "t429.2",
+   "into": "t184.3",
+   "entry": "n6b-00702",
+   "judged_word": "prompt crafting",
+   "reason": "prompt crafting은 프롬프트 설계이며 스트림 처리와 무관하다"
+  },
+  {
+   "word": "prompt engineering",
+   "related": "prompt testing",
+   "topic": "t429.2",
+   "into": "t184.3",
+   "entry": "n6b-00703",
+   "judged_word": "prompt testing",
+   "reason": "prompt testing은 프롬프트 검증이며 스트림 처리와 무관하다"
+  },
+  {
+   "word": "pub",
+   "related": "pub const",
+   "topic": "t80.5",
+   "into": "t821.2",
+   "entry": "n6b-00705",
+   "judged_word": "pub const",
+   "reason": "pub const는 러스트 가시성 선언이며 SSH 공개키와 무관하다"
+  },
+  {
+   "word": "pub",
+   "related": "pub enum",
+   "topic": "t80.5",
+   "into": "t821.2",
+   "entry": "n6b-00706",
+   "judged_word": "pub enum",
+   "reason": "pub enum은 러스트 가시성 선언이며 SSH 공개키와 무관하다"
+  },
+  {
+   "word": "outside",
+   "related": "public internet",
+   "topic": "t223",
+   "into": "t157.1",
+   "entry": "n6b-00707",
+   "judged_word": "public internet",
+   "reason": "public internet은 네트워크 바깥 영역이며 이미지 크기 처리와 무관하다"
+  },
+  {
+   "word": "pairs",
+   "related": "public/private key pair",
+   "topic": "t573.3",
+   "into": "t80.4",
+   "entry": "n6b-00708",
+   "judged_word": "public/private key pair",
+   "reason": "public/private key pair는 암호 키 쌍이며 문자열 패턴 매칭이 아니다"
+  },
+  {
+   "word": "Pug",
+   "related": "pug interpolation",
+   "topic": "t181.2",
+   "into": "t352.2",
+   "entry": "n6b-00709",
+   "judged_word": "pug interpolation",
+   "reason": "pug interpolation은 템플릿 보간이며 증분 빌드와 무관하다"
+  },
+  {
+   "word": "pull",
+   "related": "pull down resistor",
+   "topic": "t682.2",
+   "into": "t671",
+   "entry": "n6b-00710",
+   "judged_word": "pull down resistor",
+   "reason": "pull down resistor는 GPIO 회로 개념이며 병합 전략이 아니다"
+  },
+  {
+   "word": "image pull backoff",
+   "related": "pull error",
+   "topic": "t159.2",
+   "into": "t64.3",
+   "entry": "n6b-00711",
+   "judged_word": "pull error",
+   "reason": "pull error는 이미지 풀 실패이며 HTTP 기본 인증 개념이 아니다"
+  },
+  {
+   "word": "composition root",
+   "related": "pure DI",
+   "topic": "t37.1",
+   "into": "t43.4",
+   "entry": "n6b-00714",
+   "judged_word": "pure DI",
+   "reason": "pure DI는 수동 의존성 주입이며 CLI 인자 처리가 아니다"
+  },
+  {
+   "word": "pwd",
+   "related": "pwd hash",
+   "topic": "t326.4",
+   "into": "t660.1",
+   "entry": "n6b-00717",
+   "judged_word": "pwd hash",
+   "reason": "pwd hash의 pwd는 password이며 작업 디렉터리 명령이 아니다"
+  },
+  {
+   "word": "dac",
+   "related": "PWM DAC",
+   "topic": "t17.2",
+   "into": "t171.3",
+   "entry": "n6b-00718",
+   "judged_word": "PWM DAC",
+   "reason": "PWM DAC의 DAC는 디지털 아날로그 변환기이며 접근 제어가 아니다"
+  },
+  {
+   "word": "int8",
+   "related": "quantized inference",
+   "topic": "t114.3",
+   "into": "t717.2",
+   "entry": "n6b-00721",
+   "judged_word": "quantized inference",
+   "reason": "양자화 추론은 모델 추론 런타임 개념이며 바이트 배열 저장과 무관하다"
+  },
+  {
+   "word": "synonym",
+   "related": "query-time synonyms",
+   "topic": "t447",
+   "into": "t56.1",
+   "entry": "n6b-00722",
+   "judged_word": "query-time synonyms",
+   "reason": "쿼리 시점 동의어는 검색 쿼리 확장 개념이며 동등 비교와 무관하다"
+  },
+  {
+   "word": "ram",
+   "related": "RAM usage",
+   "topic": "t618.3",
+   "into": "t234.4",
+   "entry": "n6b-00726",
+   "judged_word": "RAM usage",
+   "reason": "RAM 사용량은 프로세스 메모리 측정이며 클라우드 배포 위치와 무관하다"
+  },
+  {
+   "word": "range",
+   "related": "range operator",
+   "topic": "t26.2",
+   "into": "t310.2",
+   "entry": "n6b-00727",
+   "judged_word": "range operator",
+   "reason": "범위 연산자는 언어 구문의 범위 표현이며 HTTP Range 다운로드가 아니다"
+  },
+  {
+   "word": "yuv",
+   "related": "raw video",
+   "topic": "t207.1",
+   "into": "t1032",
+   "entry": "n6b-00728",
+   "judged_word": "raw video",
+   "reason": "원시 영상은 비압축 미디어 형식이며 색 채널 및 색 공간 자체가 아니다"
+  },
+  {
+   "word": "RE2",
+   "related": "RE2 syntax wiki",
+   "topic": "t310.4",
+   "into": "t573.1",
+   "entry": "n6b-00729",
+   "judged_word": "RE2 syntax wiki",
+   "reason": "RE2 문법 위키는 정규식 라이브러리 문서이며 날짜 범위와 무관하다"
+  },
+  {
+   "word": "ReactNode",
+   "related": "React portal",
+   "topic": "t209.1",
+   "into": "t351.1",
+   "entry": "n6b-00730",
+   "judged_word": "React portal",
+   "reason": "React 포털은 자식을 다른 DOM에 렌더링하는 기능이며 널 허용 값 처리가 아니다"
+  },
+  {
+   "word": "analogRead",
+   "related": "read analog",
+   "topic": "t659.1",
+   "into": "t83",
+   "entry": "n6b-00731",
+   "judged_word": "read analog",
+   "reason": "아날로그 읽기는 센서 입력 읽기이며 시스템 호출 경계가 아니다"
+  },
+  {
+   "word": "analogRead",
+   "related": "read analog pin",
+   "topic": "t659.1",
+   "into": "t83",
+   "entry": "n6b-00732",
+   "judged_word": "read analog pin",
+   "reason": "아날로그 핀 읽기는 센서 입력 읽기이며 시스템 호출 경계가 아니다"
+  },
+  {
+   "word": "more",
+   "related": "read more",
+   "topic": "t92.1",
+   "into": "t815",
+   "entry": "n6b-00733",
+   "judged_word": "read more",
+   "reason": "더 보기는 UI 문구이며 시퀀스 저장 공간 증가와 무관하다"
+  },
+  {
+   "word": "recovers",
+   "related": "recoverable error",
+   "topic": "t512.1",
+   "into": "t281.6",
+   "entry": "n6b-00736",
+   "judged_word": "recoverable error",
+   "reason": "복구 가능한 오류는 오류 처리 개념이며 데이터베이스 백업 복원이 아니다"
+  },
+  {
+   "word": "fs-extra",
+   "related": "recursive copy",
+   "topic": "t0.1",
+   "into": "t393.1",
+   "entry": "n6b-00738",
+   "judged_word": "recursive copy",
+   "reason": "재귀 복사는 파일 복사이며 경로 구성이 아니다"
+  },
+  {
+   "word": "deep copy",
+   "related": "recursive copy",
+   "topic": "t447",
+   "into": "t782.3",
+   "entry": "n6b-00738",
+   "judged_word": "recursive copy",
+   "reason": "재귀 복사는 깊은 복사이며 동등 비교가 아니다"
+  },
+  {
+   "word": "flatten",
+   "related": "recursive flatten",
+   "topic": "t96",
+   "into": "t524",
+   "entry": "n6b-00739",
+   "judged_word": "recursive flatten",
+   "reason": "재귀 평탄화는 중첩 시퀀스를 펼치는 연산이며 함수형 타입 추상이 아니다"
+  },
+  {
+   "word": "deep merge",
+   "related": "recursive merge",
+   "topic": "t224.3",
+   "into": "t782.3",
+   "entry": "n6b-00740",
+   "judged_word": "recursive merge",
+   "reason": "재귀 병합은 깊은 객체 병합이며 프로토타입 상속이 아니다"
+  },
+  {
+   "word": "login flow",
+   "related": "redirect after login",
+   "topic": "t159.3",
+   "into": "t528.15",
+   "entry": "n6b-00741",
+   "judged_word": "redirect after login",
+   "reason": "로그인 후 리다이렉트는 로그인 리다이렉션이며 OAuth 액세스 토큰이 아니다"
+  },
+  {
+   "word": "slot",
+   "related": "Redis cluster slot",
+   "topic": "t351.3",
+   "into": "t876.2",
+   "entry": "n6b-00742",
+   "judged_word": "Redis cluster slot",
+   "reason": "Redis 클러스터 슬롯은 클러스터 토폴로지 개념이며 웹 컴포넌트 슬롯이 아니다"
+  },
+  {
+   "word": "slice",
+   "related": "Redux slice",
+   "topic": "t122",
+   "into": "t182",
+   "entry": "n6b-00745",
+   "judged_word": "Redux slice",
+   "reason": "Redux 슬라이스는 상태 조각이며 Rust 시퀀스 슬라이스가 아니다"
+  },
+  {
+   "word": "trimStart",
+   "related": "regex ^\\s+",
+   "topic": "t160.3",
+   "into": "t683.1",
+   "entry": "n6b-00748",
+   "judged_word": "regex ^\\s+",
+   "reason": "앞쪽 공백 정규식은 공백 처리이며 텍스트 인코딩 변환이 아니다"
+  },
+  {
+   "word": "anchor",
+   "related": "regex anchor",
+   "topic": "t95.1",
+   "into": "t573.1",
+   "entry": "n6b-00749",
+   "judged_word": "regex anchor",
+   "reason": "정규식 앵커는 문자열 매칭 개념이며 YAML 앵커가 아니다"
+  },
+  {
+   "word": "ephemeral port",
+   "related": "registered ports",
+   "topic": "t747.1",
+   "into": "t90.1",
+   "entry": "n6b-00751",
+   "judged_word": "registered ports",
+   "reason": "등록 포트는 네트워크 포트 범위이며 웹사이트 주소가 아니다"
+  },
+  {
+   "word": "port number",
+   "related": "registered ports",
+   "topic": "t747.1",
+   "into": "t90.1",
+   "entry": "n6b-00751",
+   "judged_word": "registered ports",
+   "reason": "등록 포트는 네트워크 포트 범위이며 웹사이트 주소가 아니다"
+  },
+  {
+   "word": "relaxed",
+   "related": "relaxed parsing",
+   "topic": "t133.1",
+   "into": "t730",
+   "entry": "n6b-00754",
+   "judged_word": "relaxed parsing",
+   "reason": "완화된 파싱은 엄격도 표현이며 원자 연산 메모리 순서가 아니다"
+  },
+  {
+   "word": "rpc client",
+   "related": "remote client",
+   "topic": "t46.1",
+   "into": "t375.1",
+   "entry": "n6b-00756",
+   "judged_word": "remote client",
+   "reason": "원격 클라이언트는 원격 호출 클라이언트이며 재시도 정책이 아니다"
+  },
+  {
+   "word": "rsync",
+   "related": "remote copy",
+   "topic": "t685.3",
+   "into": "t393.1",
+   "entry": "n6b-00758",
+   "judged_word": "remote copy",
+   "reason": "원격 복사는 파일 복사이며 롤링 해시 매칭 알고리즘이 아니다"
+  },
+  {
+   "word": "move",
+   "related": "rename syscall",
+   "topic": "t782.1",
+   "into": "t134.1",
+   "entry": "n6b-00761",
+   "judged_word": "rename syscall",
+   "reason": "rename 시스템 호출은 파일 이름 변경이며 C++ 값 이동이 아니다"
+  },
+  {
+   "word": "repeat",
+   "related": "repeat count",
+   "topic": "t503.1",
+   "into": "t600.1",
+   "entry": "n6b-00762",
+   "judged_word": "repeat count",
+   "reason": "반복 횟수는 반복 제어 값이며 컬렉션 중복 제거가 아니다"
+  },
+  {
+   "word": "ownership",
+   "related": "repo ownership",
+   "topic": "t643.2",
+   "into": "t821.1",
+   "entry": "n6b-00763",
+   "judged_word": "repo ownership",
+   "reason": "저장소 소유권은 소유자 개념이며 Rust 소유권 연산이 아니다"
+  },
+  {
+   "word": "reserve",
+   "related": "reserved memory",
+   "topic": "t11.3",
+   "into": "t59.3",
+   "entry": "n6b-00766",
+   "judged_word": "reserved memory",
+   "reason": "예약 메모리는 메모리 영역 개념이며 예약어 토큰이 아니다"
+  },
+  {
+   "word": "reserved",
+   "related": "reserved memory",
+   "topic": "t11.3",
+   "into": "t200.2",
+   "entry": "n6b-00766",
+   "judged_word": "reserved memory",
+   "reason": "예약 메모리는 메모리 영역 개념이며 예약어 토큰이 아니다"
+  },
+  {
+   "word": "reserved",
+   "related": "reserved port",
+   "topic": "t11.3",
+   "into": "t90.1",
+   "entry": "n6b-00767",
+   "judged_word": "reserved port",
+   "reason": "예약 포트는 네트워크 포트 개념이며 예약어 토큰이 아니다"
+  },
+  {
+   "word": "kind",
+   "related": "resource kind",
+   "topic": "t96",
+   "into": "t361.1",
+   "entry": "n6b-00768",
+   "judged_word": "resource kind",
+   "reason": "리소스 kind는 쿠버네티스 매니페스트의 kind이며 함수형 타입의 kind가 아니다"
+  },
+  {
+   "word": "footprint",
+   "related": "resource usage",
+   "topic": "t176",
+   "into": "t167.2",
+   "entry": "n6b-00769",
+   "judged_word": "resource usage",
+   "reason": "자원 사용량은 소비량이며 최소화 어휘가 아니다"
+  },
+  {
+   "word": "redirect",
+   "related": "return 301",
+   "topic": "t326.5",
+   "into": "t589.2",
+   "entry": "n6b-00772",
+   "judged_word": "return 301",
+   "reason": "return 301은 HTTP 리다이렉트 설정이며 표준 스트림 파이핑이 아니다"
+  },
+  {
+   "word": "token revocation",
+   "related": "revocation endpoint",
+   "topic": "t515.1",
+   "into": "t14.2",
+   "entry": "n6b-00775",
+   "judged_word": "revocation endpoint",
+   "reason": "폐기 엔드포인트는 토큰 폐기 개념이며 동적 객체 내성이 아니다"
+  },
+  {
+   "word": "uri",
+   "related": "RFC 6570",
+   "topic": "t31.3",
+   "into": "t76.2",
+   "entry": "n6b-00776",
+   "judged_word": "RFC 6570",
+   "reason": "RFC 6570은 URI 템플릿 규격이며 작업공간 파일 감시가 아니다"
+  },
+  {
+   "word": "Right",
+   "related": "right padding",
+   "topic": "t22.1",
+   "into": "t987.1",
+   "entry": "n6b-00777",
+   "judged_word": "right padding",
+   "reason": "오른쪽 패딩은 문자열 채우기이며 기계 명령어가 아니다"
+  },
+  {
+   "word": "rpc client",
+   "related": "RMI client",
+   "topic": "t46.1",
+   "into": "t375.1",
+   "entry": "n6b-00778",
+   "judged_word": "RMI client",
+   "reason": "RMI 클라이언트는 원격 호출 클라이언트이며 재시도 정책이 아니다"
+  },
+  {
+   "word": "match",
+   "related": "route match",
+   "topic": "t561.1",
+   "into": "t76.3",
+   "entry": "n6b-00781",
+   "judged_word": "route match",
+   "reason": "라우트 매치는 경로 매칭이며 SQL 문 실행이 아니다"
+  },
+  {
+   "word": "ipv6",
+   "related": "router advertisement",
+   "topic": "t332",
+   "into": "t381.3",
+   "entry": "n6b-00782",
+   "judged_word": "router advertisement",
+   "reason": "라우터 광고는 IPv6 이웃 탐색 메시지이며 주소 표기 구두점이 아니다"
+  },
+  {
+   "word": "nested route",
+   "related": "routes config",
+   "topic": "t496.4",
+   "into": "t724.1",
+   "entry": "n6b-00783",
+   "judged_word": "routes config",
+   "reason": "라우트 설정은 중첩 라우트 구성이며 트리 순회가 아니다"
+  },
+  {
+   "word": "Avro",
+   "related": "row-based format",
+   "topic": "t85.1",
+   "into": "t201.1",
+   "entry": "n6b-00784",
+   "judged_word": "row-based format",
+   "reason": "행 기반 형식은 직렬화 형식 특성이며 Kafka 클라이언트 연동이 아니다"
+  },
+  {
+   "word": "rpc client",
+   "related": "rpc caller",
+   "topic": "t46.1",
+   "into": "t375.1",
+   "entry": "n6b-00785",
+   "judged_word": "rpc caller",
+   "reason": "RPC 호출자는 원격 호출 클라이언트이며 재시도 정책이 아니다"
+  },
+  {
+   "word": "rpc call",
+   "related": "rpc deadline",
+   "topic": "t375.2",
+   "into": "t269.2",
+   "entry": "n6b-00786",
+   "judged_word": "rpc deadline",
+   "reason": "RPC 데드라인은 호출 취소 기한이며 Electron IPC 브리지가 아니다"
+  },
+  {
+   "word": "rss",
+   "related": "RSS reader",
+   "topic": "t234.4",
+   "into": "t793",
+   "entry": "n6b-00788",
+   "judged_word": "RSS reader",
+   "reason": "RSS 리더는 피드 구독기이며 상주 메모리 크기가 아니다"
+  },
+  {
+   "word": "duck typing",
+   "related": "Ruby duck typing",
+   "topic": "t131.2",
+   "into": "t6.5",
+   "entry": "n6b-00789",
+   "judged_word": "Ruby duck typing",
+   "reason": "Ruby 덕 타이핑은 암묵적 인터페이스 개념이며 반복자 순회가 아니다"
+  },
+  {
+   "word": "RuntimeError",
+   "related": "runtime panic",
+   "topic": "t129.1",
+   "into": "t281.4",
+   "entry": "n6b-00792",
+   "judged_word": "runtime panic",
+   "reason": "런타임 패닉은 예외 계층의 런타임 오류이며 비동기 이벤트 루프가 아니다"
+  },
+  {
+   "word": "id1",
+   "related": "sample id",
+   "topic": "t8.3",
+   "into": "t296.2",
+   "entry": "n6b-00794",
+   "judged_word": "sample id",
+   "reason": "샘플 ID는 자리표시자 식별자이며 관계 연산자가 아니다"
+  },
+  {
+   "word": "id2",
+   "related": "sample id",
+   "topic": "t8.3",
+   "into": "t296.2",
+   "entry": "n6b-00794",
+   "judged_word": "sample id",
+   "reason": "샘플 ID는 자리표시자 식별자이며 관계 연산자가 아니다"
+  },
+  {
+   "word": "sampling",
+   "related": "sampling theorem",
+   "topic": "t694.2",
+   "into": "t903",
+   "entry": "n6b-00796",
+   "judged_word": "sampling theorem",
+   "reason": "표본화 정리는 신호 표본화 이론이며 트레이스 샘플링이 아니다"
+  },
+  {
+   "word": "defineConfig",
+   "related": "satisfies UserConfig",
+   "topic": "t118.1",
+   "into": "t602.2",
+   "entry": "n6b-00797",
+   "judged_word": "satisfies UserConfig",
+   "reason": "satisfies UserConfig는 TypeScript 설정 타입 검사이며 정적 사이트 생성이 아니다"
+  },
+  {
+   "word": "to_csv",
+   "related": "save as csv",
+   "topic": "t615.1",
+   "into": "t12.3",
+   "entry": "n6b-00798",
+   "judged_word": "save as csv",
+   "reason": "CSV로 저장은 표 데이터 내보내기이며 네이티브 파일 스트림이 아니다"
+  },
+  {
+   "word": "wrote",
+   "related": "saved to",
+   "topic": "t92.1",
+   "into": "t744.3",
+   "entry": "n6b-00799",
+   "judged_word": "saved to",
+   "reason": "saved to는 저장 결과 문구이며 시퀀스 저장 공간 증가가 아니다"
+  },
+  {
+   "word": "inner class",
+   "related": "Scala inner class",
+   "topic": "t821.2",
+   "into": "t395.5",
+   "entry": "n6b-00800",
+   "judged_word": "Scala inner class",
+   "reason": "Scala 내부 클래스는 중첩 클래스이며 공개 API 가시성이 아니다"
+  },
+  {
+   "word": "resize",
+   "related": "scale filter",
+   "topic": "t115.4",
+   "into": "t425",
+   "entry": "n6b-00802",
+   "judged_word": "scale filter",
+   "reason": "scale filter는 이미지 크기 조정 필터이며 컬렉션 용량과 무관하다"
+  },
+  {
+   "word": "schema",
+   "related": "schema file",
+   "topic": "t25.1",
+   "into": "t70.1",
+   "entry": "n6b-00804",
+   "judged_word": "schema file",
+   "reason": "schema file은 스키마 정의 파일이며 커넥션 풀 획득과 무관하다"
+  },
+  {
+   "word": "schema evolution",
+   "related": "schema resolution",
+   "topic": "t293.1",
+   "into": "x77",
+   "entry": "n6b-00806",
+   "judged_word": "schema resolution",
+   "reason": "schema resolution은 Avro 읽기/쓰기 스키마 해석으로 스키마 진화에 속하며 변경 캡처 커넥터가 아니다"
+  },
+  {
+   "word": "scm",
+   "related": "scm checkout",
+   "topic": "t713.2",
+   "into": "t140.7",
+   "entry": "n6b-00807",
+   "judged_word": "scm checkout",
+   "reason": "scm은 여기서 버전 관리이며 Scheme 리스트 기본 연산과 무관하다"
+  },
+  {
+   "word": "scm",
+   "related": "scm polling",
+   "topic": "t713.2",
+   "into": "t140.7",
+   "entry": "n6b-00808",
+   "judged_word": "scm polling",
+   "reason": "scm polling은 소스 관리 변경 감지이며 Scheme 리스트 기본 연산과 무관하다"
+  },
+  {
+   "word": "scm",
+   "related": "SCM trigger",
+   "topic": "t713.2",
+   "into": "t140.7",
+   "entry": "n6b-00809",
+   "judged_word": "SCM trigger",
+   "reason": "SCM trigger는 소스 관리 트리거이며 Scheme 리스트 기본 연산과 무관하다"
+  },
+  {
+   "word": "scm",
+   "related": "SCM view",
+   "topic": "t713.2",
+   "into": "t140.7",
+   "entry": "n6b-00810",
+   "judged_word": "SCM view",
+   "reason": "SCM view는 소스 관리 뷰이며 Scheme 리스트 기본 연산과 무관하다"
+  },
+  {
+   "word": "orientation",
+   "related": "screen orientation",
+   "topic": "t649.1",
+   "into": "t576.11",
+   "entry": "n6b-00813",
+   "judged_word": "screen orientation",
+   "reason": "screen orientation은 가로/세로 화면 방향이며 벡터 좌표 변환이 아니다"
+  },
+  {
+   "word": "rotation",
+   "related": "screen rotation",
+   "topic": "t431.1",
+   "into": "t649.1",
+   "entry": "n6b-00816",
+   "judged_word": "screen rotation",
+   "reason": "screen rotation은 회전 변환이며 데이터프레임 변환과 무관하다"
+  },
+  {
+   "word": "find",
+   "related": "search tool",
+   "topic": "t589.1",
+   "into": "t573.2",
+   "entry": "n6b-00818",
+   "judged_word": "search tool",
+   "reason": "search tool은 grep 같은 검색 도구이며 클라이언트 라우트 탐색과 무관하다"
+  },
+  {
+   "word": "H2",
+   "related": "second-level heading",
+   "topic": "t65.1",
+   "into": "t106.4",
+   "entry": "n6b-00820",
+   "judged_word": "second-level heading",
+   "reason": "second-level heading은 H2 제목 태그이며 HTTP/2 협상과 무관하다"
+  },
+  {
+   "word": "select",
+   "related": "SELECT DISTINCT",
+   "topic": "t326.1",
+   "into": "t119.1",
+   "entry": "n6b-00823",
+   "judged_word": "SELECT DISTINCT",
+   "reason": "SELECT DISTINCT는 SQL 구문이며 하위 프로세스 실행과 무관하다"
+  },
+  {
+   "word": "top",
+   "related": "SELECT TOP",
+   "topic": "t515.4",
+   "into": "t997",
+   "entry": "n6b-00824",
+   "judged_word": "SELECT TOP",
+   "reason": "SELECT TOP은 SQL 상위 N개 선택이며 타입 격자의 top과 무관하다"
+  },
+  {
+   "word": "semver",
+   "related": "semver regex",
+   "topic": "t279.1",
+   "into": "t86.7",
+   "entry": "n6b-00826",
+   "judged_word": "semver regex",
+   "reason": "semver regex는 시맨틱 버전 정규식이며 범주형 차트 축척과 무관하다"
+  },
+  {
+   "word": "preserve",
+   "related": "serde_json preserve_order",
+   "topic": "t610.2",
+   "into": "t811",
+   "entry": "n6b-00828",
+   "judged_word": "serde_json preserve_order",
+   "reason": "serde_json preserve_order는 키 순서 유지 옵션이며 브라우저 호환 심과 무관하다"
+  },
+  {
+   "word": "SIGHUP",
+   "related": "serial hangup",
+   "topic": "t908",
+   "into": "t569.3",
+   "entry": "n6b-00829",
+   "judged_word": "serial hangup",
+   "reason": "serial hangup은 시리얼 회선 끊김에서 유래한 시그널로 설정 재적재 항목이 아니다"
+  },
+  {
+   "word": "series",
+   "related": "series color",
+   "topic": "t115.1",
+   "into": "t694.4",
+   "entry": "n6b-00831",
+   "judged_word": "series color",
+   "reason": "series color는 차트 계열 색상이며 시퀀스 컬렉션과 무관하다"
+  },
+  {
+   "word": "series",
+   "related": "series type",
+   "topic": "t115.1",
+   "into": "t694.4",
+   "entry": "n6b-00832",
+   "judged_word": "series type",
+   "reason": "series type은 차트 계열 종류이며 시퀀스 컬렉션과 무관하다"
+  },
+  {
+   "word": "self",
+   "related": "service worker global scope",
+   "topic": "t596.1",
+   "into": "t630",
+   "entry": "n6b-00834",
+   "judged_word": "service worker global scope",
+   "reason": "ServiceWorkerGlobalScope는 워커의 전역 범위이며 제네릭 특수화가 아니다"
+  },
+  {
+   "word": "config value",
+   "related": "settings value",
+   "topic": "t595.1",
+   "into": "t366",
+   "entry": "n6b-00837",
+   "judged_word": "settings value",
+   "reason": "settings value는 설정 값이며 형식 문자열 보간과 무관하다"
+  },
+  {
+   "word": "settled",
+   "related": "settled payment",
+   "topic": "t213.1",
+   "into": "t170.1",
+   "entry": "n6b-00838",
+   "judged_word": "settled payment",
+   "reason": "settled payment는 정산 완료된 결제이며 Promise 수명주기가 아니다"
+  },
+  {
+   "word": "Echo",
+   "related": "shell echo",
+   "topic": "t89.1",
+   "into": "t93.1",
+   "entry": "n6b-00839",
+   "judged_word": "shell echo",
+   "reason": "shell echo는 셸 echo 명령이며 Go Echo 프레임워크 라우트가 아니다"
+  },
+  {
+   "word": "shell",
+   "related": "shell escaping",
+   "topic": "t564",
+   "into": "t339.1",
+   "entry": "n6b-00840",
+   "judged_word": "shell escaping",
+   "reason": "shell escaping은 셸 인자 이스케이프이며 빌드 산출물과 무관하다"
+  },
+  {
+   "word": "shell command",
+   "related": "shell escaping",
+   "topic": "t564",
+   "into": "t326.1",
+   "entry": "n6b-00840",
+   "judged_word": "shell escaping",
+   "reason": "shell escaping은 셸 인자 이스케이프이며 빌드 산출물과 무관하다"
+  },
+  {
+   "word": "shlex.split",
+   "related": "shell escaping",
+   "topic": "t564",
+   "into": "t391.4",
+   "entry": "n6b-00840",
+   "judged_word": "shell escaping",
+   "reason": "shell escaping은 셸 인자 이스케이프이며 빌드 산출물과 무관하다"
+  },
+  {
+   "word": "imshow",
+   "related": "show image",
+   "topic": "t497.1",
+   "into": "t207.3",
+   "entry": "n6b-00844",
+   "judged_word": "show image",
+   "reason": "show image는 이미지 표시이며 행렬 텐서 연산이 아니다"
+  },
+  {
+   "word": "process.on",
+   "related": "signal event",
+   "topic": "t213.1",
+   "into": "t569.3",
+   "entry": "n6b-00845",
+   "judged_word": "signal event",
+   "reason": "signal event는 프로세스 시그널 이벤트이며 Promise 수명주기가 아니다"
+  },
+  {
+   "word": "dac",
+   "related": "signal generator",
+   "topic": "t17.2",
+   "into": "t171.3",
+   "entry": "n6b-00846",
+   "judged_word": "signal generator",
+   "reason": "signal generator는 DAC 출력과 관련되며 파일 권한과 무관하다"
+  },
+  {
+   "word": "signed",
+   "related": "signed certificate",
+   "topic": "t499.3",
+   "into": "t80.4",
+   "entry": "n6b-00849",
+   "judged_word": "signed certificate",
+   "reason": "signed certificate는 서명된 인증서이며 미초기화 메모리 진단이 아니다"
+  },
+  {
+   "word": "signed",
+   "related": "signed JWT",
+   "topic": "t499.3",
+   "into": "t80.4",
+   "entry": "n6b-00850",
+   "judged_word": "signed JWT",
+   "reason": "signed JWT는 서명된 토큰이며 미초기화 메모리 진단이 아니다"
+  },
+  {
+   "word": "related terms",
+   "related": "similar terms",
+   "topic": "t832",
+   "into": "t56.1",
+   "entry": "n6b-00853",
+   "judged_word": "similar terms",
+   "reason": "similar terms는 유사어이며 모듈 경로 별칭과 무관하다"
+  },
+  {
+   "word": "lambda calculus",
+   "related": "simply typed lambda calculus",
+   "topic": "t723.1",
+   "into": "t721.1",
+   "entry": "n6b-00855",
+   "judged_word": "simply typed lambda calculus",
+   "reason": "단순 타입 람다 계산법은 함수형 람다 이론이며 애플리케이션 이름 표현이 아니다"
+  },
+  {
+   "word": "multiline",
+   "related": "single line mode",
+   "topic": "t286.1",
+   "into": "t573.1",
+   "entry": "n6b-00856",
+   "judged_word": "single line mode",
+   "reason": "single line mode는 정규식 단일 행 모드이며 로그 수집 항목이 아니다"
+  },
+  {
+   "word": "force",
+   "related": "skip confirmation",
+   "topic": "t373.1",
+   "into": "t900.1",
+   "entry": "n6b-00857",
+   "judged_word": "skip confirmation",
+   "reason": "skip confirmation은 확인 생략이며 타입 캐스트와 무관하다"
+  },
+  {
+   "word": "negative lookahead",
+   "related": "skip files",
+   "topic": "t573.1",
+   "into": "t562.1",
+   "entry": "n6b-00858",
+   "judged_word": "skip files",
+   "reason": "skip files는 파일 건너뛰기이며 정규식 일치 처리가 아니다"
+  },
+  {
+   "word": "message handler",
+   "related": "Slack message event",
+   "topic": "t432.1",
+   "into": "t481",
+   "entry": "n6b-00859",
+   "judged_word": "Slack message event",
+   "reason": "Slack message event는 메시지 이벤트 처리이며 멱등 재시도가 아니다"
+  },
+  {
+   "word": "cap",
+   "related": "slice capacity",
+   "topic": "t836.1",
+   "into": "t115.4",
+   "entry": "n6b-00860",
+   "judged_word": "slice capacity",
+   "reason": "slice capacity는 슬라이스 용량이며 기능 능력 표현이 아니다"
+  },
+  {
+   "word": "bit banging",
+   "related": "soft I2C",
+   "topic": "t794",
+   "into": "t671",
+   "entry": "n6b-00863",
+   "judged_word": "soft I2C",
+   "reason": "soft I2C는 비트뱅잉 소프트웨어 구현이며 아무 동작도 하지 않는 것이 아니다"
+  },
+  {
+   "word": "v7",
+   "related": "sortable id",
+   "topic": "t86.5",
+   "into": "t296.2",
+   "entry": "n6b-00865",
+   "judged_word": "sortable id",
+   "reason": "sortable id는 UUIDv7 같은 정렬 가능 식별자이며 업그레이드 이관이 아니다"
+  },
+  {
+   "word": "src",
+   "related": "source folder",
+   "topic": "t18.3",
+   "into": "t39.10",
+   "entry": "n6b-00866",
+   "judged_word": "source folder",
+   "reason": "source folder는 소스 디렉터리이며 이미지 대체 텍스트가 아니다"
+  },
+  {
+   "word": "pot",
+   "related": "source strings",
+   "topic": "t83",
+   "into": "t315.4",
+   "entry": "n6b-00867",
+   "judged_word": "source strings",
+   "reason": "source strings는 번역 원문이며 아날로그 센서 값이 아니다"
+  },
+  {
+   "word": "partitioned",
+   "related": "spark partitions",
+   "topic": "t50.5",
+   "into": "t431.2",
+   "entry": "n6b-00869",
+   "judged_word": "spark partitions",
+   "reason": "spark partitions는 분산 파티션이며 OLAP 롤업이 아니다"
+  },
+  {
+   "word": "specific",
+   "related": "specific type",
+   "topic": "t181.4",
+   "into": "t287",
+   "entry": "n6b-00871",
+   "judged_word": "specific type",
+   "reason": "specific type은 특정 타입이라는 뜻이며 교차 컴파일 도구 체인이 아니다"
+  },
+  {
+   "word": "spin",
+   "related": "spin then park",
+   "topic": "t200.2",
+   "into": "t576.5",
+   "entry": "n6b-00872",
+   "judged_word": "spin then park",
+   "reason": "spin then park는 락 경합 대기 전략이며 구조체 메모리 배치가 아니다"
+  },
+  {
+   "word": "chunking",
+   "related": "split text",
+   "topic": "t1017",
+   "into": "t79.2",
+   "entry": "n6b-00873",
+   "judged_word": "split text",
+   "reason": "split text는 RAG 텍스트 분할이며 파일 청크 업로드가 아니다"
+  },
+  {
+   "word": "prevent",
+   "related": "sql injection prevention",
+   "topic": "t569.1",
+   "into": "t410.2",
+   "entry": "n6b-00874",
+   "judged_word": "sql injection prevention",
+   "reason": "SQL 인젝션 방지는 보안 입력 안전이며 정상 종료와 무관하다"
+  },
+  {
+   "word": "precedence",
+   "related": "SQL operator precedence",
+   "topic": "t276.1",
+   "into": "t353.2",
+   "entry": "n6b-00875",
+   "judged_word": "SQL operator precedence",
+   "reason": "SQL 연산자 우선순위는 식 평가 규칙이며 설정 덮어쓰기 순서가 아니다"
+  },
+  {
+   "word": "statements",
+   "related": "sql statement",
+   "topic": "t228",
+   "into": "t561.1",
+   "entry": "n6b-00876",
+   "judged_word": "sql statement",
+   "reason": "sql statement는 SQL 구문 실행이며 제어 흐름 분석이 아니다"
+  },
+  {
+   "word": "schema generation",
+   "related": "SQLAlchemy create_all",
+   "topic": "t766.1",
+   "into": "t930",
+   "entry": "n6b-00877",
+   "judged_word": "SQLAlchemy create_all",
+   "reason": "SQLAlchemy create_all은 DB 스키마 생성이며 리플렉션 어노테이션 항목이 아니다"
+  },
+  {
+   "word": "src",
+   "related": "src directory",
+   "topic": "t18.3",
+   "into": "t39.10",
+   "entry": "n6b-00878",
+   "judged_word": "src directory",
+   "reason": "src directory는 소스 디렉터리이며 이미지 대체 텍스트가 아니다"
+  },
+  {
+   "word": "src",
+   "related": "src folder",
+   "topic": "t18.3",
+   "into": "t39.10",
+   "entry": "n6b-00879",
+   "judged_word": "src folder",
+   "reason": "src folder는 소스 디렉터리이며 이미지 대체 텍스트가 아니다"
+  },
+  {
+   "word": "sse",
+   "related": "sse endpoint",
+   "topic": "t22.2",
+   "into": "t193.6",
+   "entry": "n6b-00880",
+   "judged_word": "sse endpoint",
+   "reason": "sse endpoint는 서버 전송 이벤트 엔드포인트이며 SIMD 명령어가 아니다"
+  },
+  {
+   "word": "sse",
+   "related": "sse transport",
+   "topic": "t22.2",
+   "into": "t193.6",
+   "entry": "n6b-00881",
+   "judged_word": "sse transport",
+   "reason": "SSE는 서버 전송 이벤트(Server-sent events) 전송 방식이지 SIMD 명령어 집합이 아니다"
+  },
+  {
+   "word": "fiber",
+   "related": "stackful coroutine",
+   "topic": "t496.4",
+   "into": "t252.3",
+   "entry": "n6b-00885",
+   "judged_word": "stackful coroutine",
+   "reason": "stackful coroutine은 협력적 파이버 스케줄링 개념이며 트리 순회와 무관하다"
+  },
+  {
+   "word": "feature flag",
+   "related": "stale flags",
+   "topic": "t196",
+   "into": "t21.2",
+   "entry": "n6b-00886",
+   "judged_word": "stale flags",
+   "reason": "stale flags는 기능 플래그 관련 용어이고 수치 정밀도 변형과 무관하다"
+  },
+  {
+   "word": "file size",
+   "related": "stat -c %s",
+   "topic": "t214.1",
+   "into": "t585",
+   "entry": "n6b-00888",
+   "judged_word": "stat -c %s",
+   "reason": "stat -c %s는 파일 크기를 읽는 명령이며 멀티파트 업로드 요청이 아니다"
+  },
+  {
+   "word": "sast",
+   "related": "static application security test",
+   "topic": "t155.6",
+   "into": "t251.3",
+   "entry": "n6b-00890",
+   "judged_word": "static application security test",
+   "reason": "SAST는 정적 보안 분석이지 파이썬 포매팅 도구가 아니다"
+  },
+  {
+   "word": "IndexedDB",
+   "related": "storage eviction",
+   "topic": "t70.2",
+   "into": "t257.2",
+   "entry": "n6b-00893",
+   "judged_word": "storage eviction",
+   "reason": "storage eviction은 브라우저 저장소 용량 회수 개념이지 테이블 키와 인덱스가 아니다"
+  },
+  {
+   "word": "sse",
+   "related": "Streamable HTTP",
+   "topic": "t22.2",
+   "into": "t193.6",
+   "entry": "n6b-00895",
+   "judged_word": "Streamable HTTP",
+   "reason": "Streamable HTTP는 MCP의 HTTP 스트리밍 전송 방식이며 SIMD와 무관하다"
+  },
+  {
+   "word": "Starlette",
+   "related": "streaming response",
+   "topic": "t125.3",
+   "into": "t581",
+   "entry": "n6b-00896",
+   "judged_word": "streaming response",
+   "reason": "StreamingResponse는 ASGI 서버 응답 클래스이지 파이썬 타입 표기가 아니다"
+  },
+  {
+   "word": "strip",
+   "related": "strip symbols",
+   "topic": "t249.1",
+   "into": "t62.2",
+   "entry": "n6b-00903",
+   "judged_word": "strip symbols",
+   "reason": "strip symbols는 바이너리의 디버그 심볼 제거를 뜻하며 자바스크립트 번들러 최적화가 아니다"
+  },
+  {
+   "word": "strong",
+   "related": "strong hash",
+   "topic": "t118.2",
+   "into": "t211.1",
+   "entry": "n6b-00905",
+   "judged_word": "strong hash",
+   "reason": "strong hash는 암호학적으로 강한 해시이고 마크다운 강조와 무관하다"
+  },
+  {
+   "word": "strong",
+   "related": "strong references",
+   "topic": "t118.2",
+   "into": "t307.1",
+   "entry": "n6b-00906",
+   "judged_word": "strong references",
+   "reason": "strong references는 참조 카운트의 강한 참조이며 마크다운 코드 블록과 무관하다"
+  },
+  {
+   "word": "sql",
+   "related": "structured query language",
+   "topic": "t512.1",
+   "into": "t70.3",
+   "entry": "n6b-00908",
+   "judged_word": "structured query language",
+   "reason": "structured query language는 SQL 언어 자체이고 데이터베이스 백업 복원이 아니다"
+  },
+  {
+   "word": "subject",
+   "related": "Subject DN",
+   "topic": "t190.1",
+   "into": "t221.2",
+   "entry": "n6b-00909",
+   "judged_word": "Subject DN",
+   "reason": "Subject DN은 인증서의 주체 식별 이름이며 Rx Subject와 무관하다"
+  },
+  {
+   "word": "ConsumerRebalanceListener",
+   "related": "subscribe(topics, listener)",
+   "topic": "t166.1",
+   "into": "t579",
+   "entry": "n6b-00910",
+   "judged_word": "subscribe(topics, listener)",
+   "reason": "subscribe(topics, listener)는 카프카 구독 API이며 실행 일시 중지가 아니다"
+  },
+  {
+   "word": "plus",
+   "related": "sum(a, b)",
+   "topic": "t76.2",
+   "into": "t10.1",
+   "entry": "n6b-00911",
+   "judged_word": "sum(a, b)",
+   "reason": "sum(a, b)는 덧셈 함수이고 URL 퍼센트 인코딩과 무관하다"
+  },
+  {
+   "word": "JSON5",
+   "related": "superset of json",
+   "topic": "t511.1",
+   "into": "t460.2",
+   "entry": "n6b-00912",
+   "judged_word": "superset of json",
+   "reason": "superset of json은 JSON5를 설명하는 데이터 형식 표현이며 타입스크립트 타입 도구가 아니다"
+  },
+  {
+   "word": "YAML",
+   "related": "superset of json",
+   "topic": "t365",
+   "into": "t95.1",
+   "entry": "n6b-00912",
+   "judged_word": "superset of json",
+   "reason": "superset of json은 YAML의 데이터 형식 특성이며 인프라 구성 관리 자체가 아니다"
+  },
+  {
+   "word": "suspend",
+   "related": "suspend to RAM",
+   "topic": "t274.2",
+   "into": "t166.1",
+   "entry": "n6b-00913",
+   "judged_word": "suspend to RAM",
+   "reason": "suspend to RAM은 전원 절전 상태이고 Hibernate ORM의 영속성 컨텍스트가 아니다"
+  },
+  {
+   "word": "catch block",
+   "related": "swallowed exception",
+   "topic": "t35.4",
+   "into": "t281.3",
+   "entry": "n6b-00914",
+   "judged_word": "swallowed exception",
+   "reason": "swallowed exception은 예외 삼킴이며 요청 미들웨어와 무관하다"
+  },
+  {
+   "word": "constant",
+   "related": "symbolic constant",
+   "topic": "t423",
+   "into": "t372",
+   "entry": "n6b-00915",
+   "judged_word": "symbolic constant",
+   "reason": "symbolic constant는 이름 붙은 상수이며 설정 표현과 무관하다"
+  },
+  {
+   "word": "synchronously",
+   "related": "synchronous I/O",
+   "topic": "t433.1",
+   "into": "t917.1",
+   "entry": "n6b-00918",
+   "judged_word": "synchronous I/O",
+   "reason": "synchronous I/O는 블로킹 동기 처리이며 경과 시간 측정이 아니다"
+  },
+  {
+   "word": "fs.writeFileSync",
+   "related": "synchronous write",
+   "topic": "t525",
+   "into": "t615.2",
+   "entry": "n6b-00919",
+   "judged_word": "synchronous write",
+   "reason": "synchronous write는 동기 파일 쓰기 API이며 파일시스템 오류 처리가 아니다"
+  },
+  {
+   "word": "disable",
+   "related": "systemctl disable",
+   "topic": "t312.1",
+   "into": "t21.1",
+   "entry": "n6b-00922",
+   "judged_word": "systemctl disable",
+   "reason": "systemctl disable은 서비스 비활성화 명령이며 린트 규칙 진단이 아니다"
+  },
+  {
+   "word": "indent",
+   "related": "tab width",
+   "topic": "t691.2",
+   "into": "t602.1",
+   "entry": "n6b-00924",
+   "judged_word": "tab width",
+   "reason": "tab width는 들여쓰기 탭 너비 설정이며 JSON 직렬화가 아니다"
+  },
+  {
+   "word": "reservation",
+   "related": "table reservation",
+   "topic": "t115.4",
+   "into": "t904",
+   "entry": "n6b-00925",
+   "judged_word": "table reservation",
+   "reason": "table reservation은 예약 업무 용어이며 컬렉션 용량 확보가 아니다"
+  },
+  {
+   "word": "tagged",
+   "related": "tagged commit",
+   "topic": "t55.2",
+   "into": "t86.6",
+   "entry": "n6b-00927",
+   "judged_word": "tagged commit",
+   "reason": "tagged commit은 git 태그가 붙은 커밋이며 태그드 유니온과 무관하다"
+  },
+  {
+   "word": "tar.gz",
+   "related": "tar -xf",
+   "topic": "t405.1",
+   "into": "t138.2",
+   "entry": "n6b-00930",
+   "judged_word": "tar -xf",
+   "reason": "tar -xf는 압축 파일 풀기 명령이며 패키지 모듈 해석이 아니다"
+  },
+  {
+   "word": "JmsTemplate",
+   "related": "template pattern",
+   "topic": "t552.2",
+   "into": "t709",
+   "entry": "n6b-00933",
+   "judged_word": "template pattern",
+   "reason": "template pattern은 스프링 템플릿 클래스 패턴이며 메시지 리스너가 아니다"
+  },
+  {
+   "word": "Temporal",
+   "related": "temporal in temporal data",
+   "topic": "t165.4",
+   "into": "t779",
+   "entry": "n6b-00934",
+   "judged_word": "temporal in temporal data",
+   "reason": "temporal data의 temporal은 시간 개념이며 명령 액션 패턴과 무관하다"
+  },
+  {
+   "word": "command line interface",
+   "related": "terminal application",
+   "topic": "t155.2",
+   "into": "t326.4",
+   "entry": "n6b-00935",
+   "judged_word": "terminal application",
+   "reason": "terminal application은 터미널 프로그램이며 파이썬 패키지 설정이 아니다"
+  },
+  {
+   "word": "yellow",
+   "related": "terminal color",
+   "topic": "t86.2",
+   "into": "t326.4",
+   "entry": "n6b-00936",
+   "judged_word": "terminal color",
+   "reason": "terminal color는 터미널 색상 표현이며 지원 중단 공지와 무관하다"
+  },
+  {
+   "word": "screen",
+   "related": "terminal multiplexer",
+   "topic": "t944.2",
+   "into": "t326.4",
+   "entry": "n6b-00937",
+   "judged_word": "terminal multiplexer",
+   "reason": "terminal multiplexer는 세션 다중화 도구이며 화면 크기가 아니다"
+  },
+  {
+   "word": "command line interface",
+   "related": "terminal user interface",
+   "topic": "t155.2",
+   "into": "t326.4",
+   "entry": "n6b-00938",
+   "judged_word": "terminal user interface",
+   "reason": "terminal user interface는 터미널 기반 화면이며 파이썬 패키지 설정이 아니다"
+  },
+  {
+   "word": "sandbox",
+   "related": "test sandbox",
+   "topic": "t606.1",
+   "into": "t458.2",
+   "entry": "n6b-00940",
+   "judged_word": "test sandbox",
+   "reason": "test sandbox는 테스트 격리 환경이며 iframe 렌더링 프레임이 아니다"
+  },
+  {
+   "word": "bag of words",
+   "related": "text features",
+   "topic": "t84.1",
+   "into": "t56.2",
+   "entry": "n6b-00942",
+   "judged_word": "text features",
+   "reason": "text features는 텍스트 특징 추출이며 빈도 히스토그램 자체가 아니다"
+  },
+  {
+   "word": "theme",
+   "related": "theme mode",
+   "topic": "t735.1",
+   "into": "t164.3",
+   "entry": "n6b-00943",
+   "judged_word": "theme mode",
+   "reason": "theme mode는 색상 테마 선택이며 컴포넌트 효과 수명주기가 아니다"
+  },
+  {
+   "word": "ips",
+   "related": "Thread 0 Crashed",
+   "topic": "t381.3",
+   "into": "t273.3",
+   "entry": "n6b-00944",
+   "judged_word": "Thread 0 Crashed",
+   "reason": "Thread 0 Crashed는 크래시 리포트 문구이며 IP 주소와 무관하다"
+  },
+  {
+   "word": "strptime",
+   "related": "time parsing",
+   "topic": "t730",
+   "into": "t420.1",
+   "entry": "n6b-00955",
+   "judged_word": "time parsing",
+   "reason": "time parsing은 날짜 시간 문자열 파싱이며 엄격함 표현이 아니다"
+  },
+  {
+   "word": "v7",
+   "related": "timestamp uuid",
+   "topic": "t86.5",
+   "into": "t296.2",
+   "entry": "n6b-00958",
+   "judged_word": "timestamp uuid",
+   "reason": "timestamp uuid는 UUID v7의 시간 기반 식별자이며 버전 업그레이드가 아니다"
+  },
+  {
+   "word": "redirect",
+   "related": "too many redirects",
+   "topic": "t326.5",
+   "into": "t589.2",
+   "entry": "n6b-00959",
+   "judged_word": "too many redirects",
+   "reason": "too many redirects는 HTTP 리다이렉트 오류이며 표준 스트림 리다이렉션이 아니다"
+  },
+  {
+   "word": "fqdn",
+   "related": "top level domain",
+   "topic": "t300.1",
+   "into": "t489.1",
+   "entry": "n6b-00960",
+   "judged_word": "top level domain",
+   "reason": "top level domain은 도메인 이름 체계이며 차트 범주 레이블이 아니다"
+  },
+  {
+   "word": "JmsListener",
+   "related": "topic listener",
+   "topic": "t24.3",
+   "into": "t552.2",
+   "entry": "n6b-00961",
+   "judged_word": "topic listener",
+   "reason": "주제 리스너는 메시지 브로커 리스너이지 재시도 큐가 아니다"
+  },
+  {
+   "word": "tr",
+   "related": "tr command",
+   "topic": "t4.1",
+   "into": "t315.8",
+   "entry": "n6b-00962",
+   "judged_word": "tr command",
+   "reason": "tr command는 유닉스 문자 치환 명령이고 표 행과 무관하다"
+  },
+  {
+   "word": "span",
+   "related": "trace span",
+   "topic": "t433.3",
+   "into": "t694.2",
+   "entry": "n6b-00963",
+   "judged_word": "trace span",
+   "reason": "trace span은 분산 추적의 스팬이지 시간 길이 단위가 아니다"
+  },
+  {
+   "word": "track",
+   "related": "track changes",
+   "topic": "t137.1",
+   "into": "t781.1",
+   "entry": "n6b-00964",
+   "judged_word": "track changes",
+   "reason": "track changes는 카메라 마이크 녹화와 무관하다"
+  },
+  {
+   "word": "rotation",
+   "related": "transform: rotate",
+   "topic": "t431.1",
+   "into": "t649.1",
+   "entry": "n6b-00966",
+   "judged_word": "transform: rotate",
+   "reason": "CSS transform rotate는 데이터프레임 변환이 아니라 그래픽 좌표 변환이다"
+  },
+  {
+   "word": "transient",
+   "related": "transient storage",
+   "topic": "t46.1",
+   "into": "t1001",
+   "entry": "n6b-00967",
+   "judged_word": "transient storage",
+   "reason": "transient storage는 임시 저장소이지 재시도 정책이 아니다"
+  },
+  {
+   "word": "missing key",
+   "related": "translation key not found",
+   "topic": "t635.2",
+   "into": "t315.4",
+   "entry": "n6b-00968",
+   "judged_word": "translation key not found",
+   "reason": "번역 키 누락은 입력 필드 검증이 아니라 번역 카탈로그 조회 오류다"
+  },
+  {
+   "word": "project tree",
+   "related": "tree -L",
+   "topic": "t679.3",
+   "into": "t584",
+   "entry": "n6b-00970",
+   "judged_word": "tree -L",
+   "reason": "tree -L은 디렉터리 트리 출력 명령이고 지연 로딩과 무관하다"
+  },
+  {
+   "word": "level",
+   "related": "tree level",
+   "topic": "t15.1",
+   "into": "t496.4",
+   "entry": "n6b-00971",
+   "judged_word": "tree level",
+   "reason": "tree level은 트리의 깊이 수준이지 접근 권한 수준이 아니다"
+  },
+  {
+   "word": "rebalance",
+   "related": "tree rebalance",
+   "topic": "t85.2",
+   "into": "t152.1",
+   "entry": "n6b-00973",
+   "judged_word": "tree rebalance",
+   "reason": "tree rebalance는 균형 탐색 트리 재균형이지 카프카 리밸런스가 아니다"
+  },
+  {
+   "word": "scm",
+   "related": "tree-sitter queries",
+   "topic": "t713.2",
+   "into": "t419.2",
+   "entry": "n6b-00974",
+   "judged_word": "tree-sitter queries",
+   "reason": "tree-sitter 쿼리는 scm 확장자 파일이지만 리스프 리스트 기본 연산이 아니라 구문 쿼리다"
+  },
+  {
+   "word": "nursery",
+   "related": "trio nursery",
+   "topic": "t199.1",
+   "into": "t269.3",
+   "entry": "n6b-00975",
+   "judged_word": "trio nursery",
+   "reason": "trio nursery는 동시성 태스크 너서리이지 가비지 컬렉션 영역이 아니다"
+  },
+  {
+   "word": "truncate",
+   "related": "truncate string",
+   "topic": "t284",
+   "into": "t952.1",
+   "entry": "n6b-00976",
+   "judged_word": "truncate string",
+   "reason": "문자열 자르기는 숫자 반올림이 아니라 문자열 길이 연산이다"
+  },
+  {
+   "word": "truncates",
+   "related": "truncate string",
+   "topic": "t284",
+   "into": "t952.1",
+   "entry": "n6b-00976",
+   "judged_word": "truncate string",
+   "reason": "문자열 자르기는 숫자 반올림이 아니라 문자열 길이 연산이다"
+  },
+  {
+   "word": "drop",
+   "related": "truncate table",
+   "topic": "t274.1",
+   "into": "t70.1",
+   "entry": "n6b-00977",
+   "judged_word": "truncate table",
+   "reason": "TRUNCATE TABLE은 엔티티 연관이 아니라 스키마 DDL 문이다"
+  },
+  {
+   "word": "gethostbyname",
+   "related": "try again",
+   "topic": "t381.2",
+   "into": "t489.1",
+   "entry": "n6b-00978",
+   "judged_word": "try again",
+   "reason": "try again은 IPv4 소켓 구조가 아니라 호스트명 해석 일시 실패 코드와 관련된다"
+  },
+  {
+   "word": "incremental build",
+   "related": "tsc --incremental",
+   "topic": "t362",
+   "into": "t161.3",
+   "entry": "n6b-00979",
+   "judged_word": "tsc --incremental",
+   "reason": "tsc --incremental은 증분 컴파일 플래그이지 파일 감시나 핫 리로드가 아니다"
+  },
+  {
+   "word": "SIGHUP",
+   "related": "tty hangup",
+   "topic": "t908",
+   "into": "t569.3",
+   "entry": "n6b-00980",
+   "judged_word": "tty hangup",
+   "reason": "tty hangup은 터미널 끊김 신호이지 설정 재로드가 아니다"
+  },
+  {
+   "word": "raw",
+   "related": "twig raw",
+   "topic": "t140.8",
+   "into": "t595.2",
+   "entry": "n6b-00985",
+   "judged_word": "twig raw",
+   "reason": "twig raw는 템플릿 엔진의 raw 필터이고 리비전 diff와 무관하다"
+  },
+  {
+   "word": "local cache",
+   "related": "two-level cache",
+   "topic": "t134.1",
+   "into": "t246.1",
+   "entry": "n6b-00987",
+   "judged_word": "two-level cache",
+   "reason": "2단계 캐시는 원자적 파일 교체가 아니라 로컬 캐시 계층이다"
+  },
+  {
+   "word": "resolve",
+   "related": "type resolution",
+   "topic": "t0.1",
+   "into": "t215.2",
+   "entry": "n6b-00990",
+   "judged_word": "type resolution",
+   "reason": "타입 해석은 경로 구성이 아니라 이름 해석이다"
+  },
+  {
+   "word": "lambda calculus",
+   "related": "typed lambda calculus",
+   "topic": "t723.1",
+   "into": "t721.1",
+   "entry": "n6b-00991",
+   "judged_word": "typed lambda calculus",
+   "reason": "타입 있는 람다 계산은 영어 표현이 아니라 람다 조합 이론이다"
+  },
+  {
+   "word": "typeof",
+   "related": "typeof guard",
+   "topic": "t301.2",
+   "into": "t515.2",
+   "entry": "n6b-00992",
+   "judged_word": "typeof guard",
+   "reason": "typeof 가드는 호출 가능 값이 아니라 런타임 타입 좁히기이다"
+  },
+  {
+   "word": "enum",
+   "related": "TypeScript enum",
+   "topic": "t69.2",
+   "into": "t541",
+   "entry": "n6b-00993",
+   "judged_word": "TypeScript enum",
+   "reason": "TypeScript enum은 레지스터 비트 필드가 아니라 열거 타입이다"
+  },
+  {
+   "word": "duck typing",
+   "related": "TypeScript interface",
+   "topic": "t131.2",
+   "into": "t6.5",
+   "entry": "n6b-00994",
+   "judged_word": "TypeScript interface",
+   "reason": "TypeScript 인터페이스는 이터레이터 순회가 아니라 인터페이스 구현이다"
+  },
+  {
+   "word": "backtrack",
+   "related": "undo move",
+   "topic": "t11.4",
+   "into": "t441.3",
+   "entry": "n6b-00997",
+   "judged_word": "undo move",
+   "reason": "undo move는 파서 조합기가 아니라 되돌리기 백트래킹 동작이다"
+  },
+  {
+   "word": "backlog",
+   "related": "unfinished tasks",
+   "topic": "t90.3",
+   "into": "t51.1",
+   "entry": "n6b-00998",
+   "judged_word": "unfinished tasks",
+   "reason": "미완료 작업은 소켓 서버가 아니라 백로그 작업 항목이다"
+  },
+  {
+   "word": "Unicode",
+   "related": "unicode text",
+   "topic": "t339.1",
+   "into": "t194",
+   "entry": "n6b-00999",
+   "judged_word": "unicode text",
+   "reason": "유니코드 텍스트는 셸 실행이 아니라 유니코드 텍스트 처리이다"
+  },
+  {
+   "word": "charCodeAt",
+   "related": "unicode value",
+   "topic": "t211.1",
+   "into": "t160.2",
+   "entry": "n6b-01000",
+   "judged_word": "unicode value",
+   "reason": "유니코드 값은 코드 포인트이지 대칭 암호 연산이 아니다"
+  },
+  {
+   "word": "Unicode",
+   "related": "unicode version",
+   "topic": "t339.1",
+   "into": "t194",
+   "entry": "n6b-01001",
+   "judged_word": "unicode version",
+   "reason": "유니코드 버전은 셸 실행이 아니라 유니코드 텍스트 처리 맥락이다"
+  },
+  {
+   "word": "delete",
+   "related": "unique_ptr deleter",
+   "topic": "t412.1",
+   "into": "t316.3",
+   "entry": "n6b-01002",
+   "judged_word": "unique_ptr deleter",
+   "reason": "unique_ptr deleter는 네이티브 메모리 해제이지 HTTP DELETE가 아니다"
+  },
+  {
+   "word": "spam",
+   "related": "unsolicited email",
+   "topic": "t14.2",
+   "into": "t532.5",
+   "entry": "n6b-01004",
+   "judged_word": "unsolicited email",
+   "reason": "원치 않는 이메일은 토큰 폐기가 아니라 이메일 보안 주제이다"
+  },
+  {
+   "word": "lambda calculus",
+   "related": "untyped lambda calculus",
+   "topic": "t723.1",
+   "into": "t721.1",
+   "entry": "n6b-01005",
+   "judged_word": "untyped lambda calculus",
+   "reason": "타입 없는 람다 계산은 영어 표현이 아니라 람다 조합 이론이다"
+  },
+  {
+   "word": "upload progress",
+   "related": "upload rate",
+   "topic": "t269.4",
+   "into": "t1017",
+   "entry": "n6b-01008",
+   "judged_word": "upload rate",
+   "reason": "업로드 속도는 AbortSignal 전파가 아니라 업로드 전송 주제이다"
+  },
+  {
+   "word": "resumable upload",
+   "related": "upload session",
+   "topic": "t166.1",
+   "into": "t1017",
+   "entry": "n6b-01009",
+   "judged_word": "upload session",
+   "reason": "업로드 세션은 실행 중단이 아니라 청크 업로드 세션이다"
+  },
+  {
+   "word": "upload progress",
+   "related": "upload state",
+   "topic": "t269.4",
+   "into": "t1017",
+   "entry": "n6b-01010",
+   "judged_word": "upload state",
+   "reason": "업로드 상태는 AbortSignal 전파가 아니라 업로드 전송 주제이다"
+  },
+  {
+   "word": "match",
+   "related": "URL matching",
+   "topic": "t561.1",
+   "into": "t76.3",
+   "entry": "n6b-01012",
+   "judged_word": "URL matching",
+   "reason": "URL 매칭은 SQL 문 실행이 아니라 라우트 매칭이다"
+  },
+  {
+   "word": "software as a service",
+   "related": "usage-based pricing",
+   "topic": "t813.1",
+   "into": "t111.1",
+   "entry": "n6b-01013",
+   "judged_word": "usage-based pricing",
+   "reason": "사용량 기반 과금은 테넌트 격리가 아니라 구독 청구 모델이다"
+  },
+  {
+   "word": "usage quota",
+   "related": "usage-based pricing",
+   "topic": "t813.1",
+   "into": "t29.7",
+   "entry": "n6b-01013",
+   "judged_word": "usage-based pricing",
+   "reason": "사용량 기반 과금은 테넌트 격리가 아니라 구독 청구 모델이다"
+  },
+  {
+   "word": "quotas",
+   "related": "user quotas",
+   "topic": "t59.1",
+   "into": "t29.7",
+   "entry": "n6b-01015",
+   "judged_word": "user quotas",
+   "reason": "사용자 쿼터는 힙 할당이 아니라 사용량 한도이다"
+  },
+  {
+   "word": "preference",
+   "related": "user setting",
+   "topic": "t276.1",
+   "into": "t303.1",
+   "entry": "n6b-01016",
+   "judged_word": "user setting",
+   "reason": "사용자 설정은 우선순위 순서가 아니라 환경설정 값 자체이다"
+  },
+  {
+   "word": "DTrace",
+   "related": "user statically defined tracing",
+   "topic": "t50.1",
+   "into": "t659.3",
+   "entry": "n6b-01017",
+   "judged_word": "user statically defined tracing",
+   "reason": "USDT는 그룹 집계가 아니라 사용자 공간 추적 프로브이다"
+  },
+  {
+   "word": "fail fast",
+   "related": "validate early",
+   "topic": "t30",
+   "into": "t374.1",
+   "entry": "n6b-01018",
+   "judged_word": "validate early",
+   "reason": "validate early는 CI 워크플로가 아니라 계약 검증 원칙이다"
+  },
+  {
+   "word": "sender",
+   "related": "verified sender",
+   "topic": "t161.1",
+   "into": "t532.5",
+   "entry": "n6b-01019",
+   "judged_word": "verified sender",
+   "reason": "검증된 발신자는 컴파일러 중간 표현이 아니라 발신자 인증이다"
+  },
+  {
+   "word": "activation",
+   "related": "verify email",
+   "topic": "t19.4",
+   "into": "t19.1",
+   "entry": "n6b-01020",
+   "judged_word": "verify email",
+   "reason": "이메일 인증은 라이선스 활성화가 아니라 계정 등록 절차이다"
+  },
+  {
+   "word": "normal",
+   "related": "vim normal mode",
+   "topic": "t968.1",
+   "into": "t1044.1",
+   "entry": "n6b-01022",
+   "judged_word": "vim normal mode",
+   "reason": "vim normal mode는 일반 영어 단어가 아니라 Vim 편집 모드이다"
+  },
+  {
+   "word": "sast",
+   "related": "vulnerability findings",
+   "topic": "t155.6",
+   "into": "t251.3",
+   "entry": "n6b-01024",
+   "judged_word": "vulnerability findings",
+   "reason": "취약점 발견 결과는 파이썬 포매팅이 아니라 정적 보안 분석 결과이다"
+  },
+  {
+   "word": "widening",
+   "related": "widening conversions",
+   "topic": "t228",
+   "into": "t373.1",
+   "entry": "n6b-01032",
+   "judged_word": "widening conversions",
+   "reason": "확대 변환은 제어 흐름 분석이 아니라 타입 캐스트이다"
+  },
+  {
+   "word": "hr",
+   "related": "Windows error code",
+   "topic": "t108.2",
+   "into": "t281.2",
+   "entry": "n6b-01035",
+   "judged_word": "Windows error code",
+   "reason": "Windows 오류 코드는 테두리 구분선이 아니라 HRESULT 오류 값이다"
+  },
+  {
+   "word": "evtx",
+   "related": "Windows Event Log input",
+   "topic": "t874",
+   "into": "t559",
+   "entry": "n6b-01036",
+   "judged_word": "Windows Event Log input",
+   "reason": "Windows 이벤트 로그 입력은 악성코드 대응이 아니라 이벤트 로그 수집이다"
+  },
+  {
+   "word": "evtx",
+   "related": "Windows Vista event log",
+   "topic": "t874",
+   "into": "t559",
+   "entry": "n6b-01037",
+   "judged_word": "Windows Vista event log",
+   "reason": "Windows Vista 이벤트 로그는 형식 이름이지 악성코드 대응 주제가 아니다"
+  },
+  {
+   "word": "transform",
+   "related": "world transform",
+   "topic": "t293.2",
+   "into": "t649.1",
+   "entry": "n6b-01038",
+   "judged_word": "world transform",
+   "reason": "월드 변환은 ETL 변환이 아니라 그래픽 좌표 변환이다"
+  },
+  {
+   "word": "primitives",
+   "related": "wrapper types",
+   "topic": "t18.10",
+   "into": "t225.1",
+   "entry": "n6b-01039",
+   "judged_word": "wrapper types",
+   "reason": "래퍼 타입은 헤드리스 UI가 아니라 박싱된 값 표현이다"
+  },
+  {
+   "word": "fs.writeFileSync",
+   "related": "write file synchronously",
+   "topic": "t525",
+   "into": "t615.2",
+   "entry": "n6b-01040",
+   "judged_word": "write file synchronously",
+   "reason": "파일 동기 쓰기는 오류가 아니라 파일 쓰기 API이다"
+  },
+  {
+   "word": "wrote",
+   "related": "wrote file",
+   "topic": "t92.1",
+   "into": "t212.4",
+   "entry": "n6b-01042",
+   "judged_word": "wrote file",
+   "reason": "wrote file은 파일을 썼다는 로그 문구이며 시퀀스 저장 공간 증가와 무관하다"
+  },
+  {
+   "word": "front matter",
+   "related": "YAML front matter",
+   "topic": "t766.1",
+   "into": "t118.1",
+   "entry": "n6b-01044",
+   "judged_word": "YAML front matter",
+   "reason": "YAML front matter는 문서 상단의 메타데이터 블록이며 리플렉션 메타데이터 어노테이션이 아니다"
+  },
+  {
+   "word": "deep merge",
+   "related": "yq merge",
+   "topic": "t224.3",
+   "into": "t782.3",
+   "entry": "n6b-01045",
+   "judged_word": "yq merge",
+   "reason": "yq merge는 YAML 파일을 병합하는 명령이며 프로토타입 상속과 무관하다"
+  },
+  {
+   "word": "sales report",
+   "related": "z report",
+   "topic": "t170.2",
+   "into": "t901",
+   "entry": "n6b-01046",
+   "judged_word": "z report",
+   "reason": "Z 리포트는 판매시점 일일 마감 보고서이며 결제 게이트웨이 결제 흐름이 아니다"
+  },
+  {
+   "word": "raw",
+   "related": "{% raw %}",
+   "topic": "t140.8",
+   "into": "t595.2",
+   "entry": "n6b-01048",
+   "judged_word": "{% raw %}",
+   "reason": "{% raw %}는 템플릿 엔진의 이스케이프 태그이며 리비전 diff와 무관하다"
+  }
+ ],
+ "relation_detaches": [
+  {
+   "word": "plus",
+   "related": "+1 reaction",
+   "topic": "t76.2",
+   "entry": "n6b-00006",
+   "judged_word": "+1 reaction",
+   "reason": "+1 반응은 URL 퍼센트 인코딩의 플러스 기호와 무관하다"
+  },
+  {
+   "word": "intend",
+   "related": "Android Intent",
+   "topic": "t741.1",
+   "entry": "n6b-00030",
+   "judged_word": "Android Intent",
+   "reason": "Android Intent는 설계 의도 기록과 무관하다"
+  },
+  {
+   "word": "rotate",
+   "related": "array rotation",
+   "topic": "t69.1",
+   "entry": "n6b-00035",
+   "judged_word": "array rotation",
+   "reason": "배열 회전은 시퀀스 회전이며 비트 조작이 아니다"
+  },
+  {
+   "word": "async",
+   "related": "async attribute",
+   "topic": "t269.4",
+   "entry": "n6b-00044",
+   "judged_word": "async attribute",
+   "reason": "async 속성은 스크립트 로딩 속성이며 AbortSignal 전파가 아니다"
+  },
+  {
+   "word": "rotation",
+   "related": "AVL rotation",
+   "topic": "t431.1",
+   "entry": "n6b-00055",
+   "judged_word": "AVL rotation",
+   "reason": "AVL 회전은 트리 회전이며 데이터프레임 변환이 아니다"
+  },
+  {
+   "word": "build time",
+   "related": "build scan",
+   "topic": "t164.1",
+   "entry": "n6b-00097",
+   "judged_word": "build scan",
+   "reason": "빌드 스캔은 CSS 스타일 속성과 무관하다"
+  },
+  {
+   "word": "remainder",
+   "related": "bytes remaining",
+   "topic": "t105.1",
+   "entry": "n6b-00103",
+   "judged_word": "bytes remaining",
+   "reason": "남은 바이트 수는 호출 매개변수가 아니라 버퍼 용량 개념이다"
+  },
+  {
+   "word": "scale",
+   "related": "canvas scale",
+   "topic": "t459",
+   "entry": "n6b-00112",
+   "judged_word": "canvas scale",
+   "reason": "캔버스 스케일은 클라우드 컴퓨트 용량과 무관한 그래픽 변환이다"
+  },
+  {
+   "word": "categories",
+   "related": "categorical variables",
+   "topic": "t588.1",
+   "entry": "n6b-00122",
+   "judged_word": "categorical variables",
+   "reason": "범주형 변수는 검색 결과 필터가 아니라 통계와 데이터 분석 개념이다"
+  },
+  {
+   "word": "range",
+   "related": "cell range",
+   "topic": "t26.2",
+   "entry": "n6b-00123",
+   "judged_word": "cell range",
+   "reason": "셀 범위는 파일 다운로드의 바이트 범위가 아니라 스프레드시트 개념이다"
+  },
+  {
+   "word": "cfg",
+   "related": "cfg attribute",
+   "topic": "t228",
+   "entry": "n6b-00130",
+   "judged_word": "cfg attribute",
+   "reason": "cfg 속성은 제어 흐름 분석이 아니라 조건부 컴파일 속성이다"
+  },
+  {
+   "word": "CloudEvents",
+   "related": "Cloud Native Computing Foundation",
+   "topic": "t285.4",
+   "entry": "n6b-00143",
+   "judged_word": "Cloud Native Computing Foundation",
+   "reason": "Cloud Native Computing Foundation은 재단 이름이며 이벤트 버스 통신이 아니다"
+  },
+  {
+   "word": "experience",
+   "related": "customer experience",
+   "topic": "t163.2",
+   "entry": "n6b-00189",
+   "judged_word": "customer experience",
+   "reason": "고객 경험은 앱 일시정지 생명주기가 아니라 UX 용어이다"
+  },
+  {
+   "word": "dead",
+   "related": "dead key",
+   "topic": "t249.1",
+   "entry": "n6b-00198",
+   "judged_word": "dead key",
+   "reason": "dead key는 키보드 데드 키이며 번들러 최적화의 죽은 코드와 무관하다"
+  },
+  {
+   "word": "deferred",
+   "related": "defer statement",
+   "topic": "t193.5",
+   "entry": "n6b-00213",
+   "judged_word": "defer statement",
+   "reason": "defer 문은 Go 등의 지연 실행 구문이며 비동기 전송과 무관하다"
+  },
+  {
+   "word": "device",
+   "related": "device token",
+   "topic": "t760",
+   "entry": "n6b-00230",
+   "judged_word": "device token",
+   "reason": "device token은 푸시/인증 토큰이며 반응형 CSS 레이아웃과 무관하다"
+  },
+  {
+   "word": "SendGrid",
+   "related": "domain authentication",
+   "topic": "t532.1",
+   "entry": "n6b-00250",
+   "judged_word": "domain authentication",
+   "reason": "도메인 인증은 발신자 인증 기능이며 이메일 템플릿이 아니다"
+  },
+  {
+   "word": "encoding",
+   "related": "entity encoding",
+   "topic": "t98",
+   "entry": "n6b-00280",
+   "judged_word": "entity encoding",
+   "reason": "entity encoding은 HTML 엔티티 인코딩이며 정확성 표현이 아니다"
+  },
+  {
+   "word": "epsilon",
+   "related": "epsilon closure",
+   "topic": "t21.1",
+   "entry": "n6b-00286",
+   "judged_word": "epsilon closure",
+   "reason": "epsilon closure는 오토마타 개념이며 활성화 상태와 무관하다"
+  },
+  {
+   "word": "canonical",
+   "related": "exclusive canonicalization",
+   "topic": "t0.1",
+   "entry": "n6b-00309",
+   "judged_word": "exclusive canonicalization",
+   "reason": "exclusive canonicalization은 XML 정규화이며 파일 경로 구성이 아니다"
+  },
+  {
+   "word": "filters",
+   "related": "faceted search",
+   "topic": "t35.7",
+   "entry": "n6b-00320",
+   "judged_word": "faceted search",
+   "reason": "faceted search는 검색 결과 필터링이며 HTTP 필터 훅이 아니다"
+  },
+  {
+   "word": "final",
+   "related": "final release",
+   "topic": "t308.2",
+   "entry": "n6b-00337",
+   "judged_word": "final release",
+   "reason": "final release는 최종 배포판이며 시퀀스 끝 지점과 무관하다"
+  },
+  {
+   "word": "raw",
+   "related": "git cat-file",
+   "topic": "t1032",
+   "entry": "n6b-00371",
+   "judged_word": "git cat-file",
+   "reason": "git cat-file은 git 객체 출력이며 원시 미디어 형식과 무관하다"
+  },
+  {
+   "word": "renaming",
+   "related": "git mv",
+   "topic": "t119.1",
+   "entry": "n6b-00377",
+   "judged_word": "git mv",
+   "reason": "git mv는 파일 이동 이름 변경이며 SQL 선택 구문과 무관하다"
+  },
+  {
+   "word": "screen",
+   "related": "home screen",
+   "topic": "t944.2",
+   "entry": "n6b-00416",
+   "judged_word": "home screen",
+   "reason": "홈 화면은 앱의 첫 화면이며 화면 해상도 같은 화면 크기가 아니다"
+  },
+  {
+   "word": "infinite",
+   "related": "infinite scrolling",
+   "topic": "t442.2",
+   "entry": "n6b-00432",
+   "judged_word": "infinite scrolling",
+   "reason": "무한 스크롤은 UI 목록 방식이며 부동소수점 무한대가 아니다"
+  },
+  {
+   "word": "ips",
+   "related": "intrusion prevention system",
+   "topic": "t381.3",
+   "entry": "n6b-00447",
+   "judged_word": "intrusion prevention system",
+   "reason": "침입 방지 시스템은 보안 장비이며 IP 주소 지정 개념이 아니다"
+  },
+  {
+   "word": "ip",
+   "related": "IP geolocation",
+   "topic": "t69.3",
+   "entry": "n6b-00452",
+   "judged_word": "IP geolocation",
+   "reason": "IP 지오로케이션은 IP로 위치를 찾는 것이며 서브넷 마스크가 아니다"
+  },
+  {
+   "word": "ns",
+   "related": "kubectl -n",
+   "topic": "t508.1",
+   "entry": "n6b-00474",
+   "judged_word": "kubectl -n",
+   "reason": "kubectl -n은 쿠버네티스 네임스페이스 지정이며 XML 네임스페이스가 아니다"
+  },
+  {
+   "word": "lag",
+   "related": "lag order",
+   "topic": "t299.2",
+   "entry": "n6b-00478",
+   "judged_word": "lag order",
+   "reason": "lag order는 시계열 통계 용어이며 운영 지연 지표가 아니다"
+  },
+  {
+   "word": "leap",
+   "related": "leapfrog integration",
+   "topic": "t408.2",
+   "entry": "n6b-00489",
+   "judged_word": "leapfrog integration",
+   "reason": "leapfrog integration은 수치 적분법이며 윤년이나 달력 필드와 무관하다"
+  },
+  {
+   "word": "chat",
+   "related": "live chat",
+   "topic": "t184.3",
+   "entry": "n6b-00502",
+   "judged_word": "live chat",
+   "reason": "live chat은 고객 지원 실시간 채팅이며 언어 모델 요청과 무관하다"
+  },
+  {
+   "word": "messages",
+   "related": "log messages",
+   "topic": "t184.3",
+   "entry": "n6b-00510",
+   "judged_word": "log messages",
+   "reason": "log messages는 로그 메시지이며 언어 모델 메시지 요청과 무관하다"
+  },
+  {
+   "word": "hidden",
+   "related": "ls -a",
+   "topic": "t656",
+   "entry": "n6b-00524",
+   "judged_word": "ls -a",
+   "reason": "ls -a는 숨김 파일 목록 명령이며 웹 접근성과 무관하다"
+  },
+  {
+   "word": "remote repository",
+   "related": "Maven remote repository",
+   "topic": "t141.1",
+   "entry": "n6b-00549",
+   "judged_word": "Maven remote repository",
+   "reason": "Maven remote repository는 패키지 저장소이며 로그인 세션과 무관하다"
+  },
+  {
+   "word": "Boyer-Moore",
+   "related": "Moore voting algorithm",
+   "topic": "t685.4",
+   "entry": "n6b-00570",
+   "judged_word": "Moore voting algorithm",
+   "reason": "Moore 투표 알고리즘은 다수 원소 찾기이며 문자열 부분 검색 API가 아니다"
+  },
+  {
+   "word": "occur",
+   "related": "occurs check",
+   "topic": "t508.1",
+   "entry": "n6b-00602",
+   "judged_word": "occurs check",
+   "reason": "occurs check는 단일화의 타입 검사이며 XML 파싱과 무관하다"
+  },
+  {
+   "word": "delete",
+   "related": "ON DELETE CASCADE",
+   "topic": "t412.1",
+   "entry": "n6b-00604",
+   "judged_word": "ON DELETE CASCADE",
+   "reason": "ON DELETE CASCADE는 외래 키 참조 무결성이며 HTTP DELETE 라우팅이 아니다"
+  },
+  {
+   "word": "visiting",
+   "related": "page visit",
+   "topic": "t1045.1",
+   "entry": "n6b-00632",
+   "judged_word": "page visit",
+   "reason": "page visit은 페이지 방문 탐색이며 AST 방문자 패턴이 아니다"
+  },
+  {
+   "word": "updateUser",
+   "related": "PATCH /users",
+   "topic": "t186.1",
+   "entry": "n6b-00642",
+   "judged_word": "PATCH /users",
+   "reason": "PATCH /users는 HTTP 메서드 경로이고 데이터베이스 트랜잭션 연산이 아니다"
+  },
+  {
+   "word": "size",
+   "related": "payload size",
+   "topic": "t823",
+   "entry": "n6b-00646",
+   "judged_word": "payload size",
+   "reason": "payload size는 요청 본문 크기이고 결과 페이지네이션이 아니다"
+  },
+  {
+   "word": "pinned",
+   "related": "pinned issue",
+   "topic": "t221.1",
+   "entry": "n6b-00663",
+   "judged_word": "pinned issue",
+   "reason": "pinned issue는 이슈 트래커의 고정 이슈이며 TLS 인증서 고정이 아니다"
+  },
+  {
+   "word": "pinned",
+   "related": "pinned item",
+   "topic": "t221.1",
+   "entry": "n6b-00664",
+   "judged_word": "pinned item",
+   "reason": "pinned item은 고정된 항목이며 TLS 인증서 고정이 아니다"
+  },
+  {
+   "word": "placeholder",
+   "related": "placeholder attribute",
+   "topic": "t595.1",
+   "entry": "n6b-00665",
+   "judged_word": "placeholder attribute",
+   "reason": "placeholder attribute는 HTML 입력 안내 속성이며 문자열 보간이 아니다"
+  },
+  {
+   "word": "traversal",
+   "related": "pointer traversal",
+   "topic": "t0.1",
+   "entry": "n6b-00669",
+   "judged_word": "pointer traversal",
+   "reason": "pointer traversal은 포인터를 따라가는 순회이며 경로 구성이 아니다"
+  },
+  {
+   "word": "title",
+   "related": "PR title",
+   "topic": "t221.2",
+   "entry": "n6b-00677",
+   "judged_word": "PR title",
+   "reason": "PR title은 풀 리퀘스트 제목이며 인증서 체인과 무관하다"
+  },
+  {
+   "word": "report",
+   "related": "progress report",
+   "topic": "t312.1",
+   "entry": "n6b-00692",
+   "judged_word": "progress report",
+   "reason": "progress report는 진행 보고이며 린트 진단이 아니다"
+  },
+  {
+   "word": "reader",
+   "related": "reader mode",
+   "topic": "t18.6",
+   "entry": "n6b-00734",
+   "judged_word": "reader mode",
+   "reason": "리더 모드는 브라우저 가독성 보기이며 스크린 리더 도구가 아니다"
+  },
+  {
+   "word": "rename",
+   "related": "RENAME key newkey",
+   "topic": "t119.1",
+   "entry": "n6b-00760",
+   "judged_word": "RENAME key newkey",
+   "reason": "RENAME key newkey는 Redis 명령이며 SQL select 구성이 아니다"
+  },
+  {
+   "word": "reserve",
+   "related": "reserved port",
+   "topic": "t11.3",
+   "entry": "n6b-00767",
+   "judged_word": "reserved port",
+   "reason": "예약 포트는 네트워크 포트 개념이며 예약어 토큰이 아니다"
+  },
+  {
+   "word": "reserved word",
+   "related": "reserved port",
+   "topic": "t11.3",
+   "entry": "n6b-00767",
+   "judged_word": "reserved port",
+   "reason": "예약 포트는 네트워크 포트 개념이며 예약어 토큰이 아니다"
+  },
+  {
+   "word": "reboot",
+   "related": "restart server",
+   "topic": "t171.2",
+   "entry": "n6b-00770",
+   "judged_word": "restart server",
+   "reason": "서버 재시작은 운영 동작이며 부트로더 장치 트리와 무관하다"
+  },
+  {
+   "word": "screen",
+   "related": "screen navigation",
+   "topic": "t944.2",
+   "entry": "n6b-00812",
+   "judged_word": "screen navigation",
+   "reason": "screen navigation은 화면 간 이동이며 화면 크기 항목과 무관하다"
+  },
+  {
+   "word": "device orientation",
+   "related": "screen orientation",
+   "topic": "t649.1",
+   "entry": "n6b-00813",
+   "judged_word": "screen orientation",
+   "reason": "screen orientation은 가로/세로 화면 방향이며 벡터 좌표 변환이 아니다"
+  },
+  {
+   "word": "JSON:API",
+   "related": "self link",
+   "topic": "t35.4",
+   "entry": "n6b-00825",
+   "judged_word": "self link",
+   "reason": "JSON:API의 self link는 하이퍼미디어 링크이며 요청 미들웨어가 아니다"
+  },
+  {
+   "word": "raw",
+   "related": "sensor data",
+   "topic": "t595.2",
+   "entry": "n6b-00827",
+   "judged_word": "sensor data",
+   "reason": "sensor data는 원시 센서 값이며 문자열 템플릿 확장과 무관하다"
+  },
+  {
+   "word": "snapshot",
+   "related": "SNAPSHOT repository",
+   "topic": "t186.1",
+   "entry": "n6b-00862",
+   "judged_word": "SNAPSHOT repository",
+   "reason": "SNAPSHOT repository는 Maven 스냅샷 저장소이며 DB 트랜잭션 연산이 아니다"
+  },
+  {
+   "word": "storage",
+   "related": "storage backend",
+   "topic": "t977.1",
+   "entry": "n6b-00891",
+   "judged_word": "storage backend",
+   "reason": "storage backend는 그래프 데이터베이스 질의와 무관하다"
+  },
+  {
+   "word": "storage",
+   "related": "storage provider",
+   "topic": "t977.1",
+   "entry": "n6b-00894",
+   "judged_word": "storage provider",
+   "reason": "storage provider는 그래프 데이터베이스 질의와 무관하다"
+  },
+  {
+   "word": "flow",
+   "related": "strip types",
+   "topic": "t335.2",
+   "entry": "n6b-00904",
+   "judged_word": "strip types",
+   "reason": "strip types는 타입 주석 제거이며 관찰 가능한 뷰 모델 바인딩과 무관하다"
+  },
+  {
+   "word": "tuple",
+   "related": "tuple space",
+   "topic": "t55.1",
+   "entry": "n6b-00981",
+   "judged_word": "tuple space",
+   "reason": "tuple space는 린다 조정 모델이지 대수적 데이터 타입이 아니다"
+  },
+  {
+   "word": "unit",
+   "related": "unit of measurement",
+   "topic": "t49.2",
+   "entry": "n6b-01003",
+   "judged_word": "unit of measurement",
+   "reason": "측정 단위는 systemd 서비스 유닛과 무관하다"
+  },
+  {
+   "word": "eacces",
+   "related": "USER directive",
+   "topic": "t525",
+   "entry": "n6b-01014",
+   "judged_word": "USER directive",
+   "reason": "Dockerfile USER 지시어는 파일시스템 오류 코드가 아니다"
+  },
+  {
+   "word": "activate",
+   "related": "verify email",
+   "topic": "t19.4",
+   "entry": "n6b-01020",
+   "judged_word": "verify email",
+   "reason": "이메일 인증은 라이선스 활성화가 아니라 계정 등록 절차이다"
+  },
+  {
+   "word": "metadata",
+   "related": "YAML front matter",
+   "topic": "t766.1",
+   "entry": "n6b-01044",
+   "judged_word": "YAML front matter",
+   "reason": "YAML front matter는 문서 상단의 메타데이터 블록이며 리플렉션 메타데이터 어노테이션이 아니다"
+  },
+  {
+   "word": "zero",
+   "related": "zero-cost abstraction",
+   "topic": "t987.1",
+   "entry": "n6b-01047",
+   "judged_word": "zero-cost abstraction",
+   "reason": "제로 비용 추상화는 컴파일러 최적화 개념이며 문자열 제로 패딩과 무관하다"
+  }
+ ],
+ "input_detaches": [],
+ "moves": []
+}

@@ -1,0 +1,14 @@
+{
+  "dataset_id": "rts3-48356e35e1f1ea28",
+  "path": "datasets/rts3-48356e35e1f1ea28/dataset.sqlite3",
+  "schema_version": "rt-sense/3",
+  "base_dataset": "rts3-5fba9ba33d7c7c7f",
+  "entries": "/private/tmp/claude-501/-Users-buyong-workspace-private-buyong-mcp/16b4c373-abbc-4ce9-90c2-313a67d73167/scratchpad/rereview/entries.json",
+  "new_fields": 0,
+  "new_topics": 4,
+  "new_concepts": 59,
+  "terms": 41,
+  "senses": 59,
+  "personas": 59,
+  "inherit_unresolved": []
+}

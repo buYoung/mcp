@@ -25,6 +25,25 @@
               "endLine": 9,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "*",
+              "source": "package:demo/helper.dart",
+              "kind": "glob",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 35
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 9,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [],
@@ -100,7 +119,32 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "targetDart",
+            "range": {
+              "startLine": 6,
+              "startCol": 5,
+              "endLine": 6,
+              "endCol": 17
+            },
+            "receiver": {
+              "name": "DartFlow",
+              "arguments": [],
+              "range": {
+                "startLine": 6,
+                "startCol": 5,
+                "endLine": 6,
+                "endCol": 17
+              }
+            },
+            "namespace": "DartFlow",
+            "enclosingSymbol": "callerDart",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

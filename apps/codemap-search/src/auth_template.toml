@@ -1,8 +1,17 @@
 # codemap-search credentials. Keep this file out of version control.
-# Resolution: repo .codemap/auth.toml > $CODEMAP_HOME/auth.toml (else ~/.codemap/auth.toml)
-# > the TYPESAFE_API_KEY environment variable.
+# Resolution per key: repo .codemap/auth.toml > $CODEMAP_HOME/auth.toml (else ~/.codemap/auth.toml)
+# > the environment variable named in its section.
 # Missing or empty keys inherit the next source. This file is never overwritten.
 # Model, enable flags and request limits remain in config.toml's [output.jev].
 
 [jev]
+# TypeSafe key for Jev versions such as jev-1.14.0 (environment fallback: TYPESAFE_API_KEY).
+# api_key = ""
+
+[openrouter]
+# OpenRouter key for author/model IDs such as openai/gpt-6-luna-decisions
+# (environment fallback: OPENROUTER_API_KEY).
+# Decision models only: the key is sent only to OpenRouter's Decisions API
+# (https://openrouter.ai/api/alpha/decisions), never to chat or other OpenRouter APIs.
+# OpenRouter rejects models without decision support (HTTP 400) and the original output is kept.
 # api_key = ""

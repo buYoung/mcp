@@ -134,7 +134,58 @@
             "argumentCount": 0,
             "conditions": [
               "conditional declaration requires unavailable compile/runtime facts"
-            ]
+            ],
+            "receiverKind": "value"
+          },
+          {
+            "name": "warn",
+            "range": {
+              "startLine": 8,
+              "startCol": 13,
+              "endLine": 8,
+              "endCol": 35
+            },
+            "receiver": {
+              "name": "Logger",
+              "arguments": [],
+              "range": {
+                "startLine": 8,
+                "startCol": 13,
+                "endLine": 8,
+                "endCol": 35
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ],
+            "receiverKind": "value"
+          },
+          {
+            "name": "ack",
+            "range": {
+              "startLine": 13,
+              "startCol": 9,
+              "endLine": 13,
+              "endCol": 33
+            },
+            "receiver": {
+              "name": "JobQueue",
+              "arguments": [],
+              "range": {
+                "startLine": 13,
+                "startCol": 9,
+                "endLine": 13,
+                "endCol": 33
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
           },
           {
             "name": "id",
@@ -157,7 +208,8 @@
             "namespace": "CheckoutWorker",
             "enclosingSymbol": "tick",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

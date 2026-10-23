@@ -1,0 +1,571 @@
+{
+ "topics": [
+  {
+   "key": "rereview::frontend-ui::vue-template-directives",
+   "label": "Vue template directives",
+   "scope": "Vue template directives such as v-on, v-bind and v-model that bind events, data and conditions to elements.",
+   "fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "key": "rereview::graphics-media::gpu-device-monitoring",
+   "label": "GPU device monitoring",
+   "scope": "Checking GPU utilization, video memory and driver state with vendor tools.",
+   "fields": [
+    "graphics-media"
+   ]
+  },
+  {
+   "key": "rereview::observability-debugging::frame-rate-performance",
+   "label": "Frame rate performance",
+   "scope": "Measuring dropped frames, jank and frame-time budgets when diagnosing UI or rendering performance.",
+   "fields": [
+    "observability-debugging"
+   ]
+  },
+  {
+   "key": "rereview::systems-low-level::speculative-execution",
+   "label": "CPU speculative execution",
+   "scope": "Out-of-order and speculative execution in CPUs, including Spectre-class microarchitectural vulnerabilities and their mitigations.",
+   "fields": [
+    "systems-low-level"
+   ]
+  }
+ ],
+ "concepts": [
+  {
+   "key": "rereview::browser-platform::x61::allowattribute",
+   "name": "allow attribute",
+   "topic": "x61"
+  },
+  {
+   "key": "rereview::browser-platform::x64::htmltemplate",
+   "name": "HTML template",
+   "topic": "x64"
+  },
+  {
+   "key": "rereview::browser-platform::x186::lazyload",
+   "name": "lazy load",
+   "topic": "x186"
+  },
+  {
+   "key": "rereview::browser-platform::t403::sourcemappingurl",
+   "name": "sourceMappingURL",
+   "topic": "t403"
+  },
+  {
+   "key": "rereview::concurrency-async::t917.1::oncecell",
+   "name": "OnceCell",
+   "topic": "t917.1"
+  },
+  {
+   "key": "rereview::languages-compilers::t250::oncecell",
+   "name": "OnceCell",
+   "topic": "t250"
+  },
+  {
+   "key": "rereview::configuration::t366::getordefault",
+   "name": "getOrDefault",
+   "topic": "t366"
+  },
+  {
+   "key": "rereview::data-engineering::t67.1::inferschema",
+   "name": "infer_schema",
+   "topic": "t67.1"
+  },
+  {
+   "key": "rereview::data-formats::x206::inferschema",
+   "name": "infer_schema",
+   "topic": "x206"
+  },
+  {
+   "key": "rereview::data-engineering::t67.1::spreadsheet",
+   "name": "spreadsheet",
+   "topic": "t67.1"
+  },
+  {
+   "key": "rereview::data-engineering::t67.1::workbook",
+   "name": "workbook",
+   "topic": "t67.1"
+  },
+  {
+   "key": "rereview::data-formats::t12.3::workbook",
+   "name": "workbook",
+   "topic": "t12.3"
+  },
+  {
+   "key": "rereview::data-visualization::x79::workbook",
+   "name": "workbook",
+   "topic": "x79"
+  },
+  {
+   "key": "rereview::data-formats::t460.1::automapper",
+   "name": "AutoMapper",
+   "topic": "t460.1"
+  },
+  {
+   "key": "rereview::data-formats::t460.1::mapstruct",
+   "name": "MapStruct",
+   "topic": "t460.1"
+  },
+  {
+   "key": "rereview::data-formats::t460.1::modelmapper",
+   "name": "ModelMapper",
+   "topic": "t460.1"
+  },
+  {
+   "key": "rereview::ml-ai::t448::datadrift",
+   "name": "data drift",
+   "topic": "t448"
+  },
+  {
+   "key": "rereview::data-engineering::x75::datadrift",
+   "name": "data drift",
+   "topic": "x75"
+  },
+  {
+   "key": "rereview::security::t251.2::ysoserial",
+   "name": "ysoserial",
+   "topic": "t251.2"
+  },
+  {
+   "key": "rereview::data-formats::t744.2::ysoserial",
+   "name": "ysoserial",
+   "topic": "t744.2"
+  },
+  {
+   "key": "rereview::data-formats::t800::scipy.sparse",
+   "name": "scipy.sparse",
+   "topic": "t800"
+  },
+  {
+   "key": "rereview::data-formats::t537::datainterchange",
+   "name": "data interchange",
+   "topic": "t537"
+  },
+  {
+   "key": "rereview::databases-storage::t665::hyperloglog",
+   "name": "HyperLogLog",
+   "topic": "t665"
+  },
+  {
+   "key": "rereview::distributed-systems::t68.1::stalecache",
+   "name": "stale cache",
+   "topic": "t68.1"
+  },
+  {
+   "key": "rereview::distributed-systems::x84::advisorylock",
+   "name": "advisory lock",
+   "topic": "x84"
+  },
+  {
+   "key": "rereview::distributed-systems::x83::eventuallyconsistent",
+   "name": "eventually consistent",
+   "topic": "x83"
+  },
+  {
+   "key": "rereview::version-control::x173::sublimemerge",
+   "name": "Sublime Merge",
+   "topic": "x173"
+  },
+  {
+   "key": "rereview::error-handling::t281.4::divisionbyzero",
+   "name": "division by zero",
+   "topic": "t281.4"
+  },
+  {
+   "key": "rereview::files-io::t363.2::chardet",
+   "name": "chardet",
+   "topic": "t363.2"
+  },
+  {
+   "key": "rereview::files-io::t363.2::unicodedecodeerror",
+   "name": "UnicodeDecodeError",
+   "topic": "t363.2"
+  },
+  {
+   "key": "rereview::files-io::t397.2::usingstatement",
+   "name": "using statement",
+   "topic": "t397.2"
+  },
+  {
+   "key": "rereview::frontend-ui::rereview::frontend-ui::vue-template-directives::von",
+   "name": "v-on",
+   "topic": "rereview::frontend-ui::vue-template-directives"
+  },
+  {
+   "key": "rereview::browser-platform::t233.1::von",
+   "name": "v-on",
+   "topic": "t233.1"
+  },
+  {
+   "key": "rereview::graphics-media::rereview::graphics-media::gpu-device-monitoring::gpumemory",
+   "name": "GPU memory",
+   "topic": "rereview::graphics-media::gpu-device-monitoring"
+  },
+  {
+   "key": "rereview::graphics-media::rereview::graphics-media::gpu-device-monitoring::nvidiasmi",
+   "name": "nvidia-smi",
+   "topic": "rereview::graphics-media::gpu-device-monitoring"
+  },
+  {
+   "key": "rereview::observability-debugging::t299.2::nvidiasmi",
+   "name": "nvidia-smi",
+   "topic": "t299.2"
+  },
+  {
+   "key": "rereview::graphics-media::t207.2::appletouchicon",
+   "name": "apple-touch-icon",
+   "topic": "t207.2"
+  },
+  {
+   "key": "rereview::mobile-desktop::t672.1::appletouchicon",
+   "name": "apple-touch-icon",
+   "topic": "t672.1"
+  },
+  {
+   "key": "rereview::os-shell::x272::emfile",
+   "name": "EMFILE",
+   "topic": "x272"
+  },
+  {
+   "key": "rereview::observability-debugging::rereview::observability-debugging::frame-rate-performance::framedrop",
+   "name": "frame drop",
+   "topic": "rereview::observability-debugging::frame-rate-performance"
+  },
+  {
+   "key": "rereview::security::t410.2::processbuilder",
+   "name": "ProcessBuilder",
+   "topic": "t410.2"
+  },
+  {
+   "key": "rereview::security::t44.2::cgroups",
+   "name": "cgroups",
+   "topic": "t44.2"
+  },
+  {
+   "key": "rereview::security::t80.6::hardcoded",
+   "name": "hard-coded",
+   "topic": "t80.6"
+  },
+  {
+   "key": "rereview::language-constructs::t738::hardcoded",
+   "name": "hard-coded",
+   "topic": "t738"
+  },
+  {
+   "key": "rereview::security::t874::decompiler",
+   "name": "decompiler",
+   "topic": "t874"
+  },
+  {
+   "key": "rereview::security::t965::metadataservice",
+   "name": "metadata service",
+   "topic": "t965"
+  },
+  {
+   "key": "rereview::systems-low-level::rereview::systems-low-level::speculative-execution::spectre",
+   "name": "spectre",
+   "topic": "rereview::systems-low-level::speculative-execution"
+  },
+  {
+   "key": "rereview::systems-low-level::t22.2::loopunrolling",
+   "name": "loop unrolling",
+   "topic": "t22.2"
+  },
+  {
+   "key": "rereview::testing::t45.2::embeddeddatabase",
+   "name": "embedded database",
+   "topic": "t45.2"
+  },
+  {
+   "key": "rereview::testing::t400.2::codequality",
+   "name": "code quality",
+   "topic": "t400.2"
+  },
+  {
+   "key": "rereview::testing::t871::determinism",
+   "name": "determinism",
+   "topic": "t871"
+  },
+  {
+   "key": "rereview::text-processing::x169::nonprintable",
+   "name": "non-printable",
+   "topic": "x169"
+  },
+  {
+   "key": "rereview::text-processing::t795::untrustedinput",
+   "name": "untrusted input",
+   "topic": "t795"
+  },
+  {
+   "key": "rereview::text-processing::t817.1::spelling",
+   "name": "spelling",
+   "topic": "t817.1"
+  },
+  {
+   "key": "rereview::version-control::t689::descendant",
+   "name": "descendant",
+   "topic": "t689"
+  },
+  {
+   "key": "rereview::security::t251.2::spectre",
+   "name": "spectre",
+   "topic": "t251.2"
+  },
+  {
+   "key": "rereview::networking::t193.7::pipelining",
+   "name": "pipelining",
+   "topic": "t193.7"
+  },
+  {
+   "key": "rereview::browser-platform::x61::appletouchicon",
+   "name": "apple-touch-icon",
+   "topic": "x61"
+  },
+  {
+   "key": "rereview::frontend-ui::t735.1::updating",
+   "name": "updating",
+   "topic": "t735.1"
+  }
+ ],
+ "personas": [
+  {
+   "word": "allow attribute",
+   "concept": "rereview::browser-platform::x61::allowattribute"
+  },
+  {
+   "word": "HTML template",
+   "concept": "rereview::browser-platform::x64::htmltemplate"
+  },
+  {
+   "word": "lazy load",
+   "concept": "rereview::browser-platform::x186::lazyload"
+  },
+  {
+   "word": "sourceMappingURL",
+   "concept": "rereview::browser-platform::t403::sourcemappingurl"
+  },
+  {
+   "word": "OnceCell",
+   "concept": "rereview::concurrency-async::t917.1::oncecell"
+  },
+  {
+   "word": "OnceCell",
+   "concept": "rereview::languages-compilers::t250::oncecell"
+  },
+  {
+   "word": "getOrDefault",
+   "concept": "rereview::configuration::t366::getordefault"
+  },
+  {
+   "word": "infer_schema",
+   "concept": "rereview::data-engineering::t67.1::inferschema"
+  },
+  {
+   "word": "infer_schema",
+   "concept": "rereview::data-formats::x206::inferschema"
+  },
+  {
+   "word": "spreadsheet",
+   "concept": "rereview::data-engineering::t67.1::spreadsheet"
+  },
+  {
+   "word": "workbook",
+   "concept": "rereview::data-engineering::t67.1::workbook"
+  },
+  {
+   "word": "workbook",
+   "concept": "rereview::data-formats::t12.3::workbook"
+  },
+  {
+   "word": "workbook",
+   "concept": "rereview::data-visualization::x79::workbook"
+  },
+  {
+   "word": "AutoMapper",
+   "concept": "rereview::data-formats::t460.1::automapper"
+  },
+  {
+   "word": "MapStruct",
+   "concept": "rereview::data-formats::t460.1::mapstruct"
+  },
+  {
+   "word": "ModelMapper",
+   "concept": "rereview::data-formats::t460.1::modelmapper"
+  },
+  {
+   "word": "data drift",
+   "concept": "rereview::ml-ai::t448::datadrift"
+  },
+  {
+   "word": "data drift",
+   "concept": "rereview::data-engineering::x75::datadrift"
+  },
+  {
+   "word": "ysoserial",
+   "concept": "rereview::security::t251.2::ysoserial"
+  },
+  {
+   "word": "ysoserial",
+   "concept": "rereview::data-formats::t744.2::ysoserial"
+  },
+  {
+   "word": "scipy.sparse",
+   "concept": "rereview::data-formats::t800::scipy.sparse"
+  },
+  {
+   "word": "data interchange",
+   "concept": "rereview::data-formats::t537::datainterchange"
+  },
+  {
+   "word": "HyperLogLog",
+   "concept": "rereview::databases-storage::t665::hyperloglog"
+  },
+  {
+   "word": "stale cache",
+   "concept": "rereview::distributed-systems::t68.1::stalecache"
+  },
+  {
+   "word": "advisory lock",
+   "concept": "rereview::distributed-systems::x84::advisorylock"
+  },
+  {
+   "word": "eventually consistent",
+   "concept": "rereview::distributed-systems::x83::eventuallyconsistent"
+  },
+  {
+   "word": "Sublime Merge",
+   "concept": "rereview::version-control::x173::sublimemerge"
+  },
+  {
+   "word": "division by zero",
+   "concept": "rereview::error-handling::t281.4::divisionbyzero"
+  },
+  {
+   "word": "chardet",
+   "concept": "rereview::files-io::t363.2::chardet"
+  },
+  {
+   "word": "UnicodeDecodeError",
+   "concept": "rereview::files-io::t363.2::unicodedecodeerror"
+  },
+  {
+   "word": "using statement",
+   "concept": "rereview::files-io::t397.2::usingstatement"
+  },
+  {
+   "word": "v-on",
+   "concept": "rereview::frontend-ui::rereview::frontend-ui::vue-template-directives::von"
+  },
+  {
+   "word": "v-on",
+   "concept": "rereview::browser-platform::t233.1::von"
+  },
+  {
+   "word": "GPU memory",
+   "concept": "rereview::graphics-media::rereview::graphics-media::gpu-device-monitoring::gpumemory"
+  },
+  {
+   "word": "nvidia-smi",
+   "concept": "rereview::graphics-media::rereview::graphics-media::gpu-device-monitoring::nvidiasmi"
+  },
+  {
+   "word": "nvidia-smi",
+   "concept": "rereview::observability-debugging::t299.2::nvidiasmi"
+  },
+  {
+   "word": "apple-touch-icon",
+   "concept": "rereview::graphics-media::t207.2::appletouchicon"
+  },
+  {
+   "word": "apple-touch-icon",
+   "concept": "rereview::mobile-desktop::t672.1::appletouchicon"
+  },
+  {
+   "word": "EMFILE",
+   "concept": "rereview::os-shell::x272::emfile"
+  },
+  {
+   "word": "frame drop",
+   "concept": "rereview::observability-debugging::rereview::observability-debugging::frame-rate-performance::framedrop"
+  },
+  {
+   "word": "ProcessBuilder",
+   "concept": "rereview::security::t410.2::processbuilder"
+  },
+  {
+   "word": "cgroups",
+   "concept": "rereview::security::t44.2::cgroups"
+  },
+  {
+   "word": "hard-coded",
+   "concept": "rereview::security::t80.6::hardcoded"
+  },
+  {
+   "word": "hard-coded",
+   "concept": "rereview::language-constructs::t738::hardcoded"
+  },
+  {
+   "word": "decompiler",
+   "concept": "rereview::security::t874::decompiler"
+  },
+  {
+   "word": "metadata service",
+   "concept": "rereview::security::t965::metadataservice"
+  },
+  {
+   "word": "spectre",
+   "concept": "rereview::systems-low-level::rereview::systems-low-level::speculative-execution::spectre"
+  },
+  {
+   "word": "loop unrolling",
+   "concept": "rereview::systems-low-level::t22.2::loopunrolling"
+  },
+  {
+   "word": "embedded database",
+   "concept": "rereview::testing::t45.2::embeddeddatabase"
+  },
+  {
+   "word": "code quality",
+   "concept": "rereview::testing::t400.2::codequality"
+  },
+  {
+   "word": "determinism",
+   "concept": "rereview::testing::t871::determinism"
+  },
+  {
+   "word": "non-printable",
+   "concept": "rereview::text-processing::x169::nonprintable"
+  },
+  {
+   "word": "untrusted input",
+   "concept": "rereview::text-processing::t795::untrustedinput"
+  },
+  {
+   "word": "spelling",
+   "concept": "rereview::text-processing::t817.1::spelling"
+  },
+  {
+   "word": "descendant",
+   "concept": "rereview::version-control::t689::descendant"
+  },
+  {
+   "word": "spectre",
+   "concept": "rereview::security::t251.2::spectre"
+  },
+  {
+   "word": "pipelining",
+   "concept": "rereview::networking::t193.7::pipelining"
+  },
+  {
+   "word": "apple-touch-icon",
+   "concept": "rereview::browser-platform::x61::appletouchicon"
+  },
+  {
+   "word": "updating",
+   "concept": "rereview::frontend-ui::t735.1::updating"
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+  "dataset_id": "rts4-3b9284a3b42c2917",
+  "path": "apps/codemap-search/experiments/related-terms-poc/datasets/rts4-3b9284a3b42c2917/dataset.sqlite3",
+  "schema_version": "rt-sense/4",
+  "base_dataset": "rts3-48356e35e1f1ea28",
+  "before": {
+    "terms": 18566,
+    "concepts": 7832,
+    "senses": 32445,
+    "personas": 45151,
+    "relations": 592793,
+    "input_senses": 334442,
+    "input_relations": 9
+  },
+  "after": {
+    "terms": 18566,
+    "concepts": 5158,
+    "personas": 43214,
+    "relations": 592793,
+    "input_senses": 334442,
+    "input_relations": 9
+  },
+  "dropped_word_named_concepts": 2673,
+  "dropped_unused_concepts": 1,
+  "topic_only_personas": 2673,
+  "merged_personas": 1937
+}

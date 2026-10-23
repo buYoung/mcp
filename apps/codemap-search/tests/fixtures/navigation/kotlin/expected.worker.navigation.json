@@ -25,6 +25,26 @@
               "endLine": 20,
               "endCol": 1
             }
+          },
+          {
+            "entry": {
+              "localName": "Scheduled",
+              "importedName": "org.springframework.scheduling.annotation.Scheduled",
+              "source": "org.springframework.scheduling.annotation.Scheduled",
+              "kind": "named",
+              "range": {
+                "startLine": 1,
+                "startCol": 1,
+                "endLine": 1,
+                "endCol": 59
+              }
+            },
+            "scope": {
+              "startLine": 1,
+              "startCol": 1,
+              "endLine": 20,
+              "endCol": 1
+            }
           }
         ],
         "shadows": [
@@ -110,7 +130,104 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "next",
+            "range": {
+              "startLine": 10,
+              "startCol": 19,
+              "endLine": 10,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "JobQueue",
+              "arguments": [],
+              "range": {
+                "startLine": 10,
+                "startCol": 19,
+                "endLine": 10,
+                "endCol": 31
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "warn",
+            "range": {
+              "startLine": 12,
+              "startCol": 13,
+              "endLine": 12,
+              "endCol": 34
+            },
+            "receiver": {
+              "name": "Logger",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 13,
+                "endLine": 12,
+                "endCol": 34
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "process",
+            "range": {
+              "startLine": 16,
+              "startCol": 23,
+              "endLine": 16,
+              "endCol": 45
+            },
+            "receiver": {
+              "name": "JobProcessor",
+              "arguments": [],
+              "range": {
+                "startLine": 16,
+                "startCol": 23,
+                "endLine": 16,
+                "endCol": 45
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "ack",
+            "range": {
+              "startLine": 17,
+              "startCol": 9,
+              "endLine": 17,
+              "endCol": 30
+            },
+            "receiver": {
+              "name": "JobQueue",
+              "arguments": [],
+              "range": {
+                "startLine": 17,
+                "startCol": 9,
+                "endLine": 17,
+                "endCol": 30
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

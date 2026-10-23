@@ -9,8 +9,9 @@ fn test_native_corpus() {
     let app = Path::new(env!("CARGO_MANIFEST_DIR"));
     let corpus = app.join("experiments/event-navigation-poc/language-corpus");
     let root = app.parent().unwrap().parent().unwrap();
-    let ledger = read_json(&root.join("docs/briefs/evidence/source-routes/coverage.json"));
-    for (path, hash) in ledger["manifests"].as_object().unwrap() {
+    // Hashes of the case manifests the native results are compared against; they must not change.
+    let manifests = read_json(&corpus.join("manifests.lock.json"));
+    for (path, hash) in manifests.as_object().unwrap() {
         assert_eq!(
             Some(source_sha256(&root.join(path)).as_str()),
             hash.as_str(),

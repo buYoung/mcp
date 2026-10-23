@@ -1,7 +1,7 @@
 {
   "comment": "Fixed mixed-response fixture for `cargo run --example jev_decisions -- --mock`. `response` mirrors the provider's documented wire shape (model, answers keyed by question id with an explicit type, usage). The values are chosen for the example's assertions; they are not a recorded provider answer and say nothing about live behavior.",
   "response": {
-    "model": "jev-1.13.0",
+    "model": "jev-1.14.0",
     "answers": {
       "relevance": {
         "type": "score",

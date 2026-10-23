@@ -172,7 +172,8 @@
             "namespace": "",
             "enclosingSymbol": "evaluate",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

@@ -1,0 +1,775 @@
+[
+ {
+  "word": "allow attribute",
+  "sheet_field": "browser-platform",
+  "connect": [
+   {
+    "field": "browser-platform",
+    "topic": "x61",
+    "topic_label": "HTML document structure and elements",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "iframe의 allow 속성으로 카메라·전체 화면 같은 기능을 위임하는 표준 HTML 속성"
+   }
+  ]
+ },
+ {
+  "word": "html template",
+  "sheet_field": "browser-platform",
+  "connect": [
+   {
+    "field": "browser-platform",
+    "topic": "x64",
+    "topic_label": "Web Components custom elements",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "Web Components가 쓰는 HTML template 요소를 가리킴"
+   }
+  ]
+ },
+ {
+  "word": "lazy load",
+  "sheet_field": "browser-platform",
+  "connect": [
+   {
+    "field": "browser-platform",
+    "topic": "x186",
+    "topic_label": "Resource hints and script loading",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "loading lazy 속성과 모듈 스크립트 지연 로딩 등 브라우저 리소스 로딩 지연"
+   }
+  ]
+ },
+ {
+  "word": "sourceMappingURL",
+  "sheet_field": "browser-platform",
+  "connect": [
+   {
+    "field": "browser-platform",
+    "topic": "t403",
+    "topic_label": "Chrome/DevTools",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "DevTools가 소스맵을 찾아 디버깅할 때 읽는 주석으로 설명에 DevTools가 들어 있음"
+   }
+  ]
+ },
+ {
+  "word": "OnceCell",
+  "sheet_field": "concurrency-async",
+  "connect": [
+   {
+    "field": "concurrency-async",
+    "topic": "t917.1",
+    "topic_label": "Concurrent synchronization",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "once_cell::sync, OnceLock, tokio::sync::OnceCell처럼 여러 스레드·태스크가 안전하게 한 번만 초기화하는 공유 상태 동기화 타입"
+   },
+   {
+    "field": "languages-compilers",
+    "topic": "t250",
+    "topic_label": "Rust standard libraries",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "Rust 표준 라이브러리(std::cell::OnceCell)와 once_cell 크레이트가 제공하는 타입"
+   }
+  ]
+ },
+ {
+  "word": "getOrDefault",
+  "sheet_field": "configuration",
+  "connect": [
+   {
+    "field": "configuration",
+    "topic": "t366",
+    "topic_label": "Configuration value access",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "설명에 설정 조회가 직접 들어 있고 설정 값을 읽을 때 키가 없으면 기본값을 돌려주는 데 쓰임"
+   }
+  ]
+ },
+ {
+  "word": "infer schema",
+  "sheet_field": "data-engineering",
+  "connect": [
+   {
+    "field": "data-engineering",
+    "topic": "t67.1",
+    "topic_label": "Dataframe table operations",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "Spark·Pandas로 CSV/JSON을 읽을 때 열 자료형을 추론하는 데이터프레임 읽기 옵션"
+   },
+   {
+    "field": "data-formats",
+    "topic": "x206",
+    "topic_label": "CSV dialect options",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "CSV와 JSON을 읽을 때 열 자료형을 추론하는 읽기 옵션이라 CSV 읽기 설정과 맞닿음"
+   }
+  ]
+ },
+ {
+  "word": "spreadsheet",
+  "sheet_field": "data-engineering",
+  "connect": [
+   {
+    "field": "data-engineering",
+    "topic": "t67.1",
+    "topic_label": "Dataframe table operations",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "엑셀류 표 파일을 데이터프레임으로 읽고 쓰는 표 형식 입출력 대상"
+   }
+  ]
+ },
+ {
+  "word": "workbook",
+  "sheet_field": "data-engineering",
+  "connect": [
+   {
+    "field": "data-engineering",
+    "topic": "t67.1",
+    "topic_label": "Dataframe table operations",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "엑셀 통합 문서의 시트를 데이터프레임으로 읽고 쓰는 표 입출력 대상"
+   },
+   {
+    "field": "data-formats",
+    "topic": "t12.3",
+    "topic_label": "Tabular data exports",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "xlsx 통합 문서는 표 데이터를 내보내는 스프레드시트 파일 형식"
+   },
+   {
+    "field": "data-visualization",
+    "topic": "x79",
+    "topic_label": "BI and dashboard tools",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "Tableau·Power BI 워크북 파일은 BI 도구의 보고서 파일로 해당 주제 범위에 명시됨"
+   }
+  ]
+ },
+ {
+  "word": "AutoMapper",
+  "sheet_field": "data-formats",
+  "connect": [
+   {
+    "field": "data-formats",
+    "topic": "t460.1",
+    "topic_label": "Object serialization",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": ".NET 객체 매퍼로 data-formats 범위의 serializers and object mappers에 해당"
+   }
+  ]
+ },
+ {
+  "word": "MapStruct",
+  "sheet_field": "data-formats",
+  "connect": [
+   {
+    "field": "data-formats",
+    "topic": "t460.1",
+    "topic_label": "Object serialization",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "Java 객체 매퍼(빈 변환 코드 생성)로 object mappers 범위에 해당"
+   }
+  ]
+ },
+ {
+  "word": "ModelMapper",
+  "sheet_field": "data-formats",
+  "connect": [
+   {
+    "field": "data-formats",
+    "topic": "t460.1",
+    "topic_label": "Object serialization",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "Java 객체 매퍼로 object mappers 범위에 해당"
+   }
+  ]
+ },
+ {
+  "word": "data drift",
+  "sheet_field": "data-formats",
+  "connect": [
+   {
+    "field": "ml-ai",
+    "topic": "t448",
+    "topic_label": "Machine learning",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "배포된 모델 입력 데이터 분포 변화를 감지하는 ML 운영 개념"
+   },
+   {
+    "field": "data-engineering",
+    "topic": "x75",
+    "topic_label": "Data catalog and governance",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "데이터셋 모니터링·데이터 관측성 도구가 다루는 데이터 품질 변화"
+   }
+  ],
+  "skip_note": "설명에 직렬화·인코딩 형식이 없고 데이터 분포 변화 감지라서 data-formats 대상이 아님"
+ },
+ {
+  "word": "ysoserial",
+  "sheet_field": "data-formats",
+  "connect": [
+   {
+    "field": "security",
+    "topic": "t251.2",
+    "topic_label": "Vulnerability exploit analysis",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "Java 역직렬화 취약점 공격 페이로드를 만드는 개념 증명 익스플로잇 도구"
+   },
+   {
+    "field": "data-formats",
+    "topic": "t744.2",
+    "topic_label": "Java object serialization",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "Java 객체 직렬화(Serializable) 역직렬화 gadget 페이로드를 생성함"
+   }
+  ]
+ },
+ {
+  "word": "scipy.sparse",
+  "sheet_field": "data-formats",
+  "connect": [
+   {
+    "field": "data-formats",
+    "topic": "t800",
+    "topic_label": "NumPy array files",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "희소 행렬 저장 형식(CSR/COO)과 npz 저장·불러오기를 제공"
+   }
+  ]
+ },
+ {
+  "word": "requireNonNull",
+  "sheet_field": "data-formats",
+  "connect": [],
+  "skip_note": "null 선행 조건 검사 메서드로 설명에 직렬화·데이터 형식 대상이 없고 오류 처리·타입 분야에는 이미 뜻이 있음"
+ },
+ {
+  "word": "data interchange",
+  "sheet_field": "data-formats",
+  "connect": [
+   {
+    "field": "data-formats",
+    "topic": "t537",
+    "topic_label": "Data representation formats",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "구조화 데이터를 교환하기 위한 형식과 변환을 가리키는 data-formats의 핵심 대상"
+   }
+  ]
+ },
+ {
+  "word": "hyperloglog",
+  "sheet_field": "databases-storage",
+  "connect": [
+   {
+    "field": "databases-storage",
+    "topic": "t665",
+    "topic_label": "Redis commands",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "Redis가 제공하는 근사 고유 개수 자료형이고 PFADD 같은 Redis 명령이 이미 같은 주제에 있음"
+   }
+  ]
+ },
+ {
+  "word": "stale cache",
+  "sheet_field": "distributed-systems",
+  "connect": [
+   {
+    "field": "distributed-systems",
+    "topic": "t68.1",
+    "topic_label": "Fallback selection",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "원본 장애 시 오래된 캐시 값을 대신 제공하는 폴백 전략 설명에 쓰임"
+   }
+  ]
+ },
+ {
+  "word": "advisory lock",
+  "sheet_field": "distributed-systems",
+  "connect": [
+   {
+    "field": "distributed-systems",
+    "topic": "x84",
+    "topic_label": "Distributed locks and leases",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "DB가 제공하는 락으로 여러 서비스 인스턴스의 배타적 접근을 조율하는 분산 락 용도"
+   }
+  ]
+ },
+ {
+  "word": "eventually consistent",
+  "sheet_field": "distributed-systems",
+  "connect": [
+   {
+    "field": "distributed-systems",
+    "topic": "x83",
+    "topic_label": "Consistency models and replication",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "결과적 일관성을 갖는 복제 시스템의 읽기 동작을 가리키는 일관성 모델 표현"
+   }
+  ]
+ },
+ {
+  "word": "Sublime Merge",
+  "sheet_field": "editors-ide",
+  "connect": [
+   {
+    "field": "version-control",
+    "topic": "x173",
+    "topic_label": "Git client tools",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "Git 저장소를 다루는 그래픽 Git 클라이언트 자체"
+   }
+  ],
+  "skip_note": "설명이 Git 클라이언트(커밋, 브랜치, 병합 도구)이고 편집기, IDE, 언어 서버, 심볼 색인 같은 코드 작성 도구 대상이 설명에 없어 editors-ide는 간접 연상(Sublime Text 자매 제품)뿐임"
+ },
+ {
+  "word": "division by zero",
+  "sheet_field": "error-handling",
+  "connect": [
+   {
+    "field": "error-handling",
+    "topic": "t281.4",
+    "topic_label": "Exception type hierarchies",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "0으로 나누기는 ZeroDivisionError 같은 런타임 예외로 알려지는 오류 상황 자체임"
+   }
+  ]
+ },
+ {
+  "word": "chardet",
+  "sheet_field": "files-io",
+  "connect": [
+   {
+    "field": "files-io",
+    "topic": "t363.2",
+    "topic_label": "Text file reads",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "인코딩을 모르는 텍스트 파일의 바이트를 읽어 문자열로 바꿀 때 쓰는 인코딩 판별 라이브러리"
+   }
+  ]
+ },
+ {
+  "word": "UnicodeDecodeError",
+  "sheet_field": "files-io",
+  "connect": [
+   {
+    "field": "files-io",
+    "topic": "t363.2",
+    "topic_label": "Text file reads",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "텍스트 파일을 읽어 문자열로 디코딩할 때 인코딩이 맞지 않으면 발생하는 파이썬 예외"
+   }
+  ]
+ },
+ {
+  "word": "using statement",
+  "sheet_field": "files-io",
+  "connect": [
+   {
+    "field": "files-io",
+    "topic": "t397.2",
+    "topic_label": "File stream handles",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "파일 스트림 핸들을 블록이 끝나면 자동으로 닫도록 보장하는 C# 구문"
+   }
+  ]
+ },
+ {
+  "word": "updating",
+  "sheet_field": "frontend-ui",
+  "connect": [
+   {
+    "field": "frontend-ui",
+    "topic": "t735.1",
+    "topic_label": "Component effect lifecycle",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "컴포넌트 갱신 단계. 기존 frontend-ui 뜻은 State store selectors 주제라 생명주기 주제에 따로 연결(검토자 추가)",
+    "by_reviewer": true
+   }
+  ]
+ },
+ {
+  "word": "v-on",
+  "sheet_field": "frontend-ui",
+  "connect": [
+   {
+    "field": "frontend-ui",
+    "topic": null,
+    "topic_label": "Vue template directives",
+    "is_new_topic": true,
+    "fit": "매우 높음",
+    "note": "Vue 템플릿에서 이벤트 핸들러를 연결하는 지시자"
+   },
+   {
+    "field": "browser-platform",
+    "topic": "t233.1",
+    "topic_label": "DOM event listeners",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "요소에 DOM 이벤트 리스너를 등록하는 용도로 설명에 DOM 이벤트가 들어 있음"
+   }
+  ]
+ },
+ {
+  "word": "GPU memory",
+  "sheet_field": "graphics-media",
+  "connect": [
+   {
+    "field": "graphics-media",
+    "topic": null,
+    "topic_label": "GPU device monitoring",
+    "is_new_topic": true,
+    "fit": "높음",
+    "note": "GPU 비디오 메모리(VRAM) 사용량 점검으로 설명에 GPU가 직접 들어 있음"
+   }
+  ]
+ },
+ {
+  "word": "nvidia-smi",
+  "sheet_field": "graphics-media",
+  "connect": [
+   {
+    "field": "graphics-media",
+    "topic": null,
+    "topic_label": "GPU device monitoring",
+    "is_new_topic": true,
+    "fit": "높음",
+    "note": "NVIDIA GPU 상태를 확인하는 명령줄 도구로 설명에 GPU가 들어 있음"
+   },
+   {
+    "field": "observability-debugging",
+    "topic": "t299.2",
+    "topic_label": "Operational metric monitoring",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "GPU 사용률과 메모리 같은 자원 지표를 확인하는 모니터링 도구"
+   }
+  ]
+ },
+ {
+  "word": "apple-touch-icon",
+  "sheet_field": "graphics-media",
+  "connect": [
+   {
+    "field": "graphics-media",
+    "topic": "t207.2",
+    "topic_label": "Raster image formats",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "iOS 홈 화면에 쓰는 PNG 아이콘 이미지 자체를 가리킴"
+   },
+   {
+    "field": "mobile-desktop",
+    "topic": "t672.1",
+    "topic_label": "Application icon assets",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "iOS 홈 화면 앱 아이콘 자산을 지정하는 값"
+   },
+   {
+    "field": "browser-platform",
+    "topic": "x61",
+    "topic_label": "HTML document structure and elements",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "HTML head의 link rel 값. 기존 browser-platform 뜻은 Service worker caches 주제라 문서 메타데이터 주제에 따로 연결(검토자 추가)",
+    "by_reviewer": true
+   }
+  ]
+ },
+ {
+  "word": "EMFILE",
+  "sheet_field": "networking",
+  "connect": [
+   {
+    "field": "os-shell",
+    "topic": "x272",
+    "topic_label": "Process resource limits",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "프로세스당 열린 파일 디스크립터 한도(rlimit nofile, ulimit -n)에 도달했을 때 커널이 돌려주는 errno"
+   }
+  ],
+  "skip_note": "설명이 열린 파일 디스크립터 한도 오류일 뿐 소켓·연결·프로토콜 같은 네트워킹 대상이 들어 있지 않음"
+ },
+ {
+  "word": "pipelining",
+  "sheet_field": "networking",
+  "connect": [
+   {
+    "field": "networking",
+    "topic": "t193.7",
+    "topic_label": "HTTP stream framing",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "HTTP/1.1 요청 파이프라이닝. 기존 networking 뜻은 Named pipe endpoints 주제라 맞지 않아 HTTP/1.1·keep alive가 있는 주제에 따로 연결(검토자 추가)",
+    "by_reviewer": true
+   }
+  ]
+ },
+ {
+  "word": "frame drop",
+  "sheet_field": "observability-debugging",
+  "connect": [
+   {
+    "field": "observability-debugging",
+    "topic": null,
+    "topic_label": "Frame rate performance",
+    "is_new_topic": true,
+    "fit": "높음",
+    "note": "프레임 누락은 렌더링 성능 저하를 프로파일링·측정해 진단하는 성능 문제 지표"
+   }
+  ]
+ },
+ {
+  "word": "ProcessBuilder",
+  "sheet_field": "security",
+  "connect": [
+   {
+    "field": "security",
+    "topic": "t410.2",
+    "topic_label": "Executable input safety",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "외부 프로세스를 실행하는 명령 주입 점검 대상 API로 설명에 명령 주입이 들어 있음"
+   }
+  ]
+ },
+ {
+  "word": "cgroups",
+  "sheet_field": "security",
+  "connect": [
+   {
+    "field": "security",
+    "topic": "t44.2",
+    "topic_label": "Sandbox hardening",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "컨테이너 자원 격리 기능으로 샌드박스 설정에 쓰여 격리와 하드닝 주제에 해당함"
+   }
+  ]
+ },
+ {
+  "word": "negative testing",
+  "sheet_field": "security",
+  "connect": [],
+  "skip_note": "설명이 잘못된 입력과 거부 경로를 시험하는 일반 테스트 기법이고 공격·취약점 같은 보안 대상은 들어 있지 않음"
+ },
+ {
+  "word": "hard-coded",
+  "sheet_field": "security",
+  "connect": [
+   {
+    "field": "security",
+    "topic": "t80.6",
+    "topic_label": "Hardcoded credentials",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "보안 점검 메시지에서 코드에 박힌 자격 증명을 가리키는 표기로 쓰임"
+   },
+   {
+    "field": "language-constructs",
+    "topic": "t738",
+    "topic_label": "Literal constants",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "값이 코드에 상수나 리터럴로 고정됐다는 뜻으로 상수와 고정값 주제에 해당함"
+   }
+  ]
+ },
+ {
+  "word": "decompiler",
+  "sheet_field": "security",
+  "connect": [
+   {
+    "field": "security",
+    "topic": "t874",
+    "topic_label": "Malware incident response",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "바이너리 복원 도구로 설명에 악성코드 역분석이 들어 있고 ghidra가 같은 주제에 있음"
+   }
+  ]
+ },
+ {
+  "word": "metadata service",
+  "sheet_field": "security",
+  "connect": [
+   {
+    "field": "security",
+    "topic": "t965",
+    "topic_label": "Request forgery",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "인스턴스 자격 증명을 주는 서비스로 설명에 SSRF 표적과 방어가 들어 있음"
+   }
+  ]
+ },
+ {
+  "word": "Spectre",
+  "sheet_field": "systems-low-level",
+  "connect": [
+   {
+    "field": "systems-low-level",
+    "topic": null,
+    "topic_label": "CPU speculative execution",
+    "is_new_topic": true,
+    "fit": "매우 높음",
+    "note": "CPU 분기 예측과 추측 실행을 악용하는 취약점으로 CPU 구조가 대상 자체임"
+   },
+   {
+    "field": "security",
+    "topic": "t251.2",
+    "topic_label": "Vulnerability exploit analysis",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "추측 실행 취약점. 기존 security 뜻은 Webhook signature verification 주제라 맞지 않아 취약점 주제에 따로 연결(검토자 추가)",
+    "by_reviewer": true
+   }
+  ]
+ },
+ {
+  "word": "loop unrolling",
+  "sheet_field": "systems-low-level",
+  "connect": [
+   {
+    "field": "systems-low-level",
+    "topic": "t22.2",
+    "topic_label": "SIMD processing",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "반복문을 SIMD와 곱셈 누적 명령으로 바꾸는 최적화로 설명에 CPU 명령이 직접 들어 있음"
+   }
+  ]
+ },
+ {
+  "word": "embedded database",
+  "sheet_field": "testing",
+  "connect": [
+   {
+    "field": "testing",
+    "topic": "t45.2",
+    "topic_label": "Test fixture helpers",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "통합 테스트에서 프로세스 안에 띄우는 테스트용 데이터베이스로 테스트 환경 준비에 쓰임"
+   }
+  ]
+ },
+ {
+  "word": "code quality",
+  "sheet_field": "testing",
+  "connect": [
+   {
+    "field": "testing",
+    "topic": "t400.2",
+    "topic_label": "SonarQube quality gates",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "품질 게이트와 분석 보고서가 다루는 코드 품질 개념으로 테스트 분야의 코드 품질 보고서에 해당"
+   }
+  ]
+ },
+ {
+  "word": "determinism",
+  "sheet_field": "testing",
+  "connect": [
+   {
+    "field": "testing",
+    "topic": "t871",
+    "topic_label": "Flaky/transient failures",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "테스트가 매번 같은 결과를 내야 한다는 성질로 비결정성과 불안정 테스트 논의에 직접 쓰임"
+   }
+  ]
+ },
+ {
+  "word": "non-printable",
+  "sheet_field": "text-processing",
+  "connect": [
+   {
+    "field": "text-processing",
+    "topic": "x169",
+    "topic_label": "Character classification",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "출력할 수 없는 문자를 가리키며 문자 분류의 printable 판별 대상 자체임"
+   }
+  ]
+ },
+ {
+  "word": "untrusted input",
+  "sheet_field": "text-processing",
+  "connect": [
+   {
+    "field": "text-processing",
+    "topic": "t795",
+    "topic_label": "Text sanitization",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "검증하지 않은 외부 입력으로 문자열 정화(sanitize)와 정규화가 적용되는 대상임"
+   }
+  ]
+ },
+ {
+  "word": "spelling",
+  "sheet_field": "text-processing",
+  "connect": [
+   {
+    "field": "text-processing",
+    "topic": "t817.1",
+    "topic_label": "Word dictionaries",
+    "is_new_topic": false,
+    "fit": "매우 높음",
+    "note": "철자 검사 설정과 철자 사전에 쓰이는 철자 개념으로 설명에 맞춤법 검사가 들어 있음"
+   }
+  ]
+ },
+ {
+  "word": "descendant",
+  "sheet_field": "version-control",
+  "connect": [
+   {
+    "field": "version-control",
+    "topic": "t689",
+    "topic_label": "Git commit ancestry",
+    "is_new_topic": false,
+    "fit": "높음",
+    "note": "Git에서 어떤 커밋에서 파생된 후속 커밋으로 ancestor와 짝을 이루는 커밋 계보 용어"
+   }
+  ]
+ }
+]

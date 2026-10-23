@@ -82,6 +82,7 @@ fn indexed(path: &str, symbols: Vec<ExtractedSymbol>, calls: Vec<CallSite>) -> E
         symbols,
         literals: Vec::new(),
         docstrings: Vec::new(),
+        member_names: Vec::new(),
         navigation: Some(NavigationFile {
             calls,
             ..NavigationFile::default()

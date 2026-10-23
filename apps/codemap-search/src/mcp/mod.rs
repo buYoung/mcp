@@ -19,6 +19,11 @@ use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 /// JSON-RPC code for an unknown tool name, the only protocol error raised after tool dispatch.
 const TOOL_NOT_FOUND_CODE: i64 = -32601;
 
+/// A tool result whose only content is `text`.
+fn text_content(text: &str) -> serde_json::Value {
+    serde_json::json!({"content": [{"type": "text", "text": text}]})
+}
+
 /// A failed tool call as a result the model can read and correct. Clients such as Codex do
 /// not forward `isError`, so the text itself states the failure.
 fn tool_error_result(message: &str) -> Value {
@@ -125,10 +130,18 @@ pub struct McpServer {
     registered_task: Option<crate::tools::task::RegisteredTask>,
     global_instructions: global_instructions::GlobalInstructions,
     jev: jev::JevHost,
+    related_terms: Option<crate::related_terms::runtime::RelatedTermsRuntime>,
 }
 
 impl McpServer {
     pub fn new(engine: EngineSupervisor) -> Self {
+        let settings = crate::config::get().related_terms.clone();
+        let related_terms = settings.enabled.then(|| {
+            crate::related_terms::runtime::RelatedTermsRuntime::start(
+                settings,
+                engine.snapshot_source(),
+            )
+        });
         Self {
             engine,
             active_workspace_scope: None,
@@ -139,6 +152,22 @@ impl McpServer {
             registered_task: None,
             global_instructions: global_instructions::GlobalInstructions::default(),
             jev: jev::JevHost::default(),
+            related_terms,
+        }
+    }
+
+    fn synchronize_related_terms(&mut self, settings: &crate::config::RelatedTermsConfig) {
+        if !settings.enabled {
+            self.related_terms = None;
+        } else if self
+            .related_terms
+            .as_ref()
+            .is_none_or(|runtime| !runtime.matches(settings))
+        {
+            self.related_terms = Some(crate::related_terms::runtime::RelatedTermsRuntime::start(
+                settings.clone(),
+                self.engine.snapshot_source(),
+            ));
         }
     }
 
@@ -146,7 +175,26 @@ impl McpServer {
     /// filesystem watchers) from the current in-memory config and wrap it in a server. The
     /// `mcp` command and in-process tests share this; call `config::reload(cwd)` first.
     pub fn bootstrap(cwd: &Path) -> Result<Self, String> {
+        Self::bootstrap_with(cwd, crate::index::admission::decide(cwd))
+    }
+
+    /// [`Self::bootstrap`] for an already decided `[index].mode` admission.
+    pub fn bootstrap_with(
+        cwd: &Path,
+        admission: crate::index::admission::Admission,
+    ) -> Result<Self, String> {
         use crate::index;
+        use crate::index::admission::Admission;
+        match admission {
+            Admission::Eager => {}
+            Admission::Deferred => {
+                let engine = index::TantivySearchEngine::new(&crate::config::get().index_path)?;
+                return Ok(Self::new(index::EngineSupervisor::deferred(engine)));
+            }
+            Admission::Unavailable(message) => {
+                return Ok(Self::new(index::EngineSupervisor::unavailable(message)?));
+            }
+        }
         let engine = index::TantivySearchEngine::new(&crate::config::get().index_path)?;
         // Read-only search handle for the request loop; the engine (the single tantivy
         // writer) moves into the background indexer, which starts the initial index pass
@@ -324,6 +372,7 @@ impl McpServer {
         let started = std::time::Instant::now();
         self.pending_source_files.clear();
         let config = crate::config::get();
+        self.synchronize_related_terms(&config.related_terms);
         if method != "initialize" {
             self.global_instructions
                 .synchronize(config.is_global_instructions_enabled);
@@ -481,6 +530,37 @@ impl McpServer {
                 }))
             }
             "ping" => Ok(serde_json::json!({})),
+            #[cfg(feature = "related-terms-eval")]
+            "related_terms/evaluate" => {
+                let params = params
+                    .and_then(Value::as_object)
+                    .ok_or_else(|| (-32602, "evaluation requires scope and mode".to_string()))?;
+                if params.keys().any(|key| key != "scope" && key != "mode") {
+                    return Err((-32602, "evaluation accepts only scope and mode".into()));
+                }
+                let scope = params.get("scope").and_then(Value::as_str).unwrap_or("");
+                let mode = params.get("mode").and_then(Value::as_str).unwrap_or("");
+                let runtime = self.related_terms.as_mut().ok_or_else(|| {
+                    (
+                        -32602,
+                        "related terms must be enabled for evaluation".to_string(),
+                    )
+                })?;
+                runtime
+                    .configure_evaluation(scope, mode)
+                    .map_err(|reason| (-32602, reason))?;
+                Ok(serde_json::json!({"scope":scope,"mode":mode}))
+            }
+            #[cfg(feature = "related-terms-eval")]
+            "related_terms/documented_symbols" => {
+                let runtime = self.related_terms.as_ref().ok_or_else(|| {
+                    (
+                        -32602,
+                        "related terms must be enabled for evaluation".to_string(),
+                    )
+                })?;
+                Ok(runtime.documented_symbols())
+            }
             "tools/list" => Ok(crate::tools::list_tools()),
             "tools/call" => {
                 let params = params.ok_or_else(|| (-32602, "Missing params".to_string()))?;
@@ -499,8 +579,33 @@ impl McpServer {
                         let text = crate::tools::analyze::run(arguments, &self.engine)?;
                         Ok(serde_json::json!({"content": [{"type": "text", "text": text}]}))
                     }
+                    "synonyms" if crate::config::get().related_terms.enabled => {
+                        // Without an index the terms still come from the dataset.
+                        let _ = self.engine.activate();
+                        self.engine.ensure_alive();
+                        self.engine.trigger_refresh();
+                        let source = self.engine.snapshot_source();
+                        let runtime = self.related_terms.as_mut().ok_or_else(|| {
+                            (-32603, "Related terms runtime unavailable".to_string())
+                        })?;
+                        runtime.set_index_source(source);
+                        let output = crate::tools::synonyms::run(arguments, runtime)?;
+                        let response =
+                            serde_json::json!({"content": [{"type": "text", "text": output.text}]});
+                        #[cfg(feature = "related-terms-eval")]
+                        let response = {
+                            let mut response = response;
+                            response["_meta"] =
+                                serde_json::json!({"related_terms_eval": output.evaluation});
+                            response
+                        };
+                        Ok(response)
+                    }
                     "search" => {
                         crate::tools::search::validate_arguments(arguments)?;
+                        if let Err(message) = self.engine.activate() {
+                            return Ok(text_content(&message));
+                        }
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced by the staleness
                         // window), then search the current committed snapshot immediately
@@ -539,6 +644,9 @@ impl McpServer {
                         // The indexer parses the working tree once for the index and reuses
                         // it here, so the former overview-only walk+parse is gone. Lifecycle
                         // fires only here and on `search`, never on read/find/grep.
+                        if let Err(message) = self.engine.activate() {
+                            return Ok(text_content(&message));
+                        }
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
                         let ctx = ToolContext {
@@ -564,6 +672,9 @@ impl McpServer {
                         }))
                     }
                     "read" | "grep" => {
+                        // Their declarations and callers come from the index, so the first
+                        // read or grep also starts a deferred workspace's indexing.
+                        let _ = self.engine.activate();
                         let output = jev::live(
                             &mut self.jev,
                             &self.engine,
@@ -593,17 +704,20 @@ impl McpServer {
                         }))
                     }
                     "initial_instructions" => {
-                        if !arguments.as_object().is_some_and(|args| args.is_empty()) {
-                            return Err((-32602, "initial_instructions takes no arguments. Call it with {}. Use register_task for Jev task context.".into()));
-                        }
-                        let text = if crate::codemap::looks_like_monorepo_workspace() {
+                        // Clients holding an older tool list may still send the former task
+                        // arguments. The guidance never depends on arguments, so ignore them:
+                        // keep the current registration and render the root overview.
+                        let no_arguments = serde_json::json!({});
+                        let text = if crate::codemap::looks_like_monorepo_workspace()
+                            && self.engine.activate().is_ok()
+                        {
                             // Match `overview` lifecycle behavior so the initial response can
                             // include the same root scope selection without a second MCP call.
                             self.engine.ensure_alive();
                             self.engine.trigger_refresh();
                             let ctx = ToolContext {
                                 engine: &self.engine,
-                                arguments,
+                                arguments: &no_arguments,
                                 active_workspace_scope: self.active_workspace_scope.as_deref(),
                             };
                             let root_overview = crate::tools::overview::run(&ctx)?;

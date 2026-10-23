@@ -169,6 +169,8 @@ impl Program {
                 }
             }
         }
+        // Types, namespaces and namespace imports are complete from here on.
+        program.type_index = TypeIndex::new(&program);
         program.resolve_imports();
         program.resolve_esm();
         program.resolve_rust_names();
@@ -235,7 +237,7 @@ impl Program {
             return String::new();
         }
         let source = &self.sources[source_index];
-        if self.types.values().any(|v| v == text) {
+        if self.type_index.owners.contains(text) {
             return text.into();
         }
         let unions = split_top_level(text.trim_start_matches([':', ' ']), '|');
@@ -311,7 +313,7 @@ impl Program {
         }
         if let Some(import) = self.imports.get(&(source.path.clone(), clean.clone())) {
             if let Some((path, name)) = import.rsplit_once('#') {
-                if let Some(index) = self.sources.iter().position(|s| s.path == path) {
+                if let Some(&index) = self.type_index.source_indexes.get(path) {
                     return self.resolve_type_at(index, name, "", depth + 1);
                 }
             }
@@ -324,7 +326,7 @@ impl Program {
                             return owner.clone();
                         }
                     }
-                    if let Some(index) = self.sources.iter().position(|s| &s.path == path) {
+                    if let Some(&index) = self.type_index.source_indexes.get(path) {
                         return self.resolve_type_at(index, member, "", depth + 1);
                     }
                 }
@@ -348,38 +350,45 @@ impl Program {
             .get(&source.path)
             .map(String::as_str)
             .unwrap_or_default();
+        // Visible types: the imported name, a type of the same namespace, the spelled
+        // qualified name, or a name under one of the file's namespace imports.
         let imported = self.imports.get(&(source.path.clone(), clean.clone()));
-        let candidates: BTreeSet<_> = self
-            .types
-            .iter()
-            .filter_map(|((path, name), owner)| {
-                let ns = self
-                    .namespaces
-                    .get(path)
-                    .map(String::as_str)
-                    .unwrap_or_default();
-                let qualified = format!("{ns}.{name}");
-                let visible = imported == Some(&qualified)
-                    || (!namespace.is_empty() && ns == namespace && name == &clean)
-                    || clean == qualified
-                    || self
-                        .namespace_imports
-                        .get(&source.path)
-                        .is_some_and(|prefixes| {
-                            prefixes.iter().any(|p| format!("{p}.{clean}") == qualified)
-                        });
-                visible.then_some(owner.clone())
-            })
-            .collect();
+        let index = &self.type_index;
+        let mut candidates: BTreeSet<&String> = BTreeSet::new();
+        candidates.extend(
+            imported
+                .into_iter()
+                .flat_map(|imported| index.qualified(imported)),
+        );
+        if !namespace.is_empty() {
+            candidates.extend(
+                index
+                    .by_namespace_name
+                    .get(&(namespace.to_owned(), clean.clone()))
+                    .into_iter()
+                    .flatten(),
+            );
+        }
+        candidates.extend(index.qualified(&clean));
+        for prefix in self
+            .namespace_imports
+            .get(&source.path)
+            .into_iter()
+            .flatten()
+        {
+            candidates.extend(index.qualified(&format!("{prefix}.{clean}")));
+        }
         if candidates.len() == 1 {
-            return candidates.into_iter().next().unwrap_or_default();
+            return candidates.into_iter().next().cloned().unwrap_or_default();
         }
         if source.language == "swift" {
-            let candidates: BTreeSet<_> = self
-                .types
-                .iter()
-                .filter(|((_, name), owner)| name == &clean && owner.starts_with("swift:"))
-                .map(|(_, owner)| owner.clone())
+            let candidates: BTreeSet<_> = index
+                .by_name
+                .get(&clean)
+                .into_iter()
+                .flatten()
+                .filter(|owner| owner.starts_with("swift:"))
+                .cloned()
                 .collect();
             if candidates.len() == 1 {
                 return candidates.into_iter().next().unwrap();

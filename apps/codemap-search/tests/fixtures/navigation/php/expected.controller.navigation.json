@@ -48,6 +48,30 @@
         "implementations": [],
         "calls": [
           {
+            "name": "parse",
+            "range": {
+              "startLine": 5,
+              "startCol": 16,
+              "endLine": 5,
+              "endCol": 32
+            },
+            "receiver": {
+              "name": "Request",
+              "arguments": [],
+              "range": {
+                "startLine": 5,
+                "startCol": 16,
+                "endLine": 5,
+                "endCol": 32
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "handle",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "type"
+          },
+          {
             "name": "submit",
             "range": {
               "startLine": 6,
@@ -68,7 +92,8 @@
             "namespace": "",
             "enclosingSymbol": "handle",
             "argumentCount": 1,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

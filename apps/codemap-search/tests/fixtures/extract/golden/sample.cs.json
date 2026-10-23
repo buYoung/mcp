@@ -341,6 +341,30 @@
           "implementations": [],
           "calls": [
             {
+              "name": "Trace",
+              "range": {
+                "startLine": 21,
+                "startCol": 9,
+                "endLine": 21,
+                "endCol": 24
+              },
+              "receiver": {
+                "name": "Helpers",
+                "arguments": [],
+                "range": {
+                  "startLine": 21,
+                  "startCol": 9,
+                  "endLine": 21,
+                  "endCol": 24
+                }
+              },
+              "namespace": "Demo.Worker",
+              "enclosingSymbol": "Execute",
+              "argumentCount": 0,
+              "conditions": [],
+              "receiverKind": "type"
+            },
+            {
               "name": "WorkerAlias",
               "range": {
                 "startLine": 22,
@@ -361,7 +385,32 @@
               "namespace": "Demo.Worker",
               "enclosingSymbol": "Execute",
               "argumentCount": 1,
-              "conditions": []
+              "conditions": [],
+              "receiverKind": "value"
+            },
+            {
+              "name": "Invoke",
+              "range": {
+                "startLine": 23,
+                "startCol": 9,
+                "endLine": 23,
+                "endCol": 49
+              },
+              "receiver": {
+                "name": "EventHandler",
+                "arguments": [],
+                "range": {
+                  "startLine": 23,
+                  "startCol": 9,
+                  "endLine": 23,
+                  "endCol": 49
+                }
+              },
+              "namespace": "Demo.Worker",
+              "enclosingSymbol": "Execute",
+              "argumentCount": 2,
+              "conditions": [],
+              "receiverKind": "value"
             }
           ]
         }

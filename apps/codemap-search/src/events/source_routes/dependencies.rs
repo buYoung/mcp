@@ -2,13 +2,36 @@
 //! retained even when they contribute no displayed endpoint.
 use super::model::{Fact, Relation};
 use super::syntax::Program;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 impl Program {
     pub fn dependency_graph(&self) -> (BTreeMap<String, BTreeSet<String>>, BTreeSet<String>) {
         let mut graph = BTreeMap::new();
         let mut incomplete = BTreeSet::new();
         let paths: BTreeSet<_> = self.sources.iter().map(|s| s.path.as_str()).collect();
+        // Source groups looked up per file, instead of rescanning every source for each one.
+        let swift_paths: Vec<&String> = self
+            .sources
+            .iter()
+            .filter(|source| source.language == "swift")
+            .map(|source| &source.path)
+            .collect();
+        let mut paths_by_namespace: HashMap<&str, Vec<&String>> = HashMap::new();
+        let mut go_paths_by_namespace: HashMap<String, Vec<&String>> = HashMap::new();
+        for (index, source) in self.sources.iter().enumerate() {
+            if let Some(namespace) = self.namespaces.get(&source.path) {
+                paths_by_namespace
+                    .entry(namespace.as_str())
+                    .or_default()
+                    .push(&source.path);
+            }
+            if source.language == "go" {
+                go_paths_by_namespace
+                    .entry(self.type_namespace(index))
+                    .or_default()
+                    .push(&source.path);
+            }
+        }
         for source in &self.sources {
             let mut selected = BTreeSet::from([source.path.clone()]);
             let namespace = self
@@ -35,47 +58,37 @@ impl Program {
                     }
                 }
             }
-            for candidate in &self.sources {
-                if source.language == "swift" && candidate.language == "swift"
-                    || !namespace.is_empty()
-                        && self.namespaces.get(&candidate.path) == Some(&namespace)
-                {
-                    selected.insert(candidate.path.clone());
-                }
+            if source.language == "swift" {
+                selected.extend(swift_paths.iter().map(|path| (*path).clone()));
             }
-            for ((path, _), import) in &self.imports {
-                if path != &source.path {
-                    continue;
-                }
+            if !namespace.is_empty() {
+                selected.extend(
+                    paths_by_namespace
+                        .get(namespace.as_str())
+                        .into_iter()
+                        .flatten()
+                        .map(|path| (*path).clone()),
+                );
+            }
+            for (_, import) in self
+                .imports
+                .range((source.path.clone(), String::new())..)
+                .take_while(|((path, _), _)| path == &source.path)
+            {
                 let path = import.split('#').next().unwrap_or(import);
                 if paths.contains(path) {
                     selected.insert(path.into());
                 }
-                for candidate in &self.sources {
-                    if candidate.language == "go"
-                        && self.type_namespace(
-                            self.sources
-                                .iter()
-                                .position(|s| s.path == candidate.path)
-                                .unwrap(),
-                        ) == path
-                    {
-                        selected.insert(candidate.path.clone());
-                    }
-                }
-                for ((path, name), owner) in &self.types {
-                    let qualified = format!(
-                        "{}.{}",
-                        self.namespaces
-                            .get(path)
-                            .map(String::as_str)
-                            .unwrap_or_default(),
-                        name
-                    );
-                    if &qualified == import {
-                        if let Some(index) = self.owner_sources.get(owner) {
-                            selected.insert(self.sources[*index].path.clone());
-                        }
+                selected.extend(
+                    go_paths_by_namespace
+                        .get(path)
+                        .into_iter()
+                        .flatten()
+                        .map(|path| (*path).clone()),
+                );
+                for owner in self.type_index.qualified(import) {
+                    if let Some(index) = self.owner_sources.get(owner) {
+                        selected.insert(self.sources[*index].path.clone());
                     }
                 }
             }
@@ -85,22 +98,9 @@ impl Program {
                 .into_iter()
                 .flatten()
             {
-                for ((path, name), owner) in &self.types {
-                    let qualified = format!(
-                        "{}.{}",
-                        self.namespaces
-                            .get(path)
-                            .map(String::as_str)
-                            .unwrap_or_default(),
-                        name
-                    );
-                    if qualified
-                        .strip_prefix(prefix)
-                        .is_some_and(|rest| rest.starts_with('.'))
-                    {
-                        if let Some(index) = self.owner_sources.get(owner) {
-                            selected.insert(self.sources[*index].path.clone());
-                        }
+                for owner in self.type_index.under_prefix(prefix) {
+                    if let Some(index) = self.owner_sources.get(owner) {
+                        selected.insert(self.sources[*index].path.clone());
                     }
                 }
             }
@@ -128,7 +128,7 @@ impl Program {
                 selected.insert(self.sources[*index].path.clone());
             }
             if let Some((path, _)) = value.name.split_once(':') {
-                if self.sources.iter().any(|s| s.path == path) {
+                if self.type_index.source_indexes.contains_key(path) {
                     selected.insert(path.into());
                 }
             }

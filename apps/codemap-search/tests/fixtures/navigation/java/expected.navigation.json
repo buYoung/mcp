@@ -185,7 +185,8 @@
             "namespace": "Controller",
             "enclosingSymbol": "run",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           },
           {
             "name": "save",
@@ -208,7 +209,8 @@
             "namespace": "Controller",
             "enclosingSymbol": "run",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

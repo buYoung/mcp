@@ -2,7 +2,7 @@
 
 한국어 | [English](./README.md)
 
-코딩 에이전트용 독립 실행형 MCP stdio 서버와 CLI입니다. 저장소 구조를 보고, 심볼·설명·문자열을 BM25로 검색한 뒤 내장 `read`, `find`, `grep`으로 원문을 확인합니다. Tree-sitter 문법, Tantivy와 ripgrep 라이브러리를 하나의 Rust 바이너리에 포함하므로 시스템 `rg`, 언어 서버, 별도 런타임, 계정이나 API 키가 필요하지 않습니다.
+코딩 에이전트용 독립 실행형 MCP stdio 서버와 CLI입니다. 저장소 구조를 보고, 심볼·설명·문자열을 BM25로 검색한 뒤 내장 `read`, `find`, `grep`으로 원문을 확인합니다. Tree-sitter 문법, Tantivy와 ripgrep 라이브러리를 하나의 Rust 바이너리에 포함하므로 시스템 `rg`, 언어 서버, 별도 런타임, 계정이나 API 키가 필요하지 않습니다. 기본 설정에서는 네트워크 요청을 하지 않습니다. 관련어 기능을 켜면 고정 데이터셋을 한 번 내려받으며, `related_terms.dataset_path`로 로컬 파일을 지정하면 내려받지 않습니다. 같은 데이터셋 id를 쓰는 업그레이드는 기존 파일을 재사용합니다.
 
 ## 설치
 
@@ -96,13 +96,20 @@ MCP 초기화 시 또는 설정 변경을 다시 읽은 뒤 다음 요청에서 
 | 도구 | 용도 | 주요 인자 |
 |---|---|---|
 | `initial_instructions` | 등록한 작업을 바꾸지 않고 탐색 안내 반환 | 없음; `{}`로 호출 |
-| `register_task` | 켜진 Jev 필터를 쓰기 전에 작업 등록 | `task_query`, `questions`(필수), `match` |
+| `register_task` | 켜진 Jev 필터를 쓰기 전에 작업 등록. Jev가 켜졌을 때만 목록에 나옴 | `task_query`, `questions`(필수), `match` |
 | `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
 | `read` | 줄 번호와 함께 원문 읽기 | `file_path`, `offset`, `limit` |
 | `analyze` | 인덱스 용량 또는 기록된 읽기 동작을 압축 JSON으로 분석 | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
+| `synonyms` (선택형) | 로컬 뜻 사전에서 분야·주제별 대체 이름 조회 | `terms`: 선별한 검색 의미 단위 또는 한 개념을 이루는 기술 용어 1–16개 |
+
+`related_terms.enabled = true`로 켜고, 호출 전에 문맥에 맞는 검색 의미 단위를 선별합니다. 예를 들어 `AvatarService`는 `{"terms":["avatar"]}`로 호출합니다. 복합 식별자나 이름 전체를 띄어 쓴 표현을 그대로 넘기지 않으며, 문맥상 불필요한 연결어·역할 표현은 제외합니다. `abort signal`처럼 한 개념을 이루는 기술 용어는 한 항목으로 넘깁니다. 서버가 구 전체를 먼저 찾고 그다음 단어를 찾으므로, 단어로 나누면 구의 뜻을 잃을 수 있습니다. 준비는 다른 도구를 막지 않고 백그라운드에서 실행하며 현재 상태를 반환합니다. 출력은 표시 그룹 6개, 그룹별 직접 관련어 20개·가까운 말 10개·같은 주제 단어 10개까지 보여 주고 잘림을 알립니다. 같은 근거 우선순위 안에서 분야·주제가 같은 뜻을 합치고, 근거가 있는 뜻을 밀어내지 않는 범위에서 입력 부분별로 표시 예산을 나눕니다. 현재 소스 체크아웃의 데이터 릴리스는 아직 게시되지 않았으므로 공개되기 전에는 `related_terms.dataset_path`로 로컬 `rt-sense/5` 파일을 지정해야 합니다. 사용자 파일은 복사한 뒤 색인합니다.
+
+코드베이스 근거가 준비되면 색인된 코드 이름에서 찾히는 뜻과 단어를 앞세웁니다. 코드 이름은 선언 이름(심볼과 TypeScript·JavaScript·C·C++ 데이터 멤버)과 import하거나 호출한 이름입니다. 데이터 멤버는 근거용으로만 모으고 검색 심볼로 만들지 않습니다. 그래서 `EventEmitter`처럼 의존성이 선언한 타입도 코드에서 쓰이면 코드에 있는 것으로 봅니다. 입력을 포함한 직접 관련 용어가 코드에 있는 뜻을 맨 앞에 두고 그 용어를 표시합니다(`code uses "abort signal"`). 다른 직접·가까운 관련어가 코드에 있는 뜻이 그다음이며, 같은 주제 단어만으로는 근거로 보지 않습니다. 부분으로 해석된 구 입력은 모든 부분이 코드에 있으면 입력이 있는 것으로 봅니다. 단어 줄에는 보여 준 단어 중 코드에 있는 수를 표시합니다. 새 유의어를 발굴하지 않으며, 제품에서는 근거가 없는 뜻을 제거하지 않습니다. 근거 준비 중이거나 입력 또는 모든 뜻에 근거가 없으면 사전의 뜻 순서를 유지합니다. 근거는 브랜치 변경을 포함한 인덱스 갱신을 따라갑니다. 사전 준비와 코드베이스 근거 준비 상태는 단어 목록보다 앞에 표시합니다. 입력은 `terms`만 받으며, 분야·주제는 입력 필터가 아니라 응답에서 고르는 분류입니다. 전체 조회 결과는 바꾸지 않습니다. 조회 진단 줄은 입력을 되풀이하는 것 이상의 정보가 있을 때만 보여 줍니다. 조회 시도 목록은 8개까지 보여 주고 생략 수를 알립니다. 영어가 아닌 입력이 사전에 없으면 영어 코드 용어로 다시 조회하라고 안내합니다.
+
+오프라인 [Luna/Pi 리플레이](../../docs/related-terms/luna-replay.html)는 앞서 관측한 로그를 입력 거절·시간 초과까지 포함해 재구성합니다. 화면 녹화나 이번 표시 개선의 효과를 측정한 자료는 아닙니다.
 
 MCP 도구 `search`·`read`·`grep`은 공통 불리언 옵션 `include_seen`을 제공하며 기본값은 `false`입니다. 이미 전달한 변경 없는 소스와 같은 응답 안의 반복 소스를 생략합니다. 새 원문은 유지하고 응답마다 `<--removed duplicated-->` 안내를 한 번만 남깁니다. `include_seen=true`는 이 중복 제거만 우회하며 Jev·마스킹·출력 상한은 그대로 적용합니다. `find`는 중복 제거에서 제외하며 매번 현재 결과를 반환합니다. 전달 이력은 연결별로 관리하고 초기화·작업 등록·설정 변경 시 지웁니다. 파일이 바뀌면 새 원문을 반환하며 Jev가 꺼져 있어도 중복 제거는 적용됩니다.
 
@@ -147,11 +154,11 @@ MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 �
 
 ## 선택적 Jev 판단 단계
 
-Jev는 search·read·grep의 완전한 함수 본문을 등록한 작업 질문으로 판단하며 기본으로 꺼져 있습니다. `output.jev.enabled=true`로 켜고 `scope`로 적용 도구를 선택합니다(기본 `["overview", "search", "read", "grep"]`). `enabled=false`이면 모든 필터를 끄고, `scope=[]`이면 아무 도구에도 적용하지 않습니다. API 키는 `.codemap/auth.toml`의 `[jev].api_key`에 저장합니다. 전역 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)도 지원하며, 저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수 순서로 읽습니다. 인증 파일은 색인과 기본 find/grep에서 제외합니다.
+Jev는 search·read·grep의 완전한 함수 본문을 등록한 작업 질문으로 판단하며 기본으로 꺼져 있습니다. `output.jev.enabled=true`로 켜고 `scope`로 적용 도구를 선택합니다(기본 `["overview", "search", "read", "grep"]`). `enabled=false`이면 모든 필터를 끄고, `scope=[]`이면 아무 도구에도 적용하지 않습니다. API 키는 `.codemap/auth.toml`의 `[jev].api_key`에 저장합니다. 전역 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)도 지원하며, 저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수 순서로 읽습니다. 인증 파일은 색인과 기본 find/grep에서 제외합니다. `openai/gpt-6-luna-decisions` 같은 OpenRouter decision 모델을 쓰려면 `output.jev.model`에 지정하고 OpenRouter 키를 `[openrouter].api_key`(대체값 `OPENROUTER_API_KEY`)에 저장합니다. 이 키는 OpenRouter Decisions API로만 보내며, decision을 지원하지 않는 모델은 OpenRouter가 거부합니다. 기본 모델은 `jev-1.14.0`입니다. [OpenRouter decision 모델](./docs/configuration.ko.md#openrouter-decision-모델)을 참고하세요.
 
 주 에이전트는 켜진 필터를 쓰기 전에 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `register_task`에 한 번 등록합니다. 질문마다 `question`, `when_true`, `when_false`를 넣습니다. ID는 서버가 생성하며 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 텍스트만 등록하면 인수 오류를 반환합니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다.
 
-켜진 search·read·grep 필터는 마스킹한 목적·질문·함수 근거를 TypeSafe에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. 루트 외 overview는 같은 기준으로 선언 목록을 걸러내며, 판정용 본문은 응답과 중복 제거 이력에 넣지 않습니다. `initial_instructions`·루트 overview·find는 로컬 도구로 유지하며 작업 등록이 필요하지 않습니다. Jev 생략 없이 read로 복구하려면 `output.jev.scope`에서 `"read"`를 빼거나 `output.jev.enabled=false`로 끕니다. `include_seen=true`는 공통 중복 제거만 우회합니다. 제공자 실패 시 일반 선택 결과를 유지하며, 독립적인 MCP 중복 전달 규칙은 그대로 적용됩니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
+켜진 search·read·grep 필터는 마스킹한 목적·질문·함수 근거를 선택한 제공자(TypeSafe 또는 OpenRouter)에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. 루트 외 overview는 같은 기준으로 선언 목록을 걸러내며, 판정용 본문은 응답과 중복 제거 이력에 넣지 않습니다. `initial_instructions`·루트 overview·find는 로컬 도구로 유지하며 작업 등록이 필요하지 않습니다. Jev 생략 없이 read로 복구하려면 `output.jev.scope`에서 `"read"`를 빼거나 `output.jev.enabled=false`로 끕니다. `include_seen=true`는 공통 중복 제거만 우회합니다. 제공자 실패 시 일반 선택 결과를 유지하며, 독립적인 MCP 중복 전달 규칙은 그대로 적용됩니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
 
 ## 지원 언어와 형식
 
@@ -235,7 +242,7 @@ MCP `analyze` 도구도 현재 작업공간에 같은 분석을 제공합니다.
 
 ## 색인·진단·제한
 
-MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신합니다. Git HEAD 변경과 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index.refresh.index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
+MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 기본값 `[index] mode = "auto"`에서는 첫 `search`, `overview`, `read`, `grep` 호출 때 색인을 시작하며, 색인 대상 파일이 50,000개 이하인 저장소 안에서만 색인합니다. 저장소 여러 개를 담은 폴더 같은 그 밖의 폴더에서는 `search`·`overview`가 색인하지 않는 이유를 알려 줍니다. 그래도 색인하려면 `mode = "on"`을 설정하세요([색인 시작 시점](./docs/configuration.ko.md#색인-시작-시점) 참고). 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신하며, ignore 파일이 숨기는 경로는 건너뜁니다. Git HEAD 변경, ignore 파일 변경, 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index.refresh.index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
 
 - `index.max_file_bytes` 기본값인 1 MiB보다 큰 파일은 색인·코드맵에서 건너뜁니다.
 - `.txt`, 잠금 파일, source map, 압축·번들 파일에는 별도 파일 제외 규칙이 있습니다. `find`·`grep`의 `include_ignored`로 우회할 수 있고, 직접 `read`·`parse`도 가능합니다.

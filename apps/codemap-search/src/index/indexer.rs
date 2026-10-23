@@ -11,7 +11,7 @@
 //! search path and satisfies tantivy's single-writer rule for free; no extra dependency
 //! (e.g. crossbeam) earns its keep for one producer / one consumer at this message rate.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::mpsc::{sync_channel, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
@@ -24,6 +24,16 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 /// key. The stable `(path, range)` record order makes truncation deterministic.
 const STATIC_COLLECTION_RECORDS_PER_KEY_AND_KIND_MAX: usize = 64;
 const INDEXER_RETRY_DELAY_MS: u64 = 1_000;
+/// Ceiling of the doubling retry delay while passes keep failing.
+const INDEXER_MAX_RETRY_DELAY_MS: u64 = 30_000;
+static NEXT_PUBLICATION_ID: AtomicU64 = AtomicU64::new(1);
+
+/// A bounded latest-generation feed; subscribing does not request an index refresh.
+#[derive(Clone)]
+pub(crate) struct SnapshotSource {
+    pub id: u64,
+    pub receiver: tokio::sync::watch::Receiver<Arc<PublishedIndexSnapshot>>,
+}
 
 /// Message to the indexer thread.
 pub enum IndexCommand {
@@ -62,8 +72,14 @@ pub struct IndexerStatus {
     /// may return empty/partial results and say so.
     pub initial_index_done: AtomicBool,
     /// Last background refresh error, if any, so a failing refresh surfaces as a note
-    /// instead of silently serving stale results.
+    /// instead of silently serving stale results. Waiting for another process's writer is
+    /// not an error: that process keeps the shared index current.
     pub last_error: Mutex<Option<String>>,
+    /// Set while passes wait for another process's writer, so the wait logs once.
+    pub is_waiting_for_writer: AtomicBool,
+    /// Failed passes in a row, apart from waiting for another process's writer. Drives the
+    /// retry backoff and one warning per failure streak.
+    pub consecutive_failures: AtomicUsize,
     /// Set once the indexer thread is gone (panicked or exited): the receiver is dropped, so
     /// `trigger_refresh` observes `Disconnected`. Results then stay frozen at the last
     /// commit, so responses warn instead of implying freshness.
@@ -79,6 +95,8 @@ pub type CodemapSnapshot = Arc<Vec<ExtractedFile>>;
 /// in lock-step for every search.
 #[derive(Debug, Clone)]
 pub struct PublishedIndexSnapshot {
+    generation: u64,
+    index_pass_ms: f64,
     codemap: CodemapSnapshot,
     event_index: crate::events::EventIndex,
     implementation_index: crate::implementations::ImplementationIndex,
@@ -222,6 +240,8 @@ impl PublishedIndexSnapshot {
             )
         };
         Self {
+            generation: 0,
+            index_pass_ms: 0.0,
             codemap: files,
             event_index,
             implementation_index,
@@ -245,6 +265,14 @@ impl PublishedIndexSnapshot {
     }
     pub(crate) fn flows(&self) -> &crate::flow::FlowIndex {
         &self.flow_index
+    }
+
+    pub(crate) fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub(crate) fn index_pass_ms(&self) -> f64 {
+        self.index_pass_ms
     }
 
     pub fn codemap(&self) -> CodemapSnapshot {
@@ -346,6 +374,8 @@ pub struct IndexerHandle {
     sender: Option<SyncSender<IndexCommand>>,
     pub status: Arc<IndexerStatus>,
     snapshot: Arc<Mutex<Arc<PublishedIndexSnapshot>>>,
+    publications: tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
+    source_id: u64,
     generation_gate: Arc<RwLock<()>>,
     join_handle: Option<JoinHandle<()>>,
 }
@@ -374,6 +404,13 @@ impl IndexerHandle {
     /// The complete immutable index generation used by collection relation rendering.
     pub fn published_snapshot(&self) -> Arc<PublishedIndexSnapshot> {
         self.snapshot.lock().unwrap().clone()
+    }
+
+    pub(crate) fn snapshot_source(&self) -> SnapshotSource {
+        SnapshotSource {
+            id: self.source_id,
+            receiver: self.publications.subscribe(),
+        }
     }
 
     pub fn search_with_context(
@@ -451,23 +488,41 @@ impl Drop for IndexerHandle {
 /// Spawn the background indexer, taking ownership of `engine` (the single tantivy writer).
 /// The initial indexing pass runs immediately on the new thread; the server serves requests
 /// against the current reader snapshot meanwhile.
-pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
+pub fn spawn_indexer(engine: TantivySearchEngine) -> IndexerHandle {
+    spawn_indexer_thread(engine, false)
+}
+
+/// Like [`spawn_indexer`], but the initial pass waits for the first command, so a workspace
+/// whose indexing is deferred is not walked until an index-backed tool asks for it.
+pub fn spawn_dormant_indexer(engine: TantivySearchEngine) -> IndexerHandle {
+    spawn_indexer_thread(engine, true)
+}
+
+fn spawn_indexer_thread(mut engine: TantivySearchEngine, is_dormant: bool) -> IndexerHandle {
     let (sender, receiver) = sync_channel::<IndexCommand>(1);
     let status = Arc::new(IndexerStatus::default());
-    let snapshot: Arc<Mutex<Arc<PublishedIndexSnapshot>>> =
-        Arc::new(Mutex::new(Arc::new(PublishedIndexSnapshot::empty())));
+    let initial = Arc::new(PublishedIndexSnapshot::empty());
+    let (publications, _) = tokio::sync::watch::channel(Arc::clone(&initial));
+    let source_id = NEXT_PUBLICATION_ID.fetch_add(1, Ordering::Relaxed);
+    let snapshot: Arc<Mutex<Arc<PublishedIndexSnapshot>>> = Arc::new(Mutex::new(initial));
     let generation_gate = Arc::new(RwLock::new(()));
 
     let thread_status = Arc::clone(&status);
     let thread_snapshot = Arc::clone(&snapshot);
+    let thread_publications = publications.clone();
     let thread_generation_gate = Arc::clone(&generation_gate);
     let join_handle = std::thread::Builder::new()
         .name("codemap-indexer".to_string())
         .spawn(move || {
+            // The waking command only starts the initial pass, which walks everything.
+            if is_dormant && receiver.recv().is_err() {
+                return;
+            }
             // Initial pass: hydrate from a warm on-disk index or build it from scratch.
             let is_initial_successful = run_refresh_pass(
                 &mut engine,
                 &thread_status,
+                &thread_publications,
                 &thread_snapshot,
                 &thread_generation_gate,
                 true,
@@ -481,9 +536,7 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
             loop {
                 let should_retry = pending.is_some();
                 let command = if let Some(pending_command) = pending.take() {
-                    let command = match receiver
-                        .recv_timeout(std::time::Duration::from_millis(INDEXER_RETRY_DELAY_MS))
-                    {
+                    let command = match receiver.recv_timeout(retry_delay(&thread_status)) {
                         Ok(command) => pending_command.merge(command),
                         Err(RecvTimeoutError::Timeout) => pending_command,
                         Err(RecvTimeoutError::Disconnected) => break,
@@ -503,6 +556,7 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
                     IndexCommand::Refresh => run_refresh_pass(
                         &mut engine,
                         &thread_status,
+                        &thread_publications,
                         &thread_snapshot,
                         &thread_generation_gate,
                         should_retry,
@@ -510,6 +564,7 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
                     IndexCommand::RefreshPaths(paths) => run_paths_pass(
                         &mut engine,
                         &thread_status,
+                        &thread_publications,
                         &thread_snapshot,
                         &thread_generation_gate,
                         paths,
@@ -527,6 +582,8 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
         sender: Some(sender),
         status,
         snapshot,
+        publications,
+        source_id,
         generation_gate,
         join_handle: Some(join_handle),
     }
@@ -537,19 +594,22 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
 fn run_refresh_pass(
     engine: &mut TantivySearchEngine,
     status: &IndexerStatus,
+    publications: &tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
     should_force_publish: bool,
 ) -> bool {
     let _config_scope = crate::config::pin_request();
+    let pass_started = std::time::Instant::now();
     let result = engine.index_files_changed_deferred(&["."]);
     publish_pass_result(
         engine,
         status,
+        publications,
         snapshot,
         generation_gate,
-        result,
-        should_force_publish,
+        result.map(|has_changes| has_changes || should_force_publish),
+        pass_started,
     )
 }
 
@@ -558,41 +618,48 @@ fn run_refresh_pass(
 fn run_paths_pass(
     engine: &mut TantivySearchEngine,
     status: &IndexerStatus,
+    publications: &tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
     paths: &[std::path::PathBuf],
     should_force_publish: bool,
 ) -> bool {
     let _config_scope = crate::config::pin_request();
+    let pass_started = std::time::Instant::now();
     let result = engine.refresh_paths_deferred(paths);
     publish_pass_result(
         engine,
         status,
+        publications,
         snapshot,
         generation_gate,
-        result,
-        should_force_publish,
+        result.map(|has_changes| has_changes || should_force_publish),
+        pass_started,
     )
 }
 
-/// Record a pass result on the shared status and republish the codemap snapshot when the
-/// index changed (or on the initial pass, to hydrate from a warm on-disk index).
+/// Record a pass result and republish the codemap snapshot when requested by the caller.
 fn publish_pass_result(
     engine: &TantivySearchEngine,
     status: &IndexerStatus,
+    publications: &tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
     generation_gate: &RwLock<()>,
-    result: Result<bool, String>,
-    should_force_publish: bool,
+    should_publish: Result<bool, String>,
+    pass_started: std::time::Instant,
 ) -> bool {
     let publication = (|| -> Result<(), String> {
-        if result? || should_force_publish {
-            let published_snapshot = engine.load_published_snapshot()?;
+        if should_publish? {
+            let mut published_snapshot = engine.load_published_snapshot()?;
+            published_snapshot.generation = NEXT_PUBLICATION_ID.fetch_add(1, Ordering::Relaxed);
             // Build the derived data before taking the short generation lock. Failed
             // reconstruction keeps both the request reader and codemap on the old view.
             let _generation_guard = generation_gate.write().unwrap();
             engine.reload_reader()?;
-            *snapshot.lock().unwrap() = Arc::new(published_snapshot);
+            published_snapshot.index_pass_ms = pass_started.elapsed().as_secs_f64() * 1000.0;
+            let published_snapshot = Arc::new(published_snapshot);
+            *snapshot.lock().unwrap() = Arc::clone(&published_snapshot);
+            publications.send_replace(published_snapshot);
         }
         Ok(())
     })();
@@ -600,19 +667,45 @@ fn publish_pass_result(
     match publication {
         Ok(()) => {
             *last_error = None;
+            status.is_waiting_for_writer.store(false, Ordering::Relaxed);
+            let failures = status.consecutive_failures.swap(0, Ordering::Relaxed);
+            if failures > 0 {
+                tracing::info!(failures, "background index refresh recovered");
+            }
             status.initial_index_done.store(true, Ordering::Release);
             true
         }
         Err(error) => {
-            if last_error.as_ref() != Some(&error) {
-                if engine.is_waiting_for_writer {
+            if engine.is_waiting_for_writer {
+                // Keep `last_error` for real failures: tools withhold callers and warn about
+                // stale results while it is set, which a peer's write does not warrant.
+                if !status.is_waiting_for_writer.swap(true, Ordering::Relaxed) {
                     tracing::debug!("background index refresh waiting for writer: {}", error);
-                } else {
-                    tracing::warn!("background index refresh failed: {}", error);
                 }
+                return false;
+            }
+            status.is_waiting_for_writer.store(false, Ordering::Relaxed);
+            if status.consecutive_failures.fetch_add(1, Ordering::Relaxed) == 0 {
+                // Messages often name a fresh temporary file, so one warning per failure
+                // streak instead of one per distinct message; retries log at debug level.
+                tracing::warn!("background index refresh failed: {}", error);
+            } else {
+                tracing::debug!("background index refresh still failing: {}", error);
             }
             *last_error = Some(error);
             false
         }
     }
+}
+
+/// Wait before retrying a failed pass: the base delay while another process holds the writer,
+/// doubling per consecutive failure up to [`INDEXER_MAX_RETRY_DELAY_MS`] otherwise. A new
+/// change event still wakes the loop at once.
+fn retry_delay(status: &IndexerStatus) -> std::time::Duration {
+    let failures = status
+        .consecutive_failures
+        .load(Ordering::Relaxed)
+        .clamp(1, 16) as u32;
+    let delay = INDEXER_RETRY_DELAY_MS.saturating_mul(1 << (failures - 1));
+    std::time::Duration::from_millis(delay.min(INDEXER_MAX_RETRY_DELAY_MS))
 }

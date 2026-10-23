@@ -670,7 +670,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
         .unwrap_or_else(|| panic!("no applied stage line in:\n{log}"));
     assert_eq!(applied["tool"], "search");
     assert_eq!(applied["status"], "applied");
-    assert_eq!(applied["model"], "jev-1.13.0");
+    assert_eq!(applied["model"], "jev-1.14.0");
     assert_eq!(
         applied["versions"],
         "search-task-evidence/8 search-task-questions/9 search-selection-policy/6-experimental"
@@ -697,10 +697,14 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
             && applied.contains_key("queue_ms"),
         "{applied:?}"
     );
+    // A search between the first snapshot publication and the end of warm-up sees results
+    // it cannot yet verify, so it bypasses as stale; later searches see the same snapshot.
     assert!(
         stages.iter().all(|stage| (stage["tool"] == "search"
             && (stage["outcome"] == "applied"
-                || (stage["outcome"] == "bypassed" && stage["status"] == "no_ranked_candidates")))
+                || (stage["outcome"] == "bypassed"
+                    && ["no_ranked_candidates", "bypassed:stale_snapshot"]
+                        .contains(&stage["status"].as_str()))))
             || (stage["tool"] == "read"
                 && stage["outcome"] == "bypassed"
                 && stage["status"] == "bypassed:no_complete_bodies")),
@@ -928,4 +932,105 @@ async fn test_jev_stale_files_are_protected_and_metadata_only_files_are_not_read
         counts["omitted"], "1",
         "keepMe (verified, judged 0.99) is omitted: {applied:?}"
     );
+}
+
+#[tokio::test]
+async fn test_jev_filtered_read_has_no_outside_caller_trailer() {
+    // `keepMe` has a caller below the read window.
+    let source = format!(
+        "{BUDGET_TS}\nexport function spend(): number {{\n  return keepMe(10, \"x\", 5);\n}}\n"
+    );
+    let temp = create_mock_repo(&[
+        (".codemap/config.toml", FILTER_ONLY),
+        ("src/budget.ts", source.as_str()),
+    ])
+    .unwrap();
+    let evaluator = Arc::new(body_judge(&[]));
+    with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
+        let arguments = json!({ "file_path": "src/budget.ts", "offset": 1, "limit": 8, "view": "source", "include_seen": true });
+        let header = "[Callers from outside this window";
+        // Without Jev the window ends with its outside caller once the index is ready.
+        let started = std::time::Instant::now();
+        let plain = loop {
+            let response = client.plain_call("read", arguments.clone()).await.unwrap();
+            let text = response_text(&response).to_string();
+            if text.contains(header) || started.elapsed() > Duration::from_secs(15) {
+                break text;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        };
+        assert!(plain.contains(header) && plain.contains("spend ("), "{plain}");
+        // A filtered read judges source rows only, so no trailer can bypass its omissions.
+        let filtered = client
+            .call("tools/call", json!({ "name": "read", "arguments": arguments }))
+            .await
+            .unwrap();
+        let filtered = response_text(&filtered);
+        assert!(!filtered.contains(header), "{filtered}");
+        assert!(filtered.contains("1→export function keepMe"), "{filtered}");
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn test_initial_instructions_ignores_arguments_and_registers_no_task() {
+    // Clients holding an older tool list still send the former task arguments. With Jev off
+    // or on, the guidance matches the {} call and no task is registered.
+    let legacy_arguments = [
+        json!({ "task_query": TASK }),
+        json!({ "task_query": TASK, "match": "any", "questions": [{
+            "question": "Does this function reserve the output budget?",
+            "when_true": "It reserves or caps the output budget.",
+            "when_false": "It has no output-budget role."
+        }] }),
+        json!({ "path": "src", "workspace_scope": "src" }),
+    ];
+    for config in [None, Some(FILTER_ONLY)] {
+        let mut files = vec![("src/budget.ts", BUDGET_TS)];
+        files.extend(config.map(|config| (".codemap/config.toml", config)));
+        let temp = create_mock_repo(&files).unwrap();
+        let evaluator = Arc::new(body_judge(&[]));
+        let judge = Arc::clone(&evaluator);
+        let legacy_arguments = legacy_arguments.clone();
+        run_server(temp.path(), Some(evaluator), |mut client| async move {
+            let expected = client
+                .call(
+                    "tools/call",
+                    json!({ "name": "initial_instructions", "arguments": {} }),
+                )
+                .await
+                .unwrap();
+            assert!(!response_text(&expected).is_empty(), "{expected}");
+            for arguments in &legacy_arguments {
+                let response = client
+                    .call(
+                        "tools/call",
+                        json!({ "name": "initial_instructions", "arguments": arguments }),
+                    )
+                    .await
+                    .unwrap();
+                assert!(response["error"].is_null(), "{arguments}: {response}");
+                assert_eq!(
+                    response_text(&response),
+                    response_text(&expected),
+                    "{arguments}"
+                );
+            }
+            if config.is_some() {
+                let search = client
+                    .call(
+                        "tools/call",
+                        json!({ "name": "search", "arguments": search_arguments("keepMe") }),
+                    )
+                    .await
+                    .unwrap();
+                let message = search["error"]["message"]
+                    .as_str()
+                    .unwrap_or_else(|| response_text(&search));
+                assert!(message.contains("register_task"), "{search}");
+            }
+            assert_eq!(judge.request_count(), 0, "no task reached the evaluator");
+        })
+        .await;
+    }
 }

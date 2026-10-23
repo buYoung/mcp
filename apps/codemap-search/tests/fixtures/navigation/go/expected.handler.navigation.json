@@ -204,7 +204,8 @@
             "argumentCount": 1,
             "conditions": [
               "conditional declaration requires unavailable compile/runtime facts"
-            ]
+            ],
+            "receiverKind": "value"
           },
           {
             "name": "Context",
@@ -227,7 +228,8 @@
             "namespace": "checkout",
             "enclosingSymbol": "ServeHTTP",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           },
           {
             "name": "WriteHeader",
@@ -252,7 +254,8 @@
             "argumentCount": 1,
             "conditions": [
               "conditional declaration requires unavailable compile/runtime facts"
-            ]
+            ],
+            "receiverKind": "value"
           }
         ]
       }

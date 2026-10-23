@@ -14,6 +14,8 @@
 
 pub(crate) mod exclusions;
 
+use std::collections::{HashMap, HashSet};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -177,14 +179,14 @@ fn is_always_excluded_file(path: &Path) -> bool {
             && file_name != "CMakeLists.txt")
 }
 
-fn user_home_dir() -> Option<PathBuf> {
+pub(crate) fn user_home_dir() -> Option<PathBuf> {
     std::env::var_os("HOME")
         .filter(|value| !value.is_empty())
         .or_else(|| std::env::var_os("USERPROFILE").filter(|value| !value.is_empty()))
         .map(PathBuf::from)
 }
 
-fn path_resolved_from_cwd(path: &Path) -> PathBuf {
+pub(crate) fn path_resolved_from_cwd(path: &Path) -> PathBuf {
     let absolute = if path.is_absolute() {
         path.to_path_buf()
     } else {
@@ -347,7 +349,7 @@ fn resolve_path_lenient_from_cwd(cwd: &Path, input: &str) -> PathBuf {
     canonicalize_path_lenient(&resolved)
 }
 
-fn apply_ignore_settings(builder: &mut ignore::WalkBuilder, respect: bool) {
+fn apply_ignore_settings(builder: &mut ignore::WalkBuilder, root: &Path, respect: bool) {
     let use_git_exclude = respect && crate::config::get().use_git_exclude;
     builder
         .hidden(false)
@@ -356,11 +358,21 @@ fn apply_ignore_settings(builder: &mut ignore::WalkBuilder, respect: bool) {
         .git_exclude(use_git_exclude)
         .ignore(respect)
         .parents(respect)
-        // Honor `.gitignore` even outside an initialized git repo (no `.git` needed).
-        .require_git(false);
+        // Honor `.gitignore` even outside an initialized git repo (no `.git` needed). Inside
+        // one, keep git's repository boundaries: the ignore files of an enclosing repository
+        // do not reach into this one, nor this one's into a repository nested below.
+        .require_git(is_inside_repository(root));
     if respect {
         builder.add_custom_ignore_filename(CODEMAP_IGNORE_FILENAME);
     }
+}
+
+/// Whether `path` lies in a git or jj working tree, where the walker keeps repository
+/// boundaries for ignore files.
+fn is_inside_repository(path: &Path) -> bool {
+    path_resolved_from_cwd(path)
+        .ancestors()
+        .any(|directory| directory.join(".git").exists() || directory.join(".jj").exists())
 }
 
 pub(crate) fn directory_is_excluded(
@@ -417,7 +429,7 @@ fn same_path(left: &Path, right: &Path) -> bool {
 
 fn build_base_walker(root: &Path, respect: bool) -> ignore::WalkBuilder {
     let mut builder = ignore::WalkBuilder::new(root);
-    apply_ignore_settings(&mut builder, respect);
+    apply_ignore_settings(&mut builder, root, respect);
     let workspace_root = std::env::current_dir().unwrap_or_default();
     let config = crate::config::get();
     builder.filter_entry(move |entry| {
@@ -454,6 +466,42 @@ pub(crate) fn walk_root_is_visible(root: &Path, respect: bool) -> bool {
         current = next;
     }
     true
+}
+
+/// Whether event paths are hidden by the ignore rules of the index walk, with directory
+/// listings kept for one batch of filesystem events.
+#[derive(Default)]
+pub(crate) struct IgnoreProbe {
+    /// Visible entry names per directory; `None` when the directory itself is hidden.
+    directories: HashMap<PathBuf, Option<HashSet<OsString>>>,
+}
+
+impl IgnoreProbe {
+    /// True for an existing path that ignore files or excluded directories hide. A missing
+    /// path is never hidden, so a deletion still reaches the index.
+    pub(crate) fn is_ignored(&mut self, path: &Path) -> bool {
+        let (Some(parent), Some(name)) = (path.parent(), path.file_name()) else {
+            return false;
+        };
+        if !path.exists() {
+            return false;
+        }
+        self.directories
+            .entry(parent.to_path_buf())
+            .or_insert_with(|| {
+                walk_root_is_visible(parent, true).then(|| {
+                    build_base_walker(parent, true)
+                        .max_depth(Some(1))
+                        .build()
+                        .filter_map(Result::ok)
+                        .filter(|entry| entry.depth() == 1)
+                        .map(|entry| entry.file_name().to_owned())
+                        .collect()
+                })
+            })
+            .as_ref()
+            .is_none_or(|names| !names.contains(name))
+    }
 }
 
 /// Build an `ignore::WalkBuilder` rooted at `root`. By default it respects
@@ -592,6 +640,20 @@ pub(crate) fn stored_index_key(path: &Path, abs_cwd: &Path) -> String {
 /// Distinct from [`relative_index_path`]: this keeps the two-step (canonical-then-raw)
 /// fallback and does only the backslash→slash replacement (no leading `./`/`/` strip),
 /// so the caller-scan display path stays byte-identical.
+/// [`workspace_display_path`] of an entry from a walk that does not follow links. Such a walk
+/// reaches a non-link entry only through real directories, so its path below the walk root is
+/// already the canonical relative path and needs no filesystem lookup.
+pub(crate) fn walk_entry_display_path(
+    entry: &ignore::DirEntry,
+    canonical_root: &Path,
+    raw_root: &Path,
+) -> String {
+    match entry.path().strip_prefix(raw_root) {
+        Ok(relative) if !entry.path_is_symlink() => relative.to_string_lossy().replace('\\', "/"),
+        _ => workspace_display_path(entry.path(), canonical_root, raw_root),
+    }
+}
+
 pub(crate) fn workspace_display_path(
     entry_path: &Path,
     canonical_root: &Path,

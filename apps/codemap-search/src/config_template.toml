@@ -1,4 +1,4 @@
-# codemap-config-version: 29
+# codemap-config-version: 32
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -62,6 +62,9 @@ max_bytes = "1mb"
 [output.read]
 # Read response limit.
 max_bytes = "5mb"
+
+# read view=source may end with callers from outside the window. Set false to omit them.
+is_outside_callers_enabled = true
 
 [output.grep]
 # Maximum length of a line in grep results, in bytes. 0 disables the limit.
@@ -155,10 +158,10 @@ rules = []
 exceptions = []
 
 [output.jev]
-# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
-# Register the task first with initial_instructions(task_query, questions).
-# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
-# If neither auth file supplies a key, TYPESAFE_API_KEY is used.
+# Use a decision model (TypeSafe Jev or OpenRouter) to remove code bodies unrelated to the task (default: off).
+# Register the task with register_task(task_query, questions) before using an enabled filter.
+# Store API keys in auth.toml under [jev].api_key (TypeSafe) or [openrouter].api_key, not here.
+# If neither auth file supplies the key, TYPESAFE_API_KEY or OPENROUTER_API_KEY is used.
 
 # Master switch for all Jev output filters. false keeps every tool local.
 enabled = false
@@ -167,8 +170,15 @@ enabled = false
 # Root overview maps remain local. If Jev is unavailable, ordinary output is retained.
 scope = ["overview", "search", "read", "grep"]
 
-# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
-model = "jev-1.13.0"
+# Decision model (default jev-1.14.0). A Jev version uses TypeSafe; an author/model ID uses only
+# OpenRouter's Decisions API, which rejects models without decision support. Aliases are not accepted.
+# OpenRouter decision models (64k+ context):
+#   openai/gpt-6-luna-decisions, typesafe/jev-1.14, typesafe/jev-1.13,
+#   perplexity/pplx-decider-v1.2, perplexity/pplx-decider-flash-v1.2,
+#   nace-ai/drex-max, nace-ai/drex-v2.0, nace-ai/drex-v1.5, respan/span-02,
+#   upstage/solar-decide, upstage/solar-decide-flash, cloudflare/clef,
+#   cloudflare/clef-omni, liquid/d1, inception/mercury-decide
+model = "jev-1.14.0"
 
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 timeout_ms = 45000
@@ -227,6 +237,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# When the MCP server indexes this workspace. "auto" starts on the first search, overview, read or grep,
+# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
+# Other folders, such as one holding several repositories, are not indexed; search and overview say why.
+# "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
+# Commented so that a global setting applies.
+# mode = "auto"
+
+# Most indexable files that "auto" mode indexes; a larger workspace needs mode = "on".
+# auto_max_files = 50000
+
 # Where to store the index. Relative paths use the workspace root. Restart the server after changing it.
 path = ".codemap/index"
 
@@ -290,15 +310,22 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # Where find, grep, and read may access files.
 # "workspace" allows the workspace only, "allowed_roots" adds the allowed_roots paths, and "anywhere" allows any path.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # Extra paths for tools set to "allowed_roots". Relative paths use the workspace root.
 # Symbolic links are checked by their real path.
 allowed_roots = []
+
+[related_terms]
+# Enable related terms (default false); downloads the pinned dataset once when no local path is set.
+# Leave commented to inherit the global preference.
+# enabled = false
+# Optional user-owned dataset; never modified.
+# dataset_path = "/path/to/dataset.sqlite3"
 
 [update]
 # On server start, create this file if missing and add new settings as comments.

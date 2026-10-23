@@ -1,6 +1,6 @@
 use super::*;
 use crate::callers::resolution::SourceResolver;
-use crate::parser::{CodeRange, ImportKind};
+use crate::parser::{CodeRange, ExtractedFile, ImportKind};
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
 
@@ -13,7 +13,8 @@ fn normalized(name: &str) -> String {
         .replace("::", ".")
         .replace('\\', ".")
 }
-fn relative_path(path: &str, module: &str) -> Option<String> {
+/// `module` joined to the directory of `path`, with `.` and `..` resolved.
+pub(crate) fn relative_path(path: &str, module: &str) -> Option<String> {
     let joined = Path::new(path).parent()?.join(module);
     let mut result = PathBuf::new();
     for part in joined.components() {
@@ -37,6 +38,7 @@ fn module_matches(path: &str, module: &str) -> bool {
         ]
         .iter()
         .any(|ext| path == format!("{module}.{ext}") || path == format!("{module}/index.{ext}"))
+        || path == format!("{module}.rb")
         || path == format!("{module}/__init__.py")
 }
 
@@ -165,32 +167,53 @@ impl ImplementationIndex {
                 {
                     continue;
                 }
-                let matches =
-                    if matches!(unit.language.as_str(), "typescript" | "javascript" | "dart")
-                        && module.starts_with('.')
-                    {
-                        relative_path(&source.file_path, module)
-                            .is_some_and(|module| module_matches(target_file, &module))
-                            && typ.namespace.is_empty()
-                    } else if unit.language == "python" && module.starts_with('.') {
-                        let levels = module.chars().take_while(|c| *c == '.').count();
-                        let module = format!(
-                            "{}{}",
-                            "../".repeat(levels.saturating_sub(1)),
-                            module[levels..].replace('.', "/")
-                        );
-                        relative_path(&source.file_path, &module).is_some_and(|module| {
-                            module_matches(target_file, module.trim_end_matches('/'))
-                        }) && typ.namespace.is_empty()
-                    } else if matches!(
-                        unit.language.as_str(),
-                        "java" | "kotlin" | "scala" | "groovy"
-                    ) {
-                        normalized(&typ.qualified_name) == normalized(target)
-                            && same_source_root(&source.file_path, target_file)
-                    } else {
-                        false
-                    };
+                let matches = if matches!(unit.language.as_str(), "typescript" | "javascript")
+                    && module.starts_with('.')
+                {
+                    relative_path(&source.file_path, module)
+                        .is_some_and(|module| module_matches(target_file, &module))
+                        && typ.namespace.is_empty()
+                } else if unit.language == "python" && module.starts_with('.') {
+                    let levels = module.chars().take_while(|c| *c == '.').count();
+                    let module = format!(
+                        "{}{}",
+                        "../".repeat(levels.saturating_sub(1)),
+                        module[levels..].replace('.', "/")
+                    );
+                    relative_path(&source.file_path, &module).is_some_and(|module| {
+                        module_matches(target_file, module.trim_end_matches('/'))
+                    }) && typ.namespace.is_empty()
+                } else if matches!(
+                    unit.language.as_str(),
+                    "java" | "kotlin" | "scala" | "groovy"
+                ) {
+                    normalized(&typ.qualified_name) == normalized(target)
+                } else if matches!(unit.language.as_str(), "php" | "csharp") {
+                    // `use App\Store;` and `using Alias = App.Store;` name the type itself.
+                    normalized(&typ.qualified_name) == normalized(module)
+                } else if family(&unit.language) == "script" {
+                    // Package names and tsconfig `paths`/`baseUrl` aliases.
+                    resolver
+                        .script_module(&source.file_path, module)
+                        .is_some_and(|file| file.file_path == *target_file)
+                        && typ.namespace.is_empty()
+                } else if unit.language == "python" {
+                    // An absolute module path, at any source root.
+                    let module = module.replace('.', "/");
+                    [format!("{module}.py"), format!("{module}/__init__.py")]
+                        .iter()
+                        .any(|candidate| {
+                            target_file == candidate
+                                || target_file.ends_with(&format!("/{candidate}"))
+                        })
+                        && typ.namespace.is_empty()
+                } else if unit.language == "dart" {
+                    self.dart_libraries
+                        .matches(&source.file_path, module, target_file)
+                        && typ.namespace.is_empty()
+                } else {
+                    false
+                };
                 if matches {
                     imported.push((
                         id,
@@ -201,45 +224,233 @@ impl ImplementationIndex {
                             },
                             self.location(id),
                         ],
+                        same_source_root(&source.file_path, target_file),
                     ));
                 }
             }
         }
-        imported.sort_by_key(|(id, _)| *id);
-        imported.dedup_by_key(|(id, _)| *id);
+        if imported.is_empty() {
+            imported = self.reexported_types(unit, source, &reference.range, head, tail, resolver);
+        }
+        imported.sort_by_key(|(id, _, _)| *id);
+        imported.dedup_by_key(|(id, _, _)| *id);
+        // A qualified name is unique on one classpath; independent monorepo apps may repeat
+        // it, and then only the importing app's own declaration is the target.
+        if imported.len() > 1 {
+            imported.retain(|(_, _, is_same_root)| *is_same_root);
+        }
         if imported.len() == 1 {
-            return imported.pop();
+            return imported.pop().map(|(id, evidence, _)| (id, evidence));
         }
         if !imported.is_empty() {
             return None;
         }
-        // Package/namespace membership is language-defined; JS, Python and Ruby
-        // files do not share a scope merely because they have the same directory.
-        if matches!(
-            unit.language.as_str(),
-            "go" | "java" | "csharp" | "kotlin" | "scala" | "groovy"
-        ) {
-            let candidates = self
-                .by_name
-                .get(bare)
-                .into_iter()
-                .flatten()
-                .copied()
-                .filter(|id| {
-                    let typ = self.typ(*id);
-                    let target = &self.files[self.types[*id].file].file_path;
-                    self.unit(*id).language == unit.language
-                        && typ.parameters.is_empty()
-                        && typ.is_complete
-                        && Path::new(target).parent() == Path::new(&source.file_path).parent()
-                        && (normalized(&typ.qualified_name) == name
-                            || name == typ.name && typ.namespace == namespace)
-                })
-                .collect::<Vec<_>>();
-            if candidates.len() == 1 {
-                let id = candidates[0];
-                return Some((id, vec![self.location(id)]));
+        if let Some(found) = self.required_member(unit, &source.file_path, bare) {
+            return Some(found);
+        }
+        self.namespace_member(unit, &source.file_path, namespace, &name, bare)
+    }
+
+    /// Types that a script, Python or Dart module imported as `head` re-exports from the files
+    /// declaring them, with the module files read as evidence and whether each shares the
+    /// importing file's source root.
+    fn reexported_types(
+        &self,
+        unit: &ImplementationUnit,
+        source: &ExtractedFile,
+        reference: &CodeRange,
+        head: &str,
+        tail: &str,
+        resolver: &SourceResolver<'_>,
+    ) -> Vec<(usize, Vec<Location>, bool)> {
+        let language = unit.language.as_str();
+        let mut found = Vec::new();
+        for import in unit.imports.iter().filter(|import| {
+            encloses(&import.scope, reference)
+                && (import.entry.local_name == head
+                    || language == "dart" && import.entry.kind == ImportKind::Glob)
+        }) {
+            let entry = &import.entry;
+            let Some(module) = entry.source.as_deref() else {
+                continue;
+            };
+            let target = match entry.kind {
+                ImportKind::Named if tail.is_empty() => {
+                    entry.imported_name.as_deref().unwrap_or(head)
+                }
+                ImportKind::Namespace if !tail.is_empty() && family(language) == "script" => tail,
+                ImportKind::Glob if tail.is_empty() => head,
+                _ => continue,
+            };
+            let target = target.rsplit('.').next().unwrap_or(target);
+            let modules = match family(language) {
+                "script" => resolver
+                    .script_module(&source.file_path, module)
+                    .into_iter()
+                    .collect(),
+                "python" => resolver
+                    .python_module(&source.file_path, module)
+                    .into_iter()
+                    .collect(),
+                "dart" => resolver.dart_library_files(&source.file_path, module),
+                _ => Vec::new(),
+            };
+            for module in modules {
+                resolver.reset_dependency_tracking();
+                for origin in resolver.export_origins(&module.file_path, target).iter() {
+                    for &id in self.by_name.get(origin.name.as_str()).into_iter().flatten() {
+                        let typ = self.typ(id);
+                        let declaring = &self.files[self.types[id].file].file_path;
+                        if *declaring != origin.file.file_path
+                            || family(&self.unit(id).language) != family(language)
+                            || !typ.parameters.is_empty()
+                            || !typ.is_complete
+                            || !typ.namespace.is_empty()
+                            || family(language) == "script" && !typ.is_exported
+                        {
+                            continue;
+                        }
+                        let mut evidence = vec![Location {
+                            path: source.file_path.clone(),
+                            range: entry.range.clone(),
+                        }];
+                        evidence.extend(
+                            resolver
+                                .source_dependencies()
+                                .into_iter()
+                                .map(|(path, range)| Location { path, range }),
+                        );
+                        evidence.push(self.location(id));
+                        found.push((id, evidence, same_source_root(&source.file_path, declaring)));
+                    }
+                }
             }
+        }
+        found
+    }
+
+    /// A type that the reference's package or namespace makes visible without an import.
+    /// Membership is language-defined: Go packages are directories, JVM packages stay in one
+    /// source root, and C# and PHP namespaces span the repository but must be unambiguous.
+    /// JS, Python and Ruby files do not share a scope merely because they share a directory.
+    fn namespace_member(
+        &self,
+        unit: &ImplementationUnit,
+        path: &str,
+        namespace: &str,
+        name: &str,
+        bare: &str,
+    ) -> Option<(usize, Vec<Location>)> {
+        let language = unit.language.as_str();
+        if !matches!(
+            language,
+            "go" | "java" | "csharp" | "kotlin" | "scala" | "groovy" | "php"
+        ) {
+            return None;
+        }
+        // A reference inside a type carries that type in its namespace; the package itself
+        // is the namespace the reference sits in or under.
+        let scope = normalized(namespace);
+        let encloses =
+            |package: &str| scope == package || scope.starts_with(&format!("{package}."));
+        // C# also sees every enclosing namespace, the global one and each `using`.
+        let usings = unit
+            .imports
+            .iter()
+            .filter(|import| import.entry.kind == ImportKind::Namespace)
+            .filter_map(|import| import.entry.source.as_deref())
+            .map(normalized)
+            .collect::<Vec<_>>();
+        let candidates = self
+            .by_name
+            .get(bare)
+            .into_iter()
+            .flatten()
+            .copied()
+            .filter(|id| {
+                let typ = self.typ(*id);
+                let target = &self.files[self.types[*id].file].file_path;
+                if self.unit(*id).language != language
+                    || !typ.parameters.is_empty()
+                    || !typ.is_complete
+                {
+                    return false;
+                }
+                if normalized(&typ.qualified_name) == name {
+                    return true;
+                }
+                let package = normalized(&typ.namespace);
+                let is_same_directory = Path::new(target).parent() == Path::new(path).parent();
+                name == typ.name
+                    && match language {
+                        "go" => is_same_directory && (package.is_empty() || encloses(&package)),
+                        "csharp" => {
+                            package.is_empty() || encloses(&package) || usings.contains(&package)
+                        }
+                        "php" => package == normalized(&unit.namespace),
+                        _ if package.is_empty() => is_same_directory,
+                        _ => same_source_root(path, target) && encloses(&package),
+                    }
+            })
+            .collect::<Vec<_>>();
+        let [id] = candidates.as_slice() else {
+            return None;
+        };
+        Some((*id, vec![self.location(*id)]))
+    }
+
+    /// A type declared in a file whose names this one loads as a whole: a Ruby file loaded
+    /// with `require_relative` or a Dart library imported without a prefix.
+    fn required_member(
+        &self,
+        unit: &ImplementationUnit,
+        path: &str,
+        bare: &str,
+    ) -> Option<(usize, Vec<Location>)> {
+        let language = unit.language.as_str();
+        if !matches!(language, "ruby" | "dart") {
+            return None;
+        }
+        let mut candidates = Vec::new();
+        for import in &unit.imports {
+            let Some(module) = import.entry.source.as_deref() else {
+                continue;
+            };
+            let loads = |target: &str| match language {
+                "ruby" => {
+                    (module.starts_with("./") || module.starts_with("../"))
+                        && relative_path(path, module)
+                            .is_some_and(|module| module_matches(target, &module))
+                }
+                _ => {
+                    import.entry.kind == ImportKind::Glob
+                        && self.dart_libraries.matches(path, module, target)
+                }
+            };
+            for &id in self.by_name.get(bare).into_iter().flatten() {
+                let typ = self.typ(id);
+                if self.unit(id).language == language
+                    && typ.parameters.is_empty()
+                    && typ.is_complete
+                    && loads(&self.files[self.types[id].file].file_path)
+                {
+                    candidates.push((
+                        id,
+                        vec![
+                            Location {
+                                path: path.to_string(),
+                                range: import.entry.range.clone(),
+                            },
+                            self.location(id),
+                        ],
+                    ));
+                }
+            }
+        }
+        candidates.sort_by_key(|(id, _)| *id);
+        candidates.dedup_by_key(|(id, _)| *id);
+        if candidates.len() == 1 {
+            return candidates.pop();
         }
         None
     }
@@ -260,9 +471,55 @@ impl ImplementationIndex {
     }
 }
 
-fn same_source_root(left: &str, right: &str) -> bool {
+/// Indexed Dart files counted by their path below a package's `lib/` directory, to tell
+/// which workspace package a `package:` import names when several repeat that path.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DartLibraries(HashMap<String, usize>);
+
+impl DartLibraries {
+    pub(crate) fn new<'p>(paths: impl Iterator<Item = &'p str>) -> Self {
+        let mut counts = HashMap::new();
+        for (_, below) in paths
+            .filter(|path| path.ends_with(".dart"))
+            .filter_map(package_library)
+        {
+            *counts.entry(below.to_string()).or_insert(0) += 1;
+        }
+        Self(counts)
+    }
+
+    /// Whether a Dart import URI names `target`. `package:name/x.dart` is `lib/x.dart` of that
+    /// package: the only indexed one, else the one in a directory named after the package. A
+    /// URI without a scheme is relative, and `dart:` libraries are not indexed.
+    pub(crate) fn matches(&self, path: &str, uri: &str, target: &str) -> bool {
+        if let Some(rest) = uri.strip_prefix("package:") {
+            let Some((package, file)) = rest.split_once('/') else {
+                return false;
+            };
+            return package_library(target).is_some_and(|(directory, below)| {
+                below == file
+                    && (self.0.get(file) == Some(&1)
+                        || directory.rsplit('/').next() == Some(package))
+            });
+        }
+        !uri.contains(':') && relative_path(path, uri).is_some_and(|module| target == module)
+    }
+}
+
+/// A path split at its package's `lib/` directory into the package directory and the rest.
+fn package_library(path: &str) -> Option<(&str, &str)> {
+    match path.strip_prefix("lib/") {
+        Some(below) => Some(("", below)),
+        None => path.split_once("/lib/"),
+    }
+}
+
+pub(crate) fn same_source_root(left: &str, right: &str) -> bool {
     // Explicit qualified imports still cannot bridge independent monorepo apps.
     let prefix = |path: &str| {
+        if path.starts_with("src/") {
+            return Some(String::new());
+        }
         path.split_once("/src/")
             .map(|(prefix, _)| prefix.to_string())
     };
