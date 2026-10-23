@@ -294,11 +294,11 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # find, grep, read가 파일에 접근할 수 있는 범위입니다.
 # "workspace"는 작업공간만, "allowed_roots"는 작업공간과 allowed_roots의 경로, "anywhere"는 모든 경로를 허용합니다.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # "allowed_roots"를 쓰는 도구에 추가로 허용할 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
 # 심볼릭 링크는 실제 경로를 기준으로 판단합니다.

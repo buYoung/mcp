@@ -42,6 +42,18 @@ fn sample_repo() -> tempfile::TempDir {
     .unwrap()
 }
 
+/// [`sample_repo`] with the live tools confined to the workspace, which is opt-in.
+fn workspace_only_repo() -> tempfile::TempDir {
+    let temp = sample_repo();
+    std::fs::create_dir_all(temp.path().join(".codemap")).unwrap();
+    std::fs::write(
+        temp.path().join(".codemap/config.toml"),
+        "[filesystem_permissions]\nfind = \"workspace\"\ngrep = \"workspace\"\nread = \"workspace\"\n",
+    )
+    .unwrap();
+    temp
+}
+
 #[tokio::test]
 async fn test_value_relationships_stay_removed_across_live_views_and_restart() {
     let source = "const routes = new Map();\nexport function connect(key) { return { on(handler) { return add(key, handler); } }; }\nfunction add(key, handler) { routes.set(key, handler); }\nfunction dispatch(key, payload) { const callback = routes.get(key); callback(payload); }\nexport function notify(payload) {}\nexport function setup() { const handle = connect('changed'); handle.on(notify); }\nexport function publish() { dispatch('changed', 1); }\n";
@@ -1359,7 +1371,7 @@ async fn test_read_empty_file_warns() {
 
 #[tokio::test]
 async fn test_read_path_traversal_is_rejected() {
-    let temp = sample_repo();
+    let temp = workspace_only_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
         .send_request(
@@ -1624,7 +1636,7 @@ async fn test_find_accepts_workspace_internal_absolute_backslash_pattern() {
 
 #[tokio::test]
 async fn test_find_path_param_escape_is_rejected() {
-    let temp = sample_repo();
+    let temp = workspace_only_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
         .send_request(
@@ -1852,7 +1864,7 @@ async fn test_grep_pattern_starting_with_dash_is_literal() {
 
 #[tokio::test]
 async fn test_grep_path_param_escape_is_rejected() {
-    let temp = sample_repo();
+    let temp = workspace_only_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
         .send_request(

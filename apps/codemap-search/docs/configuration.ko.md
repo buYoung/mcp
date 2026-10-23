@@ -276,9 +276,9 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.context.exclude].test_attributes` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 속성·어노테이션 패턴. 언어별 목록을 상속값 대신 적용 |
 | `[output.context.exclude].test_decorators` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 데코레이터 패턴. []는 해당 언어 목록 해제 |
 | `[output.context.exclude].test_calls` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 테스트 호출 패턴. []는 해당 언어 목록 해제 |
-| `[filesystem_permissions].find` | 문자열 | `"workspace"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
-| `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
-| `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].find` | 문자열 | `"anywhere"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].grep` | 문자열 | `"anywhere"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].read` | 문자열 | `"anywhere"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
 | `[related_terms].enabled` | bool | `false` | 관련어 기능을 켬. 꺼져 있으면 내려받기·준비 작업을 하지 않음 |
 | `[related_terms].dataset_path` | string | 없음 | 내려받기 대신 사용할 사용자 뜻 데이터셋 경로. 원본은 수정하지 않음 |
@@ -471,9 +471,9 @@ powershell = ["Describe", "Context", "It"]
 
 `read`, `find`, `grep`에 각각 다음 정책을 지정합니다.
 
-- `workspace`: 현재 작업공간 안만 접근합니다(기본값).
+- `workspace`: 현재 작업공간 안만 접근합니다.
 - `allowed_roots`: 작업공간과 지정한 외부 루트에 접근합니다.
-- `anywhere`: 서버 프로세스가 접근할 수 있는 모든 경로에 접근합니다.
+- `anywhere`: 서버 프로세스가 접근할 수 있는 모든 경로에 접근합니다(기본값).
 
 `allowed_roots` 항목은 비어 있지 않은 문자열이어야 합니다. 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다. 존재하는 경로 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고, 아직 없는 뒷부분은 유지합니다. 상위 경로 이동으로 허용된 범위를 넓힐 수는 없습니다. 이 권한은 `search`·`overview`의 색인 범위를 넓히지 않습니다.
 
@@ -784,11 +784,11 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # find, grep, read가 파일에 접근할 수 있는 범위입니다.
 # "workspace"는 작업공간만, "allowed_roots"는 작업공간과 allowed_roots의 경로, "anywhere"는 모든 경로를 허용합니다.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # "allowed_roots"를 쓰는 도구에 추가로 허용할 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
 # 심볼릭 링크는 실제 경로를 기준으로 판단합니다.
@@ -806,7 +806,9 @@ enabled = false
 config_auto_update = true
 ```
 
-### 기본 작업공간 권한
+### 작업공간 전용 권한
+
+세 도구를 모두 작업공간에 제한합니다.
 
 ```toml
 [filesystem_permissions]
@@ -828,9 +830,9 @@ read = "workspace"
 allowed_roots = ["G:/shared/source", "D:/vendor-src"]
 ```
 
-### 전체 디스크 접근
+### `find`만 전체 디스크 접근
 
-한 도구에 전체 디스크 접근을 허용하는 예시입니다. 서버 실행 환경이 별도로 격리되어 있지 않다면 `allowed_roots`를 우선 사용하세요.
+기본값인 전체 디스크 접근을 `find`에만 남기고 `grep`과 `read`는 작업공간에 제한합니다.
 
 ```toml
 [filesystem_permissions]

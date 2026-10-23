@@ -87,9 +87,9 @@ pub struct FilesystemPermissions {
 impl Default for FilesystemPermissions {
     fn default() -> Self {
         Self {
-            find: FilesystemPermissionPolicy::Workspace,
-            grep: FilesystemPermissionPolicy::Workspace,
-            read: FilesystemPermissionPolicy::Workspace,
+            find: FilesystemPermissionPolicy::Anywhere,
+            grep: FilesystemPermissionPolicy::Anywhere,
+            read: FilesystemPermissionPolicy::Anywhere,
             allowed_roots: Vec::new(),
         }
     }
@@ -230,8 +230,9 @@ pub struct ResolvedConfig {
     /// Whether build definitions (`Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`,
     /// `BUILD.bazel`, `.bzl`) participate in index-backed discovery.
     pub is_build_support_enabled: bool,
-    /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults keep
-    /// every tool workspace-confined unless configured otherwise.
+    /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults let every
+    /// tool reach any path the server process can access; `workspace` or `allowed_roots`
+    /// confine them.
     pub filesystem_permissions: FilesystemPermissions,
     /// `grep` content-mode column cap (default 0, unlimited). A matched line wider
     /// than a positive cap is replaced with `[Omitted long matching line]`.

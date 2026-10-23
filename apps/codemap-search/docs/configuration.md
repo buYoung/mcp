@@ -286,9 +286,9 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.jev].max_batch_bytes` | integer bytes or size string, 1 to 168000 | `168000` | Encoded request bytes per batch (168000 is the runtime ceiling); a question that does not fit is an explicit failure |
 | `[output.jev].pool_idle_timeout_ms` | positive integer (ms), at most 7 days | `30000` | Idle HTTPS connection lifetime |
 | `[output.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Per-criterion false-probability threshold; composed with all/any |
-| `[filesystem_permissions].find` | string | `"workspace"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
-| `[filesystem_permissions].grep` | string | `"workspace"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
-| `[filesystem_permissions].read` | string | `"workspace"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
+| `[filesystem_permissions].find` | string | `"anywhere"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
+| `[filesystem_permissions].grep` | string | `"anywhere"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
+| `[filesystem_permissions].read` | string | `"anywhere"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].allowed_roots` | string array | `[]` | External roots available to tools set to `allowed_roots` |
 | `[related_terms].enabled` | bool | `false` | Opt in to related terms; no download or preparation while off |
 | `[related_terms].dataset_path` | string | unset | Optional user-owned sense dataset instead of a download; the original is never modified |
@@ -472,9 +472,9 @@ powershell = ["Describe", "Context", "It"]
 
 `read`, `find`, and `grep` each accept these policies:
 
-- `workspace`: access only the current workspace (default).
+- `workspace`: access only the current workspace.
 - `allowed_roots`: access the workspace and the listed external roots.
-- `anywhere`: access any path available to the server process.
+- `anywhere`: access any path available to the server process (default).
 
 `allowed_roots` entries must be non-empty strings. Relative paths start at the workspace root; absolute paths are allowed. Existing path components are resolved, including symlinks, while nonexistent suffixes are retained. Path traversal cannot extend access beyond the configured roots. These permissions do not widen the indexing scope of `search` or `overview`.
 
@@ -784,11 +784,11 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # Where find, grep, and read may access files.
 # "workspace" allows the workspace only, "allowed_roots" adds the allowed_roots paths, and "anywhere" allows any path.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # Extra paths for tools set to "allowed_roots". Relative paths use the workspace root.
 # Symbolic links are checked by their real path.
@@ -806,7 +806,9 @@ enabled = false
 config_auto_update = true
 ```
 
-### Default workspace-only permissions
+### Workspace-only permissions
+
+This confines all three tools to the workspace:
 
 ```toml
 [filesystem_permissions]
@@ -828,9 +830,9 @@ read = "workspace"
 allowed_roots = ["G:/shared/source", "D:/vendor-src"]
 ```
 
-### High-risk broad access
+### Full-disk access for `find` only
 
-This intentionally gives one tool full-disk access. Prefer `allowed_roots` unless the MCP server is already isolated by the surrounding environment:
+This keeps the default full-disk access for `find` and confines `grep` and `read` to the workspace:
 
 ```toml
 [filesystem_permissions]
