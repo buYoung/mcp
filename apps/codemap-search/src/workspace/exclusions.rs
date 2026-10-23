@@ -89,7 +89,7 @@ pub(crate) fn recommended_directories(root: &Path) -> Vec<String> {
             continue;
         }
         let mut walker = ignore::WalkBuilder::new(&directory);
-        super::apply_ignore_settings(&mut walker, true);
+        super::apply_ignore_settings(&mut walker, &directory, true);
         walker.max_depth(Some(1)).follow_links(false);
         let entries: Vec<_> = walker
             .build()
