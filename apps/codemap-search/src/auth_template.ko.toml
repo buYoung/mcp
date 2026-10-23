@@ -1,8 +1,17 @@
 # codemap-search 인증정보입니다. 이 파일은 버전 관리에서 제외하세요.
-# 우선순위: 저장소 .codemap/auth.toml > $CODEMAP_HOME/auth.toml(미설정 시 ~/.codemap/auth.toml)
-# > TYPESAFE_API_KEY 환경 변수.
+# 키별 우선순위: 저장소 .codemap/auth.toml > $CODEMAP_HOME/auth.toml(미설정 시 ~/.codemap/auth.toml)
+# > 각 섹션에 적힌 환경 변수.
 # 키가 없거나 비어 있으면 다음 값을 사용합니다. 기존 파일은 덮어쓰지 않습니다.
 # 모델·활성화·요청 제한은 config.toml의 [output.jev]에서 관리합니다.
 
 [jev]
+# jev-1.14.0 같은 Jev 버전에 쓰는 TypeSafe 키입니다(환경 변수 대체값: TYPESAFE_API_KEY).
+# api_key = ""
+
+[openrouter]
+# openai/gpt-6-luna-decisions 같은 제작자/모델 ID에 쓰는 OpenRouter 키입니다
+# (환경 변수 대체값: OPENROUTER_API_KEY).
+# decision 모델 전용입니다. 이 키는 OpenRouter Decisions API
+# (https://openrouter.ai/api/alpha/decisions)로만 보내며 채팅 등 다른 OpenRouter API에는 쓰지 않습니다.
+# decision을 지원하지 않는 모델은 OpenRouter가 거부(HTTP 400)하며 원래 결과를 유지합니다.
 # api_key = ""

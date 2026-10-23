@@ -158,10 +158,10 @@ rules = []
 exceptions = []
 
 [output.jev]
-# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
+# Use a decision model (TypeSafe Jev or OpenRouter) to remove code bodies unrelated to the task (default: off).
 # Register the task with register_task(task_query, questions) before using an enabled filter.
-# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
-# If neither auth file supplies a key, TYPESAFE_API_KEY is used.
+# Store API keys in auth.toml under [jev].api_key (TypeSafe) or [openrouter].api_key, not here.
+# If neither auth file supplies the key, TYPESAFE_API_KEY or OPENROUTER_API_KEY is used.
 
 # Master switch for all Jev output filters. false keeps every tool local.
 enabled = false
@@ -170,8 +170,15 @@ enabled = false
 # Root overview maps remain local. If Jev is unavailable, ordinary output is retained.
 scope = ["overview", "search", "read", "grep"]
 
-# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
-model = "jev-1.13.0"
+# Decision model (default jev-1.14.0). A Jev version uses TypeSafe; an author/model ID uses only
+# OpenRouter's Decisions API, which rejects models without decision support. Aliases are not accepted.
+# OpenRouter decision models (64k+ context):
+#   openai/gpt-6-luna-decisions, typesafe/jev-1.14, typesafe/jev-1.13,
+#   perplexity/pplx-decider-v1.2, perplexity/pplx-decider-flash-v1.2,
+#   nace-ai/drex-max, nace-ai/drex-v2.0, nace-ai/drex-v1.5, respan/span-02,
+#   upstage/solar-decide, upstage/solar-decide-flash, cloudflare/clef,
+#   cloudflare/clef-omni, liquid/d1, inception/mercury-decide
+model = "jev-1.14.0"
 
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 timeout_ms = 45000

@@ -9,31 +9,47 @@ use crate::config_locale::config_comment_language;
 use crate::jev::SecretString;
 
 pub(crate) const AUTH_FILE_NAME: &str = "auth.toml";
+/// `[jev]` holds the TypeSafe key; `[openrouter]` holds the OpenRouter key, which the runtime
+/// sends only to OpenRouter's Decisions API.
+const SECTIONS: [&str; 2] = ["jev", "openrouter"];
 
 #[derive(Debug, Clone, Default)]
 pub struct AuthConfig {
     /// Resolved from repo/global `auth.toml`; the environment fallback is request-local.
     pub jev_api_key: Option<SecretString>,
+    /// OpenRouter key for `author/slug` decision models, resolved like `jev_api_key`.
+    pub openrouter_api_key: Option<SecretString>,
 }
 
-pub(super) fn load(repo_root: &Path, global_dir: &Path) -> AuthConfig {
-    let repo_path = repo_root.join(super::CODEMAP_DIR_NAME).join(AUTH_FILE_NAME);
-    AuthConfig {
-        jev_api_key: read_jev_api_key(&repo_path)
-            .or_else(|| read_jev_api_key(&global_dir.join(AUTH_FILE_NAME))),
+impl AuthConfig {
+    fn is_complete(&self) -> bool {
+        self.jev_api_key.is_some() && self.openrouter_api_key.is_some()
     }
 }
 
-fn read_jev_api_key(path: &Path) -> Option<SecretString> {
+/// Each key falls back from the repo file to the global file independently.
+pub(super) fn load(repo_root: &Path, global_dir: &Path) -> AuthConfig {
+    let repo = read_api_keys(&repo_root.join(super::CODEMAP_DIR_NAME).join(AUTH_FILE_NAME));
+    if repo.is_complete() {
+        return repo;
+    }
+    let global = read_api_keys(&global_dir.join(AUTH_FILE_NAME));
+    AuthConfig {
+        jev_api_key: repo.jev_api_key.or(global.jev_api_key),
+        openrouter_api_key: repo.openrouter_api_key.or(global.openrouter_api_key),
+    }
+}
+
+fn read_api_keys(path: &Path) -> AuthConfig {
     let contents = match std::fs::read_to_string(path) {
         Ok(contents) => contents,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return None,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return AuthConfig::default(),
         Err(error) => {
             super::warn(&format!(
                 "auth read failed: {}: {error} — ignored",
                 path.display()
             ));
-            return None;
+            return AuthConfig::default();
         }
     };
     let value: toml::Value = match toml::from_str(&contents) {
@@ -44,36 +60,48 @@ fn read_jev_api_key(path: &Path) -> Option<SecretString> {
                 "auth parse failed: {}: invalid TOML — ignored",
                 path.display()
             ));
-            return None;
+            return AuthConfig::default();
         }
     };
-    let table = value.as_table()?;
-    if table.keys().any(|key| key != "jev") {
+    let Some(table) = value.as_table() else {
+        return AuthConfig::default();
+    };
+    if table.keys().any(|key| !SECTIONS.contains(&key.as_str())) {
         super::warn(&format!(
             "unknown auth sections: {} — ignored",
             path.display()
         ));
     }
-    let jev = table.get("jev")?;
-    let Some(jev) = jev.as_table() else {
+    AuthConfig {
+        jev_api_key: read_section_api_key(table, "jev", path),
+        openrouter_api_key: read_section_api_key(table, "openrouter", path),
+    }
+}
+
+fn read_section_api_key(
+    table: &toml::map::Map<String, toml::Value>,
+    section: &str,
+    path: &Path,
+) -> Option<SecretString> {
+    let Some(keys) = table.get(section)?.as_table() else {
         super::warn(&format!(
-            "auth 'jev' must be a table: {} — ignored",
+            "auth '{section}' must be a table: {} — ignored",
             path.display()
         ));
         return None;
     };
-    if jev.keys().any(|key| key != "api_key") {
+    if keys.keys().any(|key| key != "api_key") {
         super::warn(&format!(
-            "unknown auth keys in 'jev': {} — ignored",
+            "unknown auth keys in '{section}': {} — ignored",
             path.display()
         ));
     }
-    match jev.get("api_key")?.as_str() {
+    match keys.get("api_key")?.as_str() {
         Some(value) if value.trim().is_empty() => None,
         Some(value) => Some(SecretString::new(value)),
         None => {
             super::warn(&format!(
-                "auth 'jev.api_key' must be a string: {} — ignored",
+                "auth '{section}.api_key' must be a string: {} — ignored",
                 path.display()
             ));
             None
@@ -193,9 +221,12 @@ mod tests {
             .join(super::super::CODEMAP_DIR_NAME)
             .join(AUTH_FILE_NAME);
         let original = std::fs::read_to_string(&path).unwrap();
-        assert!(read_jev_api_key(&path).is_none());
+        let keys = read_api_keys(&path);
+        assert!(keys.jev_api_key.is_none());
+        assert!(keys.openrouter_api_key.is_none());
         let parsed: toml::Value = toml::from_str(&original).unwrap();
         assert!(parsed["jev"].as_table().unwrap().is_empty());
+        assert!(parsed["openrouter"].as_table().unwrap().is_empty());
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;

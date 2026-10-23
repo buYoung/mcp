@@ -95,12 +95,17 @@ Synchronization runs on initialization and the next request after the config wat
 
 ### Credentials (`auth.toml`)
 
-Jev credentials are separate from behavior settings. Put the API key in `[jev].api_key` in `<repo>/.codemap/auth.toml` or `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`). Resolution is **repo auth > global auth > the fixed `TYPESAFE_API_KEY` environment variable**. Missing, empty or whitespace-only keys inherit the next source. Read failures, malformed TOML and invalid types warn and fall back without printing credential values or parser source excerpts. Unknown sections/keys are ignored with a value-free warning.
+Decision-model credentials are separate from behavior settings. Put the TypeSafe key in `[jev].api_key` and the OpenRouter key in `[openrouter].api_key` in `<repo>/.codemap/auth.toml` or `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`). Each key resolves independently: **repo auth > global auth > its fixed environment variable** (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`). Only the key of the provider that `[output.jev].model` selects is used. Missing, empty or whitespace-only keys inherit the next source. Read failures, malformed TOML and invalid types warn and fall back without printing credential values or parser source excerpts. Unknown sections/keys are ignored with a value-free warning.
+
+The OpenRouter key is decision-only: it is sent only to OpenRouter's Decisions API (`https://openrouter.ai/api/alpha/decisions`), never to chat or other OpenRouter APIs. OpenRouter rejects models without decision support there with HTTP 400 before any model runs (see [OpenRouter decision models](#openrouter-decision-models)).
 
 ```toml
 # .codemap/auth.toml — keep out of version control
 [jev]
-api_key = "<your key>"
+api_key = "<your TypeSafe key>"
+
+[openrouter]
+api_key = "<your OpenRouter key>"
 ```
 
 With `config_auto_update = true`, MCP startup creates a missing repo `auth.toml` as an empty, localized template; existing files are never overwritten and environment keys are never copied into it. New files use owner-only `0600` permissions on Unix; Windows uses inherited filesystem ACLs. No global auth file is generated. Model, enable flags and request limits remain in `config.toml` under `[output.jev]`.
@@ -211,7 +216,7 @@ MCP watches `config.toml` and `auth.toml` in the repo/global config directories 
 | `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | Restart required |
 | `config_auto_update` | Automatic writes at the next MCP startup |
 | `[global_instructions].enabled` (global-only) | MCP initialization or the next request after a reloaded toggle; new agent session to load the updated file |
-| `auth.toml` `[jev].api_key` | Subsequent enabled Jev requests after reload; a changed key rebuilds the shared HTTPS evaluator |
+| `auth.toml` `[jev].api_key`, `[openrouter].api_key` | Subsequent enabled Jev requests after reload; a changed key rebuilds the shared HTTPS evaluator |
 | `[output.client].claude_max_result_chars` | Final delivery limit after reload; reconnect MCP to refresh client metadata |
 | `[output.client].codex_output_token_limit` | Final delivery limit after reload; re-export/merge codex-config for the client |
 | `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | Final delivery limit after reload; no client change |
@@ -283,7 +288,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.context.exclude].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
 | `[output.jev].enabled` | bool | `false` | Master switch; false prevents all Jev output filtering regardless of scope |
 | `[output.jev].scope` | string array | `["overview", "search", "read", "grep"]` | Complete tool selection when enabled; [] selects none, repo list replaces global |
-| `[output.jev].model` | string | `"jev-1.13.0"` | Concrete provider model validated against every response; alias names fail validation |
+| `[output.jev].model` | string | `"jev-1.14.0"` | Concrete provider model validated against every response; a bare Jev version uses TypeSafe, an `author/slug` ID uses [OpenRouter](#openrouter-decision-models); alias names fail validation |
 | `[output.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
 | `[output.jev].max_in_flight_requests` | integer, 1 to 3 | `3` | HTTP requests in flight at once (3 is the runtime ceiling) |
 | `[output.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
@@ -665,10 +670,10 @@ rules = []
 exceptions = []
 
 [output.jev]
-# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
+# Use a decision model (TypeSafe Jev or OpenRouter) to remove code bodies unrelated to the task (default: off).
 # Register the task with register_task(task_query, questions) before using an enabled filter.
-# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
-# If neither auth file supplies a key, TYPESAFE_API_KEY is used.
+# Store API keys in auth.toml under [jev].api_key (TypeSafe) or [openrouter].api_key, not here.
+# If neither auth file supplies the key, TYPESAFE_API_KEY or OPENROUTER_API_KEY is used.
 
 # Master switch for all Jev output filters. false keeps every tool local.
 enabled = false
@@ -677,8 +682,15 @@ enabled = false
 # Root overview maps remain local. If Jev is unavailable, ordinary output is retained.
 scope = ["overview", "search", "read", "grep"]
 
-# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
-model = "jev-1.13.0"
+# Decision model (default jev-1.14.0). A Jev version uses TypeSafe; an author/model ID uses only
+# OpenRouter's Decisions API, which rejects models without decision support. Aliases are not accepted.
+# OpenRouter decision models (64k+ context):
+#   openai/gpt-6-luna-decisions, typesafe/jev-1.14, typesafe/jev-1.13,
+#   perplexity/pplx-decider-v1.2, perplexity/pplx-decider-flash-v1.2,
+#   nace-ai/drex-max, nace-ai/drex-v2.0, nace-ai/drex-v1.5, respan/span-02,
+#   upstage/solar-decide, upstage/solar-decide-flash, cloudflare/clef,
+#   cloudflare/clef-omni, liquid/d1, inception/mercury-decide
+model = "jev-1.14.0"
 
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 timeout_ms = 45000
@@ -919,6 +931,15 @@ Store the key separately in [`auth.toml`](#credentials-authtoml). Existing envir
 
 ```sh
 export TYPESAFE_API_KEY="<your key>"   # request-time fallback; never copied into auth.toml
+export OPENROUTER_API_KEY="<your key>" # the same fallback for OpenRouter decision models
+```
+
+To use an OpenRouter decision model instead of TypeSafe, set its OpenRouter ID as the model:
+
+```toml
+[output.jev]
+enabled = true
+model = "openai/gpt-6-luna-decisions"
 ```
 
 Jev is off by default. `enabled=true` permits filtering only for tools in `scope`; `enabled=false` disables it for every tool, regardless of the list. `scope` accepts `overview`, `search`, `read` and `grep`, defaults to all four, and replaces the inherited list rather than merging with it. `[]` selects none. Duplicate names are ignored; unknown names or non-string entries reject the whole scope value and inherit the lower layer. `enabled` and `scope` independently follow repo > global > default precedence. `initial_instructions`, root `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
@@ -992,9 +1013,33 @@ Complete, identifiable bodies proceed to the ordinary Noul judgment when the enc
 
 The registered task, all/any decisions, uncertainty retention, linked-body protection, request budgets and absolute deadline are shared with search. Live rendering and pagination finish before evaluation. Omissions only replace captured spans: no reread after await, no mixing changed file versions, and no refill from the next page. Independent common deduplication follows Jev and excludes find.
 
-### Data sent to TypeSafe
+### Data sent to the provider
 
-Enabled search/read/grep/non-root overview filters send the masked registered goal and questions, tool arguments, eligible source bodies and their bounded supporting evidence. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model remains `jev-1.13.0`.
+Enabled search/read/grep/non-root overview filters send the masked registered goal and questions, tool arguments, eligible source bodies and their bounded supporting evidence to the provider the model selects: TypeSafe, or OpenRouter and the model's upstream provider. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model is `jev-1.14.0`.
+
+### OpenRouter decision models
+
+A model ID with an author prefix (`author/slug`) selects OpenRouter. Requests go only to OpenRouter's Decisions API, `POST https://openrouter.ai/api/alpha/decisions`, with the `[openrouter].api_key` key (fallback `OPENROUTER_API_KEY`). The request and answer shapes match TypeSafe's, so the questions, budgets, thresholds and transport limits above apply unchanged. A bare Jev version such as `jev-1.14.0` keeps using TypeSafe and its own key.
+
+- **Decision models only.** OpenRouter answers a chat, embedding or unknown model on this endpoint with HTTP 400 (`Model … does not exist`) before any model runs. The stage then falls back with `http_status`, and the tool returns its ordinary output.
+- **Pinned IDs.** OpenRouter reports its canonical slug: the requested ID without a `:variant` suffix, optionally followed by a `-YYYYMMDD` release date (for example `openai/gpt-6-luna-decisions` answers as `openai/gpt-6-luna-decisions-20261006`). Any other response model fails validation. Alias models (`~author/slug`, such as `~typesafe/jev-latest`) are rejected before a request is sent because they answer as whichever version they point to.
+- **Context.** The operating budgets assume at least 64k tokens of context. OpenRouter serves Jev in TypeSafe's long-context mode for requests above about 32 KB of text, which is slower and less accurate; lower `max_batch_bytes` if that matters.
+
+The following OpenRouter decision models accepted this runtime's request shape on 2026-10-24 and offer at least 64k context:
+
+| Maker | Model IDs |
+| --- | --- |
+| OpenAI | `openai/gpt-6-luna-decisions` |
+| TypeSafe | `typesafe/jev-1.14`, `typesafe/jev-1.13` |
+| Perplexity | `perplexity/pplx-decider-v1.2`, `perplexity/pplx-decider-flash-v1.2` |
+| Nace.AI | `nace-ai/drex-max`, `nace-ai/drex-v2.0`, `nace-ai/drex-v1.5` |
+| Respan | `respan/span-02` |
+| Upstage | `upstage/solar-decide`, `upstage/solar-decide-flash` |
+| Cloudflare | `cloudflare/clef`, `cloudflare/clef-omni` |
+| Liquid AI | `liquid/d1` |
+| Inception | `inception/mercury-decide` |
+
+`scaledown/classify-1` is a decision model but rejects object state fields outside its own document schema. Smaller-context models cannot hold the operating budgets. The catalog changes; list current decision models with `GET https://openrouter.ai/api/v1/models?output_modalities=decisions`.
 
 ### Transport limits
 

@@ -1,5 +1,6 @@
 //! Reusable Jev decision runtime: typed Score/Choice/Noul questions over caller-supplied
-//! JSON state, evaluated through the TypeSafe HTTP API (`POST /v1/systemone`).
+//! JSON state, evaluated through the TypeSafe HTTP API (`POST /v1/systemone`) or, for an
+//! `author/slug` model ID, OpenRouter's Decisions API with the same wire shape ([`Provider`]).
 //!
 //! The module is independent of MCP dispatch, the index, the workspace, the current
 //! directory and the global config loader. Adapters (search task judgments) build an [`EvaluationRequest`] from presentation copies of their own data,
@@ -37,6 +38,7 @@ mod answer;
 mod batch;
 mod evaluator;
 pub mod mock;
+mod provider;
 mod question;
 #[cfg(test)]
 mod tests;
@@ -50,6 +52,7 @@ pub use answer::{
 pub(crate) use batch::request_batch_count;
 pub use batch::{estimate_tokens, BatchLimits, TokenLimitKind, ESTIMATED_BYTES_PER_TOKEN};
 pub use evaluator::{is_safe_duration, EvaluatorConfig, JevEvaluator, MAX_SAFE_DURATION};
+pub use provider::Provider;
 pub use question::{
     EvaluationRequest, NoulCriteria, Question, QuestionId, QuestionKind, RequestPolicy,
     TASK_QUERY_FIELD,
@@ -67,12 +70,15 @@ use std::time::Duration;
 /// The provider model this runtime pins by default. Alias names (`jev-latest`,
 /// `jev-preview`) resolve to a concrete version on the provider side, which would fail the
 /// exact model validation; configure a concrete version instead.
-pub const DEFAULT_MODEL: &str = "jev-1.13.0";
+pub const DEFAULT_MODEL: &str = "jev-1.14.0";
 
-/// The only endpoint this runtime posts to. There is no runtime override: tests inject a
-/// [`Transport`] or an [`Evaluator`] instead of redirecting production traffic (a local
-/// listener is reachable only from this crate's own `#[cfg(test)]` code).
+/// The TypeSafe endpoint for bare Jev versions. Endpoints are fixed per [`Provider`]; there is
+/// no runtime override: tests inject a [`Transport`] or an [`Evaluator`] instead of redirecting
+/// production traffic (a local listener is reachable only from this crate's own `#[cfg(test)]`
+/// code).
 pub const ENDPOINT: &str = "https://api.typesafe.ai/v1/systemone";
+/// OpenRouter's Decisions API for `author/slug` model IDs. It serves decision models only.
+pub const OPENROUTER_ENDPOINT: &str = "https://openrouter.ai/api/alpha/decisions";
 
 /// Upper bound of [`EvaluatorConfig::max_in_flight_requests`]: the initial safety policy
 /// allows at most three HTTP requests in flight per evaluator.
@@ -80,7 +86,7 @@ pub const MAX_IN_FLIGHT_REQUESTS: usize = 3;
 /// Lower bound of [`EvaluatorConfig::request_spacing`]: request starts are at least 300 ms
 /// apart on one evaluator.
 pub const MIN_REQUEST_SPACING: Duration = Duration::from_millis(300);
-/// Operating budgets leave 12.5% headroom below Jev 1.13's 64k / 32k limits.
+/// Operating budgets leave 12.5% headroom below Jev's 64k / 32k limits (1.13 and 1.14).
 pub const DEFAULT_REQUEST_TOKEN_BUDGET: u64 = 56_000;
 pub const DEFAULT_STATE_QUESTION_TOKEN_BUDGET: u64 = 28_000;
 /// Memory/transport ceiling aligned with the estimate, not an exact token count.

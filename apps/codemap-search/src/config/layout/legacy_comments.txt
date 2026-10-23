@@ -488,3 +488,11 @@
 # 확장에 실패하면 원문 선언과 실패 사유를 표시합니다. 이 섹션의 설정을 변경하면
 # 확장한 grep은 페이지를 나누거나 단일 본문이 한도를 넘었음을 안내합니다.
 # 확장한 함수 본문은 페이지를 나누고, 확장하지 않은 응답이 초과하면 범위 축소를 요청합니다.
+# Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
+# Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
+# If neither auth file supplies a key, TYPESAFE_API_KEY is used.
+# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
+# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
+# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
+# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.

@@ -93,12 +93,17 @@ codemap 전역 디렉터리의 `global-instructions.json`에 실제 적용 경�
 
 ### 인증정보 (`auth.toml`)
 
-Jev API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)의 `[jev].api_key`에 저장합니다. 우선순위는 **저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수**입니다. 키가 없거나 빈 문자열·공백뿐이면 다음 값을 사용합니다. 파일 읽기 실패·잘못된 TOML·자료형은 경고 후 다음 값으로 대체하며, 키 값이나 파서의 소스 발췌는 출력하지 않습니다. 알 수 없는 섹션·키도 값을 출력하지 않고 경고한 뒤 무시합니다.
+decision 모델 API 키는 `<repo>/.codemap/auth.toml` 또는 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)에 저장합니다. TypeSafe 키는 `[jev].api_key`, OpenRouter 키는 `[openrouter].api_key`에 넣습니다. 키마다 따로 **저장소 auth → 전역 auth → 고정된 환경 변수**(`TYPESAFE_API_KEY` 또는 `OPENROUTER_API_KEY`) 순서로 읽으며, `[output.jev].model`이 선택한 제공자의 키만 사용합니다. 키가 없거나 빈 문자열·공백뿐이면 다음 값을 사용합니다. 파일 읽기 실패·잘못된 TOML·자료형은 경고 후 다음 값으로 대체하며, 키 값이나 파서의 소스 발췌는 출력하지 않습니다. 알 수 없는 섹션·키도 값을 출력하지 않고 경고한 뒤 무시합니다.
+
+OpenRouter 키는 decision 전용입니다. OpenRouter Decisions API(`https://openrouter.ai/api/alpha/decisions`)로만 보내며 채팅 등 다른 OpenRouter API에는 쓰지 않습니다. decision을 지원하지 않는 모델은 OpenRouter가 모델 실행 전에 HTTP 400으로 거부합니다([OpenRouter decision 모델](#openrouter-decision-모델) 참고).
 
 ```toml
 # .codemap/auth.toml — 버전 관리에서 제외하세요
 [jev]
-api_key = "<발급받은 키>"
+api_key = "<발급받은 TypeSafe 키>"
+
+[openrouter]
+api_key = "<발급받은 OpenRouter 키>"
 ```
 
 `config_auto_update = true`이면 MCP 시작 시 누락된 저장소 `auth.toml`을 인증정보가 없는 현지화 템플릿으로 만듭니다. 기존 파일은 덮어쓰지 않으며 환경 변수의 키를 복사하지 않습니다. Unix에서는 소유자만 읽고 쓰는 `0600` 권한으로 생성하고, Windows에서는 파일시스템의 상속 ACL을 사용합니다. 전역 인증 파일은 자동 생성하지 않습니다. 모델·활성화·요청 제한은 `config.toml`의 `[output.jev]`에서 관리합니다.
@@ -210,7 +215,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
 | `[global_instructions].enabled` (사용자 전역 전용) | MCP 초기화 또는 활성화 값 변경을 다시 읽은 뒤 다음 요청. 갱신한 파일은 새 에이전트 세션에서 읽음 |
-| `auth.toml`의 `[jev].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
+| `auth.toml`의 `[jev].api_key`, `[openrouter].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
 | `[output.client].claude_max_result_chars` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
 | `[output.client].codex_output_token_limit` | 최종 전달 한도는 재로드 후 적용; 클라이언트는 codex-config를 다시 병합 |
 | `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트 변경 불필요 |
@@ -289,7 +294,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[update].config_auto_update` | bool | `true` | MCP 시작 시 누락된 저장소 config/auth 템플릿 생성과 config 스키마 갱신 |
 | `[output.jev].enabled` | bool | `false` | 전체 스위치. false이면 scope와 무관하게 모든 Jev 출력 필터를 끔 |
 | `[output.jev].scope` | 문자열 배열 | `["overview", "search", "read", "grep"]` | enabled일 때 적용할 전체 도구 목록. []는 적용 안 함, 저장소 목록이 전역 목록을 대체 |
-| `[output.jev].model` | 문자열 | `"jev-1.13.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. 별칭 이름은 검증에 실패 |
+| `[output.jev].model` | 문자열 | `"jev-1.14.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. Jev 버전은 TypeSafe, `제작자/모델` ID는 [OpenRouter](#openrouter-decision-모델)를 사용. 별칭 이름은 검증에 실패 |
 | `[output.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
 | `[output.jev].max_in_flight_requests` | 정수, 1~3 | `3` | 동시에 진행하는 HTTP 요청 수(3이 런타임 상한) |
 | `[output.jev].request_spacing_ms` | 정수(ms), 300 이상 | `300` | 요청 시작 사이의 최소 간격(300이 런타임 하한) |
@@ -665,10 +670,10 @@ rules = []
 exceptions = []
 
 [output.jev]
-# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# decision 모델(TypeSafe Jev 또는 OpenRouter)로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
 # 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
-# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
-# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
+# API 키는 여기가 아닌 auth.toml의 [jev].api_key(TypeSafe) 또는 [openrouter].api_key에 저장하세요.
+# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY 환경 변수를 사용합니다.
 
 # 모든 Jev 출력 필터를 켜거나 끕니다. false이면 모든 도구가 로컬로 동작합니다.
 enabled = false
@@ -677,8 +682,15 @@ enabled = false
 # 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
 scope = ["overview", "search", "read", "grep"]
 
-# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
-model = "jev-1.13.0"
+# 사용할 decision 모델입니다(기본 jev-1.14.0). Jev 버전은 TypeSafe를, 제작자/모델 ID는
+# OpenRouter Decisions API만 사용하며 decision을 지원하지 않는 모델은 거부됩니다. 별칭은 쓸 수 없습니다.
+# OpenRouter decision 모델(컨텍스트 64k 이상):
+#   openai/gpt-6-luna-decisions, typesafe/jev-1.14, typesafe/jev-1.13,
+#   perplexity/pplx-decider-v1.2, perplexity/pplx-decider-flash-v1.2,
+#   nace-ai/drex-max, nace-ai/drex-v2.0, nace-ai/drex-v1.5, respan/span-02,
+#   upstage/solar-decide, upstage/solar-decide-flash, cloudflare/clef,
+#   cloudflare/clef-omni, liquid/d1, inception/mercury-decide
+model = "jev-1.14.0"
 
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 timeout_ms = 45000
@@ -920,6 +932,15 @@ search_filter_min_unrelated_probability = 0.70
 
 ```sh
 export TYPESAFE_API_KEY="<발급받은 키>"   # 요청 시점에 읽는 대체값이며 auth.toml로 복사하지 않습니다
+export OPENROUTER_API_KEY="<발급받은 키>" # OpenRouter decision 모델에 쓰는 같은 방식의 대체값입니다
+```
+
+TypeSafe 대신 OpenRouter decision 모델을 쓰려면 모델에 OpenRouter ID를 지정합니다.
+
+```toml
+[output.jev]
+enabled = true
+model = "openai/gpt-6-luna-decisions"
 ```
 
 Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `overview`, `search`, `read`, `grep`을 받으며 기본값은 네 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. `initial_instructions`, 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
@@ -993,9 +1014,33 @@ Read·grep은 실제로 읽은 같은 버퍼에서 함수 경계와 반환 행�
 
 현재 과제·질문, all/any 조합, 불확실 보존, 연결된 본문 보호, 전송 예산과 절대 마감을 search와 공유합니다. 원래 페이지와 렌더링을 먼저 확정한 뒤 생략 부분만 바꾸므로, 평가 도중 파일이 바뀌어도 새 버퍼와 섞지 않고 생략한 만큼 다음 페이지를 채우지 않습니다. 공통 중복 제거는 Jev 뒤에 적용하며 find는 제외합니다.
 
-### TypeSafe에 전송하는 데이터
+### 제공자에 전송하는 데이터
 
-활성화된 search·read·grep이 마스킹한 목적·등록 질문·도구 인수·판단 대상 함수 본문과 제공된 지원 근거를 전송합니다. 전송 전에 마스킹하지만 모든 민감값을 탐지할 수는 없습니다. API 키는 HTTPS 인증에만 사용합니다. 기본 제공자 모델은 `jev-1.13.0`입니다.
+활성화된 search·read·grep이 마스킹한 목적·등록 질문·도구 인수·판단 대상 함수 본문과 제공된 지원 근거를 모델이 선택한 제공자(TypeSafe, 또는 OpenRouter와 해당 모델의 원본 제공자)에 전송합니다. 전송 전에 마스킹하지만 모든 민감값을 탐지할 수는 없습니다. API 키는 HTTPS 인증에만 사용합니다. 기본 제공자 모델은 `jev-1.14.0`입니다.
+
+### OpenRouter decision 모델
+
+제작자 접두어가 있는 모델 ID(`제작자/모델`)는 OpenRouter를 선택합니다. 요청은 `[openrouter].api_key`(대체값 `OPENROUTER_API_KEY`)로 OpenRouter Decisions API인 `POST https://openrouter.ai/api/alpha/decisions`에만 보냅니다. 요청·응답 형식이 TypeSafe와 같아 위의 질문·예산·임계값·전송 한도를 그대로 적용합니다. `jev-1.14.0` 같은 Jev 버전은 계속 TypeSafe와 그 키를 사용합니다.
+
+- **decision 모델 전용.** 이 엔드포인트에 채팅·임베딩 모델이나 없는 모델을 보내면 OpenRouter가 모델 실행 전에 HTTP 400(`Model … does not exist`)으로 거부합니다. 이때 단계는 `http_status`로 대체 처리되고 도구는 일반 결과를 반환합니다.
+- **고정 ID.** OpenRouter는 정식 슬러그를 보고합니다. 요청 ID에서 `:변형` 접미사를 뺀 값이거나, 그 뒤에 `-YYYYMMDD` 출시일이 붙은 값입니다(예: `openai/gpt-6-luna-decisions` 요청에 `openai/gpt-6-luna-decisions-20261006`으로 응답). 그 밖의 응답 모델은 검증에 실패합니다. `~typesafe/jev-latest` 같은 별칭(`~제작자/모델`)은 가리키는 버전이 바뀔 수 있어 요청을 보내기 전에 거부합니다.
+- **컨텍스트.** 운영 예산은 64k 토큰 이상의 컨텍스트를 전제합니다. OpenRouter는 텍스트가 약 32KB를 넘는 Jev 요청을 TypeSafe의 long-context 모드로 실행하며, 이 모드는 더 느리고 정확도가 낮습니다. 문제가 되면 `max_batch_bytes`를 낮추세요.
+
+다음 OpenRouter decision 모델은 2026-10-24에 이 런타임의 요청 형식을 받았고 64k 이상의 컨텍스트를 제공합니다.
+
+| 제작사 | 모델 ID |
+| --- | --- |
+| OpenAI | `openai/gpt-6-luna-decisions` |
+| TypeSafe | `typesafe/jev-1.14`, `typesafe/jev-1.13` |
+| Perplexity | `perplexity/pplx-decider-v1.2`, `perplexity/pplx-decider-flash-v1.2` |
+| Nace.AI | `nace-ai/drex-max`, `nace-ai/drex-v2.0`, `nace-ai/drex-v1.5` |
+| Respan | `respan/span-02` |
+| Upstage | `upstage/solar-decide`, `upstage/solar-decide-flash` |
+| Cloudflare | `cloudflare/clef`, `cloudflare/clef-omni` |
+| Liquid AI | `liquid/d1` |
+| Inception | `inception/mercury-decide` |
+
+`scaledown/classify-1`은 decision 모델이지만 자체 문서 스키마 외의 객체 state 필드를 거부합니다. 컨텍스트가 더 작은 모델은 운영 예산을 담을 수 없습니다. 목록은 바뀔 수 있으므로 현재 decision 모델은 `GET https://openrouter.ai/api/v1/models?output_modalities=decisions`로 확인하세요.
 
 ### 전송 한도
 

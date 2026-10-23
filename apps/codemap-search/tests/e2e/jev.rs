@@ -670,7 +670,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
         .unwrap_or_else(|| panic!("no applied stage line in:\n{log}"));
     assert_eq!(applied["tool"], "search");
     assert_eq!(applied["status"], "applied");
-    assert_eq!(applied["model"], "jev-1.13.0");
+    assert_eq!(applied["model"], "jev-1.14.0");
     assert_eq!(
         applied["versions"],
         "search-task-evidence/8 search-task-questions/9 search-selection-policy/6-experimental"

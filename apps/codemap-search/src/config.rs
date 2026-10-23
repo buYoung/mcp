@@ -1784,8 +1784,8 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
 # If Jev cannot be used, the original result is returned.
 # search_filter_enabled = false
-# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
-# model = \"jev-1.13.0\"
+# Jev model version (default jev-1.14.0). Aliases such as jev-latest are not accepted.
+# model = \"jev-1.14.0\"
 # Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 # timeout_ms = 45000
@@ -1806,8 +1806,8 @@ const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
 # Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
 # search_filter_enabled = false
-# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
-# model = \"jev-1.13.0\"
+# 사용할 Jev 모델 버전입니다(기본 jev-1.14.0). jev-latest 같은 별칭은 쓸 수 없습니다.
+# model = \"jev-1.14.0\"
 # TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 # timeout_ms = 45000

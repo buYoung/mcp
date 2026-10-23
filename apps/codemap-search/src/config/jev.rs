@@ -1,9 +1,11 @@
-//! `[output.jev]`: optional TypeSafe Jev selection for search/read/grep and non-root overview.
+//! `[output.jev]`: optional decision-model selection for search/read/grep and non-root
+//! overview, through TypeSafe Jev or an OpenRouter decision model (`model` selects which).
 //! `enabled` is the master switch; `scope` selects eligible output tools. Off by default.
 //! Register the full task once through `register_task`; enabled stages automatically
-//! use it for eligible calls. The API key comes from the separate `auth.toml` file or,
-//! as a fallback, the fixed `TYPESAFE_API_KEY` environment variable, never from this
-//! behavior section or tool arguments.
+//! use it for eligible calls. The API key comes from the separate `auth.toml` file
+//! (`[jev]` or `[openrouter]`) or, as a fallback, the fixed `TYPESAFE_API_KEY` or
+//! `OPENROUTER_API_KEY` environment variable, never from this behavior section or tool
+//! arguments.
 //!
 //! Transport keys may only tighten the runtime's initial safety policy: at most
 //! `MAX_IN_FLIGHT_REQUESTS` (3) requests in flight, at least `MIN_REQUEST_SPACING`
@@ -23,7 +25,8 @@ pub struct JevConfig {
     pub is_enabled: bool,
     /// Tool names eligible for filtering when the master switch is on.
     pub scope: Vec<String>,
-    /// Concrete provider model, validated against every response.
+    /// Concrete provider model, validated against every response. A bare Jev version uses
+    /// TypeSafe; an `author/slug` ID uses OpenRouter's Decisions API.
     pub model: String,
     /// Whole-call deadline per tool call, including queue time.
     pub timeout_ms: u64,
