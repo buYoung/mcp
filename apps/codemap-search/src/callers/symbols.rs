@@ -24,9 +24,6 @@ struct SymbolDefinitions<'a> {
 }
 
 impl<'a> SymbolIndex<'a> {
-    pub(super) fn can_attribute_calls(&self, path: &str) -> bool {
-        !self.macro_files.contains_key(path)
-    }
     pub(super) fn is_active_line(&self, path: &str, line: usize) -> bool {
         self.macro_files
             .get(path)
@@ -112,12 +109,14 @@ pub(super) fn build_symbol_index<'a>(
     SymbolIndex {
         by_name,
         test_filter,
+        // Expanded files keep original-source calls on active lines only; scan hits elsewhere
+        // in them are discarded through this map.
         macro_files: snapshot
             .iter()
             .filter_map(|file| {
                 Some((
                     file.file_path.as_str(),
-                    file.navigation.as_ref()?.macro_expansion.as_ref()?,
+                    file.macro_expansion().filter(|info| info.is_expanded())?,
                 ))
             })
             .collect(),
@@ -129,9 +128,6 @@ pub(super) fn build_navigation_index(snapshot: &[ExtractedFile]) -> NavigationIn
     let mut files_by_path = HashMap::new();
     for (file_index, file) in snapshot.iter().enumerate() {
         files_by_path.insert(file.file_path.clone(), file_index);
-        if file.macro_expansion().is_some() {
-            continue;
-        }
         if let Some(navigation) = &file.navigation {
             for (call_index, call) in navigation.calls.iter().enumerate() {
                 calls_by_name

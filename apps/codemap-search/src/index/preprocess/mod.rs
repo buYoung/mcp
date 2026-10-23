@@ -49,25 +49,26 @@ impl MacroExpander {
         let path = crate::workspace::canonicalize_path_lenient(&self.root.join(path));
         let mut auxiliary = None;
         let info = match self.expand_inner(&path, source, extracted) {
+            // Calls and constant references stay those of the original source, limited to
+            // active lines (see `expand_inner`).
             Ok((info, expanded_auxiliary)) => {
                 auxiliary = Some(expanded_auxiliary);
                 info
             }
+            // Nothing was expanded, so the original-source extraction stays whole.
             Err(error) => MacroExpansionInfo {
                 notice: format!(
-                    "Macro expansion unresolved: {error}. Original-source declarations are shown; call and constant-reference attribution is unresolved."
+                    "Macro expansion unresolved: {error}. Declarations, calls and constant references come from the original source."
                 ),
                 symbols: Vec::new(),
                 inputs: vec![input_stamp(&path)],
                 active_lines: None,
             },
         };
-        let navigation = extracted.navigation.get_or_insert_with(Default::default);
-        navigation.calls.clear();
-        navigation.references.clear();
-        navigation.local_bindings.clear();
-        navigation.imports.clear();
-        navigation.macro_expansion = Some(info);
+        extracted
+            .navigation
+            .get_or_insert_with(Default::default)
+            .macro_expansion = Some(info);
         auxiliary
     }
 
@@ -201,7 +202,7 @@ impl MacroExpander {
         });
         symbols.dedup_by(|a, b| a.name == b.name && a.kind == b.kind && a.range == b.range);
         extracted.symbols = symbols;
-        let notice = format!("Macro expansion: {} declaration(s) mapped to original source lines using {} ({}){}. Expanded-token columns are unresolved. Call and constant-reference attribution is unresolved for preprocessed files.", origins.len(), invocation.program, invocation.source,
+        let notice = format!("Macro expansion: {} declaration(s) mapped to original source lines using {} ({}){}. Expanded-token columns are unresolved. Calls and constant references come from active lines of the original source.", origins.len(), invocation.program, invocation.source,
             if invocation.dialect == Dialect::Nasm { "; NASM listing labels/globals, generated macro-local labels omitted" } else { "" });
         let info = MacroExpansionInfo {
             notice,

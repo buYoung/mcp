@@ -171,6 +171,10 @@ pub struct MacroExpansionInfo {
 }
 
 impl MacroExpansionInfo {
+    /// Whether preprocessing succeeded; only successful expansion records active lines.
+    pub fn is_expanded(&self) -> bool {
+        self.active_lines.is_some()
+    }
     pub fn is_expanded_symbol(&self, symbol: &ExtractedSymbol) -> bool {
         self.symbols
             .iter()
@@ -221,6 +225,12 @@ pub struct ExtractedFile {
 impl ExtractedFile {
     pub fn macro_expansion(&self) -> Option<&MacroExpansionInfo> {
         self.navigation.as_ref()?.macro_expansion.as_ref()
+    }
+    /// Whether declarations come from successful macro expansion, whose line mapping does not
+    /// carry type evidence, events or flows.
+    pub fn is_macro_expanded(&self) -> bool {
+        self.macro_expansion()
+            .is_some_and(MacroExpansionInfo::is_expanded)
     }
 }
 

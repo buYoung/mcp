@@ -72,11 +72,6 @@ pub(super) fn trailer(
     }
     let filtered = filter.filter_snapshot(&source_files, |file| file.file_path == path);
     let file = filtered.iter().find(|file| file.file_path == path)?;
-    if file.macro_expansion().is_some() {
-        return Some(unavailable_line(
-            "not supported for files indexed with macro expansion",
-        ));
-    }
     let functions: Vec<_> = file
         .symbols
         .iter()

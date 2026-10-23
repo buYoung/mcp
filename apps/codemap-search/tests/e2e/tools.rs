@@ -1920,10 +1920,8 @@ async fn test_macro_expansion_reaches_search_read_and_refreshes_header_changes()
     assert!(read.contains("2→DECLARE(chosen);"), "{read}");
     assert!(read.contains("Macro expansion:"), "{read}");
     assert!(read.contains("macro expansion]"), "{read}");
-    assert!(
-        read.contains("attribution unresolved after preprocessing"),
-        "{read}"
-    );
+    // The original-source call on line 3 resolves to the generated declaration.
+    assert!(read.contains("ordinary"), "{read}");
     assert!(!read.contains("(precise)"), "{read}");
     let search = client
         .send_request(

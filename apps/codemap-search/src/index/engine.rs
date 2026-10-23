@@ -898,7 +898,7 @@ impl TantivySearchEngine {
             {
                 auxiliary = expanded_auxiliary;
             }
-            if extracted.macro_expansion().is_some() {
+            if extracted.is_macro_expanded() {
                 auxiliary.static_collection_edges.clear();
                 auxiliary.event_input = None;
                 auxiliary.flow_file = None;

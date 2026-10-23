@@ -1224,7 +1224,7 @@ fn annotate_with_presentation(
     // Union of every non-fallback matched `fn` name across all detail files → one scan.
     let mut names: Vec<String> = Vec::new();
     for req in requests {
-        if req.is_fallback || !index.can_attribute_calls(req.file_path) {
+        if req.is_fallback {
             continue;
         }
         for sym in req
@@ -1264,7 +1264,7 @@ fn annotate_with_presentation(
     let mut sub_remaining = cfg.annotation_sub_budget;
     let mut overall_remaining = available_bytes;
     'requests: for req in requests {
-        if req.is_fallback || !index.can_attribute_calls(req.file_path) {
+        if req.is_fallback {
             continue;
         }
         for sym in req
