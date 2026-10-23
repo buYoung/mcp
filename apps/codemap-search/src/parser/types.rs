@@ -156,6 +156,18 @@ pub struct NavigationFile {
     pub local_bindings: Vec<LocalBinding>,
     #[serde(default)]
     pub imports: Vec<ImportEntry>,
+    /// Upper-snake-case constant names by line, from a lexical scan of the indexed source.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub key_sites: Vec<KeySite>,
+}
+
+/// One use of an upper-snake-case constant name. Code that shares such a name, like code that
+/// shares a string key, may meet through a queue, event, hook or cache; nothing is resolved.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct KeySite {
+    pub name: String,
+    pub line: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

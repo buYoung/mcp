@@ -198,7 +198,8 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // they are not symbols, so search ranking and codemap views stay unchanged.
 // v36 types more call receivers (fields, static types, bases, C++ and PowerShell parameters)
 // in the persisted implementation facts used for caller attribution.
-const EXTRACTION_FORMAT_VERSION: &str = "v38-bounded-flow-statements";
+// v39 persists upper-snake-case constant names by line for the read trailer of shared keys.
+const EXTRACTION_FORMAT_VERSION: &str = "v39-key-sites";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1660,7 +1661,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v38-bounded-flow-statements");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v39-key-sites");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

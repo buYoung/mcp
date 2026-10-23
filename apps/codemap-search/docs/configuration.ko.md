@@ -241,7 +241,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.search].literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
 | `[output.search].anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[output.read].max_bytes` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
-| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록을 덧붙임. `false`면 생략 |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록과 같은 키를 쓰는 다른 위치를 덧붙임. `false`면 둘 다 생략 |
 | `[output.grep].max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[output.grep].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | grep 응답 한도. 확장 본문은 read 한도도 대체값으로 사용 |
 | `[output.context].is_enabled` | bool | `true` | `search` 호출에서 `caller_context` 생략 시 호출 관계 표시 여부 |

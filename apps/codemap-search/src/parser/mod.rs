@@ -1,5 +1,6 @@
 mod bounded;
 pub(crate) mod composite;
+mod key_sites;
 pub(crate) use bounded::parse_source;
 mod markdown;
 mod sass;
@@ -54,7 +55,11 @@ impl TreeSitterExtractor {
         file_content: &str,
         file_path: &str,
     ) -> Result<(ExtractedFile, IndexAuxiliary), String> {
-        let (extracted, mut auxiliary) = self.extract_parts(file_content, file_path, true, true)?;
+        let (mut extracted, mut auxiliary) =
+            self.extract_parts(file_content, file_path, true, true)?;
+        if let Some(navigation) = &mut extracted.navigation {
+            navigation.key_sites = key_sites::constants(file_content);
+        }
         auxiliary.event_input = crate::events::EventInput::capture(file_content, file_path);
         if let Some(flow) = &mut auxiliary.flow_file {
             flow.digest = crate::implementations::digest(file_content.as_bytes());
