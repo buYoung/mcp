@@ -103,7 +103,7 @@ async fn test_related_terms_overlay_disabled_does_not_prepare_evidence() {
     )
     .unwrap();
     fs::create_dir_all(repo.path().join(".codemap")).unwrap();
-    fs::write(repo.path().join(".codemap/config.toml"), "# codemap-config-version: 31\n[related_terms]\nenabled=false\ndataset_path='/does/not/exist'\n").unwrap();
+    fs::write(repo.path().join(".codemap/config.toml"), "# codemap-config-version: 32\n[related_terms]\nenabled=false\ndataset_path='/does/not/exist'\n").unwrap();
     let root = repo.path().to_path_buf();
     with_in_process_server(repo.path(), None, move |mut client| async move {
         let list = client.call("tools/list", json!({})).await.unwrap();

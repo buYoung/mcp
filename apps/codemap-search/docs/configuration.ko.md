@@ -8,7 +8,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 
 ## 섹션 구성과 출력 한도
 
-동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 네 클라이언트 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
+동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 네 클라이언트 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep 한도 예시, 빌드 설정 경로, 색인 시작 방식과 그 파일 수 한도, 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
 
 | 섹션 | 범위 |
 |---|---|
@@ -115,10 +115,12 @@ api_key = "<발급받은 키>"
 
 버전 31은 `[output.read].is_outside_callers_enabled`를 주석 예시로 추가하며 기존 값을 바꾸지 않습니다. 이 키를 `false`로 설정하지 않으면 `read view=source`는 계속 창 밖 호출자 목록을 덧붙입니다.
 
-현재 **로컬 설정** 버전은 **31**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
+버전 32는 `[index].mode`와 `[index].auto_max_files`를 주석 예시로 추가합니다. 값을 정하지 않으면 기존 저장소에서도 [색인 시작 시점](#색인-시작-시점)의 `auto` 규칙을 따릅니다.
+
+현재 **로컬 설정** 버전은 **32**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
 
 ```toml
-# codemap-config-version: 31
+# codemap-config-version: 32
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -205,7 +207,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `index.refresh.index_staleness_ms`, `index.refresh.indexer_auto_restart` | 이후 갱신·복구 판단 |
 | `index.max_file_bytes` | 이후 탐색·갱신부터 적용하며, 이 값만 바꾸면 전체 갱신을 요청하지 않음 |
 | `index.store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
-| `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
+| `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
 | `[global_instructions].enabled` (사용자 전역 전용) | MCP 초기화 또는 활성화 값 변경을 다시 읽은 뒤 다음 요청. 갱신한 파일은 새 에이전트 세션에서 읽음 |
 | `auth.toml`의 `[jev].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
@@ -257,6 +259,8 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.redact].sensitive_fields` | 문자열 배열 | `[]` | 내장 민감 필드명에 추가할 이름. 대소문자와 구분자를 정규화한 뒤 정확히 일치해야 함 |
 | `[output.redact].rules` | 인라인 테이블 배열 | `[]` | 추가 정규식 규칙. 각 항목에 `id`, `pattern` 필요 |
 | `[output.redact].exceptions` | 인라인 테이블 배열 | `[]` | `rule_id`와 탐지된 `value`가 모두 정확히 일치하는 예외 |
+| `[index].mode` | `"auto"`, `"on"`, `"off"` | `"auto"` | MCP 서버가 작업공간을 색인하는 시점. [색인 시작 시점](#색인-시작-시점) 참고 |
+| `[index].auto_max_files` | 정수 | `50000` | `auto` 모드가 색인하는 최대 색인 대상 파일 수 |
 | `[index].path` | 문자열 | `".codemap/index"` | 색인 저장 위치. 절대 경로나 작업공간 루트 기준 상대 경로 |
 | `[index].max_file_bytes` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 파싱·색인 전 건너뛸 파일 크기 기준 |
 | `[index].store_references` | bool | `false` | 함수 호출 외의 참조 위치 저장 |
@@ -292,6 +296,18 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.jev].max_batch_bytes` | 정수 바이트 또는 크기 문자열, 1~168000 | `168000` | 배치 하나의 인코딩된 요청 바이트(168000이 런타임 상한). 들어가지 않는 질문은 명시적 실패 |
 | `[output.jev].pool_idle_timeout_ms` | 양의 정수(ms), 최대 7일 | `30000` | 유휴 HTTPS 연결 유지 시간 |
 | `[output.jev].search_filter_min_unrelated_probability` | 유한한 수, `0.5 < 값 <= 1.0` | `0.70`(잠정값) | 기준별 거짓 확률 임계값. all/any로 개별 판단을 조합 |
+
+### 색인 시작 시점
+
+`[index].mode`는 MCP 서버가 작업공간을 탐색해 색인하는 시점을 정합니다.
+
+| 모드 | 동작 |
+|---|---|
+| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `overview`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
+| `"on"` | 이 확인 없이 서버 시작 때 색인합니다. |
+| `"off"` | 작업공간을 색인하지 않습니다. |
+
+`auto` 모드가 색인하지 않으면(예: 저장소 여러 개를 담은 폴더) `search`와 `overview`는 이유와 함께 `Index unavailable:`을 반환합니다. 이유에는 한두 단계 아래에서 찾은 저장소를 세 개까지 적습니다. `read`, `grep`, `find`는 색인한 선언·호출자 없이 실제 파일 결과를 계속 반환합니다. 저장소 밖에서는 `.codemap/` 디렉터리를 만들지 않습니다. 설정 파일을 생성하지 않고, 빈 임시 색인은 서버가 끝나면 지워지는 임시 디렉터리에 둡니다. 파일 수 한도는 첫 색인 도구 호출 때 확인하므로, 한도를 넘는 저장소에도 시작 시 `.codemap/`은 생깁니다. 이런 작업공간을 색인하려면 `.codemap/config.toml`이나 전역 설정에 `mode = "on"`을 쓰고 서버를 재시작하세요.
 
 ### 색인과 파일 제외
 
@@ -488,7 +504,7 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 31
+# codemap-config-version: 32
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -721,6 +737,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
+# 전역 설정이 적용되도록 주석으로 둡니다.
+# mode = "auto"
+
+# "auto" 모드가 색인하는 최대 파일 수입니다. 더 큰 작업공간은 mode = "on"이 필요합니다.
+# auto_max_files = 50000
+
 # 색인을 저장할 경로입니다. 상대 경로는 작업공간 루트 기준입니다. 바꾼 뒤에는 서버를 재시작하세요.
 path = ".codemap/index"
 

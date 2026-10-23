@@ -1,4 +1,4 @@
-# codemap-config-version: 31
+# codemap-config-version: 32
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -230,6 +230,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# When the MCP server indexes this workspace. "auto" starts on the first search, overview, read or grep,
+# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
+# Other folders, such as one holding several repositories, are not indexed; search and overview say why.
+# "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
+# Commented so that a global setting applies.
+# mode = "auto"
+
+# Most indexable files that "auto" mode indexes; a larger workspace needs mode = "on".
+# auto_max_files = 50000
+
 # Where to store the index. Relative paths use the workspace root. Restart the server after changing it.
 path = ".codemap/index"
 

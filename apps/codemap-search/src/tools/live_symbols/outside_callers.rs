@@ -115,7 +115,9 @@ fn unavailable_line(reason: &str) -> String {
 }
 
 fn index_state_reason(engine: &EngineSupervisor) -> Option<&'static str> {
-    if engine.is_warming() {
+    if !engine.is_active() {
+        Some("this workspace is not indexed ([index] mode)")
+    } else if engine.is_warming() {
         Some("the index is warming up; retry shortly")
     } else if engine.is_dead() {
         Some("the indexer is not running")

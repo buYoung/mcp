@@ -488,7 +488,17 @@ impl Drop for IndexerHandle {
 /// Spawn the background indexer, taking ownership of `engine` (the single tantivy writer).
 /// The initial indexing pass runs immediately on the new thread; the server serves requests
 /// against the current reader snapshot meanwhile.
-pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
+pub fn spawn_indexer(engine: TantivySearchEngine) -> IndexerHandle {
+    spawn_indexer_thread(engine, false)
+}
+
+/// Like [`spawn_indexer`], but the initial pass waits for the first command, so a workspace
+/// whose indexing is deferred is not walked until an index-backed tool asks for it.
+pub fn spawn_dormant_indexer(engine: TantivySearchEngine) -> IndexerHandle {
+    spawn_indexer_thread(engine, true)
+}
+
+fn spawn_indexer_thread(mut engine: TantivySearchEngine, is_dormant: bool) -> IndexerHandle {
     let (sender, receiver) = sync_channel::<IndexCommand>(1);
     let status = Arc::new(IndexerStatus::default());
     let initial = Arc::new(PublishedIndexSnapshot::empty());
@@ -504,6 +514,10 @@ pub fn spawn_indexer(mut engine: TantivySearchEngine) -> IndexerHandle {
     let join_handle = std::thread::Builder::new()
         .name("codemap-indexer".to_string())
         .spawn(move || {
+            // The waking command only starts the initial pass, which walks everything.
+            if is_dormant && receiver.recv().is_err() {
+                return;
+            }
             // Initial pass: hydrate from a warm on-disk index or build it from scratch.
             let is_initial_successful = run_refresh_pass(
                 &mut engine,

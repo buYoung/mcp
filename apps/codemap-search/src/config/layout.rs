@@ -172,6 +172,8 @@ settings![
         "caller_omit_def_threshold",
         "caller_context"
     ),
+    ("index", "mode", "index_mode", "index"),
+    ("index", "auto_max_files", "index_auto_max_files", "index"),
     ("index", "path", "index_path", "index"),
     ("index", "max_file_bytes", "max_file_size", "index"),
     (

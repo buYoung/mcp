@@ -19,6 +19,11 @@ use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 /// JSON-RPC code for an unknown tool name, the only protocol error raised after tool dispatch.
 const TOOL_NOT_FOUND_CODE: i64 = -32601;
 
+/// A tool result whose only content is `text`.
+fn text_content(text: &str) -> serde_json::Value {
+    serde_json::json!({"content": [{"type": "text", "text": text}]})
+}
+
 /// A failed tool call as a result the model can read and correct. Clients such as Codex do
 /// not forward `isError`, so the text itself states the failure.
 fn tool_error_result(message: &str) -> Value {
@@ -170,7 +175,26 @@ impl McpServer {
     /// filesystem watchers) from the current in-memory config and wrap it in a server. The
     /// `mcp` command and in-process tests share this; call `config::reload(cwd)` first.
     pub fn bootstrap(cwd: &Path) -> Result<Self, String> {
+        Self::bootstrap_with(cwd, crate::index::admission::decide(cwd))
+    }
+
+    /// [`Self::bootstrap`] for an already decided `[index].mode` admission.
+    pub fn bootstrap_with(
+        cwd: &Path,
+        admission: crate::index::admission::Admission,
+    ) -> Result<Self, String> {
         use crate::index;
+        use crate::index::admission::Admission;
+        match admission {
+            Admission::Eager => {}
+            Admission::Deferred => {
+                let engine = index::TantivySearchEngine::new(&crate::config::get().index_path)?;
+                return Ok(Self::new(index::EngineSupervisor::deferred(engine)));
+            }
+            Admission::Unavailable(message) => {
+                return Ok(Self::new(index::EngineSupervisor::unavailable(message)?));
+            }
+        }
         let engine = index::TantivySearchEngine::new(&crate::config::get().index_path)?;
         // Read-only search handle for the request loop; the engine (the single tantivy
         // writer) moves into the background indexer, which starts the initial index pass
@@ -556,6 +580,8 @@ impl McpServer {
                         Ok(serde_json::json!({"content": [{"type": "text", "text": text}]}))
                     }
                     "synonyms" if crate::config::get().related_terms.enabled => {
+                        // Without an index the terms still come from the dataset.
+                        let _ = self.engine.activate();
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
                         let source = self.engine.snapshot_source();
@@ -577,6 +603,9 @@ impl McpServer {
                     }
                     "search" => {
                         crate::tools::search::validate_arguments(arguments)?;
+                        if let Err(message) = self.engine.activate() {
+                            return Ok(text_content(&message));
+                        }
                         // Recover a dead indexer first (auto-restart, config-gated), then
                         // trigger a background refresh (debounced by the staleness
                         // window), then search the current committed snapshot immediately
@@ -615,6 +644,9 @@ impl McpServer {
                         // The indexer parses the working tree once for the index and reuses
                         // it here, so the former overview-only walk+parse is gone. Lifecycle
                         // fires only here and on `search`, never on read/find/grep.
+                        if let Err(message) = self.engine.activate() {
+                            return Ok(text_content(&message));
+                        }
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
                         let ctx = ToolContext {
@@ -640,6 +672,9 @@ impl McpServer {
                         }))
                     }
                     "read" | "grep" => {
+                        // Their declarations and callers come from the index, so the first
+                        // read or grep also starts a deferred workspace's indexing.
+                        let _ = self.engine.activate();
                         let output = jev::live(
                             &mut self.jev,
                             &self.engine,
@@ -673,7 +708,9 @@ impl McpServer {
                         // arguments. The guidance never depends on arguments, so ignore them:
                         // keep the current registration and render the root overview.
                         let no_arguments = serde_json::json!({});
-                        let text = if crate::codemap::looks_like_monorepo_workspace() {
+                        let text = if crate::codemap::looks_like_monorepo_workspace()
+                            && self.engine.activate().is_ok()
+                        {
                             // Match `overview` lifecycle behavior so the initial response can
                             // include the same root scope selection without a second MCP call.
                             self.engine.ensure_alive();

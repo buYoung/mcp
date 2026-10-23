@@ -179,14 +179,14 @@ fn is_always_excluded_file(path: &Path) -> bool {
             && file_name != "CMakeLists.txt")
 }
 
-fn user_home_dir() -> Option<PathBuf> {
+pub(crate) fn user_home_dir() -> Option<PathBuf> {
     std::env::var_os("HOME")
         .filter(|value| !value.is_empty())
         .or_else(|| std::env::var_os("USERPROFILE").filter(|value| !value.is_empty()))
         .map(PathBuf::from)
 }
 
-fn path_resolved_from_cwd(path: &Path) -> PathBuf {
+pub(crate) fn path_resolved_from_cwd(path: &Path) -> PathBuf {
     let absolute = if path.is_absolute() {
         path.to_path_buf()
     } else {

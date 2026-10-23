@@ -242,7 +242,7 @@ Run from `apps/codemap-search` in the source checkout. `./verify` builds the cur
 
 ## Indexing, diagnostics and limits
 
-The MCP server builds/loads its own index in `.codemap/index` by default. A healthy filesystem watcher batches edits for 500ms and refreshes affected paths. Git HEAD changes or large batches trigger a full walk. When watching is off or unavailable, `search`/`overview` use the `index.refresh.index_staleness_ms` fallback. `read`, `find` and `grep` inspect disk directly.
+The MCP server builds/loads its own index in `.codemap/index` by default. With the default `[index] mode = "auto"`, indexing starts on the first `search`, `overview`, `read` or `grep` call, and only inside a repository with at most 50,000 indexable files. In other folders, such as one holding several repositories, `search`/`overview` explain why nothing is indexed; set `mode = "on"` to index anyway (see [When indexing starts](./docs/configuration.md#when-indexing-starts)). A healthy filesystem watcher batches edits for 500ms and refreshes affected paths, skipping paths hidden by ignore files. Git HEAD changes, ignore-file changes or large batches trigger a full walk. When watching is off or unavailable, `search`/`overview` use the `index.refresh.index_staleness_ms` fallback. `read`, `find` and `grep` inspect disk directly.
 
 - Files larger than `index.max_file_bytes` (default 1 MiB) are skipped by indexing/codemap.
 - `.txt`, lockfiles, source maps, minified and bundle files have separate file exclusions. `find`/`grep` can bypass these with `include_ignored`; direct `read`/`parse` remain available.

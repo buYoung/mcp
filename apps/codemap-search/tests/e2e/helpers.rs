@@ -61,6 +61,19 @@ pub fn create_mock_repo(files: &[(&str, &str)]) -> Result<TempDir, std::io::Erro
     Ok(temp_dir)
 }
 
+/// The MCP server indexes only repositories by default (`[index] mode = "auto"`), so a test
+/// workspace outside any repository gets the marker a checkout would have.
+pub fn ensure_repository_marker(cwd: &Path) {
+    let is_inside_repository = cwd.ancestors().any(|directory| {
+        [".git", ".hg", ".jj"]
+            .iter()
+            .any(|marker| directory.join(marker).exists())
+    });
+    if !is_inside_repository {
+        std::fs::create_dir_all(cwd.join(".git")).expect("create the repository marker");
+    }
+}
+
 /// Helper to invoke the codemap-search binary for CLI tests using assert_cmd
 pub fn run_cli(args: &[&str], cwd: &Path) -> assert_cmd::assert::Assert {
     use assert_cmd::prelude::*;
@@ -88,6 +101,7 @@ impl McpClient {
     pub async fn spawn(cwd: &Path) -> Result<Self, std::io::Error> {
         // Obtains path to the cargo-built binary
         let binary_path = assert_cmd::cargo::cargo_bin("codemap-search");
+        ensure_repository_marker(cwd);
 
         let mut child = Command::new(binary_path)
             .arg("mcp") // Launches MCP server mode
@@ -446,6 +460,7 @@ pub async fn with_in_process_server_logging<F, Fut>(
     std::env::remove_var("TYPESAFE_API_KEY");
     std::env::set_var("CODEMAP_HOME", cwd);
     std::env::set_current_dir(cwd).expect("set the workspace as the current directory");
+    ensure_repository_marker(cwd);
     codemap_search::config::reload(cwd);
     let mut server = codemap_search::mcp::McpServer::bootstrap(cwd).expect("bootstrap the server");
     if let Some(evaluator) = evaluator {

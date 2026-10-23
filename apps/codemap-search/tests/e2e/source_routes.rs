@@ -1,5 +1,5 @@
 //! Product checks use the real MCP binary; the target programs are never run.
-use super::helpers::{create_mock_repo, McpClient};
+use super::helpers::{create_mock_repo, ensure_repository_marker, McpClient};
 use codemap_search::parser::{CodeExtractor, TreeSitterExtractor};
 use serde_json::{json, Value};
 use std::io::Read;
@@ -33,6 +33,7 @@ async fn tool(client: &mut McpClient, name: &str, mut args: Value) -> String {
     text(&response)
 }
 async fn isolated_client(root: &Path) -> McpClient {
+    ensure_repository_marker(root);
     let mut child = Command::new(assert_cmd::cargo::cargo_bin("codemap-search"))
         .arg("mcp")
         .current_dir(root)

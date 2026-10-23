@@ -8,7 +8,7 @@ Configuration is optional. Add only the keys you want to change; other keys use 
 
 ## Section layout and output budgets
 
-Keep behavior settings in `config.toml`, grouped by responsibility, and credentials in `auth.toml`. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, all four client limits, preprocessing, event rules and custom masking lists. Common/grep limit examples, the compilation database path and the target-clearing example remain commented. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
+Keep behavior settings in `config.toml`, grouped by responsibility, and credentials in `auth.toml`. Generated files describe each setting, its units, inheritance and application point. Settings with concrete built-in defaults are active, including search/read limits, all four client limits, preprocessing, event rules and custom masking lists. Common/grep limit examples, the compilation database path, the index start mode and its file limit, and the target-clearing example remain commented. Active values, including empty lists, override global settings; remove or comment out a key to inherit it.
 
 | Section | Responsibility |
 |---|---|
@@ -113,10 +113,12 @@ Schema 30 adds the optional `[related_terms]` section as comments without changi
 
 Schema 31 adds `[output.read].is_outside_callers_enabled` as a commented example without changing existing values. `read view=source` keeps ending with callers from outside the window unless the key is set to `false`.
 
-The current **repository** configuration schema is **31**. This version controls repo templates and migrations only; global config is never stamped or migrated automatically. The marker is a comment:
+Schema 32 adds `[index].mode` and `[index].auto_max_files` as commented examples. Unset, they follow the `auto` rules in [When indexing starts](#when-indexing-starts), including in existing repositories.
+
+The current **repository** configuration schema is **32**. This version controls repo templates and migrations only; global config is never stamped or migrated automatically. The marker is a comment:
 
 ```toml
-# codemap-config-version: 31
+# codemap-config-version: 32
 ```
 
 - Missing files are optional. Malformed TOML discards that file's layer; an unknown key, wrong type or invalid value warns on stderr and falls back for that key. A valid global value wins over the built-in default when the repo value is invalid.
@@ -206,7 +208,7 @@ MCP watches `config.toml` and `auth.toml` in the repo/global config directories 
 | `index.refresh.index_staleness_ms`, `index.refresh.indexer_auto_restart` | Subsequent refresh/recovery decisions |
 | `index.max_file_bytes` | Subsequent walks/refreshes; changing it alone does not request a full refresh |
 | `index.store_references` | Subsequent parsing; unchanged files can be reused from the index even after restart |
-| `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | Restart required |
+| `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | Restart required |
 | `config_auto_update` | Automatic writes at the next MCP startup |
 | `[global_instructions].enabled` (global-only) | MCP initialization or the next request after a reloaded toggle; new agent session to load the updated file |
 | `auth.toml` `[jev].api_key` | Subsequent enabled Jev requests after reload; a changed key rebuilds the shared HTTPS evaluator |
@@ -258,6 +260,8 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.redact].sensitive_fields` | string array | `[]` | Additional sensitive field names, matched exactly after case/separator normalization |
 | `[output.redact].rules` | inline-table array | `[]` | Additional regex rules, each with `id` and `pattern` |
 | `[output.redact].exceptions` | inline-table array | `[]` | Exact pairs of `rule_id` and detected `value` to exempt |
+| `[index].mode` | `"auto"`, `"on"` or `"off"` | `"auto"` | When the MCP server indexes the workspace; see [When indexing starts](#when-indexing-starts) |
+| `[index].auto_max_files` | integer | `50000` | Most indexable files that `auto` mode indexes |
 | `[index].path` | string | `".codemap/index"` | Index directory; absolute or relative to the workspace root |
 | `[index].max_file_bytes` | integer bytes or size string | `"1mb"` (`1048576`) | Files larger than this are skipped before parse/index |
 | `[index].store_references` | bool | `false` | Store reference locations other than function calls |
@@ -293,6 +297,18 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[related_terms].enabled` | bool | `false` | Opt in to related terms; no download or preparation while off |
 | `[related_terms].dataset_path` | string | unset | Optional user-owned sense dataset instead of a download; the original is never modified |
 | `[update].config_auto_update` | bool | `true` | Create missing repo config/auth templates and sync config schema on `mcp` startup |
+
+### When indexing starts
+
+`[index].mode` decides when the MCP server walks and indexes its workspace:
+
+| Mode | Behavior |
+|---|---|
+| `"auto"` (default) | Indexing starts on the first `search`, `overview`, `read` or `grep` call, or on `synonyms` or a monorepo `initial_instructions`, not at server start. It runs only when the workspace is inside a repository and has at most `[index].auto_max_files` indexable files. A `.git`, `.hg` or `.jj` in the workspace or a parent folder marks a repository; one in the home directory itself does not. |
+| `"on"` | Indexing starts at server start without these checks. |
+| `"off"` | The workspace is never indexed. |
+
+When `auto` mode does not index, for example in a folder that holds several repositories, `search` and `overview` return `Index unavailable:` with the reason. The reason names up to three repositories found one or two levels down. `read`, `grep` and `find` keep returning live results, without indexed declarations or callers. Outside a repository the server creates no `.codemap/` directory: no config is scaffolded, and its empty placeholder index lives in a temporary directory that is removed when the server exits. The file limit is checked on the first index-backed call, so a repository above it still gets `.codemap/` at startup. To index such a workspace, set `mode = "on"` in `.codemap/config.toml` or the global config and restart the server.
 
 ### Indexing and file exclusions
 
@@ -489,7 +505,7 @@ With `indexer_auto_restart = true`, the next `search`/`overview` attempts recove
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 31
+# codemap-config-version: 32
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -721,6 +737,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# When the MCP server indexes this workspace. "auto" starts on the first search, overview, read or grep,
+# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
+# Other folders, such as one holding several repositories, are not indexed; search and overview say why.
+# "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
+# Commented so that a global setting applies.
+# mode = "auto"
+
+# Most indexable files that "auto" mode indexes; a larger workspace needs mode = "on".
+# auto_max_files = 50000
+
 # Where to store the index. Relative paths use the workspace root. Restart the server after changing it.
 path = ".codemap/index"
 

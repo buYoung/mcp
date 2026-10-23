@@ -227,17 +227,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Mcp { no_call_log } => {
             codemap_search::workspace::ensure_index_root_is_not_user_home(&cwd)?;
+            let admission = codemap_search::index::admission::decide(&cwd);
             // When `[update].config_auto_update` is true, scaffold `.codemap/config.toml`
             // when absent, else incrementally sync it to the current schema version
             // (additive, presence-guarded, a no-op when already current) — `mcp` only,
             // never on parse/search/etc. Never-exit: a read/write failure warns and the
-            // server still boots.
-            codemap_search::config::ensure_repo_config(&cwd);
-            codemap_search::config::reload(&cwd);
+            // server still boots. A folder that is not indexed gets no scaffold: writing
+            // one walks the tree for exclusion suggestions.
+            if !matches!(
+                admission,
+                codemap_search::index::admission::Admission::Unavailable(_)
+            ) {
+                codemap_search::config::ensure_repo_config(&cwd);
+                codemap_search::config::reload(&cwd);
+            }
             // The index subsystem (searcher, background indexer, config/filesystem
-            // watchers) and its shutdown order live in `McpServer::bootstrap`, shared with
-            // the in-process regression suite.
-            let mut server = mcp::McpServer::bootstrap(&cwd)?;
+            // watchers) and its shutdown order live in `McpServer::bootstrap_with`, shared
+            // with the in-process regression suite.
+            let mut server = mcp::McpServer::bootstrap_with(&cwd, admission)?;
             server.set_call_logging_enabled(!no_call_log);
             server.run().await?;
             // server drop → EngineSupervisor drop → watcher fields drop → indexer field drop.
