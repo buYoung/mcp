@@ -72,8 +72,11 @@ pub struct IndexerStatus {
     /// may return empty/partial results and say so.
     pub initial_index_done: AtomicBool,
     /// Last background refresh error, if any, so a failing refresh surfaces as a note
-    /// instead of silently serving stale results.
+    /// instead of silently serving stale results. Waiting for another process's writer is
+    /// not an error: that process keeps the shared index current.
     pub last_error: Mutex<Option<String>>,
+    /// Set while passes wait for another process's writer, so the wait logs once.
+    pub is_waiting_for_writer: AtomicBool,
     /// Failed passes in a row, apart from waiting for another process's writer. Drives the
     /// retry backoff and one warning per failure streak.
     pub consecutive_failures: AtomicUsize,
@@ -650,6 +653,7 @@ fn publish_pass_result(
     match publication {
         Ok(()) => {
             *last_error = None;
+            status.is_waiting_for_writer.store(false, Ordering::Relaxed);
             let failures = status.consecutive_failures.swap(0, Ordering::Relaxed);
             if failures > 0 {
                 tracing::info!(failures, "background index refresh recovered");
@@ -659,10 +663,15 @@ fn publish_pass_result(
         }
         Err(error) => {
             if engine.is_waiting_for_writer {
-                if last_error.as_ref() != Some(&error) {
+                // Keep `last_error` for real failures: tools withhold callers and warn about
+                // stale results while it is set, which a peer's write does not warrant.
+                if !status.is_waiting_for_writer.swap(true, Ordering::Relaxed) {
                     tracing::debug!("background index refresh waiting for writer: {}", error);
                 }
-            } else if status.consecutive_failures.fetch_add(1, Ordering::Relaxed) == 0 {
+                return false;
+            }
+            status.is_waiting_for_writer.store(false, Ordering::Relaxed);
+            if status.consecutive_failures.fetch_add(1, Ordering::Relaxed) == 0 {
                 // Messages often name a fresh temporary file, so one warning per failure
                 // streak instead of one per distinct message; retries log at debug level.
                 tracing::warn!("background index refresh failed: {}", error);
