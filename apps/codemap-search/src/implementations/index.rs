@@ -126,11 +126,7 @@ impl ImplementationIndex {
             };
             // Preprocessed ranges require a complete type-evidence source map. Original
             // declarations remain available through ordinary symbol navigation.
-            if file
-                .navigation
-                .as_ref()
-                .is_some_and(|nav| nav.macro_expansion.is_some())
-            {
+            if file.is_macro_expanded() {
                 continue;
             }
             index

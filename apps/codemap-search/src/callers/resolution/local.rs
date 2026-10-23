@@ -4,6 +4,7 @@
 
 use super::*;
 
+mod cpp_members;
 mod dispatched_calls;
 mod module_functions;
 mod reexports;

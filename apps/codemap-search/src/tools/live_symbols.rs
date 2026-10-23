@@ -6,6 +6,7 @@ pub(crate) mod jev;
 mod locations;
 mod outside_callers;
 mod references;
+mod shared_keys;
 
 pub(crate) use outside_callers::HEADER as OUTSIDE_CALLERS_HEADER;
 mod render;
@@ -295,6 +296,11 @@ fn render(
         // The trailer is auxiliary: it only uses the room left under the cap.
         let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
         if let Some(trailer) = outside_callers::trailer(engine, &output, room) {
+            text.push('\n');
+            text.push_str(&trailer);
+        }
+        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
+        if let Some(trailer) = shared_keys::trailer(engine, &output, room) {
             text.push('\n');
             text.push_str(&trailer);
         }

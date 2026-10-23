@@ -8,7 +8,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 
 ## 섹션 구성과 출력 한도
 
-동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 네 클라이언트 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep 한도 예시, 빌드 설정 경로와 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
+동작 설정은 `config.toml`의 역할별 하위 섹션에서, 인증정보는 별도 `auth.toml`에서 관리합니다. 자동 생성 파일에는 각 항목의 의미·단위·상속·적용 시점을 설명하는 주석을 포함합니다. 실제 기본값이 있는 설정은 활성 값으로 제공합니다. search/read 한도, 네 클라이언트 한도, 전처리 설정, 이벤트 규칙과 사용자 마스킹 목록도 포함합니다. 공통·grep 한도 예시, 빌드 설정 경로, 색인 시작 방식과 그 파일 수 한도, 분석 대상 해제 예시는 주석으로 유지합니다. 빈 목록을 포함한 활성 값은 전역 설정보다 우선하므로 상속하려면 키를 삭제하거나 주석 처리해야 합니다.
 
 | 섹션 | 범위 |
 |---|---|
@@ -115,10 +115,12 @@ api_key = "<발급받은 키>"
 
 버전 31은 `[output.read].is_outside_callers_enabled`를 주석 예시로 추가하며 기존 값을 바꾸지 않습니다. 이 키를 `false`로 설정하지 않으면 `read view=source`는 계속 창 밖 호출자 목록을 덧붙입니다.
 
-현재 **로컬 설정** 버전은 **31**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
+버전 32는 `[index].mode`와 `[index].auto_max_files`를 주석 예시로 추가합니다. 값을 정하지 않으면 기존 저장소에서도 [색인 시작 시점](#색인-시작-시점)의 `auto` 규칙을 따릅니다. 이번 전환은 버전 29 이상 파일에 남은 이전 자동 생성 주석(예: `initial_instructions`로 작업을 등록하라는 안내)도 현재 설명으로 바꿉니다. 값과 사용자 메모는 바꾸지 않습니다.
+
+현재 **로컬 설정** 버전은 **32**이며 주석으로 표시합니다. 이 버전은 저장소 템플릿과 전환에만 적용하며, 전역 설정에 버전 표식을 쓰거나 자동 전환하지 않습니다.
 
 ```toml
-# codemap-config-version: 31
+# codemap-config-version: 32
 ```
 
 - 설정 파일은 없어도 됩니다. TOML 구문이 잘못되면 해당 파일의 설정 전체를 사용하지 않습니다. 알 수 없는 키·잘못된 자료형·허용되지 않는 값은 stderr에 경고하고 해당 키만 낮은 우선순위 설정으로 대체합니다. 저장소 값이 잘못되어도 유효한 전역값이 있으면 기본값보다 우선합니다.
@@ -205,7 +207,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `index.refresh.index_staleness_ms`, `index.refresh.indexer_auto_restart` | 이후 갱신·복구 판단 |
 | `index.max_file_bytes` | 이후 탐색·갱신부터 적용하며, 이 값만 바꾸면 전체 갱신을 요청하지 않음 |
 | `index.store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
-| `index.path`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
+| `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
 | `[global_instructions].enabled` (사용자 전역 전용) | MCP 초기화 또는 활성화 값 변경을 다시 읽은 뒤 다음 요청. 갱신한 파일은 새 에이전트 세션에서 읽음 |
 | `auth.toml`의 `[jev].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
@@ -241,7 +243,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.search].literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
 | `[output.search].anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[output.read].max_bytes` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
-| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록을 덧붙임. `false`면 생략 |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록과 같은 키를 쓰는 다른 위치를 덧붙임. `false`면 둘 다 생략 |
 | `[output.grep].max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[output.grep].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | grep 응답 한도. 확장 본문은 read 한도도 대체값으로 사용 |
 | `[output.context].is_enabled` | bool | `true` | `search` 호출에서 `caller_context` 생략 시 호출 관계 표시 여부 |
@@ -257,6 +259,8 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.redact].sensitive_fields` | 문자열 배열 | `[]` | 내장 민감 필드명에 추가할 이름. 대소문자와 구분자를 정규화한 뒤 정확히 일치해야 함 |
 | `[output.redact].rules` | 인라인 테이블 배열 | `[]` | 추가 정규식 규칙. 각 항목에 `id`, `pattern` 필요 |
 | `[output.redact].exceptions` | 인라인 테이블 배열 | `[]` | `rule_id`와 탐지된 `value`가 모두 정확히 일치하는 예외 |
+| `[index].mode` | `"auto"`, `"on"`, `"off"` | `"auto"` | MCP 서버가 작업공간을 색인하는 시점. [색인 시작 시점](#색인-시작-시점) 참고 |
+| `[index].auto_max_files` | 정수 | `50000` | `auto` 모드가 색인하는 최대 색인 대상 파일 수 |
 | `[index].path` | 문자열 | `".codemap/index"` | 색인 저장 위치. 절대 경로나 작업공간 루트 기준 상대 경로 |
 | `[index].max_file_bytes` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 파싱·색인 전 건너뛸 파일 크기 기준 |
 | `[index].store_references` | bool | `false` | 함수 호출 외의 참조 위치 저장 |
@@ -276,9 +280,9 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.context.exclude].test_attributes` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 속성·어노테이션 패턴. 언어별 목록을 상속값 대신 적용 |
 | `[output.context.exclude].test_decorators` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 데코레이터 패턴. []는 해당 언어 목록 해제 |
 | `[output.context.exclude].test_calls` | 언어 → 문자열 배열 | 테스트 코드 문맥 참고 | 테스트 호출 패턴. []는 해당 언어 목록 해제 |
-| `[filesystem_permissions].find` | 문자열 | `"workspace"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
-| `[filesystem_permissions].grep` | 문자열 | `"workspace"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
-| `[filesystem_permissions].read` | 문자열 | `"workspace"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].find` | 문자열 | `"anywhere"` | `find` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].grep` | 문자열 | `"anywhere"` | `grep` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
+| `[filesystem_permissions].read` | 문자열 | `"anywhere"` | `read` 경로 정책: `workspace`, `allowed_roots`, `anywhere` |
 | `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` | `allowed_roots` 정책을 쓰는 도구에서 접근할 외부 루트 |
 | `[related_terms].enabled` | bool | `false` | 관련어 기능을 켬. 꺼져 있으면 내려받기·준비 작업을 하지 않음 |
 | `[related_terms].dataset_path` | string | 없음 | 내려받기 대신 사용할 사용자 뜻 데이터셋 경로. 원본은 수정하지 않음 |
@@ -292,6 +296,18 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.jev].max_batch_bytes` | 정수 바이트 또는 크기 문자열, 1~168000 | `168000` | 배치 하나의 인코딩된 요청 바이트(168000이 런타임 상한). 들어가지 않는 질문은 명시적 실패 |
 | `[output.jev].pool_idle_timeout_ms` | 양의 정수(ms), 최대 7일 | `30000` | 유휴 HTTPS 연결 유지 시간 |
 | `[output.jev].search_filter_min_unrelated_probability` | 유한한 수, `0.5 < 값 <= 1.0` | `0.70`(잠정값) | 기준별 거짓 확률 임계값. all/any로 개별 판단을 조합 |
+
+### 색인 시작 시점
+
+`[index].mode`는 MCP 서버가 작업공간을 탐색해 색인하는 시점을 정합니다.
+
+| 모드 | 동작 |
+|---|---|
+| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `overview`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
+| `"on"` | 이 확인 없이 서버 시작 때 색인합니다. |
+| `"off"` | 작업공간을 색인하지 않습니다. |
+
+`auto` 모드가 색인하지 않으면(예: 저장소 여러 개를 담은 폴더) `search`와 `overview`는 이유와 함께 `Index unavailable:`을 반환합니다. 이유에는 한두 단계 아래에서 찾은 저장소를 세 개까지 적습니다. `read`, `grep`, `find`는 색인한 선언·호출자 없이 실제 파일 결과를 계속 반환합니다. 저장소 밖에서는 `.codemap/` 디렉터리를 만들지 않습니다. 설정 파일을 생성하지 않고, 빈 임시 색인은 서버가 끝나면 지워지는 임시 디렉터리에 둡니다. 파일 수 한도는 첫 색인 도구 호출 때 확인하므로, 한도를 넘는 저장소에도 시작 시 `.codemap/`은 생깁니다. 이런 작업공간을 색인하려면 `.codemap/config.toml`이나 전역 설정에 `mode = "on"`을 쓰고 서버를 재시작하세요.
 
 ### 색인과 파일 제외
 
@@ -332,11 +348,11 @@ max_output_bytes = "8mb"
 
 [컴파일 데이터베이스](https://clang.llvm.org/docs/JSONCompilationDatabase.html)의 작업 디렉터리, 헤더 경로, 매크로 정의, 대상 플랫폼과 언어 표준을 반영합니다. `arguments` 배열을 `command` 문자열보다 우선하고, 문자열은 셸 평가 없이 인자로 분리합니다. 설정한 Clang/NASM만 실행하며 데이터베이스의 래퍼나 프로젝트 빌드 명령을 실행하지 않습니다. 기록된 컴파일러 이름의 `++`와 명시적인 `-x`는 C/C++ 파서 선택에도 반영합니다. 출력·의존성 파일 생성 인자는 제거합니다. 지원하지 않는 옵션·언어, 응답 파일, 컴파일러 플러그인은 미해결 사유로 표시합니다. 별도 툴체인의 시스템 헤더·대상 플랫폼은 사용자가 공급해야 하며, query-driver 자동 탐색과 모든 컴파일러 옵션 호환성은 구현하지 않았습니다.
 
-확장에 성공하면 활성 선언으로 목록을 갱신하고 원문에서 추출한 매크로 정의도 보존합니다. 생성된 선언에는 `macro expansion`과 원본 파일·줄 범위를 표시하며, 헤더 선언을 포함한 소스의 선언으로 오연결하지 않습니다. 확장 토큰의 열 위치와 호출·상수 참조 연결은 **미해결**입니다. 이 파일에서 추정한 정의 링크나 `(precise)`를 출력하지 않습니다. `read`·`grep`의 원문은 그대로 유지합니다.
+확장에 성공하면 활성 선언으로 목록을 갱신하고 원문에서 추출한 매크로 정의도 보존합니다. 생성된 선언에는 `macro expansion`과 원본 파일·줄 범위를 표시하며, 헤더 선언을 포함한 소스의 선언으로 오연결하지 않습니다. 확장 토큰의 열 위치는 **미해결**입니다. 호출과 상수 참조는 원문의 활성 줄에서 가져오므로 호출자·피호출자를 확장하지 않은 파일과 같은 방식으로 찾습니다. 매크로 본문 안에만 있는 호출은 보이지 않습니다. `read`·`grep`의 원문은 그대로 유지합니다.
 
-도구·헤더 누락, 시간·출력 제한, 지원하지 않는 확장 결과, `#line`·`%line` 재지정은 `Macro expansion unresolved`에 이유를 표시하고 원문 선언을 유지합니다. NASM은 `-Le -Lm -Lf` 지원 버전이 필요하며 2.16.03으로 확인했습니다. 확장 목록을 얻는 조립 단계의 출력은 null 장치로 보내며 생성된 프로그램을 실행하지 않습니다. 조립기가 검증한 label·global만 선언 입력으로 변환하며, 일반 ASM 파서가 명령어의 피연산자를 다시 해석하지 않습니다. 자동 생성된 `..@` 매크로 지역 label은 제외합니다. 고정된 FFmpeg `x86inc.asm`의 매크로도 명시한 아키텍처·형식 인자로 확인했으며, FFmpeg 전체 빌드를 검증했다는 뜻은 아닙니다. GNU assembler 고유 `.macro` 확장, 다른 ASM 방언과 모든 저장소의 빌드 설정을 검증한 것은 아닙니다.
+도구·헤더 누락, 시간·출력 제한, 지원하지 않는 확장 결과, `#line`·`%line` 재지정은 `Macro expansion unresolved`에 이유를 표시하고 호출과 상수 참조를 포함한 원문 추출 결과를 유지합니다. 이때 호출자·피호출자는 확장하지 않은 파일과 같은 방식으로 찾습니다. NASM은 `-Le -Lm -Lf` 지원 버전이 필요하며 2.16.03으로 확인했습니다. 확장 목록을 얻는 조립 단계의 출력은 null 장치로 보내며 생성된 프로그램을 실행하지 않습니다. 조립기가 검증한 label·global만 선언 입력으로 변환하며, 일반 ASM 파서가 명령어의 피연산자를 다시 해석하지 않습니다. 자동 생성된 `..@` 매크로 지역 label은 제외합니다. 고정된 FFmpeg `x86inc.asm`의 매크로도 명시한 아키텍처·형식 인자로 확인했으며, FFmpeg 전체 빌드를 검증했다는 뜻은 아닙니다. GNU assembler 고유 `.macro` 확장, 다른 ASM 방언과 모든 저장소의 빌드 설정을 검증한 것은 아닙니다.
 
-설정 변경은 전체 색인 갱신을 요청합니다. 활성화된 동안 작업 공간 파일 변경도 C/C++/ASM을 다시 대조하며, 기록한 외부 헤더·빌드 설정은 도구 요청 시 최대 1초 간격으로 변경 여부를 확인합니다. 전처리에 실패한 뒤 외부 의존성을 새로 준비했다면 갱신 또는 재시작이 필요할 수 있습니다. 제한은 파일별 프로세스 기준이며 저장소 전체 제한이 아닙니다. macOS arm64에서 검증했고 Windows/Linux 실행은 미확인입니다.
+설정 변경은 전체 색인 갱신을 요청합니다. 활성화된 동안 C/C++/ASM 소스·헤더, `compile_commands.json`·`compile_flags.txt`, 그 밖에 기록한 확장 입력이 바뀌면 전체 탐색으로 C/C++/ASM을 다시 대조합니다. 다른 파일 변경은 경로 단위로 갱신합니다. 기록한 입력이 바뀐 파일만 다시 전처리합니다. 확장에 성공하면 파일 자신, 전처리가 읽은 모든 파일, 빌드 설정 후보를 기록합니다. 빌드 설정 후보는 설정한 `compilation_database`이거나, 사용한 위치까지의 더 가까운 `compile_commands.json`·`compile_flags.txt` 위치들입니다. 그래서 더 가까운 위치에 새로 만들어도 변경으로 봅니다. 확장에 실패하면 파일 자신과 빌드 설정 후보를 기록합니다. 그중 하나나 확장 설정이 바뀌거나, 전에 색인하지 않은 헤더가 새로 생기면 다시 시도합니다. 기존 헤더를 고치는 것만으로는 다시 시도하지 않습니다. 작업공간 밖에 의존성을 설치했다면 해당 파일이나 빌드 설정 파일을 touch해 다시 시도하세요. 확장이 켜져 있으면 감시는 ignore된 C/C++/ASM 파일과 빌드 설정 파일 변경도 반영합니다. 생성된 헤더와 빌드 설정 파일은 흔히 ignore되기 때문입니다. 기록한 외부 헤더·빌드 설정은 도구 요청 시 최대 1초 간격으로 변경 여부를 확인합니다. 제한은 파일별 프로세스 기준이며 저장소 전체 제한이 아닙니다. macOS arm64에서 검증했고 Windows/Linux 실행은 미확인입니다.
 
 ### 민감값 마스킹
 
@@ -471,15 +487,15 @@ powershell = ["Describe", "Context", "It"]
 
 `read`, `find`, `grep`에 각각 다음 정책을 지정합니다.
 
-- `workspace`: 현재 작업공간 안만 접근합니다(기본값).
+- `workspace`: 현재 작업공간 안만 접근합니다.
 - `allowed_roots`: 작업공간과 지정한 외부 루트에 접근합니다.
-- `anywhere`: 서버 프로세스가 접근할 수 있는 모든 경로에 접근합니다.
+- `anywhere`: 서버 프로세스가 접근할 수 있는 모든 경로에 접근합니다(기본값).
 
 `allowed_roots` 항목은 비어 있지 않은 문자열이어야 합니다. 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다. 존재하는 경로 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고, 아직 없는 뒷부분은 유지합니다. 상위 경로 이동으로 허용된 범위를 넓힐 수는 없습니다. 이 권한은 `search`·`overview`의 색인 범위를 넓히지 않습니다.
 
 ### 색인 갱신
 
-`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. 감시를 끄거나 사용할 수 없으면 `search`/`overview`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
+`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. `.gitignore`, `.ignore`, `.codemapignore`가 숨기는 경로의 변경은 제외 디렉터리처럼 버리고, 이 파일들이 바뀌면 전체 탐색을 합니다. 감시를 끄거나 사용할 수 없으면 `search`/`overview`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
 
 `indexer_auto_restart = true`이면 백그라운드 색인 중단 후 다음 `search`/`overview`가 복구를 시도합니다. 서버 실행 중 복구 횟수에는 제한이 있습니다. 끄면 재시작 전까지 결과가 고정됩니다. 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
 
@@ -488,7 +504,7 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 31
+# codemap-config-version: 32
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -721,6 +737,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
+# 전역 설정이 적용되도록 주석으로 둡니다.
+# mode = "auto"
+
+# "auto" 모드가 색인하는 최대 파일 수입니다. 더 큰 작업공간은 mode = "on"이 필요합니다.
+# auto_max_files = 50000
+
 # 색인을 저장할 경로입니다. 상대 경로는 작업공간 루트 기준입니다. 바꾼 뒤에는 서버를 재시작하세요.
 path = ".codemap/index"
 
@@ -784,11 +810,11 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # find, grep, read가 파일에 접근할 수 있는 범위입니다.
 # "workspace"는 작업공간만, "allowed_roots"는 작업공간과 allowed_roots의 경로, "anywhere"는 모든 경로를 허용합니다.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # "allowed_roots"를 쓰는 도구에 추가로 허용할 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
 # 심볼릭 링크는 실제 경로를 기준으로 판단합니다.
@@ -806,7 +832,9 @@ enabled = false
 config_auto_update = true
 ```
 
-### 기본 작업공간 권한
+### 작업공간 전용 권한
+
+세 도구를 모두 작업공간에 제한합니다.
 
 ```toml
 [filesystem_permissions]
@@ -828,9 +856,9 @@ read = "workspace"
 allowed_roots = ["G:/shared/source", "D:/vendor-src"]
 ```
 
-### 전체 디스크 접근
+### `find`만 전체 디스크 접근
 
-한 도구에 전체 디스크 접근을 허용하는 예시입니다. 서버 실행 환경이 별도로 격리되어 있지 않다면 `allowed_roots`를 우선 사용하세요.
+기본값인 전체 디스크 접근을 `find`에만 남기고 `grep`과 `read`는 작업공간에 제한합니다.
 
 ```toml
 [filesystem_permissions]
@@ -898,9 +926,9 @@ Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는
 
 ### 작업 질문 등록
 
-`initial_instructions({})`·`find`·루트 `overview`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않고 기존 등록을 유지합니다.
+`initial_instructions({})`·`find`·루트 `overview`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않습니다. 이전 클라이언트가 인자를 보내도 무시하고 기존 등록을 유지합니다.
 
-주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않습니다. 설정을 다시 불러와도 도구는 계속 제공하며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
+주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않으므로, `tools/list`는 `enabled`가 true이고 `scope`가 비어 있지 않을 때만 `register_task`를 보여 줍니다. 설정을 다시 불러와 Jev를 켜기 전에 도구 목록을 받은 클라이언트는 다시 연결해야 이 도구가 보입니다. 서버는 등록 호출을 계속 받으며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
 
 ```json
 {

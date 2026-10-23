@@ -67,7 +67,7 @@ fn get_cpp_static_collection_query() -> &'static Query {
 /// `qualified_identifier` whose `name` field is a simple identifier (the member name);
 /// its `scope` is the class that owns the member.
 /// Returns `None` if the declarator is not a qualified identifier (i.e. a free function).
-fn cpp_outofline_owner(function_def_node: Node, source: &[u8]) -> Option<String> {
+pub(crate) fn cpp_outofline_owner(function_def_node: Node, source: &[u8]) -> Option<String> {
     let declarator = function_def_node.child_by_field_name("declarator")?;
     // Peel pointer/reference layers to reach function_declarator.
     let inner = if declarator.kind() == "qualified_identifier" {

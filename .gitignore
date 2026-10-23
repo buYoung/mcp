@@ -43,5 +43,9 @@ yarn-error.log*
 # codemap-search local index/config cache
 .codemap/
 
+# Locally built related-terms datasets; rtc2 is committed (docs/related-terms/pipeline.md)
+/apps/codemap-search/experiments/related-terms-poc/datasets/*/dataset.sqlite3
+!/apps/codemap-search/experiments/related-terms-poc/datasets/rtc2-80e77d8fb9ef2b41/dataset.sqlite3
+
 # AntiGravity CLI local project registration
 .antigravitycli/

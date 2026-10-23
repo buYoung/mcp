@@ -971,3 +971,66 @@ async fn test_jev_filtered_read_has_no_outside_caller_trailer() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn test_initial_instructions_ignores_arguments_and_registers_no_task() {
+    // Clients holding an older tool list still send the former task arguments. With Jev off
+    // or on, the guidance matches the {} call and no task is registered.
+    let legacy_arguments = [
+        json!({ "task_query": TASK }),
+        json!({ "task_query": TASK, "match": "any", "questions": [{
+            "question": "Does this function reserve the output budget?",
+            "when_true": "It reserves or caps the output budget.",
+            "when_false": "It has no output-budget role."
+        }] }),
+        json!({ "path": "src", "workspace_scope": "src" }),
+    ];
+    for config in [None, Some(FILTER_ONLY)] {
+        let mut files = vec![("src/budget.ts", BUDGET_TS)];
+        files.extend(config.map(|config| (".codemap/config.toml", config)));
+        let temp = create_mock_repo(&files).unwrap();
+        let evaluator = Arc::new(body_judge(&[]));
+        let judge = Arc::clone(&evaluator);
+        let legacy_arguments = legacy_arguments.clone();
+        run_server(temp.path(), Some(evaluator), |mut client| async move {
+            let expected = client
+                .call(
+                    "tools/call",
+                    json!({ "name": "initial_instructions", "arguments": {} }),
+                )
+                .await
+                .unwrap();
+            assert!(!response_text(&expected).is_empty(), "{expected}");
+            for arguments in &legacy_arguments {
+                let response = client
+                    .call(
+                        "tools/call",
+                        json!({ "name": "initial_instructions", "arguments": arguments }),
+                    )
+                    .await
+                    .unwrap();
+                assert!(response["error"].is_null(), "{arguments}: {response}");
+                assert_eq!(
+                    response_text(&response),
+                    response_text(&expected),
+                    "{arguments}"
+                );
+            }
+            if config.is_some() {
+                let search = client
+                    .call(
+                        "tools/call",
+                        json!({ "name": "search", "arguments": search_arguments("keepMe") }),
+                    )
+                    .await
+                    .unwrap();
+                let message = search["error"]["message"]
+                    .as_str()
+                    .unwrap_or_else(|| response_text(&search));
+                assert!(message.contains("register_task"), "{search}");
+            }
+            assert_eq!(judge.request_count(), 0, "no task reached the evaluator");
+        })
+        .await;
+    }
+}

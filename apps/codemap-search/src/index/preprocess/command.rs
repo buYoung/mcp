@@ -60,6 +60,41 @@ fn absolute(path: &Path, directory: &Path) -> PathBuf {
     crate::workspace::canonicalize_path_lenient(&directory.join(path))
 }
 
+/// Build-setting files that decide the invocation for `path`: the configured database, or
+/// each nearer candidate up to and including the first that exists. Absent candidates are
+/// kept so that creating one reprocesses the files it would cover.
+pub(super) fn settings_inputs(
+    root: &Path,
+    path: &Path,
+    config: &MacroExpansionConfig,
+) -> Vec<PathBuf> {
+    if let Some(database) = config.compilation_database.as_ref() {
+        let database = absolute(Path::new(database), root);
+        return vec![if database.is_dir() {
+            database.join("compile_commands.json")
+        } else {
+            database
+        }];
+    }
+    let mut candidates = Vec::new();
+    for parent in path
+        .parent()
+        .into_iter()
+        .flat_map(Path::ancestors)
+        .take_while(|parent| parent.starts_with(root))
+    {
+        for name in ["compile_commands.json", "compile_flags.txt"] {
+            let candidate = parent.join(name);
+            let is_found = candidate.is_file();
+            candidates.push(candidate);
+            if is_found {
+                return candidates;
+            }
+        }
+    }
+    candidates
+}
+
 impl CommandCache {
     pub(super) fn invocation(
         &mut self,
@@ -70,32 +105,13 @@ impl CommandCache {
         let mut dialect = Dialect::for_path(path).ok_or("unsupported source dialect")?;
         let mut directory = root.to_path_buf();
         let mut raw = Vec::new();
-        let mut inputs = Vec::new();
         let mut source = "fallback flags".to_string();
-        let explicit = config.compilation_database.as_ref().map(|p| {
-            let p = absolute(Path::new(p), root);
-            if p.is_dir() {
-                p.join("compile_commands.json")
-            } else {
-                p
-            }
-        });
-        let database = if let Some(path) = explicit {
-            Some(path)
-        } else {
-            path.parent()
-                .into_iter()
-                .flat_map(Path::ancestors)
-                .take_while(|parent| parent.starts_with(root))
-                .find_map(|parent| {
-                    ["compile_commands.json", "compile_flags.txt"]
-                        .into_iter()
-                        .map(|name| parent.join(name))
-                        .find(|p| p.is_file())
-                })
-        };
+        let inputs = settings_inputs(root, path, config);
+        let database = inputs
+            .last()
+            .filter(|database| config.compilation_database.is_some() || database.is_file())
+            .cloned();
         if let Some(database) = database {
-            inputs.push(database.clone());
             source = database.display().to_string();
             if database
                 .file_name()

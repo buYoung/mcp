@@ -1203,6 +1203,7 @@ impl<'a> SourceResolver<'a> {
             // Members of the enclosing type take precedence over functions of other files.
             return self
                 .resolve_local_call(file, call)
+                .or_else(|| self.cpp_member_call(file, call))
                 .or_else(|| self.dispatched_call(file, call))
                 .or_else(|| self.module_function(file, call));
         }

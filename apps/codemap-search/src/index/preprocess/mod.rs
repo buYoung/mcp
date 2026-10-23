@@ -49,25 +49,30 @@ impl MacroExpander {
         let path = crate::workspace::canonicalize_path_lenient(&self.root.join(path));
         let mut auxiliary = None;
         let info = match self.expand_inner(&path, source, extracted) {
+            // Calls and constant references stay those of the original source, limited to
+            // active lines (see `expand_inner`).
             Ok((info, expanded_auxiliary)) => {
                 auxiliary = Some(expanded_auxiliary);
                 info
             }
+            // Nothing was expanded, so the original-source extraction stays whole. The file
+            // and its build settings are recorded so a change to either retries it.
             Err(error) => MacroExpansionInfo {
                 notice: format!(
-                    "Macro expansion unresolved: {error}. Original-source declarations are shown; call and constant-reference attribution is unresolved."
+                    "Macro expansion unresolved: {error}. Declarations, calls and constant references come from the original source."
                 ),
                 symbols: Vec::new(),
-                inputs: vec![input_stamp(&path)],
+                inputs: std::iter::once(path.clone())
+                    .chain(command::settings_inputs(&self.root, &path, &self.config))
+                    .map(|input| input_stamp(&input))
+                    .collect(),
                 active_lines: None,
             },
         };
-        let navigation = extracted.navigation.get_or_insert_with(Default::default);
-        navigation.calls.clear();
-        navigation.references.clear();
-        navigation.local_bindings.clear();
-        navigation.imports.clear();
-        navigation.macro_expansion = Some(info);
+        extracted
+            .navigation
+            .get_or_insert_with(Default::default)
+            .macro_expansion = Some(info);
         auxiliary
     }
 
@@ -201,7 +206,7 @@ impl MacroExpander {
         });
         symbols.dedup_by(|a, b| a.name == b.name && a.kind == b.kind && a.range == b.range);
         extracted.symbols = symbols;
-        let notice = format!("Macro expansion: {} declaration(s) mapped to original source lines using {} ({}){}. Expanded-token columns are unresolved. Call and constant-reference attribution is unresolved for preprocessed files.", origins.len(), invocation.program, invocation.source,
+        let notice = format!("Macro expansion: {} declaration(s) mapped to original source lines using {} ({}){}. Expanded-token columns are unresolved. Calls and constant references come from active lines of the original source.", origins.len(), invocation.program, invocation.source,
             if invocation.dialect == Dialect::Nasm { "; NASM listing labels/globals, generated macro-local labels omitted" } else { "" });
         let info = MacroExpansionInfo {
             notice,
@@ -223,6 +228,24 @@ impl MacroExpander {
 
 pub(super) fn is_eligible(path: &Path) -> bool {
     Dialect::for_path(path).is_some()
+}
+
+/// Whether a native file is a header, which other files include rather than compile.
+pub(super) fn is_header(path: &Path) -> bool {
+    is_eligible(path)
+        && matches!(
+            path.extension().and_then(|extension| extension.to_str()),
+            Some("h" | "hh" | "hpp" | "hxx")
+        )
+}
+
+/// Whether a changed path can alter how native files expand: a native source or header,
+/// or a compilation database or flags file.
+pub(super) fn is_native_input(path: &Path) -> bool {
+    is_eligible(path)
+        || path
+            .file_name()
+            .is_some_and(|name| name == "compile_commands.json" || name == "compile_flags.txt")
 }
 
 pub(crate) fn input_stamp(path: &Path) -> MacroInputStamp {

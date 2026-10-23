@@ -319,7 +319,6 @@ pub(super) fn scan_workspace(
         };
         let display = crate::workspace::walk_entry_display_path(&entry, &canonical_root, &raw_root);
         if test_filter.is_file_excluded(&display)
-            || !index.can_attribute_calls(&display)
             || records_no_scanned_call(&display, &metadata, &name_set, options)
         {
             continue;

@@ -1,0 +1,8 @@
+{
+  "apps/codemap-search/experiments/event-navigation-poc/language-corpus/regressions/cases.json": "7ed27c223a1a7b305f90bc6e8dc21b7062de608488bf0f8ba4b6a620c12e4a70",
+  "apps/codemap-search/experiments/event-navigation-poc/language-corpus/fixture-cases.json": "94c135651bf5a2dd5e697cf61273393931e18c04667ed4efb77552a2bd1e0980",
+  "apps/codemap-search/experiments/event-navigation-poc/language-corpus/cases.json": "bbdee1d0ef2d03906d2b13ad57a7626b0da07bd4cf8eb73458f1afc439c8c25f",
+  "apps/codemap-search/experiments/event-navigation-poc/language-corpus/remaining-routes/inputs.json": "1ab38cdc147f572bbee1b7a9b411e4e8fd741161f577f13611421049682a1617",
+  "apps/codemap-search/experiments/event-navigation-poc/language-corpus/remaining-routes/consumers.json": "ba4ed82c42e1054764c25fdc3a96c8def5e552f09a038685fafe172ea7785c93",
+  "apps/codemap-search/experiments/event-navigation-poc/language-corpus/remaining-routes/verification.json": "2c1aa3cac1625652c35037078a065d4afa4f4e9b3d48fc47030435143c12add3"
+}

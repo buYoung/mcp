@@ -6,12 +6,14 @@
 //! Submodule items are re-exported here as their single canonical path (`crate::index::X`);
 //! the watcher/indexer ranking/engine internals are not addressed by their submodule paths.
 
+pub mod admission;
 mod engine;
 mod indexer;
 mod path_role;
 mod preprocess;
 pub use preprocess::MacroExpander;
 mod ranking;
+mod segment_files;
 mod supervisor;
 mod watcher;
 
@@ -21,8 +23,8 @@ pub use engine::{
 };
 pub(crate) use indexer::SnapshotSource;
 pub use indexer::{
-    spawn_indexer, CodemapSnapshot, IndexCommand, IndexerHandle, IndexerStatus,
-    PublishedIndexSnapshot, StaticCollectionRecord,
+    spawn_dormant_indexer, spawn_indexer, CodemapSnapshot, IndexCommand, IndexerHandle,
+    IndexerStatus, PublishedIndexSnapshot, StaticCollectionRecord,
 };
 pub use supervisor::EngineSupervisor;
 pub use watcher::{spawn_watcher, WatcherHandle, WatcherStatus};

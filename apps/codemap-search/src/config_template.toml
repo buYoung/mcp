@@ -1,4 +1,4 @@
-# codemap-config-version: 31
+# codemap-config-version: 32
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -159,7 +159,7 @@ exceptions = []
 
 [output.jev]
 # Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
-# Register the task first with initial_instructions(task_query, questions).
+# Register the task with register_task(task_query, questions) before using an enabled filter.
 # Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
 # If neither auth file supplies a key, TYPESAFE_API_KEY is used.
 
@@ -230,6 +230,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# When the MCP server indexes this workspace. "auto" starts on the first search, overview, read or grep,
+# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
+# Other folders, such as one holding several repositories, are not indexed; search and overview say why.
+# "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
+# Commented so that a global setting applies.
+# mode = "auto"
+
+# Most indexable files that "auto" mode indexes; a larger workspace needs mode = "on".
+# auto_max_files = 50000
+
 # Where to store the index. Relative paths use the workspace root. Restart the server after changing it.
 path = ".codemap/index"
 
@@ -293,11 +303,11 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # Where find, grep, and read may access files.
 # "workspace" allows the workspace only, "allowed_roots" adds the allowed_roots paths, and "anywhere" allows any path.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # Extra paths for tools set to "allowed_roots". Relative paths use the workspace root.
 # Symbolic links are checked by their real path.

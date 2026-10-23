@@ -96,7 +96,7 @@ MCP 초기화 시 또는 설정 변경을 다시 읽은 뒤 다음 요청에서 
 | 도구 | 용도 | 주요 인자 |
 |---|---|---|
 | `initial_instructions` | 등록한 작업을 바꾸지 않고 탐색 안내 반환 | 없음; `{}`로 호출 |
-| `register_task` | 켜진 Jev 필터를 쓰기 전에 작업 등록 | `task_query`, `questions`(필수), `match` |
+| `register_task` | 켜진 Jev 필터를 쓰기 전에 작업 등록. Jev가 켜졌을 때만 목록에 나옴 | `task_query`, `questions`(필수), `match` |
 | `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
@@ -242,7 +242,7 @@ MCP `analyze` 도구도 현재 작업공간에 같은 분석을 제공합니다.
 
 ## 색인·진단·제한
 
-MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신합니다. Git HEAD 변경과 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index.refresh.index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
+MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 기본값 `[index] mode = "auto"`에서는 첫 `search`, `overview`, `read`, `grep` 호출 때 색인을 시작하며, 색인 대상 파일이 50,000개 이하인 저장소 안에서만 색인합니다. 저장소 여러 개를 담은 폴더 같은 그 밖의 폴더에서는 `search`·`overview`가 색인하지 않는 이유를 알려 줍니다. 그래도 색인하려면 `mode = "on"`을 설정하세요([색인 시작 시점](./docs/configuration.ko.md#색인-시작-시점) 참고). 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신하며, ignore 파일이 숨기는 경로는 건너뜁니다. Git HEAD 변경, ignore 파일 변경, 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index.refresh.index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
 
 - `index.max_file_bytes` 기본값인 1 MiB보다 큰 파일은 색인·코드맵에서 건너뜁니다.
 - `.txt`, 잠금 파일, source map, 압축·번들 파일에는 별도 파일 제외 규칙이 있습니다. `find`·`grep`의 `include_ignored`로 우회할 수 있고, 직접 `read`·`parse`도 가능합니다.

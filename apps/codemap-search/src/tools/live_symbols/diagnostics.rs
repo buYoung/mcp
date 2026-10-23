@@ -10,14 +10,26 @@ pub(super) fn unavailable(
     root: &Path,
     flow_digest: Option<&str>,
 ) -> Option<String> {
-    let path = root.join(&anchor.file_path);
     let line = anchor.start_line.unwrap_or(1);
+    let reason = unavailable_reason(file, &root.join(&anchor.file_path), flow_digest)?;
+    Some(format!(
+        "[Navigation unavailable — {}:{line}: {reason}.]\n",
+        anchor.file_path,
+    ))
+}
+
+/// Why the index cannot describe `path` as it is on disk, or `None` when it can.
+pub(super) fn unavailable_reason(
+    file: Option<&ExtractedFile>,
+    path: &Path,
+    flow_digest: Option<&str>,
+) -> Option<String> {
     let cfg = crate::config::get();
-    let reason = if !crate::workspace::walk_root_is_visible(&path, true) {
+    let reason = if !crate::workspace::walk_root_is_visible(path, true) {
         "excluded from the current index by path/Git rules".to_string()
-    } else if crate::lang::spec_for_path(&path).is_none() {
+    } else if crate::lang::spec_for_path(path).is_none() {
         "file format is unsupported or disabled for indexing".to_string()
-    } else if std::fs::metadata(&path).is_ok_and(|metadata| metadata.len() > cfg.max_file_size) {
+    } else if std::fs::metadata(path).is_ok_and(|metadata| metadata.len() > cfg.max_file_size) {
         format!(
             "file exceeds index.max_file_size ({} bytes)",
             cfg.max_file_size
@@ -31,17 +43,14 @@ pub(super) fn unavailable(
             .and_then(|navigation| navigation.implementations.as_ref())
             .map(|facts| facts.source_digest.as_str())
             .or(flow_digest)?;
-        if std::fs::read(&path)
+        if std::fs::read(path)
             .is_ok_and(|source| crate::implementations::digest(&source) == expected)
         {
             return None;
         }
         "source changed since indexing; declaration and relation locations are withheld until refresh".into()
     };
-    Some(format!(
-        "[Navigation unavailable — {}:{line}: {reason}.]\n",
-        anchor.file_path,
-    ))
+    Some(reason)
 }
 
 pub(super) fn no_declaration(file: &ExtractedFile, line: usize, relations_only: bool) -> String {

@@ -6,7 +6,9 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use super::{spawn_indexer, spawn_watcher, CodemapSnapshot, TantivySearchEngine};
+use super::{
+    spawn_dormant_indexer, spawn_indexer, spawn_watcher, CodemapSnapshot, TantivySearchEngine,
+};
 use super::{
     IndexerHandle, SearchQueryContext, SearchResult, SearcherHandle, WatcherHandle, WatcherStatus,
 };
@@ -16,6 +18,15 @@ use super::{
 /// one specific file on every walk) cannot respawn-loop forever. Past the cap the
 /// existing "results are frozen" notice stands and a server restart is required.
 const MAX_INDEXER_RESTART_ATTEMPTS: u32 = 5;
+
+/// Whether the workspace is being indexed (see [`super::admission`]).
+enum IndexState {
+    Active,
+    /// Waiting for the first index-backed tool call.
+    Pending,
+    /// Never indexed in this server; index-backed tools report the message.
+    Unavailable(String),
+}
 
 /// Owns the live index subsystem for the MCP server: a read-only [`SearcherHandle`], the
 /// background [`IndexerHandle`], and the optional filesystem [`WatcherHandle`], plus the
@@ -49,6 +60,10 @@ pub struct EngineSupervisor {
     // Automatic indexer restarts performed so far (see `ensure_alive`).
     indexer_restart_attempts: u32,
     last_macro_input_check: Option<Instant>,
+    state: IndexState,
+    // Empty index backing an unavailable workspace, removed with the server, so that no
+    // index directory is created in a folder that is not indexed.
+    _placeholder_index: Option<tempfile::TempDir>,
 }
 
 impl EngineSupervisor {
@@ -68,7 +83,70 @@ impl EngineSupervisor {
             last_refresh_trigger: None,
             indexer_restart_attempts: 0,
             last_macro_input_check: None,
+            state: IndexState::Active,
+            _placeholder_index: None,
         }
+    }
+
+    /// A supervisor whose initial pass and watchers wait for [`Self::activate`].
+    pub fn deferred(engine: TantivySearchEngine) -> Self {
+        let searcher = engine.searcher_handle();
+        let indexer = spawn_dormant_indexer(engine);
+        let mut supervisor = Self::new(
+            searcher,
+            None,
+            None,
+            indexer,
+            Arc::new(WatcherStatus::default()),
+        );
+        supervisor.state = IndexState::Pending;
+        supervisor
+    }
+
+    /// A supervisor that never indexes: index-backed tools report `message`, and live
+    /// tools see an empty index kept outside the workspace.
+    pub fn unavailable(message: String) -> Result<Self, String> {
+        let directory = tempfile::Builder::new()
+            .prefix("codemap-unindexed-")
+            .tempdir()
+            .map_err(|error| error.to_string())?;
+        let engine = TantivySearchEngine::new(&directory.path().display().to_string())?;
+        let mut supervisor = Self::deferred(engine);
+        supervisor.state = IndexState::Unavailable(message);
+        supervisor._placeholder_index = Some(directory);
+        Ok(supervisor)
+    }
+
+    /// Start a deferred workspace's indexing on the first index-backed tool call. `Err`
+    /// carries the message to show instead of index results; it stays for the session.
+    pub fn activate(&mut self) -> Result<(), String> {
+        match &self.state {
+            IndexState::Active => return Ok(()),
+            IndexState::Unavailable(message) => return Err(message.clone()),
+            IndexState::Pending => {}
+        }
+        let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
+        if let Some(message) = super::admission::size_refusal(&cwd) {
+            self.state = IndexState::Unavailable(message.clone());
+            return Err(message);
+        }
+        self.state = IndexState::Active;
+        self.indexer.trigger_refresh();
+        self.config_watcher =
+            crate::config::spawn_config_watcher(&cwd, self.indexer.command_sender());
+        if crate::config::get().watch {
+            self.watcher = spawn_watcher(
+                &cwd,
+                self.indexer.command_sender(),
+                Arc::clone(&self.watcher_status),
+            );
+        }
+        Ok(())
+    }
+
+    /// True once indexing runs; false while deferred or unavailable.
+    pub fn is_active(&self) -> bool {
+        matches!(self.state, IndexState::Active)
     }
 
     /// Auto-recover a dead indexer thread (config `indexer_auto_restart`, default true):
@@ -78,7 +156,10 @@ impl EngineSupervisor {
     /// [`MAX_INDEXER_RESTART_ATTEMPTS`]. `TantivySearchEngine::new` rebuilds a corrupt
     /// index directory, so a crash caused by index corruption heals instead of recurring.
     pub fn ensure_alive(&mut self) {
-        if !crate::config::get().indexer_auto_restart || !self.indexer.is_dead() {
+        if !self.is_active()
+            || !crate::config::get().indexer_auto_restart
+            || !self.indexer.is_dead()
+        {
             return;
         }
         if self.indexer_restart_attempts >= MAX_INDEXER_RESTART_ATTEMPTS {
@@ -133,6 +214,9 @@ impl EngineSupervisor {
     /// actually removes the per-request O(repo) walk during active use. The fallback below
     /// runs only when the watcher is absent (`watch = false`), failed to start, or died.
     pub fn trigger_refresh(&mut self) {
+        if !self.is_active() {
+            return;
+        }
         // Include paths may point outside the watched workspace. Recheck their stamps
         // without running a compiler on the request thread, at most once per second.
         if crate::config::get().macro_expansion.is_enabled

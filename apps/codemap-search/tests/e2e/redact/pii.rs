@@ -164,7 +164,6 @@ async fn test_all_pii_types_preserve_mcp_negotiation() {
             "initial_instructions",
             "overview",
             "read",
-            "register_task",
             "search"
         ]
     );

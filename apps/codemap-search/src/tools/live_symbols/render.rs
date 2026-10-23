@@ -204,32 +204,23 @@ pub(super) fn render(
         for (position, &i) in callables.iter().enumerate() {
             let symbol = &outline.file.symbols[i];
             let indent = "  ".repeat(outline.chain(i).len().saturating_sub(1));
-            let detail = if outline.file.macro_expansion().is_some() {
-                "  - [Call and constant-reference attribution unresolved after preprocessing.]\n"
-                    .into()
-            } else {
-                annotations
-                    .and_then(|annotations| {
-                        annotations.render_live_relations(
-                            path,
-                            symbol.range.start_line,
-                            Some(symbol.range.start_col),
-                        )
-                    })
-                    .unwrap_or_else(|| {
-                        "  - [Caller/callee unavailable or omitted by scan/output budget.]\n".into()
-                    })
-            };
+            let detail = annotations
+                .and_then(|annotations| {
+                    annotations.render_live_relations(
+                        path,
+                        symbol.range.start_line,
+                        Some(symbol.range.start_col),
+                    )
+                })
+                .unwrap_or_else(|| {
+                    "  - [Caller/callee unavailable or omitted by scan/output budget.]\n".into()
+                });
             let detail = super::locations::calls(&detail, path);
             let mut detail = detail
                 .lines()
                 .map(|line| format!("{indent}{line}\n"))
                 .collect::<String>();
-            if let Some(rows) = outline
-                .references
-                .get(&i)
-                .filter(|_| outline.file.macro_expansion().is_none())
-            {
+            if let Some(rows) = outline.references.get(&i) {
                 detail.push_str(&format!(
                     "{indent}  - _references (constants; same-file or explicit source import):_\n"
                 ));

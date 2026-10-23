@@ -42,6 +42,18 @@ fn sample_repo() -> tempfile::TempDir {
     .unwrap()
 }
 
+/// [`sample_repo`] with the live tools confined to the workspace, which is opt-in.
+fn workspace_only_repo() -> tempfile::TempDir {
+    let temp = sample_repo();
+    std::fs::create_dir_all(temp.path().join(".codemap")).unwrap();
+    std::fs::write(
+        temp.path().join(".codemap/config.toml"),
+        "[filesystem_permissions]\nfind = \"workspace\"\ngrep = \"workspace\"\nread = \"workspace\"\n",
+    )
+    .unwrap();
+    temp
+}
+
 #[tokio::test]
 async fn test_value_relationships_stay_removed_across_live_views_and_restart() {
     let source = "const routes = new Map();\nexport function connect(key) { return { on(handler) { return add(key, handler); } }; }\nfunction add(key, handler) { routes.set(key, handler); }\nfunction dispatch(key, payload) { const callback = routes.get(key); callback(payload); }\nexport function notify(payload) {}\nexport function setup() { const handle = connect('changed'); handle.on(notify); }\nexport function publish() { dispatch('changed', 1); }\n";
@@ -811,12 +823,20 @@ async fn test_live_callable_expansion_deduplicates_and_uses_live_boundaries() {
     .unwrap();
     let fresh = client.send_request("tools/call",call("read",serde_json::json!({"file_path":"src/lib.rs","offset":3,"expand":"callable","view":"source"}))).await.unwrap();
     let out = text(&fresh);
+    // Until the index sees the edit, the window says why it lists no outside callers.
+    let rows = match out.rsplit_once("\n[Outside callers unavailable: ") {
+        Some((rows, reason)) => {
+            assert!(reason.starts_with("source changed since indexing"), "{out}");
+            rows
+        }
+        None => out.as_str(),
+    };
     assert!(
-        out.starts_with("     2→fn fresh()") && out.ends_with("     4→}"),
+        rows.starts_with("     2→fn fresh()") && rows.ends_with("     4→}"),
         "{out}"
     );
     assert!(
-        !out.contains("inserted") && !out.contains("fn next"),
+        !rows.contains("inserted") && !rows.contains("fn next"),
         "{out}"
     );
 }
@@ -1351,7 +1371,7 @@ async fn test_read_empty_file_warns() {
 
 #[tokio::test]
 async fn test_read_path_traversal_is_rejected() {
-    let temp = sample_repo();
+    let temp = workspace_only_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
         .send_request(
@@ -1616,7 +1636,7 @@ async fn test_find_accepts_workspace_internal_absolute_backslash_pattern() {
 
 #[tokio::test]
 async fn test_find_path_param_escape_is_rejected() {
-    let temp = sample_repo();
+    let temp = workspace_only_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
         .send_request(
@@ -1844,7 +1864,7 @@ async fn test_grep_pattern_starting_with_dash_is_literal() {
 
 #[tokio::test]
 async fn test_grep_path_param_escape_is_rejected() {
-    let temp = sample_repo();
+    let temp = workspace_only_repo();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let resp = client
         .send_request(
@@ -1900,10 +1920,8 @@ async fn test_macro_expansion_reaches_search_read_and_refreshes_header_changes()
     assert!(read.contains("2→DECLARE(chosen);"), "{read}");
     assert!(read.contains("Macro expansion:"), "{read}");
     assert!(read.contains("macro expansion]"), "{read}");
-    assert!(
-        read.contains("attribution unresolved after preprocessing"),
-        "{read}"
-    );
+    // The original-source call on line 3 resolves to the generated declaration.
+    assert!(read.contains("ordinary"), "{read}");
     assert!(!read.contains("(precise)"), "{read}");
     let search = client
         .send_request(

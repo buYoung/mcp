@@ -8,6 +8,8 @@ use super::{assign_config_key, ConfigLayer};
 mod comments;
 mod generated;
 
+pub(super) use generated::comment_language;
+
 pub(super) struct Setting {
     pub section: &'static str,
     pub key: &'static str,
@@ -172,6 +174,8 @@ settings![
         "caller_omit_def_threshold",
         "caller_context"
     ),
+    ("index", "mode", "index_mode", "index"),
+    ("index", "auto_max_files", "index_auto_max_files", "index"),
     ("index", "path", "index_path", "index"),
     ("index", "max_file_bytes", "max_file_size", "index"),
     (
@@ -658,6 +662,20 @@ pub(super) fn migrate_jev_filters(
         }
     }
     Ok(generated::refresh(&document.to_string()))
+}
+
+/// Files already past the v29 layout pass still carry the generated prose of their release;
+/// each later sync replaces recognized retired lines with the current descriptions.
+pub(super) fn refresh_comments(contents: &str, path: &Path) -> Result<String, String> {
+    let before: toml::Value = toml::from_str(contents).map_err(|error| error.to_string())?;
+    let updated = generated::refresh(contents);
+    let after: toml::Value = toml::from_str(&updated).map_err(|error| error.to_string())?;
+    if super::normalize(before, path) != super::normalize(after, path) {
+        return Err(
+            "comment refresh would change configured values; leaving the file untouched".into(),
+        );
+    }
+    Ok(updated)
 }
 
 pub(super) fn migrate(contents: &str, path: &Path) -> Result<String, String> {

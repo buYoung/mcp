@@ -357,27 +357,48 @@ impl<'a> SourceResolver<'a> {
 
     /// The one external definition of `name` behind a header the caller includes: the header
     /// declares it in the caller's namespace and the defining file includes that header too.
+    /// Includes are followed through other headers, as the preprocessor does: a file that
+    /// includes only an umbrella header still reaches the declaring header.
     fn included_definition(&self, path: &str, name: &str, namespace: &str) -> Option<Target<'a>> {
         let lookups = self.module_lookups();
         let functions = lookups.functions.get(name)?;
         let headers = self.included_headers(path);
-        let is_declared = functions.iter().any(|(file, symbol)| {
-            headers.iter().any(|header| std::ptr::eq(*header, *file))
-                && self.is_free_function(file, symbol, namespace, false)
-        });
-        if !is_declared {
+        let reachable = self.reachable_headers(path);
+        let declaring: Vec<&'a ExtractedFile> = reachable
+            .iter()
+            .copied()
+            .filter(|header| {
+                functions.iter().any(|(file, symbol)| {
+                    std::ptr::eq(*header, *file)
+                        && self.is_free_function(file, symbol, namespace, false)
+                })
+            })
+            .collect();
+        if declaring.is_empty() {
             return None;
         }
+        let is_declared_directly = headers.iter().any(|header| {
+            declaring
+                .iter()
+                .any(|declared| std::ptr::eq(*declared, *header))
+        });
         let mut targets = Vec::new();
         for &(candidate, symbol) in functions {
             if !self.is_free_function(candidate, symbol, namespace, true) {
                 continue;
             }
             let included = self.included_headers(&candidate.file_path);
-            if headers.iter().any(|header| {
+            let reached = self.reachable_headers(&candidate.file_path);
+            let shares_direct_header = is_declared_directly
+                && headers.iter().any(|header| {
+                    std::ptr::eq(*header, candidate)
+                        || included.iter().any(|other| std::ptr::eq(*other, *header))
+                });
+            let reaches_declaration = declaring.iter().any(|header| {
                 std::ptr::eq(*header, candidate)
-                    || included.iter().any(|other| std::ptr::eq(*other, *header))
-            }) {
+                    || reached.iter().any(|other| std::ptr::eq(*other, *header))
+            });
+            if shares_direct_header || reaches_declaration {
                 targets.push(Target {
                     file: candidate,
                     symbol,
@@ -386,6 +407,81 @@ impl<'a> SourceResolver<'a> {
             }
         }
         unique(targets)
+    }
+
+    /// The one definition that the C/C++ function prototype `symbol` of `path` stands for: a
+    /// definition of the same name and namespace in `path`, or one with external linkage in a
+    /// file that includes `path`. `None` for a definition or when several match.
+    pub(crate) fn prototype_definition(
+        &self,
+        path: &str,
+        symbol: &ExtractedSymbol,
+    ) -> Option<(&'a ExtractedFile, &'a ExtractedSymbol)> {
+        let language = crate::lang::spec_for_path(Path::new(path))?.language_name();
+        if !matches!(language, "c" | "cpp") || symbol.kind != "fn" {
+            return None;
+        }
+        let declaring = *self.files_by_path.get(path)?;
+        let source = self.source(path)?;
+        let node = node_at(&source, &symbol.range)?;
+        if node.kind() == "function_definition" || !current_symbol(&source, symbol) {
+            return None;
+        }
+        // A member function declared in its class body is defined in the body or out of line.
+        if let Some(owner) = symbol.owner.as_deref() {
+            let class = declaring
+                .symbols
+                .iter()
+                .filter(|class| {
+                    matches!(class.kind.as_str(), "class" | "struct")
+                        && class.name == owner
+                        && class.range.start_line <= symbol.range.start_line
+                        && symbol.range.end_line_inclusive() <= class.range.end_line_inclusive()
+                })
+                .min_by_key(|class| class.range.end_line_inclusive() - class.range.start_line)?;
+            let target = self.cpp_method(
+                super::cpp_members::CppClass {
+                    file: declaring,
+                    symbol: class,
+                },
+                &symbol.name,
+            )?;
+            let is_definition = self
+                .source(&target.file.file_path)
+                .and_then(|source| {
+                    node_at(&source, &target.symbol.range)
+                        .map(|node| node.kind() == "function_definition")
+                })
+                .unwrap_or(false);
+            return is_definition.then_some((target.file, target.symbol));
+        }
+        let namespace = namespace_path(node, &source)?;
+        let lookups = self.module_lookups();
+        let mut definitions = Vec::new();
+        for &(file, definition) in lookups.functions.get(symbol.name.as_str())? {
+            let is_same_file = std::ptr::eq(file, declaring);
+            let is_definition = if is_same_file {
+                self.source(path).is_some_and(|source| {
+                    node_at(&source, &definition.range).is_some_and(|node| {
+                        node.kind() == "function_definition"
+                            && namespace_path(node, &source).as_deref() == Some(namespace.as_str())
+                    })
+                })
+            } else {
+                self.is_free_function(file, definition, &namespace, true)
+                    && self
+                        .reachable_headers(&file.file_path)
+                        .iter()
+                        .any(|header| std::ptr::eq(*header, declaring))
+            };
+            if is_definition {
+                definitions.push((file, definition));
+            }
+        }
+        match definitions.as_slice() {
+            [only] => Some(*only),
+            _ => None,
+        }
     }
 
     /// Whether `symbol`, a top-level function of `file`, is still declared in `namespace`; with
@@ -458,6 +554,56 @@ impl<'a> SourceResolver<'a> {
             .and_then(|source| source.extracted.navigation.as_ref())
             .map(|navigation| navigation.imports.as_slice())
             .unwrap_or_default();
+        let headers = Rc::new(self.resolve_includes(&lookups, path, imports));
+        lookups
+            .headers
+            .borrow_mut()
+            .insert(path.to_string(), Rc::clone(&headers));
+        headers
+    }
+
+    /// Indexed headers that `path` includes directly or through other headers, nearest first.
+    /// Headers below the first level use their indexed includes, so following an umbrella
+    /// header does not reparse every header it reaches.
+    pub(super) fn reachable_headers(&self, path: &str) -> Rc<Vec<&'a ExtractedFile>> {
+        let lookups = self.module_lookups();
+        if let Some(headers) = lookups.reachable.borrow().get(path) {
+            return Rc::clone(headers);
+        }
+        let mut reached: Vec<&'a ExtractedFile> = Vec::new();
+        let mut queue: std::collections::VecDeque<&'a ExtractedFile> =
+            self.included_headers(path).iter().copied().collect();
+        while let Some(header) = queue.pop_front() {
+            if reached.len() >= REACHABLE_HEADERS_MAX {
+                break;
+            }
+            if reached.iter().any(|seen| std::ptr::eq(*seen, header)) {
+                continue;
+            }
+            reached.push(header);
+            let imports = header
+                .navigation
+                .as_ref()
+                .map(|navigation| navigation.imports.as_slice())
+                .unwrap_or_default();
+            queue.extend(self.resolve_includes(&lookups, &header.file_path, imports));
+        }
+        let reached = Rc::new(reached);
+        lookups
+            .reachable
+            .borrow_mut()
+            .insert(path.to_string(), Rc::clone(&reached));
+        reached
+    }
+
+    /// The indexed files that the includes of `path` name: beside the including file, else
+    /// the one file whose path ends with the included path.
+    fn resolve_includes(
+        &self,
+        lookups: &ModuleLookups<'a>,
+        path: &str,
+        imports: &[ImportEntry],
+    ) -> Vec<&'a ExtractedFile> {
         let mut headers = Vec::new();
         for include in imports.iter().filter_map(|import| import.source.as_deref()) {
             if let Some(beside) = relative_path(path, include)
@@ -478,16 +624,11 @@ impl<'a> SourceResolver<'a> {
                 headers.push(**only);
             }
         }
-        let headers = Rc::new(headers);
-        lookups
-            .headers
-            .borrow_mut()
-            .insert(path.to_string(), Rc::clone(&headers));
         headers
     }
 
     /// Lookups shared by the calls one resolver checks, built on first use.
-    fn module_lookups(&self) -> Rc<ModuleLookups<'a>> {
+    pub(super) fn module_lookups(&self) -> Rc<ModuleLookups<'a>> {
         self.module_lookups
             .borrow_mut()
             .get_or_insert_with(|| {
@@ -504,16 +645,25 @@ impl<'a> SourceResolver<'a> {
                             .map(|spec| spec.language_name()),
                         Some("c" | "cpp")
                     ) {
-                        for symbol in file
-                            .symbols
-                            .iter()
-                            .filter(|symbol| symbol.kind == "fn" && symbol.owner.is_none())
-                        {
-                            lookups
-                                .functions
-                                .entry(symbol.name.as_str())
-                                .or_default()
-                                .push((file, symbol));
+                        for symbol in &file.symbols {
+                            match (symbol.kind.as_str(), symbol.owner.as_deref()) {
+                                ("fn", None) => lookups
+                                    .functions
+                                    .entry(symbol.name.as_str())
+                                    .or_default()
+                                    .push((file, symbol)),
+                                ("fn", Some(owner)) => lookups
+                                    .cpp_methods
+                                    .entry((owner, symbol.name.as_str()))
+                                    .or_default()
+                                    .push((file, symbol)),
+                                ("class" | "struct", _) => lookups
+                                    .cpp_classes
+                                    .entry(symbol.name.as_str())
+                                    .or_default()
+                                    .push((file, symbol)),
+                                _ => {}
+                            }
                         }
                     }
                 }
@@ -530,14 +680,24 @@ pub(in crate::callers::resolution) struct ModuleLookups<'a> {
     by_file_name: HashMap<&'a str, Vec<&'a ExtractedFile>>,
     /// Top-level C/C++ function declarations and definitions, by name.
     functions: HashMap<&'a str, Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>>,
+    /// C++ class and struct declarations, by name.
+    pub(super) cpp_classes: HashMap<&'a str, Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>>,
+    /// C++ member function declarations and definitions, by owner and name.
+    pub(super) cpp_methods:
+        HashMap<(&'a str, &'a str), Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>>,
     /// The headers each file includes.
     headers: RefCell<HashMap<String, Rc<Vec<&'a ExtractedFile>>>>,
+    /// The headers each file reaches through includes.
+    reachable: RefCell<HashMap<String, Rc<Vec<&'a ExtractedFile>>>>,
     /// Indices of the live calls of each file, by start position.
     call_positions: RefCell<HashMap<String, Rc<CallPositions>>>,
 }
 
 /// Indices into a file's live calls by start line and column.
 type CallPositions = HashMap<(usize, usize), Vec<usize>>;
+
+/// Headers one file's includes are followed to at most.
+const REACHABLE_HEADERS_MAX: usize = 512;
 
 /// Whether a member of an implicit receiver could answer an unqualified call at `at` before a
 /// function of another file. Kotlin, Swift, Ruby and C++ look up members first inside a type
@@ -622,7 +782,7 @@ fn namespace_path(node: Node, source: &Source) -> Option<String> {
 
 /// A parameter or a local declaration that binds `name` at `at`. A C/C++ declaration outside
 /// any function body is a prototype of the called function itself.
-fn is_shadowed(source: &Source, at: Node, name: &str, language: &str) -> bool {
+pub(super) fn is_shadowed(source: &Source, at: Node, name: &str, language: &str) -> bool {
     if !matches!(language, "c" | "cpp") {
         return has_binding(source, at, name, None);
     }
@@ -866,7 +1026,7 @@ mod tests {
             // context, or a definition in another namespace.
             (&[("util.h", "int add(int a, int b);\n"), ("util.c", "#include \"util.h\"\nstatic int add(int a, int b) { return a + b; }\n"), ("main.c", "#include \"util.h\"\nint main(void) { return add(1, 2); }\n")], "main.c", 2, "add", "-"),
             (&[("util.h", "int add(int a, int b);\n"), ("other.c", "int add(int a, int b) { return a - b; }\n"), ("main.c", "#include \"util.h\"\nint main(void) { return add(1, 2); }\n")], "main.c", 2, "add", "-"),
-            (&[("math.h", "int add(int a, int b);\nclass Foo { void bar(); int add(int a, int b); };\n"), ("math.cpp", "#include \"math.h\"\nint add(int a, int b) { return a + b; }\n"), ("foo.cpp", "#include \"math.h\"\nvoid Foo::bar() { add(1, 2); }\n")], "foo.cpp", 2, "add", "-"),
+            (&[("math.h", "int add(int a, int b);\nclass Foo { void bar(); int add(int a, int b); };\n"), ("math.cpp", "#include \"math.h\"\nint add(int a, int b) { return a + b; }\n"), ("foo.cpp", "#include \"math.h\"\nvoid Foo::bar() { add(1, 2); }\n")], "foo.cpp", 2, "add", "math.h:2"),
             (&[("math.h", "namespace m { int add(int a, int b); }\nint add(int a, int b);\n"), ("math.cpp", "#include \"math.h\"\nnamespace m { int add(int a, int b) { return a + b; } }\n"), ("main.cpp", "#include \"math.h\"\nint run() { return add(1, 2); }\n")], "main.cpp", 2, "add", "-"),
         ]);
     }

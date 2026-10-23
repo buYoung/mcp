@@ -1,4 +1,4 @@
-# codemap-config-version: 31
+# codemap-config-version: 32
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -160,7 +160,7 @@ exceptions = []
 
 [output.jev]
 # TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
+# 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
 # TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
 # 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
 
@@ -231,6 +231,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
+# 전역 설정이 적용되도록 주석으로 둡니다.
+# mode = "auto"
+
+# "auto" 모드가 색인하는 최대 파일 수입니다. 더 큰 작업공간은 mode = "on"이 필요합니다.
+# auto_max_files = 50000
+
 # 색인을 저장할 경로입니다. 상대 경로는 작업공간 루트 기준입니다. 바꾼 뒤에는 서버를 재시작하세요.
 path = ".codemap/index"
 
@@ -294,11 +304,11 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # find, grep, read가 파일에 접근할 수 있는 범위입니다.
 # "workspace"는 작업공간만, "allowed_roots"는 작업공간과 allowed_roots의 경로, "anywhere"는 모든 경로를 허용합니다.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # "allowed_roots"를 쓰는 도구에 추가로 허용할 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
 # 심볼릭 링크는 실제 경로를 기준으로 판단합니다.

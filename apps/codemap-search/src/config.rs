@@ -18,7 +18,8 @@
 //! retaining configured values and inheritance; for every key introduced since the file's
 //! stamped version it appends that key's commented block (presence-guarded so an existing
 //! key — set or commented — is never duplicated) and re-stamps the version marker. The sync
-//! normally adds commented keys. The one-time v6 transition also materializes directory
+//! normally adds commented keys and replaces retired generated comments with the current ones;
+//! user notes and values are kept. The one-time v6 transition also materializes directory
 //! exclusions; from v6 onward that array is never automatically changed. Sync never
 //! rewrites a file already at the current version, never touches any git file, and
 //! warns rather than crashing on failure. Keeping `.codemap/` out of `git status` is the
@@ -75,6 +76,28 @@ impl FilesystemPermissionPolicy {
     }
 }
 
+/// When the MCP server indexes its workspace (`[index].mode`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IndexMode {
+    /// Index on the first index-backed tool call, inside a repository and within
+    /// `[index].auto_max_files`.
+    Auto,
+    /// Index at server start without those checks.
+    On,
+    /// Never index; live filesystem tools stay available.
+    Off,
+}
+
+impl IndexMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::On => "on",
+            Self::Off => "off",
+        }
+    }
+}
+
 /// Resolved filesystem permission settings for live disk tools.
 #[derive(Debug, Clone)]
 pub struct FilesystemPermissions {
@@ -87,9 +110,9 @@ pub struct FilesystemPermissions {
 impl Default for FilesystemPermissions {
     fn default() -> Self {
         Self {
-            find: FilesystemPermissionPolicy::Workspace,
-            grep: FilesystemPermissionPolicy::Workspace,
-            read: FilesystemPermissionPolicy::Workspace,
+            find: FilesystemPermissionPolicy::Anywhere,
+            grep: FilesystemPermissionPolicy::Anywhere,
+            read: FilesystemPermissionPolicy::Anywhere,
             allowed_roots: Vec::new(),
         }
     }
@@ -111,7 +134,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
 /// This version belongs to repository config only; global files are not schema-synced.
-const CONFIG_VERSION: u32 = 31;
+const CONFIG_VERSION: u32 = 32;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -174,6 +197,10 @@ pub struct ResolvedConfig {
     pub is_global_instructions_enabled: bool,
     /// Tantivy index location (default `.codemap/index`).
     pub index_path: String,
+    /// When the MCP server indexes the workspace (default auto).
+    pub index_mode: IndexMode,
+    /// Indexable files `auto` mode accepts before asking for `mode = "on"` (default 50,000).
+    pub index_auto_max_files: usize,
     /// Number of top-ranked files `search` renders as details before remaining matches
     /// become compact ranked-tail rows (default 24).
     pub result_threshold: usize,
@@ -230,8 +257,9 @@ pub struct ResolvedConfig {
     /// Whether build definitions (`Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`,
     /// `BUILD.bazel`, `.bzl`) participate in index-backed discovery.
     pub is_build_support_enabled: bool,
-    /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults keep
-    /// every tool workspace-confined unless configured otherwise.
+    /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults let every
+    /// tool reach any path the server process can access; `workspace` or `allowed_roots`
+    /// confine them.
     pub filesystem_permissions: FilesystemPermissions,
     /// `grep` content-mode column cap (default 0, unlimited). A matched line wider
     /// than a positive cap is replaced with `[Omitted long matching line]`.
@@ -338,6 +366,8 @@ impl Default for ResolvedConfig {
             config_auto_update: true,
             is_global_instructions_enabled: false,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
+            index_mode: IndexMode::Auto,
+            index_auto_max_files: 50_000,
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
             result_threshold: 24,
             max_file_size: crate::workspace::MAX_INDEXED_FILE_BYTES,
@@ -410,6 +440,8 @@ struct ConfigLayer {
     config_auto_update: Option<bool>,
     is_global_instructions_enabled: Option<bool>,
     index_path: Option<String>,
+    index_mode: Option<IndexMode>,
+    index_auto_max_files: Option<usize>,
     result_threshold: Option<usize>,
     max_file_size: Option<u64>,
     excluded_directories: Option<Vec<String>>,
@@ -622,7 +654,12 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
         "update" => matches!(key, "config_auto_update"),
         "index" => matches!(
             key,
-            "index_path" | "max_file_size" | "excluded_directories" | "use_git_exclude"
+            "index_path"
+                | "index_mode"
+                | "index_auto_max_files"
+                | "max_file_size"
+                | "excluded_directories"
+                | "use_git_exclude"
         ),
         "refresh" => matches!(
             key,
@@ -754,6 +791,10 @@ fn assign_config_key(
         "is_redact_enabled" => layer.is_redact_enabled = as_bool(value, key_display, path),
         "config_auto_update" => layer.config_auto_update = as_bool(value, key_display, path),
         "index_path" => layer.index_path = as_nonempty_string(value, key_display, path),
+        "index_mode" => layer.index_mode = as_index_mode(value, key_display, path),
+        "index_auto_max_files" => {
+            layer.index_auto_max_files = as_positive_usize(value, key_display, path)
+        }
         "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
         "max_file_size" => layer.max_file_size = as_positive_byte_size(value, key_display, path),
         "excluded_directories" => {
@@ -941,6 +982,14 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .index_path
             .or(global.index_path)
             .unwrap_or(defaults.index_path),
+        index_mode: repo
+            .index_mode
+            .or(global.index_mode)
+            .unwrap_or(defaults.index_mode),
+        index_auto_max_files: repo
+            .index_auto_max_files
+            .or(global.index_auto_max_files)
+            .unwrap_or(defaults.index_auto_max_files),
         result_threshold: repo
             .result_threshold
             .or(global.result_threshold)
@@ -1482,6 +1531,20 @@ impl Migration {
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
     Migration {
+        version: 32,
+        key: "auto_max_files",
+        placement: KeyPlacement::Subtable("index"),
+        english_block: "# Most indexable files that \"auto\" mode indexes; a larger workspace needs mode = \"on\".\n# auto_max_files = 50000",
+        korean_block: "# \"auto\" 모드가 색인하는 최대 파일 수입니다. 더 큰 작업공간은 mode = \"on\"이 필요합니다.\n# auto_max_files = 50000",
+    },
+    Migration {
+        version: 32,
+        key: "mode",
+        placement: KeyPlacement::Subtable("index"),
+        english_block: "# When the MCP server indexes this workspace. \"auto\" starts on the first search, overview, read or grep,\n# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.\n# Other folders, such as one holding several repositories, are not indexed; search and overview say why.\n# \"on\" indexes at server start without these checks; \"off\" never indexes. Restart the server after changing it.\n# Commented so that a global setting applies.\n# mode = \"auto\"",
+        korean_block: "# MCP 서버가 이 작업공간을 색인하는 시점입니다. \"auto\"는 첫 search, overview, read, grep 호출 때 시작하며,\n# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.\n# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.\n# \"on\"은 이 확인 없이 서버 시작 때 색인하고, \"off\"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.\n# 전역 설정이 적용되도록 주석으로 둡니다.\n# mode = \"auto\"",
+    },
+    Migration {
         version: 31,
         key: "is_outside_callers_enabled",
         placement: KeyPlacement::Subtable("output.read"),
@@ -1864,7 +1927,7 @@ fn migrate_existing(path: &Path, existing: &str) {
         file_version,
         CONFIG_VERSION,
         MIGRATIONS,
-        config_comment_language(),
+        layout::comment_language(&existing),
     ) else {
         return; // already current — never touch the user's file
     };
@@ -1899,6 +1962,18 @@ fn migrate_existing(path: &Path, existing: &str) {
             Err(error) => {
                 warn(&format!(
                     "config Jev migration skipped for {}: {error}",
+                    path.display()
+                ));
+                return;
+            }
+        };
+    } else {
+        // Both v29 passes above already refresh generated prose.
+        updated = match layout::refresh_comments(&updated, path) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!(
+                    "config comment refresh skipped for {}: {error}",
                     path.display()
                 ));
                 return;
@@ -2266,6 +2341,21 @@ fn as_bool(value: &toml::Value, key: &str, path: &Path) -> Option<bool> {
         None => {
             warn(&format!(
                 "config '{key}' must be true/false: {} — ignored",
+                path.display()
+            ));
+            None
+        }
+    }
+}
+
+fn as_index_mode(value: &toml::Value, key: &str, path: &Path) -> Option<IndexMode> {
+    match value.as_str() {
+        Some("auto") => Some(IndexMode::Auto),
+        Some("on") => Some(IndexMode::On),
+        Some("off") => Some(IndexMode::Off),
+        _ => {
+            warn(&format!(
+                "config '{key}' must be one of 'auto', 'on', or 'off': {} — ignored",
                 path.display()
             ));
             None
