@@ -1,6 +1,8 @@
-use crate::parser::{ExtractedFile, ExtractedLiteral, ExtractedSymbol, StaticCollectionEdge};
+use crate::parser::{
+    ExtractedFile, ExtractedLiteral, ExtractedSymbol, MacroInputStamp, StaticCollectionEdge,
+};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tantivy::collector::DocSetCollector;
@@ -26,6 +28,35 @@ struct StoredExtractedFileRef<'a> {
     flow_file: Option<&'a crate::flow::FlowFile>,
     #[serde(skip_serializing_if = "Option::is_none")]
     flow_digest: Option<&'a str>,
+}
+
+/// The recorded macro-expansion inputs of a stored document, decoded without the rest of it.
+#[derive(Deserialize)]
+struct StoredMacroInputs {
+    #[serde(default)]
+    navigation: Option<StoredNavigationInputs>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoredNavigationInputs {
+    #[serde(default)]
+    macro_expansion: Option<StoredExpansionInputs>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoredExpansionInputs {
+    #[serde(default)]
+    inputs: Vec<MacroInputStamp>,
+    #[serde(default)]
+    active_lines: Option<serde::de::IgnoredAny>,
+}
+
+/// What one native file's last macro expansion depended on.
+struct RecordedExpansion {
+    inputs: Vec<MacroInputStamp>,
+    is_expanded: bool,
 }
 
 #[derive(Deserialize)]
@@ -131,6 +162,10 @@ pub struct TantivySearchEngine {
     // (MCP mode) no longer runs an `AllQuery` over the whole index before every search
     // (Child 04). Reflects only what is actually committed to the index.
     indexed_mtimes_cache: Option<HashMap<String, u64>>,
+    // Recorded macro-expansion inputs (the file, its headers, build settings) per native file,
+    // loaded and maintained with `indexed_mtimes_cache`, so a full refresh reprocesses only
+    // the native files whose inputs changed.
+    macro_inputs_cache: Option<HashMap<String, RecordedExpansion>>,
     pub(super) is_waiting_for_writer: bool,
     // Full-refresh inputs, retained across reopen so dependency/config refreshes never
     // widen a caller's explicit file or directory selection to the process cwd.
@@ -194,7 +229,12 @@ const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v23 also retains external Dart function declarations found during the replay.
 // v24 drops fake Groovy constructors produced when quoted method parsing recovers.
 // v25 bundles Groovy quoted declarations and the Zsh scanner termination fix.
-const EXTRACTION_FORMAT_VERSION: &str = "v34-native-source-routes";
+// v35 persists TypeScript/JavaScript/C/C++ data-member names for related-terms evidence;
+// they are not symbols, so search ranking and codemap views stay unchanged.
+// v36 types more call receivers (fields, static types, bases, C++ and PowerShell parameters)
+// in the persisted implementation facts used for caller attribution.
+// v39 persists upper-snake-case constant names by line for the read trailer of shared keys.
+const EXTRACTION_FORMAT_VERSION: &str = "v39-key-sites";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -471,6 +511,7 @@ impl TantivySearchEngine {
             extracted_json_field,
             mtime_field,
             indexed_mtimes_cache: None,
+            macro_inputs_cache: None,
             is_waiting_for_writer: false,
             indexed_roots: std::fs::read(path.join(INDEXED_ROOTS_FILE))
                 .ok()
@@ -487,7 +528,22 @@ impl TantivySearchEngine {
         })
     }
 
-    fn get_indexed_mtimes(&self) -> Result<HashMap<String, u64>, String> {
+    /// A fresh handle for one write pass. Tantivy reads `.managed.json` once per opened index
+    /// and rewrites the whole file from that copy. Processes sharing this directory take turns
+    /// as the writer, so writing through the handle opened at startup dropped the files
+    /// other processes had registered since, and garbage collection never removed them.
+    fn open_for_write(&self) -> Result<Index, String> {
+        let directory = tantivy::directory::MmapDirectory::open(&self.index_path)
+            .map_err(|error| error.to_string())?;
+        Index::open(directory).map_err(|error| error.to_string())
+    }
+
+    /// The committed path→mtime map and the recorded macro-expansion inputs of native files,
+    /// read in one pass over the stored documents.
+    #[allow(clippy::type_complexity)]
+    fn read_indexed_state(
+        &self,
+    ) -> Result<(HashMap<String, u64>, HashMap<String, RecordedExpansion>), String> {
         // A competing writer may have committed since this process last published.
         // Read its mtimes without advancing the request reader ahead of the codemap.
         let reader = self
@@ -498,6 +554,7 @@ impl TantivySearchEngine {
             .map_err(|error| format!("indexed mtime reader open failed: {error}"))?;
         let searcher = reader.searcher();
         let mut map = HashMap::new();
+        let mut macro_inputs = HashMap::new();
 
         // DocSetCollector enumerates every matching doc with no limit, so the mtime map is
         // never silently truncated on large repos (which would corrupt delete detection).
@@ -514,16 +571,34 @@ impl TantivySearchEngine {
                 let path = p_val.as_str().unwrap_or("").to_string();
                 let mtime = m_val.as_u64().unwrap_or(0);
                 if !path.is_empty() {
+                    if super::preprocess::is_eligible(Path::new(&path)) {
+                        let inputs = doc
+                            .get_first(self.extracted_json_field)
+                            .and_then(|value| value.as_str())
+                            .and_then(|json| serde_json::from_str::<StoredMacroInputs>(json).ok())
+                            .and_then(|stored| stored.navigation?.macro_expansion);
+                        if let Some(stored) = inputs {
+                            macro_inputs.insert(
+                                path.clone(),
+                                RecordedExpansion {
+                                    inputs: stored.inputs,
+                                    is_expanded: stored.active_lines.is_some(),
+                                },
+                            );
+                        }
+                    }
                     map.insert(path, mtime);
                 }
             }
         }
-        Ok(map)
+        Ok((map, macro_inputs))
     }
 
     fn ensure_indexed_state(&mut self) -> Result<(), String> {
         if self.indexed_mtimes_cache.is_none() {
-            self.indexed_mtimes_cache = Some(self.get_indexed_mtimes()?);
+            let (mtimes, macro_inputs) = self.read_indexed_state()?;
+            self.indexed_mtimes_cache = Some(mtimes);
+            self.macro_inputs_cache = Some(macro_inputs);
             // Import the competing writer's extraction settings along with its mtimes,
             // so a lock retry does not unnecessarily reparse the entire repository.
             self.event_config_stamp = std::fs::read_to_string(
@@ -535,6 +610,30 @@ impl TantivySearchEngine {
                     .ok();
         }
         Ok(())
+    }
+
+    /// Whether a changed path can affect macro expansion: a native source or header, a
+    /// compilation database or flags file, or an input that an expansion recorded.
+    fn has_native_input(&self, paths: &[PathBuf], index_root: &Path, abs_cwd: &Path) -> bool {
+        let mut recorded: Option<HashSet<&str>> = None;
+        paths.iter().any(|path| {
+            if is_under_index_root(path, index_root, abs_cwd) {
+                return false;
+            }
+            if super::preprocess::is_native_input(path) {
+                return true;
+            }
+            let recorded = recorded.get_or_insert_with(|| {
+                self.macro_inputs_cache
+                    .iter()
+                    .flat_map(HashMap::values)
+                    .flat_map(|recorded| &recorded.inputs)
+                    .map(|input| input.path.as_str())
+                    .collect()
+            });
+            let absolute = crate::workspace::canonicalize_path_lenient(&abs_cwd.join(path));
+            recorded.contains(absolute.display().to_string().as_str())
+        })
     }
 
     /// Probe only the writer lock while a peer is indexing. Do not walk the working tree
@@ -704,9 +803,41 @@ impl TantivySearchEngine {
             self.event_config_stamp.as_deref() != Some(&event_config_stamp);
         let macro_config = crate::config::get().macro_expansion.clone();
         let macro_config_stamp = format!("{macro_config:?}");
-        let should_refresh_macro_files = macro_config.is_enabled
-            || self.macro_config_stamp.as_deref() != Some(&macro_config_stamp);
+        let has_macro_config_changed =
+            self.macro_config_stamp.as_deref() != Some(&macro_config_stamp);
         let indexed_mtimes = self.indexed_mtimes_cache.as_ref().unwrap();
+        let macro_inputs = self.macro_inputs_cache.as_ref();
+        // A failed expansion does not know every header it needs, so a header that is new
+        // to the index (for example a generated configuration header) retries the failed
+        // ones. Only a readable header counts, as an unreadable one stays new forever.
+        let has_new_header = files_to_process.iter().any(|(rel_path, disk_path, _)| {
+            !indexed_mtimes.contains_key(rel_path)
+                && super::preprocess::is_header(disk_path)
+                && std::fs::read_to_string(disk_path).is_ok()
+        });
+        let mut current_inputs: HashMap<String, MacroInputStamp> = HashMap::new();
+        // A native file is reprocessed when the settings changed or, while expansion is
+        // enabled, when it has no recorded inputs yet or one of them (itself, an included
+        // header, build settings) changed. Unrelated refreshes leave it alone.
+        let mut needs_macro_refresh = |rel_path: &str, disk_path: &Path| {
+            super::preprocess::is_eligible(disk_path)
+                && (has_macro_config_changed
+                    || (macro_config.is_enabled
+                        && macro_inputs
+                            .and_then(|inputs| inputs.get(rel_path))
+                            .is_none_or(|recorded| {
+                                (has_new_header && !recorded.is_expanded)
+                                    || recorded.inputs.iter().any(|input| {
+                                        current_inputs.entry(input.path.clone()).or_insert_with(
+                                            || {
+                                                super::preprocess::input_stamp(Path::new(
+                                                    &input.path,
+                                                ))
+                                            },
+                                        ) != input
+                                    })
+                            })))
+        };
 
         let disk_file_paths: std::collections::HashSet<String> = files_to_process
             .iter()
@@ -727,8 +858,7 @@ impl TantivySearchEngine {
                 Some(&indexed_mtime)
                     if indexed_mtime == mtime
                         && !(should_refresh_event_files && crate::events::eligible(&rel_path))
-                        && !(should_refresh_macro_files
-                            && super::preprocess::is_eligible(&disk_path)) =>
+                        && !needs_macro_refresh(&rel_path, &disk_path) =>
                 {
                     // Skip indexing: mtime hasn't changed
                 }
@@ -812,17 +942,30 @@ impl TantivySearchEngine {
         let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let mut macro_expander =
             super::MacroExpander::new(&root, crate::config::get().macro_expansion.clone());
-        let mut writer = match self.index.writer(50_000_000) {
-            Ok(w) => w,
-            Err(tantivy::TantivyError::LockFailure(e, _)) => {
-                self.indexed_mtimes_cache = None;
-                self.is_waiting_for_writer =
-                    matches!(e, tantivy::directory::error::LockError::LockBusy);
-                return Err(format!(
-                    "Index writer lock unavailable; refresh deferred for retry: {e:?}"
-                ));
+        let managed_path = Path::new(&self.index_path).join(".managed.json");
+        let mut attempts = 0;
+        let (write_index, mut writer) = loop {
+            attempts += 1;
+            let managed_before = std::fs::read(&managed_path).ok();
+            let write_index = self.open_for_write()?;
+            let writer = match write_index.writer(50_000_000) {
+                Ok(w) => w,
+                Err(tantivy::TantivyError::LockFailure(e, _)) => {
+                    self.indexed_mtimes_cache = None;
+                    self.macro_inputs_cache = None;
+                    self.is_waiting_for_writer =
+                        matches!(e, tantivy::directory::error::LockError::LockBusy);
+                    return Err(format!(
+                        "Index writer lock unavailable; refresh deferred for retry: {e:?}"
+                    ));
+                }
+                Err(e) => return Err(e.to_string()),
+            };
+            // Another writer may have registered files after the list was read and before the
+            // lock was taken. With the lock held the list stays put, so one more open settles it.
+            if attempts == 3 || std::fs::read(&managed_path).ok() == managed_before {
+                break (write_index, writer);
             }
-            Err(e) => return Err(e.to_string()),
         };
 
         for rel_path in &to_delete {
@@ -833,6 +976,7 @@ impl TantivySearchEngine {
         // Track only the docs that actually get added so the cache mirrors the index:
         // a file that fails to read/parse stays out of the cache and is retried next call.
         let mut committed_updates: Vec<(String, u64)> = Vec::new();
+        let mut committed_macro_inputs: Vec<(String, Option<RecordedExpansion>)> = Vec::new();
         let mut encoding_excluded_paths = Vec::new();
         for (rel_path, disk_path, mtime) in to_index {
             let content = match std::fs::read_to_string(&disk_path) {
@@ -872,7 +1016,7 @@ impl TantivySearchEngine {
             {
                 auxiliary = expanded_auxiliary;
             }
-            if extracted.macro_expansion().is_some() {
+            if extracted.is_macro_expanded() {
                 auxiliary.static_collection_edges.clear();
                 auxiliary.event_input = None;
                 auxiliary.flow_file = None;
@@ -958,8 +1102,15 @@ impl TantivySearchEngine {
                 doc.add_text(self.format_text_field, format_text);
             }
 
+            let macro_inputs = extracted.macro_expansion().map(|info| RecordedExpansion {
+                inputs: info.inputs.clone(),
+                is_expanded: info.is_expanded(),
+            });
             match writer.add_document(doc) {
-                Ok(_) => committed_updates.push((rel_path, mtime)),
+                Ok(_) => {
+                    committed_macro_inputs.push((rel_path.clone(), macro_inputs));
+                    committed_updates.push((rel_path, mtime));
+                }
                 Err(e) => {
                     eprintln!(
                         "Warning: Failed to add document to index for {}: {}",
@@ -972,6 +1123,8 @@ impl TantivySearchEngine {
         }
 
         writer.commit().map_err(|e| e.to_string())?;
+        // Still the writer, so no other process is creating segment files.
+        super::segment_files::remove_orphans(&write_index, Path::new(&self.index_path));
         if should_reload_reader {
             self.reader.reload().map_err(|error| error.to_string())?;
         }
@@ -985,6 +1138,17 @@ impl TantivySearchEngine {
             }
             for (rel_path, mtime) in committed_updates {
                 cache.insert(rel_path, mtime);
+            }
+        }
+        if let Some(cache) = self.macro_inputs_cache.as_mut() {
+            for path in to_delete.iter().chain(&encoding_excluded_paths) {
+                cache.remove(path);
+            }
+            for (rel_path, recorded) in committed_macro_inputs {
+                match recorded {
+                    Some(recorded) => cache.insert(rel_path, recorded),
+                    None => cache.remove(&rel_path),
+                };
             }
         }
 
@@ -1027,11 +1191,10 @@ impl TantivySearchEngine {
         let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
 
         // Headers, included macro files, and compilation flags can affect any translation
-        // unit. When native preprocessing is enabled, reconcile the original inputs fully.
+        // unit, so a change to one reconciles the native files fully. Other changes stay
+        // path-scoped even while native preprocessing is enabled.
         if crate::config::get().macro_expansion.is_enabled
-            && paths
-                .iter()
-                .any(|path| !is_under_index_root(path, &index_root, &abs_cwd))
+            && self.has_native_input(paths, &index_root, &abs_cwd)
         {
             return self.refresh_indexed_roots(should_reload_reader);
         }
@@ -1336,6 +1499,25 @@ mod tests {
     }
 
     #[test]
+    fn test_long_else_if_chain_keeps_the_index_publishable() {
+        let directory = tempdir().unwrap();
+        let file = directory.path().join("chain.js");
+        let branches: String = (1..40)
+            .map(|value| format!(" else if (x === {value}) {{ return {value}; }}"))
+            .collect();
+        fs::write(
+            &file,
+            format!("function chain_probe(x) {{\n  if (x === 0) {{ return 0; }}{branches}\n  return -1;\n}}\n"),
+        )
+        .unwrap();
+        let mut engine =
+            TantivySearchEngine::new(directory.path().join("index").to_str().unwrap()).unwrap();
+        engine.index_files(&[file.to_str().unwrap()]).unwrap();
+        assert_eq!(engine.search("chain_probe", 10).unwrap().len(), 1);
+        assert_eq!(engine.load_published_snapshot().unwrap().codemap().len(), 1);
+    }
+
+    #[test]
     fn test_deferred_deletion_publishes_matching_search_and_codemap() {
         let directory = tempdir().unwrap();
         let file = directory.path().join("source.rs");
@@ -1430,7 +1612,7 @@ mod tests {
             // Let's print out what files were registered or if indexing was skipped
             println!(
                 "Indexed files mtimes map: {:?}",
-                engine.get_indexed_mtimes()
+                engine.read_indexed_state().map(|(mtimes, _)| mtimes)
             );
         }
         assert_eq!(res.len(), 1);
@@ -1613,7 +1795,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v34-native-source-routes");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v39-key-sites");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

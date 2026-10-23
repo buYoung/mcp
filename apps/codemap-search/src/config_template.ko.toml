@@ -1,4 +1,4 @@
-# codemap-config-version: 29
+# codemap-config-version: 32
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -63,6 +63,9 @@ max_bytes = "1mb"
 [output.read]
 # read 응답의 최대 크기입니다.
 max_bytes = "5mb"
+
+# read view=source 끝에 창 밖 호출자 목록을 덧붙일 수 있습니다. false이면 생략합니다.
+is_outside_callers_enabled = true
 
 [output.grep]
 # grep 결과에서 한 줄의 최대 길이(바이트)입니다. 0이면 제한이 없습니다.
@@ -156,10 +159,10 @@ rules = []
 exceptions = []
 
 [output.jev]
-# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 쓰려면 initial_instructions(task_query, questions)로 작업을 먼저 등록해야 합니다.
-# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
-# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
+# decision 모델(TypeSafe Jev 또는 OpenRouter)로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
+# API 키는 여기가 아닌 auth.toml의 [jev].api_key(TypeSafe) 또는 [openrouter].api_key에 저장하세요.
+# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY 환경 변수를 사용합니다.
 
 # 모든 Jev 출력 필터를 켜거나 끕니다. false이면 모든 도구가 로컬로 동작합니다.
 enabled = false
@@ -168,8 +171,15 @@ enabled = false
 # 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
 scope = ["overview", "search", "read", "grep"]
 
-# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
-model = "jev-1.13.0"
+# 사용할 decision 모델입니다(기본 jev-1.14.0). Jev 버전은 TypeSafe를, 제작자/모델 ID는
+# OpenRouter Decisions API만 사용하며 decision을 지원하지 않는 모델은 거부됩니다. 별칭은 쓸 수 없습니다.
+# OpenRouter decision 모델(컨텍스트 64k 이상):
+#   openai/gpt-6-luna-decisions, typesafe/jev-1.14, typesafe/jev-1.13,
+#   perplexity/pplx-decider-v1.2, perplexity/pplx-decider-flash-v1.2,
+#   nace-ai/drex-max, nace-ai/drex-v2.0, nace-ai/drex-v1.5, respan/span-02,
+#   upstage/solar-decide, upstage/solar-decide-flash, cloudflare/clef,
+#   cloudflare/clef-omni, liquid/d1, inception/mercury-decide
+model = "jev-1.14.0"
 
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 timeout_ms = 45000
@@ -228,6 +238,16 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
+# 전역 설정이 적용되도록 주석으로 둡니다.
+# mode = "auto"
+
+# "auto" 모드가 색인하는 최대 파일 수입니다. 더 큰 작업공간은 mode = "on"이 필요합니다.
+# auto_max_files = 50000
+
 # 색인을 저장할 경로입니다. 상대 경로는 작업공간 루트 기준입니다. 바꾼 뒤에는 서버를 재시작하세요.
 path = ".codemap/index"
 
@@ -291,15 +311,22 @@ is_build_support_enabled = false
 [filesystem_permissions]
 # find, grep, read가 파일에 접근할 수 있는 범위입니다.
 # "workspace"는 작업공간만, "allowed_roots"는 작업공간과 allowed_roots의 경로, "anywhere"는 모든 경로를 허용합니다.
-find = "workspace"
+find = "anywhere"
 
-grep = "workspace"
+grep = "anywhere"
 
-read = "workspace"
+read = "anywhere"
 
 # "allowed_roots"를 쓰는 도구에 추가로 허용할 경로입니다. 상대 경로는 작업공간 루트 기준입니다.
 # 심볼릭 링크는 실제 경로를 기준으로 판단합니다.
 allowed_roots = []
+
+[related_terms]
+# 관련어 기능을 켭니다(기본 false). 로컬 경로가 없으면 고정 데이터셋을 한 번 내려받습니다.
+# 주석으로 두면 전역 설정을 상속합니다.
+# enabled = false
+# 선택 사항인 사용자 데이터셋 경로입니다. 원본은 수정하지 않습니다.
+# dataset_path = "/path/to/dataset.sqlite3"
 
 [update]
 # 서버가 시작될 때 이 파일이 없으면 만들고, 새 설정이 생기면 주석으로 추가합니다.

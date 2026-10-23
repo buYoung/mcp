@@ -1,0 +1,268 @@
+{
+ "base_dataset": "rts4-0fb3d5bc20c215ba",
+ "reviewer": "Claude Opus 5.5",
+ "mappings": [
+  {
+   "word": "pgx",
+   "topic": "t838",
+   "reason": "PostgreSQL Go 드라이버. 관계어로만 있던 단어"
+  },
+  {
+   "word": "Tkinter",
+   "topic": "x147",
+   "reason": "파이썬 데스크톱 UI 툴킷. 관계어로만 있던 단어"
+  },
+  {
+   "word": "TortoiseSVN",
+   "topic": "t140.9",
+   "reason": "Subversion 클라이언트. 관계어로만 있던 단어"
+  },
+  {
+   "word": "Dgraph",
+   "topic": "t977.1",
+   "reason": "그래프 데이터베이스. 관계어로만 있던 단어"
+  },
+  {
+   "word": "SNTP",
+   "topic": "t117.2",
+   "reason": "89건 networking"
+  },
+  {
+   "word": "chronyd",
+   "topic": "t117.2",
+   "reason": "89건 networking"
+  },
+  {
+   "word": "escaped path",
+   "topic": "t495.3",
+   "reason": "89건 text-processing"
+  },
+  {
+   "word": "AWS CodeCommit",
+   "topic": "t154",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "bankers rounding",
+   "topic": "x251",
+   "reason": "89건 business-domains"
+  },
+  {
+   "word": "been",
+   "topic": "t177.2",
+   "reason": "89건 general-wording"
+  },
+  {
+   "word": "being",
+   "topic": "t212.1",
+   "reason": "89건 general-wording"
+  },
+  {
+   "word": "bezier curve",
+   "topic": "t108.4",
+   "reason": "89건 math-numerics. 베지어 경로는 벡터 그래픽 주제"
+  },
+  {
+   "word": "binary exponentiation",
+   "topic": "t617",
+   "reason": "89건 algorithms-data-structures"
+  },
+  {
+   "word": "Boyer-Moore",
+   "topic": "t685.2",
+   "reason": "89건 algorithms-data-structures"
+  },
+  {
+   "word": "build.zig",
+   "topic": "x308",
+   "reason": "89건 languages-compilers"
+  },
+  {
+   "word": "Zig",
+   "topic": "x308",
+   "reason": "89건 languages-compilers"
+  },
+  {
+   "word": "CalDAV",
+   "topic": "t673.1",
+   "reason": "89건 networking. 달력 데이터 주제"
+  },
+  {
+   "word": "kinesis firehose",
+   "topic": "x309",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "firehose",
+   "topic": "x309",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "Kinesis Data Firehose",
+   "topic": "x309",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "Kinesis Data Analytics",
+   "topic": "x309",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "Kinesis Data Streams",
+   "topic": "x309",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "Amazon Kinesis",
+   "topic": "x309",
+   "reason": "같은 새 주제"
+  },
+  {
+   "word": "kinesis",
+   "topic": "x309",
+   "reason": "같은 새 주제"
+  },
+  {
+   "word": "Amazon SNS",
+   "topic": "x310",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "Amazon MQ",
+   "topic": "x310",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "Amazon SQS",
+   "topic": "x310",
+   "reason": "같은 새 주제"
+  },
+  {
+   "word": "Amazon Polly",
+   "topic": "x311",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "Amazon Translate",
+   "topic": "x311",
+   "reason": "89건 cloud-infrastructure"
+  },
+  {
+   "word": "MWAA",
+   "topic": "t429.1",
+   "reason": "89건 cloud-infrastructure. Airflow 관리형 서비스"
+  },
+  {
+   "word": "langid",
+   "topic": "t939",
+   "reason": "89건 text-processing"
+  },
+  {
+   "word": "Live Share",
+   "topic": "t56.12",
+   "reason": "89건 docs-collaboration"
+  },
+  {
+   "word": "Lua",
+   "topic": "x312",
+   "reason": "89건 languages-compilers"
+  },
+  {
+   "word": "LuaJIT",
+   "topic": "x312",
+   "reason": "같은 새 주제"
+  },
+  {
+   "word": "Mathlib",
+   "topic": "t173.6",
+   "reason": "89건 math-numerics. Lean 수학 라이브러리"
+  },
+  {
+   "word": "Orleans",
+   "topic": "t297.3",
+   "reason": "89건 distributed-systems"
+  },
+  {
+   "word": "Shiny",
+   "topic": "x313",
+   "reason": "89건 web-backend"
+  },
+  {
+   "word": "Streamlit",
+   "topic": "x313",
+   "reason": "같은 새 주제"
+  },
+  {
+   "word": "Gradio",
+   "topic": "x313",
+   "reason": "같은 새 주제"
+  },
+  {
+   "word": "vimscript",
+   "topic": "t1044.1",
+   "reason": "89건 languages-compilers"
+  },
+  {
+   "word": "watermarking",
+   "topic": "t223",
+   "reason": "89건 graphics-media"
+  },
+  {
+   "word": "workers kv",
+   "topic": "t324",
+   "reason": "89건 databases-storage. Cloudflare 주제"
+  },
+  {
+   "word": "workers kv",
+   "topic": "t468.3",
+   "reason": "89건 databases-storage"
+  },
+  {
+   "word": "async await",
+   "topic": "x314",
+   "reason": "89건 language-constructs"
+  },
+  {
+   "word": "async fn",
+   "topic": "x314",
+   "reason": "89건 language-constructs"
+  },
+  {
+   "word": "awaitable",
+   "topic": "x314",
+   "reason": "89건 language-constructs"
+  },
+  {
+   "word": "async function",
+   "topic": "x314",
+   "reason": "같은 새 주제"
+  },
+  {
+   "word": "data drift",
+   "topic": "t635.1",
+   "reason": "13단계 제안 data-formats"
+  },
+  {
+   "word": "Sublime Merge",
+   "topic": "t984",
+   "reason": "13단계 제안 editors-ide"
+  },
+  {
+   "word": "EMFILE",
+   "topic": "t236.1",
+   "reason": "13단계 제안 networking. 소켓 연결 실패"
+  },
+  {
+   "word": "requireNonNull",
+   "topic": "t635.2",
+   "via": "data validation",
+   "reason": "13단계 제안 data-formats. 입력 전용 단어"
+  },
+  {
+   "word": "negative testing",
+   "topic": "t251.1",
+   "via": "fuzzing",
+   "reason": "13단계 제안 security. 입력 전용 단어"
+  }
+ ]
+}

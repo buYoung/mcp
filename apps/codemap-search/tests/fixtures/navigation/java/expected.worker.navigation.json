@@ -132,6 +132,104 @@
         "implementations": [],
         "calls": [
           {
+            "name": "next",
+            "range": {
+              "startLine": 10,
+              "startCol": 19,
+              "endLine": 10,
+              "endCol": 31
+            },
+            "receiver": {
+              "name": "JobQueue",
+              "arguments": [],
+              "range": {
+                "startLine": 10,
+                "startCol": 19,
+                "endLine": 10,
+                "endCol": 31
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "warn",
+            "range": {
+              "startLine": 12,
+              "startCol": 13,
+              "endLine": 12,
+              "endCol": 34
+            },
+            "receiver": {
+              "name": "Logger",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 13,
+                "endLine": 12,
+                "endCol": 34
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [
+              "conditional declaration requires unavailable compile/runtime facts"
+            ],
+            "receiverKind": "value"
+          },
+          {
+            "name": "process",
+            "range": {
+              "startLine": 16,
+              "startCol": 27,
+              "endLine": 16,
+              "endCol": 49
+            },
+            "receiver": {
+              "name": "JobProcessor",
+              "arguments": [],
+              "range": {
+                "startLine": 16,
+                "startCol": 27,
+                "endLine": 16,
+                "endCol": 49
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "ack",
+            "range": {
+              "startLine": 17,
+              "startCol": 9,
+              "endLine": 17,
+              "endCol": 32
+            },
+            "receiver": {
+              "name": "JobQueue",
+              "arguments": [],
+              "range": {
+                "startLine": 17,
+                "startCol": 9,
+                "endLine": 17,
+                "endCol": 32
+              }
+            },
+            "namespace": "CheckoutWorker",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
             "name": "id",
             "range": {
               "startLine": 17,
@@ -152,7 +250,8 @@
             "namespace": "CheckoutWorker",
             "enclosingSymbol": "tick",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

@@ -1,13 +1,15 @@
-//! Host boundary for the optional Jev stages: credential resolution from `auth.toml` or
-//! fixed `TYPESAFE_API_KEY` environment variable, the shared HTTPS evaluator lifecycle, the one absolute deadline
+//! Host boundary for the optional Jev stages: credential resolution for the provider the
+//! configured model selects (`auth.toml` `[jev]` or fixed `TYPESAFE_API_KEY` for TypeSafe,
+//! `[openrouter]` or fixed `OPENROUTER_API_KEY` for OpenRouter), the shared HTTPS evaluator
+//! lifecycle, the one absolute deadline
 //! per tool call, and the per-tool glue that turns adapter results into response text plus
 //! secret-free stderr diagnostics. Nothing here runs unless a stage is enabled in
 //! `[output.jev]`. Enabled filters use the task registered for this connection; missing
 //! registration is an error. Other bypasses/fallbacks preserve the base output. The record of what
 //! happened is the `jev stage` diagnostic line, never inline text.
 
-use crate::config::{JevConfig, ResolvedConfig};
-use crate::jev::{Evaluator, JevEvaluator, SecretString, Timing, Usage};
+use crate::config::{AuthConfig, JevConfig, ResolvedConfig};
+use crate::jev::{Evaluator, JevEvaluator, Provider, SecretString, Timing, Usage};
 use crate::tools::search::jev::FilterPolicy;
 use crate::tools::search::SearchOutput;
 use crate::tools::ToolContext;
@@ -15,6 +17,7 @@ use std::sync::Arc;
 use tokio::time::Instant;
 
 const API_KEY_ENV: &str = "TYPESAFE_API_KEY";
+const OPENROUTER_API_KEY_ENV: &str = "OPENROUTER_API_KEY";
 
 /// The transport-relevant settings an HTTPS evaluator was built with. A change rebuilds
 /// the evaluator on the next enabled request; the enable flags and the filter threshold are
@@ -67,19 +70,24 @@ impl JevHost {
     }
 
     /// Resolve the evaluator for one request. `Err(reason)` is a bypass label
-    /// (`missing_credentials`, `invalid_config`); nothing is sent in that case.
+    /// (`missing_credentials`, `invalid_config`); nothing is sent in that case. Only the key
+    /// of the provider the model selects is used, so a key never reaches another provider.
     pub fn resolve(
         &mut self,
         config: &JevConfig,
-        file_api_key: Option<&SecretString>,
+        auth: &AuthConfig,
     ) -> Result<Arc<dyn Evaluator>, &'static str> {
         if let Some(injected) = &self.injected {
             return Ok(Arc::clone(injected));
         }
+        let (file_api_key, api_key_env) = match Provider::for_model(&config.model) {
+            Provider::TypeSafe => (auth.jev_api_key.as_ref(), API_KEY_ENV),
+            Provider::OpenRouter => (auth.openrouter_api_key.as_ref(), OPENROUTER_API_KEY_ENV),
+        };
         let api_key = file_api_key
             .cloned()
             .or_else(|| {
-                std::env::var(API_KEY_ENV)
+                std::env::var(api_key_env)
                     .ok()
                     .filter(|value| !value.trim().is_empty())
                     .map(SecretString::new)
@@ -182,7 +190,7 @@ pub(super) async fn search(
         log_bypass("search", "invalid_config", model);
         return crate::tools::search::run_with_metadata(ctx);
     };
-    let evaluator = match host.resolve(jev, config.auth.jev_api_key.as_ref()) {
+    let evaluator = match host.resolve(jev, &config.auth) {
         Ok(evaluator) => evaluator,
         Err(reason) => {
             log_bypass("search", reason, model);
@@ -215,7 +223,7 @@ fn require_task<'a>(
     task: Option<&'a crate::tools::task::RegisteredTask>,
     tool: &str,
 ) -> Result<&'a crate::tools::task::RegisteredTask, (i64, String)> {
-    task.ok_or_else(|| (-32602, format!("Jev {tool} requires task_query and questions registered through register_task. Register the user's complete task and focused yes/no criteria, then retry.")))
+    task.ok_or_else(|| (-32602, format!("Jev {tool} requires task_query and questions registered through register_task. Register the user's complete task and focused yes/no criteria, then retry. If register_task is missing from the tool list, the list was loaded before Jev was enabled; reconnect the MCP client to load it.")))
 }
 
 /// Root maps remain local and usable before task registration. Non-root views use
@@ -236,7 +244,7 @@ pub(super) async fn overview(
         log_bypass("overview", "invalid_config", &config.jev.model);
         return Ok(prepared.render());
     };
-    let evaluator = match host.resolve(&config.jev, config.auth.jev_api_key.as_ref()) {
+    let evaluator = match host.resolve(&config.jev, &config.auth) {
         Ok(evaluator) => evaluator,
         Err(reason) => {
             log_bypass("overview", reason, &config.jev.model);
@@ -338,7 +346,7 @@ pub(super) async fn live(
     if is_enabled && is_source {
         require_task(task, tool)?;
         if let Some(deadline_at) = deadline_at(&config.jev) {
-            match host.resolve(&config.jev, config.auth.jev_api_key.as_ref()) {
+            match host.resolve(&config.jev, &config.auth) {
                 Ok(evaluator) => {
                     evaluation = Some((
                         evaluator,
@@ -360,12 +368,14 @@ pub(super) async fn live(
         }
     }
     let should_capture = evaluation.is_some();
-    let output = match (is_read, should_capture) {
+    let mut output = match (is_read, should_capture) {
         (true, true) => crate::tools::read::read_file_for_filter(arguments)?,
         (true, false) => crate::tools::read::read_file_with_metadata(arguments)?,
         (false, true) => crate::tools::grep::grep_for_filter(arguments)?,
         (false, false) => crate::tools::grep::grep_with_metadata(arguments)?,
     };
+    // Jev judges source rows only; a caller trailer would bypass its omissions.
+    output.should_list_outside_callers &= !should_capture;
     if !is_content {
         return Ok(PreparedLiveOutput {
             text: output.text,
@@ -437,12 +447,8 @@ mod tests {
         let load = || crate::config::load(repo.path(), global.path());
         let mut host = JevHost::default();
         let config = load();
-        let first = host
-            .resolve(&config.jev, config.auth.jev_api_key.as_ref())
-            .unwrap();
-        let reused = host
-            .resolve(&config.jev, config.auth.jev_api_key.as_ref())
-            .unwrap();
+        let first = host.resolve(&config.jev, &config.auth).unwrap();
+        let reused = host.resolve(&config.jev, &config.auth).unwrap();
         assert!(Arc::ptr_eq(&first, &reused));
         assert_eq!(
             host.built.as_ref().unwrap().api_key.expose(),
@@ -451,9 +457,7 @@ mod tests {
 
         std::fs::write(&repo_auth, "[jev]\napi_key = 'rotated-test-key'\n").unwrap();
         let config = load();
-        let rotated = host
-            .resolve(&config.jev, config.auth.jev_api_key.as_ref())
-            .unwrap();
+        let rotated = host.resolve(&config.jev, &config.auth).unwrap();
         assert!(!Arc::ptr_eq(&first, &rotated));
         assert_eq!(
             host.built.as_ref().unwrap().api_key.expose(),
@@ -462,23 +466,21 @@ mod tests {
 
         std::fs::remove_file(repo_auth).unwrap();
         let config = load();
-        host.resolve(&config.jev, config.auth.jev_api_key.as_ref())
-            .unwrap();
+        host.resolve(&config.jev, &config.auth).unwrap();
         assert_eq!(
             host.built.as_ref().unwrap().api_key.expose(),
             "global-test-key"
         );
         std::fs::remove_file(global_auth).unwrap();
         let config = load();
-        host.resolve(&config.jev, config.auth.jev_api_key.as_ref())
-            .unwrap();
+        host.resolve(&config.jev, &config.auth).unwrap();
         assert_eq!(
             host.built.as_ref().unwrap().api_key.expose(),
             "environment-test-key"
         );
         std::env::remove_var(API_KEY_ENV);
         assert!(matches!(
-            host.resolve(&config.jev, config.auth.jev_api_key.as_ref()),
+            host.resolve(&config.jev, &config.auth),
             Err("missing_credentials")
         ));
         // Resolving constructs the actual HTTPS evaluator but never sends a request.

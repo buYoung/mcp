@@ -80,7 +80,8 @@
             "namespace": "Script",
             "enclosingSymbol": "run",
             "argumentCount": 1,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

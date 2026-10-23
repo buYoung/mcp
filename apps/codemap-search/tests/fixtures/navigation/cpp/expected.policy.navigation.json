@@ -143,7 +143,8 @@
             "argumentCount": 1,
             "conditions": [
               "conditional declaration requires unavailable compile/runtime facts"
-            ]
+            ],
+            "receiverKind": "value"
           },
           {
             "name": "empty",
@@ -170,7 +171,8 @@
             "argumentCount": 0,
             "conditions": [
               "conditional declaration requires unavailable compile/runtime facts"
-            ]
+            ],
+            "receiverKind": "value"
           }
         ]
       }

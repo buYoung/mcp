@@ -18,7 +18,8 @@
 //! retaining configured values and inheritance; for every key introduced since the file's
 //! stamped version it appends that key's commented block (presence-guarded so an existing
 //! key — set or commented — is never duplicated) and re-stamps the version marker. The sync
-//! normally adds commented keys. The one-time v6 transition also materializes directory
+//! normally adds commented keys and replaces retired generated comments with the current ones;
+//! user notes and values are kept. The one-time v6 transition also materializes directory
 //! exclusions; from v6 onward that array is never automatically changed. Sync never
 //! rewrites a file already at the current version, never touches any git file, and
 //! warns rather than crashing on failure. Keeping `.codemap/` out of `git status` is the
@@ -75,6 +76,28 @@ impl FilesystemPermissionPolicy {
     }
 }
 
+/// When the MCP server indexes its workspace (`[index].mode`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IndexMode {
+    /// Index on the first index-backed tool call, inside a repository and within
+    /// `[index].auto_max_files`.
+    Auto,
+    /// Index at server start without those checks.
+    On,
+    /// Never index; live filesystem tools stay available.
+    Off,
+}
+
+impl IndexMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::On => "on",
+            Self::Off => "off",
+        }
+    }
+}
+
 /// Resolved filesystem permission settings for live disk tools.
 #[derive(Debug, Clone)]
 pub struct FilesystemPermissions {
@@ -87,9 +110,9 @@ pub struct FilesystemPermissions {
 impl Default for FilesystemPermissions {
     fn default() -> Self {
         Self {
-            find: FilesystemPermissionPolicy::Workspace,
-            grep: FilesystemPermissionPolicy::Workspace,
-            read: FilesystemPermissionPolicy::Workspace,
+            find: FilesystemPermissionPolicy::Anywhere,
+            grep: FilesystemPermissionPolicy::Anywhere,
+            read: FilesystemPermissionPolicy::Anywhere,
             allowed_roots: Vec::new(),
         }
     }
@@ -111,7 +134,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
 /// This version belongs to repository config only; global files are not schema-synced.
-const CONFIG_VERSION: u32 = 29;
+const CONFIG_VERSION: u32 = 32;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -139,6 +162,13 @@ fn config_template(language: ConfigCommentLanguage) -> &'static str {
     language.select(CONFIG_TEMPLATE, CONFIG_TEMPLATE_KO)
 }
 
+/// Opt-in dataset source. Loading configuration never fetches or prepares the dataset.
+#[derive(Debug, Clone, Default)]
+pub struct RelatedTermsConfig {
+    pub enabled: bool,
+    pub dataset_path: Option<PathBuf>,
+}
+
 /// Fully-resolved configuration. Every field carries a compiled-in default that
 /// reproduces the post-Child-04 behavior exactly when no config file is present.
 #[derive(Debug, Clone)]
@@ -156,6 +186,7 @@ pub struct ResolvedConfig {
     pub event_navigation: EventNavigationConfig,
     /// Optional Jev output filters (`[output.jev]`); all stages are off by default.
     pub jev: JevConfig,
+    pub related_terms: RelatedTermsConfig,
     /// Credentials from repo/global `auth.toml`, separate from behavior settings.
     pub auth: AuthConfig,
     /// Explicit Rust analysis target; never inferred from the running host.
@@ -166,6 +197,10 @@ pub struct ResolvedConfig {
     pub is_global_instructions_enabled: bool,
     /// Tantivy index location (default `.codemap/index`).
     pub index_path: String,
+    /// When the MCP server indexes the workspace (default auto).
+    pub index_mode: IndexMode,
+    /// Indexable files `auto` mode accepts before asking for `mode = "on"` (default 50,000).
+    pub index_auto_max_files: usize,
     /// Number of top-ranked files `search` renders as details before remaining matches
     /// become compact ranked-tail rows (default 24).
     pub result_threshold: usize,
@@ -222,8 +257,9 @@ pub struct ResolvedConfig {
     /// Whether build definitions (`Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`,
     /// `BUILD.bazel`, `.bzl`) participate in index-backed discovery.
     pub is_build_support_enabled: bool,
-    /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults keep
-    /// every tool workspace-confined unless configured otherwise.
+    /// Filesystem permissions for live disk tools (`find`, `grep`, `read`). Defaults let every
+    /// tool reach any path the server process can access; `workspace` or `allowed_roots`
+    /// confine them.
     pub filesystem_permissions: FilesystemPermissions,
     /// `grep` content-mode column cap (default 0, unlimited). A matched line wider
     /// than a positive cap is replaced with `[Omitted long matching line]`.
@@ -234,6 +270,8 @@ pub struct ResolvedConfig {
     /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
     /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
     pub read_output_byte_cap: usize,
+    /// Whether `read view=source` may end with callers from outside the window.
+    pub is_read_outside_callers_enabled: bool,
     /// `search` detail-view per-symbol snippet line cap (default 500). A symbol body longer
     /// than this is truncated with an elision marker. Output-size only.
     pub search_detail_snippet_max_lines: usize,
@@ -322,11 +360,14 @@ impl Default for ResolvedConfig {
             macro_expansion: MacroExpansionConfig::default(),
             event_navigation: EventNavigationConfig::default(),
             jev: JevConfig::default(),
+            related_terms: RelatedTermsConfig::default(),
             auth: AuthConfig::default(),
             analysis_target_os: None,
             config_auto_update: true,
             is_global_instructions_enabled: false,
             index_path: format!("{CODEMAP_DIR_NAME}/index"),
+            index_mode: IndexMode::Auto,
+            index_auto_max_files: 50_000,
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
             result_threshold: 24,
             max_file_size: crate::workspace::MAX_INDEXED_FILE_BYTES,
@@ -356,6 +397,7 @@ impl Default for ResolvedConfig {
             grep_max_columns: 0,
             is_overview_stats_enabled: true,
             read_output_byte_cap: 5 * 1024 * 1024,
+            is_read_outside_callers_enabled: true,
             search_detail_snippet_max_lines: 500,
             search_detail_symbol_limit: 100,
             search_detail_byte_cap: 1024 * 1024,
@@ -392,10 +434,14 @@ struct ConfigLayer {
     macro_expansion: macro_expansion::MacroExpansionLayer,
     event_navigation: event_navigation::EventNavigationLayer,
     jev: jev::JevLayer,
+    related_terms_enabled: Option<bool>,
+    related_terms_dataset_path: Option<PathBuf>,
     analysis_target_os: Option<Option<String>>,
     config_auto_update: Option<bool>,
     is_global_instructions_enabled: Option<bool>,
     index_path: Option<String>,
+    index_mode: Option<IndexMode>,
+    index_auto_max_files: Option<usize>,
     result_threshold: Option<usize>,
     max_file_size: Option<u64>,
     excluded_directories: Option<Vec<String>>,
@@ -414,6 +460,7 @@ struct ConfigLayer {
     grep_max_columns: Option<usize>,
     is_overview_stats_enabled: Option<bool>,
     read_output_byte_cap: Option<usize>,
+    is_read_outside_callers_enabled: Option<bool>,
     search_detail_snippet_max_lines: Option<usize>,
     search_detail_symbol_limit: Option<usize>,
     search_detail_byte_cap: Option<usize>,
@@ -508,7 +555,7 @@ fn normalize(value: toml::Value, path: &Path) -> ConfigLayer {
     let canonical = toml::Value::Table(table.clone());
     for (key, value) in table {
         match key.as_str() {
-            "output" => {}
+            "output" | "related_terms" => {}
             "event_navigation" => {
                 layer.event_navigation = event_navigation::normalize(&value, path)
             }
@@ -607,7 +654,12 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
         "update" => matches!(key, "config_auto_update"),
         "index" => matches!(
             key,
-            "index_path" | "max_file_size" | "excluded_directories" | "use_git_exclude"
+            "index_path"
+                | "index_mode"
+                | "index_auto_max_files"
+                | "max_file_size"
+                | "excluded_directories"
+                | "use_git_exclude"
         ),
         "refresh" => matches!(
             key,
@@ -672,6 +724,21 @@ fn assign_config_key(
     path: &Path,
 ) -> bool {
     match key {
+        "related_terms_enabled" => {
+            layer.related_terms_enabled = as_bool(value, key_display, path);
+        }
+        "related_terms_dataset_path" => {
+            layer.related_terms_dataset_path = match value.as_str() {
+                Some(value) => Some(PathBuf::from(value)),
+                None => {
+                    warn(&format!(
+                        "config '{key_display}' must be a string: {} — ignored",
+                        path.display()
+                    ));
+                    None
+                }
+            };
+        }
         "output_byte_cap" => {
             layer.output_byte_cap = as_positive_byte_size(value, key_display, path)
         }
@@ -724,6 +791,10 @@ fn assign_config_key(
         "is_redact_enabled" => layer.is_redact_enabled = as_bool(value, key_display, path),
         "config_auto_update" => layer.config_auto_update = as_bool(value, key_display, path),
         "index_path" => layer.index_path = as_nonempty_string(value, key_display, path),
+        "index_mode" => layer.index_mode = as_index_mode(value, key_display, path),
+        "index_auto_max_files" => {
+            layer.index_auto_max_files = as_positive_usize(value, key_display, path)
+        }
         "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
         "max_file_size" => layer.max_file_size = as_positive_byte_size(value, key_display, path),
         "excluded_directories" => {
@@ -760,6 +831,9 @@ fn assign_config_key(
         "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
         "read_output_byte_cap" => {
             layer.read_output_byte_cap = as_positive_byte_size(value, key_display, path)
+        }
+        "is_read_outside_callers_enabled" => {
+            layer.is_read_outside_callers_enabled = as_bool(value, key_display, path)
         }
         "search_detail_snippet_max_lines" => {
             layer.search_detail_snippet_max_lines = as_positive_usize(value, key_display, path)
@@ -883,6 +957,15 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         macro_expansion: macro_expansion::merge(repo.macro_expansion, global.macro_expansion),
         event_navigation: event_navigation::merge(repo.event_navigation, global.event_navigation),
         jev: jev::merge(repo.jev, global.jev),
+        related_terms: RelatedTermsConfig {
+            enabled: repo
+                .related_terms_enabled
+                .or(global.related_terms_enabled)
+                .unwrap_or(false),
+            dataset_path: repo
+                .related_terms_dataset_path
+                .or(global.related_terms_dataset_path),
+        },
         auth: AuthConfig::default(),
         analysis_target_os: repo
             .analysis_target_os
@@ -899,6 +982,14 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .index_path
             .or(global.index_path)
             .unwrap_or(defaults.index_path),
+        index_mode: repo
+            .index_mode
+            .or(global.index_mode)
+            .unwrap_or(defaults.index_mode),
+        index_auto_max_files: repo
+            .index_auto_max_files
+            .or(global.index_auto_max_files)
+            .unwrap_or(defaults.index_auto_max_files),
         result_threshold: repo
             .result_threshold
             .or(global.result_threshold)
@@ -970,6 +1061,10 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .or(global.read_output_byte_cap)
             .or(global.output_byte_cap)
             .unwrap_or(defaults.read_output_byte_cap),
+        is_read_outside_callers_enabled: repo
+            .is_read_outside_callers_enabled
+            .or(global.is_read_outside_callers_enabled)
+            .unwrap_or(defaults.is_read_outside_callers_enabled),
         search_detail_snippet_max_lines: repo
             .search_detail_snippet_max_lines
             .or(global.search_detail_snippet_max_lines)
@@ -1436,6 +1531,34 @@ impl Migration {
 /// refreshed version marker on their next `mcp` start, with their own edits untouched.
 const MIGRATIONS: &[Migration] = &[
     Migration {
+        version: 32,
+        key: "auto_max_files",
+        placement: KeyPlacement::Subtable("index"),
+        english_block: "# Most indexable files that \"auto\" mode indexes; a larger workspace needs mode = \"on\".\n# auto_max_files = 50000",
+        korean_block: "# \"auto\" 모드가 색인하는 최대 파일 수입니다. 더 큰 작업공간은 mode = \"on\"이 필요합니다.\n# auto_max_files = 50000",
+    },
+    Migration {
+        version: 32,
+        key: "mode",
+        placement: KeyPlacement::Subtable("index"),
+        english_block: "# When the MCP server indexes this workspace. \"auto\" starts on the first search, overview, read or grep,\n# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.\n# Other folders, such as one holding several repositories, are not indexed; search and overview say why.\n# \"on\" indexes at server start without these checks; \"off\" never indexes. Restart the server after changing it.\n# Commented so that a global setting applies.\n# mode = \"auto\"",
+        korean_block: "# MCP 서버가 이 작업공간을 색인하는 시점입니다. \"auto\"는 첫 search, overview, read, grep 호출 때 시작하며,\n# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.\n# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.\n# \"on\"은 이 확인 없이 서버 시작 때 색인하고, \"off\"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.\n# 전역 설정이 적용되도록 주석으로 둡니다.\n# mode = \"auto\"",
+    },
+    Migration {
+        version: 31,
+        key: "is_outside_callers_enabled",
+        placement: KeyPlacement::Subtable("output.read"),
+        english_block: "# read view=source may end with callers from outside the window. Set false to omit them.\n# is_outside_callers_enabled = true",
+        korean_block: "# read view=source 끝에 창 밖 호출자 목록을 덧붙일 수 있습니다. false이면 생략합니다.\n# is_outside_callers_enabled = true",
+    },
+    Migration {
+        version: 30,
+        key: "related_terms",
+        placement: KeyPlacement::AfterSubtable("filesystem_permissions"),
+        english_block: "# [related_terms]\n# Enable related terms (default false); downloads the pinned dataset once when no local path is set.\n# enabled = false\n# Optional user-owned dataset; never modified.\n# dataset_path = \"/path/to/dataset.sqlite3\"",
+        korean_block: "# [related_terms]\n# 관련어 기능을 켭니다(기본 false). 로컬 경로가 없으면 고정 데이터셋을 한 번 내려받습니다.\n# enabled = false\n# 선택 사항인 사용자 데이터셋 경로입니다. 원본은 수정하지 않습니다.\n# dataset_path = \"/path/to/dataset.sqlite3\"",
+    },
+    Migration {
         version: 24,
         key: "jev",
         placement: KeyPlacement::AfterSubtable("analysis"),
@@ -1661,8 +1784,8 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
 # If Jev cannot be used, the original result is returned.
 # search_filter_enabled = false
-# Jev model version (default jev-1.13.0). Aliases such as jev-latest are not accepted.
-# model = \"jev-1.13.0\"
+# Jev model version (default jev-1.14.0). Aliases such as jev-latest are not accepted.
+# model = \"jev-1.14.0\"
 # Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 # timeout_ms = 45000
@@ -1683,8 +1806,8 @@ const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
 # Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
 # search_filter_enabled = false
-# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
-# model = \"jev-1.13.0\"
+# 사용할 Jev 모델 버전입니다(기본 jev-1.14.0). jev-latest 같은 별칭은 쓸 수 없습니다.
+# model = \"jev-1.14.0\"
 # TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 # timeout_ms = 45000
@@ -1804,7 +1927,7 @@ fn migrate_existing(path: &Path, existing: &str) {
         file_version,
         CONFIG_VERSION,
         MIGRATIONS,
-        config_comment_language(),
+        layout::comment_language(&existing),
     ) else {
         return; // already current — never touch the user's file
     };
@@ -1839,6 +1962,18 @@ fn migrate_existing(path: &Path, existing: &str) {
             Err(error) => {
                 warn(&format!(
                     "config Jev migration skipped for {}: {error}",
+                    path.display()
+                ));
+                return;
+            }
+        };
+    } else {
+        // Both v29 passes above already refresh generated prose.
+        updated = match layout::refresh_comments(&updated, path) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!(
+                    "config comment refresh skipped for {}: {error}",
                     path.display()
                 ));
                 return;
@@ -2206,6 +2341,21 @@ fn as_bool(value: &toml::Value, key: &str, path: &Path) -> Option<bool> {
         None => {
             warn(&format!(
                 "config '{key}' must be true/false: {} — ignored",
+                path.display()
+            ));
+            None
+        }
+    }
+}
+
+fn as_index_mode(value: &toml::Value, key: &str, path: &Path) -> Option<IndexMode> {
+    match value.as_str() {
+        Some("auto") => Some(IndexMode::Auto),
+        Some("on") => Some(IndexMode::On),
+        Some("off") => Some(IndexMode::Off),
+        _ => {
+            warn(&format!(
+                "config '{key}' must be one of 'auto', 'on', or 'off': {} — ignored",
                 path.display()
             ));
             None

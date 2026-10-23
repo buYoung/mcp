@@ -1,0 +1,5425 @@
+{
+ "schema": "rt-sense-eval/1",
+ "base_dataset": "rts3-48356e35e1f1ea28",
+ "judge": "Claude Opus 5.5, code context only (dataset senses not shown)",
+ "expected_fields_rule": "fields the word means in that code; the first is the main one; null = not a unit with its own meaning there (single letters, function words, fragments of a longer name)",
+ "items": [
+  {
+   "id": "bitwarden-server-001",
+   "repository": "bitwarden-server",
+   "word": "password manager",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "UsePasswordManager",
+   "kind": "property",
+   "language": "csharp",
+   "file": "src/Api/AdminConsole/Models/Response/Organizations/OrganizationResponseModel.cs",
+   "line": 120,
+   "code": [
+    "119:     public bool HasPublicAndPrivateKeys { get; set; }",
+    "120:     public bool UsePasswordManager { get; set; }",
+    "121:     public int? SmSeats { get; set; }"
+   ],
+   "expected_fields": [
+    "security",
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "bitwarden-server-002",
+   "repository": "bitwarden-server",
+   "word": "invoice",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 7,
+   "identifier": "ResolveInvoiceDiscounts",
+   "kind": "method",
+   "language": "csharp",
+   "file": "src/Libraries/Invoicing/InvoicePreviews/DiscountMapper.cs",
+   "line": 77,
+   "code": [
+    "76: ",
+    "77:     private static Dictionary<string, ResolvedDiscount> ResolveInvoiceDiscounts(Invoice invoice, ILogger logger)",
+    "78:     {"
+   ],
+   "expected_fields": [
+    "business-domains"
+   ]
+  },
+  {
+   "id": "bitwarden-server-003",
+   "repository": "bitwarden-server",
+   "word": "get user",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "GetUserIdAsync",
+   "kind": "method",
+   "language": "csharp",
+   "file": "src/Admin/IdentityServer/ReadOnlyIdentityUserStore.cs",
+   "line": 62,
+   "code": [
+    "61: ",
+    "62:     public Task<string> GetUserIdAsync(IdentityUser user,",
+    "63:         CancellationToken cancellationToken = default)"
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "bitwarden-server-004",
+   "repository": "bitwarden-server",
+   "word": "sql connection",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "sqlConnection",
+   "kind": "variable",
+   "language": "csharp",
+   "file": "src/Infrastructure.Dapper/Billing/Repositories/ProviderPlanRepository.cs",
+   "line": 19,
+   "code": [
+    "18:     {",
+    "19:         var sqlConnection = new SqlConnection(ConnectionString);",
+    "20: "
+   ],
+   "expected_fields": [
+    "databases-storage"
+   ]
+  },
+  {
+   "id": "bitwarden-server-005",
+   "repository": "bitwarden-server",
+   "word": "view result",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "viewResult",
+   "kind": "variable",
+   "language": "csharp",
+   "file": "src/Api/Auth/Controllers/EmergencyAccessController.cs",
+   "line": 213,
+   "code": [
+    "212:         var user = await _userService.GetUserByPrincipalAsync(User);",
+    "213:         var viewResult = await _emergencyAccessService.ViewAsync(id, user);",
+    "214:         var fullAccess = await _cipherLeaseGate.AuthorizeReadManyAsync(user.Id, viewResult.Ciphers);"
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "bitwarden-server-006",
+   "repository": "bitwarden-server",
+   "word": "pay",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "payPalAccount",
+   "kind": "variable",
+   "language": "csharp",
+   "file": "src/Core/Billing/Models/PaymentSource.cs",
+   "line": 59,
+   "code": [
+    "58:         {",
+    "59:             case Braintree.PayPalAccount payPalAccount:",
+    "60:                 {"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "bitwarden-server-007",
+   "repository": "bitwarden-server",
+   "word": "payment source",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "FromStripeLegacyPaymentSource",
+   "kind": "method",
+   "language": "csharp",
+   "file": "src/Core/Billing/Models/PaymentSource.cs",
+   "line": 111,
+   "code": [
+    "110: ",
+    "111:     private static PaymentSource FromStripeLegacyPaymentSource(Stripe.IPaymentSource paymentSource)",
+    "112:         => paymentSource switch"
+   ],
+   "expected_fields": [
+    "business-domains"
+   ]
+  },
+  {
+   "id": "bitwarden-server-008",
+   "repository": "bitwarden-server",
+   "word": "payment method",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 6,
+   "identifier": "FromStripeBankAccountPaymentMethod",
+   "kind": "method",
+   "language": "csharp",
+   "file": "src/Core/Billing/Models/PaymentSource.cs",
+   "line": 92,
+   "code": [
+    "91: ",
+    "92:     private static PaymentSource FromStripeBankAccountPaymentMethod(",
+    "93:         Stripe.PaymentMethodUsBankAccount bankAccount)"
+   ],
+   "expected_fields": [
+    "business-domains"
+   ]
+  },
+  {
+   "id": "bitwarden-server-009",
+   "repository": "bitwarden-server",
+   "word": "commercial",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "AddCommercialSecretsManagerJobServices",
+   "kind": "method",
+   "language": "csharp",
+   "file": "src/Api/Jobs/JobsHostedService.cs",
+   "line": 109,
+   "code": [
+    "108: ",
+    "109:     public static void AddCommercialSecretsManagerJobServices(IServiceCollection services)",
+    "110:     {"
+   ],
+   "expected_fields": [
+    "business-domains",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "bitwarden-server-010",
+   "repository": "bitwarden-server",
+   "word": "fido 2",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 7,
+   "identifier": "ToCipherLoginFido2CredentialData",
+   "kind": "method",
+   "language": "csharp",
+   "file": "src/Api/Vault/Models/CipherFido2CredentialModel.cs",
+   "line": 70,
+   "code": [
+    "69: ",
+    "70:     public CipherLoginFido2CredentialData ToCipherLoginFido2CredentialData()",
+    "71:     {"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ]
+  },
+  {
+   "id": "bitwarden-server-011",
+   "repository": "bitwarden-server",
+   "word": "as",
+   "group": "multi",
+   "field_count": 6,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "MarkTaskAsCompletedCommand",
+   "kind": "class",
+   "language": "csharp",
+   "file": "src/Core/Vault/Commands/MarkTaskAsCompletedCommand.cs",
+   "line": 12,
+   "code": [
+    "11: ",
+    "12: public class MarkTaskAsCompletedCommand : IMarkTaskAsCompleteCommand",
+    "13: {"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "bitwarden-server-012",
+   "repository": "bitwarden-server",
+   "word": "prefix",
+   "group": "multi",
+   "field_count": 11,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "NamePrefix",
+   "kind": "property",
+   "language": "csharp",
+   "file": "util/Seeder/Scenes/MigrationCohortExportScene.cs",
+   "line": 102,
+   "code": [
+    "101:         [MaxLength(40)]",
+    "102:         public string NamePrefix { get; set; } = \"pm36965-seed-\";",
+    "103:     }"
+   ],
+   "expected_fields": [
+    "text-processing",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "bitwarden-server-013",
+   "repository": "bitwarden-server",
+   "word": "login",
+   "group": "multi",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 12,
+   "identifier": "ToCipherLoginFido2CredentialData",
+   "kind": "method",
+   "language": "csharp",
+   "file": "src/Api/Vault/Models/CipherFido2CredentialModel.cs",
+   "line": 70,
+   "code": [
+    "69: ",
+    "70:     public CipherLoginFido2CredentialData ToCipherLoginFido2CredentialData()",
+    "71:     {"
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "bitwarden-server-014",
+   "repository": "bitwarden-server",
+   "word": "without",
+   "group": "multi",
+   "field_count": 3,
+   "is_recent": true,
+   "definition_count": 1,
+   "identifier": "ExpirationWithoutGracePeriod",
+   "kind": "property",
+   "language": "csharp",
+   "file": "src/Api/AdminConsole/Models/Response/Organizations/OrganizationResponseModel.cs",
+   "line": 245,
+   "code": [
+    "244:     /// </summary>",
+    "245:     public DateTime? ExpirationWithoutGracePeriod { get; set; }",
+    "246: "
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "bitwarden-server-015",
+   "repository": "bitwarden-server",
+   "word": "u",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 21,
+   "identifier": "u",
+   "kind": "parameter",
+   "language": "csharp",
+   "file": "src/Api/Vault/Models/CipherLoginModel.cs",
+   "line": 16,
+   "code": [
+    "15:     {",
+    "16:         Uris = data.Uris?.Select(u => new CipherLoginUriModel(u))?.ToList();",
+    "17:         if (!Uris?.Any() ?? true)"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "bitwarden-server-016",
+   "repository": "bitwarden-server",
+   "word": "admin",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": true,
+   "definition_count": 29,
+   "identifier": "HasAdminAccessToSecurityTasks",
+   "kind": "method",
+   "language": "csharp",
+   "file": "src/Core/Vault/Authorization/SecurityTasks/SecurityTaskAuthorizationHandler.cs",
+   "line": 121,
+   "code": [
+    "120: ",
+    "121:     private bool HasAdminAccessToSecurityTasks(CurrentContextOrganization org)",
+    "122:     {"
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "bitwarden-server-017",
+   "repository": "bitwarden-server",
+   "word": "asia",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "AsiaPacific",
+   "kind": "enum_member",
+   "language": "csharp",
+   "file": "util/Seeder/Data/Enums/GeographicRegion.cs",
+   "line": 8,
+   "code": [
+    "7: {",
+    "8:     NorthAmerica, Europe, AsiaPacific, LatinAmerica, MiddleEast, Africa, Global",
+    "9: }"
+   ],
+   "expected_fields": [
+    "time-locale",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "bitwarden-server-018",
+   "repository": "bitwarden-server",
+   "word": "access policies",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 7,
+   "identifier": "UpdateProjectServiceAccountsAccessPoliciesCommand",
+   "kind": "class",
+   "language": "csharp",
+   "file": "bitwarden_license/src/Commercial.Core/SecretsManager/Commands/AccessPolicies/UpdateProjectServiceAccountsAccessPoliciesCommand.cs",
+   "line": 8,
+   "code": [
+    "7: ",
+    "8: public class UpdateProjectServiceAccountsAccessPoliciesCommand : IUpdateProjectServiceAccountsAccessPoliciesCommand",
+    "9: {"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ]
+  },
+  {
+   "id": "bitwarden-server-019",
+   "repository": "bitwarden-server",
+   "word": "reset password",
+   "group": "input",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "UseResetPassword",
+   "kind": "property",
+   "language": "csharp",
+   "file": "src/Api/AdminConsole/Models/Response/Organizations/OrganizationResponseModel.cs",
+   "line": 115,
+   "code": [
+    "114:     public bool UseSecretsManager { get; set; }",
+    "115:     public bool UseResetPassword { get; set; }",
+    "116:     public bool UsersGetPremium { get; set; }"
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "bitwarden-server-020",
+   "repository": "bitwarden-server",
+   "word": "organization repository",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 7,
+   "identifier": "_organizationRepository",
+   "kind": "field",
+   "language": "csharp",
+   "file": "src/Core/AdminConsole/OrganizationFeatures/OrganizationUsers/ConfirmOrganizationUserCommand.cs",
+   "line": 26,
+   "code": [
+    "25: {",
+    "26:     private readonly IOrganizationRepository _organizationRepository;",
+    "27:     private readonly IOrganizationUserRepository _organizationUserRepository;"
+   ],
+   "expected_fields": [
+    "databases-storage",
+    "software-design"
+   ]
+  },
+  {
+   "id": "express-021",
+   "repository": "express",
+   "word": "jsonp",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "jsonp",
+   "kind": "function",
+   "language": "javascript",
+   "file": "lib/response.js",
+   "line": 267,
+   "code": [
+    "266: ",
+    "267: res.jsonp = function jsonp(obj) {",
+    "268:   // settings"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "data-formats",
+    "browser-platform"
+   ]
+  },
+  {
+   "id": "express-022",
+   "repository": "express",
+   "word": "dirname",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "dirname",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "lib/view.js",
+   "line": 25,
+   "code": [
+    "24: ",
+    "25: var dirname = path.dirname;",
+    "26: var basename = path.basename;"
+   ],
+   "expected_fields": [
+    "files-io"
+   ]
+  },
+  {
+   "id": "express-023",
+   "repository": "express",
+   "word": "escape html",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "escapeHtml",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "examples/markdown/index.js",
+   "line": 7,
+   "code": [
+    "6: ",
+    "7: var escapeHtml = require('escape-html');",
+    "8: var express = require('../..');"
+   ],
+   "expected_fields": [
+    "text-processing",
+    "security"
+   ]
+  },
+  {
+   "id": "express-024",
+   "repository": "express",
+   "word": "b",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "b",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "examples/resource/index.js",
+   "line": 17,
+   "code": [
+    "16:     var a = parseInt(req.params.a, 10);",
+    "17:     var b = parseInt(req.params.b, 10);",
+    "18:     var format = req.params.format;"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "express-025",
+   "repository": "express",
+   "word": "disposition",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "contentDisposition",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "lib/response.js",
+   "line": 15,
+   "code": [
+    "14: ",
+    "15: var contentDisposition = require('content-disposition');",
+    "16: var createError = require('http-errors')"
+   ],
+   "expected_fields": [
+    "web-backend"
+   ]
+  },
+  {
+   "id": "express-026",
+   "repository": "express",
+   "word": "create error",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": true,
+   "definition_count": 2,
+   "identifier": "createError",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "examples/params/index.js",
+   "line": 7,
+   "code": [
+    "6: ",
+    "7: var createError = require('http-errors')",
+    "8: var express = require('../../');"
+   ],
+   "expected_fields": [
+    "error-handling",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "express-027",
+   "repository": "express",
+   "word": "deprecate",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "deprecate",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "lib/response.js",
+   "line": 17,
+   "code": [
+    "16: var createError = require('http-errors')",
+    "17: var deprecate = require('depd')('express');",
+    "18: var encodeUrl = require('encodeurl');"
+   ],
+   "expected_fields": [
+    "build-release",
+    "software-design"
+   ]
+  },
+  {
+   "id": "express-028",
+   "repository": "express",
+   "word": "finalhandler",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "finalhandler",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "lib/application.js",
+   "line": 16,
+   "code": [
+    "15: ",
+    "16: var finalhandler = require('finalhandler');",
+    "17: var debug = require('debug')('express:application');"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "error-handling"
+   ]
+  },
+  {
+   "id": "express-029",
+   "repository": "express",
+   "word": "sess",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "sess",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "examples/mvc/index.js",
+   "line": 26,
+   "code": [
+    "25:   // reference `req.session` via the `this.req` reference",
+    "26:   var sess = this.req.session;",
+    "27:   // simply add the msg to an array for later"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "express-030",
+   "repository": "express",
+   "word": "single",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "singleLink",
+   "kind": "parameter",
+   "language": "javascript",
+   "file": "lib/response.js",
+   "line": 103,
+   "code": [
+    "102:     if (Array.isArray(links[rel])) {",
+    "103:       return links[rel].map(function (singleLink) {",
+    "104:         return `<${singleLink}>; rel=\"${rel}\"`;"
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "express-031",
+   "repository": "express",
+   "word": "querystring",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "querystring",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "lib/request.js",
+   "line": 225,
+   "code": [
+    "224: ",
+    "225:   var querystring = parse(this).query;",
+    "226: "
+   ],
+   "expected_fields": [
+    "web-backend",
+    "browser-platform"
+   ]
+  },
+  {
+   "id": "express-032",
+   "repository": "express",
+   "word": "compile",
+   "group": "multi",
+   "field_count": 10,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "compileQueryParser",
+   "kind": "function",
+   "language": "javascript",
+   "file": "lib/utils.js",
+   "line": 162,
+   "code": [
+    "161: ",
+    "162: exports.compileQueryParser = function compileQueryParser(val) {",
+    "163:   var fn;"
+   ],
+   "expected_fields": [
+    "languages-compilers",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "express-033",
+   "repository": "express",
+   "word": "define",
+   "group": "multi",
+   "field_count": 4,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "defineGetter",
+   "kind": "function",
+   "language": "javascript",
+   "file": "lib/request.js",
+   "line": 508,
+   "code": [
+    "507:  */",
+    "508: function defineGetter(obj, name, getter) {",
+    "509:   Object.defineProperty(obj, name, {"
+   ],
+   "expected_fields": [
+    "language-constructs"
+   ]
+  },
+  {
+   "id": "express-034",
+   "repository": "express",
+   "word": "lookup",
+   "group": "multi",
+   "field_count": 9,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "lookup",
+   "kind": "function",
+   "language": "javascript",
+   "file": "lib/view.js",
+   "line": 104,
+   "code": [
+    "103: ",
+    "104: View.prototype.lookup = function lookup(name) {",
+    "105:   var path;"
+   ],
+   "expected_fields": [
+    "general-wording",
+    "files-io",
+    "algorithms-data-structures"
+   ]
+  },
+  {
+   "id": "express-035",
+   "repository": "express",
+   "word": "status",
+   "group": "multi",
+   "field_count": 17,
+   "is_recent": false,
+   "definition_count": 6,
+   "identifier": "status",
+   "kind": "function",
+   "language": "javascript",
+   "file": "lib/response.js",
+   "line": 64,
+   "code": [
+    "63: ",
+    "64: res.status = function status(code) {",
+    "65:   // Check if the status code is not an integer"
+   ],
+   "expected_fields": [
+    "web-backend"
+   ]
+  },
+  {
+   "id": "express-036",
+   "repository": "express",
+   "word": "role",
+   "group": "multi",
+   "field_count": 10,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "role",
+   "kind": "parameter",
+   "language": "javascript",
+   "file": "examples/route-middleware/index.js",
+   "line": 50,
+   "code": [
+    "49: ",
+    "50: function andRestrictTo(role) {",
+    "51:   return function(req, res, next) {"
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "express-037",
+   "repository": "express",
+   "word": "clear cookie",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "clearCookie",
+   "kind": "function",
+   "language": "javascript",
+   "file": "lib/response.js",
+   "line": 716,
+   "code": [
+    "715: ",
+    "716: res.clearCookie = function clearCookie(name, options) {",
+    "717:   // Force cookie expiration by setting expires to the past"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "browser-platform",
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "express-038",
+   "repository": "express",
+   "word": "method override",
+   "group": "input",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "methodOverride",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "examples/mvc/index.js",
+   "line": 11,
+   "code": [
+    "10: var session = require('express-session');",
+    "11: var methodOverride = require('method-override');",
+    "12: "
+   ],
+   "expected_fields": [
+    "web-backend"
+   ]
+  },
+  {
+   "id": "express-039",
+   "repository": "express",
+   "word": "define getter",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "defineGetter",
+   "kind": "function",
+   "language": "javascript",
+   "file": "lib/request.js",
+   "line": 508,
+   "code": [
+    "507:  */",
+    "508: function defineGetter(obj, name, getter) {",
+    "509:   Object.defineProperty(obj, name, {"
+   ],
+   "expected_fields": [
+    "language-constructs"
+   ]
+  },
+  {
+   "id": "express-040",
+   "repository": "express",
+   "word": "is ip",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "isIP",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "lib/request.js",
+   "line": 17,
+   "code": [
+    "16: var accepts = require('accepts');",
+    "17: var isIP = require('node:net').isIP;",
+    "18: var typeis = require('type-is');"
+   ],
+   "expected_fields": [
+    "networking"
+   ]
+  },
+  {
+   "id": "flask-041",
+   "repository": "flask",
+   "word": "cert",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "CertParamType",
+   "kind": "class",
+   "language": "python",
+   "file": "src/flask/cli.py",
+   "line": 788,
+   "code": [
+    "787: ",
+    "788: class CertParamType(click.ParamType):",
+    "789:     \"\"\"Click option type for the ``--cert`` option. Allows either an"
+   ],
+   "expected_fields": [
+    "security"
+   ]
+  },
+  {
+   "id": "flask-042",
+   "repository": "flask",
+   "word": "errors stream",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "wsgi_errors_stream",
+   "kind": "function",
+   "language": "python",
+   "file": "src/flask/logging.py",
+   "line": 16,
+   "code": [
+    "15: @LocalProxy",
+    "16: def wsgi_errors_stream() -> t.TextIO:",
+    "17:     \"\"\"Find the most appropriate error stream for the application. If a request"
+   ],
+   "expected_fields": [
+    "files-io",
+    "observability-debugging",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "flask-043",
+   "repository": "flask",
+   "word": "copyright",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "copyright",
+   "kind": "variable",
+   "language": "python",
+   "file": "docs/conf.py",
+   "line": 8,
+   "code": [
+    "7: project = \"Flask\"",
+    "8: copyright = \"2010 Pallets\"",
+    "9: author = \"Pallets\""
+   ],
+   "expected_fields": [
+    "docs-collaboration"
+   ]
+  },
+  {
+   "id": "flask-044",
+   "repository": "flask",
+   "word": "logo",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "html_logo",
+   "kind": "variable",
+   "language": "python",
+   "file": "docs/conf.py",
+   "line": 62,
+   "code": [
+    "61: html_favicon = \"_static/flask-icon.svg\"",
+    "62: html_logo = \"_static/flask-logo.svg\"",
+    "63: html_title = f\"Flask Documentation ({version})\""
+   ],
+   "expected_fields": [
+    "graphics-media",
+    "web-styling",
+    "docs-collaboration"
+   ]
+  },
+  {
+   "id": "flask-045",
+   "repository": "flask",
+   "word": "inliner",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "inliner",
+   "kind": "parameter",
+   "language": "python",
+   "file": "docs/conf.py",
+   "line": 72,
+   "code": [
+    "71: ",
+    "72: def github_link(name, rawtext, text, lineno, inliner, options=None, content=None):",
+    "73:     app = inliner.document.settings.env.app"
+   ],
+   "expected_fields": [
+    "docs-collaboration",
+    "text-processing"
+   ]
+  },
+  {
+   "id": "flask-046",
+   "repository": "flask",
+   "word": "parse args",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "parse_args",
+   "kind": "method",
+   "language": "python",
+   "file": "src/flask/cli.py",
+   "line": 686,
+   "code": [
+    "685: ",
+    "686:     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:",
+    "687:         if (not args and self.no_args_is_help) or ("
+   ],
+   "expected_fields": [
+    "os-shell"
+   ]
+  },
+  {
+   "id": "flask-047",
+   "repository": "flask",
+   "word": "static path",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "html_static_path",
+   "kind": "variable",
+   "language": "python",
+   "file": "docs/conf.py",
+   "line": 60,
+   "code": [
+    "59: singlehtml_sidebars = {\"index\": [\"project.html\", \"localtoc.html\", \"ethicalads.html\"]}",
+    "60: html_static_path = [\"_static\"]",
+    "61: html_favicon = \"_static/flask-icon.svg\""
+   ],
+   "expected_fields": [
+    "web-backend",
+    "files-io",
+    "docs-collaboration"
+   ]
+  },
+  {
+   "id": "flask-048",
+   "repository": "flask",
+   "word": "sorts",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "sorts",
+   "kind": "variable",
+   "language": "python",
+   "file": "src/flask/cli.py",
+   "line": 1095,
+   "code": [
+    "1094:     headers = [\"Endpoint\", \"Methods\"]",
+    "1095:     sorts = [\"endpoint\", \"methods\"]",
+    "1096: "
+   ],
+   "expected_fields": [
+    "algorithms-data-structures"
+   ]
+  },
+  {
+   "id": "flask-049",
+   "repository": "flask",
+   "word": "view functions",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "view_functions",
+   "kind": "field",
+   "language": "python",
+   "file": "src/flask/sansio/scaffold.py",
+   "line": 108,
+   "code": [
+    "107:         #: directly and its format may change at any time.",
+    "108:         self.view_functions: dict[str, ft.RouteCallable] = {}",
+    "109: "
+   ],
+   "expected_fields": [
+    "web-backend"
+   ]
+  },
+  {
+   "id": "flask-050",
+   "repository": "flask",
+   "word": "time",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "get_expiration_time",
+   "kind": "method",
+   "language": "python",
+   "file": "src/flask/sessions.py",
+   "line": 223,
+   "code": [
+    "222: ",
+    "223:     def get_expiration_time(self, app: Flask, session: SessionMixin) -> datetime | None:",
+    "224:         \"\"\"A helper method that returns an expiration date for the session"
+   ],
+   "expected_fields": [
+    "time-locale"
+   ]
+  },
+  {
+   "id": "flask-051",
+   "repository": "flask",
+   "word": "session",
+   "group": "multi",
+   "field_count": 10,
+   "is_recent": false,
+   "definition_count": 29,
+   "identifier": "session",
+   "kind": "method",
+   "language": "python",
+   "file": "src/flask/ctx.py",
+   "line": 368,
+   "code": [
+    "367:     @property",
+    "368:     def session(self) -> SessionMixin:",
+    "369:         \"\"\"The session data associated with this request. Not available until"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "flask-052",
+   "repository": "flask",
+   "word": "base",
+   "group": "multi",
+   "field_count": 10,
+   "is_recent": true,
+   "definition_count": 12,
+   "identifier": "environ_base",
+   "kind": "field",
+   "language": "python",
+   "file": "src/flask/testing.py",
+   "line": 130,
+   "code": [
+    "129:         self._context_stack = ExitStack()",
+    "130:         self.environ_base = {",
+    "131:             \"REMOTE_ADDR\": \"127.0.0.1\","
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "flask-053",
+   "repository": "flask",
+   "word": "attribute",
+   "group": "multi",
+   "field_count": 9,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "get_template_attribute",
+   "kind": "function",
+   "language": "python",
+   "file": "src/flask/helpers.py",
+   "line": 296,
+   "code": [
+    "295: ",
+    "296: def get_template_attribute(template_name: str, attribute: str) -> t.Any:",
+    "297:     \"\"\"Loads a macro (or variable) a template exports.  This can be used to"
+   ],
+   "expected_fields": [
+    "language-constructs",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "flask-054",
+   "repository": "flask",
+   "word": "module",
+   "group": "multi",
+   "field_count": 9,
+   "is_recent": false,
+   "definition_count": 9,
+   "identifier": "json_module",
+   "kind": "field",
+   "language": "python",
+   "file": "src/flask/wrappers.py",
+   "line": 31,
+   "code": [
+    "30: ",
+    "31:     json_module: t.Any = json",
+    "32: "
+   ],
+   "expected_fields": [
+    "language-constructs"
+   ]
+  },
+  {
+   "id": "flask-055",
+   "repository": "flask",
+   "word": "found",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "total_found",
+   "kind": "variable",
+   "language": "python",
+   "file": "src/flask/debughelpers.py",
+   "line": 137,
+   "code": [
+    "136:     info = [f\"Locating template {template!r}:\"]",
+    "137:     total_found = 0",
+    "138:     blueprint = None"
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "flask-056",
+   "repository": "flask",
+   "word": "loaders",
+   "group": "multi",
+   "field_count": 7,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "_iter_loaders",
+   "kind": "method",
+   "language": "python",
+   "file": "src/flask/templating.py",
+   "line": 102,
+   "code": [
+    "101: ",
+    "102:     def _iter_loaders(self, template: str) -> t.Iterator[tuple[Scaffold, BaseLoader]]:",
+    "103:         loader = self.app.jinja_loader"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "files-io",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "flask-057",
+   "repository": "flask",
+   "word": "cookie samesite",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "get_cookie_samesite",
+   "kind": "method",
+   "language": "python",
+   "file": "src/flask/sessions.py",
+   "line": 208,
+   "code": [
+    "207: ",
+    "208:     def get_cookie_samesite(self, app: Flask) -> str | None:",
+    "209:         \"\"\"Return ``'Strict'`` or ``'Lax'`` if the cookie should use the"
+   ],
+   "expected_fields": [
+    "browser-platform",
+    "security",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "flask-058",
+   "repository": "flask",
+   "word": "get cookie",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 7,
+   "identifier": "get_cookie_name",
+   "kind": "method",
+   "language": "python",
+   "file": "src/flask/sessions.py",
+   "line": 171,
+   "code": [
+    "170: ",
+    "171:     def get_cookie_name(self, app: Flask) -> str:",
+    "172:         \"\"\"The name of the session cookie. Uses``app.config[\"SESSION_COOKIE_NAME\"]``.\"\"\""
+   ],
+   "expected_fields": [
+    "web-backend",
+    "browser-platform",
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "flask-059",
+   "repository": "flask",
+   "word": "on update",
+   "group": "input",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "on_update",
+   "kind": "function",
+   "language": "python",
+   "file": "src/flask/sessions.py",
+   "line": 77,
+   "code": [
+    "76:     ) -> None:",
+    "77:         def on_update(self: te.Self) -> None:",
+    "78:             self.modified = True"
+   ],
+   "expected_fields": [
+    "general-wording",
+    "concurrency-async",
+    "software-design",
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "flask-060",
+   "repository": "flask",
+   "word": "root path",
+   "group": "input",
+   "field_count": 4,
+   "is_recent": false,
+   "definition_count": 12,
+   "identifier": "get_root_path",
+   "kind": "function",
+   "language": "python",
+   "file": "src/flask/helpers.py",
+   "line": 577,
+   "code": [
+    "576: ",
+    "577: def get_root_path(import_name: str) -> str:",
+    "578:     \"\"\"Find the root path of a package, or the path that contains a"
+   ],
+   "expected_fields": [
+    "files-io"
+   ]
+  },
+  {
+   "id": "gin-061",
+   "repository": "gin",
+   "word": "fly io",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "PlatformFlyIO",
+   "kind": "constant",
+   "language": "go",
+   "file": "gin.go",
+   "line": 87,
+   "code": [
+    "86: \t// PlatformFlyIO when running on Fly.io. Trust Fly-Client-IP for determining the client's IP",
+    "87: \tPlatformFlyIO = \"Fly-Client-IP\"",
+    "88: )"
+   ],
+   "expected_fields": [
+    "cloud-infrastructure"
+   ]
+  },
+  {
+   "id": "gin-062",
+   "repository": "gin",
+   "word": "close notify",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "CloseNotify",
+   "kind": "method",
+   "language": "go",
+   "file": "response_writer.go",
+   "line": 124,
+   "code": [
+    "123: // CloseNotify implements the http.CloseNotifier interface.",
+    "124: func (w *responseWriter) CloseNotify() <-chan bool {",
+    "125: \treturn w.ResponseWriter.(http.CloseNotifier).CloseNotify()"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "networking"
+   ]
+  },
+  {
+   "id": "gin-063",
+   "repository": "gin",
+   "word": "gojson",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "gojsonApi",
+   "kind": "struct",
+   "language": "go",
+   "file": "codec/json/go_json.go",
+   "line": 22,
+   "code": [
+    "21: ",
+    "22: type gojsonApi struct{}",
+    "23: "
+   ],
+   "expected_fields": [
+    "data-formats"
+   ]
+  },
+  {
+   "id": "gin-064",
+   "repository": "gin",
+   "word": "ver",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "getMinVer",
+   "kind": "function",
+   "language": "go",
+   "file": "debug.go",
+   "line": 72,
+   "code": [
+    "71: ",
+    "72: func getMinVer(v string) (uint64, error) {",
+    "73: \tfirst := strings.IndexByte(v, '.')"
+   ],
+   "expected_fields": [
+    "build-release"
+   ]
+  },
+  {
+   "id": "gin-065",
+   "repository": "gin",
+   "word": "p",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 7,
+   "identifier": "p",
+   "kind": "variable",
+   "language": "go",
+   "file": "gin.go",
+   "line": 783,
+   "code": [
+    "782: \treq := c.Request",
+    "783: \tp := req.URL.Path",
+    "784: \tif prefix := path.Clean(c.Request.Header.Get(\"X-Forwarded-Prefix\")); prefix != \".\" {"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "gin-066",
+   "repository": "gin",
+   "word": "sonic",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "sonicApi",
+   "kind": "struct",
+   "language": "go",
+   "file": "codec/json/sonic.go",
+   "line": 24,
+   "code": [
+    "23: ",
+    "24: type sonicApi struct{}",
+    "25: "
+   ],
+   "expected_fields": [
+    "data-formats"
+   ]
+  },
+  {
+   "id": "gin-067",
+   "repository": "gin",
+   "word": "broken pipe",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "isBrokenPipe",
+   "kind": "variable",
+   "language": "go",
+   "file": "recovery.go",
+   "line": 63,
+   "code": [
+    "62: \t\t\t\t// condition that warrants a panic stack trace.",
+    "63: \t\t\t\tvar isBrokenPipe bool",
+    "64: \t\t\t\terr, ok := rec.(error)"
+   ],
+   "expected_fields": [
+    "networking",
+    "os-shell",
+    "error-handling"
+   ]
+  },
+  {
+   "id": "gin-068",
+   "repository": "gin",
+   "word": "secure json",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "SecureJSON",
+   "kind": "method",
+   "language": "go",
+   "file": "context.go",
+   "line": 1187,
+   "code": [
+    "1186: // It also sets the Content-Type as \"application/json\".",
+    "1187: func (c *Context) SecureJSON(code int, obj any) {",
+    "1188: \tc.Render(code, render.SecureJSON{Prefix: c.engine.secureJSONPrefix, Data: obj})"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "security",
+    "data-formats"
+   ]
+  },
+  {
+   "id": "gin-069",
+   "repository": "gin",
+   "word": "pointed",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "pointed",
+   "kind": "variable",
+   "language": "go",
+   "file": "binding/form_mapping.go",
+   "line": 49,
+   "code": [
+    "48: \tptrVal := reflect.ValueOf(ptr)",
+    "49: \tvar pointed any",
+    "50: \tif ptrVal.Kind() == reflect.Ptr {"
+   ],
+   "expected_fields": [
+    "systems-low-level",
+    "language-constructs"
+   ]
+  },
+  {
+   "id": "gin-070",
+   "repository": "gin",
+   "word": "files",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 10,
+   "identifier": "setArrayOfMultipartFormFiles",
+   "kind": "function",
+   "language": "go",
+   "file": "binding/multipart_form_mapping.go",
+   "line": 63,
+   "code": [
+    "62: ",
+    "63: func setArrayOfMultipartFormFiles(value reflect.Value, field reflect.StructField, files []*multipart.FileHeader) (isSet bool, err error) {",
+    "64: \tif value.Len() != len(files) {"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "files-io"
+   ]
+  },
+  {
+   "id": "gin-071",
+   "repository": "gin",
+   "word": "core",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "Core",
+   "kind": "interface",
+   "language": "go",
+   "file": "codec/json/api.go",
+   "line": 13,
+   "code": [
+    "12: // Core the api for json codec.",
+    "13: type Core interface {",
+    "14: \tMarshal(v any) ([]byte, error)"
+   ],
+   "expected_fields": [
+    "general-wording",
+    "software-design"
+   ]
+  },
+  {
+   "id": "gin-072",
+   "repository": "gin",
+   "word": "loc",
+   "group": "multi",
+   "field_count": 8,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "locTag",
+   "kind": "variable",
+   "language": "go",
+   "file": "binding/form_mapping.go",
+   "line": 473,
+   "code": [
+    "472: ",
+    "473: \tif locTag := structField.Tag.Get(\"time_location\"); locTag != \"\" {",
+    "474: \t\tloc, err := time.LoadLocation(locTag)"
+   ],
+   "expected_fields": [
+    "time-locale"
+   ]
+  },
+  {
+   "id": "gin-073",
+   "repository": "gin",
+   "word": "tf",
+   "group": "multi",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "tf",
+   "kind": "variable",
+   "language": "go",
+   "file": "binding/form_mapping.go",
+   "line": 445,
+   "code": [
+    "444: ",
+    "445: \tswitch tf := strings.ToLower(timeFormat); tf {",
+    "446: \tcase \"unix\", \"unixmilli\", \"unixmicro\", \"unixnano\":"
+   ],
+   "expected_fields": [
+    "time-locale"
+   ]
+  },
+  {
+   "id": "gin-074",
+   "repository": "gin",
+   "word": "io",
+   "group": "multi",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "PlatformFlyIO",
+   "kind": "constant",
+   "language": "go",
+   "file": "gin.go",
+   "line": 87,
+   "code": [
+    "86: \t// PlatformFlyIO when running on Fly.io. Trust Fly-Client-IP for determining the client's IP",
+    "87: \tPlatformFlyIO = \"Fly-Client-IP\"",
+    "88: )"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "gin-075",
+   "repository": "gin",
+   "word": "validate",
+   "group": "multi",
+   "field_count": 7,
+   "is_recent": false,
+   "definition_count": 9,
+   "identifier": "validate",
+   "kind": "function",
+   "language": "go",
+   "file": "binding/binding.go",
+   "line": 122,
+   "code": [
+    "121: ",
+    "122: func validate(obj any) error {",
+    "123: \tif Validator == nil {"
+   ],
+   "expected_fields": [
+    "error-handling",
+    "data-formats",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "gin-076",
+   "repository": "gin",
+   "word": "realm",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "BasicAuthForRealm",
+   "kind": "function",
+   "language": "go",
+   "file": "auth.go",
+   "line": 48,
+   "code": [
+    "47: // (see http://tools.ietf.org/html/rfc2617#section-1.2)",
+    "48: func BasicAuthForRealm(accounts Accounts, realm string) HandlerFunc {",
+    "49: \tif realm == \"\" {"
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "gin-077",
+   "repository": "gin",
+   "word": "struct field",
+   "group": "input",
+   "field_count": 4,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "structField",
+   "kind": "parameter",
+   "language": "go",
+   "file": "binding/form_mapping.go",
+   "line": 434,
+   "code": [
+    "433: ",
+    "434: func setTimeField(val string, structField reflect.StructField, value reflect.Value) error {",
+    "435: \ttimeFormat := structField.Tag.Get(\"time_format\")"
+   ],
+   "expected_fields": [
+    "language-constructs",
+    "type-systems"
+   ]
+  },
+  {
+   "id": "gin-078",
+   "repository": "gin",
+   "word": "local addr",
+   "group": "input",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "localAddr",
+   "kind": "variable",
+   "language": "go",
+   "file": "context.go",
+   "line": 997,
+   "code": [
+    "996: \t// If gin is listening a unix socket, always trust it.",
+    "997: \tlocalAddr, ok := c.Request.Context().Value(http.LocalAddrContextKey).(net.Addr)",
+    "998: \tif ok && strings.HasPrefix(localAddr.Network(), \"unix\") {"
+   ],
+   "expected_fields": [
+    "networking"
+   ]
+  },
+  {
+   "id": "gin-079",
+   "repository": "gin",
+   "word": "resolve address",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "resolveAddress",
+   "kind": "function",
+   "language": "go",
+   "file": "utils.go",
+   "line": 147,
+   "code": [
+    "146: ",
+    "147: func resolveAddress(addr []string) string {",
+    "148: \tswitch len(addr) {"
+   ],
+   "expected_fields": [
+    "networking",
+    "configuration"
+   ]
+  },
+  {
+   "id": "gin-080",
+   "repository": "gin",
+   "word": "node value",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "nodeValue",
+   "kind": "struct",
+   "language": "go",
+   "file": "tree.go",
+   "line": 400,
+   "code": [
+    "399: // nodeValue holds return values of (*Node).getValue method",
+    "400: type nodeValue struct {",
+    "401: \thandlers HandlersChain"
+   ],
+   "expected_fields": [
+    "algorithms-data-structures",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "gutenberg-081",
+   "repository": "gutenberg",
+   "word": "test paths",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "ASYNC_TEST_PATHS",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "widgets/site-health/render.tsx",
+   "line": 24,
+   "code": [
+    "23: // reads the same set; keep `routes/site-health/stage.tsx` in sync.",
+    "24: const ASYNC_TEST_PATHS = [",
+    "25: \t'/wp-site-health/v1/tests/background-updates',"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "observability-debugging"
+   ]
+  },
+  {
+   "id": "gutenberg-082",
+   "repository": "gutenberg",
+   "word": "inserter",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "InserterMenuDownloadableBlocksPanel",
+   "kind": "function",
+   "language": "javascript",
+   "file": "packages/block-directory/src/plugins/inserter-menu-downloadable-blocks-panel/index.jsx",
+   "line": 6,
+   "code": [
+    "5: ",
+    "6: function InserterMenuDownloadableBlocksPanel() {",
+    "7: \tconst [ debouncedFilterValue, setFilterValue ] = useState( '' );"
+   ],
+   "expected_fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "gutenberg-083",
+   "repository": "gutenberg",
+   "word": "text transform",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "textTransform",
+   "kind": "variable",
+   "language": "typescript",
+   "file": "packages/style-engine/src/styles/typography/index.ts",
+   "line": 112,
+   "code": [
+    "111: ",
+    "112: const textTransform = {",
+    "113: \tname: 'textTransform',"
+   ],
+   "expected_fields": [
+    "web-styling"
+   ]
+  },
+  {
+   "id": "gutenberg-084",
+   "repository": "gutenberg",
+   "word": "undelimited",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "originalUndelimitedContent",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "packages/block-library/src/missing/edit.jsx",
+   "line": 14,
+   "code": [
+    "13: export default function MissingEdit( { attributes, clientId } ) {",
+    "14: \tconst { originalName, originalUndelimitedContent } = attributes;",
+    "15: \tconst hasContent = !! originalUndelimitedContent;"
+   ],
+   "expected_fields": [
+    "text-processing"
+   ]
+  },
+  {
+   "id": "gutenberg-085",
+   "repository": "gutenberg",
+   "word": "am",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "buildAmPmChangeCallback",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "packages/components/src/date-time/time-picker/time-input/index.tsx",
+   "line": 70,
+   "code": [
+    "69: ",
+    "70: \tconst buildAmPmChangeCallback = ( _value: 'AM' | 'PM' ) => {",
+    "71: \t\treturn () => {"
+   ],
+   "expected_fields": [
+    "time-locale"
+   ]
+  },
+  {
+   "id": "gutenberg-086",
+   "repository": "gutenberg",
+   "word": "on reset",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": true,
+   "definition_count": 1,
+   "identifier": "onReset",
+   "kind": "field",
+   "language": "typescript",
+   "file": "packages/dataviews/src/components/dataviews-context/index.ts",
+   "line": 50,
+   "code": [
+    "49: \titemListLabel?: string;",
+    "50: \tonReset?: ( () => void ) | false;",
+    "51: \tintersectionObserver?: IntersectionObserver | null;"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "gutenberg-087",
+   "repository": "gutenberg",
+   "word": "are",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "areCustomFieldsEnabled",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "packages/edit-post/src/components/preferences-modal/enable-custom-fields.jsx",
+   "line": 54,
+   "code": [
+    "53: export default function EnableCustomFieldsOption( { label } ) {",
+    "54: \tconst areCustomFieldsEnabled = useSelect( ( select ) => {",
+    "55: \t\treturn !! select( editorStore ).getEditorSettings().enableCustomFields;"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "gutenberg-088",
+   "repository": "gutenberg",
+   "word": "featured image",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": true,
+   "definition_count": 1,
+   "identifier": "featuredImageField",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "packages/fields/src/fields/featured-image/index.tsx",
+   "line": 7,
+   "code": [
+    "6: ",
+    "7: const featuredImageField: Field< BasePostWithEmbeddedFeaturedMedia > = {",
+    "8: \tid: 'featured_media',"
+   ],
+   "expected_fields": [
+    "business-domains",
+    "graphics-media"
+   ]
+  },
+  {
+   "id": "gutenberg-089",
+   "repository": "gutenberg",
+   "word": "gif",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "create_gif_attachment",
+   "kind": "method",
+   "language": "php",
+   "file": "phpunit/media/animated-gif-to-video-test.php",
+   "line": 37,
+   "code": [
+    "36: \t */",
+    "37: \tprivate function create_gif_attachment( bool $with_poster = true ): int {",
+    "38: \t\t// Minimal valid 1x1 GIF so the upload passes mime validation."
+   ],
+   "expected_fields": [
+    "graphics-media"
+   ]
+  },
+  {
+   "id": "gutenberg-090",
+   "repository": "gutenberg",
+   "word": "confirm dialog",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "ConfirmDialog",
+   "kind": "import_alias",
+   "language": "javascript",
+   "file": "packages/block-library/src/page-list/edit.jsx",
+   "line": 20,
+   "code": [
+    "19: \t__experimentalToolsPanelItem as ToolsPanelItem,",
+    "20: \t__experimentalConfirmDialog as ConfirmDialog,",
+    "21: } from '@wordpress/components';"
+   ],
+   "expected_fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "gutenberg-091",
+   "repository": "gutenberg",
+   "word": "disabled",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": true,
+   "definition_count": 13,
+   "identifier": "wp_is_post_type_collaboration_disabled",
+   "kind": "function",
+   "language": "php",
+   "file": "lib/experimental/collaboration/collaboration.php",
+   "line": 167,
+   "code": [
+    "166: \t */",
+    "167: \tfunction wp_is_post_type_collaboration_disabled( $post_type ) {",
+    "168: \t\tif ( ! post_type_exists( $post_type ) ) {"
+   ],
+   "expected_fields": [
+    "configuration",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "gutenberg-092",
+   "repository": "gutenberg",
+   "word": "handler",
+   "group": "multi",
+   "field_count": 12,
+   "is_recent": false,
+   "definition_count": 9,
+   "identifier": "setFetchHandler",
+   "kind": "function",
+   "language": "typescript",
+   "file": "packages/api-fetch/src/index.ts",
+   "line": 164,
+   "code": [
+    "163:  */",
+    "164: function setFetchHandler( newFetchHandler: FetchHandler ) {",
+    "165: \tfetchHandler = newFetchHandler;"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "software-design",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "gutenberg-093",
+   "repository": "gutenberg",
+   "word": "mobile",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "isMobile",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "packages/block-editor/src/components/global-styles/utils.js",
+   "line": 4,
+   "code": [
+    "3: export function useToolsPanelDropdownMenuProps() {",
+    "4: \tconst isMobile = useViewportMatch( 'medium', '<' );",
+    "5: \treturn ! isMobile"
+   ],
+   "expected_fields": [
+    "web-styling",
+    "mobile-desktop",
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "gutenberg-094",
+   "repository": "gutenberg",
+   "word": "link preview",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "LinkPreview",
+   "kind": "function",
+   "language": "javascript",
+   "file": "packages/block-editor/src/components/link-control/link-preview.jsx",
+   "line": 28,
+   "code": [
+    "27: ",
+    "28: export default function LinkPreview( {",
+    "29: \tvalue,"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "browser-platform"
+   ]
+  },
+  {
+   "id": "gutenberg-095",
+   "repository": "gutenberg",
+   "word": "objects",
+   "group": "multi",
+   "field_count": 8,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "test_should_get_all_rule_objects_for_a_store",
+   "kind": "method",
+   "language": "php",
+   "file": "phpunit/style-engine/class-wp-style-engine-css-rules-store-test.php",
+   "line": 148,
+   "code": [
+    "147: \t */",
+    "148: \tpublic function test_should_get_all_rule_objects_for_a_store() {",
+    "149: \t\t$new_pizza_store = WP_Style_Engine_CSS_Rules_Store_Gutenberg::get_store( 'pizza-with-mozzarella' );"
+   ],
+   "expected_fields": [
+    "language-constructs",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "gutenberg-096",
+   "repository": "gutenberg",
+   "word": "selected",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 7,
+   "identifier": "selectedBlockId",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "packages/block-editor/src/autocompleters/block.jsx",
+   "line": 31,
+   "code": [
+    "30: \t\tuseItems( filterValue ) {",
+    "31: \t\t\tconst { rootClientId, selectedBlockId, prioritizedBlocks } =",
+    "32: \t\t\t\tuseSelect( ( select ) => {"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "gutenberg-097",
+   "repository": "gutenberg",
+   "word": "breakpoints",
+   "group": "input",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "getViewportBreakpoints",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "packages/block-editor/src/components/block-visibility/utils.js",
+   "line": 9,
+   "code": [
+    "8: ",
+    "9: const { getViewportBreakpoints } = unlock( globalStylesEnginePrivateApis );",
+    "10: "
+   ],
+   "expected_fields": [
+    "web-styling"
+   ]
+  },
+  {
+   "id": "gutenberg-098",
+   "repository": "gutenberg",
+   "word": "dismissible",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "NonDismissible",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "packages/ui/src/notice/stories/index.story.tsx",
+   "line": 83,
+   "code": [
+    "82:  */",
+    "83: export const NonDismissible: Story = {",
+    "84: \targs: {"
+   ],
+   "expected_fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "gutenberg-099",
+   "repository": "gutenberg",
+   "word": "velocity y",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "velocityYRef",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "packages/block-editor/src/components/block-draggable/use-scroll-when-dragging.js",
+   "line": 19,
+   "code": [
+    "18: \tconst dragStartYRef = useRef( null );",
+    "19: \tconst velocityYRef = useRef( null );",
+    "20: \tconst scrollParentYRef = useRef( null );"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "math-numerics",
+    "graphics-media"
+   ]
+  },
+  {
+   "id": "gutenberg-100",
+   "repository": "gutenberg",
+   "word": "tone",
+   "group": "input",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "toneForPercentage",
+   "kind": "function",
+   "language": "tsx",
+   "file": "widgets/site-health/render.tsx",
+   "line": 38,
+   "code": [
+    "37:  */",
+    "38: function toneForPercentage( pct: number ): HealthTone {",
+    "39: \tif ( pct === 100 ) {"
+   ],
+   "expected_fields": [
+    "web-styling",
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "keycloak-101",
+   "repository": "keycloak",
+   "word": "toolbar item",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "toolbarItem",
+   "kind": "field",
+   "language": "tsx",
+   "file": "js/libs/ui-shared/src/controls/table/PaginatingTableToolbar.tsx",
+   "line": 24,
+   "code": [
+    "23:   searchTypeComponent?: ReactNode;",
+    "24:   toolbarItem?: ReactNode;",
+    "25:   subToolbar?: ReactNode;"
+   ],
+   "expected_fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "keycloak-102",
+   "repository": "keycloak",
+   "word": "elliptic curve",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "getDefaultEcEllipticCurve",
+   "kind": "method",
+   "language": "java",
+   "file": "services/src/main/java/org/keycloak/keys/AbstractGeneratedEcKeyProviderFactory.java",
+   "line": 40,
+   "code": [
+    "39: ",
+    "40:     abstract protected String getDefaultEcEllipticCurve();",
+    "41: "
+   ],
+   "expected_fields": [
+    "security"
+   ]
+  },
+  {
+   "id": "keycloak-103",
+   "repository": "keycloak",
+   "word": "web authn",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 5,
+   "identifier": "getWebAuthnCredentialData",
+   "kind": "method",
+   "language": "java",
+   "file": "server-spi/src/main/java/org/keycloak/models/credential/WebAuthnCredentialModel.java",
+   "line": 106,
+   "code": [
+    "105: ",
+    "106:     public WebAuthnCredentialData getWebAuthnCredentialData() {",
+    "107:         return credentialData;"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ]
+  },
+  {
+   "id": "keycloak-104",
+   "repository": "keycloak",
+   "word": "cache manager",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "UserCacheManager",
+   "kind": "class",
+   "language": "java",
+   "file": "model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/UserCacheManager.java",
+   "line": 34,
+   "code": [
+    "33:  */",
+    "34: public class UserCacheManager extends CacheManager {",
+    "35: "
+   ],
+   "expected_fields": [
+    "databases-storage"
+   ]
+  },
+  {
+   "id": "keycloak-105",
+   "repository": "keycloak",
+   "word": "scim",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "ScimUsersClient",
+   "kind": "class",
+   "language": "java",
+   "file": "scim/client/src/main/java/org/keycloak/scim/client/ScimUsersClient.java",
+   "line": 12,
+   "code": [
+    "11: ",
+    "12: public class ScimUsersClient extends AbstractScimResourceClient<User> {",
+    "13: "
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "keycloak-106",
+   "repository": "keycloak",
+   "word": "last name",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 8,
+   "identifier": "getLastName",
+   "kind": "method",
+   "language": "java",
+   "file": "test-framework/ui/src/main/java/org/keycloak/testframework/ui/page/LoginUpdateProfilePage.java",
+   "line": 100,
+   "code": [
+    "99: ",
+    "100:     public String getLastName() {",
+    "101:         return readValue(By.name(\"lastName\"));"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "keycloak-107",
+   "repository": "keycloak",
+   "word": "vct",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "vct",
+   "kind": "variable",
+   "language": "java",
+   "file": "services/src/main/java/org/keycloak/protocol/oid4vc/issuance/credentialbuilder/SdJwtCredentialBuilder.java",
+   "line": 129,
+   "code": [
+    "128:     public void contributeToMetadata(SupportedCredentialConfiguration credentialConfig, CredentialScopeModel credentialScope) {",
+    "129:         String vct = Optional.ofNullable(credentialScope.getVct()).orElse(credentialScope.getName());",
+    "130:         credentialConfig.setVct(vct);"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ]
+  },
+  {
+   "id": "keycloak-108",
+   "repository": "keycloak",
+   "word": "big integer",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "rBigInteger",
+   "kind": "variable",
+   "language": "java",
+   "file": "authz/client/src/main/java/org/keycloak/authorization/client/util/crypto/AuthzClientCryptoProvider.java",
+   "line": 112,
+   "code": [
+    "111:                 System.arraycopy(signature, len, s, 1, len);",
+    "112:                 BigInteger rBigInteger = new BigInteger(r);",
+    "113:                 BigInteger sBigInteger = new BigInteger(s);"
+   ],
+   "expected_fields": [
+    "math-numerics"
+   ]
+  },
+  {
+   "id": "keycloak-109",
+   "repository": "keycloak",
+   "word": "code challenge",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 24,
+   "identifier": "isValidPkceCodeChallenge",
+   "kind": "method",
+   "language": "java",
+   "file": "services/src/main/java/org/keycloak/protocol/oidc/endpoints/AuthorizationEndpointChecker.java",
+   "line": 392,
+   "code": [
+    "391:     // https://tools.ietf.org/html/rfc7636#section-4",
+    "392:     private boolean isValidPkceCodeChallenge(String codeChallenge) {",
+    "393:         if (codeChallenge.length() < OIDCLoginProtocol.PKCE_CODE_CHALLENGE_MIN_LENGTH) {"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ]
+  },
+  {
+   "id": "keycloak-110",
+   "repository": "keycloak",
+   "word": "sd jwt",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "SdJwtCredentialBuilder",
+   "kind": "class",
+   "language": "java",
+   "file": "services/src/main/java/org/keycloak/protocol/oid4vc/issuance/credentialbuilder/SdJwtCredentialBuilder.java",
+   "line": 34,
+   "code": [
+    "33: ",
+    "34: public class SdJwtCredentialBuilder implements CredentialBuilder {",
+    "35: "
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ]
+  },
+  {
+   "id": "keycloak-111",
+   "repository": "keycloak",
+   "word": "target",
+   "group": "multi",
+   "field_count": 15,
+   "is_recent": false,
+   "definition_count": 5,
+   "identifier": "getTargetRepresentation",
+   "kind": "method",
+   "language": "java",
+   "file": "operator/src/main/java/org/keycloak/operator/controllers/KeycloakClientBaseController.java",
+   "line": 239,
+   "code": [
+    "238: ",
+    "239:     abstract Class<T> getTargetRepresentation();",
+    "240: "
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "keycloak-112",
+   "repository": "keycloak",
+   "word": "certificates",
+   "group": "multi",
+   "field_count": 4,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "certificates",
+   "kind": "parameter",
+   "language": "java",
+   "file": "services/src/main/java/org/keycloak/keys/JavaKeystoreKeyProviderFactory.java",
+   "line": 170,
+   "code": [
+    "169:      */",
+    "170:     private static void validateCertificateChain(List<X509Certificate> certificates) throws GeneralSecurityException {",
+    "171:         if (certificates == null || certificates.isEmpty()) {"
+   ],
+   "expected_fields": [
+    "security"
+   ]
+  },
+  {
+   "id": "keycloak-113",
+   "repository": "keycloak",
+   "word": "public",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 18,
+   "identifier": "getPublicFromPrivate",
+   "kind": "method",
+   "language": "java",
+   "file": "authz/client/src/main/java/org/keycloak/authorization/client/util/crypto/AuthzClientCryptoProvider.java",
+   "line": 148,
+   "code": [
+    "147:             @Override",
+    "148:             public ECPublicKey getPublicFromPrivate(ECPrivateKey ecPrivateKey) {",
+    "149:                 throw new UnsupportedOperationException(\"Not supported yet.\");"
+   ],
+   "expected_fields": [
+    "security"
+   ]
+  },
+  {
+   "id": "keycloak-114",
+   "repository": "keycloak",
+   "word": "option",
+   "group": "multi",
+   "field_count": 10,
+   "is_recent": true,
+   "definition_count": 11,
+   "identifier": "hasAnyFieldOptionSet",
+   "kind": "method",
+   "language": "java",
+   "file": "integration/client-cli/admin-cli/src/main/java/org/keycloak/client/admin/cli/v2/KcAdmV2RequestExecutor.java",
+   "line": 388,
+   "code": [
+    "387: ",
+    "388:     private boolean hasAnyFieldOptionSet(List<OptionDescriptor> options) {",
+    "389:         if (options == null) {"
+   ],
+   "expected_fields": [
+    "os-shell",
+    "configuration",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "keycloak-115",
+   "repository": "keycloak",
+   "word": "query params",
+   "group": "multi",
+   "field_count": 3,
+   "is_recent": true,
+   "definition_count": 1,
+   "identifier": "getQueryParams",
+   "kind": "method",
+   "language": "java",
+   "file": "services/src/main/java/org/keycloak/protocol/oidc/endpoints/AuthorizationEndpointChecker.java",
+   "line": 136,
+   "code": [
+    "135: ",
+    "136:     public MultivaluedMap<String, String> getQueryParams() {",
+    "137:         return params;"
+   ],
+   "expected_fields": [
+    "web-backend"
+   ]
+  },
+  {
+   "id": "keycloak-116",
+   "repository": "keycloak",
+   "word": "filter",
+   "group": "multi",
+   "field_count": 20,
+   "is_recent": false,
+   "definition_count": 12,
+   "identifier": "filter",
+   "kind": "method",
+   "language": "java",
+   "file": "authzen/services/src/main/java/org/keycloak/authorization/authzen/AuthZenRequestIdFilter.java",
+   "line": 40,
+   "code": [
+    "39:     @Override",
+    "40:     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {",
+    "41:         if (!Profile.isFeatureEnabled(Profile.Feature.AUTHZEN)) {"
+   ],
+   "expected_fields": [
+    "web-backend"
+   ]
+  },
+  {
+   "id": "keycloak-117",
+   "repository": "keycloak",
+   "word": "code challenge method",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 11,
+   "identifier": "codeChallengeMethod",
+   "kind": "variable",
+   "language": "java",
+   "file": "services/src/main/java/org/keycloak/protocol/oidc/endpoints/AuthorizationEndpointChecker.java",
+   "line": 336,
+   "code": [
+    "335:         String codeChallenge = request.getCodeChallenge();",
+    "336:         String codeChallengeMethod = request.getCodeChallengeMethod();",
+    "337: "
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "security"
+   ]
+  },
+  {
+   "id": "keycloak-118",
+   "repository": "keycloak",
+   "word": "criteria query",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 6,
+   "identifier": "criteriaQuery",
+   "kind": "method",
+   "language": "java",
+   "file": "server-spi-private/src/main/java/org/keycloak/authorization/fgap/evaluation/partial/PartialEvaluationContext.java",
+   "line": 114,
+   "code": [
+    "113: ",
+    "114:     public CriteriaQuery<?> criteriaQuery() {",
+    "115:         return criteriaQuery;"
+   ],
+   "expected_fields": [
+    "databases-storage"
+   ]
+  },
+  {
+   "id": "keycloak-119",
+   "repository": "keycloak",
+   "word": "set selected",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "setSelectedPermission",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "js/apps/admin-ui/src/clients/authorization/Permissions.tsx",
+   "line": 85,
+   "code": [
+    "84:     useState<ExpandablePolicyRepresentation[]>();",
+    "85:   const [selectedPermission, setSelectedPermission] =",
+    "86:     useState<PolicyRepresentation>();"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "keycloak-120",
+   "repository": "keycloak",
+   "word": "set metadata",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "setMetadata",
+   "kind": "method",
+   "language": "java",
+   "file": "core/src/main/java/org/keycloak/representations/idm/authorization/AuthorizationRequest.java",
+   "line": 123,
+   "code": [
+    "122: ",
+    "123:     public void setMetadata(Metadata metadata) {",
+    "124:         this.metadata = metadata;"
+   ],
+   "expected_fields": [
+    "general-wording",
+    "language-constructs",
+    "data-formats"
+   ]
+  },
+  {
+   "id": "redis-121",
+   "repository": "redis",
+   "word": "set proc title",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "redisSetProcTitle",
+   "kind": "function",
+   "language": "c",
+   "file": "src/server.c",
+   "line": 7890,
+   "code": [
+    "7889: ",
+    "7890: int redisSetProcTitle(char *title) {",
+    "7891: #ifdef USE_SETPROCTITLE"
+   ],
+   "expected_fields": [
+    "os-shell"
+   ]
+  },
+  {
+   "id": "redis-122",
+   "repository": "redis",
+   "word": "vsetattr",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "VSETATTR_RedisCommand",
+   "kind": "function",
+   "language": "c",
+   "file": "modules/vector-sets/vset.c",
+   "line": 1350,
+   "code": [
+    "1349:  * zero if there is no key or element. */",
+    "1350: int VSETATTR_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {",
+    "1351:     RedisModule_AutoMemory(ctx);"
+   ],
+   "expected_fields": [
+    "databases-storage"
+   ]
+  },
+  {
+   "id": "redis-123",
+   "repository": "redis",
+   "word": "unixtime",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "unixtime",
+   "kind": "variable",
+   "language": "c",
+   "file": "src/server.c",
+   "line": 1370,
+   "code": [
+    "1369:     server.mstime = server.ustime / 1000;",
+    "1370:     time_t unixtime = server.mstime / 1000;",
+    "1371:     atomicSet(server.unixtime, unixtime);"
+   ],
+   "expected_fields": [
+    "time-locale"
+   ]
+  },
+  {
+   "id": "redis-124",
+   "repository": "redis",
+   "word": "en",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 6,
+   "identifier": "en",
+   "kind": "variable",
+   "language": "c",
+   "file": "src/eventnotifier.c",
+   "line": 24,
+   "code": [
+    "23: eventNotifier* createEventNotifier(void) {",
+    "24:     eventNotifier *en = zmalloc(sizeof(eventNotifier));",
+    "25:     if (!en) return NULL;"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "redis-125",
+   "repository": "redis",
+   "word": "vpopcnt",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 5,
+   "identifier": "vectors_distance_bin_avx512_vpopcnt",
+   "kind": "function",
+   "language": "c",
+   "file": "modules/vector-sets/hnsw.c",
+   "line": 622,
+   "code": [
+    "621: ATTRIBUTE_TARGET_AVX512_VPOPCNT",
+    "622: static float vectors_distance_bin_avx512_vpopcnt(const uint64_t *x, const uint64_t *y, uint32_t dim) {",
+    "623:     uint32_t len = (dim+63)/64;"
+   ],
+   "expected_fields": [
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "redis-126",
+   "repository": "redis",
+   "word": "unix socket",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "unlink_unix_socket",
+   "kind": "parameter",
+   "language": "c",
+   "file": "src/server.c",
+   "line": 4949,
+   "code": [
+    "4948:  * unlink_unix_socket is non-zero. */",
+    "4949: void closeListeningSockets(int unlink_unix_socket) {",
+    "4950:     int j;"
+   ],
+   "expected_fields": [
+    "networking",
+    "os-shell"
+   ]
+  },
+  {
+   "id": "redis-127",
+   "repository": "redis",
+   "word": "stress",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "stress",
+   "kind": "function",
+   "language": "c",
+   "file": "src/listpack.c",
+   "line": 2203,
+   "code": [
+    "2202: ",
+    "2203: static void stress(int pos, int num, int maxsize, int dnum) {",
+    "2204:     int i, j, k;"
+   ],
+   "expected_fields": [
+    "testing",
+    "observability-debugging"
+   ]
+  },
+  {
+   "id": "redis-128",
+   "repository": "redis",
+   "word": "serialized",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "hnsw_free_serialized_node",
+   "kind": "function",
+   "language": "c",
+   "file": "modules/vector-sets/hnsw.c",
+   "line": 2581,
+   "code": [
+    "2580:  * structure. */",
+    "2581: void hnsw_free_serialized_node(hnswSerNode *sn) {",
+    "2582:     hfree(sn->params);"
+   ],
+   "expected_fields": [
+    "data-formats"
+   ]
+  },
+  {
+   "id": "redis-129",
+   "repository": "redis",
+   "word": "tv",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "tv",
+   "kind": "variable",
+   "language": "c",
+   "file": "src/listpack.c",
+   "line": 2198,
+   "code": [
+    "2197: static long long usec(void) {",
+    "2198:     struct timeval tv;",
+    "2199:     gettimeofday(&tv, NULL);"
+   ],
+   "expected_fields": [
+    "time-locale"
+   ]
+  },
+  {
+   "id": "redis-130",
+   "repository": "redis",
+   "word": "listpack",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 11,
+   "identifier": "listpackTest",
+   "kind": "function",
+   "language": "c",
+   "file": "src/listpack.c",
+   "line": 2311,
+   "code": [
+    "2310: ",
+    "2311: int listpackTest(int argc, char *argv[], int flags) {",
+    "2312:     UNUSED(argc);"
+   ],
+   "expected_fields": [
+    "databases-storage",
+    "algorithms-data-structures"
+   ]
+  },
+  {
+   "id": "redis-131",
+   "repository": "redis",
+   "word": "scale",
+   "group": "multi",
+   "field_count": 8,
+   "is_recent": false,
+   "definition_count": 5,
+   "identifier": "scale_product",
+   "kind": "variable",
+   "language": "c",
+   "file": "modules/vector-sets/hnsw.c",
+   "line": 435,
+   "code": [
+    "434: ",
+    "435:     const float scale_product = (range_a/127) * (range_b/127);",
+    "436:     __m512i sum = _mm512_setzero_si512();"
+   ],
+   "expected_fields": [
+    "math-numerics",
+    "ml-ai"
+   ]
+  },
+  {
+   "id": "redis-132",
+   "repository": "redis",
+   "word": "failed",
+   "group": "multi",
+   "field_count": 6,
+   "is_recent": false,
+   "definition_count": 5,
+   "identifier": "diversity_failed",
+   "kind": "variable",
+   "language": "c",
+   "file": "modules/vector-sets/hnsw.c",
+   "line": 1398,
+   "code": [
+    "1397:         if (!aggressive) {",
+    "1398:             int diversity_failed = 0;",
+    "1399:             for (uint32_t j = 0; j < new_node->layers[layer].num_links; j++) {"
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "redis-133",
+   "repository": "redis",
+   "word": "reserve",
+   "group": "multi",
+   "field_count": 4,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "vecReserve",
+   "kind": "function",
+   "language": "c",
+   "file": "src/vector.c",
+   "line": 76,
+   "code": [
+    "75: /* Ensure capacity is at least mincap. */",
+    "76: void vecReserve(vec *v, size_t mincap) {",
+    "77:     void **newdata;"
+   ],
+   "expected_fields": [
+    "algorithms-data-structures",
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "redis-134",
+   "repository": "redis",
+   "word": "change",
+   "group": "multi",
+   "field_count": 8,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "changeListener",
+   "kind": "function",
+   "language": "c",
+   "file": "src/server.c",
+   "line": 7388,
+   "code": [
+    "7387: /* Close original listener, re-create a new listener from the updated bind address & port */",
+    "7388: int changeListener(connListener *listener) {",
+    "7389:     /* Close old servers */"
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "redis-135",
+   "repository": "redis",
+   "word": "skip",
+   "group": "multi",
+   "field_count": 6,
+   "is_recent": false,
+   "definition_count": 6,
+   "identifier": "lpSkip",
+   "kind": "function",
+   "language": "c",
+   "file": "src/listpack.c",
+   "line": 504,
+   "code": [
+    "503:  * it does not return NULL when the EOF element is encountered. */",
+    "504: static inline unsigned char *lpSkip(unsigned char *p) {",
+    "505:     unsigned long entrylen = lpCurrentEncodedSizeUnsafe(p);"
+   ],
+   "expected_fields": [
+    "general-wording",
+    "algorithms-data-structures"
+   ]
+  },
+  {
+   "id": "redis-136",
+   "repository": "redis",
+   "word": "drain",
+   "group": "multi",
+   "field_count": 6,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "bioDrainWorker",
+   "kind": "function",
+   "language": "c",
+   "file": "src/bio.h",
+   "line": 38,
+   "code": [
+    "37: unsigned long bioPendingJobsOfType(int type);",
+    "38: void bioDrainWorker(int job_type);",
+    "39: void bioKillThreads(void);"
+   ],
+   "expected_fields": [
+    "concurrency-async"
+   ]
+  },
+  {
+   "id": "redis-137",
+   "repository": "redis",
+   "word": "signal handlers",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "setupSignalHandlers",
+   "kind": "function",
+   "language": "c",
+   "file": "src/server.c",
+   "line": 7444,
+   "code": [
+    "7443: ",
+    "7444: void setupSignalHandlers(void) {",
+    "7445:     struct sigaction act;"
+   ],
+   "expected_fields": [
+    "os-shell"
+   ]
+  },
+  {
+   "id": "redis-138",
+   "repository": "redis",
+   "word": "c ef",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "VSET_DEFAULT_C_EF",
+   "kind": "macro",
+   "language": "c",
+   "file": "modules/vector-sets/vset.c",
+   "line": 130,
+   "code": [
+    "129: // Default EF value if not specified during creation.",
+    "130: #define VSET_DEFAULT_C_EF 200",
+    "131: "
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "redis-139",
+   "repository": "redis",
+   "word": "offsets",
+   "group": "input",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "sparse_offsets",
+   "kind": "field",
+   "language": "c",
+   "file": "src/t_array.c",
+   "line": 513,
+   "code": [
+    "512:     int32_t dense_item_end;   /* Final dense window index. */",
+    "513:     uint16_t *sparse_offsets; /* Sparse offsets array. */",
+    "514:     void **sparse_values;     /* Sparse values array. */"
+   ],
+   "expected_fields": [
+    "algorithms-data-structures",
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "redis-140",
+   "repository": "redis",
+   "word": "get node",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "hnsw_get_node_vector",
+   "kind": "function",
+   "language": "c",
+   "file": "modules/vector-sets/hnsw.c",
+   "line": 851,
+   "code": [
+    "850:  * of the original vector. */",
+    "851: void hnsw_get_node_vector(HNSW *index, hnswNode *node, float *vec) {",
+    "852:     if (index->quant_type == HNSW_QUANT_NONE) {"
+   ],
+   "expected_fields": [
+    "algorithms-data-structures",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "sentry-141",
+   "repository": "sentry",
+   "word": "stringified",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "getStringifiedCondition",
+   "kind": "function",
+   "language": "tsx",
+   "file": "static/gsAdmin/views/dynamicSamplingPanel.tsx",
+   "line": 115,
+   "code": [
+    "114: ",
+    "115: function getStringifiedCondition(condition: Record<string, any>): string {",
+    "116:   const inner = Array.isArray(condition.inner) ? condition.inner : [condition.inner];"
+   ],
+   "expected_fields": [
+    "text-processing",
+    "data-formats",
+    "language-constructs"
+   ]
+  },
+  {
+   "id": "sentry-142",
+   "repository": "sentry",
+   "word": "seer",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "SEER_THRESHOLD_OPTIONS",
+   "kind": "variable",
+   "language": "typescript",
+   "file": "static/app/components/seer/legacy/constants.ts",
+   "line": 5,
+   "code": [
+    "4: ",
+    "5: export const SEER_THRESHOLD_OPTIONS = [",
+    "6:   {"
+   ],
+   "expected_fields": [
+    "ml-ai",
+    "observability-debugging"
+   ]
+  },
+  {
+   "id": "sentry-143",
+   "repository": "sentry",
+   "word": "has role",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "hasRole",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "static/app/views/settings/projectProguard/projectProguardRow.tsx",
+   "line": 26,
+   "code": [
+    "25: export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {",
+    "26:   const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});",
+    "27:   const {id, debugId, uuid, size, dateCreated} = mapping;"
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "sentry-144",
+   "repository": "sentry",
+   "word": "billing cycle",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "ChooseYourBillingCycle",
+   "kind": "function",
+   "language": "tsx",
+   "file": "static/gsApp/views/amCheckout/steps/chooseYourBillingCycle.tsx",
+   "line": 13,
+   "code": [
+    "12: ",
+    "13: export function ChooseYourBillingCycle({",
+    "14:   formData,"
+   ],
+   "expected_fields": [
+    "business-domains"
+   ]
+  },
+  {
+   "id": "sentry-145",
+   "repository": "sentry",
+   "word": "unit test",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "CreateUnitTestResponse",
+   "kind": "class",
+   "language": "python",
+   "file": "src/sentry/seer/services/test_generation/model.py",
+   "line": 9,
+   "code": [
+    "8: ",
+    "9: class CreateUnitTestResponse(RpcModel):",
+    "10:     error_detail: str | None = None"
+   ],
+   "expected_fields": [
+    "testing"
+   ]
+  },
+  {
+   "id": "sentry-146",
+   "repository": "sentry",
+   "word": "your",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "ChooseYourBillingCycle",
+   "kind": "function",
+   "language": "tsx",
+   "file": "static/gsApp/views/amCheckout/steps/chooseYourBillingCycle.tsx",
+   "line": 13,
+   "code": [
+    "12: ",
+    "13: export function ChooseYourBillingCycle({",
+    "14:   formData,"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "sentry-147",
+   "repository": "sentry",
+   "word": "search bar",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "MetricsSearchBar",
+   "kind": "function",
+   "language": "tsx",
+   "file": "static/app/views/explore/metrics/metricToolbar/filter.tsx",
+   "line": 55,
+   "code": [
+    "54: ",
+    "55: function MetricsSearchBar({",
+    "56:   tracesItemSearchQueryBuilderProps,"
+   ],
+   "expected_fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "sentry-148",
+   "repository": "sentry",
+   "word": "bigtable",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "BigtableError",
+   "kind": "class",
+   "language": "python",
+   "file": "src/sentry/utils/kvstore/bigtable.py",
+   "line": 25,
+   "code": [
+    "24: ",
+    "25: class BigtableError(Exception):",
+    "26:     pass"
+   ],
+   "expected_fields": [
+    "databases-storage",
+    "cloud-infrastructure"
+   ]
+  },
+  {
+   "id": "sentry-149",
+   "repository": "sentry",
+   "word": "ms",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 8,
+   "identifier": "delay_ms",
+   "kind": "variable",
+   "language": "python",
+   "file": "src/sentry/toolbar/views/login_success_view.py",
+   "line": 15,
+   "code": [
+    "14:     def get(self, request: HttpRequest, organization, project_id_or_slug):",
+    "15:         delay_ms = int(request.GET.get(\"delay\") or 3000)",
+    "16:         return self.respond("
+   ],
+   "expected_fields": [
+    "time-locale"
+   ]
+  },
+  {
+   "id": "sentry-150",
+   "repository": "sentry",
+   "word": "component template",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": true,
+   "definition_count": 2,
+   "identifier": "parseComponentTemplate",
+   "kind": "function",
+   "language": "tsx",
+   "file": "static/app/locale.tsx",
+   "line": 166,
+   "code": [
+    "165:  */",
+    "166: function parseComponentTemplate(template: string): ParsedTemplate {",
+    "167:   const parsed: ParsedTemplate = {};"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "time-locale",
+    "text-processing"
+   ]
+  },
+  {
+   "id": "sentry-151",
+   "repository": "sentry",
+   "word": "query builder",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "tracesItemSearchQueryBuilderProps",
+   "kind": "field",
+   "language": "tsx",
+   "file": "static/app/views/explore/metrics/metricToolbar/filter.tsx",
+   "line": 52,
+   "code": [
+    "51:   traceMetric: TraceMetric;",
+    "52:   tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;",
+    "53: }"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "databases-storage"
+   ]
+  },
+  {
+   "id": "sentry-152",
+   "repository": "sentry",
+   "word": "code",
+   "group": "multi",
+   "field_count": 13,
+   "is_recent": false,
+   "definition_count": 7,
+   "identifier": "byte_code_type_to_java_type",
+   "kind": "function",
+   "language": "python",
+   "file": "src/sentry/profiles/java.py",
+   "line": 74,
+   "code": [
+    "73: ",
+    "74: def byte_code_type_to_java_type(byte_code_type: str, mapper: ProguardMapper | None = None) -> str:",
+    "75:     if not byte_code_type:"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "sentry-153",
+   "repository": "sentry",
+   "word": "name",
+   "group": "multi",
+   "field_count": 18,
+   "is_recent": false,
+   "definition_count": 25,
+   "identifier": "_qualified_name",
+   "kind": "function",
+   "language": "python",
+   "file": "src/sentry/auth/scope_declaration.py",
+   "line": 35,
+   "code": [
+    "34: ",
+    "35: def _qualified_name(value: object) -> str:",
+    "36:     value_type = value if isinstance(value, type) else type(value)"
+   ],
+   "expected_fields": [
+    "language-constructs",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "sentry-154",
+   "repository": "sentry",
+   "word": "export",
+   "group": "multi",
+   "field_count": 10,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "DiscoverExportModalButton",
+   "kind": "function",
+   "language": "tsx",
+   "file": "static/app/views/discover/table/discoverExportModalButton.tsx",
+   "line": 25,
+   "code": [
+    "24: ",
+    "25: export function DiscoverExportModalButton({",
+    "26:   disabled,"
+   ],
+   "expected_fields": [
+    "data-formats",
+    "files-io",
+    "business-domains"
+   ]
+  },
+  {
+   "id": "sentry-155",
+   "repository": "sentry",
+   "word": "csp",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "Csp",
+   "kind": "function",
+   "language": "tsx",
+   "file": "static/app/components/events/interfaces/csp/index.tsx",
+   "line": 48,
+   "code": [
+    "47: ",
+    "48: export function Csp({data, event}: Props) {",
+    "49:   const [view, setView] = useState<View>('report');"
+   ],
+   "expected_fields": [
+    "security",
+    "browser-platform"
+   ]
+  },
+  {
+   "id": "sentry-156",
+   "repository": "sentry",
+   "word": "link",
+   "group": "multi",
+   "field_count": 11,
+   "is_recent": false,
+   "definition_count": 12,
+   "identifier": "verify_signup_link",
+   "kind": "function",
+   "language": "python",
+   "file": "src/sentry/auth/email_verification.py",
+   "line": 121,
+   "code": [
+    "120: ",
+    "121: def verify_signup_link(signed_data: str) -> dict[str, Any]:",
+    "122:     \"\"\""
+   ],
+   "expected_fields": [
+    "browser-platform",
+    "auth-identity",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "sentry-157",
+   "repository": "sentry",
+   "word": "portal target",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "portalTarget",
+   "kind": "field",
+   "language": "tsx",
+   "file": "static/app/views/explore/metrics/metricToolbar/filter.tsx",
+   "line": 45,
+   "code": [
+    "44:   environments?: string[];",
+    "45:   portalTarget?: HTMLElement;",
+    "46:   projectIds?: number[];"
+   ],
+   "expected_fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "sentry-158",
+   "repository": "sentry",
+   "word": "operators",
+   "group": "input",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "VALID_STATUS_CHECK_FILTER_OPERATORS",
+   "kind": "constant",
+   "language": "python",
+   "file": "src/sentry/preprod/vcs/status_checks/size/rules.py",
+   "line": 29,
+   "code": [
+    "28: }",
+    "29: VALID_STATUS_CHECK_FILTER_OPERATORS = frozenset(",
+    "30:     {"
+   ],
+   "expected_fields": [
+    "language-constructs",
+    "databases-storage",
+    "math-numerics"
+   ]
+  },
+  {
+   "id": "sentry-159",
+   "repository": "sentry",
+   "word": "styles",
+   "group": "input",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "markerStyles",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "static/app/locale.tsx",
+   "line": 10,
+   "code": [
+    "9: ",
+    "10: const markerStyles = {",
+    "11:   background: '#ff801790',"
+   ],
+   "expected_fields": [
+    "web-styling"
+   ]
+  },
+  {
+   "id": "sentry-160",
+   "repository": "sentry",
+   "word": "assigned to",
+   "group": "input",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "assignedTo",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "static/app/components/group/assigneeSelector.tsx",
+   "line": 65,
+   "code": [
+    "64: function getOwnerAssignmentDetails(group: AssigneeGroup): AssignmentDetails | undefined {",
+    "65:   const assignedTo = group.assignedTo;",
+    "66: "
+   ],
+   "expected_fields": [
+    "docs-collaboration",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "terminal-161",
+   "repository": "terminal",
+   "word": "dark",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "SetWindowFrameDarkMode",
+   "kind": "function",
+   "language": "cpp",
+   "file": "src/types/inc/ThemeUtils.h",
+   "line": 7,
+   "code": [
+    "6: {",
+    "7:     [[nodiscard]] HRESULT SetWindowFrameDarkMode(HWND hwnd, bool enabled) noexcept;",
+    "8: }"
+   ],
+   "expected_fields": [
+    "web-styling",
+    "mobile-desktop"
+   ]
+  },
+  {
+   "id": "terminal-162",
+   "repository": "terminal",
+   "word": "cbt",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "cbt",
+   "kind": "function",
+   "language": "python",
+   "file": "src/tools/vttests/common.py",
+   "line": 86,
+   "code": [
+    "85: ",
+    "86: def cbt():",
+    "87:     csi('Z')"
+   ],
+   "expected_fields": [
+    "os-shell",
+    "text-processing"
+   ]
+  },
+  {
+   "id": "terminal-163",
+   "repository": "terminal",
+   "word": "coinit",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "coinit",
+   "kind": "variable",
+   "language": "cpp",
+   "file": "src/propslib/DelegationConfig.cpp",
+   "line": 161,
+   "code": [
+    "160: {",
+    "161:     auto coinit = wil::CoInitializeEx(COINIT_APARTMENTTHREADED);",
+    "162: "
+   ],
+   "expected_fields": [
+    "os-shell",
+    "mobile-desktop",
+    "concurrency-async"
+   ]
+  },
+  {
+   "id": "terminal-164",
+   "repository": "terminal",
+   "word": "decrqss",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "DECRQSS_RequestSetting",
+   "kind": "enum_member",
+   "language": "cpp",
+   "file": "src/terminal/parser/OutputStateMachineEngine.hpp",
+   "line": 184,
+   "code": [
+    "183:             DECRSTS_RestoreTerminalState = VTID(\"$p\"),",
+    "184:             DECRQSS_RequestSetting = VTID(\"$q\"),",
+    "185:             DECRSPS_RestorePresentationState = VTID(\"$t\"),"
+   ],
+   "expected_fields": [
+    "os-shell",
+    "text-processing"
+   ]
+  },
+  {
+   "id": "terminal-165",
+   "repository": "terminal",
+   "word": "decscusr",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "DECSCUSR_SetCursorStyle",
+   "kind": "enum_member",
+   "language": "cpp",
+   "file": "src/terminal/parser/OutputStateMachineEngine.hpp",
+   "line": 144,
+   "code": [
+    "143:             PPB_PagePositionBack = VTID(\" R\"),",
+    "144:             DECSCUSR_SetCursorStyle = VTID(\" q\"),",
+    "145:             DECSTR_SoftReset = VTID(\"!p\"),"
+   ],
+   "expected_fields": [
+    "os-shell",
+    "text-processing"
+   ]
+  },
+  {
+   "id": "terminal-166",
+   "repository": "terminal",
+   "word": "bell",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 14,
+   "identifier": "BellLightOn",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/cascadia/TerminalControl/TermControl.h",
+   "line": 166,
+   "code": [
+    "165: ",
+    "166:         void BellLightOn();",
+    "167: "
+   ],
+   "expected_fields": [
+    "os-shell",
+    "graphics-media"
+   ]
+  },
+  {
+   "id": "terminal-167",
+   "repository": "terminal",
+   "word": "pwch",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "pwchToConvert",
+   "kind": "parameter",
+   "language": "cpp",
+   "file": "src/host/utils.cpp",
+   "line": 31,
+   "code": [
+    "30: ",
+    "31: WORD ConvertStringToDec(_In_ PCWSTR pwchToConvert, _Out_opt_ PCWSTR* const ppwchEnd) noexcept",
+    "32: {"
+   ],
+   "expected_fields": [
+    "text-processing",
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "terminal-168",
+   "repository": "terminal",
+   "word": "ls 3",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "LS3_LockingShift",
+   "kind": "enum_member",
+   "language": "cpp",
+   "file": "src/terminal/parser/OutputStateMachineEngine.hpp",
+   "line": 76,
+   "code": [
+    "75:             LS2_LockingShift = VTID(\"n\"),",
+    "76:             LS3_LockingShift = VTID(\"o\"),",
+    "77:             LS1R_LockingShift = VTID(\"~\"),"
+   ],
+   "expected_fields": [
+    "text-processing",
+    "os-shell"
+   ]
+  },
+  {
+   "id": "terminal-169",
+   "repository": "terminal",
+   "word": "deckpnm",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "DECKPNM_KeypadNumericMode",
+   "kind": "enum_member",
+   "language": "cpp",
+   "file": "src/terminal/parser/OutputStateMachineEngine.hpp",
+   "line": 65,
+   "code": [
+    "64:             DECKPAM_KeypadApplicationMode = VTID(\"=\"),",
+    "65:             DECKPNM_KeypadNumericMode = VTID(\">\"),",
+    "66:             IND_Index = VTID(\"D\"),"
+   ],
+   "expected_fields": [
+    "os-shell",
+    "text-processing"
+   ]
+  },
+  {
+   "id": "terminal-170",
+   "repository": "terminal",
+   "word": "scroll rect",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "scrollRect",
+   "kind": "variable",
+   "language": "cpp",
+   "file": "src/renderer/atlas/AtlasEngine.r.cpp",
+   "line": 483,
+   "code": [
+    "482:     DXGI_PRESENT_PARAMETERS params{};",
+    "483:     RECT scrollRect{};",
+    "484:     POINT scrollOffset{};"
+   ],
+   "expected_fields": [
+    "graphics-media",
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "terminal-171",
+   "repository": "terminal",
+   "word": "tokens",
+   "group": "multi",
+   "field_count": 7,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "_RefreshTokens",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/cascadia/TerminalConnection/AzureConnection.h",
+   "line": 78,
+   "code": [
+    "77:         void _PopulateTenantList();",
+    "78:         void _RefreshTokens();",
+    "79:         winrt::Windows::Data::Json::JsonObject _GetCloudShellUserSettings();"
+   ],
+   "expected_fields": [
+    "auth-identity"
+   ]
+  },
+  {
+   "id": "terminal-172",
+   "repository": "terminal",
+   "word": "fill",
+   "group": "multi",
+   "field_count": 10,
+   "is_recent": false,
+   "definition_count": 14,
+   "identifier": "FillConsoleOutputAttributeImpl",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/server/IApiRoutines.h",
+   "line": 101,
+   "code": [
+    "100: ",
+    "101:     [[nodiscard]] virtual HRESULT FillConsoleOutputAttributeImpl(IConsoleOutputObject& OutContext,",
+    "102:                                                                  const WORD attribute,"
+   ],
+   "expected_fields": [
+    "general-wording",
+    "os-shell"
+   ]
+  },
+  {
+   "id": "terminal-173",
+   "repository": "terminal",
+   "word": "connect",
+   "group": "multi",
+   "field_count": 8,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "_RunConnectState",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/cascadia/TerminalConnection/AzureConnection.h",
+   "line": 54,
+   "code": [
+    "53:         void _RunStoreState();",
+    "54:         void _RunConnectState();",
+    "55: "
+   ],
+   "expected_fields": [
+    "networking",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "terminal-174",
+   "repository": "terminal",
+   "word": "private",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 6,
+   "identifier": "DECSET_PrivateModeSet",
+   "kind": "enum_member",
+   "language": "cpp",
+   "file": "src/terminal/parser/OutputStateMachineEngine.hpp",
+   "line": 130,
+   "code": [
+    "129:             SM_SetMode = VTID(\"h\"),",
+    "130:             DECSET_PrivateModeSet = VTID(\"?h\"),",
+    "131:             RM_ResetMode = VTID(\"l\"),"
+   ],
+   "expected_fields": [
+    "os-shell",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "terminal-175",
+   "repository": "terminal",
+   "word": "lean",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": true,
+   "definition_count": 3,
+   "identifier": "WIN32_LEAN_AND_MEAN",
+   "kind": "macro",
+   "language": "cpp",
+   "file": "src/renderer/atlas/dwrite_helpers.h",
+   "line": 12,
+   "code": [
+    "11: #ifndef WIN32_LEAN_AND_MEAN",
+    "12: #define WIN32_LEAN_AND_MEAN",
+    "13: #endif"
+   ],
+   "expected_fields": [
+    "languages-compilers",
+    "build-release",
+    "os-shell"
+   ]
+  },
+  {
+   "id": "terminal-176",
+   "repository": "terminal",
+   "word": "fragment",
+   "group": "multi",
+   "field_count": 10,
+   "is_recent": true,
+   "definition_count": 37,
+   "identifier": "MergeFragmentIntoUserSettings",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/cascadia/TerminalSettingsModel/CascadiaSettingsSerialization.cpp",
+   "line": 479,
+   "code": [
+    "478: // and at the time of writing is used for unit tests only.",
+    "479: void SettingsLoader::MergeFragmentIntoUserSettings(const winrt::hstring& source, const winrt::hstring& basePath, const std::string_view& content)",
+    "480: {"
+   ],
+   "expected_fields": [
+    "configuration"
+   ]
+  },
+  {
+   "id": "terminal-177",
+   "repository": "terminal",
+   "word": "get name",
+   "group": "input",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "GetNameForAction",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/cascadia/TerminalSettingsModel/ActionMap.h",
+   "line": 55,
+   "code": [
+    "54: ",
+    "55:         static winrt::hstring GetNameForAction(ShortcutAction action);",
+    "56:         static winrt::hstring GetNameForAction(ShortcutAction action, Windows::ApplicationModel::Resources::Core::ResourceContext context);"
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "terminal-178",
+   "repository": "terminal",
+   "word": "end index",
+   "group": "input",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "ViewEndIndex",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/cascadia/TerminalCore/Terminal.hpp",
+   "line": 117,
+   "code": [
+    "116:     int ViewStartIndex() const noexcept;",
+    "117:     int ViewEndIndex() const noexcept;",
+    "118:     bool IsFocused() const noexcept;"
+   ],
+   "expected_fields": [
+    "algorithms-data-structures",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "terminal-179",
+   "repository": "terminal",
+   "word": "add user",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "_addUserProfileParent",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/cascadia/TerminalSettingsModel/CascadiaSettingsSerialization.cpp",
+   "line": 1090,
+   "code": [
+    "1089: // the profile is added as a parent. Otherwise, a new child profile is created.",
+    "1090: void SettingsLoader::_addUserProfileParent(const winrt::com_ptr<implementation::Profile>& profile)",
+    "1091: {"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "terminal-180",
+   "repository": "terminal",
+   "word": "minimum size",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "MinimumSize",
+   "kind": "method",
+   "language": "cpp",
+   "file": "src/cascadia/TerminalControl/TermControl.h",
+   "line": 76,
+   "code": [
+    "75:         Windows::Foundation::Size CharacterDimensions() const;",
+    "76:         Windows::Foundation::Size MinimumSize();",
+    "77:         float SnapDimensionToGrid(const bool widthOrHeight, const float dimension);"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "mobile-desktop",
+    "web-styling"
+   ]
+  },
+  {
+   "id": "tokio-181",
+   "repository": "tokio",
+   "word": "aio",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "new_for_aio",
+   "kind": "method",
+   "language": "rust",
+   "file": "tokio/src/io/bsd/poll_aio.rs",
+   "line": 125,
+   "code": [
+    "124:     /// [`Runtime::enter`](crate::runtime::Runtime::enter) function.",
+    "125:     pub fn new_for_aio(io: E) -> io::Result<Self> {",
+    "126:         Self::new_with_interest(io, Interest::AIO)"
+   ],
+   "expected_fields": [
+    "files-io",
+    "os-shell",
+    "concurrency-async"
+   ]
+  },
+  {
+   "id": "tokio-182",
+   "repository": "tokio",
+   "word": "read vectored",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "try_read_vectored",
+   "kind": "method",
+   "language": "rust",
+   "file": "tokio/src/net/unix/pipe.rs",
+   "line": 1306,
+   "code": [
+    "1305:     /// [`WouldBlock`]: std::io::ErrorKind::WouldBlock",
+    "1306:     pub fn try_read_vectored(&self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {",
+    "1307:         self.io"
+   ],
+   "expected_fields": [
+    "files-io",
+    "networking"
+   ]
+  },
+  {
+   "id": "tokio-183",
+   "repository": "tokio",
+   "word": "unparked",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "unparked",
+   "kind": "method",
+   "language": "rust",
+   "file": "tokio/src/runtime/metrics/batch.rs",
+   "line": 207,
+   "code": [
+    "206:     /// The worker was unparked.",
+    "207:     pub(crate) fn unparked(&mut self) {",
+    "208:         self.park_unpark_count += 1;"
+   ],
+   "expected_fields": [
+    "concurrency-async"
+   ]
+  },
+  {
+   "id": "tokio-184",
+   "repository": "tokio",
+   "word": "atomic usize",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "AtomicUsize",
+   "kind": "struct",
+   "language": "rust",
+   "file": "tokio/src/loom/std/atomic_usize.rs",
+   "line": 7,
+   "code": [
+    "6: /// `AtomicUsize` providing an additional `unsync_load` function.",
+    "7: pub(crate) struct AtomicUsize {",
+    "8:     inner: UnsafeCell<std::sync::atomic::AtomicUsize>,"
+   ],
+   "expected_fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "tokio-185",
+   "repository": "tokio",
+   "word": "amt",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "amt",
+   "kind": "variable",
+   "language": "rust",
+   "file": "tokio/src/sync/broadcast.rs",
+   "line": 314,
+   "code": [
+    "313:                 RecvError::Closed => write!(f, \"channel closed\"),",
+    "314:                 RecvError::Lagged(amt) => write!(f, \"channel lagged by {amt}\"),",
+    "315:             }"
+   ],
+   "expected_fields": [
+    "general-wording",
+    "math-numerics"
+   ]
+  },
+  {
+   "id": "tokio-186",
+   "repository": "tokio",
+   "word": "nonstatic",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "nonstatic_typeid",
+   "kind": "function",
+   "language": "rust",
+   "file": "tokio/src/util/typeid.rs",
+   "line": 21,
+   "code": [
+    "20: #[inline(always)]",
+    "21: fn nonstatic_typeid<T>() -> TypeId",
+    "22: where"
+   ],
+   "expected_fields": [
+    "type-systems",
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "tokio-187",
+   "repository": "tokio",
+   "word": "shutting down",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "ShuttingDown",
+   "kind": "enum_member",
+   "language": "rust",
+   "file": "tokio/src/runtime/blocking/pool.rs",
+   "line": 138,
+   "code": [
+    "137:     /// Pool is shutting down and the task was not scheduled",
+    "138:     ShuttingDown,",
+    "139:     /// There are no worker threads available to take the task"
+   ],
+   "expected_fields": [
+    "concurrency-async",
+    "general-wording",
+    "os-shell"
+   ]
+  },
+  {
+   "id": "tokio-188",
+   "repository": "tokio",
+   "word": "waits",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 10,
+   "identifier": "total_waits",
+   "kind": "field",
+   "language": "rust",
+   "file": "tokio/src/process/unix/orphan.rs",
+   "line": 163,
+   "code": [
+    "162:     struct MockWait {",
+    "163:         total_waits: Rc<Cell<usize>>,",
+    "164:         num_wait_until_status: usize,"
+   ],
+   "expected_fields": [
+    "os-shell",
+    "concurrency-async"
+   ]
+  },
+  {
+   "id": "tokio-189",
+   "repository": "tokio",
+   "word": "join error",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "panic_result_to_join_error",
+   "kind": "function",
+   "language": "rust",
+   "file": "tokio/src/runtime/task/harness.rs",
+   "line": 509,
+   "code": [
+    "508: ",
+    "509: fn panic_result_to_join_error(",
+    "510:     task_id: Id,"
+   ],
+   "expected_fields": [
+    "concurrency-async",
+    "error-handling"
+   ]
+  },
+  {
+   "id": "tokio-190",
+   "repository": "tokio",
+   "word": "did",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "did_wake",
+   "kind": "variable",
+   "language": "rust",
+   "file": "tokio/src/runtime/time/handle.rs",
+   "line": 25,
+   "code": [
+    "24:         match self.inner {",
+    "25:             super::Inner::Traditional { ref did_wake, .. } => {",
+    "26:                 did_wake.store(true, std::sync::atomic::Ordering::SeqCst);"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "tokio-191",
+   "repository": "tokio",
+   "word": "group",
+   "group": "multi",
+   "field_count": 9,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "group",
+   "kind": "variable",
+   "language": "rust",
+   "file": "benches/sync_semaphore.rs",
+   "line": 130,
+   "code": [
+    "129: fn bench_contention(c: &mut Criterion) {",
+    "130:     let mut group = c.benchmark_group(\"contention\");",
+    "131:     contended_concurrent_multi(&mut group);"
+   ],
+   "expected_fields": [
+    "observability-debugging",
+    "testing",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "tokio-192",
+   "repository": "tokio",
+   "word": "disable",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": true,
+   "definition_count": 1,
+   "identifier": "disable_lifo_slot",
+   "kind": "field",
+   "language": "rust",
+   "file": "tokio/src/runtime/builder.rs",
+   "line": 130,
+   "code": [
+    "129:     /// This option should only be exposed as unstable.",
+    "130:     pub(super) disable_lifo_slot: bool,",
+    "131: "
+   ],
+   "expected_fields": [
+    "configuration",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "tokio-193",
+   "repository": "tokio",
+   "word": "second",
+   "group": "multi",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "second_orphan",
+   "kind": "variable",
+   "language": "rust",
+   "file": "tokio/src/process/unix/orphan.rs",
+   "line": 212,
+   "code": [
+    "211:         let first_orphan = MockWait::new(0);",
+    "212:         let second_orphan = MockWait::new(1);",
+    "213:         let third_orphan = MockWait::new(2);"
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "tokio-194",
+   "repository": "tokio",
+   "word": "non",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "non_empty",
+   "kind": "variable",
+   "language": "rust",
+   "file": "tokio-util/src/io/write_all_vectored.rs",
+   "line": 110,
+   "code": [
+    "109:             // advance to first non-empty buffer",
+    "110:             let non_empty = match me.bufs.iter().position(|b| !b.is_empty()) {",
+    "111:                 Some(pos) => pos,"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "tokio-195",
+   "repository": "tokio",
+   "word": "weak",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 6,
+   "identifier": "compare_exchange_weak",
+   "kind": "method",
+   "language": "rust",
+   "file": "tokio/src/loom/std/atomic_u64_static_once_cell.rs",
+   "line": 37,
+   "code": [
+    "36: ",
+    "37:     pub(crate) fn compare_exchange_weak(",
+    "38:         &self,"
+   ],
+   "expected_fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "tokio-196",
+   "repository": "tokio",
+   "word": "third",
+   "group": "multi",
+   "field_count": 4,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "third_orphan",
+   "kind": "variable",
+   "language": "rust",
+   "file": "tokio/src/process/unix/orphan.rs",
+   "line": 213,
+   "code": [
+    "212:         let second_orphan = MockWait::new(1);",
+    "213:         let third_orphan = MockWait::new(2);",
+    "214:         let fourth_orphan = MockWait::with_err();"
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "tokio-197",
+   "repository": "tokio",
+   "word": "thread stack size",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "thread_stack_size",
+   "kind": "method",
+   "language": "rust",
+   "file": "tokio/src/runtime/builder.rs",
+   "line": 680,
+   "code": [
+    "679:     /// ```",
+    "680:     pub fn thread_stack_size(&mut self, val: usize) -> &mut Self {",
+    "681:         self.thread_stack_size = Some(val);"
+   ],
+   "expected_fields": [
+    "concurrency-async",
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "tokio-198",
+   "repository": "tokio",
+   "word": "poll close",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "poll_close",
+   "kind": "method",
+   "language": "rust",
+   "file": "tokio-util/src/io/copy_to_bytes.rs",
+   "line": 66,
+   "code": [
+    "65: ",
+    "66:     fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {",
+    "67:         self.project().inner.poll_close(cx)"
+   ],
+   "expected_fields": [
+    "concurrency-async",
+    "files-io"
+   ]
+  },
+  {
+   "id": "tokio-199",
+   "repository": "tokio",
+   "word": "raw socket",
+   "group": "input",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "raw_socket",
+   "kind": "variable",
+   "language": "rust",
+   "file": "tokio/src/net/tcp/socket.rs",
+   "line": 864,
+   "code": [
+    "863: ",
+    "864:             let raw_socket = self.inner.into_raw_socket();",
+    "865:             unsafe { mio::net::TcpStream::from_raw_socket(raw_socket) }"
+   ],
+   "expected_fields": [
+    "networking",
+    "systems-low-level"
+   ]
+  },
+  {
+   "id": "tokio-200",
+   "repository": "tokio",
+   "word": "latency histogram",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 3,
+   "identifier": "metrics_schedule_latency_histogram_builder",
+   "kind": "method",
+   "language": "rust",
+   "file": "tokio/src/runtime/builder.rs",
+   "line": 1744,
+   "code": [
+    "1743: ",
+    "1744:     fn metrics_schedule_latency_histogram_builder(&self) -> Option<HistogramBuilder> {",
+    "1745:         if self.metrics_schedule_latency_histogram_enabled {"
+   ],
+   "expected_fields": [
+    "observability-debugging",
+    "math-numerics"
+   ]
+  },
+  {
+   "id": "vector-201",
+   "repository": "vector",
+   "word": "span id",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "SPAN_ID_KEY",
+   "kind": "constant",
+   "language": "rust",
+   "file": "lib/opentelemetry-proto/src/logs.rs",
+   "line": 23,
+   "code": [
+    "22: pub const TRACE_ID_KEY: &str = \"trace_id\";",
+    "23: pub const SPAN_ID_KEY: &str = \"span_id\";",
+    "24: pub const SEVERITY_TEXT_KEY: &str = \"severity_text\";"
+   ],
+   "expected_fields": [
+    "observability-debugging"
+   ]
+  },
+  {
+   "id": "vector-202",
+   "repository": "vector",
+   "word": "kinesis firehose",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "aws_kinesis_firehose",
+   "kind": "module",
+   "language": "rust",
+   "file": "src/internal_events/mod.rs",
+   "line": 27,
+   "code": [
+    "26: #[cfg(feature = \"sources-aws_kinesis_firehose\")]",
+    "27: mod aws_kinesis_firehose;",
+    "28: #[cfg(any(feature = \"sources-aws_s3\", feature = \"sources-aws_sqs\",))]"
+   ],
+   "expected_fields": [
+    "cloud-infrastructure",
+    "distributed-systems",
+    "data-engineering"
+   ]
+  },
+  {
+   "id": "vector-203",
+   "repository": "vector",
+   "word": "prometheus",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "prometheus",
+   "kind": "module",
+   "language": "rust",
+   "file": "src/internal_events/mod.rs",
+   "line": 124,
+   "code": [
+    "123: ))]",
+    "124: mod prometheus;",
+    "125: #[cfg(any(feature = \"sinks-pulsar\", feature = \"sources-pulsar\"))]"
+   ],
+   "expected_fields": [
+    "observability-debugging"
+   ]
+  },
+  {
+   "id": "vector-204",
+   "repository": "vector",
+   "word": "schannel",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "Schannel",
+   "kind": "enum_member",
+   "language": "rust",
+   "file": "lib/vector-core/src/tls/mod.rs",
+   "line": 128,
+   "code": [
+    "127:     #[cfg(windows)]",
+    "128:     Schannel { source: std::io::Error },",
+    "129:     #[cfg(any(windows, target_os = \"macos\"))]"
+   ],
+   "expected_fields": [
+    "security"
+   ]
+  },
+  {
+   "id": "vector-205",
+   "repository": "vector",
+   "word": "floating",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "zero_num_floating",
+   "kind": "variable",
+   "language": "rust",
+   "file": "lib/vector-config/src/num.rs",
+   "line": 75,
+   "code": [
+    "74:         let zero_num_unsigned = Self::Numeric::zero().to_u64().map(Into::into);",
+    "75:         let zero_num_floating = Self::Numeric::zero().to_f64().and_then(Number::from_f64);",
+    "76:         zero_num_unsigned"
+   ],
+   "expected_fields": [
+    "math-numerics"
+   ]
+  },
+  {
+   "id": "vector-206",
+   "repository": "vector",
+   "word": "ede",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "ede",
+   "kind": "module",
+   "language": "rust",
+   "file": "lib/dnsmsg-parser/src/lib.rs",
+   "line": 14,
+   "code": [
+    "13: pub mod dns_message_parser;",
+    "14: pub mod ede;"
+   ],
+   "expected_fields": [
+    "networking",
+    "error-handling"
+   ]
+  },
+  {
+   "id": "vector-207",
+   "repository": "vector",
+   "word": "sorted",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "sorted_set_method",
+   "kind": "variable",
+   "language": "rust",
+   "file": "src/sinks/redis/sink.rs",
+   "line": 273,
+   "code": [
+    "272:         let list_method = config.list_option.map(|option| option.method);",
+    "273:         let (sorted_set_method, score) = if let Some(option) = &config.sorted_set_option {",
+    "274:             (option.method, option.score.clone())"
+   ],
+   "expected_fields": [
+    "algorithms-data-structures",
+    "databases-storage"
+   ]
+  },
+  {
+   "id": "vector-208",
+   "repository": "vector",
+   "word": "datetime",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "toml_datetime_deserializes_as_a_string",
+   "kind": "function",
+   "language": "rust",
+   "file": "src/config/loading/representation.rs",
+   "line": 490,
+   "code": [
+    "489:     #[test]",
+    "490:     fn toml_datetime_deserializes_as_a_string() {",
+    "491:         let value: StringValue ="
+   ],
+   "expected_fields": [
+    "time-locale"
+   ]
+  },
+  {
+   "id": "vector-209",
+   "repository": "vector",
+   "word": "helm chart",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "helm_chart_repo",
+   "kind": "function",
+   "language": "rust",
+   "file": "lib/k8s-e2e-tests/src/lib.rs",
+   "line": 27,
+   "code": [
+    "26: #[must_use]",
+    "27: pub fn helm_chart_repo() -> String {",
+    "28:     env::var(\"HELM_CHART_REPO\").unwrap_or_else(|_| \"https://helm.vector.dev\".to_string())"
+   ],
+   "expected_fields": [
+    "cloud-infrastructure"
+   ]
+  },
+  {
+   "id": "vector-210",
+   "repository": "vector",
+   "word": "detects",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "reloadable_acceptor_swaps_and_detects_shutdown",
+   "kind": "function",
+   "language": "rust",
+   "file": "lib/vector-core/src/tls/reload.rs",
+   "line": 112,
+   "code": [
+    "111:     #[tokio::test]",
+    "112:     async fn reloadable_acceptor_swaps_and_detects_shutdown() {",
+    "113:         let settings ="
+   ],
+   "expected_fields": [
+    "general-wording"
+   ]
+  },
+  {
+   "id": "vector-211",
+   "repository": "vector",
+   "word": "condition",
+   "group": "multi",
+   "field_count": 9,
+   "is_recent": false,
+   "definition_count": 9,
+   "identifier": "evaluate_condition",
+   "kind": "function",
+   "language": "rust",
+   "file": "lib/vector-vrl/enrichment/src/vrl_util.rs",
+   "line": 44,
+   "code": [
+    "43: /// Evaluates the condition object to search the enrichment tables with.",
+    "44: pub(crate) fn evaluate_condition(key: &str, value: Value) -> ExpressionResult<Condition<'_>> {",
+    "45:     Ok(match value {"
+   ],
+   "expected_fields": [
+    "databases-storage",
+    "language-constructs",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "vector-212",
+   "repository": "vector",
+   "word": "amqp",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "amqp",
+   "kind": "module",
+   "language": "rust",
+   "file": "src/internal_events/mod.rs",
+   "line": 8,
+   "code": [
+    "7: #[cfg(any(feature = \"sources-amqp\", feature = \"sinks-amqp\"))]",
+    "8: mod amqp;",
+    "9: #[cfg(feature = \"sources-apache_metrics\")]"
+   ],
+   "expected_fields": [
+    "distributed-systems"
+   ]
+  },
+  {
+   "id": "vector-213",
+   "repository": "vector",
+   "word": "bytes",
+   "group": "multi",
+   "field_count": 3,
+   "is_recent": false,
+   "definition_count": 72,
+   "identifier": "explicit_max_bytes_applies_to_both_endpoints",
+   "kind": "function",
+   "language": "rust",
+   "file": "src/sinks/datadog/metrics/config.rs",
+   "line": 457,
+   "code": [
+    "456:     #[test]",
+    "457:     fn explicit_max_bytes_applies_to_both_endpoints() {",
+    "458:         let mut config = BatchConfig::<DatadogMetricsDefaultBatchSettings>::default();"
+   ],
+   "expected_fields": [
+    "systems-low-level",
+    "math-numerics",
+    "files-io",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "vector-214",
+   "repository": "vector",
+   "word": "we",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "lines_till_we_give_up",
+   "kind": "variable",
+   "language": "rust",
+   "file": "lib/k8s-e2e-tests/src/lib.rs",
+   "line": 299,
+   "code": [
+    "298: {",
+    "299:     let mut lines_till_we_give_up = 10000;",
+    "300:     while let Some(line) = log_reader.read_line().await {"
+   ],
+   "expected_fields": null
+  },
+  {
+   "id": "vector-215",
+   "repository": "vector",
+   "word": "limit",
+   "group": "multi",
+   "field_count": 8,
+   "is_recent": false,
+   "definition_count": 30,
+   "identifier": "v1_batch_config_uses_v1_size_limit",
+   "kind": "function",
+   "language": "rust",
+   "file": "src/sinks/datadog/metrics/config.rs",
+   "line": 447,
+   "code": [
+    "446:     #[test]",
+    "447:     fn v1_batch_config_uses_v1_size_limit() {",
+    "448:         let (series, sketches) ="
+   ],
+   "expected_fields": [
+    "general-wording",
+    "math-numerics"
+   ]
+  },
+  {
+   "id": "vector-216",
+   "repository": "vector",
+   "word": "authorization",
+   "group": "multi",
+   "field_count": 8,
+   "is_recent": true,
+   "definition_count": 1,
+   "identifier": "SharedKeyAuthorizationPolicy",
+   "kind": "struct",
+   "language": "rust",
+   "file": "src/sinks/azure_common/shared_key_policy.rs",
+   "line": 43,
+   "code": [
+    "42: #[derive(Debug)]",
+    "43: pub struct SharedKeyAuthorizationPolicy {",
+    "44:     account_name: String,"
+   ],
+   "expected_fields": [
+    "auth-identity",
+    "web-backend"
+   ]
+  },
+  {
+   "id": "vector-217",
+   "repository": "vector",
+   "word": "first byte",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "first_byte",
+   "kind": "variable",
+   "language": "rust",
+   "file": "lib/codecs/src/decoding/framing/octet_counting.rs",
+   "line": 233,
+   "code": [
+    "232:     ) -> Option<Result<Option<Bytes>, LinesCodecError>> {",
+    "233:         if let Some(&first_byte) = src.first()",
+    "234:             && (49..=57).contains(&first_byte)"
+   ],
+   "expected_fields": [
+    "systems-low-level",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "vector-218",
+   "repository": "vector",
+   "word": "delta t",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "delta_t",
+   "kind": "variable",
+   "language": "rust",
+   "file": "lib/vector-core/src/event/metric/data.rs",
+   "line": 105,
+   "code": [
+    "104:             (Some(t1), Some(i1), Some(t2), Some(i2)) => {",
+    "105:                 let Ok(delta_t) =",
+    "106:                     TryInto::<u32>::try_into(t1.timestamp_millis().abs_diff(t2.timestamp_millis()))"
+   ],
+   "expected_fields": [
+    "time-locale",
+    "math-numerics"
+   ]
+  },
+  {
+   "id": "vector-219",
+   "repository": "vector",
+   "word": "tcp state",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "tcp_state_to_string",
+   "kind": "function",
+   "language": "rust",
+   "file": "src/sources/host_metrics/tcp.rs",
+   "line": 64,
+   "code": [
+    "63: ",
+    "64: const fn tcp_state_to_string(state: TcpState) -> &'static str {",
+    "65:     match state {"
+   ],
+   "expected_fields": [
+    "networking"
+   ]
+  },
+  {
+   "id": "vector-220",
+   "repository": "vector",
+   "word": "counting",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "OctetCountingDecoderConfig",
+   "kind": "struct",
+   "language": "rust",
+   "file": "lib/codecs/src/decoding/framing/octet_counting.rs",
+   "line": 13,
+   "code": [
+    "12: #[derive(Debug, Clone, Default)]",
+    "13: pub struct OctetCountingDecoderConfig {",
+    "14:     #[serde(default, skip_serializing_if = \"vector_core::serde::is_default\")]"
+   ],
+   "expected_fields": [
+    "math-numerics",
+    "general-wording",
+    "data-formats",
+    "networking"
+   ]
+  },
+  {
+   "id": "woocommerce-221",
+   "repository": "woocommerce",
+   "word": "audio",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 4,
+   "identifier": "AUDIO_PROVIDERS",
+   "kind": "constant",
+   "language": "php",
+   "file": "packages/php/email-editor/src/Integrations/Core/Renderer/Blocks/class-embed.php",
+   "line": 61,
+   "code": [
+    "60: \t */",
+    "61: \tprivate const AUDIO_PROVIDERS = array(",
+    "62: \t\t'pocket-casts' => array("
+   ],
+   "expected_fields": [
+    "graphics-media"
+   ]
+  },
+  {
+   "id": "woocommerce-222",
+   "repository": "woocommerce",
+   "word": "v 5",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "xstateV5Inspector",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "plugins/woocommerce/client/admin/client/core-profiler/index.tsx",
+   "line": 1830,
+   "code": [
+    "1829: ",
+    "1830: \tconst { xstateV5Inspector } = useXStateInspect( 'V5' );",
+    "1831: "
+   ],
+   "expected_fields": [
+    "build-release",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "woocommerce-223",
+   "repository": "woocommerce",
+   "word": "combined selector",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "translateCombinedSelector",
+   "kind": "method",
+   "language": "php",
+   "file": "packages/php/email-editor/vendor-prefixed/packages/Symfony/Component/CssSelector/XPath/Extension/NodeExtension.php",
+   "line": 85,
+   "code": [
+    "84: ",
+    "85:     public function translateCombinedSelector(Node\\CombinedSelectorNode $node, Translator $translator): XPathExpr",
+    "86:     {"
+   ],
+   "expected_fields": [
+    "web-styling"
+   ]
+  },
+  {
+   "id": "woocommerce-224",
+   "repository": "woocommerce",
+   "word": "product variation",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "find_matching_product_variation",
+   "kind": "interface_method",
+   "language": "php",
+   "file": "plugins/woocommerce/includes/interfaces/class-wc-product-data-store-interface.php",
+   "line": 82,
+   "code": [
+    "81: \t */",
+    "82: \tpublic function find_matching_product_variation( $product, $match_attributes = array() );",
+    "83: "
+   ],
+   "expected_fields": [
+    "business-domains"
+   ]
+  },
+  {
+   "id": "woocommerce-225",
+   "repository": "woocommerce",
+   "word": "navigation component",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": true,
+   "definition_count": 1,
+   "identifier": "NavigationComponent",
+   "kind": "import_alias",
+   "language": "javascript",
+   "file": "packages/js/experimental/src/index.js",
+   "line": 12,
+   "code": [
+    "11: \t__experimentalUseSlotFills as useSlotFillsHook,",
+    "12: \tNavigation as NavigationComponent,",
+    "13: \tNavigationBackButton as NavigationBackButtonComponent,"
+   ],
+   "expected_fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "woocommerce-226",
+   "repository": "woocommerce",
+   "word": "ajax",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "do_ajax_product_export",
+   "kind": "method",
+   "language": "php",
+   "file": "plugins/woocommerce/includes/admin/class-wc-admin-exporters.php",
+   "line": 143,
+   "code": [
+    "142: \t */",
+    "143: \tpublic function do_ajax_product_export() {",
+    "144: \t\tcheck_ajax_referer( 'wc-product-export', 'security' );"
+   ],
+   "expected_fields": [
+    "web-backend",
+    "browser-platform",
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "woocommerce-227",
+   "repository": "woocommerce",
+   "word": "popover",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "LinkedProductPopoverContent",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "plugins/woocommerce/client/blocks/assets/js/blocks/product-collection/edit/inspector-controls/linked-product-control.tsx",
+   "line": 101,
+   "code": [
+    "100: ",
+    "101: const LinkedProductPopoverContent: React.FC< {",
+    "102: \tquery: ProductCollectionQuery;"
+   ],
+   "expected_fields": [
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "woocommerce-228",
+   "repository": "woocommerce",
+   "word": "discounts",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "DiscountsUtil",
+   "kind": "class",
+   "language": "php",
+   "file": "plugins/woocommerce/src/Utilities/DiscountsUtil.php",
+   "line": 11,
+   "code": [
+    "10:  */",
+    "11: class DiscountsUtil {",
+    "12: "
+   ],
+   "expected_fields": [
+    "business-domains"
+   ]
+  },
+  {
+   "id": "woocommerce-229",
+   "repository": "woocommerce",
+   "word": "tax",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 24,
+   "identifier": "build_tax_query",
+   "kind": "method",
+   "language": "php",
+   "file": "packages/php/email-editor/src/Integrations/WooCommerce/Renderer/Blocks/class-product-collection.php",
+   "line": 420,
+   "code": [
+    "419: \t */",
+    "420: \tprivate function build_tax_query( array $tax_query_input ): array {",
+    "421: \t\t$tax_queries = array();"
+   ],
+   "expected_fields": [
+    "business-domains",
+    "databases-storage"
+   ]
+  },
+  {
+   "id": "woocommerce-230",
+   "repository": "woocommerce",
+   "word": "floor",
+   "group": "target",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "floorInBase",
+   "kind": "function",
+   "language": "javascript",
+   "file": "plugins/woocommerce/client/legacy/js/jquery-flot/jquery.flot.time.js",
+   "line": 24,
+   "code": [
+    "23: ",
+    "24: \tfunction floorInBase(n, base) {",
+    "25: \t\treturn base * Math.floor(n / base);"
+   ],
+   "expected_fields": [
+    "math-numerics"
+   ]
+  },
+  {
+   "id": "woocommerce-231",
+   "repository": "woocommerce",
+   "word": "speak",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "SPEAK",
+   "kind": "method",
+   "language": "typescript",
+   "file": "packages/js/notices/src/store/controls.ts",
+   "line": 12,
+   "code": [
+    "11: export default {",
+    "12: \tSPEAK( action: Action ) {",
+    "13: \t\tspeak( action.message, action.ariaLive || 'assertive' );"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "graphics-media",
+    "browser-platform"
+   ]
+  },
+  {
+   "id": "woocommerce-232",
+   "repository": "woocommerce",
+   "word": "stats",
+   "group": "multi",
+   "field_count": 4,
+   "is_recent": false,
+   "definition_count": 5,
+   "identifier": "do_stats",
+   "kind": "method",
+   "language": "php",
+   "file": "plugins/woocommerce/src/Internal/McStats.php",
+   "line": 41,
+   "code": [
+    "40: \t */",
+    "41: \tpublic function do_stats() {",
+    "42: \t\tif ( ! \\WC_Site_Tracking::is_tracking_enabled() ) {"
+   ],
+   "expected_fields": [
+    "observability-debugging",
+    "math-numerics",
+    "data-engineering"
+   ]
+  },
+  {
+   "id": "woocommerce-233",
+   "repository": "woocommerce",
+   "word": "editor",
+   "group": "multi",
+   "field_count": 5,
+   "is_recent": false,
+   "definition_count": 11,
+   "identifier": "isWidgetEditorPage",
+   "kind": "variable",
+   "language": "typescript",
+   "file": "plugins/woocommerce/client/blocks/assets/js/utils/is-widget-editor-page.ts",
+   "line": 6,
+   "code": [
+    "5: ",
+    "6: export const isWidgetEditorPage = ( store: unknown ): boolean => {",
+    "7: \tif ( isObject( store ) ) {"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "business-domains"
+   ]
+  },
+  {
+   "id": "woocommerce-234",
+   "repository": "woocommerce",
+   "word": "on close",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "onClose",
+   "kind": "function",
+   "language": "tsx",
+   "file": "plugins/woocommerce/client/admin/client/marketplace/components/install-flow/install-new-product-modal.tsx",
+   "line": 229,
+   "code": [
+    "228: ",
+    "229: \tfunction onClose() {",
+    "230: \t\tsetInstallStatus( InstallFlowStatus.notInstalled );"
+   ],
+   "expected_fields": [
+    "frontend-ui",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "woocommerce-235",
+   "repository": "woocommerce",
+   "word": "react testing library",
+   "group": "multi",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "reactTestingLibraryConfig",
+   "kind": "variable",
+   "language": "javascript",
+   "file": "packages/js/eslint-plugin/configs/custom.js",
+   "line": 10,
+   "code": [
+    "9:  */",
+    "10: const reactTestingLibraryConfig = require( './react-testing-library' );",
+    "11: "
+   ],
+   "expected_fields": [
+    "testing",
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "woocommerce-236",
+   "repository": "woocommerce",
+   "word": "keys",
+   "group": "multi",
+   "field_count": 8,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "legacy_keys",
+   "kind": "variable",
+   "language": "php",
+   "file": "plugins/woocommerce/includes/legacy/class-wc-legacy-customer.php",
+   "line": 22,
+   "code": [
+    "21: \tpublic function __isset( $key ) {",
+    "22: \t\t$legacy_keys = array(",
+    "23: \t\t\t'id',"
+   ],
+   "expected_fields": [
+    "algorithms-data-structures",
+    "general-wording",
+    "language-constructs"
+   ]
+  },
+  {
+   "id": "woocommerce-237",
+   "repository": "woocommerce",
+   "word": "settings page",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 5,
+   "identifier": "is_reactified_settings_page",
+   "kind": "method",
+   "language": "php",
+   "file": "plugins/woocommerce/includes/gateways/bacs/class-wc-gateway-bacs.php",
+   "line": 506,
+   "code": [
+    "505: \t */",
+    "506: \tprivate function is_reactified_settings_page(): bool {",
+    "507: \t\t// Search for a WC_Settings_Payment_Gateways instance in the settings pages."
+   ],
+   "expected_fields": [
+    "configuration",
+    "frontend-ui"
+   ]
+  },
+  {
+   "id": "woocommerce-238",
+   "repository": "woocommerce",
+   "word": "documentation url",
+   "group": "input",
+   "field_count": 1,
+   "is_recent": false,
+   "definition_count": 2,
+   "identifier": "documentationUrl",
+   "kind": "variable",
+   "language": "tsx",
+   "file": "plugins/woocommerce/client/admin/client/marketplace/components/install-flow/install-new-product-modal.tsx",
+   "line": 45,
+   "code": [
+    "44: \tconst [ activateUrl, setActivateUrl ] = useState< string >();",
+    "45: \tconst [ documentationUrl, setDocumentationUrl ] = useState< string >();",
+    "46: \tconst [ showModal, setShowModal ] = useState< boolean >( false );"
+   ],
+   "expected_fields": [
+    "docs-collaboration",
+    "browser-platform"
+   ]
+  },
+  {
+   "id": "woocommerce-239",
+   "repository": "woocommerce",
+   "word": "drive",
+   "group": "input",
+   "field_count": 2,
+   "is_recent": false,
+   "definition_count": 1,
+   "identifier": "test_drive_account",
+   "kind": "field",
+   "language": "typescript",
+   "file": "packages/js/data/src/payment-settings/types.ts",
+   "line": 84,
+   "code": [
+    "83: \ttest_mode: boolean;",
+    "84: \ttest_drive_account?: boolean;",
+    "85: \twpcom_has_working_connection?: boolean;"
+   ],
+   "expected_fields": [
+    "business-domains",
+    "general-wording"
+   ]
+  },
+  {
+   "id": "woocommerce-240",
+   "repository": "woocommerce",
+   "word": "image url",
+   "group": "input",
+   "field_count": 4,
+   "is_recent": false,
+   "definition_count": 6,
+   "identifier": "get_image_url",
+   "kind": "method",
+   "language": "php",
+   "file": "plugins/woocommerce/src/Admin/Features/OnboardingTasks/Tasks/StoreDetails.php",
+   "line": 26,
+   "code": [
+    "25: \t */",
+    "26: \tpublic function get_image_url() {",
+    "27: \t\treturn WC()->plugin_url() . '/assets/images/task_list/store-details-illustration.png';"
+   ],
+   "expected_fields": [
+    "graphics-media",
+    "browser-platform"
+   ]
+  }
+ ]
+}

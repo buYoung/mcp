@@ -141,7 +141,8 @@
             "namespace": "GroovyFlow",
             "enclosingSymbol": "callerGroovy",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

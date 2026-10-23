@@ -1358,7 +1358,7 @@ async fn a_failed_batch_stops_new_dispatch_but_keeps_completed_accounting() {
 #[test]
 fn evaluator_config_defaults_carry_the_initial_safety_policy() {
     let config = EvaluatorConfig::default();
-    assert_eq!(config.model, "jev-1.13.0");
+    assert_eq!(config.model, "jev-1.14.0");
     assert_eq!(config.max_in_flight_requests, 3);
     assert_eq!(config.request_spacing, Duration::from_millis(300));
     assert_eq!(config.max_batch_bytes, 168_000);

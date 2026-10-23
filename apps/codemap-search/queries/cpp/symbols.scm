@@ -77,6 +77,11 @@
     declarator: (identifier) @symbol.name) @symbol.const
   (#match? @constant.qualifier "^(const|constexpr)$"))
 
+;; Class/struct data members: related-terms evidence only (`member_names`), not symbols.
+;; The extractor skips method prototypes and other function declarators.
+(field_declaration
+  declarator: (_) @member.declarator)
+
 ;; String literals (including C++ raw string literals).
 (string_literal) @literal.string
 (raw_string_literal) @literal.string

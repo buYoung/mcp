@@ -82,7 +82,7 @@ MCP 클라이언트의 작업공간을 이 앱 또는 확인할 저장소로 지
 {"name":"grep","arguments":{"path":"src/config.rs","pattern":"pub fn load","view":"source","head_limit":1}}
 ```
 
-반환된 파일·행으로 `read`를 호출합니다. 원문만 필요하면 `view=source`, 선언만 필요하면 `definitions`, 관계만 필요하면 `relations`를 사용합니다. `expand=callable`은 함수를 통째로 읽으며 큰 함수는 `expand=none`과 줄 범위로 나눕니다. 상세 계약은 [탐색 출력](value-navigation.ko.md)에 있습니다.
+반환된 파일·행으로 `read`를 호출합니다. 원문이 필요하면 `view=source`(끝에 창 밖 호출자 요약이 붙을 수 있음), 선언만 필요하면 `definitions`, 관계만 필요하면 `relations`를 사용합니다. `expand=callable`은 함수를 통째로 읽으며 큰 함수는 `expand=none`과 줄 범위로 나눕니다. 상세 계약은 [탐색 출력](value-navigation.ko.md)에 있습니다.
 
 CLI의 직접 파일 파싱은 다음처럼 확인합니다.
 

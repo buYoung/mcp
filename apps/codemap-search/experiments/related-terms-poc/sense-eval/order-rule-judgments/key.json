@@ -1,0 +1,386 @@
+[
+ {
+  "id": 1,
+  "word": "--context",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 2,
+  "word": "--extras",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 3,
+  "word": "--global",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 4,
+  "word": "-b",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 5,
+  "word": "[[rules]]",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 6,
+  "word": "ability",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 7,
+  "word": "arrange",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 8,
+  "word": "binary format",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 9,
+  "word": "Cats",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 10,
+  "word": "CI runner",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 11,
+  "word": "container_name",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 12,
+  "word": "defn",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 13,
+  "word": "drm",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 14,
+  "word": "Duration.ofHours",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 15,
+  "word": "ebpf",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 16,
+  "word": "EJB",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 17,
+  "word": "entity resolution",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 18,
+  "word": "event.cancelable",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 19,
+  "word": "failure",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 20,
+  "word": "fuse.js",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 21,
+  "word": "generateIv",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 22,
+  "word": "GNU",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 23,
+  "word": "grouping",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 24,
+  "word": "hypotheses",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 25,
+  "word": "indexing",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 26,
+  "word": "inventory",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 27,
+  "word": "io.WriteCloser",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 28,
+  "word": "issued",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 29,
+  "word": "legacy database",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 30,
+  "word": "memory visibility",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 31,
+  "word": "message dispatcher",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 32,
+  "word": "MUI",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 33,
+  "word": "net.ipv4.ip_forward",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 34,
+  "word": "nlb",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 35,
+  "word": "npe",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 36,
+  "word": "of",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 37,
+  "word": "os thread",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 38,
+  "word": "probe",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 39,
+  "word": "process.env.PORT",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 40,
+  "word": "QoS=1",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 41,
+  "word": "query",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 42,
+  "word": "relative address",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 43,
+  "word": "rfc 7230",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 44,
+  "word": "score",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 45,
+  "word": "sendEmail",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 46,
+  "word": "sending",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 47,
+  "word": "sequencing",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 48,
+  "word": "setContext",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 49,
+  "word": "significance",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 50,
+  "word": "solved",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 51,
+  "word": "string literals",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 52,
+  "word": "stub implementation",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 53,
+  "word": "supporting",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 54,
+  "word": "sut",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 55,
+  "word": "toml.dump",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 56,
+  "word": "TopicRequestor",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 57,
+  "word": "transpiler",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 58,
+  "word": "TTransportException",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 59,
+  "word": "updater",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 60,
+  "word": "UseExceptionHandler",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 61,
+  "word": "utility belt",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 62,
+  "word": "verification",
+  "1": "A",
+  "2": "Amu"
+ },
+ {
+  "id": 63,
+  "word": "WhileNode",
+  "1": "Amu",
+  "2": "A"
+ },
+ {
+  "id": 64,
+  "word": "withTransaction",
+  "1": "A",
+  "2": "Amu"
+ }
+]

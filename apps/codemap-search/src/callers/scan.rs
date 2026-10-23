@@ -6,8 +6,11 @@ use grep::matcher::Matcher;
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkMatch};
 use std::cell::OnceCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use std::time::{Instant, UNIX_EPOCH};
+
+use crate::parser::ExtractedFile;
 
 use super::source::SourceSyntax;
 use super::symbols::{definition_is_compatible, language_family, SymbolIndex};
@@ -148,6 +151,60 @@ pub(super) fn is_ident_char(c: char) -> bool {
 pub(super) struct ScanResult {
     pub(super) hits: Vec<ScanHit>,
     pub(super) truncated_names: HashSet<String>,
+    /// The walk stopped at the scan deadline; every name is also truncated.
+    pub(super) is_past_deadline: bool,
+}
+
+/// Indexed files by path and the nanosecond modification stamp each had when extracted.
+pub(super) struct IndexedFiles<'a> {
+    pub(super) files: &'a HashMap<&'a str, &'a ExtractedFile>,
+    pub(super) mtime: &'a dyn Fn(&str) -> Option<u64>,
+}
+
+/// Shortcuts a scan whose caller only needs call sites may take.
+#[derive(Default)]
+pub(super) struct ScanOptions<'a> {
+    /// An unchanged indexed file whose recorded calls hold none of the scanned names is not
+    /// read: caller resolution confirms only calls that live extraction of that same source
+    /// finds, and non-call references are not wanted.
+    pub(super) unchanged_calls: Option<IndexedFiles<'a>>,
+    /// No further file is scanned after this instant.
+    pub(super) deadline: Option<Instant>,
+}
+
+/// Whether `display` is an indexed file that has not changed since extraction and records no
+/// call of any scanned name.
+fn records_no_scanned_call(
+    display: &str,
+    metadata: &std::fs::Metadata,
+    names: &HashSet<&str>,
+    options: &ScanOptions<'_>,
+) -> bool {
+    let Some(indexed) = &options.unchanged_calls else {
+        return false;
+    };
+    // Files outside source resolution become callers by name, so their text is needed.
+    if !super::resolution::supports(display) {
+        return false;
+    }
+    let Some(navigation) = indexed
+        .files
+        .get(display)
+        .and_then(|file| file.navigation.as_ref())
+    else {
+        return false;
+    };
+    let mtime = metadata
+        .modified()
+        .ok()
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+        .map(|elapsed| elapsed.as_nanos() as u64);
+    mtime.is_some()
+        && (indexed.mtime)(display) == mtime
+        && !navigation
+            .calls
+            .iter()
+            .any(|call| names.contains(call.name.as_str()))
 }
 
 /// Floor of the per-name scan budget. `scan_cap` divided across many names could leave
@@ -177,13 +234,17 @@ pub(super) fn scan_workspace(
     cfg: &CallerConfig,
     root: &Path,
     index: &SymbolIndex<'_>,
+    options: &ScanOptions<'_>,
 ) -> Option<ScanResult> {
     if names.is_empty() {
         return Some(ScanResult {
             hits: Vec::new(),
             truncated_names: HashSet::new(),
+            is_past_deadline: false,
         });
     }
+    let name_set: HashSet<&str> = names.iter().map(String::as_str).collect();
+    let mut is_past_deadline = false;
     let alternation = names
         .iter()
         .map(|n| escape_name(n))
@@ -226,6 +287,14 @@ pub(super) fn scan_workspace(
         .collect();
 
     for result in crate::workspace::build_walker(root, false).build() {
+        if options
+            .deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
+        {
+            is_past_deadline = true;
+            truncated.iter_mut().for_each(|t| *t = true);
+            break;
+        }
         let entry = match result {
             Ok(e) => e,
             Err(_) => continue,
@@ -243,13 +312,15 @@ pub(super) fn scan_workspace(
         {
             continue;
         }
-        match std::fs::metadata(path) {
+        let metadata = match std::fs::metadata(path) {
             Ok(meta) if meta.len() > cfg.max_file_size => continue,
-            Ok(_) => {}
+            Ok(meta) => meta,
             Err(_) => continue,
-        }
-        let display = crate::workspace::workspace_display_path(path, &canonical_root, &raw_root);
-        if test_filter.is_file_excluded(&display) || !index.can_attribute_calls(&display) {
+        };
+        let display = crate::workspace::walk_entry_display_path(&entry, &canonical_root, &raw_root);
+        if test_filter.is_file_excluded(&display)
+            || records_no_scanned_call(&display, &metadata, &name_set, options)
+        {
             continue;
         }
         let Ok(mut source) = std::fs::read(path) else {
@@ -292,6 +363,7 @@ pub(super) fn scan_workspace(
     Some(ScanResult {
         hits: all_hits,
         truncated_names,
+        is_past_deadline,
     })
 }
 

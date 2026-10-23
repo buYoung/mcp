@@ -653,16 +653,15 @@ impl Interpreter<'_, '_> {
         let Some((namespace, short)) = qualified.rsplit_once('.') else {
             return false;
         };
-        if self.analyzer.program.types.keys().any(|(path, n)| {
-            n == short
-                && (path == &self.source.path
-                    || self
-                        .analyzer
-                        .program
-                        .namespaces
-                        .get(path)
-                        .is_some_and(|ns| ns == namespace))
-        }) {
+        let program = self.analyzer.program;
+        if program
+            .types
+            .contains_key(&(self.source.path.clone(), short.to_owned()))
+            || program
+                .type_index
+                .by_namespace_name
+                .contains_key(&(namespace.to_owned(), short.to_owned()))
+        {
             return false;
         }
         let spelling = std::iter::once(name)

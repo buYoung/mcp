@@ -125,8 +125,17 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
 
     let resolved = resolve_for_filesystem_tool(file_path, FilesystemTool::Read)?;
 
-    let metadata = std::fs::metadata(&resolved)
-        .map_err(|e| (-32602, format!("Cannot read '{file_path}': {e}")))?;
+    let metadata = std::fs::metadata(&resolved).map_err(|e| {
+        let suggestions = if e.kind() == std::io::ErrorKind::NotFound {
+            super::path_suggestions::note(&resolved)
+        } else {
+            String::new()
+        };
+        (
+            -32602,
+            format!("Cannot read '{file_path}': {e}{suggestions}"),
+        )
+    })?;
 
     if metadata.is_dir() {
         return Err((
@@ -283,6 +292,7 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         text: rendered,
         anchors,
         notices,
+        should_list_outside_callers: crate::config::get().is_read_outside_callers_enabled,
         ..LiveOutput::default()
     };
     if let Some(anchor) = output.anchors.first() {

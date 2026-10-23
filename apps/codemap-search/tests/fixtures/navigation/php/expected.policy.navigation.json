@@ -68,7 +68,8 @@
             "namespace": "",
             "enclosingSymbol": "allow",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }

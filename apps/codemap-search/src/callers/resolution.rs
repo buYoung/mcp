@@ -24,6 +24,17 @@ pub(crate) struct Target<'a> {
     pub is_precise: bool,
 }
 
+/// How the calls recorded at one scanned line relate to a declaration.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum CallerMatch {
+    /// A call at the line resolves to the declaration.
+    Target,
+    /// A call at the line has a receiver or binding that source resolution cannot confirm.
+    Unresolved,
+    /// Every call at the line resolves elsewhere, or no call is recorded there.
+    Other,
+}
+
 struct Source {
     text: String,
     syntax: SourceSyntax,
@@ -36,12 +47,32 @@ pub(crate) struct SourceResolver<'a> {
     root: &'a Path,
     names: HashMap<&'a str, Vec<Target<'a>>>,
     sources: RefCell<HashMap<String, Option<Rc<Source>>>>,
-    manifests: RefCell<HashMap<PathBuf, Option<toml::Value>>>,
+    manifests: RefCell<HashMap<PathBuf, Option<Rc<toml::Value>>>>,
+    /// Indexed files by the paths lookups named, since each lookup resolves links on disk.
+    file_lookups: RefCell<HashMap<PathBuf, Option<&'a ExtractedFile>>>,
+    /// The nearest manifest of each name above each starting directory.
+    nearest_files: RefCell<HashMap<(PathBuf, String), Option<PathBuf>>>,
     test_filter: super::test_code::TestCodeFilter,
     target_os: Option<String>,
     file_conditions: RefCell<HashMap<String, Condition>>,
     stored_sources: Option<&'a HashMap<String, String>>,
     dependency_ranges: RefCell<Vec<(String, CodeRange)>>,
+    /// Nearest tsconfig module-path settings per importing directory.
+    module_paths: RefCell<HashMap<PathBuf, Option<Rc<local::ModulePaths>>>>,
+    /// Names of indexed type declarations, built on first use.
+    type_names: RefCell<Option<Rc<HashSet<&'a str>>>>,
+    /// Indexed Dart libraries by their path below `lib/`, built on first use.
+    dart_libraries: RefCell<Option<Rc<crate::implementations::DartLibraries>>>,
+    /// Lookups for calls into other files, built on first use.
+    module_lookups: RefCell<Option<Rc<local::ModuleLookups<'a>>>>,
+    /// Declarations each module exports by name, followed through re-exports.
+    export_origins: RefCell<HashMap<(String, String), local::ExportLookup<'a>>>,
+    /// Workspace package manifests by declared name, read on first use.
+    workspace_packages: RefCell<Option<Rc<local::WorkspacePackages>>>,
+    /// Typed member calls proven by the implementation index of the same snapshot.
+    implementations: Option<&'a crate::implementations::ImplementationIndex>,
+    /// Whether each proof file still holds the indexed source generation.
+    indexed_generations: RefCell<HashMap<String, bool>>,
 }
 
 pub(crate) fn supports(path: &str) -> bool {
@@ -245,12 +276,31 @@ impl<'a> SourceResolver<'a> {
             names,
             sources: RefCell::new(HashMap::new()),
             manifests: RefCell::new(HashMap::new()),
+            file_lookups: RefCell::new(HashMap::new()),
+            nearest_files: RefCell::new(HashMap::new()),
             test_filter: super::test_code::TestCodeFilter::from_config(root),
             target_os: crate::config::get().analysis_target_os.clone(),
             file_conditions: RefCell::new(HashMap::new()),
             stored_sources: None,
             dependency_ranges: RefCell::new(Vec::new()),
+            module_paths: RefCell::new(HashMap::new()),
+            type_names: RefCell::new(None),
+            dart_libraries: RefCell::new(None),
+            module_lookups: RefCell::new(None),
+            export_origins: RefCell::new(HashMap::new()),
+            workspace_packages: RefCell::new(None),
+            implementations: None,
+            indexed_generations: RefCell::new(HashMap::new()),
         }
+    }
+
+    /// Also resolve typed member calls proven by `index`, built from the same `files`.
+    pub(crate) fn with_implementations(
+        mut self,
+        index: &'a crate::implementations::ImplementationIndex,
+    ) -> Self {
+        self.implementations = Some(index);
+        self
     }
 
     pub(crate) fn from_stored_sources(
@@ -367,13 +417,25 @@ impl<'a> SourceResolver<'a> {
     }
 
     fn file(&self, path: &Path) -> Option<&'a ExtractedFile> {
+        if let Some(found) = self.file_lookups.borrow().get(path) {
+            return *found;
+        }
         let key = crate::workspace::workspace_relative_key(path, self.root);
-        self.files_by_path.get(key.as_str()).copied()
+        let found = self.files_by_path.get(key.as_str()).copied();
+        self.file_lookups
+            .borrow_mut()
+            .insert(path.to_path_buf(), found);
+        found
     }
 
     fn nearest(&self, path: &str, name: &str) -> Option<PathBuf> {
-        let mut directory = self.root.join(path).parent()?.to_path_buf();
-        loop {
+        let start = self.root.join(path).parent()?.to_path_buf();
+        let key = (start, name.to_string());
+        if let Some(found) = self.nearest_files.borrow().get(&key) {
+            return found.clone();
+        }
+        let mut directory = key.0.clone();
+        let found = loop {
             let candidate = directory.join(name);
             let exists = self.stored_sources.map_or_else(
                 || candidate.is_file(),
@@ -384,24 +446,29 @@ impl<'a> SourceResolver<'a> {
                 },
             );
             if exists {
-                return Some(directory.join(name));
+                break Some(directory.join(name));
             }
             if directory == self.root || !directory.starts_with(self.root) || !directory.pop() {
-                return None;
+                break None;
             }
-        }
+        };
+        self.nearest_files.borrow_mut().insert(key, found.clone());
+        found
     }
 
-    fn manifest(&self, path: &Path) -> Option<toml::Value> {
-        self.record_dependency(
-            &crate::workspace::workspace_relative_key(path, self.root),
-            &CodeRange {
-                start_line: 1,
-                start_col: 1,
-                end_line: 1,
-                end_col: 1,
-            },
-        );
+    fn manifest(&self, path: &Path) -> Option<Rc<toml::Value>> {
+        // Only stored sources record dependencies, so live lookups skip resolving the key.
+        if self.stored_sources.is_some() {
+            self.record_dependency(
+                &crate::workspace::workspace_relative_key(path, self.root),
+                &CodeRange {
+                    start_line: 1,
+                    start_col: 1,
+                    end_line: 1,
+                    end_col: 1,
+                },
+            );
+        }
         if let Some(value) = self.manifests.borrow().get(path) {
             return value.clone();
         }
@@ -411,7 +478,9 @@ impl<'a> SourceResolver<'a> {
                 .cloned(),
             None => std::fs::read_to_string(path).ok(),
         };
-        let value = content.and_then(|text| toml::from_str(&text).ok());
+        let value = content
+            .and_then(|text| toml::from_str(&text).ok())
+            .map(Rc::new);
         self.manifests
             .borrow_mut()
             .insert(path.to_path_buf(), value.clone());
@@ -688,26 +757,37 @@ impl<'a> SourceResolver<'a> {
             .map(|symbol| super::qualified_name(symbol, &file.file_path))
     }
 
-    pub(super) fn matches_caller(
+    pub(super) fn caller_match(
         &self,
         file: &ExtractedFile,
         name: &str,
         line: usize,
         target_file: &str,
         target: &ExtractedSymbol,
-    ) -> bool {
-        self.calls(file)
-            .iter()
-            .filter(|call| {
-                call.name == name && call.range.start_line <= line && line <= call.range.end_line
-            })
-            .any(|call| {
-                self.resolve_call(file, call).is_some_and(|resolved| {
-                    resolved.file.file_path == target_file
+    ) -> CallerMatch {
+        let mut is_unresolved = false;
+        for call in self.calls(file).iter().filter(|call| {
+            call.name == name && call.range.start_line <= line && line <= call.range.end_line
+        }) {
+            match self.resolve_call(file, call) {
+                Some(resolved)
+                    if resolved.file.file_path == target_file
                         && resolved.symbol.range == target.range
-                        && resolved.symbol.name == target.name
-                })
-            })
+                        && resolved.symbol.name == target.name =>
+                {
+                    return CallerMatch::Target;
+                }
+                Some(_) => {}
+                // Source evidence that the call reaches another definition is not a doubt.
+                None if self.rules_out_local_call(file, call, target_file, target) => {}
+                None => is_unresolved = true,
+            }
+        }
+        if is_unresolved {
+            CallerMatch::Unresolved
+        } else {
+            CallerMatch::Other
+        }
     }
 
     fn lookup(
@@ -1120,7 +1200,12 @@ impl<'a> SourceResolver<'a> {
     pub(crate) fn resolve_call(&self, file: &ExtractedFile, call: &CallSite) -> Option<Target<'a>> {
         let file = self.files_by_path.get(file.file_path.as_str()).copied()?;
         if local::supports(&file.file_path) {
-            return self.resolve_local_call(file, call);
+            // Members of the enclosing type take precedence over functions of other files.
+            return self
+                .resolve_local_call(file, call)
+                .or_else(|| self.cpp_member_call(file, call))
+                .or_else(|| self.dispatched_call(file, call))
+                .or_else(|| self.module_function(file, call));
         }
         let source = self.source(&file.file_path)?;
         let node = node_at(&source, &call.range)?;

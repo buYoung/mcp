@@ -1,0 +1,322 @@
+[
+ {
+  "id": 1,
+  "word": "--context",
+  "choice": "2"
+ },
+ {
+  "id": 2,
+  "word": "--extras",
+  "choice": "1"
+ },
+ {
+  "id": 3,
+  "word": "--global",
+  "choice": "1"
+ },
+ {
+  "id": 4,
+  "word": "-b",
+  "choice": "2"
+ },
+ {
+  "id": 5,
+  "word": "[[rules]]",
+  "choice": "1"
+ },
+ {
+  "id": 6,
+  "word": "ability",
+  "choice": "2"
+ },
+ {
+  "id": 7,
+  "word": "arrange",
+  "choice": "2"
+ },
+ {
+  "id": 8,
+  "word": "binary format",
+  "choice": "1"
+ },
+ {
+  "id": 9,
+  "word": "Cats",
+  "choice": "2"
+ },
+ {
+  "id": 10,
+  "word": "CI runner",
+  "choice": "2"
+ },
+ {
+  "id": 11,
+  "word": "container_name",
+  "choice": "2"
+ },
+ {
+  "id": 12,
+  "word": "defn",
+  "choice": "2"
+ },
+ {
+  "id": 13,
+  "word": "drm",
+  "choice": "1"
+ },
+ {
+  "id": 14,
+  "word": "Duration.ofHours",
+  "choice": "1"
+ },
+ {
+  "id": 15,
+  "word": "ebpf",
+  "choice": "1"
+ },
+ {
+  "id": 16,
+  "word": "EJB",
+  "choice": "2"
+ },
+ {
+  "id": 17,
+  "word": "entity resolution",
+  "choice": "1"
+ },
+ {
+  "id": 18,
+  "word": "event.cancelable",
+  "choice": "1"
+ },
+ {
+  "id": 19,
+  "word": "failure",
+  "choice": "2"
+ },
+ {
+  "id": 20,
+  "word": "fuse.js",
+  "choice": "1"
+ },
+ {
+  "id": 21,
+  "word": "generateIv",
+  "choice": "same"
+ },
+ {
+  "id": 22,
+  "word": "GNU",
+  "choice": "2"
+ },
+ {
+  "id": 23,
+  "word": "grouping",
+  "choice": "2"
+ },
+ {
+  "id": 24,
+  "word": "hypotheses",
+  "choice": "2"
+ },
+ {
+  "id": 25,
+  "word": "indexing",
+  "choice": "1"
+ },
+ {
+  "id": 26,
+  "word": "inventory",
+  "choice": "2"
+ },
+ {
+  "id": 27,
+  "word": "io.WriteCloser",
+  "choice": "2"
+ },
+ {
+  "id": 28,
+  "word": "issued",
+  "choice": "1"
+ },
+ {
+  "id": 29,
+  "word": "legacy database",
+  "choice": "same"
+ },
+ {
+  "id": 30,
+  "word": "memory visibility",
+  "choice": "same"
+ },
+ {
+  "id": 31,
+  "word": "message dispatcher",
+  "choice": "2"
+ },
+ {
+  "id": 32,
+  "word": "MUI",
+  "choice": "same"
+ },
+ {
+  "id": 33,
+  "word": "net.ipv4.ip_forward",
+  "choice": "2"
+ },
+ {
+  "id": 34,
+  "word": "nlb",
+  "choice": "2"
+ },
+ {
+  "id": 35,
+  "word": "npe",
+  "choice": "1"
+ },
+ {
+  "id": 36,
+  "word": "of",
+  "choice": "2"
+ },
+ {
+  "id": 37,
+  "word": "os thread",
+  "choice": "1"
+ },
+ {
+  "id": 38,
+  "word": "probe",
+  "choice": "1"
+ },
+ {
+  "id": 39,
+  "word": "process.env.PORT",
+  "choice": "2"
+ },
+ {
+  "id": 40,
+  "word": "QoS=1",
+  "choice": "1"
+ },
+ {
+  "id": 41,
+  "word": "query",
+  "choice": "1"
+ },
+ {
+  "id": 42,
+  "word": "relative address",
+  "choice": "2"
+ },
+ {
+  "id": 43,
+  "word": "rfc 7230",
+  "choice": "1"
+ },
+ {
+  "id": 44,
+  "word": "score",
+  "choice": "2"
+ },
+ {
+  "id": 45,
+  "word": "sendEmail",
+  "choice": "2"
+ },
+ {
+  "id": 46,
+  "word": "sending",
+  "choice": "1"
+ },
+ {
+  "id": 47,
+  "word": "sequencing",
+  "choice": "2"
+ },
+ {
+  "id": 48,
+  "word": "setContext",
+  "choice": "same"
+ },
+ {
+  "id": 49,
+  "word": "significance",
+  "choice": "1"
+ },
+ {
+  "id": 50,
+  "word": "solved",
+  "choice": "1"
+ },
+ {
+  "id": 51,
+  "word": "string literals",
+  "choice": "2"
+ },
+ {
+  "id": 52,
+  "word": "stub implementation",
+  "choice": "2"
+ },
+ {
+  "id": 53,
+  "word": "supporting",
+  "choice": "1"
+ },
+ {
+  "id": 54,
+  "word": "sut",
+  "choice": "2"
+ },
+ {
+  "id": 55,
+  "word": "toml.dump",
+  "choice": "2"
+ },
+ {
+  "id": 56,
+  "word": "TopicRequestor",
+  "choice": "2"
+ },
+ {
+  "id": 57,
+  "word": "transpiler",
+  "choice": "same"
+ },
+ {
+  "id": 58,
+  "word": "TTransportException",
+  "choice": "2"
+ },
+ {
+  "id": 59,
+  "word": "updater",
+  "choice": "2"
+ },
+ {
+  "id": 60,
+  "word": "UseExceptionHandler",
+  "choice": "1"
+ },
+ {
+  "id": 61,
+  "word": "utility belt",
+  "choice": "1"
+ },
+ {
+  "id": 62,
+  "word": "verification",
+  "choice": "2"
+ },
+ {
+  "id": 63,
+  "word": "WhileNode",
+  "choice": "2"
+ },
+ {
+  "id": 64,
+  "word": "withTransaction",
+  "choice": "1"
+ }
+]

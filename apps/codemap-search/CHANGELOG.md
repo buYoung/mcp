@@ -6,6 +6,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-23
+
+### Added
+
+- Added up to three workspace path suggestions when `read`, `grep`, or `find` targets a missing path.
+- Added cross-file matches for string keys and uppercase constants used as call arguments in `read view=source`; indexes rebuild once.
+- Added `auto`/`on`/`off` indexing modes; `auto` starts on demand and skips non-repository folders or workspaces over a configurable file-count limit.
+
+### Improved
+
+- Linked C/C++ header declarations to unique definitions and their callers, including calls through indirect includes.
+- Resolved C++ member calls through `this`, typed variables, and class names, excluding overloads and inheritance.
+- Limited C/C++ macro reprocessing to files whose inputs changed.
+- Reduced analysis time during initial indexing of large repositories.
+- Explained omitted caller summaries with index status, file status, or timeout details.
+- Reduced repeated warnings and backed off failed background index updates to retry at intervals of up to 30 seconds.
+
+### Fixed
+
+- Fixed `initial_instructions` errors from older clients by ignoring legacy arguments.
+- Fixed obsolete index files accumulating on disk after updates.
+- Fixed missing caller summaries and false stale-result warnings while another process writes to the shared index.
+- Restored caller information in C/C++ files with macro expansion enabled.
+- Fixed unnecessary index updates from ignored file changes, while preserving updates needed for C/C++ macro expansion.
+- Fixed nested repositories losing indexed files because of a parent repository's ignore rules.
+- Fixed outdated generated config comments during upgrades while preserving their language and existing settings.
+- Fixed search errors for queries such as `symbol:*` by falling back to plain-term search.
+
+### Changed
+
+- Changed default `read`, `grep`, and `find` access from `workspace` to `anywhere`, leaving existing settings unchanged.
+- Hid `register_task` from the tool list when all Jev filters are disabled; direct calls still work.
+
+## [0.12.0] - 2026-10-21
+
+### Added
+
+- Added an opt-in `synonyms` tool with a local dictionary that ranks meanings by how terms are used in your codebase.
+- Added caller summaries beyond the displayed range in `read view=source`, with `[output.read].is_outside_callers_enabled` to turn them off.
+- Added client-wide code navigation instructions management, with injected guidance in English.
+
+### Improved
+
+- Improved caller and callee detection for typed method calls and for functions imported from other files.
+- Followed re-exports in TypeScript, JavaScript, Python, and Dart to resolve calls to their original declarations.
+- Resolved JS/TS workspace package imports to source entry points, including `exports` subpaths.
+- Limited caller summary lookups to 250ms per read, keeping callers found so far and noting when the limit is reached.
+- Reduced data-file search output by showing counts for unmatched keys and limiting source text.
+
+### Fixed
+
+- Fixed long `else if` chains preventing an entire repository's index from updating.
+- Fixed secret masking hiding code after operators and missing values assigned in short variable declarations.
+
+### Changed
+
+- Moved task registration from `initial_instructions` to the new `register_task` tool; `initial_instructions` now takes no arguments.
+- Triggered a one-time automatic rebuild of existing indexes for expanded caller detection and codebase evidence.
+
 ## [0.11.0] - 2026-09-28
 
 ### Added

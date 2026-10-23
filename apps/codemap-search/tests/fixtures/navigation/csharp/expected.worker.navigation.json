@@ -120,7 +120,8 @@
             "namespace": "Worker",
             "enclosingSymbol": "Run",
             "argumentCount": 0,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           },
           {
             "name": "Process",
@@ -143,7 +144,8 @@
             "namespace": "Worker",
             "enclosingSymbol": "Run",
             "argumentCount": 1,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           },
           {
             "name": "Ack",
@@ -166,7 +168,8 @@
             "namespace": "Worker",
             "enclosingSymbol": "Run",
             "argumentCount": 1,
-            "conditions": []
+            "conditions": [],
+            "receiverKind": "value"
           }
         ]
       }
