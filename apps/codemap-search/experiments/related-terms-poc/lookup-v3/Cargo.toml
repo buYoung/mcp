@@ -16,11 +16,11 @@ codemap-search = { path = "../../.." }
 # Versions match apps/codemap-search/Cargo.lock so the experiment reads the same index format
 # and links the same bundled SQLite as the product. Tantivy's default `stemmer` feature
 # provides the Snowball English stemmer used for `word_stems`.
-tantivy = "=0.26.2"
+tantivy = "=0.27.0"
 rusqlite = { version = "=0.40.2", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "=1.0.151"
-sha2 = "=0.11.0"
+serde_json = "=1.0.154"
+sha2 = "=0.11.1"
 
 [profile.release]
 opt-level = 3
