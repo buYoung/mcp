@@ -159,10 +159,10 @@ rules = []
 exceptions = []
 
 [output.jev]
-# TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
+# decision 모델(TypeSafe Jev 또는 OpenRouter)로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
 # 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
-# TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
-# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
+# API 키는 여기가 아닌 auth.toml의 [jev].api_key(TypeSafe) 또는 [openrouter].api_key에 저장하세요.
+# 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY 환경 변수를 사용합니다.
 
 # 모든 Jev 출력 필터를 켜거나 끕니다. false이면 모든 도구가 로컬로 동작합니다.
 enabled = false
@@ -171,8 +171,15 @@ enabled = false
 # 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
 scope = ["overview", "search", "read", "grep"]
 
-# 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
-model = "jev-1.13.0"
+# 사용할 decision 모델입니다(기본 jev-1.14.0). Jev 버전은 TypeSafe를, 제작자/모델 ID는
+# OpenRouter Decisions API만 사용하며 decision을 지원하지 않는 모델은 거부됩니다. 별칭은 쓸 수 없습니다.
+# OpenRouter decision 모델(컨텍스트 64k 이상):
+#   openai/gpt-6-luna-decisions, typesafe/jev-1.14, typesafe/jev-1.13,
+#   perplexity/pplx-decider-v1.2, perplexity/pplx-decider-flash-v1.2,
+#   nace-ai/drex-max, nace-ai/drex-v2.0, nace-ai/drex-v1.5, respan/span-02,
+#   upstage/solar-decide, upstage/solar-decide-flash, cloudflare/clef,
+#   cloudflare/clef-omni, liquid/d1, inception/mercury-decide
+model = "jev-1.14.0"
 
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 timeout_ms = 45000

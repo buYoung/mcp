@@ -84,6 +84,7 @@ pub fn run_cli(args: &[&str], cwd: &Path) -> assert_cmd::assert::Assert {
     cmd.current_dir(cwd)
         .env("CODEMAP_HOME", cwd)
         .env_remove("TYPESAFE_API_KEY")
+        .env_remove("OPENROUTER_API_KEY")
         .args(args)
         .assert()
 }
@@ -109,6 +110,7 @@ impl McpClient {
             // Hermetic global config home — never read the developer's real ~/.codemap.
             .env("CODEMAP_HOME", cwd)
             .env_remove("TYPESAFE_API_KEY")
+            .env_remove("OPENROUTER_API_KEY")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit()) // Keeps logging / errors visible in test logs
@@ -458,6 +460,7 @@ pub async fn with_in_process_server_logging<F, Fut>(
 {
     let _serialized = IN_PROCESS.lock().await;
     std::env::remove_var("TYPESAFE_API_KEY");
+    std::env::remove_var("OPENROUTER_API_KEY");
     std::env::set_var("CODEMAP_HOME", cwd);
     std::env::set_current_dir(cwd).expect("set the workspace as the current directory");
     ensure_repository_marker(cwd);

@@ -10,7 +10,7 @@ use super::batch::{pack, Batch, BatchLimits};
 use super::question::{EvaluationRequest, Question, QuestionId};
 use super::transport::{HttpsSettings, HttpsTransport, SecretString, Transport, TransportResponse};
 use super::{
-    BoxFuture, CancelToken, Evaluator, JevError, DEFAULT_MODEL, MAX_BATCHES_PER_REQUEST,
+    BoxFuture, CancelToken, Evaluator, JevError, Provider, DEFAULT_MODEL, MAX_BATCHES_PER_REQUEST,
     MAX_BATCH_BYTES, MAX_IN_FLIGHT_REQUESTS, MAX_RESPONSE_BODY_BYTES, MIN_REQUEST_SPACING,
 };
 use serde_json::Value;
@@ -26,7 +26,8 @@ use tokio::time::Instant;
 /// initial safety policy; a host may only tighten them (see [`EvaluatorConfig::validate`]).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EvaluatorConfig {
-    /// Concrete provider model; validated against every response.
+    /// Concrete provider model; validated against every response. The ID also selects the
+    /// provider ([`Provider::for_model`]).
     pub model: String,
     /// HTTP requests in flight at once: `1..=MAX_IN_FLIGHT_REQUESTS`.
     pub max_in_flight_requests: usize,
@@ -77,6 +78,9 @@ impl EvaluatorConfig {
         if self.model.trim().is_empty() {
             return Err(JevError::InvalidConfig("model is empty".into()));
         }
+        Provider::for_model(&self.model)
+            .validate_model(&self.model)
+            .map_err(JevError::InvalidConfig)?;
         if self.max_in_flight_requests == 0 || self.max_in_flight_requests > MAX_IN_FLIGHT_REQUESTS
         {
             return Err(JevError::InvalidConfig(format!(
@@ -149,13 +153,15 @@ impl JevEvaluator {
         })
     }
 
-    /// The production constructor: credentials resolved by the caller, HTTPS transport.
+    /// The production constructor: credentials resolved by the caller for the provider the
+    /// configured model selects, HTTPS transport to that provider's endpoint.
     pub fn https(
         api_key: SecretString,
         config: EvaluatorConfig,
         settings: HttpsSettings,
     ) -> Result<Self, JevError> {
-        let transport = HttpsTransport::new(api_key, settings)?;
+        let transport =
+            HttpsTransport::for_provider(Provider::for_model(&config.model), api_key, settings)?;
         Self::new(Arc::new(transport), config)
     }
 
@@ -591,7 +597,7 @@ fn validate_answers(
         .get("model")
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("'model' must be a string"))?;
-    if actual_model != model {
+    if !Provider::for_model(model).is_requested_model(model, actual_model) {
         return Err(JevError::ModelMismatch {
             expected: model.into(),
             actual: actual_model.into(),
