@@ -20,7 +20,7 @@ related-terms-eval = []
 clap = { version = "4.6", features = ["derive"] }
 
 # Tree-sitter AST extraction
-tree-sitter = "0.27"
+tree-sitter = "0.26"
 tree-sitter-rust = "0.24"
 tree-sitter-typescript = "0.23"
 tree-sitter-javascript = "0.25"
@@ -187,5 +187,5 @@ blake3 = "1.8.7"
 cc = "1.2"
 # tree-sitter-sequel requires cc 1.2.x, whose Windows tempfile code expects a u32
 # FILE_ATTRIBUTE_TEMPORARY. find-msvc-tools 0.1.13 changed it to i32.
-find-msvc-tools = "=0.1.15"
+find-msvc-tools = "=0.1.12"
 flate2 = "1.1"

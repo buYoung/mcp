@@ -34,10 +34,10 @@ fn remove_unreferenced(index: &Index, path: &Path) -> Result<(usize, u64), Strin
         .acquire_lock(&META_LOCK)
         .map_err(|error| error.to_string())?;
     let live: HashSet<String> = index
-        .searchable_segment_metas()
+        .load_metas()
         .map_err(|error| error.to_string())?
-        .iter()
-        .flat_map(|meta| meta.list_files())
+        .list_segment_files()
+        .into_iter()
         .filter_map(|file| file.to_str().map(str::to_owned))
         .collect();
     // Files tantivy still tracks are its own to collect.
