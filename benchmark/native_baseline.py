@@ -14,12 +14,14 @@ def configuration(source: Path, rg_binary: Path) -> dict:
     source, rg_binary = source.resolve(), rg_binary.resolve()
     search_path = str(rg_binary.parent) + os.pathsep + os.environ.get("PATH", os.defpath)
     prefix = f"permissions.{PROFILE}"
+    from .isolation import METADATA
     return {"schema": "grafana-native-agent-v1", "mode": "native_agent", "source": str(source),
             "rg_binary": str(rg_binary), "rg_sha256": file_digest(rg_binary), "search_product_mcp": False,
             "env": {"PATH": search_path},
             "config": {"default_permissions": PROFILE,
                        f"{prefix}.filesystem": {":root": "deny", ":minimal": "read",
-                                                str(source): "read", str(rg_binary.parent): "read"},
+                                                str(source): "read", str(rg_binary.parent): "read",
+                                                **{str(source / name): "deny" for name in sorted(METADATA)}},
                        f"{prefix}.network.enabled": False,
                        "shell_environment_policy.set.PATH": search_path},
             "native_tools": "Codex defaults; no shell/unified_exec/code_mode override",
@@ -61,9 +63,14 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     cases = [("source_read", ["/bin/cat", "README.md"], True),
              ("native_rg", ["/bin/sh", "-c", 'command -v rg && rg --version && rg Grafana README.md'], True),
              ("native_rg_login", [os.environ.get("SHELL", "/bin/sh"), "-lc", 'command -v rg && rg --version && rg Grafana README.md'], True)]
-    cases.extend((f"outside_read_{i}", ["/bin/cat", str(path)], False) for i, path in enumerate(denied_paths))
+    # Never read real answer/session files to test denial: use disposable stand-ins instead.
+    from .isolation import canary_files, hidden_references
     scratch = source / ".benchmark-write-boundary-probe"
     require(not scratch.exists(), "write probe path already exists")
+    canaries = canary_files(source, folder / "boundary")
+    _, targets = canaries.__enter__()
+    cases.extend(("canary_" + name, ["/bin/cat", str(path)], False)
+                 for name, path in targets.items())
     cases.append(("source_write", ["/usr/bin/touch", str(scratch)], False))
     observations = []
     try:
@@ -84,6 +91,11 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     finally:
         if scratch.exists():
             scratch.unlink()  # Only this probe's empty, uniquely named file.
+        canaries.__exit__(None, None, None)
+    for path in dict.fromkeys([*denied_paths, *hidden_references()]):
+        result = subprocess.run(base + ["/bin/test", "-e", str(path)], cwd=source, env=env, capture_output=True, timeout=30)
+        observations.append({"name": "existence_only", "path": str(path), "exists": result.returncode == 0})
+    write_json(folder / "probe.json", observations)
     inventory = {"mode": "native_agent", "codex_version": command(["codex", "--version"]).strip(),
                  "configuration": value, "search_product_mcp": False,
                  "tool_inventory_observation": "No solver was launched; actual model tool inventory is unobserved.",
@@ -91,6 +103,6 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     write_json(folder / "inventory.json", inventory)
     return {"native_inventory": str(folder / "inventory.json"), "native_inventory_sha256": file_digest(folder / "inventory.json"),
             "native_agent": value, "relay_settings": None, "tool_condition": "native_agent_baseline",
-            "auxiliary_necessity": [], "probes": [{"name": r["name"], "exit_code": r["exit_code"], "expected_access": r["expected_access"]} for r in observations],
+            "auxiliary_necessity": [], "probes": observations,
             "probe_log": str(folder / "probe.json"), "probe_log_sha256": file_digest(folder / "probe.json"),
             "cleanup": {"frontend": {"complete": True}, "daemon": {"shared_daemon": False, "mode": "no server"}}}

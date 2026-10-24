@@ -10,7 +10,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 import tomllib
 from pathlib import Path
@@ -20,7 +19,6 @@ from .tool_artifacts import clean_environment, load_artifacts, run_logged, tree_
 from .core import command, digest, file_digest, read_json, read_jsonl, require, write_json
 from .runner import copy_source
 
-WORKSPACES = routes.PREPARATION / "workspaces"
 CORPUS = routes.PREPARATION / "corpus.json"
 BASELINES = routes.PREPARATION / "baselines"
 ZVEC_PORT = 19700
@@ -28,16 +26,12 @@ CBM_UI_PORT = 19701
 
 
 def workspace_root(ident: str) -> Path:
+    require(ident in routes.ARM_IDS, "알려지지 않은 arm")
+    root = settings.CACHE.resolve() / digest({"workspace_revision": 2, "arm": ident})[:16]
     if ident == "serena":
-        # LSP dependency resolution walks parent directories. Keep the corpus out of
-        # the harness repository so its node_modules cannot become Grafana dependencies.
-        parent = (settings.CACHE if not settings.CACHE.is_relative_to(settings.REPOSITORY)
-                  else Path(tempfile.gettempdir()).resolve())
-        root = parent / f"codemap-benchmark-{digest(str(settings.REPOSITORY))[:12]}"
         require(not any((path / "node_modules").exists() for path in [root, *root.parents]),
-                "Serena에 상위 node_modules와 격리된 별도 TMPDIR이 필요합니다")
-        return root / ident
-    return WORKSPACES / ident
+                "Serena에 상위 node_modules와 격리된 CODEMAP_BENCH_CACHE가 필요합니다")
+    return root
 
 
 def tracked_manifest(source: Path, inventory: dict | None = None) -> dict:
@@ -109,6 +103,8 @@ def workspace(ident: str, corpus: dict) -> tuple[Path, Path]:
     require(digest(tracked_manifest(source, corpus["files"])) == corpus["source_sha256"], "arm source 복사 불일치")
     home = base / "home"
     home.mkdir(exist_ok=True)
+    from .isolation import preflight
+    preflight(source, home)
     return source, home
 
 
@@ -122,20 +118,22 @@ def cbm_runtime_dir() -> Path:
 
 
 def product_environment(ident: str, home: Path, source: Path) -> dict:
+    from .isolation import private_environment
+    home, source = home.resolve(), source.resolve()
+    env = private_environment(home)
     if ident == "codemap-search":
-        return {"CODEMAP_HOME": str(home)}
-    if ident == "codegraph":
-        return {"CODEGRAPH_NO_DAEMON": "1", "DO_NOT_TRACK": "1"}
-    if ident == "zvec-grep":
-        return {"ZVEC_GREP_HOME": str(home), "ZVEC_GREP_MODEL_CACHE": str(home / "model-cache"),
-                "ZVEC_GREP_SERVER_URL": f"http://127.0.0.1:{ZVEC_PORT}/mcp"}
-    if ident == "codebase-memory-mcp":
-        return {"CBM_CACHE_DIR": str(home), "CBM_ALLOWED_ROOT": str(source),
-                "CBM_RUNTIME_DIR": str(cbm_runtime_dir())}
-    if ident == "serena":
+        env.update(CODEMAP_HOME=str(home))
+    elif ident == "codegraph":
+        env.update(CODEGRAPH_NO_DAEMON="1", DO_NOT_TRACK="1")
+    elif ident == "zvec-grep":
+        env.update(ZVEC_GREP_HOME=str(home), ZVEC_GREP_MODEL_CACHE=str(home / "model-cache"),
+                   ZVEC_GREP_SERVER_URL=f"http://127.0.0.1:{ZVEC_PORT}/mcp")
+    elif ident == "codebase-memory-mcp":
+        env.update(CBM_CACHE_DIR=str(home), CBM_ALLOWED_ROOT=str(source), CBM_RUNTIME_DIR=str(cbm_runtime_dir()))
+    elif ident == "serena":
         from .serena_support import environment
-        return environment(home, load_artifacts(verify=False)[ident])
-    return {}
+        env.update(environment(home, load_artifacts(verify=False)[ident]))
+    return env
 
 
 def prepare_index(ident: str, emit=print) -> dict:
@@ -149,10 +147,17 @@ def prepare_index(ident: str, emit=print) -> dict:
         require(result["artifact_sha256"] == digest(artifact), "준비된 index의 실행 파일 계약 변경")
         require(result["source_sha256"] == corpus["source_sha256"], "준비된 index의 source 변경")
         require(result["env"] == product_environment(ident, home, source), "색인 환경 변경: 기존 색인을 재인증할 수 없습니다")
+        from .isolation import audit_index_paths
+        result["index_path_audit"] = audit_index_paths(ident, result, corpus)
+        write_json(record, result)
         return result
     env_overrides = product_environment(ident, home, source)
     env = clean_environment(env_overrides)
-    launch = artifact["launch"]
+    from .isolation import product_profile, wrap
+    profile = product_profile(ident, {"source": str(source), "home": str(home),
+                                      "preparation_network": ident == "serena"}, artifact, slot_tmp=home / "tmp")
+    env = clean_environment(profile["env"])
+    launch = wrap(artifact["launch"], profile) if ident != "rg" else artifact["launch"]
     commands = []
     emit(f"색인 준비: {ident}")
     if ident == "codemap-search":
@@ -246,7 +251,7 @@ def prepare_index(ident: str, emit=print) -> dict:
                 "native_warnings": sorted(set(diagnostics))}
     elif ident == "serena":
         from .serena_support import prepare_index as prepare_serena
-        index_paths, mode, commands = prepare_serena(artifact, source, home)
+        index_paths, mode, commands = prepare_serena(artifact, source, home, isolation_profile=profile)
     else:
         index_paths = []
         mode = {"index": "none", "output": "native CLI defaults"}
@@ -256,7 +261,9 @@ def prepare_index(ident: str, emit=print) -> dict:
     result = {"id": ident, "source": str(source), "home": str(home), "source_sha256": corpus["source_sha256"],
               "artifact_sha256": digest(artifact), "env": env_overrides, "modes": mode,
               "index_paths": [str(p) for p in index_paths], "commands": commands,
-              "status": "indexed_probe_pending"}
+              "status": "indexed_probe_pending", "preparation_isolation": profile}
+    from .isolation import audit_index_paths
+    result["index_path_audit"] = audit_index_paths(ident, result, corpus)
     write_json(record, result)
     emit(f"색인 완료: {ident}")
     return result
@@ -353,6 +360,8 @@ def restore_baseline(ident: str, state: dict, baseline: dict) -> dict:
                 remove_disposable_copy(stale)
     corpus = read_json(CORPUS)
     require(digest(tracked_manifest(Path(state["source"]), corpus["files"])) == corpus["source_sha256"], "reset source 불일치")
+    from .isolation import preflight
+    preflight(Path(state["source"]), Path(state["home"]))
     return {"status": "verified", "same_absolute_paths": True, "probe_state_removed": True,
             "application_state": "fresh pre-query baseline", "os_page_cache": "uncontrolled, not claimed cold"}
 
@@ -387,7 +396,9 @@ def probe_configuration(ident: str, state: dict, artifacts: dict) -> dict:
                                    "--agent-interface", "tools"]
         # Preserve Serena's native 240-second tool timeout within the common 300-second run budget.
         client_config["timeout_seconds"] = routes.load_profile()["limits"]["elapsed_seconds"]
+    client_config["product_arm"] = ident
     return {"schema": "grafana-route-relay-v1", "arm": ident, "source": str(source),
+            "policy_state": {key: state[key] for key in ("source", "home", "modes")},
             "client": client_config, "log": "<per-run directory>/relay.jsonl",
             "rg_binary": artifacts["rg"]["launch"][0], "auxiliaries": []}
 
@@ -403,7 +414,8 @@ def probe_inputs(state: dict, artifacts: dict) -> dict:
             "implementation_hashes": routes.implementation_hashes([
                 "benchmark/tool_indexes.py", "benchmark/route_transport.py", "benchmark/native_baseline.py",
                 "benchmark/tool_artifacts.py", "benchmark/serena_support.py", "benchmark/route_prepare.py", "benchmark/runner.py",
-                "benchmark/responses.py", "benchmark/core.py", "benchmark/settings.py", "benchmark/usage.py", "benchmark/claude_client.py"])}
+                "benchmark/responses.py", "benchmark/core.py", "benchmark/settings.py", "benchmark/usage.py", "benchmark/claude_client.py",
+                "benchmark/isolation.py"])}
 
 
 def verify_probe(state: dict, artifacts: dict) -> None:
@@ -626,7 +638,8 @@ def publish_indexes(backend="codex") -> dict:
         "source_manifest": {"path": str(CORPUS), "sha256": file_digest(CORPUS), "source_sha256": corpus["source_sha256"],
                             "tracked_files": corpus["tracked_files"], "evidence_files": 81, "evidence_ranges": 73},
         "prepared_states": states, "solver_runs": 0, "grader_runs": 0},
-        implementation=["benchmark/tool_indexes.py", "benchmark/native_baseline.py", "benchmark/route_transport.py", "benchmark/claude_client.py"],
+        implementation=["benchmark/tool_indexes.py", "benchmark/native_baseline.py", "benchmark/route_transport.py", "benchmark/claude_client.py",
+                        "benchmark/isolation.py"],
         dependencies=["02-delivery.json", "03-artifacts.json"])
 
 
