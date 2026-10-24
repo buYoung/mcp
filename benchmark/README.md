@@ -132,6 +132,28 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 - `health().condition_errors`는 조건 열화를 보고하고, `close(reason)`는 bounded cleanup의 `complete`를 반환한다. 독립 그룹은 prompt/attach 허용 전에 `process_registry.register(pid, pgid, owner)`에 등록한다.
 - warm/transport 원자료는 `slot_dir` 바로 아래에 둔다. product home이나 CLI credentials/workspace는 raw seal 대상이 아니다. CLI `process.json`이 없으면 실제 spawn을 인증하지 않는다.
 
+### 준비 색인과 live query-ready
+
+`prepared_index_ready`는 최종 절대 source/home 경로에서 색인 명령 완료·디스크 상태를 검증하고 **새 프로세스**의 semantic gate를 통과한 기록이다. 준비는 같은 `warm_host.prepare_session`을 사용하여 gate → disposable 본문/세션 검증 → `isolation.boundary_canaries`·index path audit → 제품/daemon 정리 → baseline 복원 순서로 수행한다. 실패해도 정리가 확인된 뒤에만 복원하며 실패한 arm은 준비를 중단시킨다. 기존 `isError=false` 또는 initialize/port-open만으로는 ready가 아니다.
+
+| arm | solver 시작 전 같은 live process의 gate | disposable 준비 검증 |
+| --- | --- | --- |
+| codemap-search | committed index/root 확인, root `overview`의 양수 파일·심볼과 warming/stale/unavailable 부재 | neutral indexed search/read, 실제 initialize 뒤 첫 read의 dedup 복원 |
+| CodeGraph | complete/version/pending/freshness 준비 근거, source를 포함하는 nonempty explore | 반복·재-initialize 응답 동일성; native dedup off 유지 |
+| zvec-grep | 최종 manifest/root/model hash, serving query의 `freshness: fresh`와 refresh 부재 | warm HTTP session DELETE 후 새 session에서도 fresh; server PID 유지 |
+| Graphify | 최종 graph hash, 양수 node/edge `graph_stats` | `query_graph` 본문 검증; live warm-up에서는 querylog를 만들지 않음 |
+| codebase-memory-mcp | root/runtime/cache·coverage/count 일치, ready status + graph + live-source search/snippet | 같은 gate와 경계 canary; graph-only 성공은 불충분 |
+| Serena | Go/TS index 완료·실패 0·cache/root, ready config + 두 언어 symbol 및 실제 LSP reference | timeout 후 진행 로그 거부; warm-up에 `initial_instructions`를 사용하지 않음 |
+| rg | 고정 executable·준비된 native 권한 계약 | index/MCP warm-up 없음; baseline 경계 probe는 별도 수행 |
+
+연속 2회 semantic gate를 deadline 안에 통과해야 한다. 실제 warming/stale/`Error executing` 응답은 거부하되 일반 안내문 속 `warming`, CodeGraph의 “not a stale cache”, codemap의 `0 unavailable`은 실패로 오인하지 않는다. native truncation·통계의 partial collection은 삭제하거나 보충하지 않는다. 표본 조회 성공은 모든 가능한 질의의 정확성 보장이 아니다.
+
+각 슬롯은 restore 이후 **별도의 `live_query_ready` receipt**를 받는다. 제품만 `isolation.product_profile(..., slot_tmp=<arm home의 private tmp>)`로 격리하고, `MCPClient`가 stdio/HTTP/shutdown launch를 wrap한다. 신뢰하는 harness host·shim에는 nested Seatbelt를 적용하지 않는다. warm host는 campaign 내부에서 제품 그룹을 소유하고, 0700 slot-private 디렉터리의 0600 Unix socket 하나를 공개한다. socket 경로가 Darwin 한도에 맞지 않으면 더 짧은 cache root가 필요하다. 실제 client initialize를 제품에 전달하며 zvec만 warm HTTP session을 DELETE하고 solver가 새 session을 시작한다. 제품은 재시작하지 않는다.
+
+`benchmark.stdio_shim`은 byte-preserving stdio↔socket 연결만 수행한다. 두 번째 연결/재접속은 거부하며 EOF·취소 시 소유 제품/LSP/HTTP/daemon을 정리한다. warm 트래픽은 `warmup.jsonl`·`warm-native.jsonl`에 별도로 기록하고 solver의 `relay.jsonl`·`native.jsonl` 및 80-call 예산에 넣지 않는다. runner는 준비 receipt·attachment·CLI 설정 작성 뒤, **Popen 직전 t0**에서 solver gate를 연다. initialize·attach는 solver 시간에 포함되지만 색인·warm 시간은 포함되지 않는다. ready 뒤에는 제품 정리 전 source/home을 복원하지 않는다.
+
+준비/실행 기록에는 index build·restore·initialize·첫 usable query·stable ready·attach·cleanup 시간, load average·CPU/memory process snapshot, assertion/transcript hash, generation·profile hash·소유 PID/PGID를 남긴다. attach는 실제 연결 시 `attachment.json`, cleanup은 `warm-cleanup.json`에 기록한다. 준비 중 solver attach는 없으므로 해당 시간은 null이다. warm 실패는 `warmup_failed`이며 solver/model 호출은 0회다. 실행 중 관측된 index readiness 상실은 원응답을 보존하고 condition error·campaign 중단으로 처리하며 자동 재풀이하지 않는다. `isolation.py` 통합 및 새 준비 snapshot 검증 없이는 cold relay로 우회하지 않는다.
+
 ## 도구와 측정 정책
 
 - 제품 응답의 기본값을 유지한다. 하네스의 공통 바이트·행 제한, 자동 페이지 조회·요약·보충, 경쟁 도구의 예산 증가는 없다. codemap-search의 100000 설정도 각 설정의 단위를 따르며 공통 토큰 한도로 바꾸지 않는다.

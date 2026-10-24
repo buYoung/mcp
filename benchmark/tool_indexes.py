@@ -6,7 +6,6 @@ import errno
 import hashlib
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -345,6 +344,7 @@ def remove_disposable_copy(root: Path) -> None:
 
 def restore_baseline(ident: str, state: dict, baseline: dict) -> dict:
     """Restore at the same absolute paths so native root identities stay valid."""
+    started = time.monotonic()
     for part in ("source", "home"):
         target = Path(state[part])
         require(target == workspace_root(ident) / part, "작업 소유 경로 외의 reset 금지")
@@ -363,6 +363,7 @@ def restore_baseline(ident: str, state: dict, baseline: dict) -> dict:
     from .isolation import preflight
     preflight(Path(state["source"]), Path(state["home"]))
     return {"status": "verified", "same_absolute_paths": True, "probe_state_removed": True,
+            "elapsed_seconds": time.monotonic() - started,
             "application_state": "fresh pre-query baseline", "os_page_cache": "uncontrolled, not claimed cold"}
 
 
@@ -415,11 +416,18 @@ def probe_inputs(state: dict, artifacts: dict) -> dict:
                 "benchmark/tool_indexes.py", "benchmark/route_transport.py", "benchmark/native_baseline.py",
                 "benchmark/tool_artifacts.py", "benchmark/serena_support.py", "benchmark/route_prepare.py", "benchmark/runner.py",
                 "benchmark/responses.py", "benchmark/core.py", "benchmark/settings.py", "benchmark/usage.py", "benchmark/claude_client.py",
-                "benchmark/isolation.py"])}
+                "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"])}
 
 
 def verify_probe(state: dict, artifacts: dict) -> None:
     require(state.get("status") == "ready", "중립 조회가 완료되지 않았습니다")
+    from .readiness import POLICY
+    ready = state.get("prepared_index_ready", {})
+    require(ready.get("ready") is True and ready.get("kind") == "prepared_index_ready"
+            and state.get("warmup_policy") == POLICY and ready.get("cleanup", {}).get("complete") is True,
+            "prepared semantic readiness 근거가 없습니다")
+    for item in ready["evidence"]:
+        require(file_digest(Path(item["path"])) == item["sha256"], "semantic readiness evidence changed")
     expected = probe_inputs(state, artifacts)
     require(state.get("probe_inputs") == expected and state.get("probe_identity") == digest(expected),
             f"현재 코드·설정과 중립 조회 근거 불일치: {state['id']}; probe 재실행 필요")
@@ -437,7 +445,7 @@ def verify_probe(state: dict, artifacts: dict) -> None:
 def probe_output_digest(state: dict) -> str:
     return digest({key: state.get(key) for key in (
         "status", "modes", "relay_settings", "native_agent", "native_inventory_sha256", "probe_log_sha256", "tool_condition",
-        "auxiliary_necessity", "probes", "cleanup", "reset")})
+        "auxiliary_necessity", "probes", "cleanup", "reset", "prepared_index_ready", "warmup_policy", "isolation")})
 
 
 def ready_path(ident: str, backend="codex") -> Path:
@@ -461,162 +469,85 @@ def probe_is_current(ident: str, backend="codex") -> bool:
         return False
 
 
-def verify_native_probe(ident: str, name: str, result: dict) -> None:
-    """Reject known success-shaped failures without changing native query responses."""
-    require(not result.get("isError"), f"native capability probe 오류: {ident}/{name}: {str(result)[:500]}")
-    text = "\n".join(item.get("text", "") for item in result.get("content", []))
-    require(text and not re.search(r"(?im)^(error|error executing)\b", text),
-            f"native 중립 조회 실패: {ident}/{name}: {text[:300]}")
-    if ident == "codemap-search":
-        require(not re.search(r"(?i)warming|index unavailable|index[^\n]*stale|indexer[^\n]*(dead|unavailable)", text),
-                "codemap native probe의 index가 준비되지 않았습니다")
-        if name == "overview":
-            require(re.search(r"(?m)^- \*\*Total Files\*\*: [1-9]\d*$", text) is not None
-                    and re.search(r"(?m)^- \*\*Total Symbols\*\*: [1-9]\d*$", text) is not None,
-                    "codemap root overview의 파일·심볼이 비어 있습니다")
-    elif ident == "codegraph":
-        require(not re.search(r"(?i)isn't indexed|not indexed|no codegraph project is loaded|"
-                              r"entries may be stale|pending index sync|auto-sync is DISABLED", text),
-                "CodeGraph native probe의 index가 준비되지 않았습니다")
-    elif ident == "zvec-grep":
-        lines = text.splitlines()
-        require(lines[0] == "freshness: fresh"
-                and not any(line.startswith("background_refresh:") for line in lines),
-                "zvec-grep native probe가 fresh 상태가 아닙니다")
-    elif ident == "graphify" and name == "graph_stats":
-        require(re.search(r"(?m)^Nodes: [1-9]\d*$", text) is not None, "Graphify graph가 없거나 비어 있습니다")
-    elif ident == "serena":
-        from .serena_support import verify_probe as verify_serena_probe
-        verify_serena_probe(name, result)
+def verify_native_probe(ident: str, name: str, result: dict, state: dict | None = None) -> None:
+    from .readiness import assert_ready
+    assert_ready(ident, name, result, state)
 
 
 def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
-    from .route_transport import NativeRelay, auxiliary_call
+    import threading
+    from . import readiness, isolation
+    from .execution import ProcessRegistry
+    from .warm_host import prepare_session
     artifacts = load_artifacts(verify=False)
     state = load_index(ident)
     state["agent_backend"] = backend
     if ident == "serena":
         from .serena_support import language_dependencies
         state["modes"]["language_server_dependencies"] = language_dependencies(Path(state["home"]))
-    source = Path(state["source"])
     require(state["artifact_sha256"] == digest(artifacts[ident]), "index artifact identity 변경")
     baseline = freeze_baseline(ident, state)
-    restore_baseline(ident, state, baseline)
-    inputs = probe_inputs({**state, "baseline": baseline}, artifacts)
-    probe = source.parent / "probes" / str(time.time_ns())
+    start = time.monotonic()
+    restored = restore_baseline(ident, state, baseline)
+    restore_seconds = time.monotonic() - start
+    state["baseline"] = baseline
+    inputs = probe_inputs(state, artifacts)
+    probe = Path(state["source"]).parent / "probes" / str(time.time_ns())
     probe.mkdir(parents=True)
-    emit(f"현재 실행 설정으로 중립 조회 재검증: {ident}")
-    if ident == "rg":
-        from .native_baseline import probe as probe_native
-        if backend == "claude_code":
-            from .claude_client import probe as probe_native
-        observed = probe_native(inputs["configuration"], probe, [routes.DATA / "dataset.json", routes.EVIDENCE / "01-contract.json"])
-        result = {**state, **observed, "status": "ready", "baseline": baseline,
-                  "probe_inputs": inputs, "probe_identity": digest(inputs),
-                  "reset": restore_baseline(ident, state, baseline),
-                  "limitations": ["Actual model inventory and delivery are unobserved.",
-                                   "Claude native tool permissions are configured but not exercised by init-only."
-                                   if backend == "claude_code" else "Local native permissions were probed without a solver."]}
-        result["probe_output_sha256"] = probe_output_digest(result)
-        write_json(ready_path(ident, backend), result)
-        emit("Claude 기본 에이전트 준비: 읽기 전용 설정과 CLI 시작 검증 완료; 실제 도구 권한 집행은 미관측"
-             if backend == "claude_code" else "기본 에이전트 준비: 검색 MCP 없음, 고정 rg 사용 가능, 원문 읽기 허용·정답 접근/쓰기 거부 확인")
-        return result
-    relay_settings = {**inputs["configuration"], "log": str(probe / "relay.jsonl")}
-    relay = None
-    did_initialize = False
-    cleanup = {}
+    emit(f"새 제품 프로세스 semantic readiness·경계 검증: {ident}")
+    registry, session = ProcessRegistry(probe), None
+    cleanup, observed, extra = {}, {}, {}
     try:
-        relay = NativeRelay(relay_settings)
-        initialized = relay.initialize({"protocolVersion": "2025-03-26", "capabilities": {},
-                                        "clientInfo": {"name": "claude-code" if backend == "claude_code" else "codex-mcp-client",
-                                                       "version": inputs["agent_version"]}})
-        did_initialize = True
-        inventory = relay.list_tools()
-        by_name = {t["name"]: t for t in inventory}
-        mutations = {"index_repository", "delete_project", "manage_adr", "ingest_traces"}
-        outside_corpus = {"list_prs", "get_pr_impact", "triage_prs"}
-        exclusions = {name: "administration" for name in mutations}
-        exclusions.update({name: "external GitHub PR data outside the fixed corpus" for name in outside_corpus})
-        if ident == "serena":
-            # Serena's desktop context exposes disabled tools as well as active ones.
-            # Its native hint is derived from ToolMarkerCanEdit, unlike zvec's cache-refresh hint.
-            exclusions.update({t["name"]: "native editing or shell operation"
-                               for t in inventory if t.get("annotations", {}).get("readOnlyHint") is False})
-            exclusions.update({name: "project control or memory outside source retrieval" for name in (
-                "activate_project", "remove_project", "switch_modes", "onboarding", "read_memory", "list_memories",
-                "query_project", "list_queryable_projects", "open_dashboard")})
-        # Native search may refresh its own index (zvec readOnlyHint=false).
-        # Classify explicit administration operations, not that advisory annotation.
-        query_tools = [t["name"] for t in inventory if t["name"] not in exclusions]
-        probes = []
-        if ident == "codemap-search":
-            probes = [("overview", {})]
-        elif ident == "codegraph":
-            probes = [("codegraph_explore", {"query": "configuration settings", "projectPath": str(source)})]
-        elif ident == "zvec-grep":
-            probes = [("zvec_grep_search", {"query": "configuration settings", "root": str(source)})]
-        elif ident == "graphify":
-            probes = [("graph_stats", {}), ("query_graph", {"question": "configuration settings"})]
-        elif ident == "codebase-memory-mcp":
-            project = state["modes"]["native_readiness"]["project"]
-            probes = [("search_code", {"pattern": "package setting", "project": project, "project_name": project})]
-        elif ident == "serena":
-            require(not {"execute_shell_command", "create_text_file", "replace_symbol_body", "activate_project",
-                         "switch_modes", "write_memory", "serena_repl"} & set(query_tools), "Serena 검색 전용 도구 경계 오류")
-            probes = [("initial_instructions", {}), ("get_current_config", {}),
-                      ("read_file", {"relative_path": "README.md"}),
-                      ("get_symbols_overview", {"relative_path": "pkg/setting/setting.go"}),
-                      ("get_symbols_overview", {"relative_path": "packages/grafana-data/src/utils/uuid.ts"})]
-        observations = []
-        for number, (name, arguments) in enumerate(probes, 1):
-            require(name in query_tools, f"native query tool이 없습니다: {ident}/{name}")
-            properties = by_name[name]["inputSchema"].get("properties", {})
-            arguments = {k: v for k, v in arguments.items() if k in properties}
-            result = relay.call(number, {"name": name, "arguments": arguments})
-            verify_native_probe(ident, name, result)
-            observations.append({"tool": name, "arguments": arguments, "result_sha256": digest(result), "isError": False})
-        auxiliaries, necessity = [], []
-        if ident == "graphify":
-            # Graph traversal returns source locations/graph metadata, with no source-body read operation.
-            auxiliaries = ["read"]
-            necessity = [{"operation": "inspect original source body at a discovered file/line location",
-                          "reason": "Native graph queries/get_node return graph metadata and locations; the native surface has no raw-source reader.",
-                          "native_inventory_sha256": digest(inventory), "probe_log": str(probe / "relay.jsonl"),
-                          "added": "read", "quality_based": False}]
-            read_result = auxiliary_call(source, "read", {"file_path": "README.md"})
-            require(read_result["content"][0]["text"] == (source / "README.md").read_text(), "보조 원문 read 변형")
-        relay_settings.update(query_tools=query_tools, auxiliaries=auxiliaries, auxiliary_necessity=necessity,
-                              enabled_tools=[*query_tools, *auxiliaries],
-                              excluded_tools=[{"name": name, "reason": exclusions[name]}
-                                              for name in by_name if name in exclusions])
-        write_json(probe / "inventory.json", {"initialize": initialized, "tools": inventory})
-        write_json(probe / "observations.json", observations)
+        if ident == "rg":
+            from .native_baseline import probe as probe_native
+            if backend == "claude_code":
+                from .claude_client import probe as probe_native
+            observed = probe_native(inputs["configuration"], probe, [routes.DATA / "dataset.json", routes.EVIDENCE / "01-contract.json"])
+            state.update(observed)
+        session = prepare_session(state, probe, {"backend": backend}, threading.Event(), registry)
+        receipt = session.await_ready(time.monotonic() + 300)
+        if ident != "rg":
+            extra = session.verify_preparation()
+            relay_settings = session.relay_settings
+            observed = {"native_inventory": str(probe / "inventory.json"),
+                "native_inventory_sha256": file_digest(probe / "inventory.json"), "relay_settings": relay_settings,
+                "tool_condition": "assisted" if relay_settings["auxiliaries"] else "native_only",
+                "auxiliary_necessity": relay_settings["auxiliary_necessity"], "probes": extra["observations"],
+                "probe_log": str(probe / "warmup.jsonl")}
+        audit = isolation.audit_index_paths(ident, state, read_json(CORPUS))
+    except Exception as exc:
+        write_json(probe / "preparation-failure.json", {"error": str(exc)})
+        raise
     finally:
-        if relay and relay.product:
-            cleanup["frontend"] = relay.product.close()
-        if ident == "zvec-grep" and "frontend" in cleanup:
-            cleanup["daemon"] = cleanup["frontend"].get("http_server")
-        if ident == "codebase-memory-mcp" and did_initialize:
-            cleanup["daemon"] = cleanup["frontend"].get("daemon")
-        if ident in {"codegraph", "codemap-search", "graphify", "serena", "rg"}:
-            cleanup["daemon"] = {"mode": "task-owned foreground or no process", "shared_daemon": False}
-    require(cleanup.get("frontend", {}).get("complete", True), f"작업 소유 서버 정리 실패: {ident}")
+        if session:
+            cleanup = session.close("preparation_complete")
+        groups = registry.cleanup()
+        write_json(probe / "preparation-cleanup.json", {"session": cleanup, "groups": groups})
+        if cleanup.get("complete") is True and groups["complete"]:
+            require(digest(tracked_manifest(Path(state["source"]), read_json(CORPUS)["files"])) == state["source_sha256"],
+                    "probe 중 source 변경")
+            # Restore after failed gates too, but never while a product/writer may still be alive.
+            reset = restore_baseline(ident, state, baseline)
+            write_json(probe / "reset.json", reset)
+    require(cleanup.get("complete") is True and groups["complete"], f"작업 소유 서버 정리 실패: {ident}")
     if ident == "serena":
         from .serena_support import verify_indexing_log
         verify_indexing_log((probe / "native.stderr.log").read_text())
-    reset = restore_baseline(ident, state, baseline)
-    relay_settings["log"] = "<per-run directory>/relay.jsonl"
-    result = {**state, "status": "ready", "native_inventory": str(probe / "inventory.json"),
-              "native_inventory_sha256": file_digest(probe / "inventory.json"), "relay_settings": relay_settings,
-              "tool_condition": "assisted" if auxiliaries else "native_only", "auxiliary_necessity": necessity,
-              "probes": observations, "probe_log": str(probe / "relay.jsonl"), "probe_log_sha256": file_digest(probe / "relay.jsonl"),
-              "cleanup": cleanup, "baseline": baseline, "reset": reset,
-              "probe_inputs": inputs, "probe_identity": digest(inputs),
-              "limitations": ["Native indexing exclusions and output limits are retained.", "OS page cache is not controlled."]}
+    receipt.update(kind="prepared_index_ready", boundary_canaries=extra.get("boundary_canaries", []), index_audit=audit,
+                   cleanup=cleanup, restore=restored, reset=reset)
+    receipt["timings"].update(restore_seconds=restore_seconds, cleanup_seconds=cleanup["cleanup_seconds"],
+                              reset_seconds=reset["elapsed_seconds"])
+    receipt["evidence"] = [{"path": str(p), "sha256": file_digest(p)} for p in sorted(probe.iterdir())
+                            if p.is_file() and not p.is_symlink()]
+    observed["probe_log_sha256"] = file_digest(Path(observed["probe_log"]))
+    result = {**state, **observed, "status": "ready", "cleanup": cleanup, "baseline": baseline, "reset": reset,
+              "prepared_index_ready": receipt, "warmup_policy": readiness.POLICY,
+              "isolation": session.profile, "probe_inputs": inputs, "probe_identity": digest(inputs),
+              "limitations": ["Native indexing exclusions and output limits are retained.", "OS page cache is uncontrolled.",
+                              "Prepared index readiness is not a reusable live process; each slot must pass its own gate."]}
     result["probe_output_sha256"] = probe_output_digest(result)
     write_json(ready_path(ident, backend), result)
-    emit(f"연결·중립 조회·정리·초기 상태 복원 완료: {ident}")
+    emit(f"semantic gate·경계·정리·동일 절대 경로 복원 완료: {ident}")
     return result
 
 
@@ -639,7 +570,7 @@ def publish_indexes(backend="codex") -> dict:
                             "tracked_files": corpus["tracked_files"], "evidence_files": 81, "evidence_ranges": 73},
         "prepared_states": states, "solver_runs": 0, "grader_runs": 0},
         implementation=["benchmark/tool_indexes.py", "benchmark/native_baseline.py", "benchmark/route_transport.py", "benchmark/claude_client.py",
-                        "benchmark/isolation.py"],
+                        "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"],
         dependencies=["02-delivery.json", "03-artifacts.json"])
 
 
