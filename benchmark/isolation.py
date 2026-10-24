@@ -678,14 +678,18 @@ def audit_index_paths(ident: str, state: dict, corpus: dict) -> dict:
             require(Path(manifest["path"]).resolve() == storage and
                     {Path(row["absolutePath"]).resolve() for row in manifest["rootPaths"]} == {source},
                     "zvec raw index root 이탈")
-            # Read-only native collection: no root relocation, refresh or embedding query.
+            # Zvec readOnly open/close still mutates native .proxima files. Audit a disposable
+            # APFS clone; stored absolute roots remain unchanged and are checked above/below.
             script = f'''import {{createWorkspaceIndexStorage}} from {json.dumps(module.as_uri())};
 const s=createWorkspaceIndexStorage({{storagePath:process.argv[1],readOnly:true}});
 try {{ console.log(JSON.stringify(s.listFiles().map(f=>[f.relativePath,f.absolutePath]))); }} finally {{s.close();}}'''
             profile = product_profile(ident, state, artifact, slot_tmp=home / "tmp" / "audit")
-            result = subprocess.run(wrap([artifact["launch"][0], "--input-type=module", "-e", script, str(storage)], profile),
-                                    cwd=source, env=profile["env"], check=True, capture_output=True, text=True, timeout=120)
-            files = json.loads(result.stdout)
+            with tempfile.TemporaryDirectory(dir=home / "tmp" / "audit", prefix="raw-index-") as temporary:
+                clone = Path(temporary) / "storage"
+                subprocess.run(["cp", "-cR", str(storage), str(clone)], check=True, capture_output=True, timeout=120)
+                result = subprocess.run(wrap([artifact["launch"][0], "--input-type=module", "-e", script, str(clone)], profile),
+                                        cwd=source, env=profile["env"], check=True, capture_output=True, text=True, timeout=120)
+                files = json.loads(result.stdout)
             compare("files", [row[0] for row in files])
             require(all(isinstance(row[1], str) for row in files), "zvec absolute path inventory 누락")
             compare("absolute_files", [row[1] for row in files])

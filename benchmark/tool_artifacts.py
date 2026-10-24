@@ -363,6 +363,7 @@ def publish_artifacts() -> dict:
     return routes.publish_handoff("03-artifacts.json", {
         "status": "verified", "host": {"system": platform.system(), "machine": platform.machine(),
                                           "platform": platform.platform()}, "artifacts": artifacts,
+        "pi_toolchain": pi_toolchain(),
         "verification": {"artifact_hashes": "passed", "source_versions": "passed"},
         "limitations": ["No Grafana index or solver/grader inference was created by artifact preparation."]},
         implementation=["benchmark/tool_artifacts.py", "benchmark/resources.py"], dependencies=["01-contract.json"])

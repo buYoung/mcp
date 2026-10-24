@@ -579,7 +579,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                     error_file.write(pi_client.redact(stderr_buffer, token))
                 error_file.flush()
                 try:
-                    residue = pi_client.cleanup_private(folder, workspace, spec["provider"], token)
+                    residue = pi_client.cleanup_private(folder, workspace, spec["provider"], token, home=Path(env["HOME"]))
                 except (ValueError, OSError) as exc:
                     residue = {"complete": False, "error": pi_client.redact(str(exc), token)}
                     solver_cleanup["complete"] = False
