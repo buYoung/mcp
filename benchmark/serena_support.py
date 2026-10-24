@@ -19,9 +19,10 @@ def environment(home: Path, artifact: dict) -> dict:
             "PATH": os.pathsep.join([*runtime_paths, os.environ.get("PATH", "")])}
 
 
-def prepare_index(artifact: dict, source: Path, home: Path) -> tuple[list[Path], dict, list[dict]]:
-    launch, base = artifact["launch"], source.parent
-    env = clean_environment(environment(home, artifact))
+def prepare_index(artifact: dict, source: Path, home: Path, *, isolation_profile: dict) -> tuple[list[Path], dict, list[dict]]:
+    from .isolation import wrap
+    launch, base = wrap(artifact["launch"], isolation_profile), source.parent
+    env = clean_environment(isolation_profile["env"])
     commands = []
     project = source / ".serena/project.yml"
     if not project.exists():
@@ -34,7 +35,7 @@ def prepare_index(artifact: dict, source: Path, home: Path) -> tuple[list[Path],
         require(previous["exit_code"] == 0 and file_digest(Path(previous["log"])) == previous["log_sha256"],
                 "Serena 프로젝트 생성 근거가 없습니다")
         commands.append(previous)
-    python = str(Path(launch[0]).with_name("python"))
+    python = str(Path(artifact["launch"][0]).with_name("python"))
     configure = """
 import json, sys
 from pathlib import Path
@@ -60,7 +61,7 @@ print(json.dumps({'project': str(project), 'registered_projects': config_data['p
                   'tool_timeout_seconds': config_data['tool_timeout'],
                   'symbol_info_budget_seconds': config_data['symbol_info_budget']}))
 """
-    commands.append(run_logged([python, "-c", configure, str(source), str(home)], source,
+    commands.append(run_logged(wrap([python, "-c", configure, str(source), str(home)], isolation_profile), source,
                                base / "project-config.log", env=env))
     config = json.loads((base / "project-config.log").read_text())
     commands.append(run_logged([*launch, "project", "index", str(source)], source,

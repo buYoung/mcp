@@ -32,7 +32,20 @@ class RPCError(ContractError):
 class MCPClient:
     """One task-owned client, preserving native JSON results without output caps."""
     def __init__(self, config: dict, root: Path, log: Path):
+        from .isolation import cbm_temporary_paths, wrap
+        config = {**config}
+        profile = config.get("isolation_profile")
+        require(config.get("product_arm") in {None, "rg"} or profile is not None,
+                "제품 실행에 isolation_profile이 필요합니다")
+        if profile:
+            require(config.get("transport") != "http" or config.get("server_launch"), "제품 HTTP 서버 소유 launch가 필요합니다")
+            require(not profile["allowed"].get("preparation_network"), "solver 제품에 preparation network 금지")
+            for field in ("launch", "server_launch", "shutdown_command"):
+                if field in config:
+                    config[field] = wrap(config[field], profile)
+            config["env"] = {**config.get("env", {}), **profile["env"]}
         self.config, self.root, self.log = config, root.resolve(), log
+        self.cbm_temporary_before = cbm_temporary_paths() if config.get("product_arm") == "codebase-memory-mcp" else None
         self.counter = 0
         self.initialized = False
         self.session_id = None
@@ -221,7 +234,7 @@ class MCPClient:
             result["http_server"] = {"pid": self.http_server.pid, "stopped": self.http_server.poll() is not None,
                                      "exit_code": self.http_server.returncode}
             self.http_server_log.close()
-        if self.initialized and self.config.get("shutdown_command"):
+        if self.config.get("shutdown_command"):
             try:
                 stopped = subprocess.run(self.config["shutdown_command"], cwd=self.root,
                                          env=clean_environment(self.config.get("env")), capture_output=True, timeout=10)
@@ -254,6 +267,9 @@ class MCPClient:
         result["owned_process_groups"] = groups
         result["complete"] = (all(group["stopped"] for group in groups) and result.get("daemon", {}).get("stopped", True)
                               and result.get("http_server", {}).get("stopped", True))
+        if self.cbm_temporary_before is not None and result["complete"]:
+            from .isolation import cleanup_cbm_temporary
+            result["cbm_temporary_removed"] = cleanup_cbm_temporary(self.cbm_temporary_before)
         self.selector.close()
         return result
 
@@ -358,8 +374,12 @@ class NativeRelay:
         self.root = Path(config["source"]).resolve()
         self.log = Path(config["log"])
         self.log.parent.mkdir(parents=True, exist_ok=True)
-        self.product = MCPClient(config["client"], self.root, self.log.with_name("native.jsonl")) if config.get("client") else None
+        self.product = MCPClient({**config["client"], "product_arm": config["arm"]}, self.root,
+                                 self.log.with_name("native.jsonl")) if config.get("client") else None
         self.inventory = None
+        self.policy = None
+        self.resource_uris = set()
+        self.prompts = {}
         self.count = 0
         self.attempts = 0
         self.dispatched = 0
@@ -382,6 +402,8 @@ class NativeRelay:
     def list_tools(self) -> list[dict]:
         if self.inventory is None:
             native = self.product.list_tools() if self.product else [RG_TOOL]
+            from .isolation import RelayPolicy, validate_inventory
+            validate_inventory(self.config["arm"], native)
             permitted = self.config.get("query_tools", [t["name"] for t in native])
             require(set(permitted) <= {t["name"] for t in native}, "준비된 native 도구가 없습니다")
             auxiliaries = self.config.get("auxiliaries", [])
@@ -392,6 +414,8 @@ class NativeRelay:
                 if tool["name"] in auxiliaries:
                     require(tool["name"] not in {t["name"] for t in self.inventory}, "native/보조 도구 이름 충돌")
                     self.inventory.append(tool)
+            self.policy = RelayPolicy(self.config["arm"], self.config.get("policy_state", {"source": str(self.root)}),
+                                      self.inventory, tracked=self.config.get("tracked_files"))
             append_jsonl(self.log, {"event": "inventory", "native_tools": native, "tools": self.inventory})
         return self.inventory
 
@@ -453,19 +477,23 @@ class NativeRelay:
 
     def validate_request(self, method: str, params: dict) -> None:
         require(isinstance(params, dict), "잘못된 MCP 인자")
-        if method != "tools/call":
-            require(self.product is not None, "native MCP가 필요합니다")
-            return
-        name, arguments = params["name"], params.get("arguments", {})
-        require(isinstance(name, str) and name in {t["name"] for t in self.inventory}, "허용되지 않은 탐색 도구")
-        require(isinstance(arguments, dict), "잘못된 도구 인자")
-        for key in ("path", "file_path", "relative_path", "file", "root", "projectPath", "project_path", "repo_path", "repoPath"):
-            if isinstance(arguments.get(key), str) and arguments[key] not in {"", "all", "전체"}:
-                source_path(self.root, arguments[key], must_exist=False)
+        if method == "tools/call":
+            self.policy.validate(params["name"], params.get("arguments", {}))
+        elif method in {"resources/list", "resources/templates/list", "prompts/list"}:
+            require(self.product is not None and set(params) <= {"cursor", "_meta"}, "잘못된 discovery 인자")
+        elif method == "resources/read":
+            require(self.product is not None and set(params) <= {"uri", "_meta"}, "잘못된 resource 인자")
+            self.policy.uri(params["uri"], self.resource_uris)
+        elif method == "prompts/get":
+            require(set(params) <= {"name", "arguments", "_meta"} and params.get("name") in self.prompts,
+                    "광고되지 않은 prompt")
+            self.policy.prompt(params["name"], params.get("arguments", {}), self.prompts)
+        else:
+            raise ContractError("미검토 content method")
 
     def content_call(self, ident, method: str, params: dict) -> dict:
         inventory_error = None
-        if method == "tools/call" and self.inventory is None:
+        if self.inventory is None:
             try:
                 self.list_tools()  # Discovery can perform RPCs, so it must stay outside the admission lock.
             except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
@@ -480,6 +508,10 @@ class NativeRelay:
                 result = auxiliary_call(self.root, request["tool"], request["arguments"], self.config.get("rg_binary"))
             else:
                 result = self.product.rpc(method, params)
+            if method == "resources/list":
+                self.resource_uris.update(item["uri"] for item in result.get("resources", []))
+            elif method == "prompts/list":
+                self.prompts.update(self.policy.prompt_inventory(result.get("prompts", [])))
         except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
             error = exc.error if isinstance(exc, RPCError) else {"code": -32602, "message": str(exc)}
             with navigation_lock(self.log.parent):
@@ -541,7 +573,7 @@ def publish_delivery() -> dict:
     # Keep the existing over-limit transport probe independent of one module's size.
     (root / "sample.py").write_text((settings.ROOT / "runner.py").read_text() + "\n" + Path(__file__).read_text())
     config = {"arm": "rg", "source": str(root), "log": str(root / "relay.jsonl"),
-              "query_tools": ["rg"], "auxiliaries": [], "rg_binary": binary}
+              "query_tools": ["rg"], "auxiliaries": [], "rg_binary": binary, "tracked_files": ["sample.py"]}
     write_json(root / "relay-settings.json", config)
     client = MCPClient({"transport": "stdio", "launch": [sys.executable, "-m", "benchmark.route_transport",
                                                           str(root / "relay-settings.json")]},
