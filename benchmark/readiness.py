@@ -35,9 +35,14 @@ def text(result: dict) -> str:
 
 
 def degradation(ident: str, result: dict, *, tool: str | None = None) -> str | None:
-    """Inspect native status envelopes/banners only, never search returned source prose."""
+    """Readiness probes: any native error is not ready, as is an explicit index/session state notice."""
     if not isinstance(result, dict):
         return "malformed native response"
+    return tool_error(ident, result, tool=tool) or index_degradation(ident, result, tool=tool)
+
+
+def tool_error(ident: str, result: dict, *, tool: str | None = None) -> str | None:
+    """An ordinary tool-level error, usually caused by the request; on solver traffic it is recorded only."""
     if result.get("isError"):
         return "native isError"
     if result.get("error"):
@@ -54,8 +59,18 @@ def degradation(ident: str, result: dict, *, tool: str | None = None) -> str | N
             native = None
         if isinstance(native, dict) and native.get("error"):
             return "native JSON error envelope"
+    if ident == "serena" and tool and value.split("\n", 1)[0].startswith(("Error executing tool:", "Error:")):
+        return "native Serena tool error"
+    return None
+
+
+def index_degradation(ident: str, result: dict, *, tool: str | None = None) -> str | None:
+    """Explicit product index/session state notices only; never source prose or request errors."""
+    if not isinstance(result, dict):
+        return "malformed native response"
     if not tool:
         return None  # resources/prompts can contain arbitrary, unframed source text.
+    value = text(result)
     first = value.split("\n", 1)[0]
     if ident == "zvec-grep" and tool == "zvec_grep_search":
         # These contiguous leading headers end before the first search hit/body.
@@ -87,7 +102,8 @@ def degradation(ident: str, result: dict, *, tool: str | None = None) -> str | N
         if re.fullmatch(r"The project at .+ isn't indexed with codegraph.*", first):
             return first
     elif ident == "serena":
-        if first.startswith(("Error executing tool:", "Error:", "No active project.")):
+        if first.startswith("No active project.") or (first.startswith(("Error executing tool:", "Error:"))
+                                                        and "language server" in first.lower()):
             return first
         if tool == "get_current_config":
             for line in value.splitlines():

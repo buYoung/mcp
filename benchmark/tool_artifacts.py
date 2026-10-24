@@ -152,6 +152,7 @@ def pi_toolchain() -> dict:
             modules = installation / "node_modules"
             value = {"node": str(node), "pi_cli": str(modules / "@earendil-works/pi-coding-agent/dist/cli.js"),
                      "bridge_extension": str(modules / "@buyong/pi-claude-bridge/src/index.ts"),
+                     "mcp_adapter_extension": str(modules / "pi-mcp-adapter"),
                      "claude_code_binary": str(modules / "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"),
                      "versions": {"node": command([str(node), "--version"]).strip(), **pins["versions"]},
                      "lock_sha256": pins["npm_lock_sha256"], "node_sha256": file_digest(node)}
@@ -160,6 +161,8 @@ def pi_toolchain() -> dict:
                                            "PI_SKIP_VERSION_CHECK": "1", "PI_TELEMETRY": "0"})).strip()
                     == pins["versions"]["pi"], "pi 버전 변경")
             require(command([value["claude_code_binary"], "--version"]).strip() == pins["versions"]["claude_code"] + " (Claude Code)", "Claude binary 버전 변경")
+            require(read_json(Path(value["mcp_adapter_extension"]) / "package.json")["version"] == pins["versions"]["mcp_adapter"],
+                    "pi-mcp-adapter 버전 변경")
             require(digest(tree_files(modules)) == pins["node_modules_sha256"], "pi 설치 tree hash 불일치")
             write_json(receipt, value, exclusive=True)
         value = read_json(receipt)
@@ -171,6 +174,7 @@ def pi_toolchain() -> dict:
                 and digest(tree_files(installation / "node_modules")) == pins["node_modules_sha256"], "pi toolchain drift")
         expected = {"pi_cli": "@earendil-works/pi-coding-agent/dist/cli.js",
                     "bridge_extension": "@buyong/pi-claude-bridge/src/index.ts",
+                    "mcp_adapter_extension": "pi-mcp-adapter",
                     "claude_code_binary": "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"}
         require(all(Path(value[key]) == installation / "node_modules" / path for key, path in expected.items()), "pi artifact 경로 변경")
         return value

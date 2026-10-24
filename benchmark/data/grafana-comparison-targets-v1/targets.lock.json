@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "revision": 4,
+  "revision": 5,
   "status": "source_identities_frozen",
-  "frozen_at": "2026-10-24T04:38:44.504503+00:00",
+  "frozen_at": "2026-10-25T00:00:00+00:00",
   "target_release": "1.0.0",
   "scope": "외부 비교 도구 6개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
   "selection_policy": "2026-10-24 공식 GitHub release/tag와 npm/PyPI stable 배포를 대조했다. zvec-grep 0.2.2는 npm/tag 배포이며 GitHub Release는 없어 관련 필드를 null로 둔다. Graphify v1.0.0은 2026-04-05의 과거 release이고 PyPI에는 없으므로 현재 upstream latest/PyPI의 0.9.95를 선택한다. 준비 중 latest를 다시 해석하지 않는다.",
@@ -351,8 +351,8 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "2026-10-24 최신 stable 비교군 6개를 재확인해 통합한다. rg 15.2.0은 유지하며 Graphify wheel 의존성 잠금과 codemap-v0.13.0 평가 소스를 명시한다.",
-  "previous_lock_sha256": "7c20b821819c929bb23e0fa323757a44f1544236d32228941d829c7d5b26e22c",
+  "revision_reason": "2026-10-25 pi MCP 클라이언트를 내장 MCP에서 pi-mcp-adapter 6.0.0(npm latest)으로 바꾼다. 내장 MCP의 20 KB 결과 절단 대신 adapter 기본 출력 가드(50 KiB/2,000줄)를 쓰기 위해서다. 비교 도구 6개의 고정값은 개정 4와 같다.",
+  "previous_lock_sha256": "e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111",
   "pi_toolchain": {
     "install_flags": [
       "ci",
@@ -360,21 +360,23 @@
       "--no-audit",
       "--no-fund"
     ],
-    "node_modules_sha256": "9f6281cd6fed8acaba2aad84057c5cd5b3733a04818ce2050cac054f170b6c1c",
+    "node_modules_sha256": "bc1e85dc77b8aebd0094a887de204775e35f3d598efeea51dcfd1cafb4826752",
     "node_policy": "Host node: record canonical path, version and SHA256; verify on reuse.",
-    "npm_lock_sha256": "4db282f65a398917da43bc67e4a784ab0abc1eb238e7994ad530051d67d1211b",
-    "package_sha256": "e2adbc716a47942c2baafb92c83f84a716b869956b97323c03761c398e9fd2b2",
+    "npm_lock_sha256": "929752f50300d83e335475fe2bc8de25e4e20fe3e24f842d79b5ab7c29688356",
+    "package_sha256": "1692b9717e71653a43a9d7ae496cde7a085065be7007c2cecefb9ea6d5e9b0a3",
     "packages": {
       "agent_sdk": "@anthropic-ai/claude-agent-sdk@0.3.310",
       "bridge": "@buyong/pi-claude-bridge@0.13.1",
-      "pi": "@earendil-works/pi-coding-agent@1.4.0"
+      "pi": "@earendil-works/pi-coding-agent@1.4.0",
+      "mcp_adapter": "pi-mcp-adapter@6.0.0"
     },
     "platform": "darwin-arm64",
     "versions": {
       "agent_sdk": "0.3.310",
       "bridge": "0.13.1",
       "claude_code": "2.1.310",
-      "pi": "1.4.0"
+      "pi": "1.4.0",
+      "mcp_adapter": "6.0.0"
     }
   }
 }

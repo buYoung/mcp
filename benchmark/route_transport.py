@@ -286,6 +286,7 @@ def source_path(root: Path, value: str, *, must_exist=True) -> Path:
     return resolved
 
 
+DISCOVERY_METHODS = frozenset({"resources/list", "resources/templates/list", "prompts/list"})
 RG_TOOL = tool_schema("rg", "Run the pinned ripgrep CLI in the fixed source. Return its full stdout/stderr and exit code. Output options are opt-in; native defaults apply.", {
     "pattern": {"type": "string"}, "path": {"type": "string"}, "glob": {"type": "string"},
     "case_insensitive": {"type": "boolean"}, "context_lines": {"type": "integer", "minimum": 0},
@@ -428,12 +429,14 @@ class NativeRelay:
         with navigation_lock(self.log.parent):
             self.attempts += 1
             is_tool = method == "tools/call"
+            # Clients list resources/prompts on connect, like tools/list: recorded and validated, not exploration.
+            discovery = method in DISCOVERY_METHODS
             fields = params if isinstance(params, dict) else {}
             request = {"id": str(self.attempts), "client_request_id": str(ident), "arm": self.config["arm"],
                        "method": method, "tool": fields["name"] if is_tool and isinstance(fields.get("name"), str) else method,
                        "arguments": fields.get("arguments", {}) if is_tool else params,
                        "params": params, "metadata": fields.get("_meta") if isinstance(fields.get("_meta"), dict) else {},
-                       "started_monotonic": time.monotonic(),
+                       "started_monotonic": time.monotonic(), "discovery": discovery,
                        "is_auxiliary": is_tool and fields.get("name") in self.config.get("auxiliaries", [])}
             append_jsonl(self.log, {**request, "event": "attempt"})
             limit = self.config.get("limits", routes.load_profile()["limits"])["exploration_calls"]
@@ -448,12 +451,13 @@ class NativeRelay:
                 reason = "stopped"
                 require(not self.log.with_name("stop.json").exists(), "실행 중단 이후 탐색 금지")
                 reason = "call_limit"
-                if self.count >= limit:
-                    cutoff = latch_cutoff(self.log.parent, "call_limit", {})
-                    append_jsonl(self.log, {"event": "limit", "id": request["id"], **cutoff})
-                    raise ContractError("탐색 호출 한도")
-                self.count += 1
-                consumed = True
+                if not discovery:
+                    if self.count >= limit:
+                        cutoff = latch_cutoff(self.log.parent, "call_limit", {})
+                        append_jsonl(self.log, {"event": "limit", "id": request["id"], **cutoff})
+                        raise ContractError("탐색 호출 한도")
+                    self.count += 1
+                    consumed = True
                 reason = "validation_error"
                 validate()
                 if deadline is not None and time.monotonic() >= deadline:
@@ -467,7 +471,7 @@ class NativeRelay:
                 raise
             else:
                 self.dispatched += 1
-                request.update(dispatched=True, budget_consumed=True, started_monotonic=time.monotonic())
+                request.update(dispatched=True, budget_consumed=not discovery, started_monotonic=time.monotonic())
                 append_jsonl(self.log, {**request, "event": "request"})
                 return request
             finally:
@@ -609,7 +613,8 @@ def publish_delivery() -> dict:
                              "protocol_log": str(root / "protocol.jsonl"), "relay_log": str(root / "relay.jsonl"),
                              "protocol_sha256": file_digest(root / "protocol.jsonl"),
                              "relay_sha256": file_digest(root / "relay.jsonl"), "probe_source_sha256": file_digest(root / "sample.py")},
-        "pi_policy": {"flags": pi_client.PRIVATE_FLAGS, "product_tools": "mcp__navigation__*", "defaults": agent["defaults"]},
+        "pi_policy": {"flags": pi_client.PRIVATE_FLAGS, "mcp_client": "pi-mcp-adapter (exclusive --mcp-config, keep-alive, direct tools)",
+                      "product_tools": pi_client.navigation_tool_name("<tool>"), "defaults": agent["defaults"]},
         "unobserved_stages": ["Real hosted provider history", "Native product startup probes are recorded in 04-indexes-pi.json"],
         "solver_runs": 0, "grader_runs": 0},
         implementation=["benchmark/route_transport.py", "benchmark/runner.py", "benchmark/pi_client.py"], dependencies=["01-contract.json"])

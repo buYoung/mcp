@@ -24,7 +24,7 @@ def answer_prompt(spec: dict, question: dict) -> str:
     prefix = runner.ANSWER_PROMPT.split("실행 제한은")[0]
     limits = spec["limits"]
     return (prefix + f"실행 제한은 {limits['elapsed_seconds']}초, 실제 탐색 호출 {limits['exploration_calls']}회, "
-            f"누적 입력+출력 토큰 {limits['total_tokens']}개다.\n\n" + question["prompt"])
+            f"캐시 읽기를 제외한 누적 입력+출력 토큰 {limits['total_tokens']}개다.\n\n" + question["prompt"])
 
 
 def catalog() -> dict:

@@ -281,6 +281,7 @@ def build_plan(emit=print, *, solver_model: str | None = None) -> dict:
 def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
     """Cache-aware local preparation; no implicit start/resume or model launch."""
     solvers = routes.load_profile()["solver_choices"] if solver_model == "all" else [routes.solver_model(solver_model)]
+    settings.require_neutral_cache()
     if any(s["backend"] == "claude_code" for s in solvers):
         from .claude_client import capabilities
         capabilities()

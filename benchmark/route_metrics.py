@@ -255,12 +255,14 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
     events = read_live_jsonl(folder / "events.jsonl")
     runtime = read_json(folder / "runtime.json")
     is_pi = runtime.get("backend") == "pi"
+    client_tool_name = lambda name: "mcp__navigation__" + name
     if is_pi:
-        from .pi_client import NATIVE_TOOLS, tool_items
+        from .pi_client import NATIVE_TOOLS, navigation_tool_name, tool_items
+        client_tool_name = navigation_tool_name
     native = (folder / "native-agent.json").exists()
     configured = read_json(folder / ("native-agent.json" if native else "relay-settings.json"))
     items = [c for c in tool_items(events) if c.get("name") != "EndConversation"]
-    allowed = set(NATIVE_TOOLS) if native else {"ToolSearch", *["mcp__navigation__" + name for name in configured["enabled_tools"]]}
+    allowed = set(NATIVE_TOOLS) if native else {"ToolSearch", *[client_tool_name(name) for name in configured["enabled_tools"]]}
     if is_pi:
         allowed.discard("ToolSearch")
     violations = [{"name": c.get("name"), "reason": "unapproved agent capability"} for c in items if c.get("name") not in allowed]
@@ -286,15 +288,16 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
     if not native:
         requests, results, errors, terminals, transcript_complete = relay_call_records(folder)
         complete = complete and transcript_complete and runtime.get("shutdown", {}).get("relay_cleanup", {}).get("complete", False)
-        signature = lambda tool, args: (tool.removeprefix("mcp__navigation__"), json.dumps(args, sort_keys=True, ensure_ascii=False))
-        request_counts = collections.Counter(signature(r["tool"], r["arguments"]) for r in requests.values())
+        # Relay records keep the product tool name; client items carry the client's prefixed name.
+        signature = lambda tool, args: (tool, json.dumps(args, sort_keys=True, ensure_ascii=False))
+        request_counts = collections.Counter(signature(client_tool_name(r["tool"]), r["arguments"]) for r in requests.values())
         by_signature = collections.defaultdict(list)
         for item in items:
             by_signature[signature(item.get("name", ""), item.get("input", {}))].append(item)
         for ident, request in requests.items():
             result = results.get(ident)
             raw, relayed = (result.get("raw_result"), result.get("relay_result")) if result else (None, None)
-            key = signature(request["tool"], request["arguments"])
+            key = signature(client_tool_name(request["tool"]), request["arguments"])
             matches = by_signature[key]
             seen = outputs.get(matches[0]["id"]) if len(matches) == request_counts[key] == 1 else None
             terminal = terminals.get(ident, {})
@@ -345,10 +348,13 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
                            "claude-settings.json", "mcp-config.json", "pi-policy.json", "pi-bash.json", "pi-bash.sb", "bash-calls.jsonl") if (folder / name).exists()},
             "call_log_complete": complete, "jsonl_collection": collection, "boundary_violations": violations,
             "conditions_valid": execution.get("conditions_valid", False) and not violations,
-            "tool_call_counts": dict(collections.Counter(("auxiliary:" if c.get("is_auxiliary") else "native:") + c["tool"] for c in calls if c.get("dispatched"))),
-            "exploration_attempts": {"total": len(calls), "dispatched": sum(bool(c.get("dispatched")) for c in calls),
-                                     "rejected": sum(c["status"] == "rejected" for c in calls),
-                                     "errored": sum(c["status"] == "error" for c in calls)}}
+            "tool_call_counts": dict(collections.Counter(("auxiliary:" if c.get("is_auxiliary") else "native:") + c["tool"]
+                                                          for c in calls if c.get("dispatched") and not c.get("discovery"))),
+            "client_discovery_calls": dict(collections.Counter(c["tool"] for c in calls if c.get("discovery"))),
+            "exploration_attempts": {"total": sum(not c.get("discovery") for c in calls),
+                                     "dispatched": sum(bool(c.get("dispatched")) and not c.get("discovery") for c in calls),
+                                     "rejected": sum(c["status"] == "rejected" and not c.get("discovery") for c in calls),
+                                     "errored": sum(c["status"] == "error" and not c.get("discovery") for c in calls)}}
 
 
 def quality_counts(judgments: list[dict], questions: list[dict]) -> dict:

@@ -36,6 +36,7 @@
     "exploration_calls": 80,
     "total_tokens": 500000
   },
+  "token_limit_basis": "input_excluding_cache_reads_plus_output",
   "arm_ids": [
     "codemap-search",
     "codegraph",

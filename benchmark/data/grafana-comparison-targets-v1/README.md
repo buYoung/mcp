@@ -1,6 +1,6 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-2026-10-24 확인한 외부 도구 **6개**의 stable 배포·소스를 통합한 `grafana-comparison-targets-v1` **개정 4**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. 이전 개정은 Git 이력에 보존하며 `previous_lock_sha256`은 개정 3의 `7c20b821819c929bb23e0fa323757a44f1544236d32228941d829c7d5b26e22c`다.
+2026-10-24 확인한 외부 도구 **6개**의 stable 배포·소스를 통합한 `grafana-comparison-targets-v1` **개정 5**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. 이전 개정은 Git 이력에 보존하며 `previous_lock_sha256`은 개정 4의 `e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111`다. 개정 5는 비교 도구 고정값을 바꾸지 않고 pi MCP 클라이언트로 pi-mcp-adapter 6.0.0을 추가했다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -26,7 +26,7 @@
 | [targets.lock.json](targets.lock.json) | 저장소·태그·전체 커밋·Git tree, source archive URL·SHA-256·크기, source file blob, 데이터셋/평가 소스 연결. |
 | [provenance.json](provenance.json) | Phase A의 공식 API·태그·커밋·root blob·archive 검증 기록과 Graphify wheel 설치 조건. |
 | [graphifyy-0.9.95-py312-darwin-arm64.requirements.txt](graphifyy-0.9.95-py312-darwin-arm64.requirements.txt) | Python 3.12/macOS arm64에서 한 번 해석한 Graphify wheel 및 59개 runtime package의 hash lock. |
-| [pi-package.json](pi-package.json) / [pi-package-lock.json](pi-package-lock.json) | pi 1.4.0, bridge 0.13.1, SDK 0.3.310 (Claude Code 2.1.310)의 npm integrity lock. |
+| [pi-package.json](pi-package.json) / [pi-package-lock.json](pi-package-lock.json) | pi 1.4.0, bridge 0.13.1, SDK 0.3.310 (Claude Code 2.1.310), pi-mcp-adapter 6.0.0의 npm integrity lock. |
 | [SHA256SUMS](SHA256SUMS) | 이 bundle의 모든 고정 파일 SHA-256. |
 
 Graphify upstream `uv.lock`은 루트 버전 0.9.84와 누락된 필수 PyYAML 때문에 0.9.95의 `uv sync --locked`가 실패한다. `--frozen`으로 오류를 숨기지 않고 공식 wheel을 위 requirements로 `uv pip sync --require-hashes --only-binary :all:` 설치한다. 준비 시 의존성을 다시 해석하지 않는다. wheel package 파일을 고정 tag source와 대조하고 Graphify·Serena 모두 `uv pip check`를 수행한다. 원본 `uv.lock`은 source provenance로 보존하며 실제 runtime lock과 구분한다.

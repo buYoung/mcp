@@ -5,7 +5,7 @@ import copy
 import os
 from pathlib import Path
 
-from .core import digest, file_digest
+from .core import digest, file_digest, require
 
 ROOT = Path(__file__).resolve().parent
 REPOSITORY = ROOT.parent
@@ -14,6 +14,13 @@ REPOSITORY = ROOT.parent
 CACHE = (Path(os.environ["CODEMAP_BENCH_CACHE"]).expanduser().resolve()
          if os.environ.get("CODEMAP_BENCH_CACHE") else ROOT / ".cache")
 RUNS = ROOT / "runs"
+# Solver-visible paths (source, TMPDIR, shell HOME) live under CACHE, so the path must not name a product or the harness.
+IDENTIFYING_PATH_WORDS = ("codemap", "codegraph", "zvec", "graphify", "codebase-memory", "serena", "bench", "route", "campaign")
+
+
+def require_neutral_cache() -> None:
+    found = [word for word in IDENTIFYING_PATH_WORDS if word in str(CACHE).lower()]
+    require(not found, f"CODEMAP_BENCH_CACHE 경로가 제품·하네스를 드러냅니다({', '.join(found)}). 중립적인 경로를 쓰세요")
 
 
 def execution_settings(solver_model: str | None = None) -> dict:
@@ -28,6 +35,7 @@ def execution_settings(solver_model: str | None = None) -> dict:
             "grader_backend": "pi",
             "grader_model": profile["grader"]["model"], "grader_reasoning_effort": profile["grader"]["reasoning_effort"],
             "seed": profile["seed"], "concurrency": profile["concurrency"], "limits": copy.deepcopy(profile["limits"]),
+            "token_limit_basis": profile["token_limit_basis"],
             "batch_limits": {"bytes": 160 * 1024},
             **{key: copy.deepcopy(profile[key]) for key in ("native_output_policy", "tool_access", "index_mode")}}
 
