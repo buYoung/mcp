@@ -20,8 +20,8 @@ DOWNLOADS = routes.PREPARATION / "downloads"
 RELEASE_ASSETS = {
     "codebase-memory-mcp": {
         "file": "codebase-memory-mcp-darwin-arm64.tar.gz",
-        "sha256": "4dee7f38b63740e6751d7a7ed7eb10291c1f2a3ea2415f599dc68370ca0a2d18",
-        "url": "https://github.com/DeusData/codebase-memory-mcp/releases/download/v0.11.0/codebase-memory-mcp-darwin-arm64.tar.gz"},
+        "sha256": "9bfcbe38414b47969a3e1d1c1999f5357409387c86fa3d24221b5458267660d2",
+        "url": "https://github.com/DeusData/codebase-memory-mcp/releases/download/v0.12.1/codebase-memory-mcp-darwin-arm64.tar.gz"},
     "rg": {
         "file": "ripgrep-15.2.0-aarch64-apple-darwin.tar.gz",
         "sha256": "3750b2e93f37e0c692657da574d7019a101c0084da05a790c83fd335bad973e4",
@@ -130,21 +130,26 @@ def prepare_one(ident: str, emit=print) -> dict:
     arm = next(a for a in routes.arm_contracts() if a["id"] == ident)
     if ident == "codemap-search":
         record_path = ARTIFACTS / ident / "artifact.json"
+        commit = command(["git", "rev-parse", "--verify", "--end-of-options", arm["git_ref"] + "^{commit}"],
+                         settings.REPOSITORY).strip()
+        require(commit == arm["commit"], "codemap release tag의 고정 commit 변경")
         if record_path.exists():
             existing = read_json(record_path)
-            current_source = digest(resources.product_files(settings.REPOSITORY / "apps/codemap-search"))
-            if existing["source_pin"]["source_sha256"] == current_source:
-                # A later harness commit must not relabel an already pinned product snapshot.
+            if all(existing["source_pin"].get(key) == arm[key] for key in ("commit", "git_ref", "version")):
                 verify_artifact(existing)
                 return existing
-        build = resources.build_product({"id": ident, "name": ident, "path": "apps/codemap-search"}, emit)
+        build = resources.build_product(arm, emit)
+        require(all(build["identity"][key] == arm[key] for key in ("commit", "git_ref", "version")),
+                "codemap release snapshot identity 불일치")
         binary = Path(build["binary"])
+        observed_version = command([str(binary), "--version"], timeout_seconds=60).strip()
+        require(observed_version == f"codemap-search {arm['version']}", f"codemap 설치 버전 불일치: {observed_version}")
         result = {"id": ident, "source_pin": build["identity"], "actual_version": build["identity"]["version"],
                   "installation": build["source_snapshot"], "launch": [str(binary)],
                   "executables": [{"path": str(binary), "sha256": build["binary_sha256"]}],
                   "dependencies": {"Cargo.lock": file_digest(Path(build["source_snapshot"]) / "Cargo.lock")},
                   "runtime": {"rustc": build["rustc"]}, "backend": "native_rust", "model_assets": [],
-                  "build": build}
+                  "build": build, "version_output": observed_version}
         result["installation_sha256"] = digest(tree_files(Path(result["installation"]), exclude={"target"}))
         output = ARTIFACTS / ident
         output.mkdir(parents=True, exist_ok=True)
@@ -185,15 +190,52 @@ def prepare_one(ident: str, emit=print) -> dict:
     elif ident in {"graphify", "serena"}:
         uv = shutil.which("uv")
         require(uv is not None, f"{ident}의 고정 환경 준비에 uv가 필요합니다")
-        extras = ["--extra", "mcp"] if ident == "graphify" else []
-        commands.append(run_logged([uv, "sync", "--locked", "--no-dev", *extras, "--python", "3.12"],
-                                   source, output / "install.log"))
+        if ident == "graphify":
+            require(arm["version"] == "0.9.95" and platform.system() == "Darwin"
+                    and platform.machine() == "arm64", "Graphify runtime lock 대상 불일치")
+            requirements = routes.TARGETS / "graphifyy-0.9.95-py312-darwin-arm64.requirements.txt"
+            require(file_digest(requirements) == "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
+                    "Graphify runtime dependency lock 변경")
+            commands.append(run_logged([uv, "venv", "--python", "3.12", str(source / ".venv")],
+                                       source, output / "venv.log"))
+            commands.append(run_logged([uv, "pip", "sync", "--python", str(source / ".venv/bin/python"),
+                                        "--require-hashes", "--only-binary", ":all:", str(requirements)],
+                                       source, output / "install.log"))
+        else:
+            commands.append(run_logged([uv, "sync", "--locked", "--no-dev", "--python", "3.12"],
+                                       source, output / "install.log"))
         python = source / ".venv/bin/python"
+        commands.append(run_logged([uv, "pip", "check", "--python", str(python)],
+                                   source, output / "dependency-check.log"))
         launch = [str(python), "-m", "graphify"] if ident == "graphify" else [str(source / ".venv/bin/serena")]
         runtime = {"python": command([str(python), "--version"]).strip(),
                    "python_sha256": file_digest(python), "uv": command([uv, "--version"]).strip()}
         dependencies = {"uv.lock": file_digest(source / "uv.lock")}
         backend = "tree_sitter_code_only" if ident == "graphify" else "local_lsp_go_typescript"
+        if ident == "graphify":
+            dependencies["runtime_requirements_sha256"] = file_digest(requirements)
+            verify_wheel = """
+import hashlib, json, sys
+from importlib.metadata import distribution
+from pathlib import Path
+source = Path(sys.argv[1])
+dist = distribution('graphifyy')
+checked = []
+for name in dist.files or []:
+    if name.parts[0] == 'graphify' and '__pycache__' not in name.parts:
+        expected, installed = source / name, Path(dist.locate_file(name))
+        assert expected.is_file() and installed.is_file(), str(name)
+        assert hashlib.sha256(expected.read_bytes()).digest() == hashlib.sha256(installed.read_bytes()).digest(), str(name)
+        checked.append(str(name))
+assert checked
+print(json.dumps({'source_matching_files': len(checked), 'version': dist.version}))
+"""
+            commands.append(run_logged([str(python), "-c", verify_wheel, str(source)],
+                                       source, output / "wheel-source-check.log"))
+            provenance["official_package_wheel"] = {
+                "url": "https://files.pythonhosted.org/packages/79/87/4c0808afdf99568e27f24838595506d6a286aca6f3bbf8fbb2520574f413/graphifyy-0.9.95-py3-none-any.whl",
+                "sha256": "e067c9256e5e762406816e51039c4e775f8d2f39a893ecc0b7095d594f6c3120",
+                "source_verification_log": str(output / "wheel-source-check.log")}
         if ident == "serena":
             for name in ("go", "gopls", "node", "npm"):
                 executable = shutil.which(name)
@@ -205,7 +247,7 @@ def prepare_one(ident: str, emit=print) -> dict:
     else:
         require(platform.system() == "Darwin" and platform.machine() == "arm64", "등록한 공식 binary는 darwin-arm64 전용입니다")
         asset = RELEASE_ASSETS[ident]
-        release = download(asset["url"], DOWNLOADS / asset["file"], asset["sha256"])
+        release = download(asset["url"], DOWNLOADS / ident / arm["commit"] / asset["file"], asset["sha256"])
         installation = output / "release"
         if not installation.exists():
             extract(Path(release["path"]), installation)
@@ -214,7 +256,7 @@ def prepare_one(ident: str, emit=print) -> dict:
         launch = [str(found[0])]
         provenance["official_release_asset"] = release
         provenance["source_association"] = {"repository": arm["repository"], "commit": arm["commit"],
-                                            "release_tag": "15.2.0" if ident == "rg" else "v0.11.0"}
+                                            "release_tag": arm["release_tag"]}
         dependencies = {"distribution": "official_release", "asset_sha256": release["sha256"]}
         backend = "official_native_binary"
     if ident == "serena":
@@ -248,10 +290,18 @@ def prepare_one(ident: str, emit=print) -> dict:
 
 def load_artifacts(*, verify=True) -> dict:
     result = {}
-    for ident in routes.ARM_IDS:
-        paths = list((ARTIFACTS / ident).glob("**/artifact.json"))
-        require(len(paths) == 1, f"도구 준비 기록이 없거나 모호합니다: {ident}")
-        value = read_json(paths[0])
+    for arm in routes.arm_contracts():
+        ident = arm["id"]
+        output = ARTIFACTS / ident
+        if ident != "codemap-search":
+            output /= arm["commit"]
+        path = output / "artifact.json"
+        require(path.is_file(), f"현재 pin의 도구 준비 기록이 없습니다: {ident}")
+        value = read_json(path)
+        require(value["id"] == ident and value["source_pin"]["commit"] == arm["commit"]
+                and value["source_pin"]["version"] == arm["version"], f"설치 source pin 변경: {ident}")
+        if ident == "codemap-search":
+            require(value["source_pin"].get("git_ref") == arm["git_ref"], "codemap release snapshot이 아닙니다")
         if verify:
             verify_artifact(value)
         result[ident] = value
