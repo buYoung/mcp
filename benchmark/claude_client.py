@@ -6,7 +6,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .core import canonical, command, file_digest, metric, ratio, require, write_json
+from .core import canonical, command, file_digest, metric, ratio, read_json, require, write_json
 
 BACKEND = "claude_code"
 NATIVE_TOOLS = ("Bash", "Read", "Glob", "Grep")
@@ -42,18 +42,13 @@ def capabilities() -> dict:
 def configuration(source: Path, rg_binary: Path) -> dict:
     source, rg_binary = source.resolve(), rg_binary.resolve()
     search_path = str(rg_binary.parent) + os.pathsep + os.environ.get("PATH", os.defpath)
-    # Restricted mode fences native file tools; the native Bash sandbox fences subprocesses.
+    # One outer Seatbelt fences the CLI and all native tools. Nested Bash Seatbelt is impossible.
     return {"schema": "grafana-native-agent-v1", "backend": BACKEND, "mode": "native_agent", "source": str(source),
             "rg_binary": str(rg_binary), "rg_sha256": file_digest(rg_binary), "search_product_mcp": False,
             "env": {"PATH": search_path}, "tools": list(NATIVE_TOOLS),
             "config": {"permissions": {"defaultMode": "dontAsk", "blockReadsOutsideWorkingDirectories": True,
                                         "deny": ["Edit", "Write", "NotebookEdit", "WebFetch", "WebSearch", "Agent", "Cd"]},
-                       "sandbox": {"enabled": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False,
-                                   "excludedCommands": [],
-                                   "filesystem": {"denyRead": ["/"],
-                                                  "allowRead": [str(source), str(rg_binary.parent), "/bin", "/sbin", "/usr", "/System", "/Library", "/dev", "/opt/homebrew"],
-                                                  "denyWrite": [str(source)]},
-                                   "network": {"allowedDomains": [], "strictAllowlist": True}},
+                       "sandbox": {"enabled": False},
                        "env": {"PATH": search_path}},
             "native_tools": "Claude Code native Bash/Read/Glob/Grep; no search product MCP",
             "call_unit": "native exploration tool_use ID; a compound Bash command is one call",
@@ -88,13 +83,17 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         args += ["--allowedTools", ",".join(permitted)]
     env = environment()
     if native:
+        from .isolation import claude_baseline_command, claude_baseline_profile
         env.update(native["env"])
+        profile = claude_baseline_profile(native, folder)
+        env.update(profile["env"])
+        args = claude_baseline_command(args, profile, folder)
     env.update(MCP_TOOL_TIMEOUT="300000", MCP_TIMEOUT="120000")
     return args, workspace, env
 
 
 def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
-    """Validate CLI startup with no prompt/model. Native tool enforcement remains unobserved."""
+    """Model-free auth/startup plus real commands under the identical outer boundary."""
     from .settings import execution_settings
     folder.mkdir(parents=True, exist_ok=True)
     host = capabilities()
@@ -106,12 +105,35 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     (folder / "startup.stdout").write_bytes(result.stdout)
     (folder / "startup.stderr").write_bytes(result.stderr)
     require(result.returncode == 0, f"Claude 준비 시작 검증 실패: {folder / 'startup.stderr'}")
+    from .isolation import canary_files, claude_baseline_command, hidden_references
+    profile = read_json(folder / "claude-boundary.json")["profile"]
+    auth = subprocess.run(claude_baseline_command([shutil.which("claude"), "auth", "status"], profile, folder),
+                          cwd=workspace, env=env, capture_output=True, timeout=60)
+    write_json(folder / "auth-probe.json", {"exit_code": auth.returncode, "stdout": auth.stdout.decode(errors="replace"),
+                                          "stderr": auth.stderr.decode(errors="replace"), "model_invocations": 0})
+    require(auth.returncode == 0, "Claude outer profile에서 로그인 인식 실패: baseline blocked; 자격 파일을 복사/허용하지 않습니다")
+    boundaries = []
+    with canary_files(workspace, folder / "boundary") as (_, targets):
+        cases = [("source_read", ["/bin/cat", "README.md"], True),
+                 ("pinned_rg", [value["rg_binary"], "--version"], True),
+                 ("proxy_github_denied", ["/usr/bin/curl", "--fail", "--max-time", "10", "https://github.com"], False),
+                 ("direct_github_denied", ["/usr/bin/curl", "--fail", "--noproxy", "*", "--max-time", "10", "https://github.com"], False)]
+        cases.extend((name, ["/bin/cat", str(path)], False) for name, path in targets.items())
+        for name, argv, allowed in cases:
+            checked = subprocess.run(claude_baseline_command(argv, profile, folder), cwd=workspace, env=env,
+                                     capture_output=True, timeout=30)
+            boundaries.append({"name": name, "expected_access": "allow" if allowed else "deny", "exit_code": checked.returncode})
+            write_json(folder / "boundary-probe.json", boundaries)
+            require((checked.returncode == 0) == allowed, f"Claude outer boundary 실패: {name}")
     observation = {"name": "claude_init_only", "exit_code": result.returncode, "command": args,
                    "cli": host, "configuration": value, "model_invocations": 0,
                    "policy_sha256": file_digest(folder / "claude-settings.json"),
-                   "denied_reference_paths": [str(p) for p in denied_paths],
+                   "references": [{"path": str(p), "exists": p.exists(), "kind": "existence_only"}
+                                  for p in dict.fromkeys([*denied_paths, *hidden_references()])],
+                   "boundaries": boundaries, "isolation_profile": profile,
+                   "auth_status": "verified under outer profile",
                    "stdout_sha256": file_digest(folder / "startup.stdout"), "stderr_sha256": file_digest(folder / "startup.stderr"),
-                   "boundary_probe": "Configuration and CLI startup inspected; no native tool call or model request was made."}
+                   "boundary_probe": "CLI auth/init and cat/rg/curl canaries used the identical outer profile; no model/native tool dispatch."}
     write_json(folder / "probe.json", observation)
     write_json(folder / "inventory.json", {"backend": BACKEND, "configuration": value, "cli": host,
         "tool_inventory_observation": "Configured native tool allowlist only; actual model inventory is unobserved."})
