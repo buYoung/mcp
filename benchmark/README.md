@@ -104,6 +104,8 @@ python3 -m benchmark.cli approve-review < /private/operator/review.json
 python3 -m benchmark.cli report < /private/operator/report.json
 ```
 
+스모크는 같은 `run` 명령과 수명주기를 쓰되 승인 JSON에 `"scope": {"kind": "smoke", "slot_ids": [...]}`를 넣는다. 지정한 슬롯만 실행·채점하고 나머지는 `out_of_scope`로 시작하지 않는다. 결과는 `campaigns/smoke-<campaign_id>/`에 따로 남고 보고서 첫머리에 스모크임을 표시하며 비교 결과로 쓰지 않는다. 범위를 생략하면 21개 슬롯 전체(`{"kind": "full"}`)다.
+
 `RunManifest`와 승인·준비 기록은 불변이다. 실행 결과는 cache의 `route-preparation/campaigns/<campaign_id>/`에 따로 저장한다. `ledger.json`은 fsync·atomic replace로 갱신하며 단일 coordinator만 작성한다. solver/grader launch intent를 먼저 내구 저장한다. intent 이후 crash는 실행 여부가 불확실해도 자동 재실행하지 않는다. 정리가 확인되지 않은 process group/workspace는 `blocked`로 두고 추측으로 종료하거나 복원하지 않는다. 미시작 재개만 명시적 `retry_unstarted`로 허용하고 이전 preflight의 원자료도 보존한다. 모델 호출 확인과 CLI spawn은 별개이며 미관측 provider 호출은 null이다.
 
 `grade-sealed`는 운영자가 명시적으로 CLI를 실행할 때만 정리 실패를 해제하지 않는 부분 채점 예외를 제공한다. `blocked` campaign에서 원자료 seal의 cleanup 완료·유효 조건·적격 답변이 확인된 슬롯만 고정 baseline과 기존 `build_review_packet` 경로로 채점 입력을 만든다. identity flag가 있으면 `review_required`로 멈추고 운영자가 `approve-review`로 승인·재봉인한 뒤 `grade-sealed`를 다시 실행해야 한다. **봉인된 packet만** 기존 Astra 승인 범위로 채점하며 실패 grader를 재시도하지 않는다. solver/product launch, workspace restore, cleanup 승인, 남은 슬롯 시작은 모두 금지한다. 실패·미시작 슬롯과 원자료를 보존하고 campaign은 계속 `blocked`(CLI exit 1)다. ledger와 보고서의 `blocked_grading`에 명시적 부분 채점 요청·대상·차단 원인·검증 완료 슬롯을 남긴다.
@@ -140,6 +142,22 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 - runner가 `Popen` 직전 t0에서 `session.open_solver_gate(t0)`를 호출한다. product restart나 warm probe 예산 혼입은 금지한다. 결과는 `answer_eligible`을 명시한다.
 - `health().condition_errors`는 조건 열화를 보고하고, `close(reason)`는 bounded cleanup의 `complete`를 반환한다. 독립 그룹은 prompt/attach 허용 전에 `process_registry.register(pid, pgid, owner)`에 등록한다.
 - warm/transport 원자료는 `slot_dir` 바로 아래에 둔다. product home이나 CLI credentials/workspace는 raw seal 대상이 아니다. CLI `process.json`이 없으면 실제 spawn을 인증하지 않는다.
+
+### 준비 색인 시간 (2026-10-24 실측)
+
+고정 Grafana(추적 파일 22,898개), macOS 15.7.1 arm64 14코어, 외장 NVMe(Thunderbolt) cache에서 각 제품의 색인 명령이 걸린 wall time이다. 준비 기록 `plans/<plan_id>/readiness.json`의 `arms.<arm>.commands[].elapsed_seconds`가 원자료다. 다른 작업(하위 검증 작업, 동시 실행 프로세스)이 같은 머신에서 돌던 상태라 부하 없는 측정이 아니다. 비교 조건은 색인을 미리 끝낸 상태이므로 이 시간은 풀이 시간과 비용에 포함하지 않는다.
+
+| 도구 | 색인 명령 | 시간 |
+|---|---|---:|
+| Serena 2.1.0 | `serena project index` (Go·TypeScript LSP) | 4,185.3초 (약 70분) |
+| graphify 0.9.95 | `graphify extract --code-only` | 255.5초 |
+| zvec-grep 0.2.2 | `index --embedding local/potion-code-16m…` | 123.8초 |
+| codemap-search 0.13.0 | `codemap-search index .` | 68.8초 |
+| codegraph 1.6.2 | `codegraph init --yes` | 64.1초 |
+| codebase-memory-mcp 0.12.1 | `cli index_repository` | 26.3초 |
+| rg 15.2.0 | 색인 없음 | — |
+
+새 프로세스의 semantic gate(준비 확인)는 codemap-search 25.5초, Serena 22.4초, zvec-grep 10.1초, codegraph 4.4초, codebase-memory-mcp 4.2초, graphify 1.3초였다.
 
 ### 준비 색인과 live query-ready
 

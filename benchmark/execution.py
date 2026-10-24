@@ -59,10 +59,20 @@ def authorize_run(prepared: dict, readiness: Path, approval: dict) -> tuple[Path
     require(approval.get("plan_id") == prepared["plan_id"] and approval.get("readiness_sha256") == checksum
             and approval.get("solver_model") == prepared["models"]["solver"]["model"], "승인 범위 불일치")
     require(read_json(readiness) == prepared and prepared["plan_id"] == digest(route_prepare.plan_condition(prepared))[:32], "승인 조건 변경")
+    planned_ids = [slot["id"] for slot in prepared["planned_runs"]]
+    scope = approval.get("scope", {"kind": "full"})
+    if isinstance(scope, dict) and scope.get("kind") == "smoke":
+        # A smoke campaign runs only the named slots through the same lifecycle; its results are not comparisons.
+        selected = scope.get("slot_ids")
+        require(set(scope) == {"kind", "slot_ids"} and isinstance(selected, list) and selected
+                and len(set(selected)) == len(selected) and set(selected) <= set(planned_ids), "스모크 슬롯 범위 오류")
+    else:
+        require(scope == {"kind": "full"}, "알 수 없는 실행 범위")
+        selected = planned_ids
     campaign_id = uuid.uuid4().hex
-    root = routes.PREPARATION / "campaigns" / campaign_id
-    authorization = {**approval, "recorded_at": timestamp(), "campaign_id": campaign_id,
-                     "max_solver_launches": 21, "max_grader_launches": 21, "calibration_runs": 0}
+    root = routes.PREPARATION / "campaigns" / (("smoke-" if scope["kind"] == "smoke" else "") + campaign_id)
+    authorization = {**approval, "scope": scope, "recorded_at": timestamp(), "campaign_id": campaign_id,
+                     "max_solver_launches": len(selected), "max_grader_launches": len(selected), "calibration_runs": 0}
     specs = copy.deepcopy(prepared["execution_specs"])
     for spec in specs.values():
         require(spec["preparation_only"] is True and spec["concurrency"] == 4, "준비 실행 조건 변경")
@@ -84,6 +94,9 @@ def authorize_run(prepared: dict, readiness: Path, approval: dict) -> tuple[Path
                      "prompt_sha256": prepared["solver_inputs"][slot["id"]]["sha256"],
                      "phase": "pending", "launch_state": "not_started", "cli_launches": 0,
                      "provider_call_observed": None, "conditions_valid": None, "grade_state": "not_eligible"})
+        if slot["id"] not in selected:
+            rows[-1].update(phase="terminal", status="out_of_scope", provider_call_observed=False,
+                            grade_reason="outside smoke scope")
     durable_json(root / "ledger.json", {"schema_version": 1, "revision": 0, "campaign_id": campaign_id,
         "manifest_sha256": file_digest(root / "manifest.json"), "status": "authorized", "slots": rows}, exclusive=True)
     return root, manifest
@@ -511,7 +524,7 @@ def _run_campaign(root: Path, *, resume=False, retry_unstarted=False, cancel_eve
         coordinator.ledger["status"] = "blocked"
         coordinator.commit()
         return report_campaign(root)
-    eligible = [r for r in rows if r["launch_state"] == "not_started" and
+    eligible = [r for r in rows if r["launch_state"] == "not_started" and r.get("status") != "out_of_scope" and
                 (r["phase"] == "pending" and not resume or resume and retry_unstarted)]
     if eligible:
         try:
@@ -541,7 +554,7 @@ def _run_campaign(root: Path, *, resume=False, retry_unstarted=False, cancel_eve
         prepare_review_packets(root, manifest, coordinator, coordinator.ledger["slots"], source_check)
         schedule_workers([r for r in coordinator.ledger["slots"] if r["grade_state"] == "sealed"], coordinator, cancel_event,
             lambda row: grade_packet(root, manifest, row, coordinator, cancel_event, grader_executor or runner.execute_model))
-    rows = coordinator.ledger["slots"]
+    rows = [r for r in coordinator.ledger["slots"] if r.get("status") != "out_of_scope"]
     status = ("blocked" if any(r.get("cleanup", {}).get("complete") is False for r in rows) else
               "cancelled" if cancel_event.is_set() else "awaiting_review" if any(r["grade_state"] == "review_required" for r in rows) else
               "completed" if all(r["grade_state"] == "validated" for r in rows) else "completed_with_failures")
@@ -617,9 +630,10 @@ def report_campaign(root: Path) -> dict:
                     file_digest(Path(row["judgment"])) == row["judgment_sha256"], "채점/packet binding 변경")
             judgments[row["id"]] = read_json(Path(row["judgment"]))
     result = route_metrics.report(root, {**manifest["prepared"], "campaign_status": ledger["status"],
-                                        "blocked_grading": ledger.get("blocked_grading", [])}, ledger["slots"], judgments)
+                                        "blocked_grading": ledger.get("blocked_grading", []),
+                                        "run_scope": manifest["authorization"].get("scope", {"kind": "full"})}, ledger["slots"], judgments)
     return {"campaign_id": manifest["campaign_id"], "plan_id": manifest["plan_id"], "status": ledger["status"],
-            "error": ledger.get("error"), "blocked_grading": ledger.get("blocked_grading", []),
+            "scope": manifest["authorization"].get("scope", {"kind": "full"}), "error": ledger.get("error"), "blocked_grading": ledger.get("blocked_grading", []),
             "counts": result["counts"], "ledger": str(root / "ledger.json"),
             "report": str(root / "report/results.md"), "run_root": str(root)}
 
