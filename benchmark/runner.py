@@ -285,16 +285,16 @@ def recorded_usage(folder: Path) -> dict:
 
 def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
                   usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
-                  codex_version: str | None = None) -> dict:
+                  codex_version: str | None = None, prepared_session=None) -> dict:
     spec = settings or default_settings()
     require(grading or spec.get("solver_backend", "codex") == "codex", "Claude 풀이에는 execute_model을 사용하세요")
     return _execute_agent(folder, prompt, relay_settings, grading, output_schema, usage_drain_seconds,
-                          settings=spec, cancel_event=cancel_event, codex_version=codex_version, backend="codex")
+                          settings=spec, cancel_event=cancel_event, codex_version=codex_version, backend="codex", prepared_session=prepared_session)
 
 
 def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
                   usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
-                  codex_version: str | None = None, agent_version: str | None = None) -> dict:
+                  codex_version: str | None = None, agent_version: str | None = None, prepared_session=None) -> dict:
     spec = settings or default_settings()
     require(spec["grader_model"] == "gpt-6-astra" and spec["grader_reasoning_effort"] == "high", "채점은 Astra/high로 고정합니다")
     backend = "codex" if grading else spec["solver_backend"]
@@ -306,19 +306,17 @@ def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None,
                 backend == selected["backend"], "풀이 모델과 실행기 계약 불일치")
     return _execute_agent(folder, prompt, relay_settings, grading, output_schema, usage_drain_seconds,
                           settings=spec, cancel_event=cancel_event, codex_version=codex_version,
-                          backend=backend, agent_version=None if grading else agent_version)
+                          backend=backend, agent_version=None if grading else agent_version, prepared_session=prepared_session)
 
 
-def navigation_server(folder: Path, relay_settings: dict) -> dict:
-    """Backend-neutral MCP launch seam; the warm-host attachment replaces this command in stage 2."""
-    from .settings import CACHE
+def navigation_server(folder: Path, relay_settings: dict, prepared_session=None) -> dict:
+    """Both backends attach to the same already-warm host; no cold relay fallback."""
     require(relay_settings.get("schema") == "grafana-route-relay-v1", "지원하지 않는 도구 중계 계약")
-    settings_path = folder / "relay-settings.json"
-    write_json(settings_path, relay_settings, exclusive=True)
-    return {"command": sys.executable, "args": ["-m", "benchmark.route_transport", str(settings_path)],
-            "cwd": str(PACKAGE_ROOT), "startup_timeout_sec": 120, "tool_timeout_sec": 300,
-            "enabled_tools": relay_settings["enabled_tools"],
-            "env": {"PYTHONPATH": str(PACKAGE_ROOT), "CODEMAP_BENCH_CACHE": str(CACHE)}, "required": True}
+    require(prepared_session is not None, "제품 MCP는 semantic ready session이 필요합니다")
+    require(prepared_session.folder == folder.resolve(), "warm session/solver slot mismatch")
+    server = prepared_session.attachment()
+    write_json(folder / "relay-settings.json", relay_settings, exclusive=True)
+    return server
 
 
 def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: float | None,
@@ -348,7 +346,7 @@ def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: flo
 
 def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
                    usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
-                   codex_version: str | None = None, backend="codex", agent_version: str | None = None) -> dict:
+                   codex_version: str | None = None, backend="codex", agent_version: str | None = None, prepared_session=None) -> dict:
     from . import claude_client
     spec = settings or default_settings()
     require(not spec.get("preparation_only"), "route 준비 전용 계약에서는 solver/grader 실행이 금지됩니다")
@@ -359,6 +357,12 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     workspace = folder / "workspace"
     workspace.mkdir(exist_ok=True)
     env, home = isolated_environment(folder) if backend == "codex" else (None, None)
+    if prepared_session is not None:
+        require(not grading and prepared_session.backend == backend, "warm session/backend mismatch")
+        require(prepared_session.folder == folder, "warm session/solver slot mismatch")
+        require(not prepared_session.health()["condition_errors"], "warm session unhealthy")
+        require(relay_settings is None or relay_settings == prepared_session.relay_settings, "warm relay settings mismatch")
+        relay_settings = prepared_session.relay_settings
     native_agent = spec.get("native_agent") if not grading else None
     codex_command = "codex"
     if native_agent:
@@ -370,7 +374,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     args = ([codex_command, "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json",
              "-C", str(workspace), "-m", spec["grader_model"] if grading else spec["model"]] + codex_options(grading, spec)
             if backend == "codex" else [])
-    server = navigation_server(folder, relay_settings) if relay_settings else None
+    server = navigation_server(folder, relay_settings, prepared_session) if relay_settings else None
     if backend == "claude_code":
         require(not grading and not output_schema, "채점과 구조화 출력은 Codex/Astra에서 실행합니다")
         agent_version = agent_version or command(["claude", "--version"]).strip()
@@ -395,8 +399,6 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                                              if backend == "codex" else None,
                                         "codex_version": codex_version}, exclusive=True)
     (folder / "prompt.txt").write_text(prompt, encoding="utf-8")
-    start = time.monotonic()
-    started_unix_seconds = time.time()
     thread_id = None
     launch_error = None
     process = None
@@ -408,7 +410,6 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     model_exited_monotonic = None
     answer_finished_monotonic = None
     event_parse_failed = False
-    wall_deadline = start + spec["limits"]["elapsed_seconds"]
     with (folder / "events.jsonl").open("wb") as event_file, (folder / "stderr.log").open("wb") as error_file:
         selector = selectors.DefaultSelector()
         def pump():
@@ -440,7 +441,13 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                         elif (backend == "claude_code" and event.get("type") == "result"
                               or backend == "codex" and event.get("type") == "turn.completed"):
                             answer_finished_monotonic = time.monotonic()
+        # All readiness, attachment, CLI config and log setup precede the solver clock.
+        start = time.monotonic()
+        started_unix_seconds = time.time()
+        wall_deadline = start + spec["limits"]["elapsed_seconds"]
         try:
+            if prepared_session is not None:
+                prepared_session.open_solver_gate(start)
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=error_file, start_new_session=True)
             stop = ExecutionStop(folder, process, start, usage_drain_seconds,
@@ -450,6 +457,8 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                                  "started_unix_seconds": started_unix_seconds, "started_monotonic": start,
                                                  "wall_deadline_monotonic": wall_deadline}, exclusive=True)
             selector.register(process.stdout, selectors.EVENT_READ)
+            if prepared_session is not None:
+                prepared_session.register_solver(process)
             process.stdin.write(prompt.encode())
             process.stdin.close()
             while process.poll() is None:
@@ -464,7 +473,11 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                         live = read_live_jsonl(find_rollout(home, thread_id))
                         observed = usage_metrics(live, terminal_complete=False, evidence="live rollout")["observed"]
                     reason = None
-                    if time.monotonic() >= wall_deadline:
+                    if prepared_session is not None and prepared_session.health()["condition_errors"]:
+                        reason = "environment_error"
+                        if cancel_event is not None:
+                            cancel_event.set()
+                    elif time.monotonic() >= wall_deadline:
                         reason = "timeout"
                     elif not grading and observed["total_tokens"] >= spec["limits"]["total_tokens"]:
                         reason = "token_limit"
@@ -504,7 +517,8 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                 except (OSError, ValueError, KeyError) as exc:
                     launch_error = f"unsupported {backend} event log during cleanup: {exc}"
             solver_cleanup = cleanup_solver(process, cleanup_pump)
-            relay_cleanup = cleanup_relay(folder, cleanup_pump)
+            relay_cleanup = (prepared_session.close("solver_finished") if prepared_session is not None
+                             else cleanup_relay(folder, cleanup_pump))
             deadline = time.monotonic() + 1
             while process and not is_stdout_eof and time.monotonic() < deadline:
                 cleanup_pump()
@@ -613,7 +627,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                               completion={"complete": False, "reasons": [launch_error or "unsupported Codex log format"]})
     budget["whole_cost_may_be_missing"] = not usage["complete"]
     budget["within_limit"] = (False if budget["observed_overshoot_tokens"] else True if usage["complete"] else None)
-    condition_errors = []
+    condition_errors = list(prepared_session.health()["condition_errors"]) if prepared_session is not None else []
     if not grading and budget["observed_overshoot_tokens"]:
         condition_errors.append("Observed tokens exceeded the fixed token limit.")
     if native_count is not None and native_count > spec["limits"]["exploration_calls"]:
@@ -650,6 +664,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     if condition_errors:
         result["condition_errors"] = condition_errors
     result["answer_eligibility"] = eligibility
+    result["answer_eligible"] = answer_eligible
     result["usage_collection"] = {"drain_seconds": 0, "answer_within_cutoff": answer_eligible,
                                   "post_cutoff_answer_excluded": bool(final_text) and not answer_eligible,
                                   "whole_cost_includes_cleanup": True}
