@@ -112,7 +112,9 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
 def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> tuple[list[dict], bool, int | None, list[dict]]:
     from .runner import delivered_leaves, output_blocks, read_live_jsonl
     runtime_path = folder / "runtime.json"
-    if runtime_path.exists() and read_json(runtime_path).get("backend") == "claude_code":
+    if runtime_path.exists() and read_json(runtime_path).get("backend") in {"claude_code", "pi"}:
+        if read_json(runtime_path)["backend"] == "pi" and (folder / "native-agent.json").exists():
+            return normalize_pi_native_calls(folder, write_delivery=write_delivery)
         return normalize_claude_calls(folder, write_delivery=write_delivery)
     if (folder / "native-agent.json").exists():
         return normalize_native_calls(folder, write_delivery=write_delivery)
@@ -209,16 +211,59 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
     return calls, complete, host_calls if rollout else None, violations
 
 
+def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
+    """The wrapper owns admission IDs; repeated commands have no invented event-ID join."""
+    from .pi_client import tool_items
+    from .runner import read_live_jsonl, read_jsonl_prefix
+    runtime = read_json(folder / "runtime.json")
+    items = tool_items(read_live_jsonl(folder / "events.jsonl"))
+    admissions = read_live_jsonl(folder / "bash-calls.jsonl")
+    violations = [{"name": item["name"], "reason": "unapproved pi capability"} for item in items if item["name"] != "bash"]
+    by_command = collections.defaultdict(list)
+    for item in items:
+        by_command[item["input"].get("command")].append(item)
+    counts = collections.Counter(row["command"] for row in admissions)
+    matched = counts == collections.Counter({command: len(values) for command, values in by_command.items()})
+    if not matched:
+        violations.append({"reason": "wrapper admission/tool_execution_start command inventory mismatch"})
+    complete = (collected_call_logs(folder, runtime, ("events.jsonl",)) and matched
+                and read_jsonl_prefix(folder / "bash-calls.jsonl")[1]["complete"]
+                and all(item["completed"] and not item.get("missing_start") for item in items))
+    calls = []
+    for row in admissions:
+        candidates = by_command[row["command"]]
+        item = candidates[0] if len(candidates) == counts[row["command"]] == 1 else None
+        result = item.get("result") if item else None
+        text = "\n".join(block.get("text", "") for block in (result or {}).get("content", []) if block.get("type") == "text") if result else None
+        calls.append({**row, "arm": "rg", "arguments": {"command": row["command"]}, "is_auxiliary": False,
+            "status": "rejected" if not row["dispatched"] else "unknown" if result is None else "error" if result.get("is_error") else "success",
+            "completed": bool(item and item["completed"]), "native_item": item,
+            "raw_result": None, "relay_result": None, "raw_json_bytes": None, "relay_json_bytes": None,
+            "relay_loss": None, "native_truncated": None, "delivered_lines": None, "duration_seconds": None,
+            "native_output_bytes": len(text.encode()) if text is not None else None,
+            "client_delivery": {"status": "client_stream_observed" if text is not None else "unknown", "complete": None,
+                "reason": "Unique command matched; provider input unobserved." if item else "Repeated/unmatched command; no invented wrapper/event ID association."}})
+    if write_delivery:
+        write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "complete_result_deliveries": None,
+            "source": "events.jsonl", "backend": "pi", "missing_reason": "Complete subsequent provider input is not observed."})
+    return calls, complete, len(items), violations
+
+
 def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
     from .claude_client import NATIVE_TOOLS, tool_items
     from .runner import read_live_jsonl
     events = read_live_jsonl(folder / "events.jsonl")
     runtime = read_json(folder / "runtime.json")
+    is_pi = runtime.get("backend") == "pi"
+    if is_pi:
+        from .pi_client import NATIVE_TOOLS, tool_items
     native = (folder / "native-agent.json").exists()
     configured = read_json(folder / ("native-agent.json" if native else "relay-settings.json"))
     items = [c for c in tool_items(events) if c.get("name") != "EndConversation"]
     allowed = set(NATIVE_TOOLS) if native else {"ToolSearch", *["mcp__navigation__" + name for name in configured["enabled_tools"]]}
-    violations = [{"name": c.get("name"), "reason": "unapproved Claude capability"} for c in items if c.get("name") not in allowed]
+    if is_pi:
+        allowed.discard("ToolSearch")
+    violations = [{"name": c.get("name"), "reason": "unapproved agent capability"} for c in items if c.get("name") not in allowed]
     complete = collected_call_logs(folder, runtime, ("events.jsonl",)) and all(c["completed"] for c in items)
     calls, stream_bytes = [], 0
     outputs = {}
@@ -267,8 +312,8 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                           "duration_seconds": result["finished_monotonic"] - request["started_monotonic"] if result else None})
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "client_stream_text_bytes": stream_bytes,
-            "missing_reason": "Claude CLI events do not expose the complete subsequent provider input.",
-            "complete_result_deliveries": None, "source": "events.jsonl", "backend": "claude_code"})
+            "missing_reason": "Agent JSON events do not expose the complete subsequent provider input.",
+            "complete_result_deliveries": None, "source": "events.jsonl", "backend": runtime["backend"]})
     return calls, complete, len(items) if events else None, violations
 
 
@@ -278,7 +323,7 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
     from .runner import read_jsonl_prefix, recorded_usage
     usage = recorded_usage(folder)
     collection = {name: read_jsonl_prefix(folder / name)[1] for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
-                  if (folder / name).exists() or name == "events.jsonl" or name == "rollout.jsonl" and runtime.get("backend") != "claude_code"}
+                  if (folder / name).exists() or name == "events.jsonl" or name == "rollout.jsonl" and runtime.get("backend") == "codex"}
     access = read_json(folder / ("native-agent.json" if (folder / "native-agent.json").exists() else "relay-settings.json"))
     error = execution.get("error") or runtime.get("launch_error")
     if not error and execution.get("status") == "environment_error":
@@ -297,7 +342,7 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
             "source_snapshot": access["source"],
             "artifacts": {name: str(folder / name) for name in ("execution.json", "runtime.json", "events.jsonl", "rollout.jsonl",
                            "relay.jsonl", "native-agent.json", "relay-settings.json", "delivery.json", "stderr.log", "command.json",
-                           "claude-settings.json", "mcp-config.json") if (folder / name).exists()},
+                           "claude-settings.json", "mcp-config.json", "pi-policy.json", "pi-bash.json", "pi-bash.sb", "bash-calls.jsonl") if (folder / name).exists()},
             "call_log_complete": complete, "jsonl_collection": collection, "boundary_violations": violations,
             "conditions_valid": execution.get("conditions_valid", False) and not violations,
             "tool_call_counts": dict(collections.Counter(("auxiliary:" if c.get("is_auxiliary") else "native:") + c["tool"] for c in calls if c.get("dispatched"))),
@@ -425,13 +470,13 @@ def publish_metrics() -> dict:
         "result_schema": {"slot_keys": [r["id"] for r in result["rows"]], "attempts_per_slot": 1,
                           "preview": str(preview / "report/summary.json"), "preview_sha256": file_digest(preview / "report/summary.json")},
         "field_provenance": FIELD_PROVENANCE, "unknown_rules": "Preserve null/reason and dimension-level indeterminate; never fill zero.",
-        "native_baseline": {"exploration_calls": "native command_execution item IDs, deduplicated across started/completed",
-                            "delivery": "CLI output is retained separately; model delivery is unknown without rollout evidence"},
+        "native_baseline": {"exploration_calls": "atomic pi bash wrapper admission IDs, cross-checked with tool_execution_start",
+                            "delivery": "CLI output is retained separately; repeated command IDs and complete provider input may be unobserved"},
         "aggregation_rules": "Fixed three-route macro denominator, separate core/extended fact denominators; no variance estimate.",
         "offline_verification": {"native_probe_calls": len(calls), "relay_loss": False,
                                  "actual_solver_delivery": "unobserved", "planned_unique_slots": len(routes.schedule())},
         "observed_solver_runs": 0, "limitations": ["Real solver usage and history delivery have not been measured for either selectable model."]},
-        implementation=["benchmark/route_metrics.py", "benchmark/runner.py", "benchmark/execution.py", "benchmark/claude_client.py"],
+        implementation=["benchmark/route_metrics.py", "benchmark/runner.py", "benchmark/execution.py", "benchmark/claude_client.py", "benchmark/pi_client.py"],
         dependencies=["02-delivery.json", "05-grading.json"])
 
 

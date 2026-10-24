@@ -126,6 +126,56 @@ def verify_artifact(artifact: dict, *, full=True) -> None:
                 f"설치 파일 변경: {artifact['id']}")
 
 
+def pi_toolchain() -> dict:
+    """Benchmark-owned npm install; every reuse verifies the complete pinned package tree."""
+    import fcntl
+    require(file_digest(routes.TARGETS / "targets.lock.json") == routes.TARGET_LOCK_SHA256, "pi tools lock 변경")
+    pins = read_json(routes.TARGETS / "targets.lock.json")["pi_toolchain"]
+    require(platform.system() == "Darwin" and platform.machine() == "arm64", "pi toolchain은 darwin-arm64 전용입니다")
+    root = settings.CACHE / "pi-toolchain"
+    root.mkdir(parents=True, exist_ok=True)
+    with (root / "install.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        receipt = root / "artifact.json"
+        installation = root / "installation"
+        if not receipt.exists():
+            require(not installation.exists(), "미완료 pi install을 검토하고 제거한 뒤 다시 준비하세요")
+            installation.mkdir()
+            for source, target, checksum in (("pi-package.json", "package.json", pins["package_sha256"]),
+                                              ("pi-package-lock.json", "package-lock.json", pins["npm_lock_sha256"])):
+                require(file_digest(routes.TARGETS / source) == checksum, "pi npm pin 변경")
+                shutil.copyfile(routes.TARGETS / source, installation / target)
+            node = Path(shutil.which("node") or "").resolve()
+            npm = shutil.which("npm")
+            require(node.is_file() and npm is not None, "pi install에 node/npm 필요")
+            run_logged([npm, *pins["install_flags"]], installation, root / "install.log")
+            modules = installation / "node_modules"
+            value = {"node": str(node), "pi_cli": str(modules / "@earendil-works/pi-coding-agent/dist/cli.js"),
+                     "bridge_extension": str(modules / "@buyong/pi-claude-bridge/src/index.ts"),
+                     "claude_code_binary": str(modules / "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"),
+                     "versions": {"node": command([str(node), "--version"]).strip(), **pins["versions"]},
+                     "lock_sha256": pins["npm_lock_sha256"], "node_sha256": file_digest(node)}
+            require(subprocess.check_output([value["node"], value["pi_cli"], "--version"], text=True,
+                    env=clean_environment({"PI_CODING_AGENT_DIR": str(root / "version-agent"),
+                                           "PI_SKIP_VERSION_CHECK": "1", "PI_TELEMETRY": "0"})).strip()
+                    == pins["versions"]["pi"], "pi 버전 변경")
+            require(command([value["claude_code_binary"], "--version"]).strip() == pins["versions"]["claude_code"] + " (Claude Code)", "Claude binary 버전 변경")
+            require(digest(tree_files(modules)) == pins["node_modules_sha256"], "pi 설치 tree hash 불일치")
+            write_json(receipt, value, exclusive=True)
+        value = read_json(receipt)
+        require(value["versions"] == {"node": command([value["node"], "--version"]).strip(), **pins["versions"]}
+                and file_digest(Path(value["node"])) == value["node_sha256"], "pi host node 변경")
+        require(value["lock_sha256"] == pins["npm_lock_sha256"]
+                and file_digest(installation / "package-lock.json") == pins["npm_lock_sha256"]
+                and file_digest(installation / "package.json") == pins["package_sha256"]
+                and digest(tree_files(installation / "node_modules")) == pins["node_modules_sha256"], "pi toolchain drift")
+        expected = {"pi_cli": "@earendil-works/pi-coding-agent/dist/cli.js",
+                    "bridge_extension": "@buyong/pi-claude-bridge/src/index.ts",
+                    "claude_code_binary": "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"}
+        require(all(Path(value[key]) == installation / "node_modules" / path for key, path in expected.items()), "pi artifact 경로 변경")
+        return value
+
+
 def prepare_one(ident: str, emit=print) -> dict:
     arm = next(a for a in routes.arm_contracts() if a["id"] == ident)
     if ident == "codemap-search":
