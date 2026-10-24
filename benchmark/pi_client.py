@@ -11,6 +11,7 @@ import sys
 import time
 import unicodedata
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .core import digest, file_digest, metric, ratio, read_json, require, write_json
 
@@ -20,7 +21,36 @@ NATIVE_TOOLS = ("bash",)
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
 
 
-def environment(*, agent_dir: Path, tmp: Path, provider: str, token: str | None = None) -> dict[str, str]:
+def local_endpoint_url(value: str) -> str:
+    """Explicit function-parameter seam only; never load a transport override from env/config."""
+    url = urlsplit(value)
+    require(url.scheme == "http" and url.hostname == "127.0.0.1" and url.port is not None
+            and not url.username and not url.password and not url.query and not url.fragment,
+            "local pi test endpoint must be an explicit IPv4 loopback HTTP URL")
+    return value
+
+
+def write_models(agent_dir: Path, provider: str, *, local_endpoint: str | None = None) -> None:
+    models = {"providers": {provider: {"apiKey": "$" + TOKEN_ENV}}} if provider == "openai-codex" else {}
+    if local_endpoint is not None:
+        require(provider == "openai-codex", "models.json endpoint seam is openai-codex only")
+        models["providers"][provider]["baseUrl"] = local_endpoint_url(local_endpoint)
+    write_json(agent_dir / "models.json", models, exclusive=True)
+    validate_models(agent_dir, provider, local_endpoint=local_endpoint)
+
+
+def validate_models(agent_dir: Path, provider: str, *, local_endpoint: str | None = None) -> None:
+    # Exact allowlist also prevents api/provider/model overrides from bypassing the pinned transport.
+    expected = {"providers": {provider: {"apiKey": "$" + TOKEN_ENV}}} if provider == "openai-codex" else {}
+    if local_endpoint is not None:
+        require(provider == "openai-codex", "models.json endpoint seam is openai-codex only")
+        expected["providers"][provider]["baseUrl"] = local_endpoint_url(local_endpoint)
+    require(read_json(agent_dir / "models.json") == expected,
+            "private models.json 변경: production baseUrl/API/model override 금지")
+
+
+def environment(*, agent_dir: Path, tmp: Path, provider: str, token: str | None = None,
+                local_endpoint: str | None = None, local_home: Path | None = None) -> dict[str, str]:
     """No inherited provider/agent overrides. The harness, not the shell, owns auth."""
     from .settings import CACHE
     require(provider in {"openai-codex", "claude-bridge"}, "지원하지 않는 pi provider")
@@ -29,6 +59,14 @@ def environment(*, agent_dir: Path, tmp: Path, provider: str, token: str | None 
     env.update(HOME=pwd.getpwuid(os.getuid()).pw_dir, TMPDIR=str(tmp.resolve()),
                PI_CODING_AGENT_DIR=str(agent_dir.resolve()), PI_SKIP_VERSION_CHECK="1", PI_TELEMETRY="0",
                CODEMAP_BENCH_CACHE=str(CACHE))
+    if local_endpoint is not None or local_home is not None:
+        require(provider == "claude-bridge" and local_endpoint is not None and local_home is not None,
+                "Claude local transport requires both loopback endpoint and private HOME")
+        home = local_home.resolve()
+        require(home != Path(env["HOME"]).resolve() and not local_home.is_symlink(), "local Claude HOME must be private")
+        home.mkdir(parents=True, exist_ok=True, mode=0o700)
+        env.update(HOME=str(home), ANTHROPIC_BASE_URL=local_endpoint_url(local_endpoint),
+                   ANTHROPIC_API_KEY="local-model-free-dummy-key")
     if token is not None:
         require(provider == "openai-codex" and bool(token) and "\n" not in token, "pi token/provider 오류")
         env[TOKEN_ENV] = token
@@ -45,10 +83,13 @@ def operator_token(provider: str) -> str:
     try:
         result = subprocess.run([tools["node"], tools["pi_cli"], "auth", "print-bearer-token", "--provider", provider,
                                  "--min-expiry", "30m"], env=env, capture_output=True, timeout=60)
-    except subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):
         raise ValueError("pi operator token 획득 실패 (출력 비공개)") from None
     require(result.returncode == 0, "pi operator token 획득 실패 (출력 비공개)")
-    token = result.stdout.decode().strip()
+    try:
+        token = result.stdout.decode().strip()
+    except UnicodeError:
+        raise ValueError("pi bearer token 형식 오류 (출력 비공개)") from None
     require(bool(token) and not any(c.isspace() for c in token), "pi bearer token 형식 오류")
     return token
 
@@ -60,14 +101,30 @@ def capabilities() -> dict:
     tools = pi_toolchain()
     with tempfile.TemporaryDirectory(prefix="pi-capabilities-", dir=CACHE) as directory:
         root = Path(directory)
-        help_text = subprocess.check_output([tools["node"], tools["pi_cli"], "--help"], text=True,
-            env=environment(agent_dir=root / "agent", tmp=root, provider="openai-codex"))
+        agent = root / "agent"
+        agent.mkdir(mode=0o700)
+        write_models(agent, "openai-codex")
+        env = environment(agent_dir=agent, tmp=root, provider="openai-codex", token="model-free-dummy")
+        probes = {}
+        for name, args in (("help", [*PRIVATE_FLAGS, "--help"]),
+                           ("models", [*PRIVATE_FLAGS, "-e", tools["bridge_extension"], "--list-models"]),
+                           ("private_auth_reference", ["auth", "check", "--provider", "openai-codex"])):
+            result = subprocess.run([tools["node"], tools["pi_cli"], *args], cwd=root, env=env,
+                                    capture_output=True, text=True, timeout=60)
+            require(result.returncode == 0, f"model-free pi probe 실패: {name}")
+            probes[name] = {"args": args, "exit_code": result.returncode, "output": result.stdout + result.stderr}
+        help_text = probes["help"]["output"]
+        models = {tuple(line.split()[:2]) for line in probes["models"]["output"].splitlines()}
+        require({("openai-codex", "gpt-6.1-sol"), ("openai-codex", "gpt-6-astra"),
+                 ("claude-bridge", "claude-opus-5-5")} <= models, "pinned pi 모델 목록 누락")
+        require(probes["private_auth_reference"]["output"].strip() == "ready", "private pi auth reference 오류")
     flags = ["--no-tools", "--no-mcp", "--no-extensions", "--no-approve", "--offline", "--session-dir", "--thinking"]
     require(all(flag in help_text for flag in flags), "pi 실행 옵션 누락")
     return {"backend": BACKEND, "version": tools["versions"]["pi"], "versions": tools["versions"],
             "lock_sha256": tools["lock_sha256"], "toolchain_sha256": digest(tools),
             "node_path": tools["node"], "node_sha256": tools["node_sha256"], "required_flags": flags,
             "auth": "runtime only; operator token/Claude login not exercised during preparation",
+            "model_free_probes": probes, "model_invocations": 0,
             "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi default"}}
 
 
@@ -144,7 +201,8 @@ def shell_main(config_path: str, args: list[str]) -> None:
     os.execve(command[0], command, {})
 
 
-def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None) -> tuple[list[str], Path, dict]:
+def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None,
+           local_endpoint: str | None = None, local_home: Path | None = None) -> tuple[list[str], Path, dict]:
     from .tool_artifacts import pi_toolchain
     tools = pi_toolchain()
     folder = folder.resolve()
@@ -159,12 +217,13 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         path.chmod(0o700)
     provider = spec["provider"]
     settings = {"shellPath": str(shell_wrapper(native, folder))} if native else {}
-    models = {"providers": {"openai-codex": {"apiKey": "$" + TOKEN_ENV}}} if provider == "openai-codex" else {}
+    model_endpoint = local_endpoint if provider == "openai-codex" else None
+    write_models(agent, provider, local_endpoint=model_endpoint)
     mcp = {"mcpServers": {}, "autoEnableCodemode": False}
     if relay_settings:
         require(server is not None, "pi MCP requires warm-host attachment")
         mcp["mcpServers"]["navigation"] = {**{k: server[k] for k in ("command", "args", "env")}, "exposure": "direct", "timeout": 300}
-    for name, value in (("settings.json", settings), ("models.json", models), ("mcp.json", mcp)):
+    for name, value in (("settings.json", settings), ("mcp.json", mcp)):
         write_json(agent / name, value, exclusive=True)
     args = [tools["node"], tools["pi_cli"], *PRIVATE_FLAGS, "--provider", provider, "--model", spec["model"],
             "--thinking", spec["reasoning_effort"], "--session-dir", str(sessions)]
@@ -176,7 +235,9 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     args += (["-e", "builtin:mcp", "--tools", "mcp__navigation__*"] if relay_settings else
              ["--no-mcp", "--tools", "bash"] if native else ["--no-mcp", "--no-tools"])
     token = operator_token(provider) if provider == "openai-codex" else None
-    env = environment(agent_dir=agent, tmp=tmp, provider=provider, token=token)
+    env = environment(agent_dir=agent, tmp=tmp, provider=provider, token=token,
+                      local_endpoint=local_endpoint if provider == "claude-bridge" else None, local_home=local_home)
+    validate_models(agent, provider, local_endpoint=model_endpoint)
     write_json(folder / "pi-policy.json", {"toolchain": tools, "provider": provider, "flags": PRIVATE_FLAGS,
         "defaults": capabilities()["defaults"], "auth": "memory-only bearer env" if token else "Claude Code existing login, real HOME",
         "claude_residue": "only exact workspace project slug removed; ~/.claude.json project entries may remain"}, exclusive=True)
@@ -229,7 +290,7 @@ def claude_project_slug(workspace: Path) -> str:
     return sanitized[:200] + "-" + (suffix or "0")
 
 
-def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | None) -> dict:
+def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | None, *, home: Path | None = None) -> dict:
     # Pi's own session writer is not routed through stdout. Sanitize it after owned children stop.
     paths = [p for p in folder.iterdir() if p.suffix in {".json", ".jsonl", ".txt", ".log"}]
     for root in (folder / "pi-session", folder / "pi-agent", folder / "pi-tmp"):
@@ -244,7 +305,7 @@ def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | N
     if provider == "claude-bridge":
         real = unicodedata.normalize("NFC", str(workspace.resolve()))
         slug = claude_project_slug(workspace)
-        projects = Path(pwd.getpwuid(os.getuid()).pw_dir) / ".claude/projects"
+        projects = (home or Path(pwd.getpwuid(os.getuid()).pw_dir)).resolve() / ".claude/projects"
         target = projects / slug
         require(target.name == slug and target.parent == projects and not target.is_symlink(), "Claude residue 경로 오류")
         if target.exists():

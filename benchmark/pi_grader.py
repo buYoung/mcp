@@ -8,58 +8,19 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import tool_artifacts
+from . import pi_client, tool_artifacts
 from .core import metric, require, write_json
 
 PROVIDER = "openai-codex"
 MODEL = "gpt-6-astra"
-TOKEN_ENV = "CODEMAP_BENCH_PI_TOKEN"
-
-
-def environment(folder: Path, provider: str) -> dict:
-    """Private grader environment; shared pi_client environment is the merge seam."""
-    from .settings import CACHE
-    require(provider == PROVIDER, "채점 provider는 openai-codex로 고정합니다")
-    allowed = {"PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR"}
-    env = {k: v for k, v in os.environ.items() if k in allowed}
-    agent, tmp = folder / "pi-agent", folder / "tmp"
-    for path in (agent, tmp):
-        path.mkdir(mode=0o700, parents=True, exist_ok=True)
-    env.update(PI_CODING_AGENT_DIR=str(agent), TMPDIR=str(tmp), PI_SKIP_VERSION_CHECK="1", PI_TELEMETRY="0",
-               CODEMAP_BENCH_CACHE=str(CACHE))
-    write_json(agent / "settings.json", {}, exclusive=True)
-    write_json(agent / "models.json", {"providers": {provider: {"apiKey": "$" + TOKEN_ENV}}}, exclusive=True)
-    write_json(agent / "mcp.json", {"mcpServers": {}}, exclusive=True)
-    return env
-
-
-def operator_token(provider: str) -> str:
-    """Only pi reads/refreshes operator auth. Never include its output in errors."""
-    require(provider == PROVIDER, "채점 provider는 openai-codex로 고정합니다")
-    tools = tool_artifacts.pi_toolchain()
-    allowed = {"PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR"}
-    env = {k: v for k, v in os.environ.items() if k in allowed}
-    env.update(PI_CODING_AGENT_DIR=str(Path.home() / ".pi" / "agent"), PI_SKIP_VERSION_CHECK="1", PI_TELEMETRY="0")
-    try:
-        result = subprocess.run([tools["node"], tools["pi_cli"], "auth", "print-bearer-token", "--provider", provider,
-                                 "--min-expiry", "30m"], env=env, capture_output=True, timeout=60)
-    except (OSError, subprocess.TimeoutExpired):
-        raise ValueError("pi operator token 취득 실패 (출력 비공개)") from None
-    require(result.returncode == 0, "pi operator token 취득 실패 (출력 비공개)")
-    token = result.stdout.decode("utf-8").strip()
-    require(bool(token) and not any(c.isspace() for c in token), "pi operator token 형식 오류 (출력 비공개)")
-    return token
 
 
 def observations(events: list[dict], *, complete: bool, evidence: str) -> dict:
     """Count only authoritative message_end/compaction usage, not repeated deltas."""
     messages = [e["message"] for e in events if e.get("type") == "message_end"
                 and e.get("message", {}).get("role") == "assistant"]
-    last_message = max((i for i, e in enumerate(events) if e.get("type") == "message_end"
-                        and e.get("message", {}).get("role") == "assistant"), default=-1)
-    settled = [i for i, e in enumerate(events) if e.get("type") == "agent_settled" and not e.get("aborted")]
     final = messages[-1] if messages else {}
-    finished = bool(settled and settled[-1] > last_message >= 0 and final.get("stopReason") == "stop")
+    finished = pi_client.final_result(events) is not None
     text = "\n".join(c["text"] for c in final.get("content", []) if c.get("type") == "text")
     raw_usage = [m.get("usage") for m in messages]
     raw_usage += [e.get("result", {}).get("usage") for e in events
@@ -83,8 +44,7 @@ def observations(events: list[dict], *, complete: bool, evidence: str) -> dict:
                   for k, v in observed.items()})
     retries = [e for e in events if e.get("type") in {"auto_retry_start", "auto_retry_end"}]
     compactions = [e for e in events if e.get("type") in {"compaction_start", "compaction_end"}]
-    model_valid = bool(messages) and all(m.get("provider") == PROVIDER and m.get("model") == MODEL
-                                       and m.get("upstreamModel", MODEL) == MODEL for m in messages)
+    model_valid = pi_client.valid_model(events, {"provider": PROVIDER, "model": MODEL})
     tool_calls = any(e.get("type") == "tool_execution_start" for e in events) or any(
         c.get("type") == "toolCall" for m in messages for c in m.get("content", []))
     return {"finished": finished, "answer": text, "error": final.get("errorMessage"),
@@ -94,7 +54,7 @@ def observations(events: list[dict], *, complete: bool, evidence: str) -> dict:
 
 
 def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
-            cancel_event=None, usage_drain_seconds: float = 0) -> dict:
+            cancel_event=None, usage_drain_seconds: float = 0, local_endpoint: str | None = None) -> dict:
     from .runner import ExecutionStop, cleanup_solver
     require(not settings.get("preparation_only"), "route 준비 전용 계약에서는 grader 실행이 금지됩니다")
     require(settings.get("grader_backend") == "pi" and settings["grader_model"] == MODEL
@@ -115,12 +75,6 @@ def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
     deadline = start + settings["limits"]["elapsed_seconds"]
     cleanup = {"complete": True, "started": False, "steps": []}
 
-    def redact(data: bytes) -> bytes:
-        if token:
-            for secret in (token.encode(), json.dumps(token)[1:-1].encode()):
-                data = data.replace(secret, b"[REDACTED]")
-        return data
-
     with (folder / "events.jsonl").open("xb") as stdout, (folder / "stderr.log").open("xb") as stderr:
         selector = selectors.DefaultSelector()
         streams = {"stdout": stdout, "stderr": stderr}
@@ -128,7 +82,7 @@ def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
 
         def consume(name: str, line: bytes):
             nonlocal parse_failed, settled_at
-            line = redact(line)
+            line = pi_client.redact(line, token)
             streams[name].write(line)
             streams[name].flush()
             if name == "stdout" and line.strip() and not parse_failed:
@@ -166,15 +120,22 @@ def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
 
         try:
             tools = tool_artifacts.pi_toolchain()
-            env = environment(folder, PROVIDER)
-            token = operator_token(PROVIDER)
-            env[TOKEN_ENV] = token
-            args = [tools["node"], tools["pi_cli"], "--mode", "json", "--provider", PROVIDER, "--model", MODEL,
-                    "--thinking", "high", "--no-tools", "--no-mcp", "-ne", "-ns", "-np", "-nc", "--no-themes",
-                    "-na", "--offline", "--no-session"]
+            agent, tmp = folder / "pi-agent", folder / "tmp"
+            for path in (agent, tmp):
+                require(not path.is_symlink(), "private pi grader state must not be a symlink")
+                path.mkdir(mode=0o700, parents=True, exist_ok=True)
+                path.chmod(0o700)
+            write_json(agent / "settings.json", {}, exclusive=True)
+            write_json(agent / "mcp.json", {"mcpServers": {}, "autoEnableCodemode": False}, exclusive=True)
+            pi_client.write_models(agent, PROVIDER, local_endpoint=local_endpoint)
+            token = pi_client.operator_token(PROVIDER)
+            env = pi_client.environment(agent_dir=agent, tmp=tmp, provider=PROVIDER, token=token)
+            pi_client.validate_models(agent, PROVIDER, local_endpoint=local_endpoint)
+            args = [tools["node"], tools["pi_cli"], *pi_client.PRIVATE_FLAGS, "--provider", PROVIDER, "--model", MODEL,
+                    "--thinking", "high", "--no-tools", "--no-mcp", "--no-session"]
             # The schema is part of the sealed prompt, not a CLI-specific output-schema flag.
             write_json(folder / "output-schema.json", output_schema, exclusive=True)
-            (folder / "prompt.txt").write_bytes(redact(prompt.encode()))
+            (folder / "prompt.txt").write_bytes(pi_client.redact(prompt.encode(), token))
             write_json(folder / "command.json", {"args": args, "cwd": str(workspace), "backend": "pi", "provider": PROVIDER,
                 "model": MODEL, "thinking": "high", "toolchain": tools, "harness_attempts": 1,
                 "defaults": {"retry": "pi default (enabled, maxRetries=3)", "compaction": "pi default; occurrence invalidates grading"},
@@ -207,7 +168,7 @@ def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
             if time.monotonic() >= deadline and not stop.cutoff:
                 stop.request("timeout", {}, signal_process=False)
         except (OSError, ValueError, KeyboardInterrupt) as exc:
-            error = "grader interrupted" if isinstance(exc, KeyboardInterrupt) else redact(str(exc).encode()).decode(errors="replace")
+            error = "grader interrupted" if isinstance(exc, KeyboardInterrupt) else pi_client.redact(str(exc), token)
             if stop:
                 stop.request("interrupted" if isinstance(exc, KeyboardInterrupt) else "environment_error", {})
                 while process.poll() is None:

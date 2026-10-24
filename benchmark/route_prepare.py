@@ -289,11 +289,11 @@ def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
         tool_indexes.prepare_source(emit)
         for ident in routes.ARM_IDS:
             tool_indexes.prepare_index(ident, emit)
-        for solver in solvers:
+        for backend in dict.fromkeys(solver["backend"] for solver in solvers):
             for ident in routes.ARM_IDS:
-                if not tool_indexes.probe_is_current(ident, solver["backend"]):
-                    tool_indexes.probe_index(ident, emit, backend=solver["backend"])
-            tool_indexes.publish_indexes(solver["backend"])
+                if not tool_indexes.probe_is_current(ident, backend):
+                    tool_indexes.probe_index(ident, emit, backend=backend)
+            tool_indexes.publish_indexes(backend)
         route_metrics.publish_metrics()
         require(settings.harness_identity() == harness_at_start,
                 "준비 중 하네스 파일이 변경되었습니다. 현재 코드로 prepare를 다시 수행하세요")

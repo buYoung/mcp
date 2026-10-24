@@ -146,7 +146,7 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
 ''')
         tools = {"node": sys.executable, "pi_cli": str(cli), "versions": {"pi": "pi fixture-1.4.0"}}
         with patch.object(pi_grader.tool_artifacts, "pi_toolchain", return_value=tools, create=True), \
-                patch.object(pi_grader, "operator_token", return_value="fixture-token"):
+                patch.object(pi_grader.pi_client, "operator_token", return_value="fixture-token"):
             result = runner.execute_model(self.root / "session", "fixture", settings=spec, grading=True,
                                           output_schema={}, usage_drain_seconds=0, agent_version="claude fixture")
         self.assertTrue(result["conditions_valid"])

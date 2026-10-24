@@ -67,7 +67,7 @@ Claude 준비 기록은 `python3 -m benchmark.route_prepare verify --solver-mode
 
 성공 결과는 `prepared_not_executed: <계획 ID>`다. GPT의 [최종 준비 기록](../docs/briefs/evidence/bench-ready/07-readiness.json)과 Claude의 `07-readiness-claude-opus-5-5.json`은 따로 저장된다. 선택한 기록의 `technical_ready`가 true이고 `solver_runs`, `grader_runs`, `calibration_runs`가 모두 0인지 확인한다. 같은 계획의 `benchmark/.cache/route-preparation/plans/<계획 ID>/`에 풀이 입력과 미실행 결과표가 저장된다. 각 계획에는 handoff·참조 근거·inventory·probe·corpus의 불변 snapshot이 포함된다. 다른 모델을 준비해 최신 포인터를 다시 게시해도 기존 계획의 바이트를 덮어쓰지 않는다. `plan_condition`에서 ID를 재계산하며, 코드·모델·제품 조건이 바뀌면 기존 계획을 재인증하지 않고 준비를 다시 해야 한다. 미완성 계획 디렉터리도 자동 덮어쓰지 않는다.
 
-공유 설치·색인·계약 검증을 한 번 수행하고 두 backend를 각각 probe/finalize하려면 다음을 사용한다. 이는 두 모델의 **준비**이며 자동 실행이 아니다.
+공유 설치·색인·계약 검증과 공통 pi backend의 중립 probe를 한 번 수행하고 두 provider의 계획을 각각 finalize하려면 다음을 사용한다. 이는 두 모델의 **준비**이며 자동 실행이 아니다. 기본 준비/verify/inspect 경로는 과거 Codex·Claude CLI의 help/login probe를 호출하지 않는다. pi toolchain은 `03-artifacts.json`의 별도 artifact이며 host 기록에 private dummy-key `auth check`, offline 모델 목록(두 solver와 Astra), 필요한 CLI flag의 무모델 probe를 보존한다. 이 검사는 실제 운영자 인증이나 모델 권한을 인증하지 않는다.
 
 ```sh
 python3 -m benchmark.route_prepare prepare --solver-model all
@@ -115,7 +115,7 @@ ready 실패는 `warmup_failed`로 기록하고 solver를 시작하지 않는다
 
 채점은 슬롯별 private `PI_CODING_AGENT_DIR`/TMPDIR와 allowlist 환경을 사용한다. 부모의 `PI_*`·모델 provider 환경·개인 extensions/skills/context/MCP를 상속하지 않는다. 고정 pi가 운영자 로그인에서 fresh bearer token을 메모리로 가져오고 private models.json에는 환경 변수 참조만 저장한다. 토큰은 argv·prompt·설정·로그에 쓰지 않으며 stdout/stderr는 저장 전에 redact한다. grader는 `--no-session`으로 pi session 저장을 끄고 redacted `events.jsonl`을 원자료로 보존한다.
 
-하네스는 packet당 한 번만 실행한다. 형식·schema 오류, 빈 답변, timeout, nonzero exit를 채점 실패로 보존하고 자동 재채점하지 않는다. pi의 기본 transport retry(최대 3회)는 유지하며 `auto_retry_start/end`와 시도 횟수를 기록한다. compaction은 기본 설정을 바꾸지 않지만 발생하면 packet 문맥 변경으로 조건 무효·미채점 처리한다. assistant `message_end.usage`와 compaction usage의 `input + output + cacheRead + cacheWrite`를 합산하며 오류/중단 시 미관측 비용을 0으로 단정하지 않는다. `grader-result.json`, ledger/report의 `grader_execution`에는 실패 때도 사용량·retry·compaction·상태·근거를 solver 비용과 별도로 남긴다.
+하네스는 packet당 한 번만 실행한다. 형식·schema 오류, 빈 답변, timeout, nonzero exit를 채점 실패로 보존하고 자동 재채점하지 않는다. grader도 공통 pi final/identity 판정을 사용하여 빈 final, 마지막 aborted settlement, 관측된 upstream 모델 불일치를 적격 답변으로 받지 않는다. pi의 기본 transport retry(최대 3회)는 유지하며 `auto_retry_start/end`와 시도 횟수를 기록한다. compaction은 기본 설정을 바꾸지 않지만 발생하면 packet 문맥 변경으로 조건 무효·미채점 처리한다. assistant `message_end.usage`와 compaction usage의 `input + output + cacheRead + cacheWrite`를 합산하며 오류/중단 시 미관측 비용을 0으로 단정하지 않는다. `grader-result.json`, ledger/report의 `grader_execution`에는 실패 때도 사용량·retry·compaction·상태·근거를 solver 비용과 별도로 남긴다.
 
 보고서는 항상 21행이며 launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
 
@@ -204,10 +204,10 @@ node --check benchmark/start.mjs
 
 각 슬롯에 workspace 밖 0700 `pi-agent`, `pi-session`, `pi-tmp`를 만든다. `--mode json -ne -ns -np -nc --no-themes -na --offline`, `PI_SKIP_VERSION_CHECK=1`, `PI_TELEMETRY=0`을 고정한다. 제품군에만 `-e builtin:mcp`, Claude에만 고정 bridge extension을 명시한다. settings/models/mcp JSON 외 부모 설정·확장·skills·context files는 읽지 않는다. 환경은 처음부터 allowlist로 구성하고 모든 부모 PI/OPENAI/ANTHROPIC/CODEX/CLAUDE override를 버린다.
 
-- OpenAI: 신뢰하는 harness가 고정 pi의 `auth print-bearer-token --provider openai-codex --min-expiry 30m`으로 operator의 실제 agent dir에서 token을 얻는다. pi 자체의 lock/refresh만 허용하며 token은 메모리와 전용 env에만 존재한다. private models.json은 `$CODEMAP_BENCH_PI_TOKEN` 참조만 가진다. stdout/stderr는 저장 전 token을 가리고 종료 후 pi session/temp도 검사한다. token 획득 실패 출력은 공개하지 않는다.
+- OpenAI: solver와 grader는 같은 `pi_client.environment/operator_token/redact`를 사용한다. 신뢰하는 harness가 고정 pi의 `auth print-bearer-token --provider openai-codex --min-expiry 30m`으로 operator의 실제 agent dir에서 token을 얻는다. pi 자체의 lock/refresh만 허용하며 token은 메모리와 전용 env에만 존재한다. production private models.json은 `$CODEMAP_BENCH_PI_TOKEN` 참조만 허용하며 `baseUrl`·API·모델 override는 fail-closed한다. 로컬 검증 seam은 함수의 명시적 loopback URL 인자뿐이며 부모 env나 실행 설정으로 켤 수 없다. stdout/stderr는 저장 전 token을 가리고 종료 후 pi session/temp도 검사한다. token 획득 실패 출력은 공개하지 않는다.
 - Claude: 기존 Claude Code login을 사용하는 real HOME를 유지하고 ANTHROPIC API/base URL/token이나 CLAUDE_CONFIG_DIR를 설정하지 않는다. bridge는 pinned bundled binary, `tools: []`, `dontAsk`, strict custom-tools MCP만 사용한다. 모델 실행 후 workspace realpath의 정확한 project slug와 session cwd를 검증하고 그 project 디렉터리만 삭제한다. 다른 project나 `~/.claude.json`은 수정하지 않으며 후자는 Claude 자체가 project entry를 추가할 수 있다.
 
-로컬 fake OpenAI-compatible 서버로 pinned pi→runner→실제 rg wrapper/Seatbelt, codemap warm host/shim/relay, 80/81·path denial·token/wall cutoff를 검증했다. 이것은 실제 openai-codex transport/auth나 Claude bridge model 요청 검증이 아니다. Claude bridge의 fake Anthropic end-to-end도 아직 수행하지 않았다.
+무모델 통합 검증은 unsigned dummy JWT와 로컬 Codex Responses/SSE 서버로 pi의 실제 openai-codex transport/account header·usage 경로를 실행한다. Claude도 함수 인자로 지정한 private HOME와 fake Anthropic Messages 서버에서 pinned bridge/SDK/bundled binary·custom-tools MCP·usage·project residue cleanup을 검사한다. 이 seam은 production Claude의 real HOME/login 정책을 바꾸지 않는다. 실제 hosted 인증·모델 사용 권한·서버 적용 thinking·채점 품질과 전체 Grafana 준비는 여전히 별도 검증 대상이다.
 
 ### OS 격리와 준비 시 경계 검증
 
@@ -216,5 +216,5 @@ node --check benchmark/start.mjs
 - HOME/TMPDIR/XDG/npm/uv cache는 arm home 내부다. live slot은 전용 tmp를 지정한다. CBM의 짧은 runtime과 제품이 하드코딩한 `/private/tmp/cbm-*`만 예외이며 기존 항목은 지우지 않고 소유 실행 전후 새 residue를 정리·기록한다. host 공통 lease와 per-arm 직렬화가 필요하다. 준비 index 명령도 같은 경계를 쓰되 Serena 의존성 취득 단계만 network 예외를 기록한다. live 제품에는 이 예외를 허용하지 않는다.
 - `product_profile(ident, state, artifact, *, slot_tmp)`는 profile 경로/hash·private env·허용 경로·포트를 반환한다. warm host/준비 probe가 이를 **client 복사본**의 `isolation_profile`에 넣어야 한다. `MCPClient`는 `product_arm`이 있는 제품의 profile 누락을 거부하며 stdio/HTTP/shutdown을 같은 profile로 감싼다. harness relay와 shim 자체는 감싸지 않는다.
 - relay는 고정 release의 도구/인자 inventory를 검사한다. 신규 도구/인자는 검토 전 거부한다. 읽기 경로는 canonical tracked source와 그 ancestor로 한정하며 `.git`, `.codemap`, `.codegraph`, `.serena`, `.zvec-grep`, `.codebase-memory`, `graphify-out` 등을 읽지 못한다. metadata ignore bypass와 다른 project/root selector를 거부하며 입력이나 제품 결과를 몰래 고치지 않는다. 제품 capability는 보존하고 `resources/*`·`prompts/*`도 동일 admission/budget/log 경로를 쓴다. file URI는 source 내부만, product URI는 광고된 값만 허용하며 CBM prompt project도 준비 project에 결합한다.
-- raw index의 파일 경로를 tracked/승인 synthetic/미승인으로 분류한다. Tantivy 저장 문서, SQLite 경로 열, zvec relative/absolute 파일 목록·root manifest, Graphify nodes/links, 실행 불가능한 Serena pickle reader를 사용한다. 외부 경로·알 수 없는 index 형식은 준비 실패다. CBM의 고정 semantic-input key와 excluded-directory coverage row는 source body와 구별한다.
+- raw index의 파일 경로를 tracked/승인 synthetic/미승인으로 분류한다. Tantivy 저장 문서, SQLite 경로 열, zvec relative/absolute 파일 목록·root manifest, Graphify nodes/links, 실행 불가능한 Serena pickle reader를 사용한다. zvec native collection은 `readOnly` open/close도 `.proxima` 바이트를 변경하므로 audit만 private tmp의 disposable APFS clone에서 수행한다. 저장된 원래 root/path 검증은 유지하며 준비된 index/baseline을 audit로 변경하지 않는다. 외부 경로·알 수 없는 index 형식은 준비 실패다. CBM의 고정 semantic-input key와 excluded-directory coverage row는 source body와 구별한다.
 - 경계 probe는 하네스 소유 canary로 source·고정 rg·pi TMPDIR 허용과 hidden/session/cache/worktree/symlink/metadata 읽기, source 쓰기, network 거부를 확인한다. 실제 정답·operator 세션·다른 workspace는 존재 여부만 기록한다. pi 기본 경로에는 과거 Claude outer CLI sandbox/private-login/CONNECT proxy blocker가 적용되지 않는다. 해당 legacy 구현은 보존하며 실제 Claude login/model 전달은 별도 검증 대상이다.
