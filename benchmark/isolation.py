@@ -336,12 +336,14 @@ class RelayPolicy:
                 require(".." not in parts and not METADATA.intersection(parts), "glob 경계 이탈")
                 prefix = re.split(r"[*?\[]", alternative, 1)[0]
                 if prefix:
-                    # Resolve complete literal targets too, so a glob cannot name an escaping symlink.
-                    if prefix == alternative and (self.source / prefix).exists():
-                        self.path(prefix)
-                    else:
-                        parent = Path(prefix) if prefix.endswith("/") else Path(prefix).parent
-                        self.path(str(parent))
+                    literal = Path(prefix if prefix == alternative or prefix.endswith("/") else str(Path(prefix).parent))
+                    lexical = literal if literal.is_absolute() else self.source / literal
+                    require(lexical.is_relative_to(self.source), "고정 source 밖의 경로")
+                    # A glob filters files below the validated search root and may be relative to it, so a literal
+                    # part that names nothing in the source is not an access. Existing targets still validate, so a
+                    # glob cannot name an escaping symlink, metadata or a hard link.
+                    if lexical != self.source and (lexical.exists() or lexical.is_symlink()):
+                        self.path(str(lexical))
                 # Reject matching actual metadata even through wildcard spellings (e.g. .* / *).
                 # Ordinary recursive globs remain valid; product ignore defaults fence implicit metadata.
                 for part in parts:
