@@ -1,4 +1,4 @@
-"""Existing offline execution checks; every Codex invocation uses a local substitute."""
+"""Existing offline execution checks; every agent invocation uses a local substitute."""
 from __future__ import annotations
 
 import copy
@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from . import grading_support, resources, runner, settings
+from . import grading_support, pi_grader, resources, runner, settings
 from .core import ContractError, read_jsonl, write_json
 from .responses import source_lines, text_result
 from .usage import usage_metrics
@@ -135,15 +135,26 @@ class BenchChecks(unittest.TestCase):
         spec = settings.execution_settings("claude-opus-5-5")
         spec["preparation_only"] = False
         spec["limits"]["total_tokens"] = 4321
-        result = runner.execute_model(self.root / "session", "fixture", settings=spec, grading=True, usage_drain_seconds=0,
-                                      codex_version="codex-cli fixture-99.1", agent_version="claude fixture")
+        cli = self.root / "fake_pi.py"
+        cli.write_text('''import json, sys
+sys.stdin.read()
+print(json.dumps({"type":"message_end", "message":{"role":"assistant", "provider":"openai-codex",
+    "model":"gpt-6-astra", "stopReason":"stop", "content":[{"type":"text", "text":"{}"}],
+    "usage":{"input":70, "output":20, "cacheRead":30, "cacheWrite":0}}}))
+print(json.dumps({"type":"agent_settled", "aborted":False}))
+''')
+        tools = {"node": sys.executable, "pi_cli": str(cli), "versions": {"pi": "pi fixture-1.4.0"}}
+        with patch.object(pi_grader.tool_artifacts, "pi_toolchain", return_value=tools, create=True), \
+                patch.object(pi_grader, "operator_token", return_value="fixture-token"):
+            result = runner.execute_model(self.root / "session", "fixture", settings=spec, grading=True,
+                                          output_schema={}, usage_drain_seconds=0, agent_version="claude fixture")
         self.assertTrue(result["conditions_valid"])
         self.assertEqual(result["status"], "completed")
-        self.assertEqual(result["codex_version"], "codex-cli fixture-99.1")
         self.assertEqual(result["model"], "gpt-6-astra")
-        self.assertEqual(result["backend"], "codex")
-        self.assertEqual(result["agent_version"], "codex-cli fixture-99.1")
-        self.assertEqual(result["budget"]["limit_tokens"], 4321)
+        self.assertEqual(result["backend"], "pi")
+        self.assertEqual(result["provider"], "openai-codex")
+        self.assertEqual(result["agent_version"], "pi fixture-1.4.0")
+        self.assertEqual(result["harness_attempts"], 1)
         self.assertEqual(result["usage_collection"]["drain_seconds"], 0)
         self.assertEqual(result["usage"]["total_tokens"]["value"], 120)
 
