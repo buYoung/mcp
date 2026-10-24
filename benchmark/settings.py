@@ -23,7 +23,7 @@ def execution_settings(solver_model: str | None = None) -> dict:
     return {"profile": profile["profile"], "preparation_only": True,
             "model": solver["model"], "reasoning_effort": solver["reasoning_effort"],
             "solver_backend": solver["backend"], "provider": solver["provider"],
-            "grader_backend": "codex",
+            "grader_backend": "pi",
             "grader_model": profile["grader"]["model"], "grader_reasoning_effort": profile["grader"]["reasoning_effort"],
             "seed": profile["seed"], "concurrency": profile["concurrency"], "limits": copy.deepcopy(profile["limits"]),
             "batch_limits": {"bytes": 160 * 1024},

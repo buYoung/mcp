@@ -399,7 +399,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                                 "call_log_complete", "host_calls", "artifact", "artifacts", "shutdown", "budget", "native_call_budget",
                                 "usage_collection", "model", "backend", "agent_version", "effort_observation", "codex_version", "thread_id", "provenance",
                                 "phase", "launch_state", "cli_launches", "provider_call_observed", "answer_eligible", "cleanup",
-                                "failure_stage", "grade_state", "grade_reason", "review", "packet_seal_sha256", "raw_seal", "raw_seal_sha256",
+                                "failure_stage", "grade_state", "grade_reason", "grader_execution", "review", "packet_seal_sha256", "raw_seal", "raw_seal_sha256",
                                 "warm_receipt", "lifecycle_seconds", "cancel_requested")}})
     for arm in routes.ARM_IDS:
         selected = [r for r in result_rows if r["arm"] == arm]

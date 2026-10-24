@@ -12,7 +12,7 @@
 | 문항 | 즐겨찾기, 기존 대시보드 저장, Grafana Live 수신 — 모두 Go·TypeScript 연결 |
 | 기본 풀이 | `openai-codex/gpt-6.1-sol / medium` — pi 1.4.0 |
 | 선택 가능한 풀이 | `claude-bridge/claude-opus-5-5 / medium` — pi 1.4.0 |
-| 채점 | 풀이 선택과 관계없이 `gpt-6-astra / high` — Codex CLI |
+| 채점 | 풀이 선택과 관계없이 `openai-codex/gpt-6-astra / high` — 고정 pi 1.4.0 |
 | 횟수 | 문항·비교군마다 1회, 총 21개 슬롯, 기본 최대 4개 병렬 실행 |
 | 한도 | 300초, 탐색 80회, 누적 입력+출력 500,000토큰 |
 | 채점 항목 | 핵심 21개와 확장 8개를 분리, `correct`·`supported`를 각각 판정 |
@@ -39,7 +39,7 @@ Graphify 0.9.95의 upstream `uv.lock`은 루트 버전과 필수 PyYAML이 맞�
 
 ## 준비 절차
 
-현재 등록된 공식 바이너리 조합은 macOS arm64용이다. Python 3.12 이상, Node 22.19+ (실측 24.14.0), pnpm, npm, uv, Git, Rust/Cargo, Go, gopls가 필요하다. pi 1.4.0, `@buyong/pi-claude-bridge` 0.13.1, SDK 0.3.310와 bundled Claude Code 2.1.310은 cache 아래에 `npm ci --ignore-scripts`로 설치하며 lock integrity와 전체 설치 tree hash를 재사용 때마다 검증한다. host Node의 canonical 경로·버전·hash도 기록한다. `~/.pi/agent`의 설치물·설정·extensions·sessions는 사용하거나 수정하지 않는다. 최초 준비는 고정 소스·패키지·로컬 임베딩 가중치를 내려받으며 실제 모델 인증/사용 가능성은 별도 smoke 대상이다.
+현재 등록된 공식 바이너리 조합은 macOS arm64용이다. Python 3.12 이상, Node 22.19+ (실측 24.14.0), pnpm, npm, uv, Git, Rust/Cargo, Go, gopls가 필요하다. pi 1.4.0, `@buyong/pi-claude-bridge` 0.13.1, SDK 0.3.310와 bundled Claude Code 2.1.310은 cache 아래에 `npm ci --ignore-scripts`로 설치하며 lock integrity와 전체 설치 tree hash를 재사용 때마다 검증한다. host Node의 canonical 경로·버전·hash도 기록한다. `~/.pi/agent`의 설치물·설정·extensions·sessions는 사용하거나 수정하지 않는다. 최초 준비는 고정 소스·패키지·로컬 임베딩 가중치를 내려받으며 Astra 채점도 같은 고정 pi 설치물과 운영자의 pi `openai-codex` 로그인을 사용한다. 실제 모델 인증/사용 가능성은 별도 smoke 대상이다.
 
 모든 명령은 저장소 루트에서 실행한다. CUI 의존성이 없다면 먼저 `pnpm install`을 실행한다.
 
@@ -111,7 +111,11 @@ ready 실패는 `warmup_failed`로 기록하고 solver를 시작하지 않는다
 - `identity_only_anonymization`: identity 근거와 `replacement:"[anonymous-001]"` 같은 중립 표식만 허용한다. 승인된 정확한 구간 외 수정은 금지한다.
 - `reject_packet`: 미채점으로 남긴다.
 
-`approve-review`는 원답변/구간 hash·가역성을 확인하고 units/citations/schema/prompt를 다시 생성해 불변 packet을 봉인할 뿐 **모델을 호출하지 않는다**. 동일 승인 재적용은 기존 seal을 확인한다. `resume`에서만 sealed packet의 Astra 채점을 진행한다. 160 KiB 초과 packet은 절단하지 않고 실패한다. grader는 언제나 Codex/Astra/high이며 ID·fact 일대일 대응·차원/사유·unit/citation membership까지 검사한다. private registry/검토 근거는 grader 입력에 넣지 않는다.
+`approve-review`는 원답변/구간 hash·가역성을 확인하고 units/citations/schema/prompt를 다시 생성해 불변 packet을 봉인할 뿐 **모델을 호출하지 않는다**. 동일 승인 재적용은 기존 seal을 확인한다. `resume`에서만 sealed packet의 pi/Astra 채점을 진행한다. schema를 포함한 160 KiB 초과 prompt는 절단하지 않고 실패한다. grader는 언제나 `openai-codex/gpt-6-astra`/`high`이며 `--no-tools --no-mcp`로 실행한다. prompt에 judgment schema를 포함하고 JSON object 하나(선택적으로 단일 json fence)만 받는다. 중복 key·NaN·부가 설명·여러 object를 거부하고 기존 ID·fact 일대일 대응·차원/사유·unit/citation membership까지 검사한다. private registry/검토 근거는 grader 입력에 넣지 않는다.
+
+채점은 슬롯별 private `PI_CODING_AGENT_DIR`/TMPDIR와 allowlist 환경을 사용한다. 부모의 `PI_*`·모델 provider 환경·개인 extensions/skills/context/MCP를 상속하지 않는다. 고정 pi가 운영자 로그인에서 fresh bearer token을 메모리로 가져오고 private models.json에는 환경 변수 참조만 저장한다. 토큰은 argv·prompt·설정·로그에 쓰지 않으며 stdout/stderr는 저장 전에 redact한다. grader는 `--no-session`으로 pi session 저장을 끄고 redacted `events.jsonl`을 원자료로 보존한다.
+
+하네스는 packet당 한 번만 실행한다. 형식·schema 오류, 빈 답변, timeout, nonzero exit를 채점 실패로 보존하고 자동 재채점하지 않는다. pi의 기본 transport retry(최대 3회)는 유지하며 `auto_retry_start/end`와 시도 횟수를 기록한다. compaction은 기본 설정을 바꾸지 않지만 발생하면 packet 문맥 변경으로 조건 무효·미채점 처리한다. assistant `message_end.usage`와 compaction usage의 `input + output + cacheRead + cacheWrite`를 합산하며 오류/중단 시 미관측 비용을 0으로 단정하지 않는다. `grader-result.json`, ledger/report의 `grader_execution`에는 실패 때도 사용량·retry·compaction·상태·근거를 solver 비용과 별도로 남긴다.
 
 보고서는 항상 21행이며 launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
 
@@ -194,7 +198,7 @@ node --check benchmark/start.mjs
 
 기존 실행·사용량·취소·응답 처리 검증과 실제 Inquirer 터미널 검증을 사용하며 모델 실행은 로컬 대역으로 대체한다. [CUI 점검 기록](../docs/briefs/evidence/bench-ready/07-operator-inspection.json)에는 실제 준비 기록을 사용한 메뉴 흐름과 실행 호출 0회를 남긴다.
 
-공통 실행 함수 `runner.execute_model`은 선택한 pi provider로 풀이를 전달한다. 기존 CLI 경로는 cleanup 후보로 보존한다. campaign 승인·ledger·scheduler·검토·보고는 무모델 대역으로 검증하며, 실제 실행은 최신 핀·제품별 OS 경계·semantic readiness·동일 live 세션/clock 통합과 새 준비 snapshot의 독립 검토 뒤에만 허용한다. 계정의 지정 모델 사용 가능 여부, 실제 모델 전달량, 채점 보정, 난도 실측은 아직 확인하지 않았다.
+공통 실행 함수 `runner.execute_model`은 선택한 pi provider로 풀이를 전달하고 채점 요청은 항상 `pi_grader.execute`의 pi/Astra로 보낸다. 기존 Codex/Claude Code CLI 경로는 cleanup 후보로 보존한다. campaign 승인·ledger·scheduler·검토·보고는 무모델 대역으로 검증하며, 실제 실행은 최신 핀·제품별 OS 경계·semantic readiness·동일 live 세션/clock 통합과 새 준비 snapshot의 독립 검토 뒤에만 허용한다. 계정의 지정 모델 사용 가능 여부, 실제 모델 전달량, 채점 보정, 난도 실측은 아직 확인하지 않았다.
 
 ### pi의 private state와 인증
 

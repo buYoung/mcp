@@ -299,7 +299,12 @@ def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None,
                   codex_version: str | None = None, agent_version: str | None = None, prepared_session=None) -> dict:
     spec = settings or default_settings()
     require(spec["grader_model"] == "gpt-6-astra" and spec["grader_reasoning_effort"] == "high", "채점은 Astra/high로 고정합니다")
-    backend = "codex" if grading else spec["solver_backend"]
+    if grading:
+        from .pi_grader import execute
+        require(relay_settings is None and prepared_session is None, "pi 채점에는 도구/제품 세션을 연결하지 않습니다")
+        return execute(folder, prompt, settings=spec, output_schema=output_schema,
+                       cancel_event=cancel_event, usage_drain_seconds=usage_drain_seconds)
+    backend = spec["solver_backend"]
     require(backend in {"codex", "claude_code", "pi"}, "지원하지 않는 코딩 에이전트")
     if not grading:
         from .route_contract import solver_model
@@ -380,7 +385,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             if backend == "codex" else [])
     server = navigation_server(folder, relay_settings, prepared_session) if relay_settings else None
     if backend == "claude_code":
-        require(not grading and not output_schema, "채점과 구조화 출력은 Codex/Astra에서 실행합니다")
+        require(not grading and not output_schema, "Claude Code legacy 풀이에는 채점/구조화 출력을 연결하지 않습니다")
         agent_version = agent_version or command(["claude", "--version"]).strip()
         args, workspace, env = claude_client.launch(folder, spec, relay_settings, server=server)
     if backend == "pi":
