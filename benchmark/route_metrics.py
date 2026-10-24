@@ -298,7 +298,10 @@ def quality_counts(judgments: list[dict], questions: list[dict]) -> dict:
             values = [f[dimension]["value"] for f in facts]
             dimensions[dimension] = {"true": sum(v is True for v in values), "false": sum(v is False for v in values),
                                      "indeterminate": sum(v == "indeterminate" for v in values), "ungraded": expected - len(values)}
-        counts[level] = {"planned_facts": expected, "graded_facts": len(facts), "dimensions": dimensions}
+        require(len(facts) <= expected, "계획보다 많은 fact 판정")
+        counts[level] = {"planned_facts": expected, "graded_facts": len(facts), "dimensions": dimensions,
+                         "fact_weighted_fulfilled_rate": sum(f["state"] == "fulfilled" for f in facts) / expected
+                         if len(facts) == expected and all(f["state"] != "indeterminate" for f in facts) else None}
     states = [j["core_complete"] for j in judgments]
     counts["core_complete"] = {"true": sum(v is True for v in states), "false": sum(v is False for v in states),
                                 "indeterminate": sum(v == "indeterminate" for v in states), "ungraded": len(questions) - len(states),
@@ -331,19 +334,35 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                             **{key: row.get(key) if row else None for key in (
                                 "conditions_valid", "error", "failure_reason", "condition_errors", "boundary_violations",
                                 "call_log_complete", "host_calls", "artifact", "artifacts", "shutdown", "budget", "native_call_budget",
-                                "usage_collection", "model", "backend", "agent_version", "effort_observation", "codex_version", "thread_id", "provenance")}})
+                                "usage_collection", "model", "backend", "agent_version", "effort_observation", "codex_version", "thread_id", "provenance",
+                                "phase", "launch_state", "cli_launches", "provider_call_observed", "answer_eligible", "cleanup",
+                                "failure_stage", "grade_state", "grade_reason", "review", "packet_seal_sha256", "raw_seal", "raw_seal_sha256",
+                                "warm_receipt", "lifecycle_seconds", "cancel_requested")}})
     for arm in routes.ARM_IDS:
         selected = [r for r in result_rows if r["arm"] == arm]
         graded = [r["judgment"] for r in selected if r["judgment"] is not None]
-        arms[arm] = {"planned": 3, "observed": sum(r["status"] != "planned" for r in selected),
+        arms[arm] = {"planned": 3, "observed": sum(r["cli_launches"] == 1 for r in selected),
                      "invalid_conditions": sum(r["conditions_valid"] is False for r in selected),
                      "unconfirmed_conditions": sum(r["status"] != "planned" and r["conditions_valid"] is None for r in selected),
                      "quality": quality_counts(graded, dataset["questions"]),
                      "tool_condition": manifest.get("arms", {}).get(arm, {}).get("tool_condition")}
-    result = {"schema_version": 1, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
+    counts = {"planned": len(planned), "cli_started": sum(r["cli_launches"] == 1 for r in result_rows),
+              "launch_reserved": sum(r["launch_state"] in {"reserved", "started", "unknown"} for r in result_rows),
+              "provider_observed": sum(r["provider_call_observed"] is True for r in result_rows),
+              "provider_unknown": sum(r["provider_call_observed"] is None and r["launch_state"] in {"reserved", "started", "unknown"} for r in result_rows),
+              "terminal": sum(r["phase"] == "terminal" for r in result_rows),
+              "graded": len(judgments), "review_required": sum(r["grade_state"] == "review_required" for r in result_rows),
+              "failed": sum(r["status"] in {"preflight_failed", "warmup_failed", "environment_error", "launch_unknown"}
+                            or r["grade_state"] == "failed" for r in result_rows),
+              "cancelled": sum(r["status"] == "cancelled" for r in result_rows),
+              "not_started": sum(r["launch_state"] in {None, "not_started"} for r in result_rows),
+              "launch_unknown": sum(r["launch_state"] == "unknown" for r in result_rows)}
+    result = {"schema_version": 2, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
               "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions")},
-              "observed_solver_runs": sum(r["status"] != "planned" for r in result_rows),
-              "arms": arms, "rows": result_rows, "scope": "Three fixed routes, one attempt per arm. Descriptive observations only.",
+              "observed_solver_runs": sum(r["cli_launches"] == 1 for r in result_rows),
+              "arms": arms, "rows": result_rows,
+              "quality": quality_counts(list(judgments.values()), dataset["questions"] * len(routes.ARM_IDS)),
+              "scope": "Three fixed routes, one attempt per arm. Descriptive observations only.",
               "variance_estimated": False}
     write_json(root / "report/summary.json", result)
     lines = ["# Grafana 경로 벤치마크", ""]
@@ -351,23 +370,25 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
         models = manifest["models"]
         lines += [f"풀이: {models['solver']['model']} / {models['solver']['reasoning_effort']}; "
                   f"채점: {models['grader']['model']} / {models['grader']['reasoning_effort']}", ""]
+    lines += [f"실행/검토 집계: `{json.dumps(counts, ensure_ascii=False)}`", ""]
     lines += ["| 도구 | 도구 구성 | 예정 | 관측 | 핵심 완전 충족 | 미채점 |", "|---|---|---:|---:|---:|---:|"]
     for arm, value in arms.items():
         complete = value["quality"]["core_complete"]
         condition = {"assisted": "필수 보조 도구 포함", "native_only": "자체 도구", "native_agent_baseline": "기본 에이전트 · 추가 MCP 없음"}.get(value["tool_condition"], "미연결")
         label = "기본 에이전트 (rg 사용 가능)" if arm == "rg" else arm
         lines.append(f"| {label} | {condition} | 3 | {value['observed']} | {complete['true'] if value['observed'] else '미실행'} | {complete['ungraded']} |")
-    lines += ["", "| 문항·비교군 | 실행 상태 | 조건 유효 | 호출 로그 완결 | 오류·실패 사유 | 근거 |",
-              "|---|---|---|---|---|---|"]
+    lines += ["", "| 문항·비교군 | 실행 상태 | launch | 채점/검토 | 조건 유효 | 호출 로그 완결 | 오류·실패 사유 | 근거 |",
+              "|---|---|---|---|---|---|---|---|"]
     def cell(value):
         return (json.dumps(value, ensure_ascii=False) if isinstance(value, (list, dict)) else str(value)).replace("|", "\\|").replace("\n", " ")
     for row in result_rows:
-        reason = row["error"] or row["failure_reason"] or row["condition_errors"] or row["boundary_violations"]
+        reason = row["error"] or row["failure_reason"] or row["grade_reason"] or row["condition_errors"] or row["boundary_violations"]
         reason = reason or ("미실행" if row["status"] == "planned" else "실행 조건 확인 실패" if row["conditions_valid"] is False else "기록 없음")
-        evidence = row["artifacts"] or row["artifact"] or "미관측"
-        lines.append("| " + " | ".join(cell(v) for v in (row["id"], row["status"], row["conditions_valid"], row["call_log_complete"], reason, evidence)) + " |")
+        evidence = row["raw_seal"] or row["artifacts"] or row["artifact"] or "미관측"
+        lines.append("| " + " | ".join(cell(v) for v in (row["id"], row["status"], row["launch_state"], row["grade_state"], row["conditions_valid"], row["call_log_complete"], reason, evidence)) + " |")
     lines += ["", "미실행·미관측 값은 0점으로 치환하지 않습니다. 핵심과 확장, true/false/indeterminate/미채점을 별도 기록합니다.",
-              "한 문항당 1회 계획이므로 반복 분산이나 통계적 유의성을 주장하지 않습니다."]
+              "한 문항당 1회 계획이므로 반복 분산이나 통계적 유의성을 주장하지 않습니다.",
+              "제품 탐색 호출 0회인 답변은 제품 검색 기여의 근거가 아닙니다. 미관측 호출을 0회로 해석하지 않습니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
     return result
 

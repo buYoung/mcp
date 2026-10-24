@@ -2,7 +2,7 @@
 
 한 측정 묶음에서 같은 에이전트·모델·문항·예산으로 **코드 검색 도구별 최종 답변 품질과 탐색 비용**을 비교한다. 풀이 모델은 GPT 6.1 Sol 또는 Claude Opus 5.5 중 하나를 선택하고, 기본값은 GPT 6.1 Sol이다. 에이전트는 도구를 사용하는 공통 사용자이며, 답변 작성 능력의 영향은 공통 사용 조건으로 허용한다. 도구 선택과 호출 순서는 LLM에 맡기고 근거 단계별 분리 집계를 필수로 요구하지 않는다.
 
-현재 하네스는 **Grafana 3문항 × 7개 비교군 × 문항별 1회 = 21회 예정**인 `grafana-routes` 하나만 지원한다. 설치·색인·중립 조회·채점 및 측정 계약·풀이 입력을 준비한 뒤 `prepared_not_executed`에서 종료한다. 실제 21회 풀이·채점 실행 흐름 연결은 별도 작업이다.
+현재 하네스는 **Grafana 3문항 × 7개 비교군 × 문항별 1회 = 21회 예정**인 `grafana-routes` 하나만 지원한다. 설치·색인·중립 조회·채점 및 측정 계약·풀이 입력의 준비는 `prepared_not_executed`에서 종료한다. 실행은 불변 계획의 정확한 ID·hash·모델에 대한 별도 승인으로만 시작하며, 21-slot ledger에 실패와 미시작까지 보존한다. **제품별 격리·semantic ready warm-host와 runner의 clock 연결이 통합되지 않았다면 실행은 `blocked`로 끝난다.** 준비 성공만으로 실제 실행이 허가되거나 검증된 것은 아니다.
 
 ## 고정 조건
 
@@ -21,7 +21,7 @@
 
 한 번의 선택으로 7개 비교군에 같은 풀이 모델을 적용한다. 두 모델을 모두 자동 실행하거나 결과를 합산하지 않는다. 모델·실행기·추론 강도는 계획 ID와 결과에 포함하고 다른 모델의 결과가 들어오면 거부한다. 채점 항목과 Astra의 추론 강도는 그대로 유지한다. Claude의 `medium`은 [공식 기본값](https://code.claude.com/docs/en/model-config#choose-an-effort-level)을 명시한 값이며, 모델 간 동일한 계산량을 뜻하지 않는다.
 
-측정은 사전 색인을 사용해 최대 4개 회차를 동시에 진행하는 조건이다. 같은 비교군의 문항은 색인·홈 경로의 복원과 조회가 충돌하지 않도록 순차 실행한다. 이 동시 실행 수는 풀이 회차 간 한도이며 제품 내부의 색인·검색 기본값을 바꾸지 않는다. 실제 병렬 실행과 비교군별 직렬화는 향후 실행 흐름 연결 시 적용해야 하며, 현재 준비 단계에서는 설정 전달까지만 검증한다.
+측정은 사전 색인을 사용해 최대 4개 회차를 동시에 진행하는 조건이다. 같은 비교군의 문항은 색인·홈 경로의 복원과 조회가 충돌하지 않도록 순차 실행한다. 이 동시 실행 수는 풀이 회차 간 한도이며 제품 내부의 색인·검색 기본값을 바꾸지 않는다. campaign scheduler는 restore부터 product 종료·사후 검증·baseline 복원까지 최대 4개 lifecycle을 허용하며, 같은 비교군의 lifecycle은 겹치지 않는다. solver 정리가 끝난 뒤 Astra 채점도 최대 4개로 진행한다. 실제 제품 통합과 모델 실행은 별도 검증 대상이다.
 
 | 비교군 | 고정 버전·역할 |
 | --- | --- |
@@ -63,15 +63,72 @@ python3 -m benchmark.route_prepare verify
 
 Claude 준비 기록은 `python3 -m benchmark.route_prepare verify --solver-model claude-opus-5-5`로 확인한다.
 
-성공 결과는 `prepared_not_executed: <계획 ID>`다. GPT의 [최종 준비 기록](../docs/briefs/evidence/bench-ready/07-readiness.json)과 Claude의 `07-readiness-claude-opus-5-5.json`은 따로 저장된다. 선택한 기록의 `technical_ready`가 true이고 `solver_runs`, `grader_runs`, `calibration_runs`가 모두 0인지 확인한다. 같은 계획의 `benchmark/.cache/route-preparation/plans/<계획 ID>/`에 풀이 입력과 미실행 결과표가 저장된다. 공유 준비 자료를 다시 생성했다면 각 모델의 기록도 현재 해시로 재검증해야 한다.
+성공 결과는 `prepared_not_executed: <계획 ID>`다. GPT의 [최종 준비 기록](../docs/briefs/evidence/bench-ready/07-readiness.json)과 Claude의 `07-readiness-claude-opus-5-5.json`은 따로 저장된다. 선택한 기록의 `technical_ready`가 true이고 `solver_runs`, `grader_runs`, `calibration_runs`가 모두 0인지 확인한다. 같은 계획의 `benchmark/.cache/route-preparation/plans/<계획 ID>/`에 풀이 입력과 미실행 결과표가 저장된다. 각 계획에는 handoff·참조 근거·inventory·probe·corpus의 불변 snapshot이 포함된다. 다른 모델을 준비해 최신 포인터를 다시 게시해도 기존 계획의 바이트를 덮어쓰지 않는다. `plan_condition`에서 ID를 재계산하며, 코드·모델·제품 조건이 바뀌면 기존 계획을 재인증하지 않고 준비를 다시 해야 한다. 미완성 계획 디렉터리도 자동 덮어쓰지 않는다.
 
-준비 CUI는 다음 명령으로 연다.
+공유 설치·색인·계약 검증을 한 번 수행하고 두 backend를 각각 probe/finalize하려면 다음을 사용한다. 이는 두 모델의 **준비**이며 자동 실행이 아니다.
+
+```sh
+python3 -m benchmark.route_prepare prepare --solver-model all
+python3 -m benchmark.route_prepare verify --solver-model all
+```
+
+준비·실행 승인 CUI는 다음 명령으로 연다.
 
 ```sh
 pnpm bench:start
 ```
 
-Grafana 프로필 다음에 풀이 모델을 선택한다. 모델 메뉴에서 Enter를 누르면 기본값 GPT 6.1 Sol이다. 선택한 모델로 7개 비교군 모두를 준비하고 종료한다. 실제 풀이를 시작하거나 과거 답변을 재사용하는 메뉴는 없다. Ctrl+C로 준비를 취소할 수 있으며, 다시 준비할 때 검증된 설치물과 색인을 재사용한다.
+Grafana 프로필 다음에 풀이 모델을 선택한다. 모델 메뉴에서 Enter를 누르면 기본값 GPT 6.1 Sol이다. 선택한 모델로 7개 비교군 모두를 준비한 뒤 정확한 계획 ID·readiness hash·모델·버전·21회·한도를 표시한다. 별도 실행 확인의 기본값은 **아니요**다. 확인을 거절하면 풀이·채점 0회로 끝난다. Ctrl+C는 새 슬롯을 중단하고 자식 정리 후 ledger/report 위치를 안내한다. 준비와 실행의 lease는 cache/model 구분 없이 공유되며, host 공통 port lease를 먼저 얻는다. 다른 프로세스의 포트를 빼앗거나 종료하지 않는다.
+
+## 운영자 실행·검토·보고
+
+JSON-lines CLI는 stdin으로 JSON object를 받는다. 아래 명령의 입력 파일은 solver가 읽을 수 없는 운영자 영역에 둔다. `catalog`, `prepare`, `approve-review`, `report`, `inspect-operator`는 모델을 호출하지 않는다. `run`과 `resume`만 승인 범위 내 모델 호출이 가능하다.
+
+```sh
+# run-approval.json: plan_id, readiness(불변 plans/<id>/readiness.json),
+# readiness_sha256, solver_model, actor, confirmed:true를 명시
+python3 -m benchmark.cli run < /private/operator/run-approval.json
+
+# resume.json: run_root, confirmed:true. 미시작 슬롯까지 시작하려면 retry_unstarted:true
+python3 -m benchmark.cli resume < /private/operator/resume.json
+
+# review.json: run_root, slot_id, approval(아래 형식)
+python3 -m benchmark.cli approve-review < /private/operator/review.json
+
+# report.json: run_root만 필요
+python3 -m benchmark.cli report < /private/operator/report.json
+```
+
+`RunManifest`와 승인·준비 기록은 불변이다. 실행 결과는 cache의 `route-preparation/campaigns/<campaign_id>/`에 따로 저장한다. `ledger.json`은 fsync·atomic replace로 갱신하며 단일 coordinator만 작성한다. solver/grader launch intent를 먼저 내구 저장한다. intent 이후 crash는 실행 여부가 불확실해도 자동 재실행하지 않는다. 정리가 확인되지 않은 process group/workspace는 `blocked`로 두고 추측으로 종료하거나 복원하지 않는다. 미시작 재개만 명시적 `retry_unstarted`로 허용하고 이전 preflight의 원자료도 보존한다. 모델 호출 확인과 CLI spawn은 별개이며 미관측 provider 호출은 null이다.
+
+ready 실패는 `warmup_failed`로 기록하고 solver를 시작하지 않는다. 원자료는 writer 종료·정리 뒤 파일별 hash/bytes로 봉인한다. 조건이 유효하고 cutoff 이전 완성 답변임이 입증된 슬롯만 채점한다. late answer, 미시작·취소·로그/모델 조건 무효는 실패·미채점 행으로 보존한다. 낮은 점수나 오류를 이유로 solver/grader를 자동 재시도하지 않는다.
+
+도구·backend·모델 별칭, namespace, 경로, plan/run 식별, 사용량 자기보고는 private `reviews/<blind_id>/v1/draft.json`의 Unicode code-point 구간으로 검토한다. `approval`에는 `reviewer`, `revision`, `raw_sha256`, `draft_sha256`, 모든 flag의 `decisions`가 필요하다. 각 결정은 `flag_id`, `decision`, `evidence`를 포함한다.
+
+- `legitimate_source_identifier`: 실제 source 근거를 기록하고 원문을 그대로 유지한다.
+- `identity_only_anonymization`: identity 근거와 `replacement:"[anonymous-001]"` 같은 중립 표식만 허용한다. 승인된 정확한 구간 외 수정은 금지한다.
+- `reject_packet`: 미채점으로 남긴다.
+
+`approve-review`는 원답변/구간 hash·가역성을 확인하고 units/citations/schema/prompt를 다시 생성해 불변 packet을 봉인할 뿐 **모델을 호출하지 않는다**. 동일 승인 재적용은 기존 seal을 확인한다. `resume`에서만 sealed packet의 Astra 채점을 진행한다. 160 KiB 초과 packet은 절단하지 않고 실패한다. grader는 언제나 Codex/Astra/high이며 ID·fact 일대일 대응·차원/사유·unit/citation membership까지 검사한다. private registry/검토 근거는 grader 입력에 넣지 않는다.
+
+보고서는 항상 21행이며 launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
+
+운영자 inspection 증거는 ad-hoc 스크립트 대신 다음 공식 명령으로 재생성한다. 실제 catalog와 검증한 불변 readiness projection으로 실제 CUI 함수를 실행하되 backend 호출을 차단하고 실행 확인은 거절한다. 결과는 `docs/briefs/evidence/bench-ready/07-operator-inspection*.json`이며 모델 0회 경계를 기록한다. 실제 터미널 입력은 기존 PTY checks가 별도로 검증한다.
+
+```sh
+printf '{}' | python3 -m benchmark.cli inspect-operator
+printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-opus-5-5
+```
+
+### warm-host 통합 경계
+
+`execution.run_campaign`은 테스트/통합용 `prepare_session`, `solver_executor`, `grader_executor`, `collector`, `restore`, `source_check`를 주입받는다. 기본 경로는 `benchmark.warm_host.prepare_session`과 `runner.execute_model(..., prepared_session=session)`을 요구하며 cold relay로 우회하지 않는다.
+
+- `prepare_session(state, slot_dir, expected_client, cancel_event, process_registry)`는 `state.campaign_binding`을 받는다. binding에는 plan/slot/arm과 artifact/source/baseline/inventory/isolation/warmup-policy hash가 있다.
+- `await_ready(deadline)`는 제품별 semantic assertion 뒤 `{ready:true, binding:<동일 값>, ready_at:<monotonic>, ...근거}`를 반환한다. `attachment()`는 같은 live 세션의 일회 연결 정보다.
+- runner가 `Popen` 직전 t0에서 `session.open_solver_gate(t0)`를 호출한다. product restart나 warm probe 예산 혼입은 금지한다. 결과는 `answer_eligible`을 명시한다.
+- `health().condition_errors`는 조건 열화를 보고하고, `close(reason)`는 bounded cleanup의 `complete`를 반환한다. 독립 그룹은 prompt/attach 허용 전에 `process_registry.register(pid, pgid, owner)`에 등록한다.
+- warm/transport 원자료는 `slot_dir` 바로 아래에 둔다. product home이나 CLI credentials/workspace는 raw seal 대상이 아니다. CLI `process.json`이 없으면 실제 spawn을 인증하지 않는다.
 
 ## 도구와 측정 정책
 
@@ -107,4 +164,4 @@ node --check benchmark/start.mjs
 
 기존 실행·사용량·취소·응답 처리 검증과 실제 Inquirer 터미널 검증을 사용하며 모델 실행은 로컬 대역으로 대체한다. [CUI 점검 기록](../docs/briefs/evidence/bench-ready/07-operator-inspection.json)에는 실제 준비 기록을 사용한 메뉴 흐름과 실행 호출 0회를 남긴다.
 
-공통 실행 함수 `runner.execute_model`은 선택한 CLI로 풀이를 전달하고 채점 요청은 항상 Codex/Astra로 보낸다. 실제 21회 실행에는 준비 검증 이후 슬롯별 상태 복원·풀이·수집·익명 채점·결과 집계를 연결하는 작업이 남아 있다. 현재 CLI는 `catalog`와 `prepare`만 제공하며 실행 설정은 준비 전용이다. 계정의 지정 모델 사용 가능 여부, 실제 모델 전달량, 채점 보정, 난도 실측은 아직 확인하지 않았다. Claude의 `--init-only` 점검은 설정을 읽고 시작할 수 있는지 확인하며, 실제 기본 도구의 권한 집행과 서버가 적용한 추론 강도까지 검증한 것으로 취급하지 않는다.
+공통 실행 함수 `runner.execute_model`은 선택한 CLI로 풀이를 전달하고 채점 요청은 항상 Codex/Astra로 보낸다. campaign의 승인·ledger·scheduler·검토·보고는 무모델 대역으로 검증하며, 실제 실행은 최신 핀·제품별 OS 경계·semantic readiness·동일 live 세션/clock 통합과 새 준비 snapshot의 독립 검토 뒤에만 허용한다. 계정의 지정 모델 사용 가능 여부, 실제 모델 전달량, 채점 보정, 난도 실측은 아직 확인하지 않았다. Claude의 `--init-only` 점검은 설정을 읽고 시작할 수 있는지 확인하며, 실제 기본 도구의 권한 집행과 서버가 적용한 추론 강도까지 검증한 것으로 취급하지 않는다.
