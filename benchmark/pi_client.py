@@ -21,6 +21,14 @@ NATIVE_TOOLS = ("bash",)
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
 
 
+def requested_model(provider: str, model: str) -> str:
+    # Pinned bridge 0.13.1 models.ts: Opus 5.5 is in MEASURED_ONE_M.
+    if provider == "claude-bridge":
+        require(model == "claude-opus-5-5", "unreviewed Claude runtime model mapping")
+        return model + "[1m]"
+    return model
+
+
 def local_endpoint_url(value: str) -> str:
     """Explicit function-parameter seam only; never load a transport override from env/config."""
     url = urlsplit(value)
@@ -145,6 +153,8 @@ def baseline_boundary(native: dict, folder: Path) -> dict:
         path.mkdir(parents=True, exist_ok=True, mode=0o700)
     preflight(source, home)
     text = _profile_text([source, rg.parent, tmp, home], [tmp])
+    # Basic shell/navigation utilities need no external Mach service lookup.
+    text += "(deny lsopen)\n(deny appleevent-send)\n(deny mach-lookup)\n"
     for name in sorted(METADATA | {".pi", ".claude"}):
         text += f"(deny file-read-data file-write* (subpath {json.dumps(str(source / name))}))\n"
     profile = folder / "pi-bash.sb"
@@ -228,6 +238,9 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     args = [tools["node"], tools["pi_cli"], *PRIVATE_FLAGS, "--provider", provider, "--model", spec["model"],
             "--thinking", spec["reasoning_effort"], "--session-dir", str(sessions)]
     if provider == "claude-bridge":
+        from . import claude_settings
+        claude_settings.verify(spec.get("claude_settings"), workspace, home=local_home)
+        require(spec.get("requested_model") == requested_model(provider, spec["model"]), "Claude requested model condition changed")
         # Bridge 0.13.1 reads this file independently of pi's -na project policy.
         require(not (workspace / ".pi/claude-bridge.json").exists(), "project bridge config would override the pinned binary")
         write_json(agent / "claude-bridge.json", {"provider": {"pathToClaudeCodeExecutable": tools["claude_code_binary"]}}, exclusive=True)
@@ -239,6 +252,8 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
                       local_endpoint=local_endpoint if provider == "claude-bridge" else None, local_home=local_home)
     validate_models(agent, provider, local_endpoint=model_endpoint)
     write_json(folder / "pi-policy.json", {"toolchain": tools, "provider": provider, "flags": PRIVATE_FLAGS,
+        "requested_model": requested_model(provider, spec["model"]),
+        "claude_settings": spec.get("claude_settings"),
         "defaults": capabilities()["defaults"], "auth": "memory-only bearer env" if token else "Claude Code existing login, real HOME",
         "claude_residue": "only exact workspace project slug removed; ~/.claude.json project entries may remain"}, exclusive=True)
     return args, workspace, env
@@ -364,56 +379,127 @@ def valid_model(events: list[dict], expected: str | dict) -> bool:
         and all(m[k] == model for k in ("upstreamModel", "upstream_model", "responseModel", "response_model") if k in m) for m in messages)
 
 
-def usage(events: list[dict], *, terminal_complete: bool, evidence: str) -> dict:
-    messages = assistant_messages(events)
-    errors = []
-    raw = [m.get("usage") for m in messages]
-    active_compaction = 0
-    for event in events:
-        if event.get("type") == "compaction_start":
-            active_compaction += 1
-        elif event.get("type") == "compaction_end":
-            active_compaction -= 1
-            value = event.get("result", {}).get("usage") if isinstance(event.get("result"), dict) else None
-            if value is not None:
-                raw.append(value)
-            else:
-                errors.append("compaction usage unobserved")
-    if active_compaction:
-        errors.append("unfinished compaction usage")
-    keys = ("input_tokens", "output_tokens", "cached_input_tokens", "cache_write_input_tokens", "total_tokens")
-    observed = dict.fromkeys(keys, 0)
-    for value in raw:
-        if not isinstance(value, dict) or not all(type(value.get(k)) is int and value[k] >= 0 for k in ("input", "output", "cacheRead", "cacheWrite")):
-            errors.append("invalid or missing assistant usage")
-            continue
+class EventState:
+    """Incremental pi observations; raw events stay in memory and on the redacted stream."""
+    def __init__(self):
+        self.events, self.messages, self.raw_usage, self.errors = [], [], [], []
+        self.tools, self.active_compaction = {}, 0
+        self.observed = dict.fromkeys(("input_tokens", "output_tokens", "cached_input_tokens",
+                                       "cache_write_input_tokens", "total_tokens"), 0)
+        self.lifecycle_events = []
+        self.last_assistant = None
+        self.answer = None
+        self.failed_attempts = self.retry_attempts = self.unretried_errors = self.usage_records = 0
+        self.retry_active = False
+
+    def _usage(self, value, *, failed=False):
+        self.raw_usage.append(value)
+        if value is None and failed:
+            return  # Missing failed-attempt usage contributes zero only to a lower bound.
+        if not isinstance(value, dict) or not all(type(value.get(k)) is int and value[k] >= 0
+                                                  for k in ("input", "output", "cacheRead", "cacheWrite")):
+            self.errors.append("invalid or missing assistant usage")
+            return
+        self.usage_records += 1
         inputs = value["input"] + value["cacheRead"] + value["cacheWrite"]
         total = inputs + value["output"]
         if value.get("totalTokens") != total:
-            errors.append("pi totalTokens mismatch")
-        for k, amount in zip(keys, (inputs, value["output"], value["cacheRead"], value["cacheWrite"], total)):
-            observed[k] += amount
-    if not terminal_complete or final_result(events) is None:
-        errors.append("unfinished process or unsettled answer")
-    if not messages or any(m.get("stopReason") in {"error", "aborted"} for m in messages):
-        errors.append("failed response may omit consumed usage")
-    if any(not item["completed"] or item.get("missing_start") for item in tool_items(events)):
-        errors.append("unfinished tool inventory")
-    complete = not errors
-    reason = "; ".join(errors) or None
-    result = {"complete": complete, "errors": errors, "observed": observed, "raw_usage": raw,
-              "response_ids": [m.get("responseId", f"message_end:{i}") for i, m in enumerate(messages)],
-              "consistency": {"status": "valid" if complete else "unconfirmed", "errors": errors, "evidence": [evidence]},
-              "cost_completeness": {"complete": complete, "status": "complete" if complete else "incomplete", "reasons": errors},
-              "components": {}}
-    for key in keys:
-        result[key] = metric(observed[key] if complete else None, "tokens", reason=reason, evidence=[evidence])
-        result["components"][key] = {**result[key], "observed": observed[key], "missing_reason": reason}
-    result["components"]["reasoning_output_tokens"] = {"value": None, "observed": None, "unit": "tokens", "missing_reason": "not consistently reported by both pi providers"}
-    result["model_responses"] = metric(len(raw) if complete else None, "responses", reason=reason, evidence=[evidence])
-    result["cached_input_ratio"] = ratio(result["cached_input_tokens"]["value"], result["input_tokens"]["value"], evidence=[evidence])
-    result["lifecycle_events"] = [e for e in events if "retry" in e.get("type", "") or "compaction" in e.get("type", "")]
-    return result
+            self.errors.append("pi totalTokens mismatch")
+        for key, amount in zip(self.observed, (inputs, value["output"], value["cacheRead"], value["cacheWrite"], total)):
+            self.observed[key] += amount
+
+    def add(self, event: dict):
+        self.events.append(event)
+        self.answer = None  # A final settlement must be the last record.
+        kind = event.get("type", "")
+        if kind == "message_end" and event.get("message", {}).get("role") == "assistant":
+            message = event["message"]
+            self.messages.append(message)
+            self.last_assistant = message
+            failed = message.get("stopReason") in {"error", "aborted"}
+            if failed:
+                self.failed_attempts += 1
+                if message.get("stopReason") == "error":
+                    self.unretried_errors += 1
+                else:
+                    self.errors.append("aborted assistant response")
+            self._usage(message.get("usage"), failed=failed)
+        elif kind == "tool_execution_start":
+            self.tools[event["toolCallId"]] = {"id": event["toolCallId"], "name": event["toolName"],
+                                                "input": event.get("args", {}), "completed": False}
+        elif kind == "tool_execution_end":
+            ident = event["toolCallId"]
+            item = self.tools.setdefault(ident, {"id": ident, "name": event.get("toolName"), "input": {}, "missing_start": True})
+            item.update(completed=True, result={**event.get("result", {}), "is_error": event.get("isError", False)})
+        elif kind == "auto_retry_start":
+            self.retry_attempts += 1
+            if self.unretried_errors != 1 or not self.last_assistant or self.last_assistant.get("stopReason") != "error":
+                self.errors.append("auto retry not bound to a failed assistant attempt")
+            else:
+                self.unretried_errors -= 1
+            self.retry_active = True
+        elif kind == "auto_retry_end":
+            if not self.retry_active or event.get("success") is not True:
+                self.errors.append("auto retry did not finish successfully")
+            self.retry_active = False
+        elif kind == "compaction_start":
+            self.active_compaction += 1
+        elif kind == "compaction_end":
+            self.active_compaction -= 1
+            value = event.get("result", {}).get("usage") if isinstance(event.get("result"), dict) else None
+            if value is None:
+                self.errors.append("compaction usage unobserved")
+            else:
+                self._usage(value)
+        elif kind == "agent_settled" and not event.get("aborted") and self.last_assistant:
+            if self.last_assistant.get("stopReason") == "stop":
+                text = "\n".join(c["text"] for c in self.last_assistant.get("content", []) if c.get("type") == "text")
+                if text.strip():
+                    self.answer = {"result": text, "subtype": "success", "is_error": False, "message": self.last_assistant}
+        if "retry" in kind or "compaction" in kind:
+            self.lifecycle_events.append(event)
+
+    def usage(self, *, terminal_complete: bool, evidence: str) -> dict:
+        errors = list(self.errors)
+        if self.active_compaction:
+            errors.append("unfinished compaction usage")
+        if not terminal_complete or self.answer is None:
+            errors.append("unfinished process or unsettled answer")
+        if not self.messages or not self.usage_records:
+            errors.append("assistant usage unobserved")
+        if self.unretried_errors or self.retry_active:
+            errors.append("failed response without completed auto retry")
+        if any(not item["completed"] or item.get("missing_start") for item in self.tools.values()):
+            errors.append("unfinished tool inventory")
+        lower_bound = not errors and self.failed_attempts > 0
+        complete = not errors and not lower_bound
+        accounting = "complete" if complete else "lower_bound" if lower_bound else "incomplete"
+        reasons = errors or (["failed auto-retry attempts may omit consumed usage"] if lower_bound else [])
+        reason = "; ".join(reasons) or None
+        result = {"complete": complete, "token_accounting": accounting,
+                  "retry_attempts": self.retry_attempts, "failed_attempts": self.failed_attempts, "errors": errors, "observed": dict(self.observed), "raw_usage": self.raw_usage,
+                  "response_ids": [m.get("responseId", f"message_end:{i}") for i, m in enumerate(self.messages)],
+                  "consistency": {"status": "valid" if complete else accounting, "errors": errors, "evidence": [evidence]},
+                  "cost_completeness": {"complete": complete, "status": accounting, "reasons": reasons},
+                  "components": {}}
+        for key, amount in self.observed.items():
+            result[key] = metric(amount if complete or lower_bound else None, "tokens", reason=reason, evidence=[evidence])
+            if lower_bound:
+                result[key]["validity"] = "lower_bound"
+            result["components"][key] = {**result[key], "observed": amount, "missing_reason": reason}
+        result["components"]["reasoning_output_tokens"] = {"value": None, "observed": None, "unit": "tokens", "missing_reason": "not consistently reported by both pi providers"}
+        result["model_responses"] = metric(len(self.raw_usage) if complete or lower_bound else None, "responses", reason=reason, evidence=[evidence])
+        result["cached_input_ratio"] = (metric(None, "ratio", reason="ratio unavailable for lower-bound totals", evidence=[evidence])
+                                        if lower_bound else ratio(result["cached_input_tokens"]["value"], result["input_tokens"]["value"], evidence=[evidence]))
+        result["lifecycle_events"] = self.lifecycle_events
+        return result
+
+
+def usage(events: list[dict], *, terminal_complete: bool, evidence: str) -> dict:
+    state = EventState()
+    for event in events:
+        state.add(event)
+    return state.usage(terminal_complete=terminal_complete, evidence=evidence)
 
 
 def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
@@ -429,7 +515,11 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
         cases = [("source", "cat README.md", True), ("rg", "rg --version", True),
                  ("pi_tmp", 'cat "$TMPDIR/truncated-output.txt"', True),
                  ("network", "curl --noproxy '*' --max-time 2 http://127.0.0.1:19849", False),
-                 ("source_write", "touch .unauthorized-write", False)]
+                 ("source_write", "touch .unauthorized-write", False),
+                 ("lsopen", "open -a Finder", False),
+                 ("appleevent", 'osascript -e \'tell application "Finder" to count windows\'', False),
+                 ("launchctl", "launchctl submit -l codemap-bench-canary-$$ -p /usr/bin/true", False),
+                 ("coreutils", "set -e -o pipefail; bash --version; cat README.md | head -n 1 | grep . | sed -n 1p | awk \'{print}\' | wc -l; ls .; find . -maxdepth 1 -type f", True)]
         cases.extend((name, "cat " + shlex.quote(str(path)), False) for name, path in targets.items())
         for name, text, allowed in cases:
             result = subprocess.run([str(wrapper), "-c", text], cwd=value["source"], capture_output=True, timeout=10)

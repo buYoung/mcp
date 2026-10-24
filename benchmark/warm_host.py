@@ -381,7 +381,7 @@ class WarmSession:
                                 result = {"tools": self.relay.list_tools()}
                             elif method in CONTENT_METHODS:
                                 result = self.relay.content_call(request["id"], method, params)
-                                degraded = readiness.degradation(self.ident, result)
+                                degraded = readiness.degradation(self.ident, result, tool=params.get("name") if method == "tools/call" else None)
                                 if degraded:
                                     self.errors.append(degraded)
                             elif method == "ping":
@@ -391,13 +391,14 @@ class WarmSession:
                     response = {"jsonrpc": "2.0", "id": request["id"], "result": result}
                 except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
                     error = exc.error if isinstance(exc, RPCError) else {"code": -32602, "message": str(exc)}
+                    if isinstance(exc, RPCError) and method in CONTENT_METHODS | {"initialize", "tools/list", "ping"}:
+                        self.errors.append("native RPC error envelope")
                     if self.closing.is_set():
                         break
                     append_jsonl(self.relay.log, {"event": "protocol_error", "client_request_id": str(request["id"]), "error": error})
                     response = {"jsonrpc": "2.0", "id": request["id"], "error": error}
                 conn.sendall((canonical(response) + "\n").encode())
                 if self.errors:
-                    self.cancel_event.set()
                     break
         except Exception as exc:
             if not self.closing.is_set():

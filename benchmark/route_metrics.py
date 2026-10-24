@@ -397,7 +397,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                             **{key: row.get(key) if row else None for key in (
                                 "conditions_valid", "error", "failure_reason", "condition_errors", "boundary_violations",
                                 "call_log_complete", "host_calls", "artifact", "artifacts", "shutdown", "budget", "native_call_budget",
-                                "usage_collection", "model", "backend", "agent_version", "effort_observation", "codex_version", "thread_id", "provenance",
+                                "usage_collection", "token_accounting", "retry_attempts", "failed_attempts", "model", "requested_model", "backend", "agent_version", "effort_observation", "codex_version", "thread_id", "provenance",
                                 "phase", "launch_state", "cli_launches", "provider_call_observed", "answer_eligible", "cleanup",
                                 "failure_stage", "grade_state", "grade_reason", "grader_execution", "review", "packet_seal_sha256", "raw_seal", "raw_seal_sha256",
                                 "warm_receipt", "lifecycle_seconds", "cancel_requested")}})
@@ -421,7 +421,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "not_started": sum(r["launch_state"] in {None, "not_started"} for r in result_rows),
               "launch_unknown": sum(r["launch_state"] == "unknown" for r in result_rows)}
     result = {"schema_version": 2, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
-              "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions")},
+              "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions", "execution_specs")},
               "observed_solver_runs": sum(r["cli_launches"] == 1 for r in result_rows),
               "arms": arms, "rows": result_rows,
               "quality": quality_counts(list(judgments.values()), dataset["questions"] * len(routes.ARM_IDS)),
@@ -440,15 +440,16 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
         condition = {"assisted": "필수 보조 도구 포함", "native_only": "자체 도구", "native_agent_baseline": "기본 에이전트 · 추가 MCP 없음"}.get(value["tool_condition"], "미연결")
         label = "기본 에이전트 (rg 사용 가능)" if arm == "rg" else arm
         lines.append(f"| {label} | {condition} | 3 | {value['observed']} | {complete['true'] if value['observed'] else '미실행'} | {complete['ungraded']} |")
-    lines += ["", "| 문항·비교군 | 실행 상태 | launch | 채점/검토 | 조건 유효 | 호출 로그 완결 | 오류·실패 사유 | 근거 |",
-              "|---|---|---|---|---|---|---|---|"]
+    lines += ["", "| 문항·비교군 | 실행 상태 | launch | 채점/검토 | 조건 유효 | 호출 로그 완결 | 토큰 집계 | retry/실패 attempt | 오류·실패 사유 | 근거 |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
     def cell(value):
         return (json.dumps(value, ensure_ascii=False) if isinstance(value, (list, dict)) else str(value)).replace("|", "\\|").replace("\n", " ")
     for row in result_rows:
         reason = row["error"] or row["failure_reason"] or row["grade_reason"] or row["condition_errors"] or row["boundary_violations"]
         reason = reason or ("미실행" if row["status"] == "planned" else "실행 조건 확인 실패" if row["conditions_valid"] is False else "기록 없음")
         evidence = row["raw_seal"] or row["artifacts"] or row["artifact"] or "미관측"
-        lines.append("| " + " | ".join(cell(v) for v in (row["id"], row["status"], row["launch_state"], row["grade_state"], row["conditions_valid"], row["call_log_complete"], reason, evidence)) + " |")
+        lines.append("| " + " | ".join(cell(v) for v in (row["id"], row["status"], row["launch_state"], row["grade_state"], row["conditions_valid"], row["call_log_complete"], row["token_accounting"],
+            f"{row['retry_attempts']}/{row['failed_attempts']}", reason, evidence)) + " |")
     lines += ["", "미실행·미관측 값은 0점으로 치환하지 않습니다. 핵심과 확장, true/false/indeterminate/미채점을 별도 기록합니다.",
               "한 문항당 1회 계획이므로 반복 분산이나 통계적 유의성을 주장하지 않습니다.",
               "제품 탐색 호출 0회인 답변은 제품 검색 기여의 근거가 아닙니다. 미관측 호출을 0회로 해석하지 않습니다."]

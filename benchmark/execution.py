@@ -311,8 +311,7 @@ def run_slot(root: Path, manifest: dict, initial: dict, coordinator: LedgerCoord
                           failure_reason="CLI launch receipt missing; launch remains unknown")
         health = session.health()
         if health.get("condition_errors"):
-            result.update(conditions_valid=False, condition_errors=health["condition_errors"])
-            cancel_event.set()
+            result.update(conditions_valid=False, answer_eligible=False, condition_errors=health["condition_errors"])
         row = coordinator.change(row["id"], result)
     except Exception as exc:
         if solver_invoked:
@@ -393,7 +392,7 @@ def grade_packet(root: Path, manifest: dict, initial: dict, coordinator: LedgerC
         durable_json(folder / "grader-result.json", result, exclusive=True)
         row = coordinator.change(row["id"], {"grader_execution": {
             **{key: result.get(key) for key in ("status", "backend", "provider", "model", "agent_version", "usage", "exit_code",
-                "conditions_valid", "condition_errors", "harness_attempts", "retry_attempts", "retry_events", "compaction_events")},
+                "conditions_valid", "condition_errors", "harness_attempts", "retry_attempts", "failed_attempts", "token_accounting", "retry_events", "compaction_events")},
             "artifact": str(folder / "grader-result.json"), "sha256": file_digest(folder / "grader-result.json")}})
         require(not cancel_event.is_set(), "grader cancelled")
         require(result.get("status") == "completed" and result.get("conditions_valid") is True
@@ -552,6 +551,28 @@ def run_new(request: dict, *, cancel_event=None) -> dict:
         prepared = verify_prepared_plan(request["plan_id"], readiness, request["solver_model"], request["readiness_sha256"])
         root, _ = authorize_run(prepared, readiness, request)
         return _run_campaign(root, cancel_event=cancel_event)
+
+
+def grade_sealed(root: Path, *, cancel_event=None, grader_executor=None) -> dict:
+    """Grade only already-sealed, clean slots; never unblock or restore a campaign."""
+    with campaign_lease():
+        root = root.resolve()
+        manifest, ledger = load_ledger(root)
+        require(ledger["status"] == "blocked", "grade-sealed is only for a blocked campaign")
+        cancel_event = cancel_event or threading.Event()
+        coordinator = LedgerCoordinator(root, ledger, cancel_event)
+        rows = [row for row in ledger["slots"] if row["grade_state"] == "sealed"]
+        for row in rows:
+            require(row.get("cleanup", {}).get("complete") is True and row.get("conditions_valid") is True
+                    and row.get("answer_eligible") is True, f"sealed slot is not clean/eligible: {row['id']}")
+            require(not (root / "runs" / row["id"] / "grader-launch-intent.json").exists(), "grader retry forbidden")
+            verify_raw_seal(row)
+            require(read_json(Path(row["raw_seal"])).get("cleanup_complete") is True, "sealed cleanup incomplete")
+        schedule_workers(rows, coordinator, cancel_event,
+            lambda row: grade_packet(root, manifest, row, coordinator, cancel_event, grader_executor or runner.execute_model))
+        # Failed/unknown cleanup in other slots remains blocked, with its raw evidence intact.
+        coordinator.commit()
+        return report_campaign(root)
 
 
 def approve_review(root: Path, slot_id: str, approval: dict) -> dict:
