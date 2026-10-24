@@ -1,6 +1,8 @@
 """Native MCP/rg transport for route preparation and a future isolated solver host."""
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import os
 import selectors
@@ -41,7 +43,7 @@ class MCPClient:
         self.buffer = b""
         self.stderr = None
         self.selector = selectors.DefaultSelector()
-        self.timeout_seconds = config.get("timeout_seconds", 120)
+        self.timeout_seconds = config.get("timeout_seconds", 300)
         log.parent.mkdir(parents=True, exist_ok=True)
         if config["transport"] == "stdio":
             self.stderr = log.with_suffix(".stderr.log").open("ab")
@@ -310,6 +312,46 @@ def auxiliary_call(root: Path, name: str, arguments: dict, rg_binary: str | None
             "structuredContent": {"exit_code": result.returncode}}
 
 
+@contextlib.contextmanager
+def navigation_lock(folder: Path):
+    """Admission and cutoff share this lock; never hold it across a product RPC."""
+    with (folder / ".navigation.lock").open("a") as gate:
+        fcntl.flock(gate, fcntl.LOCK_EX)
+        yield
+
+
+def pending_call_ids(rows: list[dict]) -> list[str]:
+    started = {r["id"] for r in rows if r.get("event") == "request"}
+    finished = {r["id"] for r in rows if r.get("event") in {"result", "rpc_error", "terminal"}}
+    return sorted(started - finished)
+
+
+def latch_cutoff(folder: Path, reason: str, observed: dict, *, start: float | None = None,
+                 started_unix_seconds: float | None = None, wall_deadline: float | None = None) -> dict:
+    """Called with navigation_lock held; a relay rejection may latch before the runner sees it."""
+    from .runner import read_live_jsonl
+    path = folder / "stop.json"
+    if path.exists():
+        return read_json(path)
+    clock = read_json(folder / "process.json") if (folder / "process.json").exists() else {}
+    now, unix = time.monotonic(), time.time()
+    start = start if start is not None else clock.get("started_monotonic", now)
+    started_unix_seconds = (started_unix_seconds if started_unix_seconds is not None
+                            else clock.get("started_unix_seconds", unix - (now - start)))
+    wall_deadline = wall_deadline if wall_deadline is not None else clock.get("wall_deadline_monotonic")
+    effective = now
+    if wall_deadline is not None and now >= wall_deadline:
+        reason, effective = "timeout", wall_deadline
+    cutoff = {"reason": reason, "detected_monotonic": now, "detected_unix_seconds": unix,
+              "effective_cutoff_monotonic": effective,
+              "effective_cutoff_unix_seconds": started_unix_seconds + effective - start,
+              "elapsed_seconds": now - start, "effective_elapsed_seconds": effective - start,
+              "observed_usage": observed,
+              "incomplete_call_ids": pending_call_ids(read_live_jsonl(folder / "relay.jsonl"))}
+    write_json(path, cutoff, exclusive=True)
+    return cutoff
+
+
 class NativeRelay:
     def __init__(self, config: dict):
         self.config = config
@@ -319,6 +361,8 @@ class NativeRelay:
         self.product = MCPClient(config["client"], self.root, self.log.with_name("native.jsonl")) if config.get("client") else None
         self.inventory = None
         self.count = 0
+        self.attempts = 0
+        self.dispatched = 0
         self.record_runtime()
 
     def record_runtime(self) -> None:
@@ -351,36 +395,112 @@ class NativeRelay:
             append_jsonl(self.log, {"event": "inventory", "native_tools": native, "tools": self.inventory})
         return self.inventory
 
-    def call(self, ident, params: dict) -> dict:
+    def admit(self, ident, method: str, params: dict, validate) -> dict:
+        """Reserve one attempt and record dispatch atomically; validate must not perform RPCs.
+
+        The warm host reuses this gate only for solver traffic, with its slot log/stop directory.
+        Rejected validation attempts consume budget, but are never counted as dispatches.
+        """
+        with navigation_lock(self.log.parent):
+            self.attempts += 1
+            is_tool = method == "tools/call"
+            fields = params if isinstance(params, dict) else {}
+            request = {"id": str(self.attempts), "client_request_id": str(ident), "arm": self.config["arm"],
+                       "method": method, "tool": fields["name"] if is_tool and isinstance(fields.get("name"), str) else method,
+                       "arguments": fields.get("arguments", {}) if is_tool else params,
+                       "params": params, "metadata": fields.get("_meta") if isinstance(fields.get("_meta"), dict) else {},
+                       "started_monotonic": time.monotonic(),
+                       "is_auxiliary": is_tool and fields.get("name") in self.config.get("auxiliaries", [])}
+            append_jsonl(self.log, {**request, "event": "attempt"})
+            limit = self.config.get("limits", routes.load_profile()["limits"])["exploration_calls"]
+            consumed = False
+            reason = "validation_error"
+            try:
+                clock_path = self.log.with_name("process.json")
+                clock = read_json(clock_path) if clock_path.exists() else {}
+                deadline = clock.get("wall_deadline_monotonic")
+                if deadline is not None and time.monotonic() >= deadline:
+                    latch_cutoff(self.log.parent, "timeout", {})
+                reason = "stopped"
+                require(not self.log.with_name("stop.json").exists(), "실행 중단 이후 탐색 금지")
+                reason = "call_limit"
+                if self.count >= limit:
+                    cutoff = latch_cutoff(self.log.parent, "call_limit", {})
+                    append_jsonl(self.log, {"event": "limit", "id": request["id"], **cutoff})
+                    raise ContractError("탐색 호출 한도")
+                self.count += 1
+                consumed = True
+                reason = "validation_error"
+                validate()
+                if deadline is not None and time.monotonic() >= deadline:
+                    latch_cutoff(self.log.parent, "timeout", {})
+                    reason = "stopped"
+                    raise ContractError("실행 중단 이후 탐색 금지")
+            except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+                append_jsonl(self.log, {**request, "event": "terminal", "status": "rejected", "reason": reason,
+                                       "dispatched": False, "budget_consumed": consumed,
+                                       "error": str(exc), "finished_monotonic": time.monotonic()})
+                raise
+            else:
+                self.dispatched += 1
+                request.update(dispatched=True, budget_consumed=True, started_monotonic=time.monotonic())
+                append_jsonl(self.log, {**request, "event": "request"})
+                return request
+            finally:
+                append_jsonl(self.log, {"event": "budget", "id": request["id"], "attempts": self.attempts,
+                                       "consumed_calls": self.count, "dispatched_calls": self.dispatched,
+                                       "limit_calls": limit, "budget_exhausted": self.count >= limit})
+
+    def validate_request(self, method: str, params: dict) -> None:
+        require(isinstance(params, dict), "잘못된 MCP 인자")
+        if method != "tools/call":
+            require(self.product is not None, "native MCP가 필요합니다")
+            return
         name, arguments = params["name"], params.get("arguments", {})
-        require(name in {t["name"] for t in self.list_tools()}, "허용되지 않은 탐색 도구")
-        require(not self.log.with_name("stop.json").exists(), "실행 중단 이후 탐색 금지")
-        limit = self.config.get("limits", routes.load_profile()["limits"])["exploration_calls"]
-        if self.count >= limit:
-            append_jsonl(self.log, {"event": "limit", "reason": "call_limit"})
-            raise ContractError("탐색 호출 한도")
-        self.count += 1
+        require(isinstance(name, str) and name in {t["name"] for t in self.inventory}, "허용되지 않은 탐색 도구")
+        require(isinstance(arguments, dict), "잘못된 도구 인자")
         for key in ("path", "file_path", "relative_path", "file", "root", "projectPath", "project_path", "repo_path", "repoPath"):
             if isinstance(arguments.get(key), str) and arguments[key] not in {"", "all", "전체"}:
                 source_path(self.root, arguments[key], must_exist=False)
-        started = time.monotonic()
-        append_jsonl(self.log, {"event": "request", "id": str(ident), "arm": self.config["arm"],
-                               "tool": name, "arguments": arguments, "started_monotonic": started,
-                               "metadata": params.get("_meta", {}),
-                               "is_auxiliary": name in self.config.get("auxiliaries", [])})
-        if not self.product or name in self.config.get("auxiliaries", []):
-            result = auxiliary_call(self.root, name, arguments, self.config.get("rg_binary"))
-        else:
-            result = self.product.rpc("tools/call", params)
-        append_jsonl(self.log, {"event": "result", "id": str(ident), "arm": self.config["arm"],
-                               "tool": name, "raw_result": result, "relay_result": result,
-                               "result_sha256": digest(result), "raw_json_bytes": len(canonical(result).encode()),
-                               "relay_json_bytes": len(canonical(result).encode()), "host_truncated": False,
-                               "native_truncated": None, "client_delivered": None,
-                               "finished_monotonic": time.monotonic()})
-        if self.count == limit:
-            append_jsonl(self.log, {"event": "limit", "reason": "call_limit"})
+
+    def content_call(self, ident, method: str, params: dict) -> dict:
+        inventory_error = None
+        if method == "tools/call" and self.inventory is None:
+            try:
+                self.list_tools()  # Discovery can perform RPCs, so it must stay outside the admission lock.
+            except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+                inventory_error = exc
+        def validate():
+            if inventory_error:
+                raise inventory_error
+            self.validate_request(method, params)
+        request = self.admit(ident, method, params, validate)
+        try:
+            if method == "tools/call" and (not self.product or request["is_auxiliary"]):
+                result = auxiliary_call(self.root, request["tool"], request["arguments"], self.config.get("rg_binary"))
+            else:
+                result = self.product.rpc(method, params)
+        except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+            error = exc.error if isinstance(exc, RPCError) else {"code": -32602, "message": str(exc)}
+            with navigation_lock(self.log.parent):
+                append_jsonl(self.log, {**request, "event": "rpc_error", "error": error,
+                                       "finished_monotonic": time.monotonic()})
+                append_jsonl(self.log, {**request, "event": "terminal", "status": "error", "reason": "rpc_error",
+                                       "error": error, "finished_monotonic": time.monotonic()})
+            raise
+        with navigation_lock(self.log.parent):
+            finished = time.monotonic()
+            append_jsonl(self.log, {**request, "event": "result", "raw_result": result, "relay_result": result,
+                                   "result_sha256": digest(result), "raw_json_bytes": len(canonical(result).encode()),
+                                   "relay_json_bytes": len(canonical(result).encode()), "host_truncated": False,
+                                   "native_truncated": None, "client_delivered": None, "finished_monotonic": finished})
+            append_jsonl(self.log, {**request, "event": "terminal",
+                                   "status": "error" if isinstance(result, dict) and result.get("isError") else "success",
+                                   "finished_monotonic": finished})
         return result
+
+    def call(self, ident, params: dict) -> dict:
+        return self.content_call(ident, "tools/call", params)
 
     def serve(self):
         for line in sys.stdin:
@@ -397,14 +517,14 @@ class NativeRelay:
                     result = self.call(request["id"], params)
                 elif method == "ping":
                     result = {}
-                elif self.product and method in {"resources/list", "resources/templates/list", "resources/read", "prompts/list", "prompts/get"}:
-                    result = self.product.rpc(method, params)
+                elif method in {"resources/list", "resources/templates/list", "resources/read", "prompts/list", "prompts/get"}:
+                    result = self.content_call(request["id"], method, params)
                 else:
                     raise RPCError({"code": -32601, "message": "unsupported method"})
                 response = {"jsonrpc": "2.0", "id": request["id"], "result": result}
             except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
                 error = exc.error if isinstance(exc, RPCError) else {"code": -32602, "message": str(exc)}
-                append_jsonl(self.log, {"event": "rpc_error", "id": str(request["id"]), "error": error})
+                append_jsonl(self.log, {"event": "protocol_error", "client_request_id": str(request["id"]), "error": error})
                 response = {"jsonrpc": "2.0", "id": request["id"], "error": error}
             print(canonical(response), flush=True)
 

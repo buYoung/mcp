@@ -104,4 +104,14 @@ def usage_metrics(records: list[dict], *, terminal_complete: bool, evidence: str
     result["model_responses"] = metric(len(unique) if not all_errors else None, "responses",
                                        reason="; ".join(all_errors) or None, evidence=sources)
     result["cached_input_ratio"] = ratio(result["cached_input_tokens"]["value"], result["input_tokens"]["value"], evidence=sources)
+    result["raw_records"] = [r.get("payload", {}) for r in records if r.get("type") == "token_usage_record"]
+    result["components"] = {key: {**result[key], "observed": value} for key, value in observed.items()}
+    for key in optional:
+        known = bool(unique) and all(key in entry["usage"] for entry in unique.values())
+        reason = "; ".join(all_errors) if all_errors else None
+        if not known:
+            reason = "provider did not supply this component for every response"
+        result["components"][key] = {**metric(sums[key] if known and not all_errors else None, "tokens",
+                                               reason=reason, evidence=sources),
+                                     "observed": sums[key] if known else None}
     return result
