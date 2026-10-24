@@ -47,7 +47,12 @@ def record(response, factor):
     row({'type':'token_usage_record','payload':{'response_id':response,'usage':usage,'turn_token_usage':total,'thread_token_usage':total}})
 def stop(signum, frame):
     record('cleanup',2)
-    row({'type':'event_msg','payload':{'type':'turn_aborted'}})
+    if 'FIXTURE_DRAIN' in prompt:
+        row({'type':'response_item','payload':{'role':'assistant','phase':'final_answer','content':[{'type':'output_text','text':'제한 이후의 답변'}]}})
+        row({'type':'event_msg','payload':{'type':'task_complete'}})
+        print(json.dumps({'type':'turn.completed','usage':{key:value*2 for key,value in usage.items()}}),flush=True)
+    else:
+        row({'type':'event_msg','payload':{'type':'turn_aborted'}})
     sys.exit(0)
 signal.signal(signal.SIGINT,stop)
 record('first',1)
@@ -58,12 +63,7 @@ if 'FIXTURE_MALFORMED' in prompt:
     print('not-json',flush=True); time.sleep(1); sys.exit(1)
 answer = ''
 if 'FIXTURE_DRAIN' in prompt:
-    deadline=time.monotonic()+5
-    while not (folder/'stop.json').exists() and time.monotonic()<deadline: time.sleep(.01)
-    assert (folder/'stop.json').exists()
-    record('late-completion',2)
-    usage={key:value*2 for key,value in usage.items()}
-    answer='제한 이후의 답변'
+    while True: time.sleep(.01)
 row({'type':'response_item','payload':{'role':'assistant','phase':'final_answer','content':[{'type':'output_text','text':answer}]}})
 row({'type':'event_msg','payload':{'type':'task_complete'}})
 print(json.dumps({'type':'turn.completed','usage':usage}),flush=True)
@@ -135,7 +135,7 @@ class BenchChecks(unittest.TestCase):
         spec = settings.execution_settings("claude-opus-5-5")
         spec["preparation_only"] = False
         spec["limits"]["total_tokens"] = 4321
-        result = runner.execute_model(self.root / "session", "fixture", settings=spec, grading=True, usage_drain_seconds=30,
+        result = runner.execute_model(self.root / "session", "fixture", settings=spec, grading=True, usage_drain_seconds=0,
                                       codex_version="codex-cli fixture-99.1", agent_version="claude fixture")
         self.assertTrue(result["conditions_valid"])
         self.assertEqual(result["status"], "completed")
@@ -144,11 +144,11 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual(result["backend"], "codex")
         self.assertEqual(result["agent_version"], "codex-cli fixture-99.1")
         self.assertEqual(result["budget"]["limit_tokens"], 4321)
-        self.assertEqual(result["usage_collection"]["drain_seconds"], 30)
+        self.assertEqual(result["usage_collection"]["drain_seconds"], 0)
         self.assertEqual(result["usage"]["total_tokens"]["value"], 120)
 
 
-    def test_cancel_skips_drain_and_reaps_process(self):
+    def test_zero_drain_cancel_reaps_process(self):
         cancelled = threading.Event()
         folder = self.root / "cancel-session"
         def cancel_when_started():
@@ -159,7 +159,7 @@ class BenchChecks(unittest.TestCase):
         watcher = threading.Thread(target=cancel_when_started)
         watcher.start()
         start = time.monotonic()
-        result = runner.execute_codex(folder, "FIXTURE_WAIT", cancel_event=cancelled, usage_drain_seconds=30,
+        result = runner.execute_codex(folder, "FIXTURE_WAIT", cancel_event=cancelled, usage_drain_seconds=0,
                                       codex_version="fixture")
         watcher.join()
         self.assertLess(time.monotonic() - start, 10)
@@ -170,12 +170,12 @@ class BenchChecks(unittest.TestCase):
             os.kill(int((folder / "fixture-pid").read_text()), 0)
 
 
-    def test_drain_excludes_late_answer_but_certifies_completed_usage(self):
+    def test_zero_drain_excludes_late_answer_but_certifies_completed_usage(self):
         spec = settings.execution_settings()
         spec["preparation_only"] = False
         spec["limits"]["total_tokens"] = 100
         folder = self.root / "drain-session"
-        result = runner.execute_codex(folder, "FIXTURE_DRAIN", settings=spec, usage_drain_seconds=30,
+        result = runner.execute_codex(folder, "FIXTURE_DRAIN", settings=spec, usage_drain_seconds=0,
                                       codex_version="fixture")
         self.assertEqual(result["status"], "token_limit")
         self.assertEqual(result["answer"], "")
@@ -183,7 +183,8 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual((folder / "post-cutoff-answer.txt").read_text(), "제한 이후의 답변")
         self.assertEqual(result["usage"]["total_tokens"]["value"], 240)
         self.assertEqual(result["budget"]["observed_cleanup_tokens"], 120)
-        self.assertEqual(result["shutdown"]["steps"], [])
+        self.assertEqual([step["signal"] for step in result["shutdown"]["steps"]], ["SIGINT"])
+        self.assertFalse(result["conditions_valid"])
 
 
     def test_unsupported_log_is_failure(self):

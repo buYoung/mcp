@@ -12,7 +12,7 @@ import sys
 import time
 from pathlib import Path
 
-from .core import canonical, command, read_json, require, write_json
+from .core import canonical, command, file_digest, read_json, require, write_json
 from .settings import execution_settings as default_settings
 from .usage import usage_metrics
 
@@ -78,6 +78,8 @@ def isolated_environment(folder: Path) -> tuple[dict, Path]:
     # No parent thread identity, imported config, proxy credentials or unrelated API keys.
     allowed = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR"}
     env = {key: value for key, value in os.environ.items() if key in allowed}
+    from .settings import CACHE
+    env["CODEMAP_BENCH_CACHE"] = str(CACHE)
     env["CODEX_HOME"] = str(home.resolve())
     return env, home
 
@@ -92,14 +94,34 @@ def find_rollout(home: Path, thread_id: str | None) -> Path | None:
 
 
 
-def read_live_jsonl(path: Path | None) -> list[dict]:
+def read_jsonl_prefix(path: Path | None) -> tuple[list[dict], dict]:
+    """Retain the valid prefix, never skip corruption or alter the raw stream."""
+    state = {"path": str(path) if path is not None else None, "complete": False,
+             "valid_records": 0, "error_line": None, "byte_offset": 0, "missing_reason": "missing JSONL file"}
     if path is None or not path.exists():
-        return []
-    data = path.read_bytes()
-    # A trailing in-progress write is not a persisted measurement failure yet.
-    lines = data[:data.rfind(b"\n") + 1].splitlines()
-    return [json.loads(line) for line in lines if line]
+        return [], state
+    rows, offset = [], 0
+    for number, line in enumerate(path.read_bytes().splitlines(keepends=True), 1):
+        reason = None
+        if not line.endswith(b"\n"):
+            reason = "unterminated JSONL record"
+        elif line.strip():
+            try:
+                row = json.loads(line)
+                if not isinstance(row, dict):
+                    raise ValueError("record is not an object")
+                rows.append(row)
+            except (UnicodeDecodeError, ValueError) as exc:
+                reason = f"invalid JSONL record: {exc}"
+        if reason:
+            return rows, {**state, "valid_records": len(rows), "error_line": number,
+                          "byte_offset": offset, "missing_reason": reason}
+        offset += len(line)
+    return rows, {**state, "complete": True, "valid_records": len(rows), "byte_offset": offset, "missing_reason": None}
 
+
+def read_live_jsonl(path: Path | None) -> list[dict]:
+    return read_jsonl_prefix(path)[0]
 
 
 def signal_target(pid: int, signum: int, *, group=False) -> bool:
@@ -119,37 +141,31 @@ def signal_target(pid: int, signum: int, *, group=False) -> bool:
 
 class ExecutionStop:
     """Latch a cutoff once; collect stdout while escalating on monotonic deadlines."""
-    def __init__(self, folder: Path, process, start: float, usage_drain_seconds: float = 0):
+    def __init__(self, folder: Path, process, start: float, usage_drain_seconds: float = 0, *,
+                 started_unix_seconds: float | None = None, wall_deadline: float | None = None):
+        require(usage_drain_seconds == 0, "usage drain must be zero")
         self.folder, self.process, self.start = folder, process, start
-        self.usage_drain_seconds = usage_drain_seconds
+        self.started_unix_seconds = started_unix_seconds
+        self.wall_deadline = wall_deadline
         self.cutoff = None
         self.steps = []
         self.backend = "codex"
 
-    def request(self, reason: str, observed: dict):
-        import fcntl
+    def request(self, reason: str, observed: dict, *, signal_process=True):
+        from .route_transport import latch_cutoff, navigation_lock
         if self.cutoff:
             return
-        with (self.folder / ".navigation.lock").open("a") as gate:
-            fcntl.flock(gate, fcntl.LOCK_EX)
-            now = time.monotonic()
-            relay = read_live_jsonl(self.folder / "relay.jsonl")
-            pending = {r["id"] for r in relay if r.get("event") == "request"} - {r["id"] for r in relay if r.get("event") == "result"}
-            self.cutoff = {"reason": reason, "detected_monotonic": now, "detected_unix_seconds": time.time(),
-                           "elapsed_seconds": now - self.start, "observed_usage": observed,
-                           "incomplete_call_ids": sorted(pending)}
-            if self.usage_drain_seconds and reason in {"token_limit", "call_limit", "timeout"}:
-                self.cutoff["usage_drain_seconds"] = self.usage_drain_seconds
-            write_json(self.folder / "stop.json", self.cutoff, exclusive=True)
-        if not self.cutoff.get("usage_drain_seconds"):
+        with navigation_lock(self.folder):
+            if self.cutoff:
+                return
+            self.cutoff = latch_cutoff(self.folder, reason, observed, start=self.start,
+                                       started_unix_seconds=self.started_unix_seconds, wall_deadline=self.wall_deadline)
+        if signal_process and self.process.poll() is None:
             self._send(signal.SIGINT, False)
 
     def cancel(self):
-        """User cancellation bypasses collection-only waiting without moving the cutoff."""
         if not self.cutoff:
             self.request("interrupted", {})
-        elif not self.steps:
-            self._send(signal.SIGINT, False)
 
     def _send(self, signum: int, group: bool):
         sent = signal_target(self.process.pid, signum, group=group)
@@ -157,11 +173,9 @@ class ExecutionStop:
                            "monotonic": time.monotonic(), "sent": sent})
 
     def advance(self):
-        if not self.cutoff or self.process.poll() is not None:
+        if not self.cutoff or not self.steps:
             return
-        if not self.steps:
-            if time.monotonic() - self.cutoff["detected_monotonic"] >= self.cutoff["usage_drain_seconds"]:
-                self._send(signal.SIGINT, False)
+        if self.process.poll() is not None and not signal_target(self.process.pid, 0, group=True):
             return
         if time.monotonic() - self.steps[-1]["monotonic"] >= 3:
             if self.steps[-1]["signal"] == "SIGINT":
@@ -169,6 +183,23 @@ class ExecutionStop:
             elif self.steps[-1]["signal"] == "SIGTERM":
                 self._send(signal.SIGKILL, True)
 
+
+def cleanup_solver(process, pump) -> dict:
+    """The new-session PGID is owned even when its CLI leader has already exited."""
+    if process is None:
+        return {"complete": True, "started": False, "steps": []}
+    pgid = process.pid
+    require(pgid != os.getpgrp(), "unsafe solver process group")
+    steps = []
+    for signum in (signal.SIGTERM, signal.SIGKILL):
+        if not signal_target(pgid, 0, group=True):
+            break
+        steps.append({"signal": signal.Signals(signum).name, "target": "solver_group", "pgid": pgid,
+                      "monotonic": time.monotonic(), "sent": signal_target(pgid, signum, group=True)})
+        deadline = time.monotonic() + 3
+        while signal_target(pgid, 0, group=True) and time.monotonic() < deadline:
+            pump()
+    return {"complete": not signal_target(pgid, 0, group=True), "started": True, "steps": steps, "pgid": pgid}
 
 
 def cleanup_relay(folder: Path, pump) -> dict:
@@ -208,14 +239,14 @@ def recorded_usage(folder: Path) -> dict:
     """One certification function for immediate execution and later reaggregation."""
     folder = folder.resolve()
     runtime = read_json(folder / "runtime.json")
+    events, event_state = read_jsonl_prefix(folder / "events.jsonl")
     if runtime.get("backend") == "claude_code":
         from .claude_client import usage
-        return usage(read_live_jsonl(folder / "events.jsonl"),
-                     terminal_complete=runtime.get("record_collection_complete", False) and runtime.get("exit_code") == 0
+        return usage(events,
+                     terminal_complete=event_state["complete"] and runtime.get("record_collection_complete", False) and runtime.get("exit_code") == 0
                      and not runtime.get("launch_error"), evidence=str(folder / "events.jsonl"))
-    records = read_live_jsonl(folder / "rollout.jsonl")
-    events = read_live_jsonl(folder / "events.jsonl")
-    reasons = []
+    records, rollout_state = read_jsonl_prefix(folder / "rollout.jsonl")
+    reasons = [f"{state['path']}: {state['missing_reason']}" for state in (event_state, rollout_state) if not state["complete"]]
     completed_events = [(i, e) for i, e in enumerate(events, 1) if e.get("type") == "turn.completed"]
     terminal_rows = [(i, r) for i, r in enumerate(records, 1) if r.get("type") == "event_msg"
                      and r.get("payload", {}).get("type") == "task_complete"]
@@ -278,6 +309,43 @@ def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None,
                           backend=backend, agent_version=None if grading else agent_version)
 
 
+def navigation_server(folder: Path, relay_settings: dict) -> dict:
+    """Backend-neutral MCP launch seam; the warm-host attachment replaces this command in stage 2."""
+    from .settings import CACHE
+    require(relay_settings.get("schema") == "grafana-route-relay-v1", "지원하지 않는 도구 중계 계약")
+    settings_path = folder / "relay-settings.json"
+    write_json(settings_path, relay_settings, exclusive=True)
+    return {"command": sys.executable, "args": ["-m", "benchmark.route_transport", str(settings_path)],
+            "cwd": str(PACKAGE_ROOT), "startup_timeout_sec": 120, "tool_timeout_sec": 300,
+            "enabled_tools": relay_settings["enabled_tools"],
+            "env": {"PYTHONPATH": str(PACKAGE_ROOT), "CODEMAP_BENCH_CACHE": str(CACHE)}, "required": True}
+
+
+def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: float | None,
+                       final_row: dict | None, start: float, started_unix_seconds: float,
+                       wall_deadline: float, cutoff: dict | None, conditions_valid: bool) -> dict:
+    effective = min(wall_deadline, cutoff["effective_cutoff_monotonic"]) if cutoff else wall_deadline
+    reasons = []
+    if not completed:
+        reasons.append("complete final answer not confirmed")
+    if observed_monotonic is None or not start <= observed_monotonic <= effective:
+        reasons.append("final completion not observed within cutoff")
+    if backend == "codex":
+        try:
+            timestamp = datetime.datetime.fromisoformat(final_row["timestamp"].replace("Z", "+00:00"))
+            require(timestamp.tzinfo is not None, "missing rollout timezone")
+            final_unix = timestamp.timestamp()
+            require(observed_monotonic is not None and started_unix_seconds <= final_unix
+                    <= started_unix_seconds + min(effective, observed_monotonic) - start,
+                    "rollout final timestamp not bound to observed completion")
+        except (AttributeError, KeyError, TypeError, ValueError):
+            reasons.append("rollout final timestamp not proven within cutoff")
+    if not conditions_valid:
+        reasons.append("execution or budget conditions not confirmed")
+    return {"eligible": not reasons, "reasons": reasons, "effective_cutoff_monotonic": effective,
+            "observed_final_monotonic": observed_monotonic}
+
+
 def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
                    usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
                    codex_version: str | None = None, backend="codex", agent_version: str | None = None) -> dict:
@@ -285,7 +353,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     spec = settings or default_settings()
     require(not spec.get("preparation_only"), "route 준비 전용 계약에서는 solver/grader 실행이 금지됩니다")
     require(isinstance(usage_drain_seconds, (int, float)) and not isinstance(usage_drain_seconds, bool)
-            and 0 <= usage_drain_seconds <= 30, "usage drain must be between 0 and 30 seconds")
+            and usage_drain_seconds == 0, "usage drain must be zero")
     folder = folder.resolve()
     folder.mkdir(parents=True, exist_ok=True)
     workspace = folder / "workspace"
@@ -302,18 +370,12 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     args = ([codex_command, "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json",
              "-C", str(workspace), "-m", spec["grader_model"] if grading else spec["model"]] + codex_options(grading, spec)
             if backend == "codex" else [])
+    server = navigation_server(folder, relay_settings) if relay_settings else None
     if backend == "claude_code":
         require(not grading and not output_schema, "채점과 구조화 출력은 Codex/Astra에서 실행합니다")
         agent_version = agent_version or command(["claude", "--version"]).strip()
-        args, workspace, env = claude_client.launch(folder, spec, relay_settings)
+        args, workspace, env = claude_client.launch(folder, spec, relay_settings, server=server)
     if relay_settings and backend == "codex":
-        settings_path = folder / "relay-settings.json"
-        write_json(settings_path, relay_settings, exclusive=True)
-        require(relay_settings.get("schema") == "grafana-route-relay-v1", "지원하지 않는 도구 중계 계약")
-        server = {"command": sys.executable, "args": ["-m", "benchmark.route_transport", str(settings_path)],
-                  "cwd": str(PACKAGE_ROOT), "startup_timeout_sec": 120, "tool_timeout_sec": 60,
-                  "enabled_tools": relay_settings["enabled_tools"],
-                  "env": {"PYTHONPATH": str(PACKAGE_ROOT)}, "required": True}
         # JSON object syntax is not TOML table syntax; encode this table explicitly.
         for key, value in server.items():
             if isinstance(value, dict):
@@ -340,14 +402,17 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     process = None
     stop = None
     relay_cleanup = {"complete": False, "steps": []}
+    solver_cleanup = {"complete": False, "steps": []}
     is_stdout_eof = False
     buffer = b""
     model_exited_monotonic = None
     answer_finished_monotonic = None
+    event_parse_failed = False
+    wall_deadline = start + spec["limits"]["elapsed_seconds"]
     with (folder / "events.jsonl").open("wb") as event_file, (folder / "stderr.log").open("wb") as error_file:
         selector = selectors.DefaultSelector()
         def pump():
-            nonlocal buffer, thread_id, is_stdout_eof, answer_finished_monotonic
+            nonlocal buffer, thread_id, is_stdout_eof, answer_finished_monotonic, event_parse_failed
             for key, _ in selector.select(timeout=.05):
                 chunk = os.read(key.fileobj.fileno(), 65536)
                 if not chunk:
@@ -356,25 +421,34 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                     continue
                 event_file.write(chunk)
                 event_file.flush()
+                if event_parse_failed:
+                    continue
                 buffer += chunk
                 while b"\n" in buffer:
                     line, buffer = buffer.split(b"\n", 1)
                     if line:
-                        event = json.loads(line)
-                        require(isinstance(event, dict), "agent event must be a JSON object")
+                        try:
+                            event = json.loads(line)
+                            require(isinstance(event, dict), "agent event must be a JSON object")
+                        except ValueError:
+                            event_parse_failed = True
+                            raise
                         if event.get("type") == "thread.started":
                             thread_id = event["thread_id"]
                         elif backend == "claude_code" and event.get("type") == "system" and event.get("subtype") == "init":
                             thread_id = event.get("session_id")
-                        elif backend == "claude_code" and event.get("type") == "result":
+                        elif (backend == "claude_code" and event.get("type") == "result"
+                              or backend == "codex" and event.get("type") == "turn.completed"):
                             answer_finished_monotonic = time.monotonic()
         try:
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=error_file, start_new_session=True)
-            stop = ExecutionStop(folder, process, start, usage_drain_seconds)
+            stop = ExecutionStop(folder, process, start, usage_drain_seconds,
+                                 started_unix_seconds=started_unix_seconds, wall_deadline=wall_deadline)
             stop.backend = backend
             write_json(folder / "process.json", {"pid": process.pid, "workspace": str(workspace),
-                                                 "started_unix_seconds": time.time()}, exclusive=True)
+                                                 "started_unix_seconds": started_unix_seconds, "started_monotonic": start,
+                                                 "wall_deadline_monotonic": wall_deadline}, exclusive=True)
             selector.register(process.stdout, selectors.EVENT_READ)
             process.stdin.write(prompt.encode())
             process.stdin.close()
@@ -390,18 +464,18 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                         live = read_live_jsonl(find_rollout(home, thread_id))
                         observed = usage_metrics(live, terminal_complete=False, evidence="live rollout")["observed"]
                     reason = None
-                    if time.monotonic() - start >= spec["limits"]["elapsed_seconds"]:
+                    if time.monotonic() >= wall_deadline:
                         reason = "timeout"
                     elif not grading and observed["total_tokens"] >= spec["limits"]["total_tokens"]:
                         reason = "token_limit"
-                    elif not grading and relay_settings and any(r.get("event") == "limit" for r in read_live_jsonl(Path(relay_settings["log"]))):
-                        reason = "call_limit"
+                    elif not grading and relay_settings and (folder / "stop.json").exists():
+                        reason = read_json(folder / "stop.json")["reason"]
                     elif native_agent:
                         from .native_baseline import command_items
                         native_events = read_live_jsonl(folder / "events.jsonl")
                         items = ([c for c in claude_client.tool_items(native_events) if c.get("name") in claude_client.NATIVE_TOOLS]
                                  if backend == "claude_code" else command_items(native_events))
-                        if len(items) >= spec["limits"]["exploration_calls"]:
+                        if len(items) > spec["limits"]["exploration_calls"]:
                             reason = "call_limit"
                     if reason:
                         stop.request(reason, observed)
@@ -429,6 +503,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                     pump()
                 except (OSError, ValueError, KeyError) as exc:
                     launch_error = f"unsupported {backend} event log during cleanup: {exc}"
+            solver_cleanup = cleanup_solver(process, cleanup_pump)
             relay_cleanup = cleanup_relay(folder, cleanup_pump)
             deadline = time.monotonic() + 1
             while process and not is_stdout_eof and time.monotonic() < deadline:
@@ -461,32 +536,55 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             codex_version = actual_version if actual_version.startswith("codex-cli ") else f"codex-cli {actual_version}"
     if backend == "codex":
         agent_version = codex_version
+    from .route_transport import pending_call_ids
     relay_records = read_live_jsonl(folder / "relay.jsonl")
-    pending = {r["id"] for r in relay_records if r.get("event") == "request"} - {r["id"] for r in relay_records if r.get("event") == "result"}
-    partial_files = [name for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
-                     if (folder / name).exists() and (folder / name).stat().st_size and not (folder / name).read_bytes().endswith(b"\n")]
-    shutdown = {"cutoff": stop.cutoff if stop else None, "steps": stop.steps if stop else [],
-                "relay_cleanup": relay_cleanup, "incomplete_call_ids": sorted(pending),
-                "model_exited_monotonic": model_exited_monotonic,
-                "cleanup_elapsed_seconds": max(0, time.monotonic() - (stop.cutoff["detected_monotonic"] if stop and stop.cutoff else model_exited_monotonic or start)),
-                "partial_jsonl_files": partial_files, "evidence": str(folder / "runtime.json")}
+    pending = pending_call_ids(relay_records)
+    states = {name: read_jsonl_prefix(folder / name)[1] for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
+              if (folder / name).exists() or name == "events.jsonl" or name == "rollout.jsonl" and backend == "codex"}
+    partial_files = [name for name, state in states.items() if not state["complete"]]
     final_observed = (claude_client.usage(events, terminal_complete=False, evidence=str(folder / "events.jsonl"))["observed"]
                       if backend == "claude_code" else usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"))["observed"])
+    native_count = None
+    if native_agent:
+        from .native_baseline import command_items
+        native_count = (sum(c.get("name") in claude_client.NATIVE_TOOLS for c in claude_client.tool_items(events))
+                        if backend == "claude_code" else len(command_items(events)))
+    if stop and not stop.cutoff:
+        reason = None
+        if (model_exited_monotonic or time.monotonic()) >= wall_deadline:
+            reason = "timeout"
+        elif not grading and final_observed["total_tokens"] >= spec["limits"]["total_tokens"]:
+            reason = "token_limit"
+        elif not grading and (folder / "stop.json").exists():
+            reason = read_json(folder / "stop.json")["reason"]
+        elif native_count is not None and native_count > spec["limits"]["exploration_calls"]:
+            reason = "call_limit"
+        if reason:
+            stop.request(reason, final_observed, signal_process=False)
+    termination = stop.cutoff["reason"] if stop and stop.cutoff else termination
+    shutdown = {"cutoff": stop.cutoff if stop else None, "steps": stop.steps if stop else [],
+                "relay_cleanup": relay_cleanup, "solver_cleanup": solver_cleanup, "incomplete_call_ids": pending,
+                "model_exited_monotonic": model_exited_monotonic,
+                "cleanup_elapsed_seconds": max(0, time.monotonic() - (stop.cutoff["detected_monotonic"] if stop and stop.cutoff else model_exited_monotonic or start)),
+                "partial_jsonl_files": partial_files, "jsonl_collection": states, "evidence": str(folder / "runtime.json")}
     cutoff_tokens = (stop.cutoff.get("observed_usage", {}).get("total_tokens") if stop and stop.cutoff else None)
     budget = {"unit": "cached-inclusive input_tokens + output_tokens", "limit_tokens": spec["limits"]["total_tokens"],
               "observed_tokens_at_cutoff": cutoff_tokens,
               "observed_tokens_after_collection": final_observed["total_tokens"],
               "observed_overshoot_tokens": max(0, final_observed["total_tokens"] - spec["limits"]["total_tokens"]),
-              "observed_cleanup_tokens": final_observed["total_tokens"] - cutoff_tokens if cutoff_tokens is not None else 0,
+              "observed_cleanup_tokens": (final_observed["total_tokens"] - cutoff_tokens if cutoff_tokens is not None
+                                          else None if stop and stop.cutoff else 0),
+              "cleanup_tokens_missing_reason": "usage at cutoff unobserved" if stop and stop.cutoff and cutoff_tokens is None else None,
               "whole_cost_may_be_missing": True}
     write_json(folder / "runtime.json", {"thread_id": thread_id, "started_monotonic": start, "started_unix_seconds": started_unix_seconds,
                                         "backend": backend, "agent_version": agent_version or codex_version,
-                                        "elapsed_seconds": elapsed, "exit_code": process.returncode if process else None,
+                                        "elapsed_seconds": elapsed, "wall_deadline_monotonic": wall_deadline,
+                                        "exit_code": process.returncode if process else None,
                                         "model_exited_monotonic": model_exited_monotonic,
                                         "launch_error": launch_error, "termination": termination,
                                         "usage_drain_seconds": usage_drain_seconds, "codex_version": codex_version,
                                         "record_collection_complete": bool(is_stdout_eof and not buffer and (rollout_path or backend == "claude_code")
-                                                                           and not partial_files and relay_cleanup["complete"]),
+                                                                           and not partial_files and relay_cleanup["complete"] and solver_cleanup["complete"]),
                                         "shutdown": shutdown, "budget": budget})
     final_rows = [r for r in records if r.get("type") == "response_item"
                       and r.get("payload", {}).get("role") == "assistant" and r["payload"].get("phase") == "final_answer"]
@@ -494,21 +592,9 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     claude_result = claude_client.final_result(events) if backend == "claude_code" else None
     if backend == "claude_code":
         final_text = (claude_result or {}).get("result", "")
-    answer_eligible = True
-    if backend == "claude_code" and stop and stop.cutoff:
-        answer_eligible = answer_finished_monotonic is not None and answer_finished_monotonic <= stop.cutoff["detected_monotonic"]
-    if usage_drain_seconds and stop and stop.cutoff and final_rows:
-        try:
-            final_time = datetime.datetime.fromisoformat(final_rows[-1]["timestamp"].replace("Z", "+00:00")).timestamp()
-            answer_eligible = final_time <= stop.cutoff["detected_unix_seconds"]
-        except (AttributeError, KeyError, TypeError, ValueError):
-            answer_eligible = False
-    answer = final_text if answer_eligible else ""
-    if not answer_eligible:
-        (folder / "post-cutoff-answer.txt").write_text(final_text, encoding="utf-8")
-    (folder / "answer.txt").write_text(answer, encoding="utf-8")
     completed = (bool(claude_result and claude_result.get("subtype") == "success" and not claude_result.get("is_error"))
-                 if backend == "claude_code" else any(e.get("type") == "turn.completed" for e in events))
+                 if backend == "claude_code" else bool(final_rows) and any(e.get("type") == "turn.completed" for e in events)
+                 and any(r.get("type") == "event_msg" and r.get("payload", {}).get("type") == "task_complete" for r in records))
     if any("rollout budget" in canonical(event).lower() and "exhaust" in canonical(event).lower() for event in events):
         termination = "token_limit"
     status = termination or ("completed" if completed and process and process.returncode == 0 and not launch_error else "environment_error")
@@ -518,14 +604,35 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     conditions_valid = bool(contexts) and all(c.get("model") == expected_model and c.get("effort") == expected_effort for c in contexts)
     if backend == "claude_code":
         conditions_valid = claude_client.valid_model(events, expected_model)
+    runtime = read_json(folder / "runtime.json")
+    write_json(folder / "runtime.json", {**runtime, "termination": termination})
     try:
         usage = recorded_usage(folder)
     except (ValueError, KeyError):
         usage = usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"),
                               completion={"complete": False, "reasons": [launch_error or "unsupported Codex log format"]})
     budget["whole_cost_may_be_missing"] = not usage["complete"]
+    budget["within_limit"] = (False if budget["observed_overshoot_tokens"] else True if usage["complete"] else None)
+    condition_errors = []
+    if not grading and budget["observed_overshoot_tokens"]:
+        condition_errors.append("Observed tokens exceeded the fixed token limit.")
+    if native_count is not None and native_count > spec["limits"]["exploration_calls"]:
+        condition_errors.append("Native command calls exceeded the fixed exploration-call limit.")
+    conditions_valid = conditions_valid and not condition_errors
+    eligibility = answer_eligibility(backend=backend, completed=completed, observed_monotonic=answer_finished_monotonic,
+                                     final_row=final_rows[-1] if final_rows else None, start=start,
+                                     started_unix_seconds=started_unix_seconds, wall_deadline=wall_deadline,
+                                     cutoff=stop.cutoff if stop else None,
+                                     conditions_valid=conditions_valid and (grading or budget["within_limit"] is True))
+    answer_eligible = eligibility["eligible"]
+    answer = final_text if answer_eligible else ""
+    if not answer_eligible and final_text:
+        excluded = folder / "post-cutoff-answer.txt"
+        excluded.write_text(final_text, encoding="utf-8")
+        eligibility.update(excluded_answer_path=str(excluded), excluded_answer_sha256=file_digest(excluded))
+    (folder / "answer.txt").write_text(answer, encoding="utf-8")
     runtime = read_json(folder / "runtime.json")
-    write_json(folder / "runtime.json", {**runtime, "budget": budget})
+    write_json(folder / "runtime.json", {**runtime, "budget": budget, "termination": termination, "answer_eligibility": eligibility})
     result = {"status": status, "answer": answer, "elapsed_seconds": elapsed, "conditions_valid": conditions_valid,
               "model": expected_model, "backend": backend, "agent_version": agent_version or codex_version,
               "usage": usage, "shutdown": shutdown, "budget": budget, "codex_version": codex_version,
@@ -536,21 +643,16 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             result["error"] = claude_result.get("errors") or claude_result.get("subtype")
     if launch_error:
         result["error"] = launch_error
-    if native_agent:
-        from .native_baseline import command_items
-        count = (sum(c.get("name") in claude_client.NATIVE_TOOLS for c in claude_client.tool_items(events))
-                 if backend == "claude_code" else len(command_items(events)))
-        result["native_call_budget"] = {"observed_calls": count, "limit_calls": spec["limits"]["exploration_calls"],
-                                       "observed_overshoot_calls": max(0, count - spec["limits"]["exploration_calls"]),
+    if native_count is not None:
+        result["native_call_budget"] = {"observed_calls": native_count, "limit_calls": spec["limits"]["exploration_calls"],
+                                       "observed_overshoot_calls": max(0, native_count - spec["limits"]["exploration_calls"]),
                                        "enforcement": "stop on observed native command items; concurrent calls may overshoot"}
-        if count > spec["limits"]["exploration_calls"]:
-            result["conditions_valid"] = False
-            result["condition_errors"] = ["Native command calls exceeded the fixed exploration-call limit."]
-    if usage_drain_seconds:
-        result["usage_collection"] = {"drain_seconds": usage_drain_seconds,
-                                      "answer_within_cutoff": answer_eligible,
-                                      "post_cutoff_answer_excluded": not answer_eligible,
-                                      "whole_cost_includes_drain": True}
+    if condition_errors:
+        result["condition_errors"] = condition_errors
+    result["answer_eligibility"] = eligibility
+    result["usage_collection"] = {"drain_seconds": 0, "answer_within_cutoff": answer_eligible,
+                                  "post_cutoff_answer_excluded": bool(final_text) and not answer_eligible,
+                                  "whole_cost_includes_cleanup": True}
     write_json(folder / "execution.json", result)
     return result
 
