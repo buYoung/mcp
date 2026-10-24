@@ -49,7 +49,7 @@ class WarmSession:
         self.state, self.folder = copy.deepcopy(state), Path(slot_dir).resolve()
         self.folder.mkdir(parents=True, exist_ok=True)
         self.backend = expected_client["backend"]
-        require(self.backend in {"codex", "claude_code"}, "unknown warm client backend")
+        require(self.backend in {"codex", "claude_code", "pi"}, "unknown warm client backend")
         self.cancel_event, self.registry = cancel_event, process_registry
         self.ident, self.generation = state["id"], secrets.token_hex(8)
         self.relay = self.listener = self.connection = self.socket_dir = None
@@ -228,7 +228,7 @@ class WarmSession:
         """Extra body/session tests are disposable; never run them on a solver hand-off."""
         require(self.solver_start is None and self.receipt is not None, "preparation only")
         params = {"protocolVersion": "2025-03-26", "capabilities": {},
-                  "clientInfo": {"name": "claude-code" if self.backend == "claude_code" else "codex-mcp-client", "version": "preparation-probe"}}
+                  "clientInfo": {"name": "pi" if self.backend == "pi" else "claude-code" if self.backend == "claude_code" else "codex-mcp-client", "version": "preparation-probe"}}
         observations = []
         if self.ident == "zvec-grep":
             with self.rpc_lock:
@@ -365,7 +365,7 @@ class WarmSession:
                         if method == "initialize":
                             require(not initialized, "solver initialize is single use")
                             info = params.get("clientInfo", {})
-                            expected = "claude" if self.backend == "claude_code" else "codex"
+                            expected = "pi" if self.backend == "pi" else "claude" if self.backend == "claude_code" else "codex"
                             require(expected in info.get("name", "").lower(), "unexpected MCP client identity")
                             result = self.relay.initialize(params)  # Actual clientInfo/capabilities/protocol, never cached.
                             if self.ident == "zvec-grep":

@@ -296,7 +296,7 @@ def run_slot(root: Path, manifest: dict, initial: dict, coordinator: LedgerCoord
         execution = solver_executor(folder, Path(manifest["prepared"]["solver_inputs"][row["id"]]["path"]).read_text(),
             session=session, settings=copy.deepcopy(spec), cancel_event=cancel_event, process_registry=registry,
             codex_version=manifest["prepared"]["host"]["codex_version"],
-            agent_version=manifest["prepared"]["host"].get("claude", {}).get("version"))
+            agent_version=manifest["prepared"]["host"].get("pi", manifest["prepared"]["host"].get("claude", {})).get("version"))
         verify_run_binding(manifest, row, spec)
         # A returned execution without a process receipt does not prove that the CLI started.
         process = read_json(folder / "process.json") if (folder / "process.json").exists() else None

@@ -30,7 +30,16 @@ def lease(path: Path):
         yield
 
 
-def environment(solver_backend="codex") -> dict:
+def environment(solver_backend="pi") -> dict:
+    if solver_backend == "pi":
+        from .pi_client import capabilities
+        require(sys.version_info >= (3, 12), "Python 3.12 이상이 필요합니다")
+        for executable in ("git", "cargo", "rustc", "node"):
+            require(shutil.which(executable) is not None, f"실행 파일이 없습니다: {executable}")
+        pi = capabilities()
+        return {"solver_backend": "pi", "pi": pi, "codex_version": None, "python": platform.python_version(),
+                "node": pi["versions"]["node"], "rustc": command(["rustc", "-Vv"]).strip(),
+                "cargo": command(["cargo", "--version"]).strip()}
     require(sys.version_info >= (3, 12), "Python 3.12 이상이 필요합니다")
     require(os.name == "posix", "이 벤치 하네스는 macOS/Linux를 지원합니다")
     for executable in ("git", "cargo", "rustc", "codex", "node"):

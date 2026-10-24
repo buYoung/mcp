@@ -565,7 +565,7 @@ def publish_delivery() -> dict:
     """A neutral CLI/MCP round-trip, not a solver run or a gold-question trial."""
     from . import settings
     from .tool_artifacts import load_artifacts
-    from . import runner
+    from . import pi_client
     artifact = load_artifacts(verify=False)["rg"]
     binary = artifact["launch"][0]
     root = routes.PREPARATION / "delivery-probe" / str(time.time_ns())
@@ -580,7 +580,7 @@ def publish_delivery() -> dict:
                        settings.REPOSITORY, root / "protocol.jsonl")
     try:
         initialized = client.initialize({"protocolVersion": "2025-03-26", "capabilities": {},
-                                         "clientInfo": {"name": "codex-mcp-client", "version": "preparation-probe"}})
+                                         "clientInfo": {"name": "pi", "version": "preparation-probe"}})
         inventory = client.list_tools()
         result = client.rpc("tools/call", {"name": "rg", "arguments": {"pattern": ".", "path": "sample.py"}})
     finally:
@@ -592,18 +592,15 @@ def publish_delivery() -> dict:
             "기존 두 제한을 초과하는 probe 입력이 필요합니다")
     logged = [row for row in read_jsonl(root / "relay.jsonl") if row.get("event") == "result"][-1]
     require(logged["raw_result"] == logged["relay_result"] == result, "native/relay 결과 필드 손실")
-    spec = settings.execution_settings()
-    spec.update(native_output_policy=routes.load_profile()["native_output_policy"], preparation_only=True)
-    options = runner.codex_options(settings=spec)
-    require(not any("tool_output_token_limit=" in arg for arg in options), "route host 출력 크기 override")
+    agent = pi_client.capabilities()
     return routes.publish_handoff("02-delivery.json", {
         "status": "verified_offline", "transport_interfaces": {"stdio": "MCPClient", "http": "Streamable HTTP JSON/SSE"},
         "native_output_policy": routes.load_profile()["native_output_policy"],
         "auxiliary_exception_contract": routes.load_profile()["tool_access"],
         "client_identity": "forward the actual initialize clientInfo and capabilities",
-        "client_limits": {"codex_version": command(["codex", "--version"]).strip(),
+        "client_limits": {"pi": agent,
                           "history_limit": None, "history_limit_reason": "Client default has not been measured with a live model.",
-                          "harness_override": None, "code_mode_budget": "Native server guidance is forwarded unchanged."},
+                          "harness_override": None, "code_mode_budget": "disabled; direct MCP tools only"},
         "raw_relay_checks": {"status": "passed", "probe": "rg over a copied harness source file",
                              "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
                              "stdout_bytes": len(original.stdout), "stdout_lines": len(original.stdout.splitlines()),
@@ -612,10 +609,10 @@ def publish_delivery() -> dict:
                              "protocol_log": str(root / "protocol.jsonl"), "relay_log": str(root / "relay.jsonl"),
                              "protocol_sha256": file_digest(root / "protocol.jsonl"),
                              "relay_sha256": file_digest(root / "relay.jsonl"), "probe_source_sha256": file_digest(root / "sample.py")},
-        "codex_options": options,
-        "unobserved_stages": ["Real solver history and code-mode printing", "Native product startup probes are recorded in 04-indexes.json"],
+        "pi_policy": {"flags": pi_client.PRIVATE_FLAGS, "product_tools": "mcp__navigation__*", "defaults": agent["defaults"]},
+        "unobserved_stages": ["Real hosted provider history", "Native product startup probes are recorded in 04-indexes-pi.json"],
         "solver_runs": 0, "grader_runs": 0},
-        implementation=["benchmark/route_transport.py", "benchmark/runner.py"], dependencies=["01-contract.json"])
+        implementation=["benchmark/route_transport.py", "benchmark/runner.py", "benchmark/pi_client.py"], dependencies=["01-contract.json"])
 
 
 def main():
