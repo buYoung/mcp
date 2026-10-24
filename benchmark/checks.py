@@ -95,6 +95,7 @@ class BenchChecks(unittest.TestCase):
 
         self.spec = settings.execution_settings()
         self.spec["preparation_only"] = False
+        self.spec["solver_backend"] = "codex"
         self.defaults = patch("benchmark.runner.default_settings", side_effect=lambda: copy.deepcopy(self.spec))
         self.defaults.start()
 
@@ -173,6 +174,7 @@ class BenchChecks(unittest.TestCase):
     def test_zero_drain_excludes_late_answer_but_certifies_completed_usage(self):
         spec = settings.execution_settings()
         spec["preparation_only"] = False
+        spec["solver_backend"] = "codex"
         spec["limits"]["total_tokens"] = 100
         folder = self.root / "drain-session"
         result = runner.execute_codex(folder, "FIXTURE_DRAIN", settings=spec, usage_drain_seconds=0,
@@ -335,6 +337,7 @@ while True: time.sleep(.02)
 '''
         spec = settings.execution_settings()
         spec["preparation_only"] = False
+        spec["solver_backend"] = "codex"
         spec["limits"]["total_tokens"] = 100
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary)

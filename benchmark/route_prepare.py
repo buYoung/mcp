@@ -128,7 +128,11 @@ def verify_readiness(record: dict) -> None:
     require(record["models"] == {"solver": solver, "grader": routes.load_profile()["grader"]}, "모델 선택 또는 고정 채점 조건 변경")
     for check in record["checks"]["offline_commands"]:
         require(check["exit_code"] == 0 and file_digest(Path(check["log"])) == check["log_sha256"], "오프라인 검증 근거 변경")
-    require(record["host"]["codex_version"] == command(["codex", "--version"]).strip(), "Codex 버전 변경")
+    if solver["backend"] == "pi":
+        from .pi_client import capabilities
+        require(record["host"]["pi"] == capabilities(), "pi toolchain 변경")
+    else:
+        require(record["host"]["codex_version"] == command(["codex", "--version"]).strip(), "Codex 버전 변경")
     require(record["host"]["solver_backend"] == solver["backend"], "풀이 실행기 변경")
     if solver["backend"] == "claude_code":
         require(record["host"]["claude"]["version"] == command(["claude", "--version"]).strip(), "Claude Code 버전 변경")
@@ -228,7 +232,7 @@ def _build_plan(emit=print, *, solver_model: str | None = None, offline_commands
               "checks": {"component_evidence": "verified", "planned_slots": len(routes.schedule()), "offline_commands": checks},
               "invalidation_rules": ["frozen inputs", "source bytes", "profile/models/effort/limits", "harness code",
                                      "binaries and installed dependencies", "embedding weights", "native index state",
-                                     "native tool schema/default record", "Codex/Claude Code versions"],
+                                     "native tool schema/default record", "pi/bridge/SDK/Claude binary and host node versions"],
               "solver_runs": 0, "grader_runs": 0, "calibration_runs": 0,
               "limitations": ["Subject build retains its actual version; it is not relabeled 1.0.0.",
                               "Real solver delivery, account model availability, judge calibration and empirical difficulty are untested.",
@@ -256,6 +260,7 @@ def readiness_projection(record: dict, path: Path) -> dict:
                          "source_sha256": s["source_sha256"], "tool_condition": s["tool_condition"],
                          "actual_version": record["actual_versions"][ident]} for ident, s in record["arms"].items()],
             "questions": len(routes.QUESTION_IDS), "repeats": 1, "runs": len(routes.schedule()), "spec": spec,
+            "agent_version": record["host"].get("pi", {}).get("version"),
             "codex_version": record["host"]["codex_version"], "output_root": str(path.parent),
             "readiness": str(path), "readiness_sha256": file_digest(path),
             "report": str(path.parent / "report/results.md"), "solver_runs": 0, "grader_runs": 0}
@@ -273,6 +278,7 @@ def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
         from .claude_client import capabilities
         capabilities()
     with campaign_lease():
+        tool_artifacts.pi_toolchain()
         harness_at_start = settings.harness_identity()
         routes.publish_contract()
         for ident in routes.ARM_IDS:
