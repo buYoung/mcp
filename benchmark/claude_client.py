@@ -4,7 +4,6 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 from .core import canonical, command, file_digest, metric, ratio, require, write_json
@@ -18,6 +17,8 @@ def environment() -> dict:
     allowed = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR",
                "CLAUDE_CONFIG_DIR", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"}
     env = {key: value for key, value in os.environ.items() if key in allowed}
+    from .settings import CACHE
+    env.update(CODEMAP_BENCH_CACHE=str(CACHE), MCP_TOOL_TIMEOUT="300000", MCP_TIMEOUT="120000")
     env.update({key: "1" for key in (
         "CLAUDE_CODE_DISABLE_CLAUDE_MDS", "CLAUDE_CODE_DISABLE_AUTO_MEMORY", "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS",
         "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL",
@@ -59,7 +60,7 @@ def configuration(source: Path, rg_binary: Path) -> dict:
             "output_policy": "native tool and client defaults; no harness clipping"}
 
 
-def launch(folder: Path, spec: dict, relay_settings: dict | None) -> tuple[list[str], Path, dict]:
+def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None) -> tuple[list[str], Path, dict]:
     native = spec.get("native_agent")
     workspace = Path(native["source"]) if native else folder / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
@@ -71,12 +72,9 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None) -> tuple[list[
     mcp = {"mcpServers": {}}
     permitted = []
     if relay_settings:
-        require(relay_settings.get("schema") == "grafana-route-relay-v1", "지원하지 않는 도구 중계 계약")
-        settings_path = folder / "relay-settings.json"
-        write_json(settings_path, relay_settings, exclusive=True)
-        root = str(Path(__file__).resolve().parent.parent)
-        mcp["mcpServers"]["navigation"] = {"command": sys.executable,
-            "args": ["-m", "benchmark.route_transport", str(settings_path)], "env": {"PYTHONPATH": root}}
+        from .runner import navigation_server
+        server = server if server is not None else navigation_server(folder, relay_settings)
+        mcp["mcpServers"]["navigation"] = {key: server[key] for key in ("command", "args", "env")}
         permitted = ["mcp__navigation__" + name for name in relay_settings["enabled_tools"]]
     policy_path, mcp_path = folder / "claude-settings.json", folder / "mcp-config.json"
     write_json(policy_path, policy, exclusive=True)
@@ -91,6 +89,7 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None) -> tuple[list[
     env = environment()
     if native:
         env.update(native["env"])
+    env.update(MCP_TOOL_TIMEOUT="300000", MCP_TIMEOUT="120000")
     return args, workspace, env
 
 
