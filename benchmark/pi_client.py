@@ -19,6 +19,42 @@ BACKEND = "pi"
 TOKEN_ENV = "CODEMAP_BENCH_PI_TOKEN"
 NATIVE_TOOLS = ("bash",)
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
+NAVIGATION_SERVER = "navigation"
+# pi-mcp-adapter keeps its defaults (direct-tool output guard 50 KiB / 2,000 lines) except settings that would
+# reach the network or keychain, install or save tools, ask the model or user on a server's behalf, or cut a
+# tool call shorter than the harness-wide 300 s limit.
+ADAPTER_SETTINGS = {"jev": False, "allowInstall": False, "allowScriptToolSave": False, "autoAuth": False,
+                    "sampling": False, "elicitation": False, "requestTimeoutMs": 300000}
+# The warm-host shim accepts one connection. "keep-alive" also connects at extension load and again for the
+# session, so the second connection fails; "lazy-keep-alive" connects once at session start and stays connected.
+# Tools are declared directly instead of through `mcp`.
+ADAPTER_SERVER = {"lifecycle": "lazy-keep-alive", "directTools": True}
+
+
+def navigation_tool_name(name: str) -> str:
+    """pi-mcp-adapter 6.0.0 formatToolName with the default "server" prefix."""
+    sanitized, prefix = name.replace(".", "_"), NAVIGATION_SERVER + "_"
+    return sanitized if sanitized.startswith(prefix) and len(sanitized) > len(prefix) else prefix + sanitized
+
+
+def server_instructions_prompt(instructions: str) -> str:
+    # Same placement and shape as Claude Code's MCP server instructions section; the text is the product's own.
+    return ("# MCP Server Instructions\n\nThe following MCP servers have provided instructions for how to use "
+            f"their tools and resources:\n\n## {NAVIGATION_SERVER}\n{instructions}\n")
+
+
+def private_root(folder: Path) -> Path:
+    """Solver-visible scratch (TMPDIR, shell HOME, rg copy) uses an opaque cache name, never the slot path."""
+    from .settings import CACHE
+    root = CACHE / digest({"private_root": str(folder.resolve())})[:16]
+    require(not root.is_symlink(), "private root symlink 금지")
+    root.mkdir(mode=0o700, exist_ok=True)
+    root.chmod(0o700)
+    record = folder / "private-root.json"
+    if not record.exists():
+        write_json(record, {"path": str(root), "purpose": "solver-visible TMPDIR, shell HOME and rg copy"})
+    require(read_json(record)["path"] == str(root), "private root binding 변경")
+    return root
 
 
 def requested_model(provider: str, model: str) -> str:
@@ -114,18 +150,26 @@ def capabilities() -> dict:
         write_models(agent, "openai-codex")
         env = environment(agent_dir=agent, tmp=root, provider="openai-codex", token="model-free-dummy")
         probes = {}
+        adapter_config = root / "mcp-adapter.json"
+        write_json(adapter_config, {"settings": ADAPTER_SETTINGS, "mcpServers": {}})
         for name, args in (("help", [*PRIVATE_FLAGS, "--help"]),
                            ("models", [*PRIVATE_FLAGS, "-e", tools["bridge_extension"], "--list-models"]),
+                           ("mcp_adapter_help", [*PRIVATE_FLAGS, "-e", tools["mcp_adapter_extension"],
+                                                 "--mcp-config", str(adapter_config), "--help"]),
                            ("private_auth_reference", ["auth", "check", "--provider", "openai-codex"])):
-            result = subprocess.run([tools["node"], tools["pi_cli"], *args], cwd=root, env=env,
+            result = subprocess.run([tools["node"], tools["pi_cli"], *args], cwd=root,
+                                    env={**env, "PI_MCP_CONFIG_MODE": "exclusive"} if name == "mcp_adapter_help" else env,
                                     capture_output=True, text=True, timeout=60)
             require(result.returncode == 0, f"model-free pi probe 실패: {name}")
-            probes[name] = {"args": args, "exit_code": result.returncode, "output": result.stdout + result.stderr}
+            # The temporary config path differs per call; the recorded argv must stay comparable.
+            recorded = ["<temporary>/mcp-adapter.json" if arg == str(adapter_config) else arg for arg in args]
+            probes[name] = {"args": recorded, "exit_code": result.returncode, "output": result.stdout + result.stderr}
         help_text = probes["help"]["output"]
         models = {tuple(line.split()[:2]) for line in probes["models"]["output"].splitlines()}
         require({("openai-codex", "gpt-6.1-sol"), ("openai-codex", "gpt-6-astra"),
                  ("claude-bridge", "claude-opus-5-5")} <= models, "pinned pi 모델 목록 누락")
         require(probes["private_auth_reference"]["output"].strip() == "ready", "private pi auth reference 오류")
+        require("--mcp-config" in probes["mcp_adapter_help"]["output"], "pi-mcp-adapter 로드 실패")
     flags = ["--no-tools", "--no-mcp", "--no-extensions", "--no-approve", "--offline", "--session-dir", "--thinking"]
     require(all(flag in help_text for flag in flags), "pi 실행 옵션 누락")
     return {"backend": BACKEND, "version": tools["versions"]["pi"], "versions": tools["versions"],
@@ -133,7 +177,9 @@ def capabilities() -> dict:
             "node_path": tools["node"], "node_sha256": tools["node_sha256"], "required_flags": flags,
             "auth": "runtime only; operator token/Claude login not exercised during preparation",
             "model_free_probes": probes, "model_invocations": 0,
-            "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi default"}}
+            "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi default",
+                         "mcp_client": f"pi-mcp-adapter {tools['versions']['mcp_adapter']} defaults except {sorted(ADAPTER_SETTINGS)}",
+                         "mcp_output_guard": "adapter default: 50 KiB / 2,000 lines head preview; full text spilled under TMPDIR"}}
 
 
 def configuration(source: Path, rg_binary: Path) -> dict:
@@ -146,22 +192,31 @@ def configuration(source: Path, rg_binary: Path) -> dict:
 
 def baseline_boundary(native: dict, folder: Path) -> dict:
     from .isolation import METADATA, _profile_text, preflight
-    source, rg = Path(native["source"]).resolve(), Path(native["rg_binary"]).resolve()
-    require(file_digest(rg) == native["rg_sha256"], "고정 rg 변경")
-    tmp, home = folder / "pi-tmp", folder / "shell-home"
-    for path in (tmp, home):
+    source, pinned = Path(native["source"]).resolve(), Path(native["rg_binary"]).resolve()
+    require(file_digest(pinned) == native["rg_sha256"], "고정 rg 변경")
+    root = private_root(folder)
+    tmp, home, bin_dir = root / "tmp", root / "home", root / "bin"
+    for path in (tmp, home, bin_dir):
         path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    # A byte-identical copy keeps the artifact path (and its naming) out of the solver's PATH.
+    rg = bin_dir / "rg"
+    if not rg.exists():
+        shutil.copy2(pinned, rg)
+    require(not rg.is_symlink() and file_digest(rg) == native["rg_sha256"], "rg 복사본 변경")
     preflight(source, home)
-    text = _profile_text([source, rg.parent, tmp, home], [tmp])
+    text = _profile_text([source, bin_dir, tmp, home], [tmp])
     # Basic shell/navigation utilities need no external Mach service lookup.
     text += "(deny lsopen)\n(deny appleevent-send)\n(deny mach-lookup)\n"
+    # Other processes' names and arguments (products, harness, other slots) are not exploration targets.
+    text += "(deny process-info* (target others))\n(deny sysctl-read (sysctl-name-prefix \"kern.proc\"))\n"
     for name in sorted(METADATA | {".pi", ".claude"}):
         text += f"(deny file-read-data file-write* (subpath {json.dumps(str(source / name))}))\n"
     profile = folder / "pi-bash.sb"
     profile.write_text(text)
-    env = {"PATH": str(rg.parent) + ":/usr/bin:/bin", "HOME": str(home), "TMPDIR": str(tmp), "LANG": "en_US.UTF-8"}
-    return {"profile_path": str(profile), "profile_sha256": file_digest(profile), "env": env,
-            "source": str(source), "allowed": {"read": [str(source), str(rg), str(tmp), str(home)], "write": [str(tmp)], "network": False}}
+    env = {"PATH": str(bin_dir) + ":/usr/bin:/bin", "HOME": str(home), "TMPDIR": str(tmp), "LANG": "en_US.UTF-8"}
+    return {"profile_path": str(profile), "profile_sha256": file_digest(profile), "env": env, "source": str(source),
+            "allowed": {"read": [str(source), str(rg), str(tmp), str(home)], "write": [str(tmp)], "network": False,
+                        "process_info_others": False}}
 
 
 def shell_wrapper(native: dict, folder: Path) -> Path:
@@ -220,7 +275,7 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     workspace = Path(native["source"]) if native else folder / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
     require(not native or native.get("backend") == BACKEND and not relay_settings, "pi 기준군 설정 오류")
-    agent, tmp, sessions = folder / "pi-agent", folder / "pi-tmp", folder / "pi-session"
+    agent, tmp, sessions = folder / "pi-agent", private_root(folder) / "tmp", folder / "pi-session"
     for path in (agent, tmp, sessions):
         require(not path.is_symlink() and not path.resolve().is_relative_to(workspace.resolve()), "private pi state must be outside workspace and not a symlink")
         path.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -229,14 +284,24 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     settings = {"shellPath": str(shell_wrapper(native, folder))} if native else {}
     model_endpoint = local_endpoint if provider == "openai-codex" else None
     write_models(agent, provider, local_endpoint=model_endpoint)
-    mcp = {"mcpServers": {}, "autoEnableCodemode": False}
-    if relay_settings:
-        require(server is not None, "pi MCP requires warm-host attachment")
-        mcp["mcpServers"]["navigation"] = {**{k: server[k] for k in ("command", "args", "env")}, "exposure": "direct", "timeout": 300}
-    for name, value in (("settings.json", settings), ("mcp.json", mcp)):
-        write_json(agent / name, value, exclusive=True)
+    write_json(agent / "settings.json", settings, exclusive=True)
     args = [tools["node"], tools["pi_cli"], *PRIVATE_FLAGS, "--provider", provider, "--model", spec["model"],
             "--thinking", spec["reasoning_effort"], "--session-dir", str(sessions)]
+    instructions = None
+    if relay_settings:
+        require(server is not None, "pi MCP requires warm-host attachment")
+        adapter_config = agent / "mcp-adapter.json"
+        write_json(adapter_config, {"settings": ADAPTER_SETTINGS, "mcpServers": {NAVIGATION_SERVER: {
+            **{k: server[k] for k in ("command", "args", "env")}, **ADAPTER_SERVER}}}, exclusive=True)
+        product_tools = [navigation_tool_name(name) for name in relay_settings["enabled_tools"]]
+        require(len(set(product_tools)) == len(product_tools), "navigation 도구 이름 충돌")
+        args += ["-e", tools["mcp_adapter_extension"], "--mcp-config", str(adapter_config), "--tools", ",".join(product_tools)]
+        instructions = server.get("instructions") or ""
+        require(isinstance(instructions, str), "server instructions 형식 오류")
+        if instructions.strip():
+            prompt_file = agent / "server-instructions.md"
+            prompt_file.write_text(server_instructions_prompt(instructions), encoding="utf-8")
+            args += ["--append-system-prompt", str(prompt_file)]
     if provider == "claude-bridge":
         from . import claude_settings
         claude_settings.verify(spec.get("claude_settings"), workspace, home=local_home)
@@ -245,14 +310,24 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         require(not (workspace / ".pi/claude-bridge.json").exists(), "project bridge config would override the pinned binary")
         write_json(agent / "claude-bridge.json", {"provider": {"pathToClaudeCodeExecutable": tools["claude_code_binary"]}}, exclusive=True)
         args += ["-e", tools["bridge_extension"]]
-    args += (["-e", "builtin:mcp", "--tools", "mcp__navigation__*"] if relay_settings else
-             ["--no-mcp", "--tools", "bash"] if native else ["--no-mcp", "--no-tools"])
+    if not relay_settings:
+        args += ["--no-mcp", "--tools", "bash"] if native else ["--no-mcp", "--no-tools"]
     token = operator_token(provider) if provider == "openai-codex" else None
     env = environment(agent_dir=agent, tmp=tmp, provider=provider, token=token,
                       local_endpoint=local_endpoint if provider == "claude-bridge" else None, local_home=local_home)
+    if relay_settings:
+        env["PI_MCP_CONFIG_MODE"] = "exclusive"  # Only --mcp-config; no user, project, host or plugin MCP sources.
+        # With no cached metadata, a cold MCP_DIRECT_TOOLS selection makes session start wait for the connection, so
+        # the first model request already declares the tools.
+        env["MCP_DIRECT_TOOLS"] = NAVIGATION_SERVER
     validate_models(agent, provider, local_endpoint=model_endpoint)
     write_json(folder / "pi-policy.json", {"toolchain": tools, "provider": provider, "flags": PRIVATE_FLAGS,
         "requested_model": requested_model(provider, spec["model"]),
+        "mcp_client": ({"extension": "pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"], "config_mode": "exclusive",
+                        "settings": ADAPTER_SETTINGS, "server": ADAPTER_SERVER, "tools": product_tools,
+                        "server_instructions_sha256": digest(instructions) if instructions else None,
+                        "server_instructions": "appended to the system prompt" if instructions and instructions.strip() else "none provided"}
+                       if relay_settings else None),
         "claude_settings": spec.get("claude_settings"),
         "defaults": capabilities()["defaults"], "auth": "memory-only bearer env" if token else "Claude Code existing login, real HOME",
         "claude_residue": "only exact workspace project slug removed; ~/.claude.json project entries may remain"}, exclusive=True)
@@ -308,7 +383,8 @@ def claude_project_slug(workspace: Path) -> str:
 def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | None, *, home: Path | None = None) -> dict:
     # Pi's own session writer is not routed through stdout. Sanitize it after owned children stop.
     paths = [p for p in folder.iterdir() if p.suffix in {".json", ".jsonl", ".txt", ".log"}]
-    for root in (folder / "pi-session", folder / "pi-agent", folder / "pi-tmp"):
+    scratch = private_root(folder)
+    for root in (folder / "pi-session", folder / "pi-agent", scratch / "tmp", scratch / "home"):
         paths.extend(root.rglob("*") if root.exists() else ())
     for path in paths:
         if path.is_file() and not path.is_symlink():
@@ -508,8 +584,10 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     from .settings import CACHE, RUNS
     folder.mkdir(parents=True, exist_ok=True)
     wrapper = shell_wrapper(value, folder)
-    tmp = folder / "pi-tmp"
+    tmp = private_root(folder) / "tmp"
     (tmp / "truncated-output.txt").write_text("PI_PRIVATE_OUTPUT_CANARY")
+    process_table = ("perl -e '$m=pack(\"i4\",1,14,0,0);$l=pack(\"Q\",0);"
+                     "exit((syscall(202,$m,3,0,$l,0,0)==0 && unpack(\"Q\",$l)>0) ? 0 : 1)'")
     boundaries = []
     with canary_files(Path(value["source"]), folder / "canaries") as (_, targets):
         cases = [("source", "cat README.md", True), ("rg", "rg --version", True),
@@ -519,6 +597,9 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
                  ("lsopen", "open -a Finder", False),
                  ("appleevent", 'osascript -e \'tell application "Finder" to count windows\'', False),
                  ("launchctl", "launchctl submit -l codemap-bench-canary-$$ -p /usr/bin/true", False),
+                 ("process_list", "ps -ax", False),
+                 ("process_table", process_table, False),
+                 ("private_paths", 'case "$TMPDIR $HOME $PATH" in *route-preparation*|*campaigns*|*codemap*|*bench*) exit 1;; esac', True),
                  ("coreutils", "set -e -o pipefail; bash --version; cat README.md | head -n 1 | grep . | sed -n 1p | awk \'{print}\' | wc -l; ls .; find . -maxdepth 1 -type f", True)]
         cases.extend((name, "cat " + shlex.quote(str(path)), False) for name, path in targets.items())
         for name, text, allowed in cases:

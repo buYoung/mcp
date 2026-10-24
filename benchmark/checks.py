@@ -186,7 +186,7 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         spec = settings.execution_settings()
         spec["preparation_only"] = False
         spec["solver_backend"] = "codex"
-        spec["limits"]["total_tokens"] = 100
+        spec["limits"]["total_tokens"] = 90  # First usage: 100 input (30 cache reads) + 20 output = 90 budget tokens.
         folder = self.root / "drain-session"
         result = runner.execute_codex(folder, "FIXTURE_DRAIN", settings=spec, usage_drain_seconds=0,
                                       codex_version="fixture")
@@ -195,7 +195,7 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         self.assertTrue(result["usage_collection"]["post_cutoff_answer_excluded"])
         self.assertEqual((folder / "post-cutoff-answer.txt").read_text(), "제한 이후의 답변")
         self.assertEqual(result["usage"]["total_tokens"]["value"], 240)
-        self.assertEqual(result["budget"]["observed_cleanup_tokens"], 120)
+        self.assertEqual(result["budget"]["observed_cleanup_tokens"], 90)
         self.assertEqual([step["signal"] for step in result["shutdown"]["steps"]], ["SIGINT"])
         self.assertFalse(result["conditions_valid"])
 
@@ -349,7 +349,7 @@ while True: time.sleep(.02)
         spec = settings.execution_settings()
         spec["preparation_only"] = False
         spec["solver_backend"] = "codex"
-        spec["limits"]["total_tokens"] = 100
+        spec["limits"]["total_tokens"] = 90  # Budget tokens exclude the 30 cache reads.
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary)
             popen = subprocess.Popen
@@ -362,8 +362,8 @@ while True: time.sleep(.02)
             with patch("benchmark.runner.subprocess.Popen", side_effect=launch), patch("benchmark.runner.isolated_environment", side_effect=environment):
                 result = execute_codex(folder, "fixture", settings=spec)
             self.assertEqual(result["status"], "token_limit")
-            self.assertEqual(result["budget"]["observed_tokens_at_cutoff"], 120)
-            self.assertEqual(result["budget"]["observed_cleanup_tokens"], 120)
+            self.assertEqual(result["budget"]["observed_tokens_at_cutoff"], 90)
+            self.assertEqual(result["budget"]["observed_cleanup_tokens"], 90)
             self.assertEqual(result["usage"]["observed"]["total_tokens"], 240)
             self.assertEqual(result["usage"], recorded_usage(folder))
             self.assertIsNone(result["usage"]["total_tokens"]["value"])

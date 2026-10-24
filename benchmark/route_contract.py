@@ -11,7 +11,7 @@ from .core import digest, file_digest, read_json, require, write_json
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c6fad8695a96577eb466d425e6ac4a759ca30f47"
 DATASET_MANIFEST_SHA256 = "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24"
-TARGET_LOCK_SHA256 = "e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111"
+TARGET_LOCK_SHA256 = "45100e782647ef52be8e6d204eb588cc76838e788a7d99134287cc46ee65b019"
 QUESTION_IDS = ("route-star", "route-save-existing", "route-live-receive")
 ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
 DATA = settings.ROOT / "data/grafana-routes-v2"
@@ -104,6 +104,7 @@ def load_profile() -> dict:
     ], "풀이 모델 선택 계약 변경")
     require(profile["grader"] == {"model": "gpt-6-astra", "reasoning_effort": "high"}, "채점 모델 계약 변경")
     require(profile["limits"] == {"elapsed_seconds": 300, "exploration_calls": 80, "total_tokens": 500000}
+            and profile["token_limit_basis"] == "input_excluding_cache_reads_plus_output"
             and profile["execution_authorized"] is False,
             "준비 전용 실행 경계 변경")
     require(profile["baseline"]["arm"] == "rg" and profile["baseline"]["mode"] == "native_agent"

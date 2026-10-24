@@ -185,8 +185,12 @@ class WarmSession:
                     self._register_groups()
                     self.inventory = self.relay.product.list_tools()
                     if self.state.get("native_inventory"):
-                        expected = read_json(Path(self.state["native_inventory"]))["tools"]
-                        require(self.inventory == expected, "warm native inventory differs from prepared inventory")
+                        prepared = read_json(Path(self.state["native_inventory"]))
+                        require(self.inventory == prepared["tools"], "warm native inventory differs from prepared inventory")
+                        # The solver prompt carries the prepared server instructions; the live product must match.
+                        if "initialize" in prepared:
+                            require((self.initialized.get("instructions") or "") == (prepared["initialize"].get("instructions") or ""),
+                                    "warm server instructions differ from prepared instructions")
                     config = query_configuration(config, self.inventory, self.ident, self.warm_log)
                     if self.relay_settings:
                         require(config["enabled_tools"] == self.relay_settings["enabled_tools"], "prepared query surface changed")
@@ -259,6 +263,15 @@ class WarmSession:
             else:
                 require(first == repeat, "CodeGraph default response equivalence failed")
             observations.append({"session_equivalence": True, "first_sha256": digest(first), "after_sha256": digest(after)})
+        # MCP clients list advertised resources/prompts on connect; a failing listing would void every slot.
+        capabilities = self.initialized.get("capabilities", {})
+        for capability, method in (("resources", "resources/list"), ("prompts", "prompts/list")):
+            if capability in capabilities:
+                with self.rpc_lock:
+                    self._remaining()
+                    listed = self.relay.product.rpc(method, {})
+                require(isinstance(listed, dict) and isinstance(listed.get(capability), list), f"{method} discovery failed")
+                observations.append({"discovery": method, "items": len(listed[capability]), "result_sha256": digest(listed)})
         from . import isolation
         canaries = isolation.boundary_canaries(self.ident, self.warm_call, self.state)
         if self.ident == "graphify":
@@ -288,7 +301,8 @@ class WarmSession:
         return {"command": sys.executable, "args": ["-m", "benchmark.stdio_shim", str(self.socket_path)],
                 "cwd": str(settings.REPOSITORY), "env": {"PYTHONPATH": str(settings.REPOSITORY), "PYTHONDONTWRITEBYTECODE": "1",
                     "CODEMAP_BENCH_CACHE": str(settings.CACHE)}, "required": True,
-                "startup_timeout_sec": 120, "tool_timeout_sec": 300, "enabled_tools": self.relay_settings["enabled_tools"]}
+                "startup_timeout_sec": 120, "tool_timeout_sec": 300, "enabled_tools": self.relay_settings["enabled_tools"],
+                "instructions": self.initialized.get("instructions") or ""}
 
     def open_solver_gate(self, start: float):
         require(self.receipt is not None and self.receipt["ready_at"] <= start <= time.monotonic(), "solver clock precedes ready")
@@ -380,10 +394,15 @@ class WarmSession:
                             if method == "tools/list":
                                 result = {"tools": self.relay.list_tools()}
                             elif method in CONTENT_METHODS:
+                                tool = params.get("name") if method == "tools/call" else None
                                 result = self.relay.content_call(request["id"], method, params)
-                                degraded = readiness.degradation(self.ident, result, tool=params.get("name") if method == "tools/call" else None)
+                                # Only an explicit index/session notice voids the slot; request errors are product answers.
+                                degraded = readiness.index_degradation(self.ident, result, tool=tool)
                                 if degraded:
                                     self.errors.append(degraded)
+                                elif method == "tools/call" and readiness.tool_error(self.ident, result, tool=tool):
+                                    append_jsonl(self.relay.log, {"event": "tool_error_observed", "client_request_id": str(request["id"]),
+                                                                  "kind": readiness.tool_error(self.ident, result, tool=tool)})
                             elif method == "ping":
                                 result = self.relay.product.rpc("ping", params)
                             else:
@@ -391,12 +410,21 @@ class WarmSession:
                     response = {"jsonrpc": "2.0", "id": request["id"], "result": result}
                 except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
                     error = exc.error if isinstance(exc, RPCError) else {"code": -32602, "message": str(exc)}
-                    if isinstance(exc, RPCError) and method in CONTENT_METHODS | {"initialize", "tools/list", "ping"}:
+                    if isinstance(exc, RPCError) and method in {"initialize", "tools/list", "ping"}:
                         self.errors.append("native RPC error envelope")
                     if self.closing.is_set():
                         break
                     append_jsonl(self.relay.log, {"event": "protocol_error", "client_request_id": str(request["id"]), "error": error})
                     response = {"jsonrpc": "2.0", "id": request["id"], "error": error}
+                    if method == "tools/call":
+                        # pi-mcp-adapter closes the server connection after any tool-call protocol error, and this
+                        # single-use attachment cannot reconnect. Relay rejections and native JSON-RPC errors reach
+                        # the client as an error tool result with the same message; the original stays in the log.
+                        message = error.get("message") if isinstance(error, dict) else str(error)
+                        response = {"jsonrpc": "2.0", "id": request["id"], "result": {
+                            "content": [{"type": "text", "text": str(message)}], "isError": True}}
+                        append_jsonl(self.relay.log, {"event": "error_as_tool_result", "client_request_id": str(request["id"]),
+                                                      "native": isinstance(exc, RPCError), "error": error})
                 conn.sendall((canonical(response) + "\n").encode())
                 if self.errors:
                     break
