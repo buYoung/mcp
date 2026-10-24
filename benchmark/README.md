@@ -143,21 +143,21 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 - `health().condition_errors`는 조건 열화를 보고하고, `close(reason)`는 bounded cleanup의 `complete`를 반환한다. 독립 그룹은 prompt/attach 허용 전에 `process_registry.register(pid, pgid, owner)`에 등록한다.
 - warm/transport 원자료는 `slot_dir` 바로 아래에 둔다. product home이나 CLI credentials/workspace는 raw seal 대상이 아니다. CLI `process.json`이 없으면 실제 spawn을 인증하지 않는다.
 
-### 준비 색인 시간 (2026-10-24 실측)
+### 준비 색인 시간 (실측)
 
-고정 Grafana(추적 파일 22,898개), macOS 15.7.1 arm64 14코어, 외장 NVMe(Thunderbolt) cache에서 각 제품의 색인 명령이 걸린 wall time이다. 준비 기록 `plans/<plan_id>/readiness.json`의 `arms.<arm>.commands[].elapsed_seconds`가 원자료다. 다른 작업(하위 검증 작업, 동시 실행 프로세스)이 같은 머신에서 돌던 상태라 부하 없는 측정이 아니다. 비교 조건은 색인을 미리 끝낸 상태이므로 이 시간은 풀이 시간과 비용에 포함하지 않는다.
+고정 Grafana(추적 파일 22,898개), macOS 15.7.1 arm64 14코어, 외장 NVMe(Thunderbolt) cache에서 각 제품의 색인 명령이 걸린 wall time이다. 준비 기록 `plans/<plan_id>/readiness.json`의 `arms.<arm>.commands[].elapsed_seconds`가 원자료다. 비교 조건은 색인을 미리 끝낸 상태이므로 이 시간은 풀이 시간과 비용에 포함하지 않는다.
 
-| 도구 | 색인 명령 | 시간 |
-|---|---|---:|
-| Serena 2.1.0 | `serena project index` (Go·TypeScript LSP) | 4,185.3초 (약 70분) |
-| graphify 0.9.95 | `graphify extract --code-only` | 255.5초 |
-| zvec-grep 0.2.2 | `index --embedding local/potion-code-16m…` | 123.8초 |
-| codemap-search 0.13.0 | `codemap-search index .` | 68.8초 |
-| codegraph 1.6.2 | `codegraph init --yes` | 64.1초 |
-| codebase-memory-mcp 0.12.1 | `cli index_repository` | 26.3초 |
-| rg 15.2.0 | 색인 없음 | — |
+| 도구 | 색인 명령 | 2026-10-25 (`wscache`) | 2026-10-24 (다른 작업과 동시 실행) |
+|---|---|---:|---:|
+| Serena 2.1.0 | `serena project index` (Go·TypeScript LSP) | 2,011.2초 (약 34분) | 4,185.3초 (약 70분) |
+| graphify 0.9.95 | `graphify extract --code-only` | 264.9초 | 255.5초 |
+| zvec-grep 0.2.2 | `index --embedding local/potion-code-16m…` | 131.9초 | 123.8초 |
+| codemap-search 0.13.0 | `codemap-search index .` | 90.3초 | 68.8초 |
+| codegraph 1.6.2 | `codegraph init --yes` | 77.5초 | 64.1초 |
+| codebase-memory-mcp 0.12.1 | `cli index_repository` | 29.0초 | 26.3초 |
+| rg 15.2.0 | 색인 없음 | — | — |
 
-새 프로세스의 semantic gate(준비 확인)는 codemap-search 25.5초, Serena 22.4초, zvec-grep 10.1초, codegraph 4.4초, codebase-memory-mcp 4.2초, graphify 1.3초였다.
+새 프로세스의 semantic gate(준비 확인)는 2026-10-25 기준 codemap-search 24.6초, Serena 23.8초, zvec-grep 9.3초, codebase-memory-mcp 2.9초, codegraph 2.5초, graphify 1.3초였다. 전체 준비(설치·빌드·소스 취득·색인·준비 확인·계획 생성)는 1시간 10분이 걸렸다.
 
 ### 준비 색인과 live query-ready
 
