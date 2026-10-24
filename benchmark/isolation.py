@@ -469,13 +469,13 @@ def hidden_references() -> list[Path]:
 
 
 @contextlib.contextmanager
-def canary_files(source: Path, directory: Path):
+def canary_files(source: Path, directory: Path, *, metadata_root: Path | None = None):
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     token = "ISOLATION_" + uuid.uuid4().hex
     root = Path(tempfile.mkdtemp(prefix="canaries-", dir=directory))
     paths = {}
     link = source / (".boundary-" + uuid.uuid4().hex)
-    metadata = source / ".codemap"
+    metadata = metadata_root or source / ".codemap"
     made_metadata = not metadata.exists()
     metadata.mkdir(exist_ok=True)
     meta_file = metadata / ("canary-" + uuid.uuid4().hex)
@@ -502,7 +502,11 @@ def boundary_canaries(ident: str, call: Callable[[str, dict], dict], state: dict
     if inventory is None:
         inventory = read_json(Path(state["native_inventory"]))["tools"] if state.get("native_inventory") else []
     enabled = state.get("relay_settings", {}).get("enabled_tools", QUERY_TOOLS[ident])
-    with canary_files(source, source.parent / "boundary") as (token, targets):
+    metadata = {"codemap-search": source / ".codemap", "codegraph": source / ".codegraph",
+                "zvec-grep": source / ".zvec-grep", "serena": source / ".serena",
+                "codebase-memory-mcp": Path(state["home"]),
+                "graphify": Path(state["modes"]["graph_path"]).parent if ident == "graphify" else source / "graphify-out"}
+    with canary_files(source, source.parent / "boundary", metadata_root=metadata.get(ident)) as (token, targets):
         for name, key, seed, array in path_argument_cases(ident, inventory):
             if name not in enabled:
                 continue
