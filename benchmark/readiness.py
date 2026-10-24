@@ -165,7 +165,10 @@ def assert_ready(ident: str, name: str, result: dict, state: dict | None = None)
         elif name == "search_graph":
             check(GO_SYMBOL in value and GO_FILE in value and re.search(r"(?m)^results: [1-9]\d*", value), "neutral graph symbol missing")
         elif name == "get_code_snippet":
-            check(GO_SYMBOL in value and f"file_path: {Path(state['source']) / GO_FILE}\n" in value
+            expected_path = str(Path(state["source"]) / GO_FILE)
+            # CBM quotes paths that contain spaces (JSON string syntax), e.g. the default cache name.
+            check(GO_SYMBOL in value and any(line in (f"file_path: {expected_path}", f"file_path: {json.dumps(expected_path)}")
+                                            for line in value.splitlines())
                   and "source_mode: full\n" in value and "source: |\n  " in value, "live-source snippet missing")
 
 
