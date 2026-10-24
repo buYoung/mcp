@@ -270,7 +270,7 @@ def build_review_packet(experiment: Path, question: dict, run: dict, source: Pat
              "raw_seal": str(raw_seal), "raw_seal_sha256": file_digest(raw_seal),
              "offset_unit": "Unicode code point in path-masked draft", "registry": registry, "packet": value,
              "flags": warnings[0]["flags"] if warnings else [], "source": str(source), "corpus": corpus,
-             "question": question, "packet_bytes_limit": spec.get("batch_limits", {}).get("bytes", 160 * 1024)}
+             "question": question, "packet_bytes_limit": spec["batch_limits"]["bytes"]}
     durable_json(private / "draft.json", draft, exclusive=True)
     result = {"grade_state": "review_required", "blind_id": ident, "review_revision": 1,
               "review": str(private / "draft.json"), "review_sha256": file_digest(private / "draft.json")}
@@ -294,7 +294,8 @@ def seal_packet(experiment: Path, draft_path: Path, draft: dict, answer: str,
                              [c["id"] for c in record["citation_index"]])
     prompt = (INSTRUCTIONS + "추가 설명 없이 JSON object 하나만 응답한다. 다음 judgment schema를 반드시 따른다.\n"
               + "judgment_schema:\n" + canonical(schema) + "\ngrading_packet:\n" + canonical(value))
-    require(len(prompt.encode()) <= draft["packet_bytes_limit"], "packet_too_large: 160 KiB 초과; 자동 절단 금지")
+    require(len(prompt.encode()) <= draft["packet_bytes_limit"],
+            f"packet_too_large: {draft['packet_bytes_limit'] // 1024} KiB 초과; 자동 절단 금지")
     folder = experiment / "grading" / ident / f"v{draft['revision']}"
     require(not folder.exists(), "불변 packet 덮어쓰기 금지")
     private = draft_path.parent

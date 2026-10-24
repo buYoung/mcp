@@ -36,7 +36,8 @@ def execution_settings(solver_model: str | None = None) -> dict:
             "grader_model": profile["grader"]["model"], "grader_reasoning_effort": profile["grader"]["reasoning_effort"],
             "seed": profile["seed"], "concurrency": profile["concurrency"], "limits": copy.deepcopy(profile["limits"]),
             "token_limit_basis": profile["token_limit_basis"],
-            "batch_limits": {"bytes": 160 * 1024},
+            # A grading packet carries the fixed evidence (~57 KB) plus each cited range; 384 KiB stays near 115K Astra tokens.
+            "batch_limits": {"bytes": 384 * 1024},
             **{key: copy.deepcopy(profile[key]) for key in ("native_output_policy", "tool_access", "index_mode")}}
 
 

@@ -83,7 +83,7 @@ def authorize_run(prepared: dict, readiness: Path, approval: dict) -> tuple[Path
                 "condition_sha256": digest(route_prepare.plan_condition(prepared)), "authorization": authorization,
                 "prepared": copy.deepcopy(prepared), "models": copy.deepcopy(prepared["models"]), "run_specs": specs,
                 "run_spec_sha256": {arm: digest(spec) for arm, spec in specs.items()},
-                "concurrency": 4, "grader_timeout_seconds": 300, "packet_bytes_limit": 160 * 1024}
+                "concurrency": 4, "grader_timeout_seconds": 300, "packet_bytes_limit": 384 * 1024}
     durable_json(root / "manifest.json", manifest, exclusive=True)
     rows = []
     for rank, slot in enumerate(prepared["planned_runs"]):
