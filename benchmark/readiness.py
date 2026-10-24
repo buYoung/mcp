@@ -161,7 +161,7 @@ def assert_ready(ident: str, name: str, result: dict, state: dict | None = None)
             for key, count in (("parse_partial", "count"), ("parse_unusable", "count"), ("skipped", "count"), ("not_indexed", "files_count")):
                 check(native.get(key, {}).get(count) == expected.get(key, {}).get(count), f"coverage changed: {key}")
         elif name == "search_code":
-            check("package setting" in value and GO_FILE in value, "live-source match missing")
+            check(GO_SYMBOL in value and GO_FILE in value, "live-source match missing")
         elif name == "search_graph":
             check(GO_SYMBOL in value and GO_FILE in value and re.search(r"(?m)^results: [1-9]\d*", value), "neutral graph symbol missing")
         elif name == "get_code_snippet":
@@ -183,7 +183,8 @@ def probes(state: dict, *, preparation=False) -> list[tuple[str, dict]]:
         project = state["modes"]["native_readiness"]["project"]
         return [("index_status", {"project": project, "format": "json"}),
                 ("search_graph", {"project": project, "name_pattern": GO_SYMBOL}),
-                ("search_code", {"pattern": "package setting", "project": project}),
+                # Ranked results are capped, so a common phrase can miss GO_FILE; the symbol occurs only there.
+                ("search_code", {"pattern": GO_SYMBOL, "project": project}),
                 ("get_code_snippet", {"project": project, "qualified_name": GO_SYMBOL})]
     if ident == "serena":
         return [("get_current_config", {}), ("get_symbols_overview", {"relative_path": GO_FILE}),
