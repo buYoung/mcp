@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "revision": 2,
+  "revision": 3,
   "status": "source_identities_frozen",
-  "frozen_at": "2026-10-03T01:33:05Z",
+  "frozen_at": "2026-10-24T04:38:44.504503+00:00",
   "target_release": "1.0.0",
   "scope": "외부 비교 도구 6개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
-  "selection_policy": "2026-10-03 조회 당시 각 공식 GitHub 저장소의 latest 정식 릴리스를 선택하고 실제 태그 객체를 전체 커밋 해시로 해석했다. 선택 이후 latest나 기본 브랜치를 다시 조회해 자동 갱신하지 않는다.",
+  "selection_policy": "2026-10-24 공식 GitHub release/tag와 npm/PyPI stable 배포를 대조했다. zvec-grep 0.2.2는 npm/tag 배포이며 GitHub Release는 없어 관련 필드를 null로 둔다. Graphify v1.0.0은 2026-04-05의 과거 release이고 PyPI에는 없으므로 현재 upstream latest/PyPI의 0.9.95를 선택한다. 준비 중 latest를 다시 해석하지 않는다.",
   "dataset": {
     "id": "grafana-routes-v2",
     "manifest_path": "../grafana-routes-v2/manifest.json",
@@ -19,7 +19,10 @@
   "subject": {
     "id": "codemap-search",
     "target_release": "1.0.0",
-    "source_and_binary_pin_status": "pending_evaluation_build"
+    "version": "0.13.0",
+    "git_ref": "codemap-v0.13.0",
+    "commit": "4061c42a59a296255ce151f6a60683e31b66a2b8",
+    "source_and_binary_pin_status": "release_source_frozen_binary_at_preparation"
   },
   "required_comparison_ids": [
     "codegraph",
@@ -40,43 +43,43 @@
       "repository": "colbymchenry/codegraph",
       "repository_url": "https://github.com/colbymchenry/codegraph",
       "upstream_repository_id": 1137078255,
-      "version": "1.6.1",
-      "release_tag": "v1.6.1",
-      "release_url": "https://github.com/colbymchenry/codegraph/releases/tag/v1.6.1",
-      "release_id": 398839286,
-      "release_published_at": "2026-09-29T05:08:55Z",
-      "commit": "f4ddf508516332419ea3c95702810765936cf679",
-      "commit_url": "https://github.com/colbymchenry/codegraph/commit/f4ddf508516332419ea3c95702810765936cf679",
-      "git_tree_sha1": "159eeae963c8177368016ea00e0182bc43c1f3d6",
+      "version": "1.6.2",
+      "release_tag": "v1.6.2",
+      "release_url": "https://github.com/colbymchenry/codegraph/releases/tag/v1.6.2",
+      "release_id": 402371047,
+      "release_published_at": "2026-10-03T06:41:20Z",
+      "commit": "6560052a6f856855d3f71eee838fd66ccfa4285d",
+      "commit_url": "https://github.com/colbymchenry/codegraph/commit/6560052a6f856855d3f71eee838fd66ccfa4285d",
+      "git_tree_sha1": "5c7f77e98655a432bfcd9390624b427286114af6",
       "implementation": "공식 npm 패키지에 해당하는 루트 Node.js 구현",
       "package_name": "@colbymchenry/codegraph",
       "source_archive": {
-        "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/f4ddf508516332419ea3c95702810765936cf679",
+        "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/6560052a6f856855d3f71eee838fd66ccfa4285d",
         "format": "tar.gz",
-        "sha256": "d29baa1fe9ad5811af414a77f1e7d6fb050145e15791c5416c0ecefe046a3daa",
-        "bytes": 14414079
+        "sha256": "bc1c0c636fe970c657a0b3b7e5f4f84d8982e283a2e152d26ea8543fb74c9945",
+        "bytes": 14837939
       },
       "source_files": [
         {
           "path": "README.md",
-          "git_blob_sha1": "17efcad3d5b3d980e270f146893fb63802aeeb70",
-          "sha256": "9691494a34b8ca4ba2bc0dec1d85d43f7291c106e750b922a31e9da136fa59df",
-          "bytes": 69261,
-          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/f4ddf508516332419ea3c95702810765936cf679/README.md"
+          "git_blob_sha1": "ae3750c3ba7c4bd7af7da7410b3b2a766351e170",
+          "sha256": "eb84996efef40925f8a1acea1978537d18a3d1560e960e76ef7b081e5c03a071",
+          "bytes": 70865,
+          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/README.md"
         },
         {
           "path": "package-lock.json",
-          "git_blob_sha1": "e6a232af46e81105b84e53d6f78be0dd84aabd9b",
-          "sha256": "e706c33ca91c2181c2e987c033a00689a8cdee2e7ee4b4933863ea7fd577368d",
+          "git_blob_sha1": "959164589396a54cb2ab840271d582589f977051",
+          "sha256": "4658dc30e38cd12fda40e58a96541ec0cef639250d5454a699b5065711c23bc2",
           "bytes": 123579,
-          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/f4ddf508516332419ea3c95702810765936cf679/package-lock.json"
+          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/package-lock.json"
         },
         {
           "path": "package.json",
-          "git_blob_sha1": "92d1aa6c7fef11b4df30618a0de96f4a41882ee0",
-          "sha256": "8b66a1a9bd9cc5eef26988f56b8a79b9c98128a3b5c6e4a8454cc6a5d3f01fb4",
+          "git_blob_sha1": "ab8ba5cca6949893c23ae5f0d7e5e527b88905ff",
+          "sha256": "a1fd8eaecbf5e3fb3662e63e915c70af5e3ed20cc05235ffd18c593ab95f9736",
           "bytes": 2396,
-          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/f4ddf508516332419ea3c95702810765936cf679/package.json"
+          "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/package.json"
         }
       ],
       "provenance_record": "codegraph",
@@ -90,43 +93,43 @@
       "repository": "zvec-ai/zvec-grep",
       "repository_url": "https://github.com/zvec-ai/zvec-grep",
       "upstream_repository_id": 1295987763,
-      "version": "0.2.0",
-      "release_tag": "v0.2.0",
-      "release_url": "https://github.com/zvec-ai/zvec-grep/releases/tag/v0.2.0",
-      "release_id": 377962112,
-      "release_published_at": "2026-08-27T16:15:11Z",
-      "commit": "38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
-      "commit_url": "https://github.com/zvec-ai/zvec-grep/commit/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
-      "git_tree_sha1": "4579e198b7bc1b93469c39a61025caa8e61b0611",
+      "version": "0.2.2",
+      "release_tag": "v0.2.2",
+      "release_url": null,
+      "release_id": null,
+      "release_published_at": null,
+      "commit": "b1a9148e26a7bc9bd4a52229ffb7532d3063793d",
+      "commit_url": "https://github.com/zvec-ai/zvec-grep/commit/b1a9148e26a7bc9bd4a52229ffb7532d3063793d",
+      "git_tree_sha1": "056d1f7069058b454c796eef56b7de5f3b004e16",
       "implementation": "공식 npm 패키지에 해당하는 루트 Node.js 구현",
       "package_name": "@zvec/zvec-grep",
       "source_archive": {
-        "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
+        "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/b1a9148e26a7bc9bd4a52229ffb7532d3063793d",
         "format": "tar.gz",
-        "sha256": "5f638640792f5c73252705392c75a519149bd8b90814083187099dd01b3784a5",
-        "bytes": 5168268
+        "sha256": "bec7d78d266fb5d49646f521edacc977ae6f74f3174476fe79b4e87f6d0662d1",
+        "bytes": 15718908
       },
       "source_files": [
         {
           "path": "README.md",
-          "git_blob_sha1": "729067001bd5ae1cc0c89e1787439086f5accb6d",
-          "sha256": "c5e5bc4d661eb1830f400e96146fcc51f390a41f5ddc7ef765ab89e8ff03ece2",
-          "bytes": 10482,
-          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/README.md"
+          "git_blob_sha1": "e5b202ad310f90c4283bf6503d0fa60336c067e8",
+          "sha256": "f04c951e337b161d9d883b2ab12d1d49b8585fe594e6e2d9ba2663a4597b6290",
+          "bytes": 12056,
+          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/README.md"
         },
         {
           "path": "package-lock.json",
-          "git_blob_sha1": "4cf17378c9a0bbd16333bb20dfd0e099af1d31c9",
-          "sha256": "1da88d81fce71ceb506071df1f43b59f538a942871a945de267d2f5463861f0a",
-          "bytes": 211896,
-          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/package-lock.json"
+          "git_blob_sha1": "5029d405ca2d8490c963070380f8c1b847f8b4ec",
+          "sha256": "cf27937dd23681000f760eb3349e395461fd16d96d916acfee8c26ebddd4c6d9",
+          "bytes": 212867,
+          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/package-lock.json"
         },
         {
           "path": "package.json",
-          "git_blob_sha1": "55ef65cb577018a21828809e75c80e4b4460fd3a",
-          "sha256": "3d881e4e2342122876661690117b982497711ee86c2b8aac197b20be54d8e7db",
+          "git_blob_sha1": "f19b88988590e430d8c9492c5bdd4dd28166173f",
+          "sha256": "0cae64a60a0df98f66f77d857bdfd3cb8b2bedd4d7b261771f6822d3142633dc",
           "bytes": 3189,
-          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/package.json"
+          "url": "https://raw.githubusercontent.com/zvec-ai/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/package.json"
         }
       ],
       "provenance_record": "zvec-grep"
@@ -139,43 +142,43 @@
       "repository": "Graphify-Labs/graphify",
       "repository_url": "https://github.com/Graphify-Labs/graphify",
       "upstream_repository_id": 1200597263,
-      "version": "0.9.74",
-      "release_tag": "v0.9.74",
-      "release_url": "https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.74",
-      "release_id": 401973658,
-      "release_published_at": "2026-10-02T16:20:43Z",
-      "commit": "e10df08877f8819a625a1afa38c3297a31fda296",
-      "commit_url": "https://github.com/Graphify-Labs/graphify/commit/e10df08877f8819a625a1afa38c3297a31fda296",
-      "git_tree_sha1": "843c3334371ce08384445b77390b866ea2411178",
+      "version": "0.9.95",
+      "release_tag": "v0.9.95",
+      "release_url": "https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.95",
+      "release_id": 422153097,
+      "release_published_at": "2026-10-23T17:59:38Z",
+      "commit": "92741d162b2094ffc2fed58cfbd8ee823e9da62c",
+      "commit_url": "https://github.com/Graphify-Labs/graphify/commit/92741d162b2094ffc2fed58cfbd8ee823e9da62c",
+      "git_tree_sha1": "571c8acf1329db3641a1e58079782f8d4adea13b",
       "implementation": "공식 graphifyy Python 패키지에 해당하는 구현",
       "package_name": "graphifyy",
       "source_archive": {
-        "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/e10df08877f8819a625a1afa38c3297a31fda296",
+        "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/92741d162b2094ffc2fed58cfbd8ee823e9da62c",
         "format": "tar.gz",
-        "sha256": "6c59f4a4f4714da7654985007ab9138859365d90bcf270f0de8534c0683f034b",
-        "bytes": 12220877
+        "sha256": "b4bc34d33b48ca6e9b981809d104eaffcf4e53c9dfffc34bb317294863e4f2ec",
+        "bytes": 13656283
       },
       "source_files": [
         {
           "path": "README.md",
-          "git_blob_sha1": "0be5e5481e8ce1050d3de7d9961ebfe483402416",
-          "sha256": "7114a21d3908df873af9040a722211c77acd1f5a0c9f198272caaa2932b5e179",
-          "bytes": 63285,
-          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/e10df08877f8819a625a1afa38c3297a31fda296/README.md"
+          "git_blob_sha1": "a2240fea8f624fe86467911821cb9a55cede4e26",
+          "sha256": "6c368068b6fadb43db08cabe6858338461b494299b2f4c5102883992b0aa6b5b",
+          "bytes": 36226,
+          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/README.md"
         },
         {
           "path": "pyproject.toml",
-          "git_blob_sha1": "709c73818a0c8b5a2045dbf38f87078eb6947ed0",
-          "sha256": "b0ed717989396b776b26f64cc54ff85504ad04c1c54cbd3d50cdb3cae52afb13",
-          "bytes": 8159,
-          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/e10df08877f8819a625a1afa38c3297a31fda296/pyproject.toml"
+          "git_blob_sha1": "7d2dd62ea0ab0f4edf22f7ddb44451e5cc37e1e8",
+          "sha256": "818aef844cf1a5fc4bb686b84d824c10cf1819820d2ffba8109ef74cacdd1c2b",
+          "bytes": 9155,
+          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/pyproject.toml"
         },
         {
           "path": "uv.lock",
-          "git_blob_sha1": "8ed6ea82c8194ce5b57aeec42784321f95b2744e",
-          "sha256": "eb376f7dcde03a0fa8b57f469285ee4d38d7075c2a0e6385780e5717be4d4896",
-          "bytes": 1035465,
-          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/e10df08877f8819a625a1afa38c3297a31fda296/uv.lock"
+          "git_blob_sha1": "68481d202f046be750cc002d5f14edf6392d2889",
+          "sha256": "f761d4a7e465a5c62581545d3b899c2436255506d57995d92ce76afcbf3dd0d1",
+          "bytes": 1035519,
+          "url": "https://raw.githubusercontent.com/Graphify-Labs/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/uv.lock"
         }
       ],
       "provenance_record": "graphify",
@@ -190,29 +193,29 @@
       "repository": "DeusData/codebase-memory-mcp",
       "repository_url": "https://github.com/DeusData/codebase-memory-mcp",
       "upstream_repository_id": 1166102148,
-      "version": "0.11.0",
-      "release_tag": "v0.11.0",
-      "release_url": "https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.11.0",
-      "release_id": 389354981,
-      "release_published_at": "2026-09-15T23:40:39Z",
-      "commit": "8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
-      "commit_url": "https://github.com/DeusData/codebase-memory-mcp/commit/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
-      "git_tree_sha1": "e5a5586de0bd58ddf59b73cbf1baa70ea0427fe8",
+      "version": "0.12.1",
+      "release_tag": "v0.12.1",
+      "release_url": "https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.12.1",
+      "release_id": 415460046,
+      "release_published_at": "2026-10-16T23:35:48Z",
+      "commit": "a7158ac2f48ca646b4527341b76f930f2aeff87e",
+      "commit_url": "https://github.com/DeusData/codebase-memory-mcp/commit/a7158ac2f48ca646b4527341b76f930f2aeff87e",
+      "git_tree_sha1": "2297ca5b45b72e0f80805294c34d3d87957d45ec",
       "implementation": "공식 codebase-memory-mcp 서버 구현",
       "package_name": null,
       "source_archive": {
-        "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
+        "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/a7158ac2f48ca646b4527341b76f930f2aeff87e",
         "format": "tar.gz",
-        "sha256": "f4df6a6fd005fb1f8b8b65408338580604eca228568602a834ee265aa439322d",
-        "bytes": 97865712
+        "sha256": "7c47f2a2b151c91e6506dfbe8073b5908e4c2ca21816bccc2a42fe9cd86380a0",
+        "bytes": 109754858
       },
       "source_files": [
         {
           "path": "README.md",
-          "git_blob_sha1": "c6ab67ee254a614b66c167f104a69a93fb6aaf89",
-          "sha256": "17eed3516a3170db5c4b3d6b446084fb1e4d20e5e35c198880643fc646dba7e4",
-          "bytes": 75222,
-          "url": "https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/README.md"
+          "git_blob_sha1": "590c9eef96fafcb60b1205ea89ab258989b8165f",
+          "sha256": "f3a94869bb9bf8f3dc113450eeba655a301034c7dfb7be801ee7583034374e8b",
+          "bytes": 108179,
+          "url": "https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/README.md"
         }
       ],
       "provenance_record": "codebase-memory-mcp"
@@ -225,43 +228,43 @@
       "repository": "oraios/serena",
       "repository_url": "https://github.com/oraios/serena",
       "upstream_repository_id": 953683578,
-      "version": "1.7.0",
-      "release_tag": "v1.7.0",
-      "release_url": "https://github.com/oraios/serena/releases/tag/v1.7.0",
-      "release_id": 367549941,
-      "release_published_at": "2026-08-09T18:38:06Z",
-      "commit": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-      "commit_url": "https://github.com/oraios/serena/commit/949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-      "git_tree_sha1": "6daa0fe28c2be66ed2462e02871426098ddecb69",
+      "version": "2.1.0",
+      "release_tag": "v2.1.0",
+      "release_url": "https://github.com/oraios/serena/releases/tag/v2.1.0",
+      "release_id": 417559472,
+      "release_published_at": "2026-10-19T17:30:43Z",
+      "commit": "5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
+      "commit_url": "https://github.com/oraios/serena/commit/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
+      "git_tree_sha1": "c85e08bf473cfeefc0312b42056fdbd9a960b5f9",
       "implementation": "공식 serena-agent Python 구현; 로컬 LSP Go·TypeScript",
       "package_name": "serena-agent",
       "source_archive": {
-        "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-        "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
-        "bytes": 2252543,
-        "format": "tar.gz"
+        "url": "https://codeload.github.com/oraios/serena/tar.gz/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
+        "format": "tar.gz",
+        "sha256": "3173dfcc3cba19e4002685768acc563bd2b9b689a4d82fda94f7ee0877cfd0f7",
+        "bytes": 2522657
       },
       "source_files": [
         {
           "path": "README.md",
-          "git_blob_sha1": "6e16380f712b3a5a71d917d45fa4ad18e93da412",
-          "sha256": "e617441ff791c8c9cdb250b66ed9510284f6df0af260c529b77a94e3ac4eb461",
-          "bytes": 14511,
-          "url": "https://raw.githubusercontent.com/oraios/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/README.md"
+          "git_blob_sha1": "5cc92d57faf8fa44e9fb868ba69852314162888b",
+          "sha256": "ac307392fc53dcf60485a8e635fad7c2e1b9a4cbb92ec96e15f484fd3c29c44e",
+          "bytes": 15320,
+          "url": "https://raw.githubusercontent.com/oraios/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/README.md"
         },
         {
           "path": "pyproject.toml",
-          "git_blob_sha1": "b6bc9e586019250fc4c1586b77dcb2f3c6566228",
-          "sha256": "66d9130a108c2251213a4388e099d1e928c827a9e6287bcdaaa0ce0daa23753e",
-          "bytes": 13624,
-          "url": "https://raw.githubusercontent.com/oraios/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/pyproject.toml"
+          "git_blob_sha1": "7d7412a6a2c95d31b27b6df4a459f2141eb2bc6a",
+          "sha256": "ed88a9ce7dee9e006b72d46d971a9cfd8de349409fa0dfd4293bb7ea11b11711",
+          "bytes": 14122,
+          "url": "https://raw.githubusercontent.com/oraios/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/pyproject.toml"
         },
         {
           "path": "uv.lock",
-          "git_blob_sha1": "c5d1ab52d59ff37687f824017be234e878abe1f0",
-          "sha256": "48f88af6b9a7c942820b65d0321176b33b49f0012a8a0cd036ee1f5140cfe167",
-          "bytes": 524560,
-          "url": "https://raw.githubusercontent.com/oraios/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/uv.lock"
+          "git_blob_sha1": "117078e09d1118b3b4d8730478718cd030617e2f",
+          "sha256": "24bbc88ca06a3b1bb84635829b9571a1132ee0d78d5ef5f45a673d9ae4d65837",
+          "bytes": 527311,
+          "url": "https://raw.githubusercontent.com/oraios/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/uv.lock"
         }
       ],
       "provenance_record": "serena"
@@ -326,11 +329,11 @@
   "execution_contract": {
     "status": "not_frozen",
     "harness_adapter_status": "pending",
-    "is_consumed_by_current_harness": false,
+    "is_consumed_by_current_harness": true,
     "is_ready_for_formal_execution": false,
-    "source_lock_enforcement": "새 하네스의 준비 단계가 이 파일과 데이터셋 manifest의 해시를 검증하고 동일 lock_id·해시를 실행 기록에 남겨야 한다. 현재 하네스에는 아직 연결하지 않았다.",
+    "source_lock_enforcement": "준비 단계는 이 bundle과 데이터셋 manifest의 해시를 검증한다. 설치·색인·실행 readiness는 별도 준비 기록으로 검증하며 이 소스 잠금만으로 실행을 승인하지 않는다.",
     "unfixed_fields": [
-      "codemap_search_source_and_binary",
+      "codemap_search_binary",
       "operating_system_architecture_and_hardware",
       "runtime_compiler_and_dependency_resolution",
       "binary_or_distribution_artifact_sha256",
@@ -348,6 +351,6 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "사용자 요청으로 Serena를 추가한다. 기존 5개 비교 대상의 버전·커밋·소스 아카이브 핀은 보존한다.",
-  "previous_lock_sha256": "e67c69ac5c2416744be1873f2311641b437b57f2f74de819880174992777fefc"
+  "revision_reason": "2026-10-24 최신 stable 비교군 6개를 재확인해 통합한다. rg 15.2.0은 유지하며 Graphify wheel 의존성 잠금과 codemap-v0.13.0 평가 소스를 명시한다.",
+  "previous_lock_sha256": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c"
 }

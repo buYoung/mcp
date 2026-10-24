@@ -1,51 +1,46 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-codemap-search 1.0.0과 비교할 외부 도구 **6개 모두의 출처와 소스 버전**을 2026-10-03에 고정했다. 식별자는 `grafana-comparison-targets-v1`, 개정 번호는 `2`, 상태는 `source_identities_frozen`이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 기준으로 한다.
+2026-10-24 확인한 외부 도구 **6개**의 stable 배포·소스를 통합한 `grafana-comparison-targets-v1` **개정 3**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. 이전 개정은 Git 이력에 보존하며 `previous_lock_sha256`은 개정 2의 `b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c`다.
 
-| 비교 대상 | 공식 저장소 | 정식 릴리스 | 고정 커밋 |
+| 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
-| CodeGraph | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) | [1.6.1](https://github.com/colbymchenry/codegraph/releases/tag/v1.6.1) | `f4ddf508516332419ea3c95702810765936cf679` |
-| zvec-grep | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) | [0.2.0](https://github.com/zvec-ai/zvec-grep/releases/tag/v0.2.0) | `38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8` |
-| Graphify | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) | [0.9.74](https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.74) | `e10df08877f8819a625a1afa38c3297a31fda296` |
-| codebase-memory-mcp | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) | [0.11.0](https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.11.0) | `8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798` |
-| Serena | [oraios/serena](https://github.com/oraios/serena) | [1.7.0](https://github.com/oraios/serena/releases/tag/v1.7.0) | `949a27ef1e5fda1a6e7b561e777bcece345c6ffd` |
-| plain rg | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | [15.2.0](https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0) | `e89fff89ac9af12e8d4ce9d5fd07beb408ca730f` |
+| CodeGraph | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) | [1.6.2](https://github.com/colbymchenry/codegraph/releases/tag/v1.6.2) | `6560052a6f856855d3f71eee838fd66ccfa4285d` |
+| zvec-grep | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) | [0.2.2 tag](https://github.com/zvec-ai/zvec-grep/tree/v0.2.2) · npm stable | `b1a9148e26a7bc9bd4a52229ffb7532d3063793d` |
+| Graphify | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) | [0.9.95](https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.95) | `92741d162b2094ffc2fed58cfbd8ee823e9da62c` |
+| codebase-memory-mcp | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) | [0.12.1](https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.12.1) | `a7158ac2f48ca646b4527341b76f930f2aeff87e` |
+| Serena | [oraios/serena](https://github.com/oraios/serena) | [2.1.0](https://github.com/oraios/serena/releases/tag/v2.1.0) | `5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc` |
+| plain rg | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | [15.2.0](https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0) · 유지 | `e89fff89ac9af12e8d4ce9d5fd07beb408ca730f` |
 
-CodeGraph는 사용자가 `colbymchenry/codegraph`를 선택했다. Graphify는 기존 `safishamsi/graphify` 주소가 이동한 공식 저장소를 사용한다. CodeGraph와 zvec-grep은 각각 `@colbymchenry/codegraph`, `@zvec/zvec-grep`의 루트 Node.js 구현을, Graphify는 `graphifyy` Python 구현을 기준으로 한다. 패키지 이름과 버전은 고정 커밋의 메타데이터와 대조했다.
+- CodeGraph는 사용자가 선택한 공식 `@colbymchenry/codegraph` Node 구현이다. zvec-grep은 `@zvec/zvec-grep` Node 구현이다. zvec 0.2.2에는 GitHub Release가 없으므로 release URL/ID/시각은 `null`이다. GitHub latest의 오래된 0.2.0 메타데이터를 빌려 쓰지 않는다.
+- Graphify는 공식 `Graphify-Labs/graphify`의 `graphifyy` Python 구현이다. `v1.0.0`은 2026-04-05의 과거 release이며 PyPI에는 없다. 현재 upstream latest와 PyPI가 일치하는 0.9.95를 선택했다.
+- 평가 제품 codemap-search는 작업 트리가 아니라 `codemap-v0.13.0` (`4061c42a59a296255ce151f6a60683e31b66a2b8`)의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.13.0**이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
 
 ## 데이터셋 연결
 
-6개 도구와 평가 제품 codemap-search를 포함한 총 7개 비교군은 같은 [Grafana 3문항 데이터셋](../grafana-routes-v2/README.md)을 사용한다. 이 명세는 해당 데이터셋의 manifest SHA-256 `ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24`에 연결된다. 현재 데이터셋의 질문·근거 내용은 변경하지 않았으며 manifest의 문서 메타데이터 해시만 갱신했다.
+총 7개 비교군은 같은 [Grafana 3문항 데이터셋](../grafana-routes-v2/README.md)을 사용한다. manifest SHA-256은 `ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24`이며 이번 개정에서 manifest·질문·정답·근거를 변경하지 않았다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
 
-plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 기준군이다. 이 명세의 rg 핀은 사용 가능한 실행 파일을 고정한다. 전용 rg MCP를 제공하지 않으며 명령 선택은 LLM에 맡긴다. 현재 도구 구성과 보조 도구 범위는 [실행 계약](../grafana-execution-v1.json)을 따른다.
-
-## 고정 파일과 적용 규칙
+## 설치 조건과 고정 파일
 
 | 파일 | 역할 |
 | --- | --- |
-| [targets.lock.json](targets.lock.json) | 필수 비교군, 저장소 ID·URL, 구현, 릴리스 태그, 전체 커밋·Git tree, 소스 아카이브 URL·SHA-256·크기, 데이터셋 연결과 실행 전 미확정 항목. |
-| [provenance.json](provenance.json) | 공식 API에서 확인한 릴리스→태그→커밋→Git tree 연결과 소스 파일·아카이브 검증 기록. |
-| [SHA256SUMS](SHA256SUMS) | 이 문서와 두 JSON 파일의 SHA-256. |
+| [targets.lock.json](targets.lock.json) | 저장소·태그·전체 커밋·Git tree, source archive URL·SHA-256·크기, source file blob, 데이터셋/평가 소스 연결. |
+| [provenance.json](provenance.json) | Phase A의 공식 API·태그·커밋·root blob·archive 검증 기록과 Graphify wheel 설치 조건. |
+| [graphifyy-0.9.95-py312-darwin-arm64.requirements.txt](graphifyy-0.9.95-py312-darwin-arm64.requirements.txt) | Python 3.12/macOS arm64에서 한 번 해석한 Graphify wheel 및 59개 runtime package의 hash lock. |
+| [SHA256SUMS](SHA256SUMS) | 이 문서·두 JSON·requirements의 SHA-256. |
 
-버전은 조회 시점의 각 공식 GitHub 저장소가 가리키는 최신 정식 릴리스를 선택했다. 준비·실행 때 `latest`나 기본 브랜치를 다시 따라가지 않는다. Git 체크아웃은 전체 커밋과 Git tree가 일치해야 하며, 소스 아카이브는 기록된 SHA-256과 크기를 대조해야 한다. 태그나 버전 문자열이 같아도 커밋·해시가 다르면 같은 대상으로 인정하지 않는다.
+Graphify upstream `uv.lock`은 루트 버전 0.9.84와 누락된 필수 PyYAML 때문에 0.9.95의 `uv sync --locked`가 실패한다. `--frozen`으로 오류를 숨기지 않고 공식 wheel을 위 requirements로 `uv pip sync --require-hashes --only-binary :all:` 설치한다. 준비 시 의존성을 다시 해석하지 않는다. wheel package 파일을 고정 tag source와 대조하고 Graphify·Serena 모두 `uv pip check`를 수행한다. 원본 `uv.lock`은 source provenance로 보존하며 실제 runtime lock과 구분한다.
 
-불일치나 설치 실패가 발생하면 원인을 확인한다. 다른 포크·버전으로 자동 교체하거나 필수 비교군을 제외하지 않는다. 프로젝트·구현·버전·커밋·아카이브를 바꿀 때는 이 고정본을 보존하고 변경 이유와 새 개정을 남긴다. 서로 다른 개정의 결과를 같은 조건의 측정으로 합산하지 않는다.
+CBM은 공식 darwin-arm64 asset 0.12.1을 사용한다. Serena는 2.1.0의 기본 REPL 대신 검색 전용 계약을 위해 `--agent-interface tools`를 명시한다. native default와 예외 이유를 prepared state에 기록하며 그 외 기존 검색 전용 설정·출력 기본값은 유지한다.
 
-## 검증 범위
+## 적용 규칙과 검증 범위
 
-공식 저장소 6개에서 정식 릴리스와 태그를 확인하고 전체 커밋으로 해석했다. 고정 커밋의 소스 아카이브 6개를 내려받아 전체 바이트 SHA-256을 계산했다. 패키지 메타데이터·의존성 잠금 파일·README 등 루트 파일 총 16개는 Git blob 해시를 대조하고 아카이브 안의 내용과도 일치함을 확인했다. 불일치는 0개다.
+준비·실행 때 `latest`나 기본 브랜치를 다시 따라가지 않는다. 고정 archive SHA-256과 source pin을 검증하고 빌드 전후 원문을 대조한다. 태그·버전 문자열만 같고 commit/hash가 다르면 다른 조건이다. 설치 실패 시 다른 버전으로 대체하거나 필수 비교군을 제외하지 않는다. 구버전 index/baseline/ready 기록은 재인증하지 않고 새로 준비한다.
 
-저장소 루트에서 다음 명령으로 이 명세의 파일 무결성을 확인한다.
+Phase A에서 공식 저장소 6개, GitHub Release 5개와 npm/tag-only 1개, source archive 6개 및 root source file 16개의 Git blob/바이트를 확인했다. `response_sha256`은 당시 API 원문의 식별값이며 응답 전체나 archive는 이 bundle에 포함하지 않는다. 전체 Git tree 재구성·binary 재현 빌드·전체 Grafana readiness를 인증하는 기록이 아니다.
 
 ```sh
 cd benchmark/data/grafana-comparison-targets-v1
 shasum -a 256 -c SHA256SUMS
 ```
 
-패키지 내부 해시 검증과 외부 소스 재검증은 구분한다. 후자는 고정 URL의 아카이브 또는 고정 커밋을 다시 확보해야 한다. 소스 아카이브와 API 전체 응답은 이 디렉터리에 포함하지 않으며, `provenance.json`은 식별에 필요한 응답 필드와 검증 기록을 보존한다. 기록의 `response_sha256`은 당시 원본 API 응답의 식별값이다. 이 절은 소스 명세를 동결할 당시의 검증 범위다. 이후의 설치·빌드·색인 검증은 현재 준비 기록에 별도로 보존한다.
-
-## 현재 실행 준비 연결
-
-이 잠금은 비교 도구의 소스 식별을 고정한다. 현재 하네스는 준비 단계에서 이 파일과 데이터셋 manifest를 읽고 전체 필수 비교군을 검증한다. 설치 바이너리·의존성·로컬 모델 가중치·도구 목록·색인·복원용 상태는 [최종 준비 기록](../../../docs/briefs/evidence/bench-ready/07-readiness.json)에 연결한다.
-
-실행 조건과 준비 절차는 [실행 계약](../grafana-execution-v1.json)과 [벤치마크 안내](../../README.md)를 따른다. `targets.lock.json`의 준비 전 상태는 소스 동결 당시의 기록이다. 개정 2는 사용자 요청으로 Serena를 추가했으며 기존 비교 대상의 버전·소스 핀은 보존했다. 실제 풀이·채점·보정은 아직 실행하지 않았다.
+하네스는 bundle과 manifest를 검증하고 설치·도구 목록·색인·중립 조회의 해시를 별도 준비 기록에 결합한다. 이 잠금 자체는 실행 승인이 아니다. 현재 절차는 [벤치마크 안내](../../README.md)와 [실행 계약](../grafana-execution-v1.json)을 따른다.

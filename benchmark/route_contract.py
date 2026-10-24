@@ -11,7 +11,7 @@ from .core import digest, file_digest, read_json, require, write_json
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c6fad8695a96577eb466d425e6ac4a759ca30f47"
 DATASET_MANIFEST_SHA256 = "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24"
-TARGET_LOCK_SHA256 = "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c"
+TARGET_LOCK_SHA256 = "7c20b821819c929bb23e0fa323757a44f1544236d32228941d829c7d5b26e22c"
 QUESTION_IDS = ("route-star", "route-save-existing", "route-live-receive")
 ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
 DATA = settings.ROOT / "data/grafana-routes-v2"
@@ -127,9 +127,11 @@ def solver_model(model: str | None = None) -> dict:
 
 def arm_contracts() -> list[dict]:
     locked = frozen_inputs()["lock"]
+    subject = locked["subject"]
     return [{"id": "codemap-search", "name": "codemap-search", "role": "subject",
-             "path": "apps/codemap-search", "version": None, "pin_status": "snapshot_at_preparation"},
-            *[{**{key: row[key] for key in ("id", "name", "role", "repository", "version", "commit", "source_archive")},
+             "path": "apps/codemap-search", **{key: subject[key] for key in ("version", "git_ref", "commit")},
+             "pin_status": "release_source_frozen_binary_at_preparation"},
+            *[{**{key: row[key] for key in ("id", "name", "role", "repository", "version", "release_tag", "commit", "source_archive")},
                **({"name": "기본 에이전트 (검색제품 없음)", "role": "native_agent_baseline"} if row["id"] == "rg" else {})}
               for row in locked["comparisons"]]]
 
