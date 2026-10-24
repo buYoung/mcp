@@ -2,8 +2,8 @@
   "aggregation_rules": "Fixed three-route macro denominator, separate core/extended fact denominators; no variance estimate.",
   "contract_hash": "0c2847971220a67487964dc709d9f92ca2f9c2ae001c156ef944ee0f38415b0f",
   "dependency_hashes": {
-    "02-delivery.json": "1a599c114a5bd66d58739842aeeb3447d79a0ad96d2748dcae627ce02d55cca9",
-    "05-grading.json": "0db968c68225676d12bace0383e734aee889bff28c74e79a6c6156e165eabd3a"
+    "02-delivery.json": "c00bd31a57e94db43268b2401968350bebe68bda6e892cc4786a4618457f2620",
+    "05-grading.json": "4c8c4973336479535ccbd4b239397906c6c81fdc4ce275023b10ef4726b4828c"
   },
   "field_provenance": {
     "client_delivery": {
@@ -68,9 +68,9 @@
   },
   "implementation_hashes": {
     "benchmark/claude_client.py": "1d52d226205b07440ea6f8a1dd72eb7c3cc0b249989c3a0a55a61155d1971bd7",
-    "benchmark/execution.py": "b29518de9eae199935c75af8b5590d91804d9d4026f614088590b0dff0bcec17",
+    "benchmark/execution.py": "e114249a50f1cf1d6abd84eaaec83a3cfb12127439f4541e18c35e067414b436",
     "benchmark/pi_client.py": "4b394b66da44f1ae001a0d7291c3a23a4ca37a02a8e3c4830916c2e8c38f8c28",
-    "benchmark/route_metrics.py": "5e234f52846245c0881f476e21a45ae36d5fdba4b24ba8db8818834e8de0f72b",
+    "benchmark/route_metrics.py": "6a3eeb26a8a75dcd6415de34523a59eb075930d75e5f4161ed949b08a5c27303",
     "benchmark/runner.py": "14fb0cd96ed78387fbf46872b6af3bb3233039fa24ed648d0b9438dc445823f6"
   },
   "input_hashes": {
@@ -164,11 +164,11 @@
     "planned_unique_slots": 21,
     "relay_loss": false
   },
-  "recorded_at": "2026-10-24T13:17:49.949630+00:00",
+  "recorded_at": "2026-10-24T14:52:02.396312+00:00",
   "result_schema": {
     "attempts_per_slot": 1,
     "preview": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/report-contract/report/summary.json",
-    "preview_sha256": "fc208c87d6d202a2e7469b826834789010a1fda0b26f2eaf956e1601daa6ce57",
+    "preview_sha256": "6ca02be6ec472b66af2a8c3911ac9bfdb3192da998f044971e2b40a59fd2758c",
     "slot_keys": [
       "route-save-existing-codemap-search-1",
       "route-save-existing-zvec-grep-1",
