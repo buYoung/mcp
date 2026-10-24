@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -25,7 +27,9 @@ def workspace_root(ident: str) -> Path:
     if ident == "serena":
         # LSP dependency resolution walks parent directories. Keep the corpus out of
         # the harness repository so its node_modules cannot become Grafana dependencies.
-        root = Path(tempfile.gettempdir()).resolve() / f"codemap-benchmark-{digest(str(settings.REPOSITORY))[:12]}"
+        parent = (settings.CACHE if not settings.CACHE.is_relative_to(settings.REPOSITORY)
+                  else Path(tempfile.gettempdir()).resolve())
+        root = parent / f"codemap-benchmark-{digest(str(settings.REPOSITORY))[:12]}"
         require(not any((path / "node_modules").exists() for path in [root, *root.parents]),
                 "Serena에 상위 node_modules와 격리된 별도 TMPDIR이 필요합니다")
         return root / ident
@@ -137,9 +141,10 @@ def prepare_index(ident: str, emit=print) -> dict:
     commands = []
     emit(f"색인 준비: {ident}")
     if ident == "codemap-search":
+        permissions = restrict_codemap_permissions(launch, source, base, env, commands)
         commands.append(run_logged([*launch, "index", "."], source, base / "index.log", env=env, timeout=3600))
         index_paths = [source / ".codemap"]
-        mode = {"external_ai": False, "Jev": "native default disabled"}
+        mode = {"external_ai": False, "Jev": "native default disabled", "filesystem_permissions": permissions}
     elif ident == "codegraph":
         commands.append(run_logged([*launch, "init", "--yes", str(source)], source, base / "index.log", env=env, timeout=3600))
         commands.append(run_logged([*launch, "status", str(source)], source, base / "index-status.log", env=env))
@@ -184,7 +189,12 @@ def prepare_index(ident: str, emit=print) -> dict:
                                    source, base / "index.log", env=env, timeout=3600))
         commands.append(run_logged([*launch, "cli", "--json", "list_projects"], source,
                                    base / "index-status.log", env=env))
-        native = read_json(base / "index.log")
+        # run_logged merges stderr, where the CLI writes `level=... msg=...` diagnostics before its JSON result.
+        output = [line for line in (base / "index.log").read_text().splitlines() if line.strip()]
+        diagnostics = [line for line in output if line.startswith("level=")]
+        results = [line for line in output if not line.startswith("level=")]
+        require(len(results) == 1, "codebase-memory-mcp 색인 결과 JSON 형식 오류")
+        native = json.loads(results[0])
         require(not native.get("isError") and native.get("structuredContent", {}).get("status") == "indexed",
                 "codebase-memory-mcp native index가 준비 완료 상태가 아닙니다")
         index_paths = [home]
@@ -192,7 +202,7 @@ def prepare_index(ident: str, emit=print) -> dict:
             index_paths.append(source / ".codebase-memory")
         mode = {"auto_index": "native default false", "auto_watch": "native default true",
                 "watcher_enabled": "native default true", "cache": str(home),
-                "native_readiness": native["structuredContent"]}
+                "native_readiness": native["structuredContent"], "native_warnings": sorted(set(diagnostics))}
     elif ident == "serena":
         from .serena_support import prepare_index as prepare_serena
         index_paths, mode, commands = prepare_serena(artifact, source, home)
@@ -209,6 +219,39 @@ def prepare_index(ident: str, emit=print) -> dict:
     write_json(record, result)
     emit(f"색인 완료: {ident}")
     return result
+
+
+CODEMAP_PERMISSION_TOOLS = ("find", "grep", "read")
+
+
+def restrict_codemap_permissions(launch: list[str], source: Path, base: Path, env: dict, commands: list) -> dict:
+    """Keep codemap reads inside the source; every other repo setting stays the native scaffold.
+
+    The native default is "anywhere", and `read`/`overview` accept a `query` path alias that the
+    relay's path check does not inspect, so the hidden answer key would be readable by absolute path.
+    """
+    config = source / ".codemap" / "config.toml"
+    require(not config.exists(), "codemap 저장소 설정이 이미 있습니다")
+    # Only `mcp` startup writes the native repo scaffold; EOF on stdin ends the server.
+    commands.append(run_logged([*launch, "mcp", "--no-call-log"], source, base / "scaffold.log", env=env,
+                               timeout=300, stdin=subprocess.DEVNULL))
+    require(config.is_file(), "codemap 저장소 설정 scaffold 누락")
+    native = config.read_text()
+    lines = native.splitlines(keepends=True)
+    section = ""
+    replaced = []
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            section = stripped
+        elif section == "[filesystem_permissions]" and stripped in {f'{tool} = "anywhere"' for tool in CODEMAP_PERMISSION_TOOLS}:
+            lines[index] = line.replace('"anywhere"', '"workspace"')
+            replaced.append(stripped.split(" ", 1)[0])
+    require(sorted(replaced) == sorted(CODEMAP_PERMISSION_TOOLS), f"codemap 접근 범위 기본값 변경: {replaced}")
+    config.write_text("".join(lines))
+    return {**{tool: "workspace" for tool in CODEMAP_PERMISSION_TOOLS}, "native_default": "anywhere",
+            "reason": "hidden answer key outside the source; the relay does not inspect the read/overview query path alias",
+            "native_scaffold_sha256": hashlib.sha256(native.encode()).hexdigest(), "config_sha256": file_digest(config)}
 
 
 def load_index(ident: str) -> dict:
@@ -241,6 +284,23 @@ def freeze_baseline(ident: str, state: dict) -> dict:
 def remove_disposable_copy(root: Path) -> None:
     """Remove only a caller-validated probe copy, including native read-only Go caches."""
     def retry_owned_unlink(operation, name, error):
+        if operation is os.rmdir and isinstance(error, OSError) and error.errno == errno.ENOTEMPTY:
+            # Finder can write .DS_Store into a directory on an external volume while it is removed.
+            directory = Path(name)
+            require(directory.is_relative_to(root), "작업 복사본 밖의 삭제 금지")
+            for _ in range(5):
+                leftovers = list(directory.iterdir())
+                require(all(item.name == ".DS_Store" and item.is_file() for item in leftovers),
+                        f"삭제 중 작업 복사본 변경: {directory}")
+                for item in leftovers:
+                    item.unlink(missing_ok=True)
+                try:
+                    os.rmdir(directory)
+                    return
+                except OSError as retry:
+                    if retry.errno != errno.ENOTEMPTY:
+                        raise
+            raise error
         if not isinstance(error, PermissionError) or operation not in {os.unlink, os.rmdir}:
             raise error
         parent = Path(name).parent
@@ -450,6 +510,14 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
                 from .serena_support import verify_probe as verify_serena_probe
                 verify_serena_probe(name, result)
             observations.append({"tool": name, "arguments": arguments, "result_sha256": digest(result), "isError": False})
+        if ident == "codemap-search":
+            # The relay passes the `query` alias through; the workspace permission must deny the answer key.
+            arguments = {"query": str(routes.DATA / "dataset.json")}
+            denied = relay.call(len(probes) + 1, {"name": "read", "arguments": arguments})
+            text = "\n".join(item.get("text", "") for item in denied.get("content", []))
+            require(denied.get("isError") and "route-star" not in text, f"codemap 작업공간 밖 읽기 차단 실패: {text[:300]}")
+            observations.append({"tool": "read", "arguments": arguments, "result_sha256": digest(denied), "isError": True,
+                                 "expected": "outside-workspace read denied"})
         auxiliaries, necessity = [], []
         if ident == "graphify":
             # Graph traversal returns source locations/graph metadata, with no source-body read operation.

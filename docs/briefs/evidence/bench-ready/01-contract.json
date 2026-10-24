@@ -132,7 +132,7 @@
     "benchmark/execution.py": "0e83554d7dcafbb96aad231d9ec20a584f0c6af0c8350a29c73e854cbc395f86",
     "benchmark/route_contract.py": "8c2f16ef12a6076c2fbb3e5f680ac065831350a258cf2050e0e5963479625a26",
     "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab",
-    "benchmark/settings.py": "41ab10706aecd2f2620a2345a0fa952b4180527f4049a11ba2f2e228f33310f7"
+    "benchmark/settings.py": "c3606b1f440687573d1ea13a86fe035342a80634452fda2769043151b93e615d"
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
@@ -269,7 +269,7 @@
     "route-save-existing",
     "route-live-receive"
   ],
-  "recorded_at": "2026-10-03T10:52:29.093988+00:00",
+  "recorded_at": "2026-10-24T01:36:53.553894+00:00",
   "repetitions": 1,
   "schema_version": 1,
   "solver": {

@@ -11,7 +11,7 @@
   "client_identity": "forward the actual initialize clientInfo and capabilities",
   "client_limits": {
     "code_mode_budget": "Native server guidance is forwarded unchanged.",
-    "codex_version": "codex-cli 0.160.0",
+    "codex_version": "codex-cli 0.163.0",
     "harness_override": null,
     "history_limit": null,
     "history_limit_reason": "Client default has not been measured with a live model."
@@ -82,7 +82,7 @@
   ],
   "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
   "dependency_hashes": {
-    "01-contract.json": "ae6a1e82e2cc63a2a5ae88cf8189d72551f90c6ce0be56a3e1e0d9d15d067f22"
+    "01-contract.json": "6953521682bd38e37e81ecdec7f42400c9a8206621e7e0dc86f5697d6a97663c"
   },
   "grader_runs": 0,
   "implementation_hashes": {
@@ -118,11 +118,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 56768,
+          "pgid": 80615,
           "stopped": true
         }
       ],
-      "pid": 56768,
+      "pid": 80615,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -177,16 +177,16 @@
     ],
     "probe": "rg over a copied harness source file",
     "probe_source_sha256": "9876faa155b436eb08321eeaaaecec67e39e02cca059cfbc891ea247dbb00b8c",
-    "protocol_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791024758452974000/protocol.jsonl",
+    "protocol_log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/delivery-probe/1792805826627018000/protocol.jsonl",
     "protocol_sha256": "31a51c14708808f1f265ac8f1341a33979c26fb540e5e20d1636ce86250d2c60",
-    "relay_log": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/delivery-probe/1791024758452974000/relay.jsonl",
-    "relay_sha256": "784bdee75482975666714b1dffabdaa31e09f888c40961579502ce35b30af323",
+    "relay_log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/delivery-probe/1792805826627018000/relay.jsonl",
+    "relay_sha256": "9481bdafa09cb0cc02d66e6b36fbcd186c724918564435cb14aca92bc5037a9d",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
     "stdout_bytes": 63456,
     "stdout_lines": 1024
   },
-  "recorded_at": "2026-10-03T10:52:38.860407+00:00",
+  "recorded_at": "2026-10-24T01:37:06.889397+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",

@@ -73,7 +73,7 @@ def download(url: str, path: Path, checksum: str | None = None) -> dict:
     return {"url": url, "path": str(path), "sha256": actual, "bytes": path.stat().st_size}
 
 
-def run_logged(args: list[str], cwd: Path, log: Path, *, env: dict | None = None, timeout=1800) -> dict:
+def run_logged(args: list[str], cwd: Path, log: Path, *, env: dict | None = None, timeout=1800, stdin=None) -> dict:
     log.parent.mkdir(parents=True, exist_ok=True)
     if log.exists():
         stamp = str(time.time_ns())
@@ -82,7 +82,7 @@ def run_logged(args: list[str], cwd: Path, log: Path, *, env: dict | None = None
             log.with_suffix(log.suffix + ".json").rename(log.with_name(f"{log.name}.{stamp}.previous.json"))
     started = time.monotonic()
     with log.open("wb") as stream:
-        completed = subprocess.run(args, cwd=cwd, env=env or clean_environment(), stdout=stream,
+        completed = subprocess.run(args, cwd=cwd, env=env or clean_environment(), stdin=stdin, stdout=stream,
                                    stderr=subprocess.STDOUT, timeout=timeout)
     record = {"command": args, "cwd": str(cwd), "log": str(log), "exit_code": completed.returncode,
               "elapsed_seconds": time.monotonic() - started, "log_sha256": file_digest(log)}

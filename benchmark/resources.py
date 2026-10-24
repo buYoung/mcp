@@ -53,7 +53,8 @@ def environment(solver_backend="codex") -> dict:
 
 def product_files(root: Path) -> dict:
     """Include tracked edits/deletions and nonignored new files; never include build caches."""
-    ignored = {".git", "target", ".codemap", ".codemap-index", "__pycache__", "node_modules"}
+    # Finder may write .DS_Store into snapshots on external volumes; tree_files ignores it too.
+    ignored = {".git", "target", ".codemap", ".codemap-index", "__pycache__", "node_modules", ".DS_Store"}
     try:
         names = command(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "."], root).split("\0")
     except ContractError:

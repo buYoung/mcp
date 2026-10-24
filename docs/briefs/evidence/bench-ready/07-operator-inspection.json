@@ -1,16 +1,24 @@
 {
   "schema_version": 1,
   "status": "verified_offline",
-  "recorded_at": "2026-10-03T12:11:37.024Z",
+  "recorded_at": "2026-10-24T02:06:56.305Z",
   "method": "Existing interactive dependency injection, actual catalog and projection of the actual prepared manifest; no solver or grader backend supplied.",
   "solver_model": "gpt-6.1-sol",
   "backend": "codex",
   "readiness": "/Users/buyong/workspace/private/buyong-mcp/docs/briefs/evidence/bench-ready/07-readiness.json",
-  "readiness_sha256": "7996e957cbb90258be3a61091440d494f4ee4cee2028d6c1d9ff56470ce5c895",
+  "readiness_sha256": "5e16cbf2927081f2cd76d9670088243b7322186506493de661baf0914a22ca4c",
   "implementation": "benchmark/start.mjs",
   "implementation_sha256": "578084ebba6bd6f9c12a44dce27ca5a5cb39b4414b3a4b4ffaea202cfe1042eb",
   "planned_slots": 21,
-  "required_arms": 7,
+  "required_arms": [
+    "codebase-memory-mcp",
+    "codegraph",
+    "codemap-search",
+    "graphify",
+    "rg",
+    "serena",
+    "zvec-grep"
+  ],
   "actions": [
     {
       "action": "catalog",
@@ -42,10 +50,10 @@
     "풀이 gpt-6.1-sol / medium, 채점 gpt-6-astra / high",
     "풀이 실행기: Codex · 채점 실행기: Codex",
     "도구 조건: codebase-memory-mcp (native_only), codegraph (native_only), codemap-search (native_only), graphify (assisted), 기본 에이전트 (검색 제품 없음) (native_agent_baseline), serena (native_only), zvec-grep (native_only)",
-    "codemap-search 실제 버전: 0.11.0",
+    "codemap-search 실제 버전: 0.13.0",
     "한도: 300초 · 탐색 80회 · 500,000토큰, 최대 4개 병렬 실행",
     "응답은 제품 기본값, 색인은 로컬 조건입니다. 문항마다 동일 경로의 조회 전 상태를 복원하도록 준비했습니다.",
-    "준비 기록: /Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/plans/9dd3572ea53320acc15860dd8da593dd/readiness.json",
+    "준비 기록: /Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/plans/c6995da7993eb605607e4f9c4af15d84/readiness.json",
     "실행 직전 준비가 완료됐습니다. 실제 21회 실행 연결은 별도 작업이며 풀이·채점은 실행하지 않았습니다."
   ],
   "execution_backend_calls": 0

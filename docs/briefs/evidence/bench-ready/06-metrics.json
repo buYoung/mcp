@@ -2,8 +2,8 @@
   "aggregation_rules": "Fixed three-route macro denominator, separate core/extended fact denominators; no variance estimate.",
   "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
   "dependency_hashes": {
-    "02-delivery.json": "bac7da987cbf846ba696a31ee70169833f23c6e5a622d7aff13e064b532f7b0d",
-    "05-grading.json": "f5bd0d7cabe0c5c90c0437cbca8c9dfe6730efd0813a698be84249375536dcb6"
+    "02-delivery.json": "00b338eed305d966457cfef3cc5fab717612fa6df8afa17134a45d8629b7da5e",
+    "05-grading.json": "e196c31b110496068ec9ebb4afe88b435dee12694526fcc1650fa55a35f1dfa9"
   },
   "field_provenance": {
     "client_delivery": {
@@ -160,10 +160,10 @@
     "planned_unique_slots": 21,
     "relay_loss": false
   },
-  "recorded_at": "2026-10-03T12:01:34.274047+00:00",
+  "recorded_at": "2026-10-24T01:49:33.249582+00:00",
   "result_schema": {
     "attempts_per_slot": 1,
-    "preview": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/report-contract/report/summary.json",
+    "preview": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/report-contract/report/summary.json",
     "preview_sha256": "ff0a14cf37a9f5d53e63fa057dd9e0cfb2c3888ca1ebc1d6a690ef49a172defc",
     "slot_keys": [
       "route-save-existing-codemap-search-1",

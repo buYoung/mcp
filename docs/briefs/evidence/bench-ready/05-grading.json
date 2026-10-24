@@ -5,7 +5,7 @@
   "citation_policy": "Parser and source-access labels are advisory; supported is the LLM's judgment of the original answer and fixed source.",
   "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
   "dependency_hashes": {
-    "01-contract.json": "ae6a1e82e2cc63a2a5ae88cf8189d72551f90c6ce0be56a3e1e0d9d15d067f22"
+    "01-contract.json": "6953521682bd38e37e81ecdec7f42400c9a8206621e7e0dc86f5697d6a97663c"
   },
   "fact_counts": {
     "core": 21,
@@ -35,15 +35,15 @@
   },
   "judgment_schema": {
     "route-live-receive": {
-      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-live-receive/schema.json",
+      "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/grading-contract/route-live-receive/schema.json",
       "sha256": "371effcaa83c45d1eab8af24f1ee5b5c515ec60db3e6cdb6710ef64f6e34b0da"
     },
     "route-save-existing": {
-      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-save-existing/schema.json",
+      "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/grading-contract/route-save-existing/schema.json",
       "sha256": "86ee490fc1b4fa573769bcec414bcdd25b83848145902864eb0107f98b6b03fa"
     },
     "route-star": {
-      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-star/schema.json",
+      "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/grading-contract/route-star/schema.json",
       "sha256": "de4e71adf5882f3e3d3cb403fd949dac67f6b626a1fc54b1b03f2e64edd38698"
     }
   },
@@ -54,21 +54,21 @@
   "packet_contract": {
     "route-live-receive": {
       "answers": 0,
-      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-live-receive/packet-contract.json",
+      "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/grading-contract/route-live-receive/packet-contract.json",
       "sha256": "7df5a2cf6782359959e4d64cc7f0d3aee77e7e8cd701117637a166e3baef8eba"
     },
     "route-save-existing": {
       "answers": 0,
-      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-save-existing/packet-contract.json",
+      "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/grading-contract/route-save-existing/packet-contract.json",
       "sha256": "fcd25c449a81b4f5e7df7568b186a202c89b1f746a65539793e4063df929d078"
     },
     "route-star": {
       "answers": 0,
-      "path": "/Users/buyong/workspace/private/buyong-mcp/benchmark/.cache/route-preparation/grading-contract/route-star/packet-contract.json",
+      "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/grading-contract/route-star/packet-contract.json",
       "sha256": "e7850d9a995ba7db75ce61ec50d4c9641de65628ee5141f198a1cbe77b329c58"
     }
   },
-  "recorded_at": "2026-10-03T10:52:38.890962+00:00",
+  "recorded_at": "2026-10-24T01:37:06.900283+00:00",
   "rubric_hash": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
   "schema_version": 1,
   "status": "verified_offline",
