@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import copy
 import itertools
+import hashlib
 import re
 import urllib.parse
 from pathlib import Path
 
 from . import grading_support as support, route_contract as routes
+from .campaign_store import durable_bytes, durable_json, timestamp
 from .core import canonical, digest, file_digest, read_json, require, write_json
 
 INSTRUCTIONS = """고정 Grafana 커밋에 대한 답변을 제공된 rubric대로 채점한다.
@@ -66,8 +68,9 @@ REFERENCE = re.compile(r"(?P<path>[^\s`<>\[\]()\"',;]+?\.[A-Za-z0-9]+)(?::L?|#L)
 IDENTITY_MENTION = re.compile(
     r"(?i)(?<![A-Za-z0-9_])(?:mcp[_:.-]+)?(?:codemap[-_\s]*search(?:_[A-Za-z0-9_]+)?|"
     r"codegraph(?:_[A-Za-z0-9_]+)?|zvec[-_\s]*grep(?:_[A-Za-z0-9_]+)?|"
-    r"graphify(?:_[A-Za-z0-9_]+)?|codebase[-_\s]*memory(?:[-_\s]*mcp)?(?:_[A-Za-z0-9_]+)?|serena(?:_[A-Za-z0-9_]+)?|plain[-_\s]+rg|ripgrep|rg|"
-    r"gpt[-_\s]*\d[A-Za-z0-9_.\-]*|claude(?:[-_\s]+(?:opus|code))?(?:[-_\s]*\d[\d.\-]*)?|"
+    r"graphifyy?(?:_[A-Za-z0-9_]+)?|codebase[-_\s]*memory(?:[-_\s]*mcp)?(?:_[A-Za-z0-9_]+)?|serena(?:[-_\s]*agent)?(?:_[A-Za-z0-9_]+)?|plain[-_\s]+rg|ripgrep|rg|"
+    r"codex(?:[-_\s]*(?:cli|mcp[-_\s]*client))?|openai|anthropic|astra|sol|"
+    r"gpt[-_\s]*\d[A-Za-z0-9_.\-]*(?:[-_\s]*(?:astra|sol))?|claude(?:[-_\s]+(?:opus|code))?(?:[-_\s]*\d[\d.\-]*)?|"
     r"opus[-_\s]*\d[\d.\-]*)(?![A-Za-z0-9_])")
 
 
@@ -108,8 +111,8 @@ def citation_index(answer: str) -> list[dict]:
     return result
 
 
-def citation_sources(citations: list[dict], source: Path) -> list[dict]:
-    corpus = read_json(routes.PREPARATION / "corpus.json")
+def citation_sources(citations: list[dict], source: Path, corpus: dict | None = None) -> list[dict]:
+    corpus = corpus if corpus is not None else read_json(routes.PREPARATION / "corpus.json")
     result = []
     for citation in citations:
         row = {**citation, "context_does_not_expand_answer_citation": True}
@@ -137,20 +140,16 @@ def citation_sources(citations: list[dict], source: Path) -> list[dict]:
     return result
 
 
-def packet(question: dict, runs: list[dict], source: Path, experiment: Path, seed: int) -> tuple[dict, dict, list]:
+def packet(question: dict, runs: list[dict], source: Path, experiment: Path, seed: int, *, corpus: dict | None = None) -> tuple[dict, dict, list]:
     evidence = read_json(routes.DATA / "evidence.json")
     registry, answers, warnings = {}, [], []
     for run in runs:
         ident, masked, replacements, positions, flags = support.mask_answer(run, source, experiment, seed=seed)
         units = support.units(masked)
         citations = citation_index(masked)
-        sources = citation_sources(citations, source)
+        sources = citation_sources(citations, source, corpus)
         # Keep possible self-identification out of an automatically sealed blind packet.
-        mentions = list(IDENTITY_MENTION.finditer(masked))
-        if mentions:
-            flags.append({"kind": "tool_or_model_identity", "spans": [[m.start(), m.end()] for m in mentions],
-                          "mentions": [m.group() for m in mentions],
-                          "policy": "Do not seal this answer until these exact spans are anonymized or verified as legitimate source identifiers; preserve the original answer."})
+        flags = identity_flags(masked, flags)
         require(ident not in registry, "중복 익명 답변")
         registry[ident] = {"run_id": run["id"], "question_id": question["id"], "answer": run["answer"],
                            "blinded_answer": masked, "blinding": replacements, "positions": positions,
@@ -171,6 +170,8 @@ def packet(question: dict, runs: list[dict], source: Path, experiment: Path, see
 
 
 def validate_judgment(question: dict, judgment: dict, answer_id: str, record: dict) -> dict:
+    require(isinstance(judgment, dict), "판정은 JSON object여야 합니다")
+    require(isinstance(judgment.get("facts"), list) and isinstance(judgment.get("extra_claim_diagnostics"), list), "판정 배열 형식 오류")
     require(set(judgment) == {"answer_id", "question_id", "facts", "extra_claim_diagnostics"}, "route judgment 필드 오류")
     require(judgment["answer_id"] == answer_id and judgment["question_id"] == question["id"], "다른 답변의 판정")
     expected = {f["id"]: f for f in question["facts"]}
@@ -180,6 +181,8 @@ def validate_judgment(question: dict, judgment: dict, answer_id: str, record: di
     facts = []
     for fact in judgment["facts"]:
         require(set(fact) == {"fact_id", "correct", "supported", "answer_unit_ids", "citation_ids"}, "fact 필드 오류")
+        require(all(isinstance(fact[k], list) and all(isinstance(v, str) for v in fact[k])
+                    and len(fact[k]) == len(set(fact[k])) for k in ("answer_unit_ids", "citation_ids")), "unit/citation 배열 형식 오류")
         require(set(fact["answer_unit_ids"]) <= unit_ids and set(fact["citation_ids"]) <= citations.keys(), "답변에 없는 unit/citation")
         for name in ("correct", "supported"):
             value = fact[name]
@@ -192,36 +195,172 @@ def validate_judgment(question: dict, judgment: dict, answer_id: str, record: di
         facts.append({**copy.deepcopy(fact), "level": expected[fact["fact_id"]]["level"],
                       "state": fact_state(fact["correct"]["value"], fact["supported"]["value"])})
     for diagnostic in judgment["extra_claim_diagnostics"]:
+        require(isinstance(diagnostic.get("answer_unit_ids"), list)
+                and all(isinstance(v, str) for v in diagnostic["answer_unit_ids"]), "진단 unit 배열 형식 오류")
         require(set(diagnostic) == {"answer_unit_ids", "reason"} and set(diagnostic["answer_unit_ids"]) <= unit_ids
                 and isinstance(diagnostic["reason"], str), "추가 주장 진단 형식 오류")
     return {**copy.deepcopy(judgment), "facts": facts,
             "core_complete": core_complete([f["state"] for f in facts if f["level"] == "core"])}
 
 
+def text_sha256(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def identity_flags(text: str, inherited: list | None = None) -> list[dict]:
+    spans = [(m.start(), m.end(), "tool_or_model_identity") for m in IDENTITY_MENTION.finditer(text)]
+    patterns = {
+        "absolute_path": r"/(?:Volumes|Users|home|tmp|private|var)/[^\s<>`\"']+",
+        "plan_or_run_identity": r"(?<![a-f0-9])[a-f0-9]{24,64}(?![a-f0-9])",
+        "performance_self_report": r"(?i)\b\d[\d,.]*\s*(?:tokens?|ms|seconds?|secs?|토큰|초)\b",
+        "version_self_report": r"(?i)\b(?:version\s*[:=]?\s*|v)\d+\.\d+(?:\.\d+)?\b",
+    }
+    for kind, pattern in patterns.items():
+        spans.extend((m.start(), m.end(), kind) for m in re.finditer(pattern, text))
+    for flag in inherited or []:
+        spans.extend((a, b, flag["kind"]) for a, b in flag["spans"])
+    merged = []
+    for start, end, kind in sorted(set(spans)):
+        if merged and start < merged[-1]["end"]:
+            merged[-1]["end"] = max(end, merged[-1]["end"])
+            merged[-1]["rules"] = sorted(set([*merged[-1]["rules"], kind]))
+        else:
+            merged.append({"start": start, "end": end, "rules": [kind]})
+    return [{**span, "id": f"f{i:03d}", "text": text[span["start"]:span["end"]],
+             "context": text[max(0, span["start"] - 60):span["end"] + 60]}
+            for i, span in enumerate(merged, 1)]
+
+
+def build_review_packet(experiment: Path, question: dict, run: dict, source: Path, spec: dict,
+                        raw_seal: Path, corpus: dict) -> dict:
+    require(run.get("conditions_valid") is True and run.get("answer_eligible") is True
+            and bool(run.get("answer", "").strip()), "채점 적격 최종 답변이 없습니다")
+    value, registry, warnings = packet(question, [run], source, experiment, spec["seed"], corpus=corpus)
+    ident, record = next(iter(registry.items()))
+    private = experiment / "reviews" / ident / "v1"
+    require(not private.exists(), "기존 검토 revision 덮어쓰기 금지")
+    draft = {"schema_version": 1, "revision": 1, "blind_id": ident, "run_id": run["id"],
+             "raw_sha256": text_sha256(run["answer"]), "draft_sha256": text_sha256(record["blinded_answer"]),
+             "raw_seal": str(raw_seal), "raw_seal_sha256": file_digest(raw_seal),
+             "offset_unit": "Unicode code point in path-masked draft", "registry": registry, "packet": value,
+             "flags": warnings[0]["flags"] if warnings else [], "source": str(source), "corpus": corpus,
+             "question": question, "packet_bytes_limit": spec.get("batch_limits", {}).get("bytes", 160 * 1024)}
+    durable_json(private / "draft.json", draft, exclusive=True)
+    result = {"grade_state": "review_required", "blind_id": ident, "review_revision": 1,
+              "review": str(private / "draft.json"), "review_sha256": file_digest(private / "draft.json")}
+    if not draft["flags"]:
+        result.update(seal_packet(experiment, private / "draft.json", draft, record["blinded_answer"], [], None))
+    return result
+
+
+def seal_packet(experiment: Path, draft_path: Path, draft: dict, answer: str,
+                translations: list[dict], approval: dict | None) -> dict:
+    require(file_digest(Path(draft["raw_seal"])) == draft["raw_seal_sha256"], "원자료 seal 변경")
+    ident = draft["blind_id"]
+    value, registry = copy.deepcopy(draft["packet"]), copy.deepcopy(draft["registry"])
+    record = registry[ident]
+    record.update(blinded_answer=answer, units=support.units(answer), review_translations=translations)
+    record["citation_index"] = citation_sources(citation_index(answer), Path(draft["source"]), draft["corpus"])
+    value["answers"] = [{"answer_id": ident, "answer": answer,
+        "answer_units": [{"id": u["id"], "text": u["text"]} for u in record["units"]],
+        "citation_index": record["citation_index"]}]
+    prompt = INSTRUCTIONS + canonical(value)
+    require(len(prompt.encode()) <= draft["packet_bytes_limit"], "packet_too_large: 160 KiB 초과; 자동 절단 금지")
+    folder = experiment / "grading" / ident / f"v{draft['revision']}"
+    require(not folder.exists(), "불변 packet 덮어쓰기 금지")
+    private = draft_path.parent
+    durable_json(private / "registry.json", registry, exclusive=True)
+    if approval is not None:
+        durable_json(private / "approval.json", approval, exclusive=True)
+    durable_json(folder / "packet.json", value, exclusive=True)
+    durable_json(folder / "schema.json", judgment_schema(draft["question"], [u["id"] for u in record["units"]],
+                                                        [c["id"] for c in record["citation_index"]]), exclusive=True)
+    durable_bytes(folder / "prompt.txt", prompt.encode(), exclusive=True)
+    seal = {"schema_version": 1, "run_id": draft["run_id"], "blind_id": ident,
+            "raw_seal_sha256": draft["raw_seal_sha256"], "draft_sha256": file_digest(draft_path),
+            "registry": str(private / "registry.json"), "registry_sha256": file_digest(private / "registry.json"),
+            "approval_sha256": file_digest(private / "approval.json") if approval else None,
+            "files": {name: file_digest(folder / name) for name in ("packet.json", "schema.json", "prompt.txt")}}
+    durable_json(folder / "seal.json", seal, exclusive=True)
+    return {"grade_state": "sealed", "packet": str(folder), "packet_seal_sha256": file_digest(folder / "seal.json")}
+
+
+def approve_identity_review(experiment: Path, review: Path, approval: dict) -> dict:
+    draft = read_json(review)
+    previous = review.parent / "approval.json"
+    if previous.exists():
+        saved = read_json(previous)
+        require({k: v for k, v in saved.items() if k != "recorded_at"} == approval, "이미 봉인된 승인과 다릅니다")
+        folder = experiment / "grading" / draft["blind_id"] / f"v{draft['revision']}"
+        seal = read_json(folder / "seal.json")
+        require(seal["approval_sha256"] == file_digest(previous) and seal["draft_sha256"] == file_digest(review), "기존 검토 seal 변경")
+        for name, checksum in seal["files"].items():
+            require(file_digest(folder / name) == checksum, "기존 packet 변경")
+        return {"grade_state": "sealed", "packet": str(folder), "packet_seal_sha256": file_digest(folder / "seal.json")}
+    require(isinstance(approval.get("reviewer"), str) and approval["reviewer"].strip(), "검토자 누락")
+    require(approval.get("revision") == draft["revision"] and approval.get("raw_sha256") == draft["raw_sha256"]
+            and approval.get("draft_sha256") == draft["draft_sha256"], "stale review approval")
+    registry = draft["registry"][draft["blind_id"]]
+    text = registry["blinded_answer"]
+    raw = registry["answer"]
+    require(text_sha256(text) == draft["draft_sha256"] and text_sha256(raw) == draft["raw_sha256"], "검토 답변 변경")
+    parts, cursor = [], 0
+    for position in registry["positions"]:
+        require(position["raw_start"] >= cursor and raw[position["raw_start"]:position["raw_end"]] == position["original"],
+                "원답변 경로 익명화 mapping 변경")
+        parts += [raw[cursor:position["raw_start"]], position["anonymous"]]
+        cursor = position["raw_end"]
+    require("".join([*parts, raw[cursor:]]) == text, "원답변에서 draft를 재생성할 수 없습니다")
+    decisions = approval["decisions"]
+    by_id = {d["flag_id"]: d for d in decisions}
+    require(len(by_id) == len(decisions) and set(by_id) == {f["id"] for f in draft["flags"]}, "모든 정확한 구간에 대한 결정 필요")
+    translations, legitimate = [], []
+    for flag in draft["flags"]:
+        decision = by_id[flag["id"]]
+        require(decision["decision"] in {"legitimate_source_identifier", "identity_only_anonymization", "reject_packet"}, "알 수 없는 검토 결정")
+        if decision["decision"] == "reject_packet":
+            durable_json(review.parent / "rejection.json", {**approval, "recorded_at": timestamp()}, exclusive=True)
+            return {"grade_state": "not_eligible", "grade_reason": "reviewer_rejected_packet"}
+        require(isinstance(decision.get("evidence"), str) and decision["evidence"].strip(), "구간별 source/identity 근거 누락")
+        if decision["decision"] == "legitimate_source_identifier":
+            legitimate.append(flag)
+        else:
+            replacement = decision.get("replacement", "")
+            require(re.fullmatch(r"\[anonymous-\d{3,}\]", replacement) and replacement not in text, "익명 표식만 허용: [anonymous-001]")
+            translations.append({"start": flag["start"], "end": flag["end"], "original": flag["text"], "replacement": replacement})
+    parts, cursor, offset = [], 0, 0
+    for item in sorted(translations, key=lambda t: t["start"]):
+        require(item["start"] >= cursor and text[item["start"]:item["end"]] == item["original"], "겹치거나 변경된 승인 구간")
+        parts += [text[cursor:item["start"]], item["replacement"]]
+        item["masked_start"] = item["start"] + offset
+        item["masked_end"] = item["masked_start"] + len(item["replacement"])
+        offset += len(item["replacement"]) - (item["end"] - item["start"])
+        cursor = item["end"]
+    answer = "".join([*parts, text[cursor:]])
+    restored = answer
+    for item in reversed(translations):
+        restored = restored[:item["masked_start"]] + item["original"] + restored[item["masked_end"]:]
+    require(restored == text, "승인 범위 밖 답변 변경")
+    allowed = set()
+    for flag in legitimate:
+        shift = sum(len(t["replacement"]) - (t["end"] - t["start"]) for t in translations if t["end"] <= flag["start"])
+        allowed.add((flag["start"] + shift, flag["end"] + shift, flag["text"]))
+    require(all((f["start"], f["end"], f["text"]) in allowed for f in identity_flags(answer)), "신규 미검토 식별 구간")
+    return seal_packet(experiment, review, draft, answer, translations, {**approval, "recorded_at": timestamp()})
+
+
 def prepare_packets(experiment: Path, dataset: dict, runs: list[dict], source: Path, spec: dict) -> list[Path]:
-    """Prepare actual answers only; no calibration answers or fabricated scores."""
+    """Only sealed, eligible actual answers; each review remains independent."""
     batches = []
     for run in runs:
-        require(run["status"] != "planned", "실행하지 않은 계획을 채점할 수 없습니다")
-        if not run.get("conditions_valid") or run["status"] not in {"completed", "timeout", "call_limit", "token_limit"}:
+        if (run.get("conditions_valid") is not True or run.get("answer_eligible") is not True
+                or not run.get("answer", "").strip() or run["status"] not in {"completed", "timeout", "call_limit", "token_limit"}):
             continue
         question = next(q for q in dataset["questions"] if q["id"] == run["question_id"])
-        value, registry, flags = packet(question, [run], source, experiment, spec["seed"])
-        if flags:
-            write_json(experiment / "grading/review-required.json", flags)
-            raise ValueError("비교군 식별 정보 검토가 필요합니다. grading/review-required.json의 정확한 구간을 확인하고 원답변을 보존하세요")
-        prompt = INSTRUCTIONS + canonical(value)
-        require(len(prompt.encode()) <= spec.get("batch_limits", {"bytes": 160 * 1024})["bytes"],
-                "채점 패킷이 160 KiB를 초과합니다. rubric/근거를 자동 절단하지 않습니다")
-        ident, record = next(iter(registry.items()))
-        folder = experiment / "grading" / ident
-        folder.mkdir(parents=True, exist_ok=True)
-        write_json(folder / "packet.json", value)
-        write_json(folder / "registry.json", registry)
-        write_json(folder / "schema.json", judgment_schema(question, [u["id"] for u in record["units"]],
-                                                           [c["id"] for c in record["citation_index"]]))
-        (folder / "prompt.txt").write_text(prompt)
-        batches.append(folder)
+        result = build_review_packet(experiment, question, run, source, spec, Path(run["raw_seal"]),
+                                     read_json(Path(run["source_manifest_path"])))
+        if result["grade_state"] == "sealed":
+            batches.append(Path(result["packet"]))
     return batches
 
 
