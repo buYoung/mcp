@@ -1,9 +1,9 @@
 {
   "aggregation_rules": "Fixed three-route macro denominator, separate core/extended fact denominators; no variance estimate.",
-  "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
+  "contract_hash": "0c2847971220a67487964dc709d9f92ca2f9c2ae001c156ef944ee0f38415b0f",
   "dependency_hashes": {
-    "02-delivery.json": "00b338eed305d966457cfef3cc5fab717612fa6df8afa17134a45d8629b7da5e",
-    "05-grading.json": "e196c31b110496068ec9ebb4afe88b435dee12694526fcc1650fa55a35f1dfa9"
+    "02-delivery.json": "1a599c114a5bd66d58739842aeeb3447d79a0ad96d2748dcae627ce02d55cca9",
+    "05-grading.json": "0db968c68225676d12bace0383e734aee889bff28c74e79a6c6156e165eabd3a"
   },
   "field_provenance": {
     "client_delivery": {
@@ -67,16 +67,20 @@
     }
   },
   "implementation_hashes": {
-    "benchmark/claude_client.py": "a18f7d57f65b5d7a73c3ce9da0dc7e0ae2743e150618bb781b76438941a232c4",
-    "benchmark/execution.py": "0e83554d7dcafbb96aad231d9ec20a584f0c6af0c8350a29c73e854cbc395f86",
-    "benchmark/route_metrics.py": "0cc69cc4b4e7fc04d754a313568627ee6d69730cf3a448cb3e6ccf95c08694af",
-    "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab"
+    "benchmark/claude_client.py": "1d52d226205b07440ea6f8a1dd72eb7c3cc0b249989c3a0a55a61155d1971bd7",
+    "benchmark/execution.py": "b29518de9eae199935c75af8b5590d91804d9d4026f614088590b0dff0bcec17",
+    "benchmark/pi_client.py": "4b394b66da44f1ae001a0d7291c3a23a4ca37a02a8e3c4830916c2e8c38f8c28",
+    "benchmark/route_metrics.py": "5e234f52846245c0881f476e21a45ae36d5fdba4b24ba8db8818834e8de0f72b",
+    "benchmark/runner.py": "14fb0cd96ed78387fbf46872b6af3bb3233039fa24ed648d0b9438dc445823f6"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "6147358f35dd798f0290ec696211c0c383d440cd08277e32c941b48c691de0b3",
-    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "c90d74aa870666a3db41848aec09b2f6d20240c215aa829ce1b7f131eee541e2",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "5f385a11294746f8388716ae5b724feeedc97582f90634dd3f32e309260b67ba",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "d2d996e91b28e189284a178135e747c6e3c5d002bf9bf2af59579c4af762c8cf",
+    "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "4db282f65a398917da43bc67e4a784ab0abc1eb238e7994ad530051d67d1211b",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "e2adbc716a47942c2baafb92c83f84a716b869956b97323c03761c398e9fd2b2",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111",
     "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
     "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
     "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
@@ -150,8 +154,8 @@
     }
   },
   "native_baseline": {
-    "delivery": "CLI output is retained separately; model delivery is unknown without rollout evidence",
-    "exploration_calls": "native command_execution item IDs, deduplicated across started/completed"
+    "delivery": "CLI output is retained separately; repeated command IDs and complete provider input may be unobserved",
+    "exploration_calls": "atomic pi bash wrapper admission IDs, cross-checked with tool_execution_start"
   },
   "observed_solver_runs": 0,
   "offline_verification": {
@@ -160,11 +164,11 @@
     "planned_unique_slots": 21,
     "relay_loss": false
   },
-  "recorded_at": "2026-10-24T01:49:33.249582+00:00",
+  "recorded_at": "2026-10-24T13:17:49.949630+00:00",
   "result_schema": {
     "attempts_per_slot": 1,
     "preview": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/report-contract/report/summary.json",
-    "preview_sha256": "ff0a14cf37a9f5d53e63fa057dd9e0cfb2c3888ca1ebc1d6a690ef49a172defc",
+    "preview_sha256": "fc208c87d6d202a2e7469b826834789010a1fda0b26f2eaf956e1601daa6ce57",
     "slot_keys": [
       "route-save-existing-codemap-search-1",
       "route-save-existing-zvec-grep-1",

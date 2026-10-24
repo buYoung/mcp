@@ -10,90 +10,106 @@
   },
   "client_identity": "forward the actual initialize clientInfo and capabilities",
   "client_limits": {
-    "code_mode_budget": "Native server guidance is forwarded unchanged.",
-    "codex_version": "codex-cli 0.163.0",
+    "code_mode_budget": "disabled; direct MCP tools only",
     "harness_override": null,
     "history_limit": null,
-    "history_limit_reason": "Client default has not been measured with a live model."
+    "history_limit_reason": "Client default has not been measured with a live model.",
+    "pi": {
+      "auth": "runtime only; operator token/Claude login not exercised during preparation",
+      "backend": "pi",
+      "defaults": {
+        "compaction": "pi default",
+        "output_truncation": "pi default",
+        "retry": "pi default"
+      },
+      "lock_sha256": "4db282f65a398917da43bc67e4a784ab0abc1eb238e7994ad530051d67d1211b",
+      "model_free_probes": {
+        "help": {
+          "args": [
+            "--mode",
+            "json",
+            "-ne",
+            "-ns",
+            "-np",
+            "-nc",
+            "--no-themes",
+            "-na",
+            "--offline",
+            "--help"
+          ],
+          "exit_code": 0,
+          "output": "pi - AI coding assistant with read, bash, edit, write tools\n\nUsage:\n  pi [options] [--] [@files...] [messages...]\n\nCommands:\n  pi install <source> [-l]     Install extension source and add to settings\n  pi remove <source> [-l]      Remove extension source from settings\n  pi uninstall <source> [-l]   Alias for remove\n  pi update [source|self|pi]   Update pi, extensions, or model catalogs\n  pi list                      List installed extensions from settings\n  pi config [-l]               Open TUI to enable/disable package resources (Tab switches scope)\n  pi auth <command>            Print credentials or check provider readiness\n  pi mcp <command>             Check MCP servers, sign in to or out of OAuth servers\n  pi <command> --help          Show help for install/remove/uninstall/update/list/config/auth/mcp\n\nOptions:\n  --provider <name>              Provider to search for --model (requires --model)\n  --model <pattern>              Model pattern or ID (supports \"provider/id\" and optional \":<thinking>\")\n  --api-key <key>                API key (defaults to env vars)\n  --system-prompt <text>         System prompt (default: coding assistant prompt)\n  --append-system-prompt <text>  Append text or file contents to the system prompt (can be used multiple times)\n  --mode <mode>                  Output mode: text (default), json, or rpc\n  --print, -p                    Non-interactive mode: process prompt and exit\n  --continue, -c                 Continue previous session\n  --resume, -r                   Select a session to resume\n  --session <path|id>            Use specific session file or partial UUID\n  --session-id <id>              Use exact project session ID, creating it if missing\n  --fork <path|id>               Fork specific session file or partial UUID into a new session\n  --session-dir <dir>            Directory for session storage and lookup\n  --no-session                   Don't save session (ephemeral)\n  --name, -n <name>              Set session display name\n  --models <patterns>            Comma-separated model patterns for Ctrl+P cycling\n                                 Supports globs (anthropic/*, *sonnet*) and fuzzy matching\n  --no-tools, -nt                Disable all tools by default (built-in and extension)\n  --no-builtin-tools, -nbt       Disable built-in tools by default but keep extension/custom tools enabled\n  --tools, -t <tools>            Comma-separated allowlist of tool names or patterns (*) to enable\n                                 Keeps MCP tools unless an entry starts with mcp__\n                                 Only +name/-name entries add to or remove from the defaults\n  --exclude-tools, -xt <tools>   Comma-separated denylist of tool names or patterns (*) to disable\n                                 Applies to all tools, MCP tools included\n  --thinking <level>             Set thinking level: off, minimal, low, medium, high, xhigh, max\n  --extension, -e <path>         Load an extension file or builtin:<name> (can be used multiple times)\n  --no-extensions, -ne           Disable extension discovery and built-in extensions (explicit -e paths still work)\n  --no-mcp                       Disable built-in MCP support: no servers connect and no MCP tools\n  --skill <path>                 Load a skill file or directory (can be used multiple times)\n  --no-skills, -ns               Disable skills discovery and loading\n  --prompt-template <path>       Load a prompt template file or directory (can be used multiple times)\n  --no-prompt-templates, -np     Disable prompt template discovery and loading\n  --theme <path>                 Load a theme file or directory (can be used multiple times)\n  --use-theme <name[/name]>      Set the initial interactive theme for this run\n  --no-themes                    Disable theme discovery and loading\n  --no-context-files, -nc        Disable AGENTS.md and CLAUDE.md discovery and loading\n  --export <file>                Export session file to HTML and exit\n  --list-models [search]         List available models (with optional fuzzy search)\n  --verbose                      Force verbose startup (overrides quietStartup setting)\n  --tui-mode <mode>              TUI mode: fullscreen (default) or regular\n  --approve, -a                  Trust project-local files for this run\n  --no-approve, -na              Ignore project-local files for this run\n  --offline                      Disable startup network operations (same as PI_OFFLINE=1)\n  --                             End option parsing; treat remaining arguments as messages/files\n  --help, -h                     Show this help\n  --version, -v                  Show version number\n\nExtensions can register additional flags (e.g., --plan from plan-mode extension).\n\nExamples:\n  # Print a provider API key for an external client\n  pi auth print-api-key --provider openai\n\n  # Print an OAuth bearer token for an external client (refreshes if expired)\n  pi auth print-bearer-token --provider openai-codex\n\n  # Interactive mode\n  pi\n\n  # Interactive mode with initial prompt\n  pi \"List all .ts files in src/\"\n\n  # Include files in initial message\n  pi @prompt.md @image.png \"What color is the sky?\"\n\n  # Non-interactive mode (process and exit)\n  pi -p \"List all .ts files in src/\"\n\n  # Prompt beginning with a dash\n  pi -p -- \"- Summarize these points\"\n\n  # Multiple messages (interactive)\n  pi \"Read package.json\" \"What dependencies do we have?\"\n\n  # Continue previous session\n  pi --continue \"What did we discuss?\"\n\n  # Start a named session\n  pi --name \"Refactor auth module\"\n\n  # Use different model\n  pi --provider openai --model gpt-4o-mini \"Help me refactor this code\"\n\n  # Use model with provider prefix (no --provider needed)\n  pi --model openai/gpt-4o \"Help me refactor this code\"\n\n  # Use model with thinking level shorthand\n  pi --model sonnet:high \"Solve this complex problem\"\n\n  # Limit model cycling to specific models\n  pi --models claude-sonnet,claude-haiku,gpt-4o\n\n  # Limit to a specific provider with glob pattern\n  pi --models \"github-copilot/*\"\n\n  # Cycle models with fixed thinking levels\n  pi --models sonnet:high,haiku:low\n\n  # Start with a specific thinking level\n  pi --thinking high \"Solve this complex problem\"\n\n  # Read-only mode (no file modifications possible)\n  pi --tools read,grep,find,ls -p \"Review the code in src/\"\n\n  # Add codemode to the default tools\n  pi --tools +codemode\n\n  # Codemode with only the tools of one MCP server\n  pi --tools read,bash,codemode,'mcp__radius__*'\n\n  # Disable one tool while keeping the rest available\n  pi --exclude-tools ask_question\n\n  # Export a session file to HTML\n  pi --export ~/.pi/agent/sessions/--path--/session.jsonl\n  pi --export session.jsonl output.html\n\nEnvironment Variables:\n  ANTHROPIC_AUTH_TOKEN             - Anthropic bearer auth token\n  ANTHROPIC_API_KEY                - Anthropic Claude API key\n  ANTHROPIC_OAUTH_TOKEN            - Anthropic OAuth token (alternative to API key)\n  ANT_LING_API_KEY                 - Ant Ling API key\n  OPENAI_API_KEY                   - OpenAI GPT API key\n  AZURE_OPENAI_API_KEY             - Azure OpenAI API key\n  AZURE_OPENAI_BASE_URL            - Azure OpenAI/Cognitive Services base URL (e.g. https://{resource}.openai.azure.com)\n  AZURE_OPENAI_RESOURCE_NAME       - Azure OpenAI resource name (alternative to base URL)\n  AZURE_OPENAI_API_VERSION         - Azure OpenAI API version (default: v1)\n  AZURE_OPENAI_DEPLOYMENT_NAME_MAP - Azure OpenAI model=deployment map (comma-separated)\n  DEEPSEEK_API_KEY                 - DeepSeek API key\n  NVIDIA_API_KEY                   - NVIDIA NIM API key\n  GEMINI_API_KEY                   - Google Gemini API key\n  GROQ_API_KEY                     - Groq API key\n  CEREBRAS_API_KEY                 - Cerebras API key\n  XAI_API_KEY                      - xAI Grok API key\n  FIREWORKS_API_KEY                - Fireworks API key\n  TOGETHER_API_KEY                 - Together AI API key\n  BASETEN_API_KEY                  - Baseten API key\n  OPENROUTER_API_KEY               - OpenRouter API key\n  AI_GATEWAY_API_KEY               - Vercel AI Gateway API key\n  ZAI_API_KEY                      - ZAI Coding Plan API key (Global)\n  ZAI_CODING_CN_API_KEY            - ZAI Coding Plan API key (China)\n  MISTRAL_API_KEY                  - Mistral API key\n  MINIMAX_API_KEY                  - MiniMax API key\n  MOONSHOT_API_KEY                 - Moonshot AI API key\n  OPENCODE_API_KEY                 - OpenCode Zen/OpenCode Go API key\n  KIMI_API_KEY                     - Kimi For Coding API key\n  META_API_KEY                     - Meta Model API key\n  CLOUDFLARE_API_KEY               - Cloudflare API token (Workers AI and AI Gateway)\n  CLOUDFLARE_ACCOUNT_ID            - Cloudflare account id (required for both)\n  CLOUDFLARE_GATEWAY_ID            - Cloudflare AI Gateway slug (required for AI Gateway)\n  QWEN_TOKEN_PLAN_API_KEY          - Qwen Token Plan API key (international region)\n  QWEN_TOKEN_PLAN_CN_API_KEY       - Qwen Token Plan API key (China region)\n  XIAOMI_API_KEY                   - Xiaomi MiMo API key (api.xiaomimimo.com billing)\n  XIAOMI_TOKEN_PLAN_CN_API_KEY     - Xiaomi MiMo Token Plan API key (China region)\n  XIAOMI_TOKEN_PLAN_AMS_API_KEY    - Xiaomi MiMo Token Plan API key (Amsterdam region)\n  XIAOMI_TOKEN_PLAN_SGP_API_KEY    - Xiaomi MiMo Token Plan API key (Singapore region)\n  AWS_PROFILE                      - AWS profile for Amazon Bedrock\n  AWS_ACCESS_KEY_ID                - AWS access key for Amazon Bedrock\n  AWS_SECRET_ACCESS_KEY            - AWS secret key for Amazon Bedrock\n  AWS_BEARER_TOKEN_BEDROCK         - Bedrock API key (bearer token)\n  AWS_REGION                       - AWS region for Amazon Bedrock (e.g., us-east-1)\n  PI_CODING_AGENT_DIR              - Config directory (default: ~/.pi/agent)\n  PI_CODING_AGENT_SESSION_DIR      - Session storage directory (overridden by --session-dir)\n  PI_PACKAGE_DIR                   - Override package directory (for Nix/Guix store paths)\n  PI_OFFLINE                       - Disable startup network operations when set to 1/true/yes\n  PI_TELEMETRY                     - Override install telemetry when set to 1/true/yes or 0/false/no\n  PI_SHARE_VIEWER_URL              - Base URL for /share command (default: https://pi.dev/session/)\n\nBuilt-in Tool Names:\n  read       - Read file contents\n  bash       - Execute bash commands\n  powershell - Execute PowerShell commands on Windows\n  edit       - Edit files with find/replace\n  write      - Write files (creates/overwrites)\n  grep       - Search file contents (read-only, off by default)\n  find       - Find files by glob pattern (read-only, off by default)\n  ls         - List directory contents (read-only, off by default)\n\n"
+        },
+        "models": {
+          "args": [
+            "--mode",
+            "json",
+            "-ne",
+            "-ns",
+            "-np",
+            "-nc",
+            "--no-themes",
+            "-na",
+            "--offline",
+            "-e",
+            "/Volumes/Samsung_990_PRO/codemap-search- bench/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
+            "--list-models"
+          ],
+          "exit_code": 0,
+          "output": "provider       model              context  max-out  thinking  images\nclaude-bridge  claude-fable-5     1M       128K     yes       yes   \nclaude-bridge  claude-fable-5-1   1M       128K     yes       yes   \nclaude-bridge  claude-haiku-4-5   200K     64K      yes       yes   \nclaude-bridge  claude-haiku-5-5   1M       128K     yes       yes   \nclaude-bridge  claude-opus-4-5    200K     64K      yes       yes   \nclaude-bridge  claude-opus-4-6    200K     128K     yes       yes   \nclaude-bridge  claude-opus-4-7    1M       128K     yes       yes   \nclaude-bridge  claude-opus-4-8    1M       128K     yes       yes   \nclaude-bridge  claude-opus-5      1M       128K     yes       yes   \nclaude-bridge  claude-opus-5-5    1M       128K     yes       yes   \nclaude-bridge  claude-sonnet-4-5  200K     64K      yes       yes   \nclaude-bridge  claude-sonnet-4-6  200K     128K     yes       yes   \nclaude-bridge  claude-sonnet-5    1M       128K     yes       yes   \nclaude-bridge  claude-sonnet-5-5  1M       128K     yes       yes   \nopenai-codex   gpt-5.6-luna       272K     128K     yes       yes   \nopenai-codex   gpt-5.6-sol        272K     128K     yes       yes   \nopenai-codex   gpt-5.6-terra      272K     128K     yes       yes   \nopenai-codex   gpt-6-astra        272K     128K     yes       yes   \nopenai-codex   gpt-6-luna         272K     128K     yes       yes   \nopenai-codex   gpt-6-sol          272K     128K     yes       yes   \nopenai-codex   gpt-6.1-sol        500K     128K     yes       yes   \n"
+        },
+        "private_auth_reference": {
+          "args": [
+            "auth",
+            "check",
+            "--provider",
+            "openai-codex"
+          ],
+          "exit_code": 0,
+          "output": "ready\n"
+        }
+      },
+      "model_invocations": 0,
+      "node_path": "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+      "node_sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55",
+      "required_flags": [
+        "--no-tools",
+        "--no-mcp",
+        "--no-extensions",
+        "--no-approve",
+        "--offline",
+        "--session-dir",
+        "--thinking"
+      ],
+      "toolchain_sha256": "76717e20f713032d0711e97be6dfd44d0ec41135c22288a6b09f7a9a07621ae4",
+      "version": "1.4.0",
+      "versions": {
+        "agent_sdk": "0.3.310",
+        "bridge": "0.13.1",
+        "claude_code": "2.1.310",
+        "node": "v24.14.0",
+        "pi": "1.4.0"
+      }
+    }
   },
-  "codex_options": [
-    "-c",
-    "model_reasoning_effort=\"medium\"",
-    "-c",
-    "web_search=\"disabled\"",
-    "-c",
-    "approval_policy=\"never\"",
-    "-c",
-    "sandbox_mode=\"read-only\"",
-    "-c",
-    "project_doc_max_bytes=0",
-    "-c",
-    "suppress_unstable_features_warning=true",
-    "-c",
-    "tools.view_image=false",
-    "-c",
-    "model_auto_compact_token_limit=500000",
-    "-c",
-    "features.code_mode_host=true",
-    "-c",
-    "features.code_mode.enabled=true",
-    "-c",
-    "features.code_mode.excluded_tool_namespaces=[\"functions\",\"agents\",\"multi_agent_v1\",\"multi_agent_v2\",\"web\",\"image_gen\",\"clock\"]",
-    "-c",
-    "features.shell_tool=false",
-    "-c",
-    "features.unified_exec=false",
-    "-c",
-    "features.apps=false",
-    "-c",
-    "features.plugins=false",
-    "-c",
-    "features.multi_agent=false",
-    "-c",
-    "features.multi_agent_v2=false",
-    "-c",
-    "features.browser_use=false",
-    "-c",
-    "features.browser_use_external=false",
-    "-c",
-    "features.computer_use=false",
-    "-c",
-    "features.image_generation=false",
-    "-c",
-    "features.view_image=false",
-    "-c",
-    "features.hooks=false",
-    "-c",
-    "features.shell_snapshot=false",
-    "-c",
-    "features.skill_search=false",
-    "-c",
-    "features.tool_suggest=false",
-    "-c",
-    "features.memories=false",
-    "-c",
-    "features.in_app_browser=false",
-    "-c",
-    "features.in_app_chat=false",
-    "-c",
-    "features.workspace_dependencies=false",
-    "-c",
-    "features.goals=false"
-  ],
-  "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
+  "contract_hash": "0c2847971220a67487964dc709d9f92ca2f9c2ae001c156ef944ee0f38415b0f",
   "dependency_hashes": {
-    "01-contract.json": "6953521682bd38e37e81ecdec7f42400c9a8206621e7e0dc86f5697d6a97663c"
+    "01-contract.json": "537fe5ac819d094b9c04e5ec2aff5b01c80280d94ccdac6d508ca883662b1e14"
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/route_transport.py": "d0b1de56aabdaa0f43c3146baae5ffba877e226e66697e767f18cc17bb362104",
-    "benchmark/runner.py": "d497e725a24b60a862ce000f02b9a07e6837f52b9a0bf6e8889009b1be3376ab"
+    "benchmark/pi_client.py": "4b394b66da44f1ae001a0d7291c3a23a4ca37a02a8e3c4830916c2e8c38f8c28",
+    "benchmark/route_transport.py": "bf20635de7de93ebbb88bfec86bf69b16e9251f606ea15d8fd5eb19c2d7e8db1",
+    "benchmark/runner.py": "14fb0cd96ed78387fbf46872b6af3bb3233039fa24ed648d0b9438dc445823f6"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "6147358f35dd798f0290ec696211c0c383d440cd08277e32c941b48c691de0b3",
-    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "c90d74aa870666a3db41848aec09b2f6d20240c215aa829ce1b7f131eee541e2",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "5f385a11294746f8388716ae5b724feeedc97582f90634dd3f32e309260b67ba",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "d2d996e91b28e189284a178135e747c6e3c5d002bf9bf2af59579c4af762c8cf",
+    "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "4db282f65a398917da43bc67e4a784ab0abc1eb238e7994ad530051d67d1211b",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "e2adbc716a47942c2baafb92c83f84a716b869956b97323c03761c398e9fd2b2",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111",
     "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
     "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
     "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
@@ -110,6 +126,25 @@
     "harness_line_limit": null,
     "product_defaults": true
   },
+  "pi_policy": {
+    "defaults": {
+      "compaction": "pi default",
+      "output_truncation": "pi default",
+      "retry": "pi default"
+    },
+    "flags": [
+      "--mode",
+      "json",
+      "-ne",
+      "-ns",
+      "-np",
+      "-nc",
+      "--no-themes",
+      "-na",
+      "--offline"
+    ],
+    "product_tools": "mcp__navigation__*"
+  },
   "raw_relay_checks": {
     "byte_identical": true,
     "cleanup": {
@@ -118,11 +153,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 80615,
+          "pgid": 40434,
           "stopped": true
         }
       ],
-      "pid": 80615,
+      "pid": 40434,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -176,17 +211,17 @@
       }
     ],
     "probe": "rg over a copied harness source file",
-    "probe_source_sha256": "9876faa155b436eb08321eeaaaecec67e39e02cca059cfbc891ea247dbb00b8c",
-    "protocol_log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/delivery-probe/1792805826627018000/protocol.jsonl",
-    "protocol_sha256": "31a51c14708808f1f265ac8f1341a33979c26fb540e5e20d1636ce86250d2c60",
-    "relay_log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/delivery-probe/1792805826627018000/relay.jsonl",
-    "relay_sha256": "9481bdafa09cb0cc02d66e6b36fbcd186c724918564435cb14aca92bc5037a9d",
+    "probe_source_sha256": "9591e9e50c0415a12132c11726d1d2133e59978ffb258e165fc818b3cb59633c",
+    "protocol_log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/delivery-probe/1792846648856823000/protocol.jsonl",
+    "protocol_sha256": "b3602ff5e3b495a192be9d0dcfd845d59a8af0d33216c4fd1e6261cde2aa41a1",
+    "relay_log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/delivery-probe/1792846648856823000/relay.jsonl",
+    "relay_sha256": "56e6a8782f3db8dee73a8d8f24e03f3a5721ba7fca90a3ed19dc133931c1008c",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
-    "stdout_bytes": 63456,
-    "stdout_lines": 1024
+    "stdout_bytes": 87688,
+    "stdout_lines": 1386
   },
-  "recorded_at": "2026-10-24T01:37:06.889397+00:00",
+  "recorded_at": "2026-10-24T12:57:31.610180+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",
@@ -195,7 +230,7 @@
     "stdio": "MCPClient"
   },
   "unobserved_stages": [
-    "Real solver history and code-mode printing",
-    "Native product startup probes are recorded in 04-indexes.json"
+    "Real hosted provider history",
+    "Native product startup probes are recorded in 04-indexes-pi.json"
   ]
 }

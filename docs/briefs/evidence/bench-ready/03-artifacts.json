@@ -1,65 +1,66 @@
 {
   "artifacts": {
     "codebase-memory-mcp": {
-      "actual_version": "codebase-memory-mcp 0.11.0",
+      "actual_version": "codebase-memory-mcp 0.12.1",
       "backend": "official_native_binary",
       "commands": [],
       "dependencies": {
-        "asset_sha256": "4dee7f38b63740e6751d7a7ed7eb10291c1f2a3ea2415f599dc68370ca0a2d18",
+        "asset_sha256": "9bfcbe38414b47969a3e1d1c1999f5357409387c86fa3d24221b5458267660d2",
         "distribution": "official_release"
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp",
-          "sha256": "a67b7ccead5d2ca852051f8619458ab96af41393257b56fb36e523a110265d48"
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release/codebase-memory-mcp",
+          "sha256": "a36cfa1f5d10d8c4762501d63feef082711aae4704b9e8f9066db52779a8601e"
         }
       ],
       "id": "codebase-memory-mcp",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release",
-      "installation_sha256": "abb5f8dcb65832c41ee782ba4c645007620b76b707043738e14f7b1b45ba8dbf",
+      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release",
+      "installation_sha256": "295786cd4d99e6b1250ce0c310df1092388e5c5fc3fd6df77117d7a6840700a8",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/release/codebase-memory-mcp"
+        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release/codebase-memory-mcp"
       ],
       "model_assets": [],
       "provenance": {
         "archive": {
-          "bytes": 97865712,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codebase-memory-mcp-8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798.tar.gz",
-          "sha256": "f4df6a6fd005fb1f8b8b65408338580604eca228568602a834ee265aa439322d",
-          "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798"
+          "bytes": 109754858,
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codebase-memory-mcp-a7158ac2f48ca646b4527341b76f930f2aeff87e.tar.gz",
+          "sha256": "7c47f2a2b151c91e6506dfbe8073b5908e4c2ca21816bccc2a42fe9cd86380a0",
+          "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/a7158ac2f48ca646b4527341b76f930f2aeff87e"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798/source-files.json",
+        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/source-files.json",
         "official_release_asset": {
-          "bytes": 41117691,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codebase-memory-mcp-darwin-arm64.tar.gz",
-          "sha256": "4dee7f38b63740e6751d7a7ed7eb10291c1f2a3ea2415f599dc68370ca0a2d18",
-          "url": "https://github.com/DeusData/codebase-memory-mcp/releases/download/v0.11.0/codebase-memory-mcp-darwin-arm64.tar.gz"
+          "bytes": 49875423,
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/codebase-memory-mcp-darwin-arm64.tar.gz",
+          "sha256": "9bfcbe38414b47969a3e1d1c1999f5357409387c86fa3d24221b5458267660d2",
+          "url": "https://github.com/DeusData/codebase-memory-mcp/releases/download/v0.12.1/codebase-memory-mcp-darwin-arm64.tar.gz"
         },
         "source_association": {
-          "commit": "8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
-          "release_tag": "v0.11.0",
+          "commit": "a7158ac2f48ca646b4527341b76f930f2aeff87e",
+          "release_tag": "v0.12.1",
           "repository": "DeusData/codebase-memory-mcp"
         },
-        "source_sha256": "96094fc73852b4577749ff00eecdeaa5d31b2698e0964fddf2bc0c67385c149f"
+        "source_sha256": "2659a6bb1eedfdd1bd206431600852065185864fea6df039cc5ae7cafdf376bf"
       },
       "runtime": {},
       "source_pin": {
-        "commit": "8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
+        "commit": "a7158ac2f48ca646b4527341b76f930f2aeff87e",
         "id": "codebase-memory-mcp",
         "name": "codebase-memory-mcp",
+        "release_tag": "v0.12.1",
         "repository": "DeusData/codebase-memory-mcp",
         "role": "comparison_tool",
         "source_archive": {
-          "bytes": 97865712,
+          "bytes": 109754858,
           "format": "tar.gz",
-          "sha256": "f4df6a6fd005fb1f8b8b65408338580604eca228568602a834ee265aa439322d",
-          "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798"
+          "sha256": "7c47f2a2b151c91e6506dfbe8073b5908e4c2ca21816bccc2a42fe9cd86380a0",
+          "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/a7158ac2f48ca646b4527341b76f930f2aeff87e"
         },
-        "version": "0.11.0"
+        "version": "0.12.1"
       }
     },
     "codegraph": {
-      "actual_version": "1.6.1",
+      "actual_version": "1.6.2",
       "backend": "native_kernel_built_from_locked_source",
       "commands": [
         {
@@ -69,11 +70,11 @@
             "--no-audit",
             "--no-fund"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source",
-          "elapsed_seconds": 2.0484042080061045,
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
+          "elapsed_seconds": 2.907181334012421,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/install.log",
-          "log_sha256": "bc691557b65d033acd483de0df502086e16322096ef5093acb5b865f2416e957"
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/install.log",
+          "log_sha256": "330b1015195ad14327ce046f92e08efb7d160dcc2c0c1592a35569d1db1d0577"
         },
         {
           "command": [
@@ -81,11 +82,11 @@
             "run",
             "build"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source",
-          "elapsed_seconds": 6.641815458002384,
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
+          "elapsed_seconds": 6.404929334006738,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/build.log",
-          "log_sha256": "87a711a1ea9497a5574598f94f4dab5f575f6f9e21cfb43bd89dddc0fdb27d5c"
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/build.log",
+          "log_sha256": "5f5e3db14474269128a1d013360b98172aec1dd22eba8b98b32a91ce1ff854bb"
         },
         {
           "command": [
@@ -93,15 +94,15 @@
             "run",
             "build:kernel"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source",
-          "elapsed_seconds": 32.82206595799653,
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
+          "elapsed_seconds": 30.37335354098468,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/kernel-build.log",
-          "log_sha256": "7d64bed1a5128c73fb7f812e190b7d0cc8dac827f8bedf0923bc3c52028d206d"
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/kernel-build.log",
+          "log_sha256": "0752bef05c46863c024073e21dc0415dd76b412421e28171b52a01364a29d8b3"
         }
       ],
       "dependencies": {
-        "package-lock.json": "e706c33ca91c2181c2e987c033a00689a8cdee2e7ee4b4933863ea7fd577368d"
+        "package-lock.json": "4658dc30e38cd12fda40e58a96541ec0cef639250d5454a699b5065711c23bc2"
       },
       "executables": [
         {
@@ -109,27 +110,27 @@
           "sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55"
         },
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source/dist/bin/codegraph.js",
-          "sha256": "e50fc067c0f229d5bf1051fa8af5f939822db59dbdac0d02e8597be734417bf3"
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source/dist/bin/codegraph.js",
+          "sha256": "435e2a09ac8e960319ef996fd0150107f04d10782826bf451a19999530a15f9b"
         }
       ],
       "id": "codegraph",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source",
-      "installation_sha256": "ab4a4f4ac4033ee239992c832e1e25773d075865728b67d1d57e103212820b1d",
+      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
+      "installation_sha256": "62a91e134a2ed00d73f3edf1576d9e2c993408d4859db8015c2269207e158eb8",
       "launch": [
         "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source/dist/bin/codegraph.js"
+        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source/dist/bin/codegraph.js"
       ],
       "model_assets": [],
       "provenance": {
         "archive": {
-          "bytes": 14414079,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codegraph-f4ddf508516332419ea3c95702810765936cf679.tar.gz",
-          "sha256": "d29baa1fe9ad5811af414a77f1e7d6fb050145e15791c5416c0ecefe046a3daa",
-          "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/f4ddf508516332419ea3c95702810765936cf679"
+          "bytes": 14837939,
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codegraph-6560052a6f856855d3f71eee838fd66ccfa4285d.tar.gz",
+          "sha256": "bc1c0c636fe970c657a0b3b7e5f4f84d8982e283a2e152d26ea8543fb74c9945",
+          "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/6560052a6f856855d3f71eee838fd66ccfa4285d"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/f4ddf508516332419ea3c95702810765936cf679/source-files.json",
-        "source_sha256": "fb9c1c65abc7664dd44d7cd6e1cf9cb46c1d16737b89171191733f54630400b9"
+        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source-files.json",
+        "source_sha256": "6aea8a13e762f1c0dcdaa4b59bf09d6d1a14f6a36e0809e05b9df1d71fcdd387"
       },
       "runtime": {
         "node": "v24.14.0",
@@ -138,26 +139,27 @@
         "npm": "11.9.0"
       },
       "source_pin": {
-        "commit": "f4ddf508516332419ea3c95702810765936cf679",
+        "commit": "6560052a6f856855d3f71eee838fd66ccfa4285d",
         "id": "codegraph",
         "name": "CodeGraph",
+        "release_tag": "v1.6.2",
         "repository": "colbymchenry/codegraph",
         "role": "comparison_tool",
         "source_archive": {
-          "bytes": 14414079,
+          "bytes": 14837939,
           "format": "tar.gz",
-          "sha256": "d29baa1fe9ad5811af414a77f1e7d6fb050145e15791c5416c0ecefe046a3daa",
-          "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/f4ddf508516332419ea3c95702810765936cf679"
+          "sha256": "bc1c0c636fe970c657a0b3b7e5f4f84d8982e283a2e152d26ea8543fb74c9945",
+          "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/6560052a6f856855d3f71eee838fd66ccfa4285d"
         },
-        "version": "1.6.1"
+        "version": "1.6.2"
       }
     },
     "codemap-search": {
       "actual_version": "0.13.0",
       "backend": "native_rust",
       "build": {
-        "binary": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/31bc92ab80a4c23e310431b55c9aef257caf72258fb4de4c0e6a1dae10896071/target/aarch64-apple-darwin/release/codemap-search",
-        "binary_sha256": "b387f273cb901bf626ff6480477b31363bc342f27816b39f562b061e9ea7f089",
+        "binary": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search",
+        "binary_sha256": "9df9bce8ff6f2a1c719e60e69a628d8e982957c38e70599349c24d7ee47821e7",
         "command": [
           "cargo",
           "build",
@@ -166,15 +168,15 @@
           "--target",
           "aarch64-apple-darwin",
           "--manifest-path",
-          "/Volumes/Samsung_990_PRO/codemap-search- bench/products/31bc92ab80a4c23e310431b55c9aef257caf72258fb4de4c0e6a1dae10896071/source/Cargo.toml",
+          "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source/Cargo.toml",
           "--target-dir",
-          "/Volumes/Samsung_990_PRO/codemap-search- bench/products/31bc92ab80a4c23e310431b55c9aef257caf72258fb4de4c0e6a1dae10896071/target"
+          "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target"
         ],
-        "elapsed_seconds": 83.24772462499095,
+        "elapsed_seconds": 67.57419229098014,
         "exit_code": 0,
         "identity": {
-          "commit": "391dbea5aa8ff2ffc78662bc40e92193661da98d",
-          "dirty": true,
+          "commit": "4061c42a59a296255ce151f6a60683e31b66a2b8",
+          "dirty": false,
           "files": {
             ".dockerignore": {
               "mode": 420,
@@ -206,11 +208,11 @@
             },
             "README.ko.md": {
               "mode": 420,
-              "sha256": "afeae28f7488cbdfce3a86ffacafd32ab7c52dff85452d15ae86cabb64951296"
+              "sha256": "07550167995684b789d5ab0c8998aa7da69040173f62bec479dc6d2747034e8b"
             },
             "README.md": {
               "mode": 420,
-              "sha256": "4293cfc139734e7960810e4155cb85169b3d4364665e5ad08c89299431481780"
+              "sha256": "26bec7a627150a44b88c840e25c4bf9db22032e6e88ee11ac0ef3fcff25b6e5e"
             },
             "build.rs": {
               "mode": 420,
@@ -252,13 +254,29 @@
               "mode": 420,
               "sha256": "e93c9d0f2b07f9100c70748eaa9ff8fed65a6c5d65d7a45a4cf742d03a158310"
             },
+            "docs/benchmark-evolution-codex.md": {
+              "mode": 420,
+              "sha256": "6c0d29f0a4ea074b4bb2977af8ce7025a8e7ae05e924a88978f8654c1813c1ad"
+            },
+            "docs/benchmark-evolution.md": {
+              "mode": 420,
+              "sha256": "be67ac15dbb21030415b83f2cba2add1debcd29c2c74d0259152a269f3c45fd7"
+            },
+            "docs/benchmark-workflow-codex.md": {
+              "mode": 420,
+              "sha256": "d22bcf17290045b547f53899684f1fd5c66a775033d3612faf6cb13617de6f55"
+            },
+            "docs/benchmark-workflow.md": {
+              "mode": 420,
+              "sha256": "29350ee2a1fd0380a417852cba5594655070d5ad7ea3a3e355b9b2362f8954a6"
+            },
             "docs/configuration.ko.md": {
               "mode": 420,
-              "sha256": "e8c2d09f65b93a8bc65adafd6e0617e311e7909225fcac1abf913f3f0d1377aa"
+              "sha256": "0a4b0ad0c0b913118295e0950ae12f6ec4469379a83d9e70a345e1bf0c45ada9"
             },
             "docs/configuration.md": {
               "mode": 420,
-              "sha256": "19084f1dbb57fa3969f89334786ee62165be3105fd797d43c0a8974d15789ead"
+              "sha256": "9d324bac499478899382319014cc1a097950fcd2475002688b4427609b7a5b9e"
             },
             "docs/development-language-commands.ko.md": {
               "mode": 420,
@@ -382,7 +400,7 @@
             },
             "examples/jev_decisions.mock.json": {
               "mode": 420,
-              "sha256": "ac01100dac05ba6f0ea8e8b1f2a3c4223bd246d595d94d3be90a4b4da4238eb0"
+              "sha256": "25c85490844b7e5568a9ce68fc7afee8d41b565f558c71bbf887461ec810029a"
             },
             "examples/jev_decisions.rs": {
               "mode": 420,
@@ -9366,11 +9384,11 @@
             },
             "src/auth_template.ko.toml": {
               "mode": 420,
-              "sha256": "3fe225bf55f76b89bfaa8e0889a6167fb7ab61eb857edeb43424dc99b7ab061e"
+              "sha256": "3ad0d8e09133e55f27cd6dbbbe6e7df41dc23e5cb2ebc6886ad75ce1f47701fe"
             },
             "src/auth_template.toml": {
               "mode": 420,
-              "sha256": "8506fce5933df6380b55690a765d533dba64be57fa18764dedc2825b12a77d34"
+              "sha256": "37342266ec465eda6ed23a5fa152a6dcf0c2fd268883c4b2b2875eb3d4e55d09"
             },
             "src/benchmark.rs": {
               "mode": 420,
@@ -9466,11 +9484,11 @@
             },
             "src/config.rs": {
               "mode": 420,
-              "sha256": "4d8febaad1d964356878401612b421bc207e99ea13aa6f10019811fdfd386385"
+              "sha256": "9ea1a889035e5d6844dac5fb81c28bb4699a3682415de891b84e5b4d3fae2833"
             },
             "src/config/auth.rs": {
               "mode": 420,
-              "sha256": "5f2dc828aee1dac3f1e2c2b4765d0729b418ce081854cf4d85ee3e1f583fc929"
+              "sha256": "72093a508ebd15eadf59413b18d0abcaec4fd15fc97abe5999472418c8c619e2"
             },
             "src/config/event_navigation.rs": {
               "mode": 420,
@@ -9482,7 +9500,7 @@
             },
             "src/config/jev.rs": {
               "mode": 420,
-              "sha256": "27e65e5a7971c391263c06553595a714802f23558d9ef5302e8f8c9efff49db2"
+              "sha256": "499db095271eb8dfd1ba9df38cbff671ce9ce6247d2ef8808e5ebf488671a677"
             },
             "src/config/layout.rs": {
               "mode": 420,
@@ -9498,7 +9516,7 @@
             },
             "src/config/layout/legacy_comments.txt": {
               "mode": 420,
-              "sha256": "d568126fb275095373c64303972867fe4b62422425ede1407aa7eaeed12f3cde"
+              "sha256": "b90ce9e13d55e3dbb42f3bb1ff69a7aa62ad998e6de3bf1d013d8189b8f5891a"
             },
             "src/config/macro_expansion.rs": {
               "mode": 420,
@@ -9526,11 +9544,11 @@
             },
             "src/config_template.ko.toml": {
               "mode": 420,
-              "sha256": "b16e0fcfb02354382748b27915e761a257758aa1462cda51bde6fa156e948d96"
+              "sha256": "9339d2167cc326845e335354ed71ccb82ae20ebfa5a8e34ea0c9d0c7f0483e66"
             },
             "src/config_template.toml": {
               "mode": 420,
-              "sha256": "c41cbfe008c00b5b6c7b35a2f838194a452562d3e83fdc810c11ac7e9977f108"
+              "sha256": "e740bba8e19be132d1162b97e09a52d984ced3e8b2e48e1388a09ae5a8685ced"
             },
             "src/declarations.rs": {
               "mode": 420,
@@ -9890,11 +9908,11 @@
             },
             "src/jev/batch.rs": {
               "mode": 420,
-              "sha256": "9d8a223c7453fcf5fe4fafb71e4613c51f4026097152342f4e8063b8c441207d"
+              "sha256": "1507273f995ebb8d7e0b5cadc1c35836ca7ec18deff285c08a4e7d135c5ccf65"
             },
             "src/jev/evaluator.rs": {
               "mode": 420,
-              "sha256": "6bf8dddeee27aa87f59da4a6567f9f8e8216dcac6810c0d5e786dc04b290238b"
+              "sha256": "f3c5436ecc2338d1cf4eb8424c111e0305ed81675d3a4a49d6e1786d7235d780"
             },
             "src/jev/mock.rs": {
               "mode": 420,
@@ -9902,11 +9920,7 @@
             },
             "src/jev/mod.rs": {
               "mode": 420,
-              "sha256": "e6dfc1141be1f6945c3be5ad49084670421929dac1584bcfcb683f48cd7e3fbb"
-            },
-            "src/jev/provider.rs": {
-              "mode": 420,
-              "sha256": "5fd39686f82dca374946f7dc514714c5cb34da4d9bcf220925ffbdd957ff38fc"
+              "sha256": "efe89f23a42183555942f22e9772e775fcd5c1afb7fad7495421ae1e607e494c"
             },
             "src/jev/question.rs": {
               "mode": 420,
@@ -9914,11 +9928,11 @@
             },
             "src/jev/tests.rs": {
               "mode": 420,
-              "sha256": "5f82ff894455f6c7a4ca078a5062a5a719f331f8d44d4c9e8dec4d28467c321c"
+              "sha256": "4a0602dcca935aec74c320723ff92854406fabe094453d0f2a3aba619fadb42c"
             },
             "src/jev/transport.rs": {
               "mode": 420,
-              "sha256": "392db51fce290bb4064fb6f6b58a9bcd18f20657efa94973afa31bfb0d3eacfb"
+              "sha256": "13d0fe767752d4b652298943b06ddf9c99ad08fee9315ffc847204381972cff2"
             },
             "src/lang/asm.rs": {
               "mode": 420,
@@ -10118,7 +10132,7 @@
             },
             "src/mcp/jev.rs": {
               "mode": 420,
-              "sha256": "f5381a043290d32e8b5a6e90b8f3b91d3b504d42a2f230961993f24e755ba554"
+              "sha256": "2bb5bedfea950e1d8e2e468dcc3671097e173ab4ad42ab5862820686822ddcaf"
             },
             "src/mcp/mod.rs": {
               "mode": 420,
@@ -10618,11 +10632,11 @@
             },
             "tests/e2e/helpers.rs": {
               "mode": 420,
-              "sha256": "139cddc07fb7db9de4589859c2431cd888c2d916d87c6c4b65ba072a9b42bc4f"
+              "sha256": "20198b65e53848bb031f40e0bb5027ea05f36b61ac47ce067101c564bb2dd018"
             },
             "tests/e2e/jev.rs": {
               "mode": 420,
-              "sha256": "5d7a2dd00d693cdf61f3cb2f1be3030a87ce84bea43dd72f5bad9e7af7a04615"
+              "sha256": "edb3db1f78eb798f12faebb0c8b0f110bd145be6bf84f7e82c43ef89be39b552"
             },
             "tests/e2e/jev_live.rs": {
               "mode": 420,
@@ -12313,36 +12327,36 @@
               "sha256": "91cfc6377a9ba02e4178260fad878b986f41d8f33a88427b0a7dfc1a3fb6a68f"
             }
           },
-          "kind": "worktree",
-          "path": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
-          "source_sha256": "ab591a5e780c4c9866d69a347e005bd565ed6ee9b638a11b39d873b72afb7837",
+          "git_ref": "codemap-v0.13.0",
+          "kind": "git",
+          "source_sha256": "221dcf5fad43a66562aeffec05981b8c953c72d20450be0ce2323e29a3c48438",
           "version": "0.13.0"
         },
         "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1",
-        "source_snapshot": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/31bc92ab80a4c23e310431b55c9aef257caf72258fb4de4c0e6a1dae10896071/source"
+        "source_snapshot": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source"
       },
       "dependencies": {
         "Cargo.lock": "6b4f6a63a843e1b8c4cf5344d06d8797df869d366c92e79024d701b4c6027796"
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/31bc92ab80a4c23e310431b55c9aef257caf72258fb4de4c0e6a1dae10896071/target/aarch64-apple-darwin/release/codemap-search",
-          "sha256": "b387f273cb901bf626ff6480477b31363bc342f27816b39f562b061e9ea7f089"
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search",
+          "sha256": "9df9bce8ff6f2a1c719e60e69a628d8e982957c38e70599349c24d7ee47821e7"
         }
       ],
       "id": "codemap-search",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/31bc92ab80a4c23e310431b55c9aef257caf72258fb4de4c0e6a1dae10896071/source",
-      "installation_sha256": "ab591a5e780c4c9866d69a347e005bd565ed6ee9b638a11b39d873b72afb7837",
+      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source",
+      "installation_sha256": "221dcf5fad43a66562aeffec05981b8c953c72d20450be0ce2323e29a3c48438",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/products/31bc92ab80a4c23e310431b55c9aef257caf72258fb4de4c0e6a1dae10896071/target/aarch64-apple-darwin/release/codemap-search"
+        "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search"
       ],
       "model_assets": [],
       "runtime": {
         "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1"
       },
       "source_pin": {
-        "commit": "391dbea5aa8ff2ffc78662bc40e92193661da98d",
-        "dirty": true,
+        "commit": "4061c42a59a296255ce151f6a60683e31b66a2b8",
+        "dirty": false,
         "files": {
           ".dockerignore": {
             "mode": 420,
@@ -12374,11 +12388,11 @@
           },
           "README.ko.md": {
             "mode": 420,
-            "sha256": "afeae28f7488cbdfce3a86ffacafd32ab7c52dff85452d15ae86cabb64951296"
+            "sha256": "07550167995684b789d5ab0c8998aa7da69040173f62bec479dc6d2747034e8b"
           },
           "README.md": {
             "mode": 420,
-            "sha256": "4293cfc139734e7960810e4155cb85169b3d4364665e5ad08c89299431481780"
+            "sha256": "26bec7a627150a44b88c840e25c4bf9db22032e6e88ee11ac0ef3fcff25b6e5e"
           },
           "build.rs": {
             "mode": 420,
@@ -12420,13 +12434,29 @@
             "mode": 420,
             "sha256": "e93c9d0f2b07f9100c70748eaa9ff8fed65a6c5d65d7a45a4cf742d03a158310"
           },
+          "docs/benchmark-evolution-codex.md": {
+            "mode": 420,
+            "sha256": "6c0d29f0a4ea074b4bb2977af8ce7025a8e7ae05e924a88978f8654c1813c1ad"
+          },
+          "docs/benchmark-evolution.md": {
+            "mode": 420,
+            "sha256": "be67ac15dbb21030415b83f2cba2add1debcd29c2c74d0259152a269f3c45fd7"
+          },
+          "docs/benchmark-workflow-codex.md": {
+            "mode": 420,
+            "sha256": "d22bcf17290045b547f53899684f1fd5c66a775033d3612faf6cb13617de6f55"
+          },
+          "docs/benchmark-workflow.md": {
+            "mode": 420,
+            "sha256": "29350ee2a1fd0380a417852cba5594655070d5ad7ea3a3e355b9b2362f8954a6"
+          },
           "docs/configuration.ko.md": {
             "mode": 420,
-            "sha256": "e8c2d09f65b93a8bc65adafd6e0617e311e7909225fcac1abf913f3f0d1377aa"
+            "sha256": "0a4b0ad0c0b913118295e0950ae12f6ec4469379a83d9e70a345e1bf0c45ada9"
           },
           "docs/configuration.md": {
             "mode": 420,
-            "sha256": "19084f1dbb57fa3969f89334786ee62165be3105fd797d43c0a8974d15789ead"
+            "sha256": "9d324bac499478899382319014cc1a097950fcd2475002688b4427609b7a5b9e"
           },
           "docs/development-language-commands.ko.md": {
             "mode": 420,
@@ -12550,7 +12580,7 @@
           },
           "examples/jev_decisions.mock.json": {
             "mode": 420,
-            "sha256": "ac01100dac05ba6f0ea8e8b1f2a3c4223bd246d595d94d3be90a4b4da4238eb0"
+            "sha256": "25c85490844b7e5568a9ce68fc7afee8d41b565f558c71bbf887461ec810029a"
           },
           "examples/jev_decisions.rs": {
             "mode": 420,
@@ -21534,11 +21564,11 @@
           },
           "src/auth_template.ko.toml": {
             "mode": 420,
-            "sha256": "3fe225bf55f76b89bfaa8e0889a6167fb7ab61eb857edeb43424dc99b7ab061e"
+            "sha256": "3ad0d8e09133e55f27cd6dbbbe6e7df41dc23e5cb2ebc6886ad75ce1f47701fe"
           },
           "src/auth_template.toml": {
             "mode": 420,
-            "sha256": "8506fce5933df6380b55690a765d533dba64be57fa18764dedc2825b12a77d34"
+            "sha256": "37342266ec465eda6ed23a5fa152a6dcf0c2fd268883c4b2b2875eb3d4e55d09"
           },
           "src/benchmark.rs": {
             "mode": 420,
@@ -21634,11 +21664,11 @@
           },
           "src/config.rs": {
             "mode": 420,
-            "sha256": "4d8febaad1d964356878401612b421bc207e99ea13aa6f10019811fdfd386385"
+            "sha256": "9ea1a889035e5d6844dac5fb81c28bb4699a3682415de891b84e5b4d3fae2833"
           },
           "src/config/auth.rs": {
             "mode": 420,
-            "sha256": "5f2dc828aee1dac3f1e2c2b4765d0729b418ce081854cf4d85ee3e1f583fc929"
+            "sha256": "72093a508ebd15eadf59413b18d0abcaec4fd15fc97abe5999472418c8c619e2"
           },
           "src/config/event_navigation.rs": {
             "mode": 420,
@@ -21650,7 +21680,7 @@
           },
           "src/config/jev.rs": {
             "mode": 420,
-            "sha256": "27e65e5a7971c391263c06553595a714802f23558d9ef5302e8f8c9efff49db2"
+            "sha256": "499db095271eb8dfd1ba9df38cbff671ce9ce6247d2ef8808e5ebf488671a677"
           },
           "src/config/layout.rs": {
             "mode": 420,
@@ -21666,7 +21696,7 @@
           },
           "src/config/layout/legacy_comments.txt": {
             "mode": 420,
-            "sha256": "d568126fb275095373c64303972867fe4b62422425ede1407aa7eaeed12f3cde"
+            "sha256": "b90ce9e13d55e3dbb42f3bb1ff69a7aa62ad998e6de3bf1d013d8189b8f5891a"
           },
           "src/config/macro_expansion.rs": {
             "mode": 420,
@@ -21694,11 +21724,11 @@
           },
           "src/config_template.ko.toml": {
             "mode": 420,
-            "sha256": "b16e0fcfb02354382748b27915e761a257758aa1462cda51bde6fa156e948d96"
+            "sha256": "9339d2167cc326845e335354ed71ccb82ae20ebfa5a8e34ea0c9d0c7f0483e66"
           },
           "src/config_template.toml": {
             "mode": 420,
-            "sha256": "c41cbfe008c00b5b6c7b35a2f838194a452562d3e83fdc810c11ac7e9977f108"
+            "sha256": "e740bba8e19be132d1162b97e09a52d984ced3e8b2e48e1388a09ae5a8685ced"
           },
           "src/declarations.rs": {
             "mode": 420,
@@ -22058,11 +22088,11 @@
           },
           "src/jev/batch.rs": {
             "mode": 420,
-            "sha256": "9d8a223c7453fcf5fe4fafb71e4613c51f4026097152342f4e8063b8c441207d"
+            "sha256": "1507273f995ebb8d7e0b5cadc1c35836ca7ec18deff285c08a4e7d135c5ccf65"
           },
           "src/jev/evaluator.rs": {
             "mode": 420,
-            "sha256": "6bf8dddeee27aa87f59da4a6567f9f8e8216dcac6810c0d5e786dc04b290238b"
+            "sha256": "f3c5436ecc2338d1cf4eb8424c111e0305ed81675d3a4a49d6e1786d7235d780"
           },
           "src/jev/mock.rs": {
             "mode": 420,
@@ -22070,11 +22100,7 @@
           },
           "src/jev/mod.rs": {
             "mode": 420,
-            "sha256": "e6dfc1141be1f6945c3be5ad49084670421929dac1584bcfcb683f48cd7e3fbb"
-          },
-          "src/jev/provider.rs": {
-            "mode": 420,
-            "sha256": "5fd39686f82dca374946f7dc514714c5cb34da4d9bcf220925ffbdd957ff38fc"
+            "sha256": "efe89f23a42183555942f22e9772e775fcd5c1afb7fad7495421ae1e607e494c"
           },
           "src/jev/question.rs": {
             "mode": 420,
@@ -22082,11 +22108,11 @@
           },
           "src/jev/tests.rs": {
             "mode": 420,
-            "sha256": "5f82ff894455f6c7a4ca078a5062a5a719f331f8d44d4c9e8dec4d28467c321c"
+            "sha256": "4a0602dcca935aec74c320723ff92854406fabe094453d0f2a3aba619fadb42c"
           },
           "src/jev/transport.rs": {
             "mode": 420,
-            "sha256": "392db51fce290bb4064fb6f6b58a9bcd18f20657efa94973afa31bfb0d3eacfb"
+            "sha256": "13d0fe767752d4b652298943b06ddf9c99ad08fee9315ffc847204381972cff2"
           },
           "src/lang/asm.rs": {
             "mode": 420,
@@ -22286,7 +22312,7 @@
           },
           "src/mcp/jev.rs": {
             "mode": 420,
-            "sha256": "f5381a043290d32e8b5a6e90b8f3b91d3b504d42a2f230961993f24e755ba554"
+            "sha256": "2bb5bedfea950e1d8e2e468dcc3671097e173ab4ad42ab5862820686822ddcaf"
           },
           "src/mcp/mod.rs": {
             "mode": 420,
@@ -22786,11 +22812,11 @@
           },
           "tests/e2e/helpers.rs": {
             "mode": 420,
-            "sha256": "139cddc07fb7db9de4589859c2431cd888c2d916d87c6c4b65ba072a9b42bc4f"
+            "sha256": "20198b65e53848bb031f40e0bb5027ea05f36b61ac47ce067101c564bb2dd018"
           },
           "tests/e2e/jev.rs": {
             "mode": 420,
-            "sha256": "5d7a2dd00d693cdf61f3cb2f1be3030a87ce84bea43dd72f5bad9e7af7a04615"
+            "sha256": "edb3db1f78eb798f12faebb0c8b0f110bd145be6bf84f7e82c43ef89be39b552"
           },
           "tests/e2e/jev_live.rs": {
             "mode": 420,
@@ -24481,61 +24507,110 @@
             "sha256": "91cfc6377a9ba02e4178260fad878b986f41d8f33a88427b0a7dfc1a3fb6a68f"
           }
         },
-        "kind": "worktree",
-        "path": "/Users/buyong/workspace/private/buyong-mcp/apps/codemap-search",
-        "source_sha256": "ab591a5e780c4c9866d69a347e005bd565ed6ee9b638a11b39d873b72afb7837",
+        "git_ref": "codemap-v0.13.0",
+        "kind": "git",
+        "source_sha256": "221dcf5fad43a66562aeffec05981b8c953c72d20450be0ce2323e29a3c48438",
         "version": "0.13.0"
-      }
+      },
+      "version_output": "codemap-search 0.13.0"
     },
     "graphify": {
-      "actual_version": "graphify 0.9.74",
+      "actual_version": "graphify 0.9.95",
       "backend": "tree_sitter_code_only",
       "commands": [
         {
           "command": [
             "/opt/homebrew/bin/uv",
-            "sync",
-            "--locked",
-            "--no-dev",
-            "--extra",
-            "mcp",
+            "venv",
             "--python",
-            "3.12"
+            "3.12",
+            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/source",
-          "elapsed_seconds": 6.354719417009619,
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+          "elapsed_seconds": 3.9378156249877065,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/install.log",
-          "log_sha256": "99eced70b2f58a239ddefe346a8dfd58bcfcb556b72f9b4ae81b65ca20ed7048"
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/venv.log",
+          "log_sha256": "c4c4dcc50395a068c5d838a945399e68864d2d6883aa3d0447f003a2aaace4b8"
+        },
+        {
+          "command": [
+            "/opt/homebrew/bin/uv",
+            "pip",
+            "sync",
+            "--python",
+            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
+            "--require-hashes",
+            "--only-binary",
+            ":all:",
+            "/Users/buyong/workspace/private/buyong-mcp/benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt"
+          ],
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+          "elapsed_seconds": 0.8999972089950461,
+          "exit_code": 0,
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/install.log",
+          "log_sha256": "ee0ae7d9841145eecc2504a501e147b05c6b482e31d18f0c9ed12a77531e55f3"
+        },
+        {
+          "command": [
+            "/opt/homebrew/bin/uv",
+            "pip",
+            "check",
+            "--python",
+            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python"
+          ],
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+          "elapsed_seconds": 0.022892249980941415,
+          "exit_code": 0,
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/dependency-check.log",
+          "log_sha256": "b281d43b2bd3620106fab8bf779866246a60321ca85a28e20c18a588054bc0eb"
+        },
+        {
+          "command": [
+            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
+            "-c",
+            "\nimport hashlib, json, sys\nfrom importlib.metadata import distribution\nfrom pathlib import Path\nsource = Path(sys.argv[1])\ndist = distribution('graphifyy')\nchecked = []\nfor name in dist.files or []:\n    if name.parts[0] == 'graphify' and '__pycache__' not in name.parts:\n        expected, installed = source / name, Path(dist.locate_file(name))\n        assert expected.is_file() and installed.is_file(), str(name)\n        assert hashlib.sha256(expected.read_bytes()).digest() == hashlib.sha256(installed.read_bytes()).digest(), str(name)\n        checked.append(str(name))\nassert checked\nprint(json.dumps({'source_matching_files': len(checked), 'version': dist.version}))\n",
+            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source"
+          ],
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+          "elapsed_seconds": 0.1921520000032615,
+          "exit_code": 0,
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/wheel-source-check.log",
+          "log_sha256": "de69cbffe3a37876bb199c3a0564b0305007072e81e8858a46375c73fa27abac"
         }
       ],
       "dependencies": {
-        "uv.lock": "eb376f7dcde03a0fa8b57f469285ee4d38d7075c2a0e6385780e5717be4d4896"
+        "runtime_requirements_sha256": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
+        "uv.lock": "f761d4a7e465a5c62581545d3b899c2436255506d57995d92ce76afcbf3dd0d1"
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/source/.venv/bin/python",
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
           "sha256": "fe5e57e7f0dc374654e314d4e8f20cf2a345bda8a4e03032046f407027628a32"
         }
       ],
       "id": "graphify",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/source",
-      "installation_sha256": "54ef2f4d5662f750b6133a03ca5861d2d1cfb0119b15e86718afe2691c988d42",
+      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+      "installation_sha256": "c15d14756dd54740cfa0db9c2fef38e166b7a139ba28511a49fece3b465cd422",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/source/.venv/bin/python",
+        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
         "-m",
         "graphify"
       ],
       "model_assets": [],
       "provenance": {
         "archive": {
-          "bytes": 12220877,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/graphify-e10df08877f8819a625a1afa38c3297a31fda296.tar.gz",
-          "sha256": "6c59f4a4f4714da7654985007ab9138859365d90bcf270f0de8534c0683f034b",
-          "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/e10df08877f8819a625a1afa38c3297a31fda296"
+          "bytes": 13656283,
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/graphify-92741d162b2094ffc2fed58cfbd8ee823e9da62c.tar.gz",
+          "sha256": "b4bc34d33b48ca6e9b981809d104eaffcf4e53c9dfffc34bb317294863e4f2ec",
+          "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/92741d162b2094ffc2fed58cfbd8ee823e9da62c"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/e10df08877f8819a625a1afa38c3297a31fda296/source-files.json",
-        "source_sha256": "29716f41a54ee8ac0e049190f5f3274910b553cbe12b3c0483f3deed82adf288"
+        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source-files.json",
+        "official_package_wheel": {
+          "sha256": "e067c9256e5e762406816e51039c4e775f8d2f39a893ecc0b7095d594f6c3120",
+          "source_verification_log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/wheel-source-check.log",
+          "url": "https://files.pythonhosted.org/packages/79/87/4c0808afdf99568e27f24838595506d6a286aca6f3bbf8fbb2520574f413/graphifyy-0.9.95-py3-none-any.whl"
+        },
+        "source_sha256": "e397f2e2162f81becab99ad4c5775c4a45430027931655c099715545b320f0d6"
       },
       "runtime": {
         "python": "Python 3.12.15",
@@ -24543,18 +24618,19 @@
         "uv": "uv 0.12.23 (Homebrew 2026-10-03 aarch64-apple-darwin)"
       },
       "source_pin": {
-        "commit": "e10df08877f8819a625a1afa38c3297a31fda296",
+        "commit": "92741d162b2094ffc2fed58cfbd8ee823e9da62c",
         "id": "graphify",
         "name": "Graphify",
+        "release_tag": "v0.9.95",
         "repository": "Graphify-Labs/graphify",
         "role": "comparison_tool",
         "source_archive": {
-          "bytes": 12220877,
+          "bytes": 13656283,
           "format": "tar.gz",
-          "sha256": "6c59f4a4f4714da7654985007ab9138859365d90bcf270f0de8534c0683f034b",
-          "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/e10df08877f8819a625a1afa38c3297a31fda296"
+          "sha256": "b4bc34d33b48ca6e9b981809d104eaffcf4e53c9dfffc34bb317294863e4f2ec",
+          "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/92741d162b2094ffc2fed58cfbd8ee823e9da62c"
         },
-        "version": "0.9.74"
+        "version": "0.9.95"
       }
     },
     "rg": {
@@ -24588,7 +24664,7 @@
         "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/source-files.json",
         "official_release_asset": {
           "bytes": 1764284,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz",
           "sha256": "3750b2e93f37e0c692657da574d7019a101c0084da05a790c83fd335bad973e4",
           "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz"
         },
@@ -24604,6 +24680,7 @@
         "commit": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
         "id": "rg",
         "name": "기본 에이전트 (검색제품 없음)",
+        "release_tag": "15.2.0",
         "repository": "BurntSushi/ripgrep",
         "role": "native_agent_baseline",
         "source_archive": {
@@ -24616,7 +24693,7 @@
       }
     },
     "serena": {
-      "actual_version": "Serena 1.7.0",
+      "actual_version": "Serena 2.1.0",
       "backend": "local_lsp_go_typescript",
       "commands": [
         {
@@ -24628,34 +24705,48 @@
             "--python",
             "3.12"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source",
-          "elapsed_seconds": 0.8599470000044676,
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
+          "elapsed_seconds": 1.414320832991507,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/install.log",
-          "log_sha256": "22c75320642336b86d209bb3bfe1ede228b2c150b4fdabf37a8d34d7374c54bf"
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/install.log",
+          "log_sha256": "7c963045a1563ee91dfd4bfbac6f98549514a9f78e16eca015272aea9651949d"
         },
         {
           "command": [
-            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena",
+            "/opt/homebrew/bin/uv",
+            "pip",
+            "check",
+            "--python",
+            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/python"
+          ],
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
+          "elapsed_seconds": 0.07474683300824836,
+          "exit_code": 0,
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/dependency-check.log",
+          "log_sha256": "b7c78ee174c1dc08a46836dc7ebc49cdc6df980cc3724eb306f9f48087d3d68d"
+        },
+        {
+          "command": [
+            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena",
             "--version"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source",
-          "elapsed_seconds": 3.441513040990685,
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
+          "elapsed_seconds": 2.9298887089826167,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/version.log",
-          "log_sha256": "500ef75bf36678e3fc00643f196fce863316a0f9031376dde79d880fa85b3a3e"
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/version.log",
+          "log_sha256": "dd8c3336329df10285cef24293c9814c988dd6e9e5b36842770514a2ff33fffd"
         }
       ],
       "dependencies": {
-        "uv.lock": "48f88af6b9a7c942820b65d0321176b33b49f0012a8a0cd036ee1f5140cfe167"
+        "uv.lock": "24bbc88ca06a3b1bb84635829b9571a1132ee0d78d5ef5f45a673d9ae4d65837"
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena",
-          "sha256": "841140415e71e77850914086c59ee33aabc16c5c319bc6a6d8e948e7a28d7add"
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena",
+          "sha256": "0137910838bad308fea714f60e5757f9b39b2f7a24a3dceae1d20972cb070c29"
         },
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/python",
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/python",
           "sha256": "fe5e57e7f0dc374654e314d4e8f20cf2a345bda8a4e03032046f407027628a32"
         },
         {
@@ -24676,21 +24767,21 @@
         }
       ],
       "id": "serena",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source",
-      "installation_sha256": "0cbd581a9e26cd21e3154275f584fc6cdb2f82a48b71a59ff43b1a05cd78d3e7",
+      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
+      "installation_sha256": "3a96b203dae4097c1ad039c15ad7d50f46f86deeacb8529164e7eb403fb92e89",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source/.venv/bin/serena"
+        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena"
       ],
       "model_assets": [],
       "provenance": {
         "archive": {
-          "bytes": 2252543,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/serena-949a27ef1e5fda1a6e7b561e777bcece345c6ffd.tar.gz",
-          "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
-          "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd"
+          "bytes": 2522657,
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/serena-5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc.tar.gz",
+          "sha256": "3173dfcc3cba19e4002685768acc563bd2b9b689a4d82fda94f7ee0877cfd0f7",
+          "url": "https://codeload.github.com/oraios/serena/tar.gz/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/source-files.json",
-        "source_sha256": "d936d91e4e29870baeb348560665e03ced947f868afd9e395fbc5616874da143"
+        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source-files.json",
+        "source_sha256": "ec89e8e34cddf390166ac0fbc50508e063615a00502a0d08a001b01fcf9ea794"
       },
       "runtime": {
         "go": {
@@ -24718,22 +24809,23 @@
         "uv": "uv 0.12.23 (Homebrew 2026-10-03 aarch64-apple-darwin)"
       },
       "source_pin": {
-        "commit": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
+        "commit": "5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
         "id": "serena",
         "name": "Serena",
+        "release_tag": "v2.1.0",
         "repository": "oraios/serena",
         "role": "comparison_tool",
         "source_archive": {
-          "bytes": 2252543,
+          "bytes": 2522657,
           "format": "tar.gz",
-          "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
-          "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd"
+          "sha256": "3173dfcc3cba19e4002685768acc563bd2b9b689a4d82fda94f7ee0877cfd0f7",
+          "url": "https://codeload.github.com/oraios/serena/tar.gz/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc"
         },
-        "version": "1.7.0"
+        "version": "2.1.0"
       }
     },
     "zvec-grep": {
-      "actual_version": "0.2.0",
+      "actual_version": "0.2.2",
       "backend": "zvec_native_model2vec",
       "commands": [
         {
@@ -24743,11 +24835,11 @@
             "--no-audit",
             "--no-fund"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source",
-          "elapsed_seconds": 8.479197374996147,
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
+          "elapsed_seconds": 5.972277124994434,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/install.log",
-          "log_sha256": "66e446cd1f5ee18a5fd604e741be0222d875cb08e1216ba01fb9d25c29c11cd4"
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/install.log",
+          "log_sha256": "85aed72683b2ac734635fe59efbe0f6152dd483483f8f960ab4113cc7e869aa1"
         },
         {
           "command": [
@@ -24755,15 +24847,15 @@
             "run",
             "build"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source",
-          "elapsed_seconds": 2.1988259999925504,
+          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
+          "elapsed_seconds": 2.230237792013213,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/build.log",
-          "log_sha256": "3c3f9094004803e91156ffc065cb4033d82c5e74e16e294bb9634a3d6bbfcf1f"
+          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/build.log",
+          "log_sha256": "8841f6e9c8af6dedc879fd12d58a6ecc72807a89ce85806f46fb7371bbcc3d81"
         }
       ],
       "dependencies": {
-        "package-lock.json": "1da88d81fce71ceb506071df1f43b59f538a942871a945de267d2f5463861f0a"
+        "package-lock.json": "cf27937dd23681000f760eb3349e395461fd16d96d916acfee8c26ebddd4c6d9"
       },
       "executables": [
         {
@@ -24771,16 +24863,16 @@
           "sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55"
         },
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source/dist/cli/index.js",
-          "sha256": "9dfaedb52ff2eaa593869488d8b0105c19334efa61d328d15bb8f8e14f580def"
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source/dist/cli/index.js",
+          "sha256": "4188836385121590e3813e9da7efcabf2310266afcad9df613cc23f2abaaac78"
         }
       ],
       "id": "zvec-grep",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source",
-      "installation_sha256": "c441ab36b0795d7d12b167135ead820c1047cd5ac6f50f5254f17ad64dc6f928",
+      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
+      "installation_sha256": "d98c0f020efd1bb0f30143d71feb21bb712671571360309758321efb0d335903",
       "launch": [
         "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source/dist/cli/index.js"
+        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source/dist/cli/index.js"
       ],
       "model_assets": [
         {
@@ -24798,13 +24890,13 @@
       ],
       "provenance": {
         "archive": {
-          "bytes": 5168268,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/zvec-grep-38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8.tar.gz",
-          "sha256": "5f638640792f5c73252705392c75a519149bd8b90814083187099dd01b3784a5",
-          "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8"
+          "bytes": 15718908,
+          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/zvec-grep-b1a9148e26a7bc9bd4a52229ffb7532d3063793d.tar.gz",
+          "sha256": "bec7d78d266fb5d49646f521edacc977ae6f74f3174476fe79b4e87f6d0662d1",
+          "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/b1a9148e26a7bc9bd4a52229ffb7532d3063793d"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8/source-files.json",
-        "source_sha256": "ef484a1cd4dc2fa5a73798a8894f43afca33d68883bc34c45684bf5301129798"
+        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source-files.json",
+        "source_sha256": "47b5f4e5599bf07fd3500a6a6ee155f02e69a3232e9341d97b6ab08729b9a09d"
       },
       "runtime": {
         "node": "v24.14.0",
@@ -24813,24 +24905,25 @@
         "npm": "11.9.0"
       },
       "source_pin": {
-        "commit": "38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
+        "commit": "b1a9148e26a7bc9bd4a52229ffb7532d3063793d",
         "id": "zvec-grep",
         "name": "zvec-grep",
+        "release_tag": "v0.2.2",
         "repository": "zvec-ai/zvec-grep",
         "role": "comparison_tool",
         "source_archive": {
-          "bytes": 5168268,
+          "bytes": 15718908,
           "format": "tar.gz",
-          "sha256": "5f638640792f5c73252705392c75a519149bd8b90814083187099dd01b3784a5",
-          "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8"
+          "sha256": "bec7d78d266fb5d49646f521edacc977ae6f74f3174476fe79b4e87f6d0662d1",
+          "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/b1a9148e26a7bc9bd4a52229ffb7532d3063793d"
         },
-        "version": "0.2.0"
+        "version": "0.2.2"
       }
     }
   },
-  "contract_hash": "f2af9c0b7d28f6d3738ab8a763cb85654e443f4d1082cbd1de66ebd4c2d7ecf4",
+  "contract_hash": "0c2847971220a67487964dc709d9f92ca2f9c2ae001c156ef944ee0f38415b0f",
   "dependency_hashes": {
-    "01-contract.json": "6953521682bd38e37e81ecdec7f42400c9a8206621e7e0dc86f5697d6a97663c"
+    "01-contract.json": "537fe5ac819d094b9c04e5ec2aff5b01c80280d94ccdac6d508ca883662b1e14"
   },
   "host": {
     "machine": "arm64",
@@ -24838,14 +24931,17 @@
     "system": "Darwin"
   },
   "implementation_hashes": {
-    "benchmark/resources.py": "329b4775e68e4ffa0a06bdf2b22276d76c04e330f1244f2625b8a7783de51acb",
-    "benchmark/tool_artifacts.py": "19775abc9774ba2ca97bb3bd2951a878a6a6f66811c95f441181da2aad58ce61"
+    "benchmark/resources.py": "ebff1103cd0f5e25abe4bd41d6e9ba05cdd3ef7e691a694629554c2db1bac8a0",
+    "benchmark/tool_artifacts.py": "90b433582a681d4e3906aacbcf515d9b1bcc3a37f163d687f8724d935716815a"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "40127ffb766332a9e32437d0365e193a4eb90838be738302a7b21e2888f7b4b6",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "6147358f35dd798f0290ec696211c0c383d440cd08277e32c941b48c691de0b3",
-    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "c90d74aa870666a3db41848aec09b2f6d20240c215aa829ce1b7f131eee541e2",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "b7203a8a1664d327d17ec49af610ad7a1f50771cafeae6290bb5b454e971640c",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "5f385a11294746f8388716ae5b724feeedc97582f90634dd3f32e309260b67ba",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "d2d996e91b28e189284a178135e747c6e3c5d002bf9bf2af59579c4af762c8cf",
+    "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "4db282f65a398917da43bc67e4a784ab0abc1eb238e7994ad530051d67d1211b",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "e2adbc716a47942c2baafb92c83f84a716b869956b97323c03761c398e9fd2b2",
+    "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111",
     "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
     "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
     "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
@@ -24857,7 +24953,22 @@
   "limitations": [
     "No Grafana index or solver/grader inference was created by artifact preparation."
   ],
-  "recorded_at": "2026-10-24T01:37:06.518341+00:00",
+  "pi_toolchain": {
+    "bridge_extension": "/Volumes/Samsung_990_PRO/codemap-search- bench/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
+    "claude_code_binary": "/Volumes/Samsung_990_PRO/codemap-search- bench/pi-toolchain/installation/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
+    "lock_sha256": "4db282f65a398917da43bc67e4a784ab0abc1eb238e7994ad530051d67d1211b",
+    "node": "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
+    "node_sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55",
+    "pi_cli": "/Volumes/Samsung_990_PRO/codemap-search- bench/pi-toolchain/installation/node_modules/@earendil-works/pi-coding-agent/dist/cli.js",
+    "versions": {
+      "agent_sdk": "0.3.310",
+      "bridge": "0.13.1",
+      "claude_code": "2.1.310",
+      "node": "v24.14.0",
+      "pi": "1.4.0"
+    }
+  },
+  "recorded_at": "2026-10-24T12:57:28.839653+00:00",
   "schema_version": 1,
   "status": "verified",
   "verification": {
