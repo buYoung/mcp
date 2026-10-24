@@ -94,7 +94,7 @@ python3 -m benchmark.cli run < /private/operator/run-approval.json
 # resume.json: run_root, confirmed:true. 미시작 슬롯까지 시작하려면 retry_unstarted:true
 python3 -m benchmark.cli resume < /private/operator/resume.json
 
-# blocked-sealed.json: run_root, confirmed:true — blocked campaign의 기존 sealed 슬롯만 채점
+# blocked-sealed.json: run_root, confirmed:true — blocked campaign의 clean raw-seal 슬롯만 검토/채점
 python3 -m benchmark.cli grade-sealed < /private/operator/blocked-sealed.json
 
 # review.json: run_root, slot_id, approval(아래 형식)
@@ -106,7 +106,7 @@ python3 -m benchmark.cli report < /private/operator/report.json
 
 `RunManifest`와 승인·준비 기록은 불변이다. 실행 결과는 cache의 `route-preparation/campaigns/<campaign_id>/`에 따로 저장한다. `ledger.json`은 fsync·atomic replace로 갱신하며 단일 coordinator만 작성한다. solver/grader launch intent를 먼저 내구 저장한다. intent 이후 crash는 실행 여부가 불확실해도 자동 재실행하지 않는다. 정리가 확인되지 않은 process group/workspace는 `blocked`로 두고 추측으로 종료하거나 복원하지 않는다. 미시작 재개만 명시적 `retry_unstarted`로 허용하고 이전 preflight의 원자료도 보존한다. 모델 호출 확인과 CLI spawn은 별개이며 미관측 provider 호출은 null이다.
 
-`grade-sealed`는 정리 실패를 해제하는 승인 대신 더 좁은 예외를 제공한다. `blocked` campaign에서 이미 `sealed`이고 원자료 seal의 cleanup 완료·유효 조건·적격 답변이 확인된 슬롯만 기존 Astra 승인 범위로 채점한다. solver/product 시작, workspace 복원, 새 packet 생성, 실패 grader 재시도는 하지 않는다. 다른 슬롯의 불명확한 정리 상태와 raw seal은 그대로 보존하며 campaign은 계속 `blocked`(CLI exit 1)다. identity 검토가 필요한 깨끗한 슬롯은 먼저 `approve-review`로 봉인한다.
+`grade-sealed`는 운영자가 명시적으로 CLI를 실행할 때만 정리 실패를 해제하지 않는 부분 채점 예외를 제공한다. `blocked` campaign에서 원자료 seal의 cleanup 완료·유효 조건·적격 답변이 확인된 슬롯만 고정 baseline과 기존 `build_review_packet` 경로로 채점 입력을 만든다. identity flag가 있으면 `review_required`로 멈추고 운영자가 `approve-review`로 승인·재봉인한 뒤 `grade-sealed`를 다시 실행해야 한다. **봉인된 packet만** 기존 Astra 승인 범위로 채점하며 실패 grader를 재시도하지 않는다. solver/product launch, workspace restore, cleanup 승인, 남은 슬롯 시작은 모두 금지한다. 실패·미시작 슬롯과 원자료를 보존하고 campaign은 계속 `blocked`(CLI exit 1)다. ledger와 보고서의 `blocked_grading`에 명시적 부분 채점 요청·대상·차단 원인·검증 완료 슬롯을 남긴다.
 
 ready 실패는 `warmup_failed`로 기록하고 solver를 시작하지 않는다. 원자료는 writer 종료·정리 뒤 파일별 hash/bytes로 봉인한다. 조건이 유효하고 cutoff 이전 완성 답변임이 입증된 슬롯만 채점한다. late answer, 미시작·취소·로그/모델 조건 무효는 실패·미채점 행으로 보존한다. 낮은 점수나 오류를 이유로 solver/grader를 자동 재시도하지 않는다.
 
