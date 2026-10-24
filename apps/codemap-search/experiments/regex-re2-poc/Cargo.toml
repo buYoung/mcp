@@ -9,7 +9,7 @@ publish = false
 [dependencies]
 # Match the application's lockfile, including the embedded ripgrep baseline.
 regex = "=1.13.1"
-fancy-regex = "=0.19.2"
+fancy-regex = "=0.20.0"
 grep-regex = "=0.1.14"
 grep-matcher = "=0.1.9"
 grep-searcher = "=0.1.17"
