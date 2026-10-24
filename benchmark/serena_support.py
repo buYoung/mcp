@@ -55,6 +55,7 @@ assert project_data['ls_workspace_folders'] == ['.']
 assert config_data['projects'] == [str(source)]
 print(json.dumps({'project': str(project), 'registered_projects': config_data['projects'],
                   'languages': project_data['language_servers'], 'read_only': project_data['read_only'],
+                  'agent_interface_default': config_data['agent_interface'],
                   'default_max_tool_answer_chars': config_data['default_max_tool_answer_chars'],
                   'tool_timeout_seconds': config_data['tool_timeout'],
                   'symbol_info_budget_seconds': config_data['symbol_info_budget']}))
@@ -65,6 +66,7 @@ print(json.dumps({'project': str(project), 'registered_projects': config_data['p
     commands.append(run_logged([*launch, "project", "index", str(source)], source,
                                base / "index.log", env=env, timeout=7200))
     output = (base / "index.log").read_text()
+    verify_indexing_log(output)
     summary = re.search(r"Indexed files per language: (.+)", output)
     require(summary is not None, "Serena 언어별 색인 완료 내역이 없습니다")
     counts = {name: int(count) for name, count in re.findall(r"(go|typescript)\s*[:=]\s*(\d+)", summary.group(1))}
@@ -82,6 +84,8 @@ print(json.dumps({'project': str(project), 'registered_projects': config_data['p
         "native_failure_log": str(source / ".serena/logs/indexing.txt") if failed_count else None,
         "symbol_caches": [{"path": str(path), "sha256": file_digest(path)} for path in caches],
         "output": "native defaults", "context": "desktop-app (native default; full product read tools)",
+        "agent_interface": "tools", "native_agent_interface_default": config["agent_interface_default"],
+        "agent_interface_exception": "REPL permits arbitrary Python outside the search-only contract",
         "modes": ["one-shot", "no-memories"], "read_only": True,
         "excluded_operations": ["editing", "shell", "memory", "project activation/removal", "mode switching"],
         "runtime": artifact["runtime"],
@@ -100,13 +104,19 @@ def language_dependencies(home: Path) -> list[dict]:
     return dependencies
 
 
+def verify_indexing_log(text: str) -> None:
+    require(not re.search(r"Timeout waiting for TypeScript server to become ready|"
+                          r"indexing did not complete within", text, re.IGNORECASE),
+            "Serena LSP 색인이 끝나기 전에 timeout으로 진행했습니다")
+
+
 def verify_probe(name: str, result: dict) -> None:
     text = "\n".join(item.get("text", "") for item in result.get("content", []))
     require(text and not re.search(r"(?im)^(error|error executing tool|no active project)\b", text),
             f"Serena 중립 조회 실패: {name}: {text[:300]}")
     if name == "get_current_config":
         require(all(line in text for line in ("Active project: grafana", "Language backend: LSP",
-                                             "Language server status: ready")),
+                                             "Language server status: ready", "Agent interface: tools")),
                 "Serena 활성 프로젝트/언어 서버 준비 상태 불일치")
     if name == "get_symbols_overview":
         symbols = json.loads(text)

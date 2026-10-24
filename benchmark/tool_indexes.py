@@ -6,11 +6,13 @@ import errno
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 from pathlib import Path
 
 from . import route_contract as routes, settings
@@ -21,6 +23,8 @@ from .runner import copy_source
 WORKSPACES = routes.PREPARATION / "workspaces"
 CORPUS = routes.PREPARATION / "corpus.json"
 BASELINES = routes.PREPARATION / "baselines"
+ZVEC_PORT = 19700
+CBM_UI_PORT = 19701
 
 
 def workspace_root(ident: str) -> Path:
@@ -108,15 +112,26 @@ def workspace(ident: str, corpus: dict) -> tuple[Path, Path]:
     return source, home
 
 
+def cbm_runtime_dir() -> Path:
+    runtime = (settings.CACHE / "cbmrt").resolve()
+    # Darwin sun_path includes NUL; CBM uses a 16-hex-key socket name.
+    socket_path = runtime / f"cbm-daemon-{os.geteuid()}" / "cbm-0000000000000000.sock"
+    require(len(os.fsencode(socket_path)) < 104,
+            "CBM rendezvous 경로가 너무 깁니다: 더 짧은 CODEMAP_BENCH_CACHE가 필요합니다")
+    return runtime
+
+
 def product_environment(ident: str, home: Path, source: Path) -> dict:
     if ident == "codemap-search":
         return {"CODEMAP_HOME": str(home)}
     if ident == "codegraph":
         return {"CODEGRAPH_NO_DAEMON": "1", "DO_NOT_TRACK": "1"}
     if ident == "zvec-grep":
-        return {"ZVEC_GREP_HOME": str(home), "ZVEC_GREP_SERVER_URL": "http://127.0.0.1:18999/mcp"}
+        return {"ZVEC_GREP_HOME": str(home), "ZVEC_GREP_MODEL_CACHE": str(home / "model-cache"),
+                "ZVEC_GREP_SERVER_URL": f"http://127.0.0.1:{ZVEC_PORT}/mcp"}
     if ident == "codebase-memory-mcp":
-        return {"CBM_CACHE_DIR": str(home), "CBM_ALLOWED_ROOT": str(source)}
+        return {"CBM_CACHE_DIR": str(home), "CBM_ALLOWED_ROOT": str(source),
+                "CBM_RUNTIME_DIR": str(cbm_runtime_dir())}
     if ident == "serena":
         from .serena_support import environment
         return environment(home, load_artifacts(verify=False)[ident])
@@ -141,16 +156,26 @@ def prepare_index(ident: str, emit=print) -> dict:
     commands = []
     emit(f"색인 준비: {ident}")
     if ident == "codemap-search":
-        permissions = restrict_codemap_permissions(launch, source, base, env, commands)
+        permissions = codemap_default_permissions(launch, source, base, env, commands)
         commands.append(run_logged([*launch, "index", "."], source, base / "index.log", env=env, timeout=3600))
         index_paths = [source / ".codemap"]
         mode = {"external_ai": False, "Jev": "native default disabled", "filesystem_permissions": permissions}
     elif ident == "codegraph":
         commands.append(run_logged([*launch, "init", "--yes", str(source)], source, base / "index.log", env=env, timeout=3600))
-        commands.append(run_logged([*launch, "status", str(source)], source, base / "index-status.log", env=env))
+        commands.append(run_logged([*launch, "status", str(source), "--json"], source, base / "index-status.log", env=env))
+        native = read_json(base / "index-status.log")
+        index = native.get("index", {})
+        require(native.get("initialized") is True and native.get("fileCount", 0) > 0
+                and native.get("version") == artifact["source_pin"]["version"]
+                and index.get("builtWithVersion") == artifact["source_pin"]["version"]
+                and index.get("state") == "complete" and index.get("pendingRefs") == 0
+                and index.get("reindexRecommended") is False
+                and native.get("worktreeMismatch") is None
+                and native.get("pendingChanges") == {"added": 0, "modified": 0, "removed": 0},
+                "CodeGraph native index가 준비 완료 상태가 아닙니다")
         index_paths = [source / ".codegraph"]
         mode = {"daemon": "direct task-owned process", "watch": "native default", "telemetry": "DO_NOT_TRACK=1",
-                "output": "native default"}
+                "output": "native default", "native_readiness": native}
     elif ident == "zvec-grep":
         revision = routes.load_profile()["index_mode"]["zvec_model_revision"]
         model_cache = home / "model-cache"
@@ -185,10 +210,11 @@ def prepare_index(ident: str, emit=print) -> dict:
                 "graph_path": str(graph_path),
                 "native_warnings": [line for line in (base / "index.log").read_text().splitlines() if "warning:" in line]}
     elif ident == "codebase-memory-mcp":
+        cbm_runtime_dir().mkdir(parents=True, exist_ok=True)
+        commands.append(run_logged([*launch, "config", "set", "ui_port", str(CBM_UI_PORT)],
+                                   source, base / "ui-config.log", env=env))
         commands.append(run_logged([*launch, "cli", "--json", "index_repository", "--repo-path", str(source)],
                                    source, base / "index.log", env=env, timeout=3600))
-        commands.append(run_logged([*launch, "cli", "--json", "list_projects"], source,
-                                   base / "index-status.log", env=env))
         # run_logged merges stderr, where the CLI writes `level=... msg=...` diagnostics before its JSON result.
         output = [line for line in (base / "index.log").read_text().splitlines() if line.strip()]
         diagnostics = [line for line in output if line.startswith("level=")]
@@ -197,12 +223,27 @@ def prepare_index(ident: str, emit=print) -> dict:
         native = json.loads(results[0])
         require(not native.get("isError") and native.get("structuredContent", {}).get("status") == "indexed",
                 "codebase-memory-mcp native index가 준비 완료 상태가 아닙니다")
+        commands.append(run_logged([*launch, "cli", "--json", "index_status", "--project",
+                                    native["structuredContent"]["project"], "--format", "json"], source,
+                                   base / "index-status.log", env=env))
+        status_lines = [line for line in (base / "index-status.log").read_text().splitlines() if line.strip()]
+        diagnostics.extend(line for line in status_lines if line.startswith("level="))
+        status_results = [line for line in status_lines if not line.startswith("level=")]
+        require(len(status_results) == 1, "codebase-memory-mcp 상태 결과 JSON 형식 오류")
+        status = json.loads(status_results[0])
+        native_status = status.get("structuredContent", {})
+        require(not status.get("isError") and native_status.get("status") == "ready"
+                and native_status.get("project") == native["structuredContent"]["project"]
+                and native_status.get("root_path") == str(source),
+                "codebase-memory-mcp native 상태가 조회 준비 완료가 아닙니다")
         index_paths = [home]
         if (source / ".codebase-memory").is_dir():
             index_paths.append(source / ".codebase-memory")
         mode = {"auto_index": "native default false", "auto_watch": "native default true",
-                "watcher_enabled": "native default true", "cache": str(home),
-                "native_readiness": native["structuredContent"], "native_warnings": sorted(set(diagnostics))}
+                "watcher_enabled": "native default true", "cache": str(home), "ui_port": CBM_UI_PORT,
+                "runtime_dir": str(cbm_runtime_dir()),
+                "native_readiness": native["structuredContent"], "native_status": native_status,
+                "native_warnings": sorted(set(diagnostics))}
     elif ident == "serena":
         from .serena_support import prepare_index as prepare_serena
         index_paths, mode, commands = prepare_serena(artifact, source, home)
@@ -224,34 +265,19 @@ def prepare_index(ident: str, emit=print) -> dict:
 CODEMAP_PERMISSION_TOOLS = ("find", "grep", "read")
 
 
-def restrict_codemap_permissions(launch: list[str], source: Path, base: Path, env: dict, commands: list) -> dict:
-    """Keep codemap reads inside the source; every other repo setting stays the native scaffold.
-
-    The native default is "anywhere", and `read`/`overview` accept a `query` path alias that the
-    relay's path check does not inspect, so the hidden answer key would be readable by absolute path.
-    """
+def codemap_default_permissions(launch: list[str], source: Path, base: Path, env: dict, commands: list) -> dict:
+    """Record the unmodified native scaffold; the execution environment owns isolation."""
     config = source / ".codemap" / "config.toml"
     require(not config.exists(), "codemap 저장소 설정이 이미 있습니다")
     # Only `mcp` startup writes the native repo scaffold; EOF on stdin ends the server.
     commands.append(run_logged([*launch, "mcp", "--no-call-log"], source, base / "scaffold.log", env=env,
                                timeout=300, stdin=subprocess.DEVNULL))
     require(config.is_file(), "codemap 저장소 설정 scaffold 누락")
-    native = config.read_text()
-    lines = native.splitlines(keepends=True)
-    section = ""
-    replaced = []
-    for index, line in enumerate(lines):
-        stripped = line.strip()
-        if stripped.startswith("[") and stripped.endswith("]"):
-            section = stripped
-        elif section == "[filesystem_permissions]" and stripped in {f'{tool} = "anywhere"' for tool in CODEMAP_PERMISSION_TOOLS}:
-            lines[index] = line.replace('"anywhere"', '"workspace"')
-            replaced.append(stripped.split(" ", 1)[0])
-    require(sorted(replaced) == sorted(CODEMAP_PERMISSION_TOOLS), f"codemap 접근 범위 기본값 변경: {replaced}")
-    config.write_text("".join(lines))
-    return {**{tool: "workspace" for tool in CODEMAP_PERMISSION_TOOLS}, "native_default": "anywhere",
-            "reason": "hidden answer key outside the source; the relay does not inspect the read/overview query path alias",
-            "native_scaffold_sha256": hashlib.sha256(native.encode()).hexdigest(), "config_sha256": file_digest(config)}
+    permissions = tomllib.loads(config.read_text())["filesystem_permissions"]
+    require(all(permissions.get(tool) == "anywhere" for tool in CODEMAP_PERMISSION_TOOLS),
+            "codemap 접근 범위 기본값 변경")
+    return {**{tool: permissions[tool] for tool in CODEMAP_PERMISSION_TOOLS}, "native_default": "anywhere",
+            "config_sha256": file_digest(config)}
 
 
 def load_index(ident: str) -> dict:
@@ -350,13 +376,15 @@ def probe_configuration(ident: str, state: dict, artifacts: dict) -> dict:
     elif ident == "graphify":
         client_config["launch"] = [launch[0], "-m", "graphify.serve", state["modes"]["graph_path"]]
     elif ident == "zvec-grep":
-        client_config = {"transport": "http", "url": "http://127.0.0.1:18999/mcp",
-                         "server_launch": [*launch, "server", "run", "--listen", "127.0.0.1:18999"],
+        client_config = {"transport": "http", "url": env["ZVEC_GREP_SERVER_URL"],
+                         "server_launch": [*launch, "server", "run", "--listen", f"127.0.0.1:{ZVEC_PORT}"],
                          "env": state["env"]}
     elif ident == "codebase-memory-mcp":
         client_config["shutdown_command"] = [*launch, "daemon", "stop"]
     elif ident == "serena":
-        client_config["launch"] = [*launch, "start-mcp-server", "--project", str(source)]
+        # Serena 2.x defaults to arbitrary-Python REPL, outside the search-only contract.
+        client_config["launch"] = [*launch, "start-mcp-server", "--project", str(source),
+                                   "--agent-interface", "tools"]
         # Preserve Serena's native 240-second tool timeout within the common 300-second run budget.
         client_config["timeout_seconds"] = routes.load_profile()["limits"]["elapsed_seconds"]
     return {"schema": "grafana-route-relay-v1", "arm": ident, "source": str(source),
@@ -421,6 +449,35 @@ def probe_is_current(ident: str, backend="codex") -> bool:
         return False
 
 
+def verify_native_probe(ident: str, name: str, result: dict) -> None:
+    """Reject known success-shaped failures without changing native query responses."""
+    require(not result.get("isError"), f"native capability probe 오류: {ident}/{name}: {str(result)[:500]}")
+    text = "\n".join(item.get("text", "") for item in result.get("content", []))
+    require(text and not re.search(r"(?im)^(error|error executing)\b", text),
+            f"native 중립 조회 실패: {ident}/{name}: {text[:300]}")
+    if ident == "codemap-search":
+        require(not re.search(r"(?i)warming|index unavailable|index[^\n]*stale|indexer[^\n]*(dead|unavailable)", text),
+                "codemap native probe의 index가 준비되지 않았습니다")
+        if name == "overview":
+            require(re.search(r"(?m)^- \*\*Total Files\*\*: [1-9]\d*$", text) is not None
+                    and re.search(r"(?m)^- \*\*Total Symbols\*\*: [1-9]\d*$", text) is not None,
+                    "codemap root overview의 파일·심볼이 비어 있습니다")
+    elif ident == "codegraph":
+        require(not re.search(r"(?i)isn't indexed|not indexed|no codegraph project is loaded|"
+                              r"entries may be stale|pending index sync|auto-sync is DISABLED", text),
+                "CodeGraph native probe의 index가 준비되지 않았습니다")
+    elif ident == "zvec-grep":
+        lines = text.splitlines()
+        require(lines[0] == "freshness: fresh"
+                and not any(line.startswith("background_refresh:") for line in lines),
+                "zvec-grep native probe가 fresh 상태가 아닙니다")
+    elif ident == "graphify" and name == "graph_stats":
+        require(re.search(r"(?m)^Nodes: [1-9]\d*$", text) is not None, "Graphify graph가 없거나 비어 있습니다")
+    elif ident == "serena":
+        from .serena_support import verify_probe as verify_serena_probe
+        verify_serena_probe(name, result)
+
+
 def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
     from .route_transport import NativeRelay, auxiliary_call
     artifacts = load_artifacts(verify=False)
@@ -482,19 +539,19 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
         query_tools = [t["name"] for t in inventory if t["name"] not in exclusions]
         probes = []
         if ident == "codemap-search":
-            probes = [("initial_instructions", {}), ("read", {"file_path": "README.md"})]
+            probes = [("overview", {})]
         elif ident == "codegraph":
             probes = [("codegraph_explore", {"query": "configuration settings", "projectPath": str(source)})]
         elif ident == "zvec-grep":
             probes = [("zvec_grep_search", {"query": "configuration settings", "root": str(source)})]
         elif ident == "graphify":
-            probes = [("query_graph", {"question": "configuration settings"})]
+            probes = [("graph_stats", {}), ("query_graph", {"question": "configuration settings"})]
         elif ident == "codebase-memory-mcp":
             project = state["modes"]["native_readiness"]["project"]
             probes = [("search_code", {"pattern": "package setting", "project": project, "project_name": project})]
         elif ident == "serena":
             require(not {"execute_shell_command", "create_text_file", "replace_symbol_body", "activate_project",
-                         "switch_modes", "write_memory"} & set(query_tools), "Serena 검색 전용 도구 경계 오류")
+                         "switch_modes", "write_memory", "serena_repl"} & set(query_tools), "Serena 검색 전용 도구 경계 오류")
             probes = [("initial_instructions", {}), ("get_current_config", {}),
                       ("read_file", {"relative_path": "README.md"}),
                       ("get_symbols_overview", {"relative_path": "pkg/setting/setting.go"}),
@@ -505,19 +562,8 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
             properties = by_name[name]["inputSchema"].get("properties", {})
             arguments = {k: v for k, v in arguments.items() if k in properties}
             result = relay.call(number, {"name": name, "arguments": arguments})
-            require(not result.get("isError"), f"native capability probe 오류: {ident}/{name}: {str(result)[:500]}")
-            if ident == "serena":
-                from .serena_support import verify_probe as verify_serena_probe
-                verify_serena_probe(name, result)
+            verify_native_probe(ident, name, result)
             observations.append({"tool": name, "arguments": arguments, "result_sha256": digest(result), "isError": False})
-        if ident == "codemap-search":
-            # The relay passes the `query` alias through; the workspace permission must deny the answer key.
-            arguments = {"query": str(routes.DATA / "dataset.json")}
-            denied = relay.call(len(probes) + 1, {"name": "read", "arguments": arguments})
-            text = "\n".join(item.get("text", "") for item in denied.get("content", []))
-            require(denied.get("isError") and "route-star" not in text, f"codemap 작업공간 밖 읽기 차단 실패: {text[:300]}")
-            observations.append({"tool": "read", "arguments": arguments, "result_sha256": digest(denied), "isError": True,
-                                 "expected": "outside-workspace read denied"})
         auxiliaries, necessity = [], []
         if ident == "graphify":
             # Graph traversal returns source locations/graph metadata, with no source-body read operation.
@@ -544,6 +590,9 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
         if ident in {"codegraph", "codemap-search", "graphify", "serena", "rg"}:
             cleanup["daemon"] = {"mode": "task-owned foreground or no process", "shared_daemon": False}
     require(cleanup.get("frontend", {}).get("complete", True), f"작업 소유 서버 정리 실패: {ident}")
+    if ident == "serena":
+        from .serena_support import verify_indexing_log
+        verify_indexing_log((probe / "native.stderr.log").read_text())
     reset = restore_baseline(ident, state, baseline)
     relay_settings["log"] = "<per-run directory>/relay.jsonl"
     result = {**state, "status": "ready", "native_inventory": str(probe / "inventory.json"),

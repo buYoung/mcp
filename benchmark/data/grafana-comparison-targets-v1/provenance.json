@@ -1,286 +1,536 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "verified_at": "2026-10-03T01:33:05Z",
+  "verified_at": "2026-10-24T04:38:44.504503+00:00",
   "record_format": "공식 API 응답에서 식별에 필요한 필드를 보존했다. response_sha256은 당시 원본 응답의 식별값이며 전체 응답 본문이 이 파일에 포함된다는 뜻은 아니다.",
   "records": {
     "codegraph": {
       "repository": {
         "query_url": "https://api.github.com/repos/colbymchenry/codegraph",
-        "response_sha256": "57a4a1ee07e7d2e8df558c0f86f9744a66d8d7b4b68baee2420b125f5b215b7d",
+        "response_sha256": "597b1443e986f9b7f641bd3fa64b610bd83bf1d0716a9f9bbd53e7290e215442",
         "id": 1137078255,
         "full_name": "colbymchenry/codegraph",
         "html_url": "https://github.com/colbymchenry/codegraph",
-        "default_branch_at_observation": "main",
         "fork": false,
-        "archived": false
+        "archived": false,
+        "default_branch_at_observation": "main"
       },
       "release": {
-        "selection_query_url": "https://api.github.com/repos/colbymchenry/codegraph/releases/latest",
-        "response_sha256": "4a14712778af542c0b1a00f93cfc92671f9261a83e1967ef51cabbd5aeeb8c6d",
-        "id": 398839286,
-        "url": "https://api.github.com/repos/colbymchenry/codegraph/releases/398839286",
-        "html_url": "https://github.com/colbymchenry/codegraph/releases/tag/v1.6.1",
-        "tag_name": "v1.6.1",
+        "selection_query_url": "https://api.github.com/repos/colbymchenry/codegraph/releases/tags/v1.6.2",
+        "response_sha256": "fe064fcad87942da6aceca911a4cabf64bc8586f591ea4e4e19f846dfa87658c",
+        "id": 402371047,
+        "url": "https://api.github.com/repos/colbymchenry/codegraph/releases/402371047",
+        "html_url": "https://github.com/colbymchenry/codegraph/releases/tag/v1.6.2",
+        "tag_name": "v1.6.2",
         "target_commitish": "main",
-        "published_at": "2026-09-29T05:08:55Z",
+        "published_at": "2026-10-03T06:41:20Z",
         "draft": false,
         "prerelease": false
       },
       "tag_ref": {
-        "query_url": "https://api.github.com/repos/colbymchenry/codegraph/git/ref/tags/v1.6.1",
-        "response_sha256": "2a6aa01e6ac11211e0b17dab11b485565117d707db8eb9a2bee614c528b2f5ac",
-        "ref": "refs/tags/v1.6.1",
+        "query_url": "https://api.github.com/repos/colbymchenry/codegraph/git/ref/tags/v1.6.2",
+        "response_sha256": "6b85b18a5631f15c36bf0f212d94e673eabcb3403618bbf4719bef036eb3fe27",
+        "ref": "refs/tags/v1.6.2",
         "object": {
-          "sha": "f4ddf508516332419ea3c95702810765936cf679",
+          "sha": "6560052a6f856855d3f71eee838fd66ccfa4285d",
           "type": "commit",
-          "url": "https://api.github.com/repos/colbymchenry/codegraph/git/commits/f4ddf508516332419ea3c95702810765936cf679"
+          "url": "https://api.github.com/repos/colbymchenry/codegraph/git/commits/6560052a6f856855d3f71eee838fd66ccfa4285d"
         }
       },
       "annotated_tag_objects": [],
       "commit": {
-        "url": "https://api.github.com/repos/colbymchenry/codegraph/git/commits/f4ddf508516332419ea3c95702810765936cf679",
-        "response_sha256": "558e646fb471661f1aa6b2d852c5897c4490e310831cc70220503cddcdb5f5ca",
-        "sha": "f4ddf508516332419ea3c95702810765936cf679",
+        "url": "https://api.github.com/repos/colbymchenry/codegraph/git/commits/6560052a6f856855d3f71eee838fd66ccfa4285d",
+        "response_sha256": "64c10f95b8c63ed660b8e5133fff0b18016b05bdc2662ef013670424bdbf39cf",
+        "sha": "6560052a6f856855d3f71eee838fd66ccfa4285d",
         "tree": {
-          "sha": "159eeae963c8177368016ea00e0182bc43c1f3d6",
-          "url": "https://api.github.com/repos/colbymchenry/codegraph/git/trees/159eeae963c8177368016ea00e0182bc43c1f3d6"
+          "sha": "5c7f77e98655a432bfcd9390624b427286114af6",
+          "url": "https://api.github.com/repos/colbymchenry/codegraph/git/trees/5c7f77e98655a432bfcd9390624b427286114af6"
         },
-        "committed_at": "2026-09-29T05:06:45Z"
+        "committed_at": "2026-10-03T06:38:45Z"
       },
       "root_tree": {
-        "url": "https://api.github.com/repos/colbymchenry/codegraph/git/trees/159eeae963c8177368016ea00e0182bc43c1f3d6",
-        "response_sha256": "b0ef52a9340107d8290011672d27f5a7c06577dd0b1fe48b5137e705f9278893",
-        "sha": "159eeae963c8177368016ea00e0182bc43c1f3d6",
+        "url": "https://api.github.com/repos/colbymchenry/codegraph/git/trees/5c7f77e98655a432bfcd9390624b427286114af6",
+        "response_sha256": "65ac9c684342a026932fbcaaa27383c2c1926d3a972f182b9c328133f0395a92",
+        "sha": "5c7f77e98655a432bfcd9390624b427286114af6",
         "checked_blob_entries": [
           {
             "path": "README.md",
             "mode": "100644",
             "type": "blob",
-            "sha": "17efcad3d5b3d980e270f146893fb63802aeeb70",
-            "size": 69261,
-            "url": "https://api.github.com/repos/colbymchenry/codegraph/git/blobs/17efcad3d5b3d980e270f146893fb63802aeeb70"
+            "sha": "ae3750c3ba7c4bd7af7da7410b3b2a766351e170",
+            "size": 70865,
+            "url": "https://api.github.com/repos/colbymchenry/codegraph/git/blobs/ae3750c3ba7c4bd7af7da7410b3b2a766351e170"
           },
           {
             "path": "package-lock.json",
             "mode": "100644",
             "type": "blob",
-            "sha": "e6a232af46e81105b84e53d6f78be0dd84aabd9b",
+            "sha": "959164589396a54cb2ab840271d582589f977051",
             "size": 123579,
-            "url": "https://api.github.com/repos/colbymchenry/codegraph/git/blobs/e6a232af46e81105b84e53d6f78be0dd84aabd9b"
+            "url": "https://api.github.com/repos/colbymchenry/codegraph/git/blobs/959164589396a54cb2ab840271d582589f977051"
           },
           {
             "path": "package.json",
             "mode": "100644",
             "type": "blob",
-            "sha": "92d1aa6c7fef11b4df30618a0de96f4a41882ee0",
+            "sha": "ab8ba5cca6949893c23ae5f0d7e5e527b88905ff",
             "size": 2396,
-            "url": "https://api.github.com/repos/colbymchenry/codegraph/git/blobs/92d1aa6c7fef11b4df30618a0de96f4a41882ee0"
+            "url": "https://api.github.com/repos/colbymchenry/codegraph/git/blobs/ab8ba5cca6949893c23ae5f0d7e5e527b88905ff"
           }
         ]
       },
       "archive_verification": {
-        "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/f4ddf508516332419ea3c95702810765936cf679",
-        "sha256": "d29baa1fe9ad5811af414a77f1e7d6fb050145e15791c5416c0ecefe046a3daa",
-        "bytes": 14414079,
+        "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/6560052a6f856855d3f71eee838fd66ccfa4285d",
+        "sha256": "bc1c0c636fe970c657a0b3b7e5f4f84d8982e283a2e152d26ea8543fb74c9945",
+        "bytes": 14837939,
         "verified_source_files": [
           "README.md",
           "package-lock.json",
           "package.json"
         ],
-        "method": "소스 아카이브를 내려받아 전체 바이트 SHA-256을 계산하고, 나열한 루트 파일의 내용이 커밋의 Git blob과 대조한 원문과 같은지 확인했다."
-      }
+        "method": "gh api의 커밋·루트 tree blob SHA-1/크기를 codeload 압축 원문과 대조하고 아카이브 SHA-256/크기를 계산했다."
+      },
+      "npm": {
+        "query_url": "https://registry.npmjs.org/@colbymchenry%2fcodegraph",
+        "response_sha256": "7072105e2d59618a8028808f5b55891a938b6f35560e9c1ff194d47de5ad4f1f",
+        "dist_tags": {
+          "latest": "1.6.2"
+        },
+        "published_at": "2026-10-03T06:45:46.734Z",
+        "package": {
+          "_id": "@colbymchenry/codegraph@1.6.2",
+          "bin": {
+            "codegraph": "npm-shim.js"
+          },
+          "bugs": {
+            "url": "https://github.com/colbymchenry/codegraph/issues"
+          },
+          "dist": {
+            "shasum": "372b7b4f0190197b07d444116d6692240883a2d5",
+            "tarball": "https://registry.npmjs.org/@colbymchenry/codegraph/-/codegraph-1.6.2.tgz",
+            "fileCount": 265,
+            "integrity": "sha512-hODH/mGnCf3IUMs6rzktv/zbecJIKJfdZAYHZ9mqecb0G7ZkHaA8CZafDVnswANFEL1YFcG+lfAwc5SIXzUH6Q==",
+            "signatures": [
+              {
+                "sig": "MEUCIQCXBBBpppboNP8DdGGnfEj3MDhuWZzm0REPpIK+abpiZQIgAquCAppT4zgaCTIvjFb9A+IEvwtD/qczvJOn6pDx10w=",
+                "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+              },
+              {
+                "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+                "sig": "MEQCIAaDl2zcxCaMcRjXgUDm5LPRBdPiY7JQhmFfCJOXqy1hAiBI5mx0E1wsnBVIWrOmDxlemuK+kjdVC0xmlqEXiGuNvQ=="
+              }
+            ],
+            "attestations": {
+              "url": "https://registry.npmjs.org/-/npm/v1/attestations/@colbymchenry%2fcodegraph@1.6.2",
+              "provenance": {
+                "predicateType": "https://slsa.dev/provenance/v1"
+              }
+            },
+            "unpackedSize": 1208076
+          },
+          "main": "npm-sdk.js",
+          "name": "@colbymchenry/codegraph",
+          "types": "dist/index.d.ts",
+          "exports": {
+            ".": {
+              "types": "./dist/index.d.ts",
+              "default": "./npm-sdk.js"
+            },
+            "./package.json": "./package.json"
+          },
+          "gitHead": "6560052a6f856855d3f71eee838fd66ccfa4285d",
+          "license": "MIT",
+          "version": "1.6.2",
+          "_npmUser": {
+            "name": "GitHub Actions",
+            "email": "npm-oidc-no-reply@github.com",
+            "trustedPublisher": {
+              "id": "github",
+              "oidcConfigId": "b7ea8708-92e4-4890-94cf-b5d47685e88d"
+            }
+          },
+          "homepage": "https://github.com/colbymchenry/codegraph#readme",
+          "repository": {
+            "url": "git+https://github.com/colbymchenry/codegraph.git",
+            "type": "git"
+          },
+          "_npmVersion": "11.21.0",
+          "description": "Local-first code intelligence for AI agents (MCP). Self-contained — bundles its own runtime.",
+          "directories": {},
+          "maintainers": [
+            {
+              "name": "colbymchenry",
+              "email": "me@colbymchenry.com"
+            }
+          ],
+          "_nodeVersion": "22.23.3",
+          "_hasShrinkwrap": false,
+          "optionalDependencies": {
+            "@colbymchenry/codegraph-linux-x64": "1.6.2",
+            "@colbymchenry/codegraph-win32-x64": "1.6.2",
+            "@colbymchenry/codegraph-darwin-x64": "1.6.2",
+            "@colbymchenry/codegraph-linux-arm64": "1.6.2",
+            "@colbymchenry/codegraph-win32-arm64": "1.6.2",
+            "@colbymchenry/codegraph-darwin-arm64": "1.6.2"
+          },
+          "_npmOperationalInternal": {
+            "host": "s3://npm-registry-packages-npm-production",
+            "tmp": "tmp/codegraph_1.6.2_1791009946598_0.32880535545246614"
+          }
+        }
+      },
+      "verified_at": "2026-10-24T03:55:01.493237+00:00"
     },
     "zvec-grep": {
       "repository": {
         "query_url": "https://api.github.com/repos/zvec-ai/zvec-grep",
-        "response_sha256": "293a281a1d615998635f9ca782fa69e00f25abc4ec34a6de8fd78b8f2d15085b",
+        "response_sha256": "e2384c3bc194db43e0526903b25729a24ae030412db50bc3a08b24719352a800",
         "id": 1295987763,
         "full_name": "zvec-ai/zvec-grep",
         "html_url": "https://github.com/zvec-ai/zvec-grep",
-        "default_branch_at_observation": "main",
         "fork": false,
-        "archived": false
+        "archived": false,
+        "default_branch_at_observation": "main"
       },
       "release": {
-        "selection_query_url": "https://api.github.com/repos/zvec-ai/zvec-grep/releases/latest",
-        "response_sha256": "0f9a2e44153a260ead4d41903b273459f4a9c1a8cedea3356fbefee6f446d547",
-        "id": 377962112,
-        "url": "https://api.github.com/repos/zvec-ai/zvec-grep/releases/377962112",
-        "html_url": "https://github.com/zvec-ai/zvec-grep/releases/tag/v0.2.0",
-        "tag_name": "v0.2.0",
-        "target_commitish": "main",
-        "published_at": "2026-08-27T16:15:11Z",
-        "draft": false,
-        "prerelease": false
+        "selection_query_url": "https://api.github.com/repos/zvec-ai/zvec-grep/releases/tags/v0.2.2",
+        "response_sha256": "010563d2cfb8f1e87f700936ce59ee3a33364da46e3db41b0049227918ece74d",
+        "id": null,
+        "url": null,
+        "html_url": null,
+        "tag_name": "v0.2.2",
+        "target_commitish": null,
+        "published_at": null,
+        "draft": null,
+        "prerelease": null,
+        "status": "not_published"
       },
       "tag_ref": {
-        "query_url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/ref/tags/v0.2.0",
-        "response_sha256": "2f0c0990fa1d1bd8deab7de44bd47830add96dead4c25912806272a456d08e8c",
-        "ref": "refs/tags/v0.2.0",
+        "query_url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/ref/tags/v0.2.2",
+        "response_sha256": "c0c6785cc6f777d9721f684cce4bd9238d45effca05bef38ca48e7781c36f82c",
+        "ref": "refs/tags/v0.2.2",
         "object": {
-          "sha": "7c5c190567be625e6bba589af2332b456e82097e",
+          "sha": "789135fb4fe96409f1da42e7e763a8c56181620c",
           "type": "tag",
-          "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/tags/7c5c190567be625e6bba589af2332b456e82097e"
+          "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/tags/789135fb4fe96409f1da42e7e763a8c56181620c"
         }
       },
       "annotated_tag_objects": [
         {
-          "sha": "7c5c190567be625e6bba589af2332b456e82097e",
-          "tag": "v0.2.0",
+          "sha": "789135fb4fe96409f1da42e7e763a8c56181620c",
+          "tag": "v0.2.2",
           "object": {
-            "sha": "38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
+            "sha": "b1a9148e26a7bc9bd4a52229ffb7532d3063793d",
             "type": "commit",
-            "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/commits/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8"
+            "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/commits/b1a9148e26a7bc9bd4a52229ffb7532d3063793d"
           },
-          "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/tags/7c5c190567be625e6bba589af2332b456e82097e",
-          "response_sha256": "b1dd102722823baac813f524a833af530e862e7be34a86657352cb221e828383"
+          "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/tags/789135fb4fe96409f1da42e7e763a8c56181620c",
+          "response_sha256": "735a1d1352bd9d801183ef2508f08bef7c3e1a7152806ce5b8276351f0ecbc2a"
         }
       ],
       "commit": {
-        "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/commits/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
-        "response_sha256": "8dc50760f9537d34870192d30fc3932a6f519e693e02afc44d022b68fe96e9f2",
-        "sha": "38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
+        "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/commits/b1a9148e26a7bc9bd4a52229ffb7532d3063793d",
+        "response_sha256": "d934bdd9d934614bbdb7e7d844f1fee21447be7400ff34d429d89e9da80e3bf2",
+        "sha": "b1a9148e26a7bc9bd4a52229ffb7532d3063793d",
         "tree": {
-          "sha": "4579e198b7bc1b93469c39a61025caa8e61b0611",
-          "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/trees/4579e198b7bc1b93469c39a61025caa8e61b0611"
+          "sha": "056d1f7069058b454c796eef56b7de5f3b004e16",
+          "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/trees/056d1f7069058b454c796eef56b7de5f3b004e16"
         },
-        "committed_at": "2026-08-26T09:20:39Z"
+        "committed_at": "2026-09-07T07:23:00Z"
       },
       "root_tree": {
-        "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/trees/4579e198b7bc1b93469c39a61025caa8e61b0611",
-        "response_sha256": "a67b3614467a05798aa9cbac548606b257229dcb7dbc31354f0dd565547a0159",
-        "sha": "4579e198b7bc1b93469c39a61025caa8e61b0611",
+        "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/trees/056d1f7069058b454c796eef56b7de5f3b004e16",
+        "response_sha256": "9bec55235a0867d75be7680745755b8ce50119d4d4fe535634199244f424f3e5",
+        "sha": "056d1f7069058b454c796eef56b7de5f3b004e16",
         "checked_blob_entries": [
           {
             "path": "README.md",
             "mode": "100644",
             "type": "blob",
-            "sha": "729067001bd5ae1cc0c89e1787439086f5accb6d",
-            "size": 10482,
-            "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/blobs/729067001bd5ae1cc0c89e1787439086f5accb6d"
+            "sha": "e5b202ad310f90c4283bf6503d0fa60336c067e8",
+            "size": 12056,
+            "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/blobs/e5b202ad310f90c4283bf6503d0fa60336c067e8"
           },
           {
             "path": "package-lock.json",
             "mode": "100644",
             "type": "blob",
-            "sha": "4cf17378c9a0bbd16333bb20dfd0e099af1d31c9",
-            "size": 211896,
-            "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/blobs/4cf17378c9a0bbd16333bb20dfd0e099af1d31c9"
+            "sha": "5029d405ca2d8490c963070380f8c1b847f8b4ec",
+            "size": 212867,
+            "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/blobs/5029d405ca2d8490c963070380f8c1b847f8b4ec"
           },
           {
             "path": "package.json",
             "mode": "100644",
             "type": "blob",
-            "sha": "55ef65cb577018a21828809e75c80e4b4460fd3a",
+            "sha": "f19b88988590e430d8c9492c5bdd4dd28166173f",
             "size": 3189,
-            "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/blobs/55ef65cb577018a21828809e75c80e4b4460fd3a"
+            "url": "https://api.github.com/repos/zvec-ai/zvec-grep/git/blobs/f19b88988590e430d8c9492c5bdd4dd28166173f"
           }
         ]
       },
       "archive_verification": {
-        "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/38fe0f901252b3b7f61a7fe1d1858c03d63f7ba8",
-        "sha256": "5f638640792f5c73252705392c75a519149bd8b90814083187099dd01b3784a5",
-        "bytes": 5168268,
+        "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/b1a9148e26a7bc9bd4a52229ffb7532d3063793d",
+        "sha256": "bec7d78d266fb5d49646f521edacc977ae6f74f3174476fe79b4e87f6d0662d1",
+        "bytes": 15718908,
         "verified_source_files": [
           "README.md",
           "package-lock.json",
           "package.json"
         ],
-        "method": "소스 아카이브를 내려받아 전체 바이트 SHA-256을 계산하고, 나열한 루트 파일의 내용이 커밋의 Git blob과 대조한 원문과 같은지 확인했다."
-      }
+        "method": "gh api의 커밋·루트 tree blob SHA-1/크기를 codeload 압축 원문과 대조하고 아카이브 SHA-256/크기를 계산했다."
+      },
+      "npm": {
+        "query_url": "https://registry.npmjs.org/@zvec%2fzvec-grep",
+        "response_sha256": "d8a2c93b68b7186dbdfac5bdf74ccaf824b85f61a6a1b6eca22ea7fc20dc7299",
+        "dist_tags": {
+          "latest": "0.2.2"
+        },
+        "published_at": "2026-09-07T07:53:29.228Z",
+        "package": {
+          "name": "@zvec/zvec-grep",
+          "version": "0.2.2",
+          "description": "Agent-friendly hybrid workspace search across code and non-code content.",
+          "type": "module",
+          "license": "Apache-2.0",
+          "repository": {
+            "type": "git",
+            "url": "git+https://github.com/zvec-ai/zvec-grep.git"
+          },
+          "bugs": {
+            "url": "https://github.com/zvec-ai/zvec-grep/issues"
+          },
+          "homepage": "https://github.com/zvec-ai/zvec-grep#readme",
+          "publishConfig": {
+            "access": "public"
+          },
+          "engines": {
+            "node": ">=22"
+          },
+          "exports": {
+            ".": {
+              "types": "./dist/index.d.ts",
+              "import": "./dist/index.js"
+            }
+          },
+          "bin": {
+            "zg": "dist/cli/index.js"
+          },
+          "scripts": {
+            "build": "tsc -p tsconfig.json",
+            "check": "npm run lint && npm run format:check && npm run typecheck && npm run test:coverage && npm run test:package",
+            "format:check": "prettier --check .",
+            "lint": "eslint .",
+            "postbuild": "node --input-type=module --eval \"import { chmod } from 'node:fs/promises'; await chmod('dist/cli/index.js', 0o755);\"",
+            "prepack": "npm run build",
+            "test:coverage": "npm run build && c8 --all --include=dist/**/*.js --check-coverage --lines=80 --statements=80 --functions=80 --branches=80 npm run test:all",
+            "test:all": "npm run test:run:root && npm run test:run:unit && npm run test:run:integration && npm run test:run:e2e",
+            "test:e2e": "npm run build && npm run test:run:e2e",
+            "test:integration": "npm run build && npm run test:run:root && npm run test:run:integration",
+            "test:package": "npm run build && node --test --test-concurrency=1 test/package/*.test.mjs",
+            "test:smoke:local-model": "node --test --test-concurrency=1 test/smoke/local-model-package.test.mjs",
+            "test:run:e2e": "node --test --test-concurrency=1 test/e2e/*.test.mjs",
+            "test:run:integration": "node --test --test-concurrency=1 test/integration/*.test.mjs",
+            "test:run:root": "node --test --test-concurrency=1 test/*.test.mjs",
+            "test:run:unit": "node --test --test-concurrency=1 test/unit/*.test.mjs test/unit/extraction/*.test.mjs test/unit/models/*.test.mjs",
+            "test:unit": "npm run build && npm run test:run:unit",
+            "typecheck": "tsc -p tsconfig.json --noEmit",
+            "test": "npm run build && npm run test:all"
+          },
+          "devDependencies": {
+            "@eslint/js": "^10.0.1",
+            "@modelcontextprotocol/conformance": "0.1.16",
+            "@types/node": "^22.20.1",
+            "c8": "^11.0.0",
+            "eslint": "^10.7.0",
+            "globals": "^17.7.0",
+            "prettier": "^3.9.5",
+            "typescript": "^5.9.3",
+            "typescript-eslint": "^8.64.0"
+          },
+          "dependencies": {
+            "@huggingface/tokenizers": "^0.1.3",
+            "@huggingface/transformers": "^3.8.1",
+            "@modelcontextprotocol/client": "2.0.0",
+            "@modelcontextprotocol/core": "2.0.0",
+            "@modelcontextprotocol/node": "2.0.0",
+            "@modelcontextprotocol/server": "2.0.0",
+            "@vscode/ripgrep": "^1.18.0",
+            "@zvec/zvec": "^0.7.1",
+            "jsonc-parser": "^3.3.1",
+            "tree-sitter-wasms": "^0.1.13",
+            "web-tree-sitter": "^0.20.8",
+            "zod": "4.2.0"
+          },
+          "optionalDependencies": {
+            "node-llama-cpp": "3.18.1"
+          },
+          "_id": "@zvec/zvec-grep@0.2.2",
+          "_integrity": "sha512-6xsF21zgUh98W3BmH7+Nz/Esdx4Ps3ibs+DHluh/uo2O45xCMeM+pkmdRlcagkONHRO2pM2KiGgKHVmRGKxBtA==",
+          "_resolved": "/home/runner/work/_temp/package/zvec-zvec-grep-0.2.2.tgz",
+          "_from": "file:/home/runner/work/_temp/package/zvec-zvec-grep-0.2.2.tgz",
+          "_nodeVersion": "24.20.0",
+          "_npmVersion": "11.19.0",
+          "dist": {
+            "integrity": "sha512-6xsF21zgUh98W3BmH7+Nz/Esdx4Ps3ibs+DHluh/uo2O45xCMeM+pkmdRlcagkONHRO2pM2KiGgKHVmRGKxBtA==",
+            "shasum": "542d3025ec3dc9d464a8eafc2c7d450e4d1fbd73",
+            "tarball": "https://registry.npmjs.org/@zvec/zvec-grep/-/zvec-grep-0.2.2.tgz",
+            "fileCount": 412,
+            "unpackedSize": 2309762,
+            "signatures": [
+              {
+                "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+                "sig": "MEUCIQC8wrSqDmVkzItSbilhtAHekrWjh2/2RZb8unSSkFBGWAIgU8auJNdaRngVJ9BSriCptC+AW4ttv79u+epj+XkwLBE="
+              }
+            ]
+          },
+          "_npmUser": {
+            "name": "zvec",
+            "email": "zvec@alibaba-inc.com"
+          },
+          "directories": {},
+          "maintainers": [
+            {
+              "name": "zvec",
+              "email": "zvec@alibaba-inc.com"
+            }
+          ],
+          "_npmOperationalInternal": {
+            "host": "s3://npm-registry-packages-npm-production",
+            "tmp": "tmp/zvec-grep_0.2.2_1788767609091_0.45823802991976503"
+          },
+          "_hasShrinkwrap": false
+        }
+      },
+      "verified_at": "2026-10-24T03:54:58.095117+00:00"
     },
     "graphify": {
+      "verified_at": "2026-10-24T03:55:09.908656+00:00",
       "repository": {
         "query_url": "https://api.github.com/repos/Graphify-Labs/graphify",
-        "response_sha256": "ab02ab0c27c3d1a492d2718458e1d5b60a15694a70deedfefb93376bd2389544",
+        "response_sha256": "6a0048bfb6b487e0144908bd91084fa3bb9a4e95a41d4960ce14ac7be1c8a788",
         "id": 1200597263,
         "full_name": "Graphify-Labs/graphify",
         "html_url": "https://github.com/Graphify-Labs/graphify",
-        "default_branch_at_observation": "v8",
         "fork": false,
-        "archived": false
+        "archived": false,
+        "default_branch_at_observation": "v8"
       },
       "release": {
-        "selection_query_url": "https://api.github.com/repos/Graphify-Labs/graphify/releases/latest",
-        "response_sha256": "99e6d85f62e404e8af68a82fe79e09d98332b3d11e1436fc209eaf22d4ebd519",
-        "id": 401973658,
-        "url": "https://api.github.com/repos/Graphify-Labs/graphify/releases/401973658",
-        "html_url": "https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.74",
-        "tag_name": "v0.9.74",
+        "selection_query_url": "https://api.github.com/repos/Graphify-Labs/graphify/releases/tags/v0.9.95",
+        "response_sha256": "ddc1951bf7517455966c1749c19dd44545803f0986d37b21e459ad4e8f294315",
+        "id": 422153097,
+        "url": "https://api.github.com/repos/Graphify-Labs/graphify/releases/422153097",
+        "html_url": "https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.95",
+        "tag_name": "v0.9.95",
         "target_commitish": "v8",
-        "published_at": "2026-10-02T16:20:43Z",
+        "published_at": "2026-10-23T17:59:38Z",
         "draft": false,
         "prerelease": false
       },
       "tag_ref": {
-        "query_url": "https://api.github.com/repos/Graphify-Labs/graphify/git/ref/tags/v0.9.74",
-        "response_sha256": "efff7a6eb46043efaded74d6a5a123bca7953a496bf6273dead1faa7f783a4ac",
-        "ref": "refs/tags/v0.9.74",
+        "query_url": "https://api.github.com/repos/Graphify-Labs/graphify/git/ref/tags/v0.9.95",
+        "response_sha256": "fecb5212bce634b140c0f1b0e74941e64d0601e52bcbe0790215d6a059b88c52",
+        "ref": "refs/tags/v0.9.95",
         "object": {
-          "sha": "e10df08877f8819a625a1afa38c3297a31fda296",
-          "type": "commit",
-          "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/commits/e10df08877f8819a625a1afa38c3297a31fda296"
+          "sha": "df9af5c921cb0048a98572fe7f4e64db807f3776",
+          "type": "tag",
+          "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/tags/df9af5c921cb0048a98572fe7f4e64db807f3776"
         }
       },
-      "annotated_tag_objects": [],
+      "annotated_tag_objects": [
+        {
+          "sha": "df9af5c921cb0048a98572fe7f4e64db807f3776",
+          "tag": "v0.9.95",
+          "object": {
+            "sha": "92741d162b2094ffc2fed58cfbd8ee823e9da62c",
+            "type": "commit",
+            "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/commits/92741d162b2094ffc2fed58cfbd8ee823e9da62c"
+          },
+          "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/tags/df9af5c921cb0048a98572fe7f4e64db807f3776",
+          "response_sha256": "e651989356fae807f22a816a08b88d03cf5e9941bcb750b72280dcffaf09c142"
+        }
+      ],
       "commit": {
-        "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/commits/e10df08877f8819a625a1afa38c3297a31fda296",
-        "response_sha256": "b04c0444ceaca3266809b4289260d122e6e71fd0930a60c7cd7f86ca98bfcdb1",
-        "sha": "e10df08877f8819a625a1afa38c3297a31fda296",
+        "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/commits/92741d162b2094ffc2fed58cfbd8ee823e9da62c",
+        "response_sha256": "d036905d9cb1a87f5383e04da143c92792f4a8e67ef8b8c522cfee3c58cf2759",
+        "sha": "92741d162b2094ffc2fed58cfbd8ee823e9da62c",
         "tree": {
-          "sha": "843c3334371ce08384445b77390b866ea2411178",
-          "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/trees/843c3334371ce08384445b77390b866ea2411178"
+          "sha": "571c8acf1329db3641a1e58079782f8d4adea13b",
+          "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/trees/571c8acf1329db3641a1e58079782f8d4adea13b"
         },
-        "committed_at": "2026-10-02T16:20:19Z"
+        "committed_at": "2026-10-23T17:20:06Z"
       },
       "root_tree": {
-        "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/trees/843c3334371ce08384445b77390b866ea2411178",
-        "response_sha256": "0d670345cad8d05d29def789bcb94ff30a6d46a23be1bba103c3c864ff2421de",
-        "sha": "843c3334371ce08384445b77390b866ea2411178",
+        "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/trees/571c8acf1329db3641a1e58079782f8d4adea13b",
+        "response_sha256": "1d2d86d54f8b3e39af10c16b933a6605fc3f3862b0871a8d147e7cff0c26b7d2",
+        "sha": "571c8acf1329db3641a1e58079782f8d4adea13b",
         "checked_blob_entries": [
           {
             "path": "README.md",
             "mode": "100644",
             "type": "blob",
-            "sha": "0be5e5481e8ce1050d3de7d9961ebfe483402416",
-            "size": 63285,
-            "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/blobs/0be5e5481e8ce1050d3de7d9961ebfe483402416"
+            "sha": "a2240fea8f624fe86467911821cb9a55cede4e26",
+            "size": 36226,
+            "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/blobs/a2240fea8f624fe86467911821cb9a55cede4e26"
           },
           {
             "path": "pyproject.toml",
             "mode": "100644",
             "type": "blob",
-            "sha": "709c73818a0c8b5a2045dbf38f87078eb6947ed0",
-            "size": 8159,
-            "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/blobs/709c73818a0c8b5a2045dbf38f87078eb6947ed0"
+            "sha": "7d2dd62ea0ab0f4edf22f7ddb44451e5cc37e1e8",
+            "size": 9155,
+            "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/blobs/7d2dd62ea0ab0f4edf22f7ddb44451e5cc37e1e8"
           },
           {
             "path": "uv.lock",
             "mode": "100644",
             "type": "blob",
-            "sha": "8ed6ea82c8194ce5b57aeec42784321f95b2744e",
-            "size": 1035465,
-            "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/blobs/8ed6ea82c8194ce5b57aeec42784321f95b2744e"
+            "sha": "68481d202f046be750cc002d5f14edf6392d2889",
+            "size": 1035519,
+            "url": "https://api.github.com/repos/Graphify-Labs/graphify/git/blobs/68481d202f046be750cc002d5f14edf6392d2889"
           }
         ]
       },
       "archive_verification": {
-        "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/e10df08877f8819a625a1afa38c3297a31fda296",
-        "sha256": "6c59f4a4f4714da7654985007ab9138859365d90bcf270f0de8534c0683f034b",
-        "bytes": 12220877,
+        "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/92741d162b2094ffc2fed58cfbd8ee823e9da62c",
+        "format": "tar.gz",
+        "sha256": "b4bc34d33b48ca6e9b981809d104eaffcf4e53c9dfffc34bb317294863e4f2ec",
+        "bytes": 13656283,
         "verified_source_files": [
           "README.md",
           "pyproject.toml",
           "uv.lock"
         ],
-        "method": "소스 아카이브를 내려받아 전체 바이트 SHA-256을 계산하고, 나열한 루트 파일의 내용이 커밋의 Git blob과 대조한 원문과 같은지 확인했다."
+        "method": "gh api로 확인한 Git blob SHA-1/크기와 codeload archive 파일 바이트를 대조했다."
+      },
+      "older_higher_tag_observation": {
+        "query_url": "https://api.github.com/repos/Graphify-Labs/graphify/releases/tags/v1.0.0",
+        "response_sha256": "830899c6dd6ac7bfa391a7622c05525b201a261ff3d2ffd516081794f40d7517",
+        "id": 305480537,
+        "tag_name": "v1.0.0",
+        "target_commitish": "v1",
+        "published_at": "2026-04-05T21:45:38Z",
+        "draft": false,
+        "prerelease": false,
+        "selection_reason": "v1.0.0은 2026-04-05의 과거 v1 계열 release이며, 2026-10-24 GitHub latest와 PyPI latest는 0.9.95이다."
+      },
+      "runtime_installation": {
+        "method": "hash-pinned PyPI wheel; uv pip sync --require-hashes --only-binary :all:; no preparation-time resolution",
+        "requirements_file": "graphifyy-0.9.95-py312-darwin-arm64.requirements.txt",
+        "requirements_sha256": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
+        "wheel_url": "https://files.pythonhosted.org/packages/79/87/4c0808afdf99568e27f24838595506d6a286aca6f3bbf8fbb2520574f413/graphifyy-0.9.95-py3-none-any.whl",
+        "wheel_sha256": "e067c9256e5e762406816e51039c4e775f8d2f39a893ecc0b7095d594f6c3120",
+        "reason": "upstream uv.lock의 루트 버전 0.9.84 및 누락된 필수 PyYAML 때문에 --locked 실패. 공식 wheel package 파일 233개가 고정 tag와 일치하며 준비 시 다시 대조하고 uv pip check한다.",
+        "platform": "darwin-arm64",
+        "python": "3.12",
+        "package_count": 59
       }
     },
     "codebase-memory-mcp": {
       "repository": {
         "query_url": "https://api.github.com/repos/DeusData/codebase-memory-mcp",
-        "response_sha256": "0745968299af903563dca77cde8c2c29de65657b4af425ea4ddae07fbbfb6cb5",
+        "response_sha256": "a29a42fa833b7dc5e68e7163141056c35a784658529659348d48bebaf8b95d38",
         "id": 1166102148,
         "full_name": "DeusData/codebase-memory-mcp",
         "html_url": "https://github.com/DeusData/codebase-memory-mcp",
@@ -290,66 +540,155 @@
       },
       "release": {
         "selection_query_url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/releases/latest",
-        "response_sha256": "d3d525a00c71f906aa82f60a53ec8b53e7c023eb10f3a0ddcb66f4b922658f08",
-        "id": 389354981,
-        "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/releases/389354981",
-        "html_url": "https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.11.0",
-        "tag_name": "v0.11.0",
-        "target_commitish": "8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
-        "published_at": "2026-09-15T23:40:39Z",
+        "response_sha256": "277f8b9f254be79fb24280681e716dba01850fbdd2927d29ff8b9ad5e2fe8cb3",
+        "id": 415460046,
+        "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/releases/415460046",
+        "html_url": "https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.12.1",
+        "tag_name": "v0.12.1",
+        "target_commitish": "main",
+        "published_at": "2026-10-16T23:35:48Z",
         "draft": false,
         "prerelease": false
       },
       "tag_ref": {
-        "query_url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/ref/tags/v0.11.0",
-        "response_sha256": "6b98c65214b1e52ec88de26bc4dfd28eb7b62ebc015bb2e8afc0f6a563faa999",
-        "ref": "refs/tags/v0.11.0",
+        "query_url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/ref/tags/v0.12.1",
+        "response_sha256": "f70d4c42a7dbb3adab40a9cfb2c65f1ac6d612d56b05823948c04d80a6eab6e0",
+        "ref": "refs/tags/v0.12.1",
         "object": {
-          "sha": "8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
+          "sha": "a7158ac2f48ca646b4527341b76f930f2aeff87e",
           "type": "commit",
-          "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/commits/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798"
+          "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/commits/a7158ac2f48ca646b4527341b76f930f2aeff87e"
         }
       },
       "annotated_tag_objects": [],
       "commit": {
-        "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/commits/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
-        "response_sha256": "c2f3d38fd893844114838634dcb544c623731f657b0f959302afa3a714b291fa",
-        "sha": "8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
+        "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/commits/a7158ac2f48ca646b4527341b76f930f2aeff87e",
+        "response_sha256": "f1f4fe61ab1713ab8bc23f1d28945ede22d47d0cc9d7d17039a5d44b51b9a922",
+        "sha": "a7158ac2f48ca646b4527341b76f930f2aeff87e",
         "tree": {
-          "sha": "e5a5586de0bd58ddf59b73cbf1baa70ea0427fe8",
-          "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/trees/e5a5586de0bd58ddf59b73cbf1baa70ea0427fe8"
+          "sha": "2297ca5b45b72e0f80805294c34d3d87957d45ec",
+          "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/trees/2297ca5b45b72e0f80805294c34d3d87957d45ec"
         },
-        "committed_at": "2026-09-15T17:16:24Z"
+        "committed_at": "2026-10-16T21:38:08Z"
       },
       "root_tree": {
-        "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/trees/e5a5586de0bd58ddf59b73cbf1baa70ea0427fe8",
-        "response_sha256": "403a77c9ebc604b93d97a2b022cc273293865a3bb03e5c0ac0fae7b599d10b03",
-        "sha": "e5a5586de0bd58ddf59b73cbf1baa70ea0427fe8",
+        "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/trees/2297ca5b45b72e0f80805294c34d3d87957d45ec",
+        "response_sha256": "f338cd622aeeeeddba546087d153193924db5be0f9a22ae5b3db4f02be551c79",
+        "sha": "2297ca5b45b72e0f80805294c34d3d87957d45ec",
         "checked_blob_entries": [
           {
             "path": "README.md",
             "mode": "100644",
             "type": "blob",
-            "sha": "c6ab67ee254a614b66c167f104a69a93fb6aaf89",
-            "size": 75222,
-            "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/blobs/c6ab67ee254a614b66c167f104a69a93fb6aaf89"
+            "sha": "590c9eef96fafcb60b1205ea89ab258989b8165f",
+            "size": 108179,
+            "url": "https://api.github.com/repos/DeusData/codebase-memory-mcp/git/blobs/590c9eef96fafcb60b1205ea89ab258989b8165f"
           }
         ]
       },
       "archive_verification": {
-        "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/8972ea69c6ad94b1ef1d4ffbf0a92d78d2db1798",
-        "sha256": "f4df6a6fd005fb1f8b8b65408338580604eca228568602a834ee265aa439322d",
-        "bytes": 97865712,
+        "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/a7158ac2f48ca646b4527341b76f930f2aeff87e",
+        "sha256": "7c47f2a2b151c91e6506dfbe8073b5908e4c2ca21816bccc2a42fe9cd86380a0",
+        "bytes": 109754858,
         "verified_source_files": [
           "README.md"
         ],
-        "method": "소스 아카이브를 내려받아 전체 바이트 SHA-256을 계산하고, 나열한 루트 파일의 내용이 커밋의 Git blob과 대조한 원문과 같은지 확인했다."
+        "method": "소스 아카이브 전체 바이트 SHA-256·크기를 계산하고, 나열한 루트 파일의 Git blob SHA-1·크기를 gh api Git tree 응답과 대조했다. 전체 Git tree 재구성은 수행하지 않았다."
+      }
+    },
+    "serena": {
+      "verified_at": "2026-10-24T03:55:15.939507+00:00",
+      "repository": {
+        "query_url": "https://api.github.com/repos/oraios/serena",
+        "response_sha256": "09d96f491abd947641d956fe7625d92cd889e1bc4463838e0d1b4ee3ecfce2b5",
+        "id": 953683578,
+        "full_name": "oraios/serena",
+        "html_url": "https://github.com/oraios/serena",
+        "fork": false,
+        "archived": false,
+        "default_branch_at_observation": "main"
+      },
+      "release": {
+        "selection_query_url": "https://api.github.com/repos/oraios/serena/releases/tags/v2.1.0",
+        "response_sha256": "c7ad42ac1ff81a02f85f35c12d71bc23500bb7b97b4090e236923f3c81c75799",
+        "id": 417559472,
+        "url": "https://api.github.com/repos/oraios/serena/releases/417559472",
+        "html_url": "https://github.com/oraios/serena/releases/tag/v2.1.0",
+        "tag_name": "v2.1.0",
+        "target_commitish": "main",
+        "published_at": "2026-10-19T17:30:43Z",
+        "draft": false,
+        "prerelease": false
+      },
+      "tag_ref": {
+        "query_url": "https://api.github.com/repos/oraios/serena/git/ref/tags/v2.1.0",
+        "response_sha256": "43ec69d7e68116181cd0fbadd5401ca0ba53689814b868490df757515f744520",
+        "ref": "refs/tags/v2.1.0",
+        "object": {
+          "sha": "5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
+          "type": "commit",
+          "url": "https://api.github.com/repos/oraios/serena/git/commits/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc"
+        }
+      },
+      "annotated_tag_objects": [],
+      "commit": {
+        "url": "https://api.github.com/repos/oraios/serena/git/commits/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
+        "response_sha256": "58a827bef831342af903f4755c26d5ae3d66cf532070ba53fae558701bb93c04",
+        "sha": "5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
+        "tree": {
+          "sha": "c85e08bf473cfeefc0312b42056fdbd9a960b5f9",
+          "url": "https://api.github.com/repos/oraios/serena/git/trees/c85e08bf473cfeefc0312b42056fdbd9a960b5f9"
+        },
+        "committed_at": "2026-10-19T17:29:06Z"
+      },
+      "root_tree": {
+        "url": "https://api.github.com/repos/oraios/serena/git/trees/c85e08bf473cfeefc0312b42056fdbd9a960b5f9",
+        "response_sha256": "e0bc31ffd62f713ef4d104f67f5708a548eae93f85f72bdf0d3ffbe1b8822c3a",
+        "sha": "c85e08bf473cfeefc0312b42056fdbd9a960b5f9",
+        "checked_blob_entries": [
+          {
+            "path": "README.md",
+            "mode": "100644",
+            "type": "blob",
+            "sha": "5cc92d57faf8fa44e9fb868ba69852314162888b",
+            "size": 15320,
+            "url": "https://api.github.com/repos/oraios/serena/git/blobs/5cc92d57faf8fa44e9fb868ba69852314162888b"
+          },
+          {
+            "path": "pyproject.toml",
+            "mode": "100644",
+            "type": "blob",
+            "sha": "7d7412a6a2c95d31b27b6df4a459f2141eb2bc6a",
+            "size": 14122,
+            "url": "https://api.github.com/repos/oraios/serena/git/blobs/7d7412a6a2c95d31b27b6df4a459f2141eb2bc6a"
+          },
+          {
+            "path": "uv.lock",
+            "mode": "100644",
+            "type": "blob",
+            "sha": "117078e09d1118b3b4d8730478718cd030617e2f",
+            "size": 527311,
+            "url": "https://api.github.com/repos/oraios/serena/git/blobs/117078e09d1118b3b4d8730478718cd030617e2f"
+          }
+        ]
+      },
+      "archive_verification": {
+        "url": "https://codeload.github.com/oraios/serena/tar.gz/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
+        "format": "tar.gz",
+        "sha256": "3173dfcc3cba19e4002685768acc563bd2b9b689a4d82fda94f7ee0877cfd0f7",
+        "bytes": 2522657,
+        "verified_source_files": [
+          "README.md",
+          "pyproject.toml",
+          "uv.lock"
+        ],
+        "method": "gh api로 확인한 Git blob SHA-1/크기와 codeload archive 파일 바이트를 대조했다."
       }
     },
     "rg": {
       "repository": {
         "query_url": "https://api.github.com/repos/BurntSushi/ripgrep",
-        "response_sha256": "49a21a043a093a72a03d27ce6d2d56efcf3b173de97e5933cb0cbf5670d96c2d",
+        "response_sha256": "ce5b1a6543906db03f9222db8276208f3d893dccbefb51c557dbf2110650b785",
         "id": 53631945,
         "full_name": "BurntSushi/ripgrep",
         "html_url": "https://github.com/BurntSushi/ripgrep",
@@ -359,7 +698,7 @@
       },
       "release": {
         "selection_query_url": "https://api.github.com/repos/BurntSushi/ripgrep/releases/latest",
-        "response_sha256": "2c286bb23234d40ad7f7ee7f5c0121c8a8fcb7dbee1b80f2e0093a19da76f3fe",
+        "response_sha256": "05fbaacfd37151591fff3e91f694f47f6bf36538172fa0223c044a1526608c22",
         "id": 354558678,
         "url": "https://api.github.com/repos/BurntSushi/ripgrep/releases/354558678",
         "html_url": "https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0",
@@ -442,96 +781,21 @@
           "Cargo.toml",
           "README.md"
         ],
-        "method": "소스 아카이브를 내려받아 전체 바이트 SHA-256을 계산하고, 나열한 루트 파일의 내용이 커밋의 Git blob과 대조한 원문과 같은지 확인했다."
-      }
-    },
-    "serena": {
-      "verified_at": "2026-10-03T07:52:46.904456+00:00",
-      "repository": {
-        "query_url": "https://api.github.com/repos/oraios/serena",
-        "response_sha256": "a96052021ea759436ee4562b6194c42dfd2bc5769e60931e861f3694948c2d8c",
-        "id": 953683578,
-        "full_name": "oraios/serena",
-        "html_url": "https://github.com/oraios/serena",
-        "fork": false,
-        "archived": false,
-        "default_branch_at_observation": "main"
-      },
-      "release": {
-        "selection_query_url": "https://api.github.com/repos/oraios/serena/releases/latest",
-        "response_sha256": "9e04466423e3d37e26eaa94d9333511ce23576fe568a377517ad8f7c97d601a8",
-        "id": 367549941,
-        "url": "https://api.github.com/repos/oraios/serena/releases/367549941",
-        "html_url": "https://github.com/oraios/serena/releases/tag/v1.7.0",
-        "tag_name": "v1.7.0",
-        "target_commitish": "main",
-        "published_at": "2026-08-09T18:38:06Z",
-        "draft": false,
-        "prerelease": false
-      },
-      "tag_ref": {
-        "query_url": "https://api.github.com/repos/oraios/serena/git/ref/tags/v1.7.0",
-        "response_sha256": "bffdd371a9efeabb7db9c1c78876bcb0955cf36973397a5cdc18bf4fa9354638",
-        "ref": "refs/tags/v1.7.0",
-        "object": {
-          "sha": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-          "type": "commit",
-          "url": "https://api.github.com/repos/oraios/serena/git/commits/949a27ef1e5fda1a6e7b561e777bcece345c6ffd"
-        }
-      },
-      "annotated_tag_objects": [],
-      "commit": {
-        "url": "https://api.github.com/repos/oraios/serena/commits/949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-        "response_sha256": "ec2c2e1a51d20814f305c26b8eb448a1782ec96f8f12cebe45da90738ecc9d5f",
-        "sha": "949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-        "tree": {
-          "sha": "6daa0fe28c2be66ed2462e02871426098ddecb69",
-          "url": "https://api.github.com/repos/oraios/serena/git/trees/6daa0fe28c2be66ed2462e02871426098ddecb69"
-        },
-        "committed_at": "2026-08-09T18:14:37Z"
-      },
-      "source_file_api_verification": [
-        {
-          "query_url": "https://api.github.com/repos/oraios/serena/contents/README.md?ref=949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-          "response_sha256": "19906c2fe588825efb7e00855214e1643c448face353bf86fbca627a35f2d331",
-          "path": "README.md",
-          "sha": "6e16380f712b3a5a71d917d45fa4ad18e93da412"
-        },
-        {
-          "query_url": "https://api.github.com/repos/oraios/serena/contents/pyproject.toml?ref=949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-          "response_sha256": "2329bd02acb009e1c414576489152b4eac2c56cec754bac8ed40b0d19ff36dc3",
-          "path": "pyproject.toml",
-          "sha": "b6bc9e586019250fc4c1586b77dcb2f3c6566228"
-        },
-        {
-          "query_url": "https://api.github.com/repos/oraios/serena/contents/uv.lock?ref=949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-          "response_sha256": "f9fc7e4f2305889b728605a497795c2f03aeb7d98a6c893fe3685f8af15e79ed",
-          "path": "uv.lock",
-          "sha": "c5d1ab52d59ff37687f824017be234e878abe1f0"
-        }
-      ],
-      "archive_verification": {
-        "url": "https://codeload.github.com/oraios/serena/tar.gz/949a27ef1e5fda1a6e7b561e777bcece345c6ffd",
-        "sha256": "bd1155f6429b30bb5ede106b581e5046fe153d1512604f305c7fbc4ee4cd479a",
-        "bytes": 2252543,
-        "verified_source_files": [
-          "README.md",
-          "pyproject.toml",
-          "uv.lock"
-        ],
-        "method": "고정 커밋의 contents API Git blob SHA-1을 소스 아카이브의 원본 파일 바이트와 대조했다."
+        "method": "소스 아카이브 전체 바이트 SHA-256·크기를 계산하고, 나열한 루트 파일의 Git blob SHA-1·크기를 gh api Git tree 응답과 대조했다. 전체 Git tree 재구성은 수행하지 않았다."
       }
     }
   },
   "verification": {
     "official_repositories": 6,
-    "stable_releases": 6,
+    "stable_releases": 5,
     "resolved_tag_commits": 6,
     "downloaded_source_archives": 6,
-    "source_archive_total_bytes": 132528911,
+    "source_archive_total_bytes": 157098077,
     "verified_source_files": 16,
     "source_blob_or_archive_file_mismatches": 0,
     "preserved_dataset_files": 14,
-    "scope": "태그·커밋·루트 파일의 Git blob과 소스 아카이브의 바이트를 확인했다. 전체 소스 아카이브로 Git tree를 재구성하거나 실행 바이너리를 빌드·검증하지 않았다."
+    "scope": "Phase A 2026-10-24 API·태그·커밋·root blob 및 아카이브 검증 기록을 통합했다. GitHub Release 5개와 npm/tag-only 1개를 구분한다. 전체 Git tree 재구성·바이너리 재현 빌드는 인증하지 않는다. 설치·색인·MCP 검증은 별도 준비 기록에 남긴다.",
+    "stable_distributions": 6,
+    "npm_tag_without_github_release": 1
   }
 }

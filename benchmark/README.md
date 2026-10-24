@@ -25,15 +25,17 @@
 
 | 비교군 | 고정 버전·역할 |
 | --- | --- |
-| codemap-search | 현재 평가 소스·빌드를 별도 고정; 실제 버전을 기록 |
-| CodeGraph (`colbymchenry/codegraph`) | 1.6.1 |
-| zvec-grep | 0.2.0 |
-| Graphify | 0.9.74 |
-| codebase-memory-mcp | 0.11.0 |
-| Serena (`oraios/serena`) | 1.7.0 · 로컬 Go·TypeScript LSP |
+| codemap-search | 0.13.0 · `codemap-v0.13.0` (`4061c42a5`)의 `git_ref` 스냅샷 빌드 |
+| CodeGraph (`colbymchenry/codegraph`) | 1.6.2 |
+| zvec-grep | 0.2.2 · npm/tag stable, GitHub Release 없음 |
+| Graphify | 0.9.95 · hash-pinned PyPI wheel + 고정 runtime requirements |
+| codebase-memory-mcp | 0.12.1 · 공식 darwin-arm64 asset |
+| Serena (`oraios/serena`) | 2.1.0 · 로컬 Go·TypeScript LSP, `--agent-interface tools` 예외 |
 | 기본 코딩 에이전트 (`rg`) | 추가 검색 제품 없음; rg 15.2.0 사용 가능 |
 
-[비교 대상 잠금](data/grafana-comparison-targets-v1/README.md)이 공식 저장소·전체 커밋·아카이브 해시를 고정한다. 1.0.0 출시 목표를 이유로 현재 제품 빌드를 1.0.0으로 표시하지 않는다.
+[비교 대상 잠금](data/grafana-comparison-targets-v1/README.md) 개정 3이 공식 저장소·전체 커밋·아카이브 해시를 고정한다. codemap-search는 작업 트리가 아닌 release tag만 빌드하며 실제 버전·전체 commit·binary hash를 기록한다. 1.0.0 출시 목표를 이유로 제품 빌드를 1.0.0으로 표시하지 않는다. 구버전의 index/baseline/ready 기록은 최신 버전으로 재인증하지 않고 새 cache에서 다시 준비한다.
+
+Graphify 0.9.95의 upstream `uv.lock`은 루트 버전과 필수 PyYAML이 맞지 않아 사용하지 않는다. bundle의 hash-pinned requirements로 공식 wheel을 설치하고 package 파일을 tag 원문과 대조하며, 준비 중 의존성을 다시 해석하지 않는다. Graphify·Serena 모두 `uv pip check`를 통과해야 한다. Graphify의 과거 `v1.0.0` release 대신 현재 upstream latest/PyPI가 일치하는 0.9.95를 사용한다.
 
 ## 준비 절차
 
@@ -76,11 +78,13 @@ Grafana 프로필 다음에 풀이 모델을 선택한다. 모델 메뉴에서 E
 ## 도구와 측정 정책
 
 - 제품 응답의 기본값을 유지한다. 하네스의 공통 바이트·행 제한, 자동 페이지 조회·요약·보충, 경쟁 도구의 예산 증가는 없다. codemap-search의 100000 설정도 각 설정의 단위를 따르며 공통 토큰 한도로 바꾸지 않는다.
-- codemap-search의 `filesystem_permissions`(find·grep·read)는 `workspace`로 고정한다. 제품 기본값 `anywhere`에서는 `read`·`overview`의 `query` 경로 별칭이 중계의 경로 검사를 거치지 않아 소스 밖의 정답 자료를 절대 경로로 읽을 수 있다. 준비 단계는 codemap이 직접 만든 저장소 설정에서 이 세 값만 바꾸고 그 설정으로 색인하며, 작업공간 밖 읽기가 거부되는지 중립 조회로 확인한다.
+- codemap-search의 `filesystem_permissions`(find·grep·read)는 native scaffold의 **`anywhere`**를 변경 없이 사용한다. 격리는 제품 설정 변경이 아니라 실행 환경의 OS 경계와 relay 정책이 맡아야 한다. 별칭 `query`·URI·resources/prompts를 포함한 격리와 동일 프로세스 pre-warm은 별도 통합 단계의 실행 전 필수 조건이며, 이번 핀/소형 probe 성공만으로 안전한 실행을 인증하지 않는다.
 - 제품 자체 도구를 우선한다. Graphify에는 원문 본문 조회를 위해 `read`만 보조로 제공한다. zvec-grep의 후속 grep/rg 안내는 보조 도구 추가 사유로 쓰지 않는다. 낮은 품질이나 짧은 응답으로 보조 도구를 늘리지 않는다.
 - `plain rg`는 선택한 CLI에 추가 검색 제품이 없는 기본 에이전트다. 전용 rg MCP 없이 기본 셸·파일 탐색을 제공하고, 명령 PATH에서 고정 rg가 우선한다. Codex는 [권한 프로필](https://learn.chatgpt.com/docs/permissions), Claude는 [restricted 모드](https://code.claude.com/docs/en/cli-reference)와 [Bash 샌드박스](https://code.claude.com/docs/en/sandboxing)로 읽기 범위와 쓰기를 제한한다. Claude의 기본 파일 탐색은 `Bash`·`Read`·`Glob`·`Grep`을 사용하며 각 응답 기본값을 유지한다. Claude의 내장 Grep 구현을 외부 rg MCP로 대체하지 않는다.
-- Serena는 전용 `SERENA_HOME`에서 Grafana 전체 루트를 프로젝트로 등록하고 `go`, `typescript` 언어 서버로 `project index`를 실행한다. 언어별 색인 완료·캐시와 MCP 심볼 조회를 확인한 상태에서 측정을 준비한다. 프로젝트 전환·수정·셸·메모리 기능은 제외하고 원문 읽기와 심볼 검색 등 제품 도구를 제공한다. 응답 한도 150,000자·도구 시간 한도 240초·심볼 정보 예산 10초는 고정 버전의 기본값이다. 언어 서버·Go 캐시도 복원 대상에 포함한다. 상위 하네스의 Node 의존성이 섞이지 않도록 Serena의 작업 복사본·홈은 `$TMPDIR/codemap-benchmark-<저장소 식별값>/serena/`(`CODEMAP_BENCH_CACHE`를 지정하면 그 아래) 아래에 격리하고 정확한 경로를 준비 기록에 남긴다. 이 경로는 측정 전까지 보존해야 한다. [고정 버전 설정](https://github.com/oraios/serena/blob/949a27ef1e5fda1a6e7b561e777bcece345c6ffd/src/serena/resources/serena_config.template.yml)을 따른다.
-- 검색·색인은 로컬 조건이다. Jev는 비활성, Graphify는 빈 출력 디렉터리에서 코드 전용 추출, zvec는 고정 리비전의 `local/potion-code-16m-v2`를 사용한다. 제품의 제외 규칙과 선택적 파서 누락은 그대로 기록한다.
+- Serena 2.1.0의 native interface 기본값은 임의 Python 실행을 노출하는 REPL이다. 검색 전용 계약의 단일 interface 예외로 **`--agent-interface tools`**를 사용하고 native default와 예외 이유를 prepared state에 기록한다. `serena_repl`이 검색 도구 목록에 남으면 준비를 거부한다. 전용 `SERENA_HOME`에서 Grafana 전체 루트를 프로젝트로 등록하고 `go`, `typescript` 언어 서버로 `project index`를 실행한다. 언어별 색인 완료·캐시와 MCP 심볼 조회를 확인한 상태에서 측정을 준비한다. 프로젝트 전환·수정·셸·메모리 기능은 제외하고 원문 읽기와 심볼 검색 등 제품 도구를 제공한다. 응답 한도 150,000자·도구 시간 한도 240초·심볼 정보 예산 10초는 고정 버전의 기본값이다. 언어 서버·Go 캐시도 복원 대상에 포함한다. 상위 하네스의 Node 의존성이 섞이지 않도록 Serena의 작업 복사본·홈은 `$TMPDIR/codemap-benchmark-<저장소 식별값>/serena/`(`CODEMAP_BENCH_CACHE`를 지정하면 그 아래) 아래에 격리하고 정확한 경로를 준비 기록에 남긴다. 이 경로는 측정 전까지 보존해야 한다. [고정 버전 설정](https://github.com/oraios/serena/blob/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/src/serena/resources/serena_config.template.yml)을 따른다.
+- 검색·색인은 로컬 조건이다. Jev는 비활성, Graphify는 빈 출력 디렉터리에서 코드 전용 추출, zvec는 고정 리비전의 `local/potion-code-16m-v2`를 사용한다. zvec index와 MCP 모두 `ZVEC_GREP_MODEL_CACHE=<home>/model-cache`를 공유한다. 제품의 제외 규칙과 선택적 파서 누락은 그대로 기록한다.
+- CodeGraph는 `status --json`의 complete·버전·pending refs/changes를 확인한다. zvec는 check-ready 및 `freshness: fresh`, Graphify는 양수 `graph_stats`와 오류 텍스트 부재, Serena는 tools interface·LSP ready·심볼 응답과 timeout 후 진행 로그 부재를 확인한다. codemap의 warming/stale 응답도 성공으로 받지 않는다. exit 0 또는 `isError=false`만으로 준비 완료를 판정하지 않는다. 전체 corpus의 deeper semantic gate와 live warm hand-off는 별도 검증이 필요하다.
+- CBM 0.12.1은 `index_status`의 ready·project·root를 대조한다. 모든 index/MCP/shutdown은 `CBM_RUNTIME_DIR=<CODEMAP_BENCH_CACHE>/cbmrt`를 공유하며 canonical socket 경로가 104 bytes 미만이어야 한다. 길면 더 짧은 cache root를 지정한다. 현재 전용 loopback 포트는 zvec 19700, CBM UI 19701이다. `detect_changes(scope="tests")`는 schema를 유지하며 요청마다 별도 graph를 생성하는 제품 동작이므로 사전 호출로 제거할 수 없는 실행 비용/위험이다.
 - 22,898개 추적 파일과 생성된 TypeScript·JSON을 동일하게 제공한다. 문항마다 같은 절대 경로에 조회 전 상태를 복원하도록 준비한다. OS 페이지 캐시는 통제하지 않는다.
 - 제품군은 MCP 호출, Codex 기준군은 `command_execution`의 고유 item ID, Claude 기준군은 기본 탐색 도구의 고유 `tool_use` ID를 센다. 한 셸 명령 안의 여러 명령은 한 호출이며 시작·완료·부분 메시지를 중복 집계하지 않는다. 관측 시점에 한도를 집행하고 동시 호출의 초과량과 조건 위반을 기록한다.
 - 제품 원본 응답·중계 응답·실제 모델 전달 관측을 구분한다. CLI 출력만으로 모델이 모두 읽었다고 간주하지 않는다. 토큰·시간·호출·오류는 관측한 값과 원자료 경로를 남기며 미관측 값을 0으로 채우지 않는다.
