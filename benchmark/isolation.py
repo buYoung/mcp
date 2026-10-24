@@ -275,6 +275,11 @@ ALIASES = {("codemap-search", "read"): {"path", "file", "query"},
            ("codemap-search", "grep"): {"include", "file_pattern"}}
 
 
+# Arguments a pinned release adds only for some corpora. codemap-search exposes workspace_scope on
+# search in monorepos (Grafana); RelayPolicy validates it as a path through ALIASES.
+CORPUS_DEPENDENT_ARGUMENTS = {("codemap-search", "search"): {"workspace_scope"}}
+
+
 def validate_inventory(ident: str, inventory: list[dict]) -> None:
     require(ident in PINNED_ARGUMENTS or ident == "rg", "미검토 제품")
     if ident == "rg":
@@ -282,7 +287,9 @@ def validate_inventory(ident: str, inventory: list[dict]) -> None:
     for tool in inventory:
         require(tool["name"] in PINNED_ARGUMENTS[ident], f"미검토 native 도구: {ident}/{tool['name']}")
         actual = set(tool["inputSchema"].get("properties", {}))
-        require(actual == PINNED_ARGUMENTS[ident][tool["name"]], f"native 인자 inventory 변경: {ident}/{tool['name']}")
+        expected = PINNED_ARGUMENTS[ident][tool["name"]]
+        optional = CORPUS_DEPENDENT_ARGUMENTS.get((ident, tool["name"]), set())
+        require(expected <= actual <= expected | optional, f"native 인자 inventory 변경: {ident}/{tool['name']}")
 
 
 class RelayPolicy:
