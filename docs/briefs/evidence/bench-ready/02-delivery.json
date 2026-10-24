@@ -117,7 +117,7 @@
   },
   "contract_hash": "b65b9736412b457d36f13457191bc3fcd9a8ef4e2fa2556212b67152f80d9815",
   "dependency_hashes": {
-    "01-contract.json": "62f81911f4c31050f6d4b0ba3a297c08a2e878d1539d1a660b1b0afa91370300"
+    "01-contract.json": "7feafa4a57f598a5e9577a1d3296fc5a30a5c2ad73778524e7fdf235195bddaa"
   },
   "grader_runs": 0,
   "implementation_hashes": {
@@ -179,11 +179,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 68304,
+          "pgid": 20055,
           "stopped": true
         }
       ],
-      "pid": 68304,
+      "pid": 20055,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -238,16 +238,16 @@
     ],
     "probe": "rg over a copied harness source file",
     "probe_source_sha256": "fc42c5939d9297184703b8838806b3b5315295597868c9eab2ec2b01207943d2",
-    "protocol_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792864059799229000/protocol.jsonl",
+    "protocol_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792873200495155000/protocol.jsonl",
     "protocol_sha256": "d6760245aee46fc4035f0f98751be82db0f886c264f7bb15c5a44496b6e4a00c",
-    "relay_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792864059799229000/relay.jsonl",
-    "relay_sha256": "3f43319a37dc904eaf8b5bf938cd0a5230cd216c342485a710edc3c6fa46c3b7",
+    "relay_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792873200495155000/relay.jsonl",
+    "relay_sha256": "a082093ec265232b5e705ea6d2ee23bc793ff1ab9857350d5ede7a4a0e8bfb2e",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
     "stdout_bytes": 88640,
     "stdout_lines": 1397
   },
-  "recorded_at": "2026-10-24T17:47:44.162946+00:00",
+  "recorded_at": "2026-10-24T20:20:03.876565+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",

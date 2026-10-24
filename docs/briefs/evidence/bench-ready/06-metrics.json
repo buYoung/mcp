@@ -2,8 +2,8 @@
   "aggregation_rules": "Fixed three-route macro denominator, separate core/extended fact denominators; no variance estimate.",
   "contract_hash": "b65b9736412b457d36f13457191bc3fcd9a8ef4e2fa2556212b67152f80d9815",
   "dependency_hashes": {
-    "02-delivery.json": "ca05aba4e96f727cd627bdb89b57ea1931c73cf7ada327d22632499c2c055d11",
-    "05-grading.json": "831d4906c4fafe3bc82a75ead2ffda34534241ec935086852d67a38b68ccd57e"
+    "02-delivery.json": "de83ab47d265db7c7a9a09170d1a134e8fe0f85f4818d8cea14083e0ad3e8706",
+    "05-grading.json": "f5da40acdb5baa4cac4de35b6860249f8cd26675069475f93b3208ec89aed3ea"
   },
   "field_provenance": {
     "client_delivery": {
@@ -68,7 +68,7 @@
   },
   "implementation_hashes": {
     "benchmark/claude_client.py": "1d52d226205b07440ea6f8a1dd72eb7c3cc0b249989c3a0a55a61155d1971bd7",
-    "benchmark/execution.py": "ad567309bdbc78d7d6182bb74c8bc6ede79dbf555b515d1cbdaf19e80febfddc",
+    "benchmark/execution.py": "25e764947640cacacc4e056eac1d0452786be09574e77015d9f3970e81bccff0",
     "benchmark/pi_client.py": "3060bb6e353af250bf1c8a5dc8a358f7d37636e2a276cd02215bbf8af5cea7b3",
     "benchmark/route_metrics.py": "1982ec82f82512763539c35fbe04edf03496176022cd31b051d9004e0f434cf2",
     "benchmark/runner.py": "30f7a4548fb123ef87856f866ea84edeaffb5e9c1505d88e9ce4d830129f1c5e"
@@ -164,7 +164,7 @@
     "planned_unique_slots": 21,
     "relay_loss": false
   },
-  "recorded_at": "2026-10-24T18:47:27.329023+00:00",
+  "recorded_at": "2026-10-24T20:34:00.891863+00:00",
   "result_schema": {
     "attempts_per_slot": 1,
     "preview": "/Volumes/Samsung_990_PRO/wscache/route-preparation/report-contract/report/summary.json",

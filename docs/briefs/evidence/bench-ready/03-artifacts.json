@@ -24923,7 +24923,7 @@
   },
   "contract_hash": "b65b9736412b457d36f13457191bc3fcd9a8ef4e2fa2556212b67152f80d9815",
   "dependency_hashes": {
-    "01-contract.json": "62f81911f4c31050f6d4b0ba3a297c08a2e878d1539d1a660b1b0afa91370300"
+    "01-contract.json": "7feafa4a57f598a5e9577a1d3296fc5a30a5c2ad73778524e7fdf235195bddaa"
   },
   "host": {
     "machine": "arm64",
@@ -24970,7 +24970,7 @@
       "pi": "1.4.0"
     }
   },
-  "recorded_at": "2026-10-24T17:47:39.785166+00:00",
+  "recorded_at": "2026-10-24T20:20:00.480436+00:00",
   "schema_version": 1,
   "status": "verified",
   "verification": {

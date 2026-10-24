@@ -137,10 +137,10 @@
   "grader_runs": 0,
   "implementation_hashes": {
     "benchmark/data/grafana-execution-v1.json": "87fa51a920f85ae1195a42eb84fb114b04056027150e7db2b871c4ee85bf8823",
-    "benchmark/execution.py": "ad567309bdbc78d7d6182bb74c8bc6ede79dbf555b515d1cbdaf19e80febfddc",
+    "benchmark/execution.py": "25e764947640cacacc4e056eac1d0452786be09574e77015d9f3970e81bccff0",
     "benchmark/route_contract.py": "c5a5720aa0de8a5780e54e5d98c845332d157e3cc7eb638a350b76d0031780a4",
     "benchmark/runner.py": "30f7a4548fb123ef87856f866ea84edeaffb5e9c1505d88e9ce4d830129f1c5e",
-    "benchmark/settings.py": "00c9cd8e218ecb58fc4e6e965a137baa1c854b8937227de9a8506230eadbb7cb"
+    "benchmark/settings.py": "396ec06cbba6c033a4ba2837af021c71e611bc2fc4fb10dc5024ecf987a22b17"
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "894c56b4255d5d6cd4c25bd004970b4536e54dcd825baf0d352309618af7ec13",
@@ -283,7 +283,7 @@
     "route-save-existing",
     "route-live-receive"
   ],
-  "recorded_at": "2026-10-24T17:44:21.392283+00:00",
+  "recorded_at": "2026-10-24T20:19:49.190080+00:00",
   "repetitions": 1,
   "schema_version": 1,
   "solver": {
