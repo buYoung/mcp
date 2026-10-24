@@ -13,6 +13,11 @@ from .core import require
 
 MANAGED_ROOT = Path("/Library/Application Support/ClaudeCode")
 MANAGED_PREFERENCES = Path("/Library/Managed Preferences")
+# The bridge passes model, effort and thinking per query and runs the child with tools [], strict
+# MCP and disableAllHooks, so other keys cannot change the request. These keys can still redirect
+# transport/auth or rewrite the prompt without being overridden, so they fail closed.
+REQUEST_AFFECTING_KEYS = frozenset({"env", "apiKeyHelper", "awsAuthRefresh", "awsCredentialExport",
+                                    "outputStyle", "language", "forceLoginMethod", "forceLoginOrgUUID"})
 
 
 def snapshot(workspace: Path, *, home: Path | None = None) -> dict:
@@ -54,12 +59,11 @@ def snapshot(workspace: Path, *, home: Path | None = None) -> dict:
             keys = sorted(value)
         except (ValueError, TypeError, plistlib.InvalidFileException, ExpatError):
             raise ValueError(f"Claude settings malformed (values withheld): {path}") from None
-        # Unknown keys are not presumed cosmetic: env/model/outputStyle/language,
-        # helpers, limits, plugins, permissions, statusLine and hooks all fail closed.
-        rejected = [key for key in keys if key != "$schema"]
-        require(not rejected, f"Claude condition-affecting/unknown settings: {path}; keys={json.dumps(rejected, ensure_ascii=False)}")
+        rejected = [key for key in keys if key in REQUEST_AFFECTING_KEYS]
+        require(not rejected, f"Claude request-affecting settings: {path}; keys={json.dumps(rejected, ensure_ascii=False)}")
         files[label] = {"sha256": hashlib.sha256(data).hexdigest(), "keys": keys}
-    return {"files": files, "policy": "empty settings or $schema only; unknown keys fail closed"}
+    return {"files": files, "policy": "request-affecting keys fail closed; other key names and hashes are recorded and must not drift",
+            "request_affecting_keys": sorted(REQUEST_AFFECTING_KEYS)}
 
 
 def verify(expected: dict, workspace: Path, *, home: Path | None = None) -> dict:
