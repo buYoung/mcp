@@ -593,12 +593,15 @@ def audit_index_paths(ident: str, state: dict, corpus: dict) -> dict:
     directories = {str(parent) for path in tracked for parent in Path(path).parents}
     groups = {}
 
-    def compare(label, paths, *, synthetic=None, allow_directories=False):
-        approved, matched, rejected = set(), set(), set()
+    def compare(label, paths, *, synthetic=None, allow_directories=False, unresolved_references=None):
+        approved, matched, rejected, unresolved = set(), set(), set(), set()
+        unique_paths = set()
         for value in paths:
             if value is None or value == "":
                 continue
             require(isinstance(value, str), "raw index 경로 타입 변경")
+            unique_paths.add(value)
+        for value in unique_paths:
             path = Path(value)
             resolved = (path if path.is_absolute() else source / path).resolve()
             if not resolved.is_relative_to(source):
@@ -611,10 +614,20 @@ def audit_index_paths(ident: str, state: dict, corpus: dict) -> dict:
                 approved.add(relative)
             elif synthetic and synthetic(value):
                 approved.add(value)
+            elif (unresolved_references is not None and value in unresolved_references
+                  and not path.is_absolute() and ".." not in path.parts and ":" not in value and "\\" not in value):
+                try:
+                    resolved.lstat()
+                except FileNotFoundError:
+                    unresolved.add(value)
+                else:
+                    rejected.add(value)  # An existing untracked file/directory is never a reference exemption.
             else:
                 rejected.add(value)
         groups[label] = {"tracked": len(matched), "approved_synthetic": len(approved),
-                         "unapproved": sorted(rejected), "paths_sha256": digest(sorted(matched | approved | rejected))}
+                         "unapproved": sorted(rejected), "paths_sha256": digest(sorted(matched | approved | rejected | unresolved))}
+        if unresolved_references is not None:
+            groups[label].update(unresolved_reference=len(unresolved), unresolved_reference_values=sorted(unresolved))
         require(not rejected, f"미승인 index 경로: {ident}/{label}: {sorted(rejected)[:8]}")
 
     def sql(path, queries):
@@ -642,11 +655,24 @@ def audit_index_paths(ident: str, state: dict, corpus: dict) -> dict:
                            ("coverage", "select rel_path from index_coverage", lambda x: x in excluded_directories, True)])
     elif ident == "graphify":
         graph = read_json(Path(state["modes"]["graph_path"]))
-        placeholders = {row.get("source_file") for row in graph["nodes"]
-                        if row.get("external") is True and row.get("type") == "external"
-                        and row.get("file_type") == "concept" and not row.get("source_file")}
-        compare("nodes", [row.get("source_file") for row in graph["nodes"]], synthetic=lambda x: x in placeholders)
-        compare("links", [row.get("source_file") for row in graph.get("links", graph.get("edges", []))])
+        links = graph.get("links", graph.get("edges", []))
+        compare("links", [row.get("source_file") for row in links])
+        # Graphify 0.9.95 _emit_rescued_import mints absent module/path stubs,
+        # not file nodes. Their AST import edge still names the real importing source.
+        import_targets = {row["target"] for row in links if isinstance(row.get("target"), str)
+                          and row.get("relation") == "dynamic_import" and row.get("_origin") == "ast"
+                          and row.get("confidence") == "EXTRACTED"}
+        def import_reference(row):
+            return (isinstance(row.get("id"), str) and row["id"] in import_targets
+                    and row.get("_origin") == "ast" and row.get("confidence") == "EXTRACTED"
+                    and row.get("file_type") == "code" and row.get("type") in (None, "module")
+                    and row.get("external") is None and not row.get("source_location"))
+        reference_paths, other_paths = set(), set()
+        for row in graph["nodes"]:
+            if isinstance(row.get("source_file"), str):
+                (reference_paths if import_reference(row) else other_paths).add(row["source_file"])
+        compare("nodes", [row.get("source_file") for row in graph["nodes"]],
+                unresolved_references=reference_paths - other_paths)
     elif ident == "serena":
         paths = sorted((source / ".serena/cache").rglob("raw_document_symbols.pkl"))
         require(paths, "Serena raw index 누락")
@@ -696,7 +722,8 @@ try {{ console.log(JSON.stringify(s.listFiles().map(f=>[f.relativePath,f.absolut
     else:
         require(ident == "rg", "미검토 index 형식")
     return {"status": "verified", "arm": ident, "source_sha256": corpus["source_sha256"], "groups": groups,
-            "policy": "tracked source, explicit synthetic rows and tracked ancestors only; external paths rejected"}
+            "policy": "tracked source, explicit synthetic rows and tracked ancestors only; external paths rejected"
+                      + ("; Graphify absent AST dynamic-import stubs recorded as unresolved_reference" if ident == "graphify" else "")}
 
 # Claude Code network configuration: https://code.claude.com/docs/en/network-config
 # Nonessential telemetry/update traffic is disabled. No wildcard or arbitrary HTTPS egress.
