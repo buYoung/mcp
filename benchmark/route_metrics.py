@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from . import route_contract as routes
-from .core import digest, file_digest, read_json, read_jsonl, require, write_json
+from .core import digest, file_digest, read_json, require, write_json
 from .responses import content_text, source_lines
 
 FIELD_PROVENANCE = {
@@ -27,39 +27,49 @@ FIELD_PROVENANCE = {
 
 
 def normalize_usage(records: list[dict], *, terminal_complete: bool) -> dict:
-    fields = ("input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_output_tokens")
-    raw, unique, conflicts = [], {}, []
-    for row in records:
-        if row.get("type") != "token_usage_record":
+    from .usage import usage_metrics
+    return usage_metrics(records, terminal_complete=terminal_complete, evidence="rollout.jsonl")
+
+
+def relay_call_records(folder: Path) -> tuple[dict, dict, dict, dict, bool]:
+    """Attempt/terminal completeness is distinct from successful product results."""
+    from .runner import read_jsonl_prefix
+    rows, state = read_jsonl_prefix(folder / "relay.jsonl")
+    attempts, requests, results, errors, terminals, budgets = {}, {}, {}, {}, {}, {}
+    tables = {"attempt": attempts, "request": requests, "result": results, "rpc_error": errors,
+              "terminal": terminals, "budget": budgets}
+    complete = state["complete"]
+    for row in rows:
+        table = tables.get(row.get("event"))
+        if table is None:
             continue
-        payload = row.get("payload", {})
-        raw.append(payload)
-        ident = payload.get("response_id")
-        usage = payload.get("usage")
-        if not isinstance(ident, str) or not isinstance(usage, dict):
-            conflicts.append("missing response identity or usage object")
+        ident = row.get("id")
+        if not isinstance(ident, str) or ident in table:
+            complete = False
             continue
-        if ident in unique and unique[ident] != usage:
-            conflicts.append(f"conflicting usage: {ident}")
-        unique[ident] = usage
-    totals = {}
-    for name in fields:
-        values = []
-        for usage in unique.values():
-            value = usage.get(name)
-            if value is None and name == "cached_input_tokens":
-                value = (usage.get("input_tokens_details") or {}).get("cached_tokens")
-            if value is None and name == "reasoning_output_tokens":
-                value = (usage.get("output_tokens_details") or {}).get("reasoning_tokens")
-            values.append(value)
-        known = bool(values) and all(type(v) is int and v >= 0 for v in values)
-        observed = sum(values) if known else None
-        reason = ("conflicting usage records" if conflicts else "no usage records" if not unique
-                  else "provider did not supply this component" if not known else "unfinished model usage" if not terminal_complete else None)
-        totals[name] = {"value": observed if reason is None else None, "observed": observed,
-                        "unit": "tokens", "missing_reason": reason}
-    return {"raw_records": raw, "response_ids": list(unique), "conflicts": conflicts,
-            "terminal_complete": terminal_complete, "components": totals}
+        table[ident] = row
+    if attempts:
+        complete = complete and set(attempts) == set(terminals) == set(budgets) and set(requests) <= set(attempts)
+        complete = complete and set(results).isdisjoint(errors) and (set(results) | set(errors)) == set(requests)
+        for ident, terminal in terminals.items():
+            complete = complete and terminal.get("dispatched") == (ident in requests)
+            complete = complete and (terminal.get("status") in {"success", "error"} if ident in requests
+                                     else terminal.get("status") == "rejected")
+        attempts = {ident: {**row, **requests.get(ident, {}), "dispatched": ident in requests,
+                           "budget_consumed": terminals.get(ident, {}).get("budget_consumed")}
+                    for ident, row in attempts.items()}
+    else:
+        # Old preparation transcripts have request/result but no attempt/terminal records.
+        complete = complete and not terminals and not budgets and set(requests) == (set(results) | set(errors)) and set(results).isdisjoint(errors)
+        attempts = {ident: {**row, "dispatched": True, "budget_consumed": True} for ident, row in requests.items()}
+    return attempts, results, errors, terminals, bool(complete)
+
+
+def collected_call_logs(folder: Path, runtime: dict, names: tuple[str, ...]) -> bool:
+    from .runner import read_jsonl_prefix
+    states = [read_jsonl_prefix(folder / name)[1] for name in names]
+    return bool(runtime.get("record_collection_complete") and not runtime.get("shutdown", {}).get("partial_jsonl_files")
+                and all(state["complete"] and state["valid_records"] for state in states))
 
 
 def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
@@ -73,7 +83,7 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
         calls.append({"id": item["id"], "arm": "rg", "tool": "command_execution", "is_auxiliary": False,
                       "arguments": {"command": item.get("command")},
                       "status": "incomplete" if not item["completed"] else "success" if item.get("exit_code") == 0 else "error",
-                      "completed": item["completed"], "native_item": item,
+                      "completed": item["completed"], "dispatched": True, "native_item": item,
                       "native_output_bytes": len(output.encode()) if isinstance(output, str) else None,
                       "raw_result": None, "relay_result": None, "raw_json_bytes": None, "relay_json_bytes": None,
                       "relay_loss": None, "native_truncated": None, "delivered_lines": None, "duration_seconds": None,
@@ -85,8 +95,12 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                   for e in events if e.get("type") == "item.started" and e.get("item", {}).get("type") == "mcp_tool_call"]
     total_bytes = sum(len(block.encode()) for p in payloads if p.get("type") in {"function_call_output", "custom_tool_call_output"}
                       for block in output_blocks(p))
-    complete = bool(events) and all(c["completed"] for c in calls) and not runtime.get("shutdown", {}).get("partial_jsonl_files")
-    complete = complete and runtime.get("record_collection_complete", False)
+    host_ids = [p.get("call_id") for p in host]
+    output_ids = [p.get("call_id") for p in payloads if p.get("type") in {"function_call_output", "custom_tool_call_output"}]
+    complete = (bool(events) and all(c["completed"] for c in calls)
+                and collected_call_logs(folder, runtime, ("events.jsonl", "rollout.jsonl"))
+                and None not in host_ids and len(host_ids) == len(set(host_ids)) == len(output_ids)
+                and set(host_ids) == set(output_ids))
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": total_bytes if rollout else None,
                    "missing_reason": None if rollout else "No real solver rollout was observed.",
@@ -95,26 +109,21 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
     return calls, complete, len(host) if rollout else None, violations
 
 
-def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
+def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> tuple[list[dict], bool, int | None, list[dict]]:
     from .runner import delivered_leaves, output_blocks, read_live_jsonl
     runtime_path = folder / "runtime.json"
     if runtime_path.exists() and read_json(runtime_path).get("backend") == "claude_code":
         return normalize_claude_calls(folder, write_delivery=write_delivery)
     if (folder / "native-agent.json").exists():
         return normalize_native_calls(folder, write_delivery=write_delivery)
-    relay = read_live_jsonl(folder / "relay.jsonl")
     rollout = read_live_jsonl(folder / "rollout.jsonl")
     runtime = read_json(folder / "runtime.json") if (folder / "runtime.json").exists() else {}
-    requests, results, errors, wrappers, deliveries, cells = {}, {}, {}, {}, {}, {}
-    complete = not runtime.get("shutdown", {}).get("partial_jsonl_files")
+    requests, results, errors, terminals, transcript_complete = relay_call_records(folder)
+    wrappers, deliveries, cells, pending_host = {}, {}, {}, set()
+    complete = transcript_complete and (probe_only or collected_call_logs(folder, runtime, ("events.jsonl", "rollout.jsonl")))
+    if not probe_only:
+        complete = complete and runtime.get("shutdown", {}).get("relay_cleanup", {}).get("complete", False)
     violations, host_calls, total_bytes = [], 0, 0
-    for row in relay:
-        event = row.get("event")
-        if event in {"request", "result", "rpc_error"}:
-            target = {"request": requests, "result": results, "rpc_error": errors}[event]
-            if row["id"] in target:
-                complete = False
-            target[row["id"]] = row
     for row in rollout:
         payload = row.get("payload", {})
         if row.get("type") != "response_item":
@@ -127,12 +136,20 @@ def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], b
                     wrapper = cells.get(json.loads(payload.get("arguments", "{}"))["cell_id"], wrapper)
                 except (ValueError, KeyError):
                     complete = False
-            wrappers[payload.get("call_id")] = wrapper
+            call_id = payload.get("call_id")
+            if not isinstance(call_id, str) or call_id in wrappers:
+                complete = False
+            pending_host.add(call_id)
+            wrappers[call_id] = wrapper
             host_calls += 1
             if name not in {"exec", "wait"}:
                 violations.append({"name": name, "reason": "unapproved host capability"})
         elif payload.get("type") in {"custom_tool_call_output", "function_call_output"}:
-            wrapper = wrappers.get(payload.get("call_id"))
+            call_id = payload.get("call_id")
+            if call_id not in pending_host:
+                complete = False
+            pending_host.discard(call_id)
+            wrapper = wrappers.get(call_id)
             for block in output_blocks(payload):
                 total_bytes += len(block.encode())
                 import re
@@ -173,7 +190,9 @@ def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], b
                             "reason": None if whole_json else "Only the observed textual representation is certified."}
                 parsed_lines = source_lines(request["tool"], request["arguments"], text if whole_json else seen, partial=prefix)
                 break
-        calls.append({**request, "status": "error" if ident in errors or raw and raw.get("isError") else "success" if result else "incomplete",
+        terminal = terminals.get(ident, {})
+        calls.append({**request, "status": terminal.get("status") or ("error" if ident in errors or raw and raw.get("isError") else "success" if result else "incomplete"),
+                      "terminal": terminal or errors.get(ident),
                       "raw_result": raw, "relay_result": relayed,
                       "raw_json_bytes": result.get("raw_json_bytes") if result else None,
                       "relay_json_bytes": result.get("relay_json_bytes") if result else None,
@@ -181,7 +200,7 @@ def normalize_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], b
                       "native_truncated": result.get("native_truncated") if result else None,
                       "client_delivery": delivery, "delivered_lines": parsed_lines, "result_after_model_exit": after_exit,
                       "duration_seconds": result["finished_monotonic"] - request["started_monotonic"] if result else None})
-    complete = complete and set(requests) == set(results) and not errors
+    complete = complete and not pending_host
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": total_bytes if rollout else None,
                    "missing_reason": None if rollout else "No real solver rollout was observed.",
@@ -200,7 +219,7 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
     items = [c for c in tool_items(events) if c.get("name") != "EndConversation"]
     allowed = set(NATIVE_TOOLS) if native else {"ToolSearch", *["mcp__navigation__" + name for name in configured["enabled_tools"]]}
     violations = [{"name": c.get("name"), "reason": "unapproved Claude capability"} for c in items if c.get("name") not in allowed]
-    complete = runtime.get("record_collection_complete", False) and all(c["completed"] for c in items)
+    complete = collected_call_logs(folder, runtime, ("events.jsonl",)) and all(c["completed"] for c in items)
     calls, stream_bytes = [], 0
     outputs = {}
     for item in items:
@@ -213,17 +232,15 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
             result = item.get("result")
             calls.append({"id": item["id"], "arm": "rg", "tool": item.get("name"), "arguments": item.get("input"),
                           "is_auxiliary": False, "status": "incomplete" if result is None else "error" if result.get("is_error") else "success",
-                          "completed": item["completed"], "native_item": item, "raw_result": None, "relay_result": None,
+                          "completed": item["completed"], "dispatched": True, "native_item": item, "raw_result": None, "relay_result": None,
                           "native_output_bytes": len(text.encode()) if text is not None else None,
                           "raw_json_bytes": None, "relay_json_bytes": None, "relay_loss": None, "native_truncated": None,
                           "delivered_lines": None, "duration_seconds": None,
                           "client_delivery": {"status": "client_stream_observed" if text is not None else "unknown", "complete": None,
                                               "reason": "CLI stream is observed; the complete provider input is not observed."}})
     if not native:
-        relay = read_live_jsonl(folder / "relay.jsonl")
-        requests = {r["id"]: r for r in relay if r.get("event") == "request"}
-        results = {r["id"]: r for r in relay if r.get("event") == "result"}
-        errors = {r["id"] for r in relay if r.get("event") == "rpc_error"}
+        requests, results, errors, terminals, transcript_complete = relay_call_records(folder)
+        complete = complete and transcript_complete and runtime.get("shutdown", {}).get("relay_cleanup", {}).get("complete", False)
         signature = lambda tool, args: (tool.removeprefix("mcp__navigation__"), json.dumps(args, sort_keys=True, ensure_ascii=False))
         request_counts = collections.Counter(signature(r["tool"], r["arguments"]) for r in requests.values())
         by_signature = collections.defaultdict(list)
@@ -235,7 +252,9 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
             key = signature(request["tool"], request["arguments"])
             matches = by_signature[key]
             seen = outputs.get(matches[0]["id"]) if len(matches) == request_counts[key] == 1 else None
-            calls.append({**request, "status": "error" if ident in errors or raw and raw.get("isError") else "success" if result else "incomplete",
+            terminal = terminals.get(ident, {})
+            calls.append({**request, "status": terminal.get("status") or ("error" if ident in errors or raw and raw.get("isError") else "success" if result else "incomplete"),
+                          "terminal": terminal or errors.get(ident),
                           "raw_result": raw, "relay_result": relayed,
                           "raw_json_bytes": result.get("raw_json_bytes") if result else None,
                           "relay_json_bytes": result.get("relay_json_bytes") if result else None,
@@ -246,7 +265,6 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                                               if seen is not None else "No uniquely matched native client call."},
                           "delivered_lines": None,
                           "duration_seconds": result["finished_monotonic"] - request["started_monotonic"] if result else None})
-        complete = complete and set(requests) == set(results) and not errors
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "client_stream_text_bytes": stream_bytes,
             "missing_reason": "Claude CLI events do not expose the complete subsequent provider input.",
@@ -257,17 +275,14 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
 def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
     calls, complete, host_calls, violations = normalize_calls(folder)
     runtime = read_json(folder / "runtime.json")
-    if runtime.get("backend") == "claude_code":
-        from .claude_client import usage as claude_usage
-        usage = claude_usage(read_jsonl(folder / "events.jsonl"),
-                            terminal_complete=execution.get("usage", {}).get("complete", False), evidence=str(folder / "events.jsonl"))
-    else:
-        usage = normalize_usage(read_jsonl(folder / "rollout.jsonl"),
-                                terminal_complete=execution.get("usage", {}).get("complete", execution.get("status") == "completed"))
+    from .runner import read_jsonl_prefix, recorded_usage
+    usage = recorded_usage(folder)
+    collection = {name: read_jsonl_prefix(folder / name)[1] for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
+                  if (folder / name).exists() or name == "events.jsonl" or name == "rollout.jsonl" and runtime.get("backend") != "claude_code"}
     access = read_json(folder / ("native-agent.json" if (folder / "native-agent.json").exists() else "relay-settings.json"))
     error = execution.get("error") or runtime.get("launch_error")
     if not error and execution.get("status") == "environment_error":
-        events = read_jsonl(folder / "events.jsonl")
+        events = read_jsonl_prefix(folder / "events.jsonl")[0]
         reported = [e.get("error") or e.get("message") or e for e in events if e.get("type") in {"turn.failed", "error"}]
         error = reported[-1] if reported else f"{runtime.get('backend', 'codex')} exit_code={runtime.get('exit_code')}; see stderr.log and events.jsonl."
     exited, started = runtime.get("model_exited_monotonic"), runtime.get("started_monotonic")
@@ -283,9 +298,12 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
             "artifacts": {name: str(folder / name) for name in ("execution.json", "runtime.json", "events.jsonl", "rollout.jsonl",
                            "relay.jsonl", "native-agent.json", "relay-settings.json", "delivery.json", "stderr.log", "command.json",
                            "claude-settings.json", "mcp-config.json") if (folder / name).exists()},
-            "call_log_complete": complete, "boundary_violations": violations,
+            "call_log_complete": complete, "jsonl_collection": collection, "boundary_violations": violations,
             "conditions_valid": execution.get("conditions_valid", False) and not violations,
-            "tool_call_counts": dict(collections.Counter(("auxiliary:" if c.get("is_auxiliary") else "native:") + c["tool"] for c in calls))}
+            "tool_call_counts": dict(collections.Counter(("auxiliary:" if c.get("is_auxiliary") else "native:") + c["tool"] for c in calls if c.get("dispatched"))),
+            "exploration_attempts": {"total": len(calls), "dispatched": sum(bool(c.get("dispatched")) for c in calls),
+                                     "rejected": sum(c["status"] == "rejected" for c in calls),
+                                     "errored": sum(c["status"] == "error" for c in calls)}}
 
 
 def quality_counts(judgments: list[dict], questions: list[dict]) -> dict:
@@ -378,7 +396,7 @@ def publish_metrics() -> dict:
     require(result["observed_solver_runs"] == 0 and all(r["judgment"] is None for r in result["rows"]), "가상 관측 생성")
     delivery = read_json(routes.EVIDENCE / "02-delivery.json")
     folder = Path(delivery["raw_relay_checks"]["relay_log"]).parent
-    calls, complete, host_calls, violations = normalize_calls(folder)
+    calls, complete, host_calls, violations = normalize_calls(folder, probe_only=True)
     require(complete and len(calls) == 1 and not calls[0]["relay_loss"] and host_calls is None and not violations,
             "준비 probe 관측 정규화 오류")
     return routes.publish_handoff("06-metrics.json", {
