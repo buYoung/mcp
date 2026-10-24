@@ -130,6 +130,8 @@ class CUIChecks(unittest.TestCase):
             cui.send("\r")
             cui.wait("측정에 사용할 풀이 모델을 선택하세요.")
             cui.send("\r")
+            cui.wait("실행을 승인합니까?")
+            cui.send("\r")
             self.assertEqual(cui.finish(), 0)
             self.assertEqual([c["action"] for c in cui.calls()], ["catalog", "prepare"])
             self.assertEqual(cui.calls()[1]["request"]["solver_model"], "gpt-6.1-sol")
@@ -141,6 +143,8 @@ class CUIChecks(unittest.TestCase):
             cui.send("\r")
             cui.wait("측정에 사용할 풀이 모델을 선택하세요.")
             cui.send("\x1b[B\r")
+            cui.wait("실행을 승인합니까?")
+            cui.send("\r")
             self.assertEqual(cui.finish(), 0)
             self.assertEqual(cui.calls()[1]["request"], {"profile": routes.PROFILE, "targets": list(routes.ARM_IDS),
                                                        "solver_model": "claude-opus-5-5"})

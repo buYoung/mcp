@@ -55,8 +55,12 @@ export function backend(action, request, output = console) {
       process.removeListener('SIGINT', stop);
       process.removeListener('SIGTERM', stop);
       if (value?.report) output.info(`결과표: ${value.report}`);
+      if (value?.ledger) output.info(`캠페인 상태: ${value.status} · ledger: ${value.ledger}`);
+      if (value?.error) output.info(`차단 사유: ${value.error}`);
       if (cancelled || code === 130 || signal === 'SIGINT') {
-        const error = new Error('준비를 취소했습니다. pnpm bench:ready로 준비 상태를 다시 확인할 수 있습니다.');
+        const error = new Error(['run', 'resume'].includes(action)
+          ? `캠페인을 취소했습니다. ledger: ${value?.ledger ?? 'campaign 디렉터리 확인'}; 자동 재풀이는 하지 않습니다.`
+          : '준비를 취소했습니다. pnpm bench:ready로 준비 상태를 다시 확인할 수 있습니다.');
         error.name = 'BenchCancelled';
         reject(error);
       } else if (code !== 0 || failure || buffer.trim() || value === undefined) {
@@ -91,12 +95,19 @@ export async function interactive({ prompts, call = backend, output = console })
   output.info(`풀이 ${plan.spec.model} / ${plan.spec.reasoning_effort}, 채점 ${plan.spec.grader_model} / ${plan.spec.grader_reasoning_effort}`);
   output.info(`풀이 실행기: ${plan.spec.solver_backend === 'claude_code' ? 'Claude Code' : 'Codex'} · 채점 실행기: Codex`);
   output.info(`도구 조건: ${plan.targets.map((item) => `${item.name} (${item.tool_condition})`).join(', ')}`);
-  output.info(`codemap-search 실제 버전: ${plan.targets.find((item) => item.id === 'codemap-search')?.actual_version}`);
+  output.info(`실제 버전: ${plan.targets.map((item) => `${item.id}=${item.actual_version}`).join(', ')}`);
+  output.info(`계획 ID: ${plan.plan_id} · readiness SHA256: ${plan.readiness_sha256}`);
   output.info(`한도: ${plan.spec.limits.elapsed_seconds}초 · 탐색 ${plan.spec.limits.exploration_calls}회 · ${plan.spec.limits.total_tokens.toLocaleString()}토큰, 최대 ${plan.spec.concurrency}개 병렬 실행`);
   output.info('응답은 제품 기본값, 색인은 로컬 조건입니다. 문항마다 동일 경로의 조회 전 상태를 복원하도록 준비했습니다.');
   output.info(`준비 기록: ${plan.readiness}`);
-  output.info(`실행 직전 준비가 완료됐습니다. 실제 ${plan.runs}회 실행 연결은 별도 작업이며 풀이·채점은 실행하지 않았습니다.`);
-  return plan;
+  output.info('준비만으로는 실행하지 않습니다. 승인하면 이 계획에서 최대 21회 풀이와 해당 답변의 Astra 채점을 수행합니다.');
+  const confirmed = await prompts.confirm({
+    message: `계획 ${plan.plan_id} (${solverModel})의 21개 슬롯 실행을 승인합니까?`, default: false,
+  });
+  if (!confirmed) return plan;
+  if (!plan.readiness_sha256) throw new Error('불변 readiness hash가 없어 실행을 승인할 수 없습니다.');
+  return call('run', { plan_id: plan.plan_id, solver_model: solverModel, readiness: plan.readiness,
+    readiness_sha256: plan.readiness_sha256, confirmed: true, actor: 'interactive-operator' });
 }
 
 export async function main() {
