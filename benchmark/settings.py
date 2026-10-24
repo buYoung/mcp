@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 import copy
+import os
 from pathlib import Path
 
 from .core import digest, file_digest
 
 ROOT = Path(__file__).resolve().parent
 REPOSITORY = ROOT.parent
-CACHE = ROOT / ".cache"
+# Preparation data (sources, builds, indexes, baselines) may live outside the repository,
+# e.g. on a larger disk. prepare, verify and later runs must use the same location.
+CACHE = (Path(os.environ["CODEMAP_BENCH_CACHE"]).expanduser().resolve()
+         if os.environ.get("CODEMAP_BENCH_CACHE") else ROOT / ".cache")
 RUNS = ROOT / "runs"
 
 
