@@ -464,7 +464,9 @@ def hidden_references() -> list[Path]:
     return [routes.DATA / "dataset.json", routes.DATA / "evidence.json", routes.DATA / "grading.json",
             settings.REPOSITORY, settings.REPOSITORY / ".git", routes.PREPARATION / "grading-contract",
             routes.PREPARATION / "plans", routes.PREPARATION / "campaigns", routes.EVIDENCE,
-            home / ".pi", home / ".codex", home / ".claude", Path("/Users/buyong/tmp"),
+            home / ".pi", home / ".codex", home / ".claude", home / ".claude.json",
+            home / ".claude/projects", home / ".claude/todos", home / ".claude/shell-snapshots",
+            home / ".claude/history.jsonl", Path("/Users/buyong/tmp"),
             Path("/Volumes/Samsung_990_PRO/worktrees/buyong-mcp")]
 
 
@@ -480,10 +482,16 @@ def canary_files(source: Path, directory: Path, *, metadata_root: Path | None = 
     metadata.mkdir(exist_ok=True)
     meta_file = metadata / ("canary-" + uuid.uuid4().hex)
     try:
-        for name in ("tmp", "pi", "codex", "claude", "grading-contract", "plans", "runs", "other-workspace", "worktree"):
-            paths[name] = root / name / "canary.txt"
-            paths[name].parent.mkdir()
-            paths[name].write_text(token)
+        paths = {name: root / name / "canary.txt" for name in
+                 ("tmp", "pi", "codex", "claude", "grading-contract", "plans", "runs", "other-workspace", "worktree")}
+        paths.update({"claude-projects": root / ".claude/projects/canary.txt",
+                      "claude-todos": root / ".claude/todos/canary.txt",
+                      "claude-shell-snapshots": root / ".claude/shell-snapshots/canary.txt",
+                      "claude-history": root / ".claude/history.jsonl",
+                      "claude-config-history": root / ".claude.json"})
+        for path in paths.values():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(token)
         meta_file.write_text(token)
         link.symlink_to(paths["tmp"])
         yield token, {**paths, "symlink": link, "metadata": meta_file}
@@ -774,7 +782,9 @@ def _serve_proxy(port: int, log: Path) -> None:
                 return
 
     class Server(socketserver.ThreadingTCPServer):
-        allow_reuse_address = False
+        # Sequential CLI probes reuse this leased port after CONNECT leaves TIME_WAIT.
+        # SO_REUSEADDR does not permit taking over an active listener (no SO_REUSEPORT).
+        allow_reuse_address = True
         daemon_threads = True
     with Server(("127.0.0.1", port), Handler) as server:
         print("ready", flush=True)
@@ -792,7 +802,9 @@ def _claude_launch(config_path: Path, command: list[str]) -> int:
     try:
         with selectors.DefaultSelector() as selector:
             selector.register(proxy.stdout, selectors.EVENT_READ)
-            require(selector.select(10) and proxy.stdout.readline() == b"ready\n", "Claude allowlist proxy 시작 실패")
+            if not selector.select(10) or proxy.stdout.readline() != b"ready\n":
+                print("Claude allowlist proxy 시작 실패", file=sys.stderr)
+                return 125  # Distinguish a boundary launcher failure from a denied command.
         env = {**os.environ, **profile["env"]}
         child = subprocess.Popen(wrap(command, profile), env=env)
         def stop(signum, frame):

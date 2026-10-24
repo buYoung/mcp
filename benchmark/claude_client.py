@@ -1,6 +1,7 @@
 """Claude Code launch policy and native stream observations; no API requests at import."""
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -26,6 +27,14 @@ def environment() -> dict:
     return env
 
 
+def _logged_in(result: subprocess.CompletedProcess) -> bool:
+    try:
+        status = json.loads(result.stdout)
+    except (ValueError, TypeError):
+        return False
+    return result.returncode == 0 and isinstance(status, dict) and status.get("loggedIn") is True
+
+
 def capabilities() -> dict:
     require(shutil.which("claude") is not None, "Claude Code CLI가 필요합니다: claude")
     version = command(["claude", "--version"]).strip()
@@ -35,7 +44,7 @@ def capabilities() -> dict:
              "--output-format", "--no-session-persistence")
     require(all(flag in help_text for flag in flags), "Claude Code에 필요한 실행 옵션이 없습니다")
     login = subprocess.run(["claude", "auth", "status"], env=environment(), capture_output=True, timeout=30)
-    require(login.returncode == 0, "Claude Code 로그인이 필요합니다: claude auth login")
+    require(_logged_in(login), "Claude Code 로그인이 필요합니다: claude auth login")
     return {"backend": BACKEND, "version": version, "required_flags": list(flags), "login_available": True}
 
 
@@ -111,7 +120,7 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
                           cwd=workspace, env=env, capture_output=True, timeout=60)
     write_json(folder / "auth-probe.json", {"exit_code": auth.returncode, "stdout": auth.stdout.decode(errors="replace"),
                                           "stderr": auth.stderr.decode(errors="replace"), "model_invocations": 0})
-    require(auth.returncode == 0, "Claude outer profile에서 로그인 인식 실패: baseline blocked; 자격 파일을 복사/허용하지 않습니다")
+    # Keep boundary evidence even when auth is blocked; never publish a ready baseline in that case.
     boundaries = []
     with canary_files(workspace, folder / "boundary") as (_, targets):
         cases = [("source_read", ["/bin/cat", "README.md"], True),
@@ -119,12 +128,19 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
                  ("proxy_github_denied", ["/usr/bin/curl", "--fail", "--max-time", "10", "https://github.com"], False),
                  ("direct_github_denied", ["/usr/bin/curl", "--fail", "--noproxy", "*", "--max-time", "10", "https://github.com"], False)]
         cases.extend((name, ["/bin/cat", str(path)], False) for name, path in targets.items())
+        cases.extend(("rg_" + name, [value["rg_binary"], "ISOLATION_", str(path)], False)
+                     for name, path in targets.items() if name.startswith("claude-"))
+        cases.append(("source_read_after_denials", ["/bin/cat", "README.md"], True))
         for name, argv, allowed in cases:
             checked = subprocess.run(claude_baseline_command(argv, profile, folder), cwd=workspace, env=env,
                                      capture_output=True, timeout=30)
-            boundaries.append({"name": name, "expected_access": "allow" if allowed else "deny", "exit_code": checked.returncode})
+            boundaries.append({"name": name, "expected_access": "allow" if allowed else "deny",
+                               "exit_code": checked.returncode, "stderr": checked.stderr.decode(errors="replace")})
             write_json(folder / "boundary-probe.json", boundaries)
+            require(checked.returncode >= 0 and checked.returncode != 125, f"Claude boundary launcher 실패: {name}")
             require((checked.returncode == 0) == allowed, f"Claude outer boundary 실패: {name}")
+    require(_logged_in(auth), "Claude outer profile에서 로그인 인식 실패: baseline blocked; "
+            "자격 파일/기록을 허용하지 않습니다. 운영자가 CLAUDE_CODE_OAUTH_TOKEN을 환경으로 제공한 뒤 재검증하세요")
     observation = {"name": "claude_init_only", "exit_code": result.returncode, "command": args,
                    "cli": host, "configuration": value, "model_invocations": 0,
                    "policy_sha256": file_digest(folder / "claude-settings.json"),
