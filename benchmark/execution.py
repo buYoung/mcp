@@ -319,6 +319,8 @@ def run_slot(root: Path, manifest: dict, initial: dict, coordinator: LedgerCoord
         result = collector(folder, row, execution)
         require(result.get("model") == row["model"] and result.get("backend") == row["backend"], "관측 풀이 모델/실행기 불일치")
         result["answer_eligible"] = result.get("answer_eligible", False)
+        # A recorded provider response ID proves a provider call; without one it stays unobserved, never false.
+        result["provider_call_observed"] = True if (result.get("usage") or {}).get("response_ids") else None
         if not process:
             result.update(conditions_valid=False, answer_eligible=False,
                           failure_reason="CLI launch receipt missing; launch remains unknown")
