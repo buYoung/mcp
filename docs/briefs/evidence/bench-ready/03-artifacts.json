@@ -10,28 +10,28 @@
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release/codebase-memory-mcp",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release/codebase-memory-mcp",
           "sha256": "a36cfa1f5d10d8c4762501d63feef082711aae4704b9e8f9066db52779a8601e"
         }
       ],
       "id": "codebase-memory-mcp",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release",
+      "installation": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release",
       "installation_sha256": "295786cd4d99e6b1250ce0c310df1092388e5c5fc3fd6df77117d7a6840700a8",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release/codebase-memory-mcp"
+        "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/release/codebase-memory-mcp"
       ],
       "model_assets": [],
       "provenance": {
         "archive": {
           "bytes": 109754858,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codebase-memory-mcp-a7158ac2f48ca646b4527341b76f930f2aeff87e.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/downloads/codebase-memory-mcp-a7158ac2f48ca646b4527341b76f930f2aeff87e.tar.gz",
           "sha256": "7c47f2a2b151c91e6506dfbe8073b5908e4c2ca21816bccc2a42fe9cd86380a0",
           "url": "https://codeload.github.com/DeusData/codebase-memory-mcp/tar.gz/a7158ac2f48ca646b4527341b76f930f2aeff87e"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/source-files.json",
+        "files_manifest": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/source-files.json",
         "official_release_asset": {
           "bytes": 49875423,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/codebase-memory-mcp-darwin-arm64.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/downloads/codebase-memory-mcp/a7158ac2f48ca646b4527341b76f930f2aeff87e/codebase-memory-mcp-darwin-arm64.tar.gz",
           "sha256": "9bfcbe38414b47969a3e1d1c1999f5357409387c86fa3d24221b5458267660d2",
           "url": "https://github.com/DeusData/codebase-memory-mcp/releases/download/v0.12.1/codebase-memory-mcp-darwin-arm64.tar.gz"
         },
@@ -70,11 +70,11 @@
             "--no-audit",
             "--no-fund"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
-          "elapsed_seconds": 2.907181334012421,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
+          "elapsed_seconds": 1.7685302500030957,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/install.log",
-          "log_sha256": "330b1015195ad14327ce046f92e08efb7d160dcc2c0c1592a35569d1db1d0577"
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/install.log",
+          "log_sha256": "bd6c8fa0edd3ef312d7e67564a08b83a5f9be8cc5ba49556110878dcc72ea13b"
         },
         {
           "command": [
@@ -82,11 +82,11 @@
             "run",
             "build"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
-          "elapsed_seconds": 6.404929334006738,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
+          "elapsed_seconds": 6.855083041999023,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/build.log",
-          "log_sha256": "5f5e3db14474269128a1d013360b98172aec1dd22eba8b98b32a91ce1ff854bb"
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/build.log",
+          "log_sha256": "a60df6e5a2bdbf15d6e70133e007d65bc10d779f230ffd04a675ddb9d9e819a9"
         },
         {
           "command": [
@@ -94,11 +94,11 @@
             "run",
             "build:kernel"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
-          "elapsed_seconds": 30.37335354098468,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
+          "elapsed_seconds": 32.1789017499832,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/kernel-build.log",
-          "log_sha256": "0752bef05c46863c024073e21dc0415dd76b412421e28171b52a01364a29d8b3"
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/kernel-build.log",
+          "log_sha256": "283ad0fde920b8c0c8d1fde42aa7cf3e27d218e5d99d379122eb864a5d6101c8"
         }
       ],
       "dependencies": {
@@ -110,26 +110,26 @@
           "sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55"
         },
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source/dist/bin/codegraph.js",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source/dist/bin/codegraph.js",
           "sha256": "435e2a09ac8e960319ef996fd0150107f04d10782826bf451a19999530a15f9b"
         }
       ],
       "id": "codegraph",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
-      "installation_sha256": "62a91e134a2ed00d73f3edf1576d9e2c993408d4859db8015c2269207e158eb8",
+      "installation": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source",
+      "installation_sha256": "3bd57894047234ed99561429c2ebee8c133bf69c3e21f9ab31f801a98151bdd9",
       "launch": [
         "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source/dist/bin/codegraph.js"
+        "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source/dist/bin/codegraph.js"
       ],
       "model_assets": [],
       "provenance": {
         "archive": {
           "bytes": 14837939,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/codegraph-6560052a6f856855d3f71eee838fd66ccfa4285d.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/downloads/codegraph-6560052a6f856855d3f71eee838fd66ccfa4285d.tar.gz",
           "sha256": "bc1c0c636fe970c657a0b3b7e5f4f84d8982e283a2e152d26ea8543fb74c9945",
           "url": "https://codeload.github.com/colbymchenry/codegraph/tar.gz/6560052a6f856855d3f71eee838fd66ccfa4285d"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source-files.json",
+        "files_manifest": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/codegraph/6560052a6f856855d3f71eee838fd66ccfa4285d/source-files.json",
         "source_sha256": "6aea8a13e762f1c0dcdaa4b59bf09d6d1a14f6a36e0809e05b9df1d71fcdd387"
       },
       "runtime": {
@@ -158,8 +158,8 @@
       "actual_version": "0.13.0",
       "backend": "native_rust",
       "build": {
-        "binary": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search",
-        "binary_sha256": "9df9bce8ff6f2a1c719e60e69a628d8e982957c38e70599349c24d7ee47821e7",
+        "binary": "/Volumes/Samsung_990_PRO/wscache/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search",
+        "binary_sha256": "c8effbc5fc011dcbd7ed602e3de47f5b37552917e5c04936fa94aa405413e528",
         "command": [
           "cargo",
           "build",
@@ -168,11 +168,11 @@
           "--target",
           "aarch64-apple-darwin",
           "--manifest-path",
-          "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source/Cargo.toml",
+          "/Volumes/Samsung_990_PRO/wscache/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source/Cargo.toml",
           "--target-dir",
-          "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target"
+          "/Volumes/Samsung_990_PRO/wscache/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target"
         ],
-        "elapsed_seconds": 67.57419229098014,
+        "elapsed_seconds": 80.69419445801759,
         "exit_code": 0,
         "identity": {
           "commit": "4061c42a59a296255ce151f6a60683e31b66a2b8",
@@ -12333,22 +12333,22 @@
           "version": "0.13.0"
         },
         "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1",
-        "source_snapshot": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source"
+        "source_snapshot": "/Volumes/Samsung_990_PRO/wscache/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source"
       },
       "dependencies": {
         "Cargo.lock": "6b4f6a63a843e1b8c4cf5344d06d8797df869d366c92e79024d701b4c6027796"
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search",
-          "sha256": "9df9bce8ff6f2a1c719e60e69a628d8e982957c38e70599349c24d7ee47821e7"
+          "path": "/Volumes/Samsung_990_PRO/wscache/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search",
+          "sha256": "c8effbc5fc011dcbd7ed602e3de47f5b37552917e5c04936fa94aa405413e528"
         }
       ],
       "id": "codemap-search",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source",
+      "installation": "/Volumes/Samsung_990_PRO/wscache/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/source",
       "installation_sha256": "221dcf5fad43a66562aeffec05981b8c953c72d20450be0ce2323e29a3c48438",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search"
+        "/Volumes/Samsung_990_PRO/wscache/products/a665fbbcbdf98cf54ef24299c04dbb5148ca1bf43a5527b2b3e3b9dfa4aea045/target/aarch64-apple-darwin/release/codemap-search"
       ],
       "model_assets": [],
       "runtime": {
@@ -24524,12 +24524,12 @@
             "venv",
             "--python",
             "3.12",
-            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv"
+            "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
-          "elapsed_seconds": 3.9378156249877065,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+          "elapsed_seconds": 4.149987666984089,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/venv.log",
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/venv.log",
           "log_sha256": "c4c4dcc50395a068c5d838a945399e68864d2d6883aa3d0447f003a2aaace4b8"
         },
         {
@@ -24538,17 +24538,17 @@
             "pip",
             "sync",
             "--python",
-            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
+            "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
             "--require-hashes",
             "--only-binary",
             ":all:",
             "/Users/buyong/workspace/private/buyong-mcp/benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
-          "elapsed_seconds": 0.8999972089950461,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+          "elapsed_seconds": 0.8501624999917112,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/install.log",
-          "log_sha256": "ee0ae7d9841145eecc2504a501e147b05c6b482e31d18f0c9ed12a77531e55f3"
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/install.log",
+          "log_sha256": "504c99fc22089aac2dc03a7ac7fe06fb35f9f11be5689348b1ce7bf13c171736"
         },
         {
           "command": [
@@ -24556,25 +24556,25 @@
             "pip",
             "check",
             "--python",
-            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python"
+            "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
-          "elapsed_seconds": 0.022892249980941415,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+          "elapsed_seconds": 0.07535904200631194,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/dependency-check.log",
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/dependency-check.log",
           "log_sha256": "b281d43b2bd3620106fab8bf779866246a60321ca85a28e20c18a588054bc0eb"
         },
         {
           "command": [
-            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
+            "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
             "-c",
             "\nimport hashlib, json, sys\nfrom importlib.metadata import distribution\nfrom pathlib import Path\nsource = Path(sys.argv[1])\ndist = distribution('graphifyy')\nchecked = []\nfor name in dist.files or []:\n    if name.parts[0] == 'graphify' and '__pycache__' not in name.parts:\n        expected, installed = source / name, Path(dist.locate_file(name))\n        assert expected.is_file() and installed.is_file(), str(name)\n        assert hashlib.sha256(expected.read_bytes()).digest() == hashlib.sha256(installed.read_bytes()).digest(), str(name)\n        checked.append(str(name))\nassert checked\nprint(json.dumps({'source_matching_files': len(checked), 'version': dist.version}))\n",
-            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source"
+            "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
-          "elapsed_seconds": 0.1921520000032615,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+          "elapsed_seconds": 0.2492068329884205,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/wheel-source-check.log",
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/wheel-source-check.log",
           "log_sha256": "de69cbffe3a37876bb199c3a0564b0305007072e81e8858a46375c73fa27abac"
         }
       ],
@@ -24584,15 +24584,15 @@
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
           "sha256": "fe5e57e7f0dc374654e314d4e8f20cf2a345bda8a4e03032046f407027628a32"
         }
       ],
       "id": "graphify",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
-      "installation_sha256": "c15d14756dd54740cfa0db9c2fef38e166b7a139ba28511a49fece3b465cd422",
+      "installation": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source",
+      "installation_sha256": "bf1cdeb3550f7bdede788438a5137ee17a6e73b01472e416ef36fad566ac459c",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
+        "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source/.venv/bin/python",
         "-m",
         "graphify"
       ],
@@ -24600,14 +24600,14 @@
       "provenance": {
         "archive": {
           "bytes": 13656283,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/graphify-92741d162b2094ffc2fed58cfbd8ee823e9da62c.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/downloads/graphify-92741d162b2094ffc2fed58cfbd8ee823e9da62c.tar.gz",
           "sha256": "b4bc34d33b48ca6e9b981809d104eaffcf4e53c9dfffc34bb317294863e4f2ec",
           "url": "https://codeload.github.com/Graphify-Labs/graphify/tar.gz/92741d162b2094ffc2fed58cfbd8ee823e9da62c"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source-files.json",
+        "files_manifest": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/source-files.json",
         "official_package_wheel": {
           "sha256": "e067c9256e5e762406816e51039c4e775f8d2f39a893ecc0b7095d594f6c3120",
-          "source_verification_log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/wheel-source-check.log",
+          "source_verification_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/graphify/92741d162b2094ffc2fed58cfbd8ee823e9da62c/wheel-source-check.log",
           "url": "https://files.pythonhosted.org/packages/79/87/4c0808afdf99568e27f24838595506d6a286aca6f3bbf8fbb2520574f413/graphifyy-0.9.95-py3-none-any.whl"
         },
         "source_sha256": "e397f2e2162f81becab99ad4c5775c4a45430027931655c099715545b320f0d6"
@@ -24643,28 +24643,28 @@
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg",
           "sha256": "a326a1fb48074202e9ad41e4cd1e389eeea372c8c6f7d7e80da81176d5d9430e"
         }
       ],
       "id": "rg",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release",
+      "installation": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release",
       "installation_sha256": "6bf0ee6ab5a29ec73151852304cc65e9f9ba133bd52015b835c996141f8f00cb",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg"
+        "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/release/ripgrep-15.2.0-aarch64-apple-darwin/rg"
       ],
       "model_assets": [],
       "provenance": {
         "archive": {
           "bytes": 607432,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/rg-e89fff89ac9af12e8d4ce9d5fd07beb408ca730f.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/downloads/rg-e89fff89ac9af12e8d4ce9d5fd07beb408ca730f.tar.gz",
           "sha256": "af40d0f4cb7a55994906c009a7ba865047f0d487c95bceb8db59ffc4f2173d20",
           "url": "https://codeload.github.com/BurntSushi/ripgrep/tar.gz/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/source-files.json",
+        "files_manifest": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/source-files.json",
         "official_release_asset": {
           "bytes": 1764284,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/downloads/rg/e89fff89ac9af12e8d4ce9d5fd07beb408ca730f/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz",
           "sha256": "3750b2e93f37e0c692657da574d7019a101c0084da05a790c83fd335bad973e4",
           "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz"
         },
@@ -24705,11 +24705,11 @@
             "--python",
             "3.12"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
-          "elapsed_seconds": 1.414320832991507,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
+          "elapsed_seconds": 1.690085749985883,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/install.log",
-          "log_sha256": "7c963045a1563ee91dfd4bfbac6f98549514a9f78e16eca015272aea9651949d"
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/install.log",
+          "log_sha256": "2330e1a9b1ac2452aeb686437fc48e7bd32bae384b9fabe64fbd144915fab9d7"
         },
         {
           "command": [
@@ -24717,23 +24717,23 @@
             "pip",
             "check",
             "--python",
-            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/python"
+            "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/python"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
-          "elapsed_seconds": 0.07474683300824836,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
+          "elapsed_seconds": 0.07031254199682735,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/dependency-check.log",
-          "log_sha256": "b7c78ee174c1dc08a46836dc7ebc49cdc6df980cc3724eb306f9f48087d3d68d"
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/dependency-check.log",
+          "log_sha256": "43652e618d75434fa01363df42c705269506ae100d9cf9c6b5343d70c62db1e3"
         },
         {
           "command": [
-            "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena",
+            "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena",
             "--version"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
-          "elapsed_seconds": 2.9298887089826167,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
+          "elapsed_seconds": 3.2342015829926822,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/version.log",
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/version.log",
           "log_sha256": "dd8c3336329df10285cef24293c9814c988dd6e9e5b36842770514a2ff33fffd"
         }
       ],
@@ -24742,11 +24742,11 @@
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena",
-          "sha256": "0137910838bad308fea714f60e5757f9b39b2f7a24a3dceae1d20972cb070c29"
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena",
+          "sha256": "c753b9fe2fe47f65dca3d204697dd678883126385fee3bc21535748e3da529c1"
         },
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/python",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/python",
           "sha256": "fe5e57e7f0dc374654e314d4e8f20cf2a345bda8a4e03032046f407027628a32"
         },
         {
@@ -24767,20 +24767,20 @@
         }
       ],
       "id": "serena",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
-      "installation_sha256": "3a96b203dae4097c1ad039c15ad7d50f46f86deeacb8529164e7eb403fb92e89",
+      "installation": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source",
+      "installation_sha256": "f5660270ef1790e369d11d18c19c14d56ccbdf7376cfb0602e8c8dd923b8d741",
       "launch": [
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena"
+        "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source/.venv/bin/serena"
       ],
       "model_assets": [],
       "provenance": {
         "archive": {
           "bytes": 2522657,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/serena-5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/downloads/serena-5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc.tar.gz",
           "sha256": "3173dfcc3cba19e4002685768acc563bd2b9b689a4d82fda94f7ee0877cfd0f7",
           "url": "https://codeload.github.com/oraios/serena/tar.gz/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source-files.json",
+        "files_manifest": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/serena/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/source-files.json",
         "source_sha256": "ec89e8e34cddf390166ac0fbc50508e063615a00502a0d08a001b01fcf9ea794"
       },
       "runtime": {
@@ -24835,11 +24835,11 @@
             "--no-audit",
             "--no-fund"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
-          "elapsed_seconds": 5.972277124994434,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
+          "elapsed_seconds": 5.463515999988886,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/install.log",
-          "log_sha256": "85aed72683b2ac734635fe59efbe0f6152dd483483f8f960ab4113cc7e869aa1"
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/install.log",
+          "log_sha256": "eba2a2b8f16d4623f4bf7880a0c54e7f55551518eaa9a88843085fa301b01696"
         },
         {
           "command": [
@@ -24847,10 +24847,10 @@
             "run",
             "build"
           ],
-          "cwd": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
-          "elapsed_seconds": 2.230237792013213,
+          "cwd": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
+          "elapsed_seconds": 2.030162000010023,
           "exit_code": 0,
-          "log": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/build.log",
+          "log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/build.log",
           "log_sha256": "8841f6e9c8af6dedc879fd12d58a6ecc72807a89ce85806f46fb7371bbcc3d81"
         }
       ],
@@ -24863,27 +24863,27 @@
           "sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55"
         },
         {
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source/dist/cli/index.js",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source/dist/cli/index.js",
           "sha256": "4188836385121590e3813e9da7efcabf2310266afcad9df613cc23f2abaaac78"
         }
       ],
       "id": "zvec-grep",
-      "installation": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
+      "installation": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source",
       "installation_sha256": "d98c0f020efd1bb0f30143d71feb21bb712671571360309758321efb0d335903",
       "launch": [
         "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
-        "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source/dist/cli/index.js"
+        "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source/dist/cli/index.js"
       ],
       "model_assets": [
         {
           "bytes": 32490072,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/model-assets/e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b/model.safetensors",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/model-assets/e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b/model.safetensors",
           "sha256": "75cf7a6c2171b230ad19b1e7d8e0b1aee86da5a02af8e7cacedd9921d227623c",
           "url": "https://huggingface.co/minishlab/potion-code-16M-v2/resolve/e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b/model.safetensors"
         },
         {
           "bytes": 1024340,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/model-assets/e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b/tokenizer.json",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/model-assets/e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b/tokenizer.json",
           "sha256": "107bbdcbad4bff1d299b7a4c3a2fb17c52890688b7dd0e4c9deab79d3c4f3d45",
           "url": "https://huggingface.co/minishlab/potion-code-16M-v2/resolve/e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b/tokenizer.json"
         }
@@ -24891,11 +24891,11 @@
       "provenance": {
         "archive": {
           "bytes": 15718908,
-          "path": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/downloads/zvec-grep-b1a9148e26a7bc9bd4a52229ffb7532d3063793d.tar.gz",
+          "path": "/Volumes/Samsung_990_PRO/wscache/route-preparation/downloads/zvec-grep-b1a9148e26a7bc9bd4a52229ffb7532d3063793d.tar.gz",
           "sha256": "bec7d78d266fb5d49646f521edacc977ae6f74f3174476fe79b4e87f6d0662d1",
           "url": "https://codeload.github.com/zvec-ai/zvec-grep/tar.gz/b1a9148e26a7bc9bd4a52229ffb7532d3063793d"
         },
-        "files_manifest": "/Volumes/Samsung_990_PRO/codemap-search- bench/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source-files.json",
+        "files_manifest": "/Volumes/Samsung_990_PRO/wscache/route-preparation/artifacts/zvec-grep/b1a9148e26a7bc9bd4a52229ffb7532d3063793d/source-files.json",
         "source_sha256": "47b5f4e5599bf07fd3500a6a6ee155f02e69a3232e9341d97b6ab08729b9a09d"
       },
       "runtime": {
@@ -24921,9 +24921,9 @@
       }
     }
   },
-  "contract_hash": "0c2847971220a67487964dc709d9f92ca2f9c2ae001c156ef944ee0f38415b0f",
+  "contract_hash": "b65b9736412b457d36f13457191bc3fcd9a8ef4e2fa2556212b67152f80d9815",
   "dependency_hashes": {
-    "01-contract.json": "1f27624f316dc125f297b79dbd42a1b54628c829808f3dec8ede280a97dfed8f"
+    "01-contract.json": "62f81911f4c31050f6d4b0ba3a297c08a2e878d1539d1a660b1b0afa91370300"
   },
   "host": {
     "machine": "arm64",
@@ -24932,16 +24932,16 @@
   },
   "implementation_hashes": {
     "benchmark/resources.py": "ebff1103cd0f5e25abe4bd41d6e9ba05cdd3ef7e691a694629554c2db1bac8a0",
-    "benchmark/tool_artifacts.py": "90b433582a681d4e3906aacbcf515d9b1bcc3a37f163d687f8724d935716815a"
+    "benchmark/tool_artifacts.py": "7cd31b3ad1b96d5f7160d5e0f0e87afcf0902352b2c1363fddc9ab649d0ee9f0"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "5f385a11294746f8388716ae5b724feeedc97582f90634dd3f32e309260b67ba",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "d2d996e91b28e189284a178135e747c6e3c5d002bf9bf2af59579c4af762c8cf",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "894c56b4255d5d6cd4c25bd004970b4536e54dcd825baf0d352309618af7ec13",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "39e8cc2f31d0662fe34aae0f6221e93b43414b97f99fb9fe98ce80373e8322db",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "4db282f65a398917da43bc67e4a784ab0abc1eb238e7994ad530051d67d1211b",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "e2adbc716a47942c2baafb92c83f84a716b869956b97323c03761c398e9fd2b2",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "929752f50300d83e335475fe2bc8de25e4e20fe3e24f842d79b5ab7c29688356",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1692b9717e71653a43a9d7ae496cde7a085065be7007c2cecefb9ea6d5e9b0a3",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "45100e782647ef52be8e6d204eb588cc76838e788a7d99134287cc46ee65b019",
     "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
     "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
     "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
@@ -24954,21 +24954,23 @@
     "No Grafana index or solver/grader inference was created by artifact preparation."
   ],
   "pi_toolchain": {
-    "bridge_extension": "/Volumes/Samsung_990_PRO/codemap-search- bench/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
-    "claude_code_binary": "/Volumes/Samsung_990_PRO/codemap-search- bench/pi-toolchain/installation/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
-    "lock_sha256": "4db282f65a398917da43bc67e4a784ab0abc1eb238e7994ad530051d67d1211b",
+    "bridge_extension": "/Volumes/Samsung_990_PRO/wscache/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
+    "claude_code_binary": "/Volumes/Samsung_990_PRO/wscache/pi-toolchain/installation/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
+    "lock_sha256": "929752f50300d83e335475fe2bc8de25e4e20fe3e24f842d79b5ab7c29688356",
+    "mcp_adapter_extension": "/Volumes/Samsung_990_PRO/wscache/pi-toolchain/installation/node_modules/pi-mcp-adapter",
     "node": "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
     "node_sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55",
-    "pi_cli": "/Volumes/Samsung_990_PRO/codemap-search- bench/pi-toolchain/installation/node_modules/@earendil-works/pi-coding-agent/dist/cli.js",
+    "pi_cli": "/Volumes/Samsung_990_PRO/wscache/pi-toolchain/installation/node_modules/@earendil-works/pi-coding-agent/dist/cli.js",
     "versions": {
       "agent_sdk": "0.3.310",
       "bridge": "0.13.1",
       "claude_code": "2.1.310",
+      "mcp_adapter": "6.0.0",
       "node": "v24.14.0",
       "pi": "1.4.0"
     }
   },
-  "recorded_at": "2026-10-24T14:48:57.610956+00:00",
+  "recorded_at": "2026-10-24T17:47:39.785166+00:00",
   "schema_version": 1,
   "status": "verified",
   "verification": {
