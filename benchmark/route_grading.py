@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import itertools
 import hashlib
+import json
 import re
 import urllib.parse
 from pathlib import Path
@@ -169,6 +170,29 @@ def packet(question: dict, runs: list[dict], source: Path, experiment: Path, see
     return value, registry, warnings
 
 
+def parse_judgment(text: str) -> dict:
+    """Accept exactly one JSON object, optionally inside one json fence."""
+    text = text.strip()
+    require(bool(text), "빈 채점 답변")
+    fenced = re.fullmatch(r"```json\s*\n(.*?)\n```", text, re.DOTALL)
+    if fenced:
+        text = fenced[1]
+
+    def unique_object(pairs):
+        value = {}
+        for key, item in pairs:
+            require(key not in value, "채점 JSON 중복 key")
+            value[key] = item
+        return value
+
+    def invalid_constant(value):
+        raise ValueError("채점 JSON 비유한 수 금지")
+
+    value = json.loads(text, object_pairs_hook=unique_object, parse_constant=invalid_constant)
+    require(isinstance(value, dict), "판정은 JSON object여야 합니다")
+    return value
+
+
 def validate_judgment(question: dict, judgment: dict, answer_id: str, record: dict) -> dict:
     require(isinstance(judgment, dict), "판정은 JSON object여야 합니다")
     require(isinstance(judgment.get("facts"), list) and isinstance(judgment.get("extra_claim_diagnostics"), list), "판정 배열 형식 오류")
@@ -264,7 +288,10 @@ def seal_packet(experiment: Path, draft_path: Path, draft: dict, answer: str,
     value["answers"] = [{"answer_id": ident, "answer": answer,
         "answer_units": [{"id": u["id"], "text": u["text"]} for u in record["units"]],
         "citation_index": record["citation_index"]}]
-    prompt = INSTRUCTIONS + canonical(value)
+    schema = judgment_schema(draft["question"], [u["id"] for u in record["units"]],
+                             [c["id"] for c in record["citation_index"]])
+    prompt = (INSTRUCTIONS + "추가 설명 없이 JSON object 하나만 응답한다. 다음 judgment schema를 반드시 따른다.\n"
+              + "judgment_schema:\n" + canonical(schema) + "\ngrading_packet:\n" + canonical(value))
     require(len(prompt.encode()) <= draft["packet_bytes_limit"], "packet_too_large: 160 KiB 초과; 자동 절단 금지")
     folder = experiment / "grading" / ident / f"v{draft['revision']}"
     require(not folder.exists(), "불변 packet 덮어쓰기 금지")
@@ -273,8 +300,7 @@ def seal_packet(experiment: Path, draft_path: Path, draft: dict, answer: str,
     if approval is not None:
         durable_json(private / "approval.json", approval, exclusive=True)
     durable_json(folder / "packet.json", value, exclusive=True)
-    durable_json(folder / "schema.json", judgment_schema(draft["question"], [u["id"] for u in record["units"]],
-                                                        [c["id"] for c in record["citation_index"]]), exclusive=True)
+    durable_json(folder / "schema.json", schema, exclusive=True)
     durable_bytes(folder / "prompt.txt", prompt.encode(), exclusive=True)
     seal = {"schema_version": 1, "run_id": draft["run_id"], "blind_id": ident,
             "raw_seal_sha256": draft["raw_seal_sha256"], "draft_sha256": file_digest(draft_path),

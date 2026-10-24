@@ -389,15 +389,20 @@ def grade_packet(root: Path, manifest: dict, initial: dict, coordinator: LedgerC
         spec["limits"] = {**spec["limits"], "elapsed_seconds": manifest["grader_timeout_seconds"]}
         result = grader_executor(folder / "job", (folder / "prompt.txt").read_text(), grading=True,
             output_schema=read_json(folder / "schema.json"), relay_settings=None, settings=spec,
-            usage_drain_seconds=0, cancel_event=cancel_event, codex_version=manifest["prepared"]["host"]["codex_version"])
+            usage_drain_seconds=0, cancel_event=cancel_event)
+        durable_json(folder / "grader-result.json", result, exclusive=True)
+        row = coordinator.change(row["id"], {"grader_execution": {
+            **{key: result.get(key) for key in ("status", "backend", "provider", "model", "agent_version", "usage", "exit_code",
+                "conditions_valid", "condition_errors", "harness_attempts", "retry_attempts", "retry_events", "compaction_events")},
+            "artifact": str(folder / "grader-result.json"), "sha256": file_digest(folder / "grader-result.json")}})
         require(not cancel_event.is_set(), "grader cancelled")
         require(result.get("status") == "completed" and result.get("conditions_valid") is True
-                and result.get("model") == "gpt-6-astra" and result.get("backend") == "codex", "Astra 실행 조건/모델 불일치 또는 미완료")
-        from .core import read_json as strict_json
-        # Parse with the same duplicate-key/NaN rejection as all sealed contracts.
+                and result.get("model") == "gpt-6-astra" and result.get("backend") == "pi"
+                and result.get("provider") == "openai-codex",
+                f"pi/Astra 실행 조건/모델 불일치 또는 미완료: {result.get('status')}; {result.get('condition_errors', [])}")
         from .campaign_store import durable_bytes
         durable_bytes(folder / "judgment-raw.json", result["answer"].encode(), exclusive=True)
-        judgment = strict_json(folder / "judgment-raw.json")
+        judgment = route_grading.parse_judgment(result["answer"])
         question = next(q for q in routes.load_dataset()["questions"] if q["id"] == row["question_id"])
         judgment = route_grading.validate_judgment(question, judgment, row["blind_id"], read_json(Path(seal["registry"]))[row["blind_id"]])
         durable_json(folder / "judgment.json", judgment, exclusive=True)
