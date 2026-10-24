@@ -463,6 +463,40 @@ def recover_interrupted(root: Path, coordinator: LedgerCoordinator) -> None:
     coordinator.commit()
 
 
+def grading_eligible(row: dict) -> bool:
+    return (row.get("status") in {"completed", "timeout", "call_limit", "token_limit"}
+            and row.get("conditions_valid") is True and row.get("answer_eligible") is True
+            and bool(row.get("answer", "").strip()))
+
+
+def prepare_review_packets(root: Path, manifest: dict, coordinator: LedgerCoordinator,
+                           rows: list[dict], source_check) -> None:
+    """Read sealed raw evidence and the fixed baseline; never restore a live workspace."""
+    dataset = routes.load_dataset()
+    for row in rows:
+        if row["grade_state"] != "not_eligible" or row.get("grade_reason"):
+            continue
+        if not grading_eligible(row):
+            row["grade_reason"] = "no eligible complete answer with valid conditions"
+            continue
+        try:
+            verify_raw_seal(row)
+            require(read_json(Path(row["raw_seal"])).get("cleanup_complete") is True, "sealed cleanup incomplete")
+            state = manifest["prepared"]["arms"][row["arm"]]
+            corpus_path = Path(manifest["prepared"]["source_manifest_path"])
+            require(file_digest(corpus_path) == manifest["prepared"]["source_manifest_sha256"], "고정 corpus 변경")
+            corpus = read_json(corpus_path)
+            source = Path(state["baseline"]["paths"]["source"])
+            source_check({**state, "source": str(source)}, corpus)
+            result = route_grading.build_review_packet(root,
+                next(q for q in dataset["questions"] if q["id"] == row["question_id"]), row, source,
+                manifest["run_specs"][row["arm"]], Path(row["raw_seal"]), corpus)
+            row.update(result)
+        except Exception as exc:
+            row.update(grade_state="failed", grade_reason=str(exc))
+        coordinator.commit()
+
+
 def _run_campaign(root: Path, *, resume=False, retry_unstarted=False, cancel_event=None, prepare_session=None,
                   solver_executor=execute_solver, grader_executor=None, collector=None,
                   restore=restore_slot, source_check=verify_source) -> dict:
@@ -504,31 +538,7 @@ def _run_campaign(root: Path, *, resume=False, retry_unstarted=False, cancel_eve
     coordinator.commit()
     # No graders overlap solver/product lifecycles or a failed cleanup.
     if not cancel_event.is_set():
-        dataset = routes.load_dataset()
-        for row in coordinator.ledger["slots"]:
-            if row["grade_state"] != "not_eligible" or row.get("grade_reason"):
-                continue
-            if (row["status"] not in {"completed", "timeout", "call_limit", "token_limit"} or
-                    row.get("conditions_valid") is not True or row.get("answer_eligible") is not True or
-                    not row.get("answer", "").strip()):
-                row["grade_reason"] = "no eligible complete answer with valid conditions"
-                continue
-            try:
-                verify_raw_seal(row)
-                state = manifest["prepared"]["arms"][row["arm"]]
-                corpus_path = Path(manifest["prepared"]["source_manifest_path"])
-                require(file_digest(corpus_path) == manifest["prepared"]["source_manifest_sha256"], "고정 corpus 변경")
-                corpus = read_json(corpus_path)
-                # Fixed baseline, not a mutable solver workspace.
-                source = Path(state["baseline"]["paths"]["source"])
-                source_check({**state, "source": str(source)}, corpus)
-                result = route_grading.build_review_packet(root,
-                    next(q for q in dataset["questions"] if q["id"] == row["question_id"]), row, source,
-                    manifest["run_specs"][row["arm"]], Path(row["raw_seal"]), corpus)
-                row.update(result)
-            except Exception as exc:
-                row.update(grade_state="failed", grade_reason=str(exc))
-            coordinator.commit()
+        prepare_review_packets(root, manifest, coordinator, coordinator.ledger["slots"], source_check)
         schedule_workers([r for r in coordinator.ledger["slots"] if r["grade_state"] == "sealed"], coordinator, cancel_event,
             lambda row: grade_packet(root, manifest, row, coordinator, cancel_event, grader_executor or runner.execute_model))
     rows = coordinator.ledger["slots"]
@@ -553,23 +563,32 @@ def run_new(request: dict, *, cancel_event=None) -> dict:
         return _run_campaign(root, cancel_event=cancel_event)
 
 
-def grade_sealed(root: Path, *, cancel_event=None, grader_executor=None) -> dict:
-    """Grade only already-sealed, clean slots; never unblock or restore a campaign."""
+def grade_sealed(root: Path, *, cancel_event=None, grader_executor=None, source_check=verify_source) -> dict:
+    """Explicit partial grading of clean raw seals; never unblock or restore a campaign."""
     with campaign_lease():
         root = root.resolve()
         manifest, ledger = load_ledger(root)
         require(ledger["status"] == "blocked", "grade-sealed is only for a blocked campaign")
         cancel_event = cancel_event or threading.Event()
         coordinator = LedgerCoordinator(root, ledger, cancel_event)
-        rows = [row for row in ledger["slots"] if row["grade_state"] == "sealed"]
+        rows = [row for row in ledger["slots"] if row.get("raw_seal") and grading_eligible(row)
+                and row.get("cleanup", {}).get("complete") is True
+                and row["grade_state"] in {"not_eligible", "review_required", "sealed"}]
         for row in rows:
-            require(row.get("cleanup", {}).get("complete") is True and row.get("conditions_valid") is True
-                    and row.get("answer_eligible") is True, f"sealed slot is not clean/eligible: {row['id']}")
             require(not (root / "runs" / row["id"] / "grader-launch-intent.json").exists(), "grader retry forbidden")
             verify_raw_seal(row)
             require(read_json(Path(row["raw_seal"])).get("cleanup_complete") is True, "sealed cleanup incomplete")
-        schedule_workers(rows, coordinator, cancel_event,
+        request = {"mode": "explicit_partial_grading", "requested_at": timestamp(),
+            "candidate_slots": [row["id"] for row in rows], "campaign_error": ledger.get("error"),
+            "blocking_slots": [{"id": row["id"], "status": row.get("status"),
+                "failure_reason": row.get("failure_reason"), "cleanup_errors": row.get("cleanup", {}).get("errors", [])}
+                for row in ledger["slots"] if row.get("cleanup", {}).get("complete") is False]}
+        coordinator.ledger.setdefault("blocked_grading", []).append(request)
+        coordinator.commit()
+        prepare_review_packets(root, manifest, coordinator, rows, source_check)
+        schedule_workers([row for row in rows if row["grade_state"] == "sealed"], coordinator, cancel_event,
             lambda row: grade_packet(root, manifest, row, coordinator, cancel_event, grader_executor or runner.execute_model))
+        request["validated_slots"] = [row["id"] for row in rows if row["grade_state"] == "validated"]
         # Failed/unknown cleanup in other slots remains blocked, with its raw evidence intact.
         coordinator.commit()
         return report_campaign(root)
@@ -597,9 +616,11 @@ def report_campaign(root: Path) -> dict:
             require(row["judgment_packet_sha256"] == row["packet_seal_sha256"] and
                     file_digest(Path(row["judgment"])) == row["judgment_sha256"], "채점/packet binding 변경")
             judgments[row["id"]] = read_json(Path(row["judgment"]))
-    result = route_metrics.report(root, manifest["prepared"], ledger["slots"], judgments)
+    result = route_metrics.report(root, {**manifest["prepared"], "campaign_status": ledger["status"],
+                                        "blocked_grading": ledger.get("blocked_grading", [])}, ledger["slots"], judgments)
     return {"campaign_id": manifest["campaign_id"], "plan_id": manifest["plan_id"], "status": ledger["status"],
-            "error": ledger.get("error"), "counts": result["counts"], "ledger": str(root / "ledger.json"),
+            "error": ledger.get("error"), "blocked_grading": ledger.get("blocked_grading", []),
+            "counts": result["counts"], "ledger": str(root / "ledger.json"),
             "report": str(root / "report/results.md"), "run_root": str(root)}
 
 

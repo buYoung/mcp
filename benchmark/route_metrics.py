@@ -421,6 +421,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "not_started": sum(r["launch_state"] in {None, "not_started"} for r in result_rows),
               "launch_unknown": sum(r["launch_state"] == "unknown" for r in result_rows)}
     result = {"schema_version": 2, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
+              "campaign_status": manifest.get("campaign_status"), "blocked_grading": manifest.get("blocked_grading", []),
               "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions", "execution_specs")},
               "observed_solver_runs": sum(r["cli_launches"] == 1 for r in result_rows),
               "arms": arms, "rows": result_rows,
@@ -429,6 +430,9 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "variance_estimated": False}
     write_json(root / "report/summary.json", result)
     lines = ["# Grafana 경로 벤치마크", ""]
+    if manifest.get("blocked_grading"):
+        lines += ["**blocked campaign의 명시적 부분 채점입니다. 정리 실패/미시작 슬롯은 해제하지 않았습니다.**",
+                  "차단 원인과 부분 채점 요청: `" + json.dumps(manifest["blocked_grading"], ensure_ascii=False) + "`", ""]
     if manifest.get("models"):
         models = manifest["models"]
         lines += [f"풀이: {models['solver']['model']} / {models['solver']['reasoning_effort']}; "
