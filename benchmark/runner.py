@@ -408,6 +408,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         args += ["-"]
     write_json(folder / "command.json", {"args": args, "cwd": str(workspace), "model": spec["grader_model"] if grading else spec["model"],
                                         "backend": backend, "agent_version": agent_version or codex_version,
+                                        "requested_model": spec.get("requested_model"),
                                         "features_disabled": [f for f in DISABLED_FEATURES if not native_agent or f not in {"shell_tool", "unified_exec"}]
                                                              if backend == "codex" else None,
                                         "codex_version": codex_version}, exclusive=True)
@@ -419,8 +420,12 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     relay_cleanup = {"complete": False, "steps": []}
     solver_cleanup = {"complete": False, "steps": []}
     is_stdout_eof = False
-    buffer = b""
-    stderr_buffer = b""
+    buffer = bytearray()
+    stderr_buffer = bytearray()
+    stdout_scan = stderr_scan = 0
+    pi_state = pi_client.EventState() if backend == "pi" else None
+    events = pi_state.events if pi_state else []
+    event_observations = []
     stderr_eof = backend != "pi"
     token = env.get(pi_client.TOKEN_ENV) if backend == "pi" else None
     model_exited_monotonic = None
@@ -429,59 +434,75 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     with (folder / "events.jsonl").open("wb") as event_file, (folder / "stderr.log").open("wb") as error_file:
         selector = selectors.DefaultSelector()
         def pump():
-            nonlocal buffer, stderr_buffer, stderr_eof, thread_id, is_stdout_eof, answer_finished_monotonic, event_parse_failed
+            nonlocal stdout_scan, stderr_scan, stderr_eof, thread_id, is_stdout_eof, answer_finished_monotonic, event_parse_failed
+            parse_error = None
             for key, _ in selector.select(timeout=.05):
-                chunk = os.read(key.fileobj.fileno(), 65536)
-                if key.data == "stderr":
-                    stderr_buffer += chunk
-                    while b"\n" in stderr_buffer:
-                        line, stderr_buffer = stderr_buffer.split(b"\n", 1)
-                        error_file.write(pi_client.redact(line + b"\n", token))
-                        error_file.flush()
+                while True:
+                    try:
+                        chunk = os.read(key.fileobj.fileno(), 65536)
+                    except BlockingIOError:
+                        break  # Drain the nonblocking pipe through EAGAIN, not one chunk per tick.
+                    read_at = time.monotonic()
+                    pending = stderr_buffer if key.data == "stderr" else buffer
                     if not chunk:
-                        stderr_eof = True
-                        error_file.write(pi_client.redact(stderr_buffer, token))
-                        stderr_buffer = b""
+                        if key.data == "stderr":
+                            stderr_eof = True
+                        else:
+                            is_stdout_eof = True
+                        if backend == "pi" and pending:
+                            (error_file if key.data == "stderr" else event_file).write(pi_client.redact(bytes(pending), token))
                         selector.unregister(key.fileobj)
-                    continue
-                if not chunk:
-                    is_stdout_eof = True
-                    if backend == "pi" and buffer:
-                        event_file.write(pi_client.redact(buffer, token))
-                        event_file.flush()
-                    selector.unregister(key.fileobj)
-                    continue
-                if backend != "pi":
-                    event_file.write(chunk)
-                    event_file.flush()
-                if event_parse_failed:
-                    if backend == "pi":
-                        buffer += chunk
-                    continue
-                buffer += chunk
-                while b"\n" in buffer:
-                    line, buffer = buffer.split(b"\n", 1)
-                    if backend == "pi":
-                        line = pi_client.redact(line, token)
-                        event_file.write(line + b"\n")
-                        event_file.flush()
-                    if line:
+                        break
+                    if backend != "pi":
+                        event_file.write(chunk)
+                    pending.extend(chunk)
+                    start_line = 0
+                    scan = stderr_scan if key.data == "stderr" else stdout_scan
+                    while True:
+                        end = pending.find(b"\n", scan)
+                        if end < 0:
+                            break
+                        line = bytes(pending[start_line:end])
+                        start_line = scan = end + 1
+                        if backend == "pi":
+                            line = pi_client.redact(line, token)
+                            (error_file if key.data == "stderr" else event_file).write(line + b"\n")
+                        if key.data == "stderr" or not line or event_parse_failed:
+                            continue
                         try:
                             event = json.loads(line)
                             require(isinstance(event, dict), "agent event must be a JSON object")
-                        except ValueError:
+                            if pi_state is not None:
+                                pi_state.add(event)
+                            else:
+                                events.append(event)
+                            if event.get("type") == "thread.started":
+                                thread_id = event["thread_id"]
+                            elif backend == "claude_code" and event.get("type") == "system" and event.get("subtype") == "init":
+                                thread_id = event.get("session_id")
+                            elif backend == "pi" and event.get("type") == "session":
+                                thread_id = event.get("id")
+                            elif (backend == "claude_code" and event.get("type") == "result"
+                                  or backend == "codex" and event.get("type") == "turn.completed"
+                                  or backend == "pi" and event.get("type") == "agent_settled"):
+                                answer_finished_monotonic = read_at
+                            if backend == "pi" and event.get("type") in {"tool_execution_end", "agent_settled"}:
+                                event_observations.append({"record": len(events), "type": event["type"], "read_monotonic": read_at})
+                        except (ValueError, KeyError) as exc:
                             event_parse_failed = True
-                            raise
-                        if event.get("type") == "thread.started":
-                            thread_id = event["thread_id"]
-                        elif backend == "claude_code" and event.get("type") == "system" and event.get("subtype") == "init":
-                            thread_id = event.get("session_id")
-                        elif backend == "pi" and event.get("type") == "session":
-                            thread_id = event.get("id")
-                        elif (backend == "claude_code" and event.get("type") == "result"
-                              or backend == "codex" and event.get("type") == "turn.completed"
-                              or backend == "pi" and event.get("type") == "agent_settled"):
-                            answer_finished_monotonic = time.monotonic()
+                            parse_error = exc  # Still persist/drain all remaining raw bytes.
+                    del pending[:start_line]
+                    if key.data == "stderr":
+                        stderr_scan = len(pending)
+                    else:
+                        stdout_scan = len(pending)
+            event_file.flush()
+            error_file.flush()
+            if parse_error:
+                raise parse_error
+        if backend == "pi" and spec["provider"] == "claude-bridge":
+            from .claude_settings import verify
+            verify(spec.get("claude_settings"), workspace, home=Path(env["HOME"]))
         # All readiness, attachment, CLI config and log setup precede the solver clock.
         start = time.monotonic()
         started_unix_seconds = time.time()
@@ -497,8 +518,10 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             write_json(folder / "process.json", {"pid": process.pid, "workspace": str(workspace),
                                                  "started_unix_seconds": started_unix_seconds, "started_monotonic": start,
                                                  "wall_deadline_monotonic": wall_deadline}, exclusive=True)
+            os.set_blocking(process.stdout.fileno(), False)
             selector.register(process.stdout, selectors.EVENT_READ)
             if backend == "pi":
+                os.set_blocking(process.stderr.fileno(), False)
                 selector.register(process.stderr, selectors.EVENT_READ, "stderr")
             if prepared_session is not None:
                 prepared_session.register_solver(process)
@@ -509,29 +532,27 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                 if cancel_event is not None and cancel_event.is_set():
                     stop.cancel()
                 if not stop.cutoff:
-                    if backend in {"claude_code", "pi"}:
-                        live = read_live_jsonl(folder / "events.jsonl")
-                        observed = client.usage(live, terminal_complete=False, evidence="live agent stream")["observed"]
+                    if backend == "pi":
+                        observed = dict(pi_state.observed)
+                    elif backend == "claude_code":
+                        observed = client.usage(events, terminal_complete=False, evidence="live agent stream")["observed"]
                     else:
                         live = read_live_jsonl(find_rollout(home, thread_id))
                         observed = usage_metrics(live, terminal_complete=False, evidence="live rollout")["observed"]
                     reason = None
                     if prepared_session is not None and prepared_session.health()["condition_errors"]:
                         reason = "environment_error"
-                        if cancel_event is not None:
-                            cancel_event.set()
                     elif time.monotonic() >= wall_deadline:
                         reason = "timeout"
                     elif not grading and observed["total_tokens"] >= spec["limits"]["total_tokens"]:
                         reason = "token_limit"
                     elif not grading and (relay_settings or backend == "pi") and (folder / "stop.json").exists():
                         reason = read_json(folder / "stop.json")["reason"]
-                    elif native_agent:
+                    elif native_agent and backend != "pi":
                         from .native_baseline import command_items
-                        native_events = read_live_jsonl(folder / "events.jsonl")
-                        items = ([c for c in client.tool_items(native_events) if c.get("name") in client.NATIVE_TOOLS]
-                                 if backend in {"claude_code", "pi"} else command_items(native_events))
-                        if backend != "pi" and len(items) > spec["limits"]["exploration_calls"]:
+                        items = ([c for c in client.tool_items(events) if c.get("name") in client.NATIVE_TOOLS]
+                                 if backend == "claude_code" else command_items(events))
+                        if len(items) > spec["limits"]["exploration_calls"]:
                             reason = "call_limit"
                     if reason:
                         stop.request(reason, observed)
@@ -575,8 +596,11 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                 if backend == "pi":
                     process.stderr.close()
             if backend == "pi":
-                if stderr_buffer:
-                    error_file.write(pi_client.redact(stderr_buffer, token))
+                if stderr_buffer and not stderr_eof:
+                    error_file.write(pi_client.redact(bytes(stderr_buffer), token))
+                if buffer and not is_stdout_eof:
+                    event_file.write(pi_client.redact(bytes(buffer), token))
+                event_file.flush()
                 error_file.flush()
                 try:
                     residue = pi_client.cleanup_private(folder, workspace, spec["provider"], token, home=Path(env["HOME"]))
@@ -586,13 +610,16 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                 solver_cleanup["pi_private_cleanup"] = residue
             if home:
                 (home / "auth.json").unlink(missing_ok=True)
+    claude_settings_check = None
+    if backend == "pi" and spec["provider"] == "claude-bridge":
+        from .claude_settings import verify
+        try:
+            verify(spec.get("claude_settings"), workspace, home=Path(env["HOME"]))
+            claude_settings_check = {"verified": True}
+        except (OSError, ValueError) as exc:
+            claude_settings_check = {"verified": False, "error": pi_client.redact(str(exc), token)}
     elapsed = time.monotonic() - start
     termination = stop.cutoff["reason"] if stop and stop.cutoff else None
-    try:
-        events = read_live_jsonl(folder / "events.jsonl")
-    except (ValueError, KeyError) as exc:
-        events = []
-        launch_error = f"unsupported {backend} event log: {exc}"
     rollout_path = find_rollout(home, thread_id) if home else None
     if rollout_path:
         shutil.copyfile(rollout_path, folder / "rollout.jsonl")
@@ -615,7 +642,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     states = {name: read_jsonl_prefix(folder / name)[1] for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
               if (folder / name).exists() or name == "events.jsonl" or name == "rollout.jsonl" and backend == "codex"}
     partial_files = [name for name, state in states.items() if not state["complete"]]
-    final_observed = (client.usage(events, terminal_complete=False, evidence=str(folder / "events.jsonl"))["observed"]
+    final_observed = (dict(pi_state.observed) if pi_state is not None else client.usage(events, terminal_complete=False, evidence=str(folder / "events.jsonl"))["observed"]
                       if backend in {"claude_code", "pi"} else usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"))["observed"])
     native_count = None
     if native_agent:
@@ -626,7 +653,9 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             native_count = sum(c["dispatched"] for c in read_live_jsonl(folder / "bash-calls.jsonl"))
     if stop and not stop.cutoff:
         reason = None
-        if (model_exited_monotonic or time.monotonic()) >= wall_deadline:
+        if prepared_session is not None and prepared_session.health()["condition_errors"]:
+            reason = "environment_error"
+        elif (model_exited_monotonic or time.monotonic()) >= wall_deadline:
             reason = "timeout"
         elif not grading and final_observed["total_tokens"] >= spec["limits"]["total_tokens"]:
             reason = "token_limit"
@@ -653,6 +682,9 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
               "whole_cost_may_be_missing": True}
     write_json(folder / "runtime.json", {"thread_id": thread_id, "started_monotonic": start, "started_unix_seconds": started_unix_seconds,
                                         "backend": backend, "agent_version": agent_version or codex_version,
+                                        "requested_model": spec.get("requested_model"),
+                                        "event_observations": event_observations,
+                                        "claude_settings_check": claude_settings_check,
                                         "elapsed_seconds": elapsed, "wall_deadline_monotonic": wall_deadline,
                                         "exit_code": process.returncode if process else None,
                                         "model_exited_monotonic": model_exited_monotonic,
@@ -664,7 +696,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     final_rows = [r for r in records if r.get("type") == "response_item"
                       and r.get("payload", {}).get("role") == "assistant" and r["payload"].get("phase") == "final_answer"]
     final_text = "\n".join(c.get("text", "") for r in final_rows[-1:] for c in r["payload"].get("content", []) if c.get("type") == "output_text")
-    claude_result = client.final_result(events) if backend in {"claude_code", "pi"} else None
+    claude_result = pi_state.answer if pi_state is not None else client.final_result(events) if backend == "claude_code" else None
     if backend in {"claude_code", "pi"}:
         final_text = (claude_result or {}).get("result", "")
     completed = (bool(claude_result and claude_result.get("subtype") == "success" and not claude_result.get("is_error"))
@@ -687,14 +719,19 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         usage = usage_metrics(records, terminal_complete=False, evidence=str(folder / "rollout.jsonl"),
                               completion={"complete": False, "reasons": [launch_error or "unsupported Codex log format"]})
     budget["whole_cost_may_be_missing"] = not usage["complete"]
-    budget["within_limit"] = (False if budget["observed_overshoot_tokens"] else True if usage["complete"] else None)
+    budget["token_accounting"] = usage.get("token_accounting", "complete" if usage["complete"] else "incomplete")
+    budget["within_limit"] = (False if budget["observed_overshoot_tokens"] else
+                              True if budget["token_accounting"] in {"complete", "lower_bound"} else None)
     condition_errors = list(prepared_session.health()["condition_errors"]) if prepared_session is not None else []
+    if claude_settings_check and not claude_settings_check["verified"]:
+        condition_errors.append(claude_settings_check["error"])
+        status = termination = "environment_error"
     if not grading and budget["observed_overshoot_tokens"]:
         condition_errors.append("Observed tokens exceeded the fixed token limit.")
     if native_count is not None and native_count > spec["limits"]["exploration_calls"]:
         condition_errors.append("Native command calls exceeded the fixed exploration-call limit.")
     if backend == "pi":
-        items = pi_client.tool_items(events)
+        items = list(pi_state.tools.values())
         allowed = {"bash"} if native_agent else {"mcp__navigation__" + name for name in (relay_settings or {}).get("enabled_tools", [])}
         if any(item["name"] not in allowed for item in items):
             condition_errors.append("Unapproved pi capability observed.")
@@ -721,7 +758,11 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
               "artifact": str(folder / "runtime.json"), "thread_id": thread_id}
     if backend == "pi":
         result["effort_observation"] = {"requested": expected_effort, "source": "explicit pi --thinking; server-applied value unobserved"}
+        result.update(token_accounting=budget["token_accounting"], retry_attempts=pi_state.retry_attempts,
+                      failed_attempts=pi_state.failed_attempts)
         result["provider"] = spec["provider"]
+        result["requested_model"] = pi_client.requested_model(spec["provider"], expected_model)
+        result["claude_settings_check"] = claude_settings_check
     if backend == "claude_code":
         result["effort_observation"] = {"requested": expected_effort, "source": "explicit CLI --effort; server-applied value unobserved"}
         if claude_result and claude_result.get("is_error"):

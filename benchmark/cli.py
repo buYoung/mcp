@@ -19,14 +19,14 @@ def emit(value):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="bench:start JSON 어댑터; run은 명시적 승인 필수")
-    parser.add_argument("action", choices=["catalog", "prepare", "run", "resume", "approve-review", "report", "inspect-operator"])
+    parser.add_argument("action", choices=["catalog", "prepare", "run", "resume", "approve-review", "grade-sealed", "report", "inspect-operator"])
     parser.add_argument("--solver-model")
     args = parser.parse_args()
     cancel_event = threading.Event()
     previous = {}
     try:
         request = json.load(sys.stdin)
-        if args.action in {"run", "resume"}:
+        if args.action in {"run", "resume", "grade-sealed"}:
             for sig in (signal.SIGINT, signal.SIGTERM):
                 previous[sig] = signal.signal(sig, lambda *_: cancel_event.set())
         if args.action == "catalog":
@@ -40,6 +40,9 @@ def main() -> int:
             require(request.get("confirmed") is True, "resume은 기존 승인 범위의 명시적 재개 확인이 필요합니다")
             result = execution.run_campaign(Path(request["run_root"]), resume=True,
                 retry_unstarted=request.get("retry_unstarted") is True, cancel_event=cancel_event)
+        elif args.action == "grade-sealed":
+            require(request.get("confirmed") is True, "grade-sealed requires explicit confirmation within the existing authorization")
+            result = execution.grade_sealed(Path(request["run_root"]), cancel_event=cancel_event)
         elif args.action == "approve-review":
             result = execution.approve_review(Path(request["run_root"]), request["slot_id"], request["approval"])
         elif args.action == "report":

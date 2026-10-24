@@ -141,7 +141,7 @@ class BenchChecks(unittest.TestCase):
 sys.stdin.read()
 print(json.dumps({"type":"message_end", "message":{"role":"assistant", "provider":"openai-codex",
     "model":"gpt-6-astra", "stopReason":"stop", "content":[{"type":"text", "text":"{}"}],
-    "usage":{"input":70, "output":20, "cacheRead":30, "cacheWrite":0}}}))
+    "usage":{"input":70, "output":20, "cacheRead":30, "cacheWrite":0, "totalTokens":120}}}))
 print(json.dumps({"type":"agent_settled", "aborted":False}))
 ''')
         tools = {"node": sys.executable, "pi_cli": str(cli), "versions": {"pi": "pi fixture-1.4.0"}}

@@ -34,29 +34,77 @@ def text(result: dict) -> str:
     return "\n".join(c.get("text", "") for c in result.get("content", []) if c.get("type") == "text")
 
 
-def degradation(ident: str, result: dict) -> str | None:
-    """Match native status notices, not prose such as 'not a stale cache' or '0 unavailable'."""
+def degradation(ident: str, result: dict, *, tool: str | None = None) -> str | None:
+    """Inspect native status envelopes/banners only, never search returned source prose."""
+    if not isinstance(result, dict):
+        return "malformed native response"
+    if result.get("isError"):
+        return "native isError"
+    if result.get("error"):
+        return "native error envelope"
     value = text(result)
-    patterns = [r"(?im)^\s*(?:status:\s*)?(?:not[- ]ready|warming(?: up)?|stale|unavailable)\s*[.!:]?\s*$"]
-    if ident == "codemap-search":
-        patterns += [r"(?i)codemap is warming up|symbol index unavailable|index unavailable:|navigation unavailable",
-                     r"(?i)\b(?:index|indexer|snapshot)\b[^\n]{0,100}(?:is stale|or stale|not ready|stopped|dead|unavailable)"]
-    elif ident == "codegraph":
-        patterns += [r"(?i)isn't indexed|not indexed|no codegraph project is loaded|entries may be stale|pending index sync|auto-sync is DISABLED"]
-    elif ident == "zvec-grep":
-        patterns += [r"(?m)^freshness: (?!fresh$).+|^background_refresh: (?!inactive$|idle$|completed$).+",
-                     r"(?im)^failed to open zvec collection storage"]
+    # Some products encode errors as JSON text rather than MCP isError.
+    json_envelope = (ident == "graphify" and tool not in {None, "read"}
+                     or ident == "serena" and tool not in {None, "read_file"}
+                     or ident == "codebase-memory-mcp" and tool is not None)
+    if json_envelope and value.startswith("{"):
+        try:
+            native = json.loads(value)
+        except ValueError:
+            native = None
+        if isinstance(native, dict) and native.get("error"):
+            return "native JSON error envelope"
+    if not tool:
+        return None  # resources/prompts can contain arbitrary, unframed source text.
+    first = value.split("\n", 1)[0]
+    if ident == "zvec-grep" and tool == "zvec_grep_search":
+        # These contiguous leading headers end before the first search hit/body.
+        for line in value.splitlines():
+            key, separator, status = line.partition(": ")
+            if not separator or key not in {"freshness", "background_refresh"}:
+                break
+            if status not in ({"fresh"} if key == "freshness" else {"inactive", "idle", "completed"}):
+                return line
+    elif ident == "codemap-search":
+        if tool in {"overview", "search", "initial_instructions"} and first.startswith((
+                "Index unavailable:", "Codemap is warming up (", "Background indexer stopped before the codemap was built;",
+                "_Background indexer stopped —", "_Index is warming up (", "_Last background index refresh failed:")):
+            return first
+        if tool in {"read", "grep", "search"}:
+            # Native notices are outside fenced/numbered source bodies; match the exact
+            # product block, not words like 'index ... stopped' inside a source line.
+            fenced = False
+            for line in value.splitlines():
+                if line.startswith("```"):
+                    fenced = not fenced
+                if not fenced and line == "[Symbol index unavailable or stale; live results remain available below.]":
+                    return line
+    elif ident == "codegraph" and tool == "codegraph_explore":
+        if first.startswith(("⚠️ Some files referenced below were edited since the last index sync",
+                             "⚠️ CodeGraph auto-sync is DISABLED", "⚠️ CodeGraph auto-sync is RECOVERING",
+                             "No CodeGraph project is loaded for this session.")):
+            return first
+        if re.fullmatch(r"The project at .+ isn't indexed with codegraph.*", first):
+            return first
     elif ident == "serena":
-        patterns += [r"(?i)language server[^\n]*(?:loading|initializing|not initialized|not ready|unavailable)|timeout waiting|indexing did not complete within",
-                     r"(?im)^error[^\n]*(?:initializing language server|language server manager)"]
-    elif ident == "graphify":
-        patterns += [r"(?im)^(?:error[^\n]*: )?(?:no graph loaded|graph file not found|failed to load graph)"]
-    elif ident == "codebase-memory-mcp":
-        patterns += [r"(?im)^(?:error[^\n]*: )?(?:search failed: cannot create temp file|project[^\n]*not indexed|index[^\n]*not ready)"]
-    for pattern in patterns:
-        match = re.search(pattern, value)
-        if match:
-            return match.group(0)
+        if first.startswith(("Error executing tool:", "Error:", "No active project.")):
+            return first
+        if tool == "get_current_config":
+            for line in value.splitlines():
+                if line.startswith("Language server status: ") and line != "Language server status: ready":
+                    return line
+    elif ident == "graphify" and tool != "read":
+        if re.match(r"(?i)^(?:error[^\n]*: )?(?:no graph loaded|graph file not found|failed to load graph)\b", first):
+            return first
+    elif ident == "codebase-memory-mcp" and tool == "index_status":
+        native = result.get("structuredContent")
+        if native is None:
+            try:
+                native = json.loads(value)
+            except ValueError:
+                native = None
+        if isinstance(native, dict) and native.get("status") != "ready":
+            return "native index_status not ready"
     return None
 
 
@@ -70,8 +118,7 @@ def assert_ready(ident: str, name: str, result: dict, state: dict | None = None)
             raise NotReady(f"{ident}/{name}: {reason}")
     check(isinstance(result, dict) and not result.get("isError"), "native isError")
     check(bool(value), "empty native response")
-    check(not re.search(r"(?im)^\s*(?:error executing\b|error[: ]|no active project\b)", value), "native error text")
-    check(degradation(ident, result) is None, degradation(ident, result) or "degraded")
+    check(degradation(ident, result, tool=name) is None, degradation(ident, result, tool=name) or "degraded")
     if ident == "codemap-search":
         if name == "overview":
             for metric in ("Total Files", "Total Symbols"):
@@ -83,7 +130,10 @@ def assert_ready(ident: str, name: str, result: dict, state: dict | None = None)
         check("Source Code" in value, "live source missing")
     elif ident == "zvec-grep":
         check(value.splitlines()[0] == "freshness: fresh", "query is not fresh")
-        check(not any(line.startswith("background_refresh:") for line in value.splitlines()), "refresh still present")
+        for line in value.splitlines():
+            if not line.startswith(("freshness: ", "background_refresh: ")):
+                break
+            check(not line.startswith("background_refresh: "), "refresh still present")
         check(re.search(r"(?m)^#\d+ .*", value), "empty search")
     elif ident == "graphify":
         if name == "graph_stats":

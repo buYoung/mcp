@@ -26,6 +26,10 @@ def execution_spec(state: dict | None = None, *, solver_model: str | None = None
                 index_mode=profile["index_mode"])
     if state and state["id"] == "rg":
         spec["native_agent"] = state["native_agent"]
+    if spec.get("provider") == "claude-bridge":
+        from .claude_settings import snapshot
+        workspace = Path(state["source"]) if state and state["id"] == "rg" else routes.PREPARATION / "workspace"
+        spec["claude_settings"] = snapshot(workspace)
     return spec
 
 
@@ -78,6 +82,8 @@ def plan_condition(record: dict) -> dict:
     """The same projection defines identity at creation, verification and authorization."""
     return {"contract_hash": record["contract_hash"], "harness_sha256": record["harness_sha256"],
             "models": record["models"], "host": record["host"], "source_sha256": record["source_sha256"],
+            "client_conditions": {arm: {key: spec[key] for key in ("requested_model", "claude_settings") if key in spec}
+                                  for arm, spec in record.get("execution_specs", {}).items()},
             "artifacts": {ident: s["artifact_sha256"] for ident, s in record["arms"].items()},
             "native_conditions": {ident: {"inventory": s["native_inventory_sha256"],
                 "baseline": s["baseline"]["state_sha256"], "tool_condition": s["tool_condition"],
@@ -188,6 +194,8 @@ def _build_plan(emit=print, *, solver_model: str | None = None, offline_commands
     identity = {"contract_hash": routes.contract()["contract_hash"], "harness_sha256": settings.harness_identity(),
                 "models": {"solver": solver, "grader": profile["grader"]}, "host": host,
                 "source_sha256": indexes["source_manifest"]["source_sha256"], "arms": indexes["prepared_states"]}
+    identity["execution_specs"] = {ident: execution_spec(state, solver_model=solver["model"])
+                                   for ident, state in indexes["prepared_states"].items()}
     condition = plan_condition(identity)
     plan_id = digest(condition)[:32]
     root = routes.PREPARATION / "plans" / plan_id
@@ -225,8 +233,7 @@ def _build_plan(emit=print, *, solver_model: str | None = None, offline_commands
               "host": host, "models": condition["models"],
               "actual_versions": {ident: artifact["actual_version"] for ident, artifact in artifacts.items()},
               "arms": indexes["prepared_states"], "planned_runs": routes.schedule(),
-              "execution_specs": {ident: execution_spec(state, solver_model=solver["model"])
-                                   for ident, state in indexes["prepared_states"].items()},
+              "execution_specs": identity["execution_specs"],
               "solver_inputs": solver_inputs,
               "policy_decisions": profile["policy_decisions"],
               "checks": {"component_evidence": "verified", "planned_slots": len(routes.schedule()), "offline_commands": checks},
@@ -277,6 +284,9 @@ def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
     if any(s["backend"] == "claude_code" for s in solvers):
         from .claude_client import capabilities
         capabilities()
+    if any(s.get("provider") == "claude-bridge" for s in solvers):
+        from .claude_settings import snapshot
+        snapshot(routes.PREPARATION / "workspace")  # Reject host/project overrides before expensive preparation.
     with campaign_lease():
         tool_artifacts.pi_toolchain()
         harness_at_start = settings.harness_identity()

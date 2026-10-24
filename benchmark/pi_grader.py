@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 from . import pi_client, tool_artifacts
-from .core import metric, require, write_json
+from .core import require, write_json
 
 PROVIDER = "openai-codex"
 MODEL = "gpt-6-astra"
@@ -22,26 +22,7 @@ def observations(events: list[dict], *, complete: bool, evidence: str) -> dict:
     final = messages[-1] if messages else {}
     finished = pi_client.final_result(events) is not None
     text = "\n".join(c["text"] for c in final.get("content", []) if c.get("type") == "text")
-    raw_usage = [m.get("usage") for m in messages]
-    raw_usage += [e.get("result", {}).get("usage") for e in events
-                  if e.get("type") == "compaction_end" and e.get("result")]
-    observed = dict.fromkeys(("input_tokens", "output_tokens", "cached_input_tokens", "cache_write_input_tokens", "total_tokens"), 0)
-    errors = []
-    for value in raw_usage:
-        if not isinstance(value, dict) or not all(type(value.get(k)) is int and value[k] >= 0
-                                                 for k in ("input", "output", "cacheRead", "cacheWrite")):
-            errors.append("missing or invalid pi usage")
-            continue
-        inputs = value["input"] + value["cacheRead"] + value["cacheWrite"]
-        for key, count in zip(observed, (inputs, value["output"], value["cacheRead"], value["cacheWrite"], inputs + value["output"])):
-            observed[key] += count
-    if not complete or not finished or not raw_usage:
-        errors.append("unfinished pi process/event collection")
-    if any(m.get("stopReason") in {"error", "aborted"} for m in messages):
-        errors.append("failed provider attempt may omit consumed usage")
-    usage = {"complete": not errors, "errors": errors, "observed": observed, "raw_usage": raw_usage}
-    usage.update({k: metric(v if not errors else None, "tokens", reason="; ".join(errors) or None, evidence=[evidence])
-                  for k, v in observed.items()})
+    usage = pi_client.usage(events, terminal_complete=complete, evidence=evidence)
     retries = [e for e in events if e.get("type") in {"auto_retry_start", "auto_retry_end"}]
     compactions = [e for e in events if e.get("type") in {"compaction_start", "compaction_end"}]
     model_valid = pi_client.valid_model(events, {"provider": PROVIDER, "model": MODEL})
@@ -201,6 +182,8 @@ def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
         errors.append("grader compaction changed the sealed packet context")
     if not collection_complete:
         errors.append("incomplete pi grader event collection")
+    if observation["usage"]["token_accounting"] not in {"complete", "lower_bound"}:
+        errors.append("pi grader token accounting unconfirmed")
     termination = stop.cutoff["reason"] if stop and stop.cutoff else None
     completed = bool(observation["finished"] and process and process.returncode == 0 and not error)
     status = termination or ("completed" if completed else "environment_error")
@@ -213,6 +196,7 @@ def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
         "condition_errors": errors, "error": error or observation["error"], "model": MODEL, "provider": PROVIDER, "backend": "pi",
         "agent_version": tools.get("versions", {}).get("pi"), "elapsed_seconds": time.monotonic() - start,
         "exit_code": process.returncode if process else None, "record_collection_complete": collection_complete,
+        **{key: observation["usage"][key] for key in ("token_accounting", "failed_attempts")},
         "usage": observation["usage"], "usage_collection": {"drain_seconds": 0, "whole_cost_includes_cleanup": True},
         "harness_attempts": 1, "retry_attempts": observation["retry_attempts"], "retry_events": observation["retry_events"],
         "compaction_events": observation["compaction_events"], "artifact": str(folder / "execution.json"),
