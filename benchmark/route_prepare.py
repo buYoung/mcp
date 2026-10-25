@@ -158,7 +158,7 @@ def verify_readiness(record: dict) -> None:
                     "복원용 native baseline 변경")
         require(file_digest(Path(state["native_inventory"])) == state["native_inventory_sha256"], "native tools/defaults 기록 변경")
         require(file_digest(Path(state["probe_log"])) == state["probe_log_sha256"], "native 중립 조회 로그 변경")
-    require(record["planned_runs"] == routes.schedule() and len(record["planned_runs"]) == len(routes.QUESTION_IDS) * len(routes.ARM_IDS), "계획 슬롯 변경")
+    require(record["planned_runs"] == routes.schedule() and len(record["planned_runs"]) == len(routes.QUESTION_IDS) * len(routes.ARM_IDS) * routes.REPETITIONS, "계획 슬롯 변경")
     require(set(record["solver_inputs"]) == {row["id"] for row in record["planned_runs"]}, "풀이 입력 슬롯 누락")
     for row in record["planned_runs"]:
         item = record["solver_inputs"][row["id"]]
@@ -255,7 +255,7 @@ def _build_plan(emit=print, *, solver_model: str | None = None, offline_commands
         "harness_sha256": condition["harness_sha256"], "spec": spec, "execution_specs": record["execution_specs"],
         "planned_runs": record["planned_runs"]})
     durable_json(readiness_path(solver["model"]), record)
-    emit(f"준비 완료: 21회 예정. 실제 풀이·채점 0회. plan_id={plan_id}")
+    emit(f"준비 완료: {len(routes.schedule())}회 예정. 실제 풀이·채점 0회. plan_id={plan_id}")
     return readiness_projection(record, root / "readiness.json")
 
 
@@ -266,7 +266,7 @@ def readiness_projection(record: dict, path: Path) -> dict:
             "targets": [{"id": ident, "name": "기본 에이전트 (검색 제품 없음)" if ident == "rg" else ident,
                          "source_sha256": s["source_sha256"], "tool_condition": s["tool_condition"],
                          "actual_version": record["actual_versions"][ident]} for ident, s in record["arms"].items()],
-            "questions": len(routes.QUESTION_IDS), "repeats": 1, "runs": len(routes.schedule()), "spec": spec,
+            "questions": len(routes.QUESTION_IDS), "repeats": routes.load_profile()["repetitions"], "runs": len(routes.schedule()), "spec": spec,
             "agent_version": record["host"].get("pi", {}).get("version"),
             "codex_version": record["host"]["codex_version"], "output_root": str(path.parent),
             "readiness": str(path), "readiness_sha256": file_digest(path),

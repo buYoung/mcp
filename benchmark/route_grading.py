@@ -411,7 +411,7 @@ def publish_grading() -> dict:
              for c, s in itertools.product((True, False, "indeterminate"), repeat=2)]
     return routes.publish_handoff("05-grading.json", {
         "status": "verified_offline", "rubric_hash": file_digest(routes.DATA / "grading.json"),
-        "judgment_schema": schemas, "packet_contract": packets, "fact_counts": {"core": 21, "extended": 8},
+        "judgment_schema": schemas, "packet_contract": packets, "fact_counts": {level: sum(f["level"] == level for q in dataset["questions"] for f in q["facts"]) for level in ("core", "extended")},
         "truth_table_evidence": table, "grader": routes.load_profile()["grader"],
         "citation_policy": "Parser and source-access labels are advisory; supported is the LLM's judgment of the original answer and fixed source.",
         "blinding_policy": "Tool/model self-identification blocks packet sealing; review-required retains exact spans outside grader input.",

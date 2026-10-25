@@ -476,7 +476,7 @@ def hidden_references() -> list[Path]:
             home / ".pi", home / ".codex", home / ".claude", home / ".claude.json",
             home / ".claude/projects", home / ".claude/todos", home / ".claude/shell-snapshots",
             home / ".claude/history.jsonl", Path("/Users/buyong/tmp"),
-            Path("/Volumes/Samsung_990_PRO/worktrees/buyong-mcp")]
+            Path("/Volumes/Samsung_990_PRO/worktrees/buyong-mcp"), Path("/Volumes/Samsung_990_PRO/codemap-bench-work")]
 
 
 @contextlib.contextmanager

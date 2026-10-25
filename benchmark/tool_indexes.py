@@ -89,7 +89,7 @@ def prepare_source(emit=print) -> dict:
               "source_sha256": digest(inventory), "tracked_files": len(inventory),
               "verified_evidence_files": len(evidence["source_manifest"]), "verified_excerpts": len(evidence["evidence"])}
     write_json(CORPUS, result)
-    emit(f"Grafana 추적 파일 {len(inventory)}개, 근거 파일 81개·구간 73개 확인")
+    emit(f"Grafana 추적 파일 {len(inventory)}개, 근거 파일 {len(evidence['source_manifest'])}개·구간 {len(evidence['evidence'])}개 확인")
     return result
 
 
@@ -575,7 +575,8 @@ def publish_indexes(backend="pi") -> dict:
     return routes.publish_handoff(index_handoff(backend), {"status": "verified", "agent_backend": backend,
         "input_hashes": routes.contract()["input_hashes"],
         "source_manifest": {"path": str(CORPUS), "sha256": file_digest(CORPUS), "source_sha256": corpus["source_sha256"],
-                            "tracked_files": corpus["tracked_files"], "evidence_files": 81, "evidence_ranges": 73},
+                            "tracked_files": corpus["tracked_files"], "evidence_files": corpus["verified_evidence_files"],
+                            "evidence_ranges": corpus["verified_excerpts"]},
         "prepared_states": states, "solver_runs": 0, "grader_runs": 0},
         implementation=["benchmark/tool_indexes.py", "benchmark/native_baseline.py", "benchmark/route_transport.py", "benchmark/claude_client.py",
                         "benchmark/pi_client.py", "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"],

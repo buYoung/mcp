@@ -382,6 +382,7 @@ def quality_counts(judgments: list[dict], questions: list[dict]) -> dict:
 
 def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dict:
     dataset = routes.load_dataset()
+    questions = {q["id"]: q for q in dataset["questions"]}
     planned = routes.schedule()
     by_id = {r["id"]: r for r in rows}
     require(len(by_id) == len(rows) and set(by_id) <= {r["id"] for r in planned}, "계획 밖 또는 중복 결과")
@@ -410,10 +411,11 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     for arm in routes.ARM_IDS:
         selected = [r for r in result_rows if r["arm"] == arm]
         graded = [r["judgment"] for r in selected if r["judgment"] is not None]
-        arms[arm] = {"planned": 3, "observed": sum(r["cli_launches"] == 1 for r in selected),
+        arms[arm] = {"planned": len(selected), "observed": sum(r["cli_launches"] == 1 for r in selected),
                      "invalid_conditions": sum(r["conditions_valid"] is False for r in selected),
                      "unconfirmed_conditions": sum(r["status"] not in {"planned", "out_of_scope"} and r["conditions_valid"] is None for r in selected),
-                     "quality": quality_counts(graded, dataset["questions"]),
+                     # One expected judgment per planned slot (question x repetition) of this arm.
+                     "quality": quality_counts(graded, [questions[r["question_id"]] for r in selected]),
                      "tool_condition": manifest.get("arms", {}).get(arm, {}).get("tool_condition")}
     counts = {"planned": len(planned), "cli_started": sum(r["cli_launches"] == 1 for r in result_rows),
               "launch_reserved": sum(r["launch_state"] in {"reserved", "started", "unknown"} for r in result_rows),
@@ -433,8 +435,8 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions", "execution_specs")},
               "observed_solver_runs": sum(r["cli_launches"] == 1 for r in result_rows),
               "arms": arms, "rows": result_rows,
-              "quality": quality_counts(list(judgments.values()), dataset["questions"] * len(routes.ARM_IDS)),
-              "scope": "Three fixed routes, one attempt per arm. Descriptive observations only.",
+              "quality": quality_counts(list(judgments.values()), [questions[r["question_id"]] for r in result_rows]),
+              "scope": f"{len(routes.QUESTION_IDS)} fixed routes, {routes.REPETITIONS} attempts per question and arm. Descriptive observations only.",
               "variance_estimated": False}
     write_json(root / "report/summary.json", result)
     lines = ["# Grafana 경로 벤치마크", ""]

@@ -10,11 +10,12 @@ from .core import digest, file_digest, read_json, require, write_json
 
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c6fad8695a96577eb466d425e6ac4a759ca30f47"
-DATASET_MANIFEST_SHA256 = "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24"
-TARGET_LOCK_SHA256 = "45100e782647ef52be8e6d204eb588cc76838e788a7d99134287cc46ee65b019"
-QUESTION_IDS = ("route-star", "route-save-existing", "route-live-receive")
+DATASET_MANIFEST_SHA256 = "45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86"
+TARGET_LOCK_SHA256 = "7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549"
+QUESTION_IDS = ("alerting-alertmanager", "live-plugin-stream")
+REPETITIONS = 3
 ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
-DATA = settings.ROOT / "data/grafana-routes-v2"
+DATA = settings.ROOT / "data/grafana-routes-v3"
 TARGETS = settings.ROOT / "data/grafana-comparison-targets-v1"
 PROFILE_PATH = settings.ROOT / "data/grafana-execution-v1.json"
 EVIDENCE = settings.REPOSITORY / "docs/briefs/evidence/bench-ready"
@@ -66,7 +67,8 @@ def load_dataset() -> dict:
     require(questions == {"dataset_id": dataset["dataset_id"], "questions": [
         {"id": q["id"], "prompt": q["prompt"]} for q in dataset["questions"]]}, "풀이 입력 분리 오류")
     seen = set()
-    for question, counts in zip(dataset["questions"], ((6, 2), (7, 3), (8, 3)), strict=True):
+    for question in dataset["questions"]:
+        counts = (question["core_fact_count"], question["extended_fact_count"])
         for level, count in zip(("core", "extended"), counts, strict=True):
             require(sum(f["level"] == level for f in question["facts"]) == count, "고정 fact 개수 변경")
         for fact in question["facts"]:
@@ -95,7 +97,7 @@ def solver_prompt(question_id: str, source: Path, arm: str | None = None) -> str
 def load_profile() -> dict:
     profile = read_json(PROFILE_PATH)
     require(profile["schema_version"] == 1 and profile["profile"] == PROFILE, "route 프로필 버전 오류")
-    require(tuple(profile["arm_ids"]) == ARM_IDS and profile["repetitions"] == 1, "문항별 1회 비교 계획 변경")
+    require(tuple(profile["arm_ids"]) == ARM_IDS and profile["repetitions"] == REPETITIONS, "문항별 반복 계획 변경")
     require(profile["concurrency"] == 4 and type(profile["seed"]) is int, "route 동시 실행 수/seed 변경")
     require(profile["solver"] == {"model": "gpt-6.1-sol", "reasoning_effort": "medium"}, "풀이 모델 계약 변경")
     require(profile["solver_choices"] == [
@@ -149,15 +151,18 @@ def contract() -> dict:
 def schedule() -> list[dict]:
     profile = load_profile()
     rng = random.Random(profile["seed"])
-    questions = list(QUESTION_IDS)
-    rng.shuffle(questions)
     rows = []
-    for question in questions:
-        arms = list(ARM_IDS)
-        rng.shuffle(arms)
-        rows.extend({"id": f"{question}-{arm}-1", "question_id": question, "arm": arm,
-                     "attempt": 1, "status": "planned"} for arm in arms)
-    require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS), "계획 슬롯 오류")
+    # Each repetition is a full question x arm round, so a stopped campaign keeps whole rounds comparable.
+    for attempt in range(1, profile["repetitions"] + 1):
+        questions = list(QUESTION_IDS)
+        rng.shuffle(questions)
+        for question in questions:
+            arms = list(ARM_IDS)
+            rng.shuffle(arms)
+            rows.extend({"id": f"{question}-{arm}-{attempt}", "question_id": question, "arm": arm,
+                         "attempt": attempt, "status": "planned"} for arm in arms)
+    require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS) * profile["repetitions"],
+            "계획 슬롯 오류")
     return rows
 
 
@@ -182,7 +187,7 @@ def publish_contract() -> dict:
     return publish_handoff("01-contract.json", {
         **value, "status": "verified", "solver": profile["solver"], "solver_choices": profile["solver_choices"],
         "grader": profile["grader"],
-        "repetitions": 1, "planned_solver_runs": len(schedule()), "limits": profile["limits"],
+        "repetitions": profile["repetitions"], "planned_solver_runs": len(schedule()), "limits": profile["limits"],
         "policy_decisions": profile["policy_decisions"], "tool_access": profile["tool_access"],
         "contract_paths": {"profile": str(PROFILE_PATH.relative_to(settings.REPOSITORY)),
                            "private_dataset": str((DATA / 'dataset.json').relative_to(settings.REPOSITORY)),
