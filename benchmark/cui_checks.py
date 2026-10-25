@@ -21,7 +21,7 @@ class CUI:
         plan = {"plan_id": "fixture", "profile_name": "검증", "preparation_only": True, "status": "prepared_not_executed",
                 "targets": [{**item, "tool_condition": "native_agent_baseline" if item["id"] == "rg" else "native_only",
                              "actual_version": "fixture"} for item in catalog["route_targets"]],
-                "questions": 3, "repeats": 1, "runs": len(routes.schedule()), "spec": settings.execution_settings(),
+                "questions": len(routes.QUESTION_IDS), "repeats": routes.load_profile()["repetitions"], "runs": len(routes.schedule()), "spec": settings.execution_settings(),
                 "readiness": str(root / "readiness.json")}
         script = root / "fixture.mjs"
         script.write_text(f"""

@@ -2,22 +2,22 @@
 
 한 측정 묶음에서 같은 에이전트·모델·문항·예산으로 **코드 검색 도구별 최종 답변 품질과 탐색 비용**을 비교한다. 풀이 모델은 GPT 6.1 Sol 또는 Claude Opus 5.5 중 하나를 선택하고, 기본값은 GPT 6.1 Sol이다. 에이전트는 도구를 사용하는 공통 사용자이며, 답변 작성 능력의 영향은 공통 사용 조건으로 허용한다. 도구 선택과 호출 순서는 LLM에 맡기고 근거 단계별 분리 집계를 필수로 요구하지 않는다.
 
-현재 하네스는 **Grafana 3문항 × 7개 비교군 × 문항별 1회 = 21회 예정**인 `grafana-routes` 하나만 지원한다. 설치·색인·중립 조회·채점 및 측정 계약·풀이 입력의 준비는 `prepared_not_executed`에서 종료한다. 실행은 불변 계획의 정확한 ID·hash·모델에 대한 별도 승인으로만 시작하며, 21-slot ledger에 실패와 미시작까지 보존한다. **제품별 격리·semantic ready warm-host와 runner의 clock 연결이 통합되지 않았다면 실행은 `blocked`로 끝난다.** 준비 성공만으로 실제 실행이 허가되거나 검증된 것은 아니다.
+현재 하네스는 **Grafana 2문항 × 7개 비교군 × 3회 = 42회 예정**인 `grafana-routes` 하나만 지원한다. 설치·색인·중립 조회·채점 및 측정 계약·풀이 입력의 준비는 `prepared_not_executed`에서 종료한다. 실행은 불변 계획의 정확한 ID·hash·모델에 대한 별도 승인으로만 시작하며, 42-slot ledger에 실패와 미시작까지 보존한다. **제품별 격리·semantic ready warm-host와 runner의 clock 연결이 통합되지 않았다면 실행은 `blocked`로 끝난다.** 준비 성공만으로 실제 실행이 허가되거나 검증된 것은 아니다.
 
 ## 고정 조건
 
 | 항목 | 조건 |
 | --- | --- |
 | 코드베이스 | Grafana `c6fad8695a96577eb466d425e6ac4a759ca30f47` |
-| 문항 | 즐겨찾기, 기존 대시보드 저장, Grafana Live 수신 — 모두 Go·TypeScript 연결 |
+| 문항 | 알림 규칙 평가 → Alertmanager 인계(Go), 브라우저 ↔ Grafana Live plugin stream 구독·수신·발행(TypeScript→Go). 질문 앞부분 `제공된 탐색 도구를 활용해서`는 모든 비교군에 같다 |
 | 기본 풀이 | `openai-codex/gpt-6.1-sol / medium` — pi 1.4.0 |
 | 선택 가능한 풀이 | `claude-bridge/claude-opus-5-5 / medium` — pi 1.4.0 |
 | 채점 | 풀이 선택과 관계없이 `openai-codex/gpt-6-astra / high` — 고정 pi 1.4.0 |
-| 횟수 | 문항·비교군마다 1회, 총 21개 슬롯, 기본 최대 4개 병렬 실행 |
+| 횟수 | 문항·비교군마다 3회, 총 42개 슬롯, 기본 최대 4개 병렬 실행. 반복마다 문항·비교군 전체를 한 바퀴 돈다 |
 | 한도 | 300초, 탐색 80회, 캐시 읽기를 제외한 누적 입력+출력 500,000토큰 |
-| 채점 항목 | 핵심 21개와 확장 8개를 분리, `correct`·`supported`를 각각 판정 |
+| 채점 항목 | 핵심 16개와 확장 1개를 분리, `correct`·`supported`를 각각 판정. 사실별 `required_links`가 필수 연결이다 |
 
-정확한 값은 [실행 계약](data/grafana-execution-v1.json)을 따른다. [고정 데이터셋](data/grafana-routes-v2/README.md)의 질문·정답·범위·채점 의미는 유지한다. 정답 자료를 풀이 대상 소스에 넣지 않는다.
+정확한 값은 [실행 계약](data/grafana-execution-v1.json)을 따른다. [고정 데이터셋](data/grafana-routes-v3/README.md)의 질문·정답·범위·채점 의미는 유지한다. 이전 3문항 데이터셋 `grafana-routes-v2`의 결과와 같은 점수로 섞지 않는다. 정답 자료를 풀이 대상 소스에 넣지 않는다.
 
 한 번의 선택으로 7개 비교군에 같은 풀이 모델을 적용한다. 두 모델을 모두 자동 실행하거나 결과를 합산하지 않는다. 모델·실행기·추론 강도는 계획 ID와 결과에 포함하고 다른 모델의 결과가 들어오면 거부한다. 채점 항목과 Astra의 추론 강도는 그대로 유지한다. Claude의 `medium`은 [공식 기본값](https://code.claude.com/docs/en/model-config#choose-an-effort-level)을 명시한 값이며, 모델 간 동일한 계산량을 뜻하지 않는다.
 
@@ -33,7 +33,7 @@
 | Serena (`oraios/serena`) | 2.1.0 · 로컬 Go·TypeScript LSP, `--agent-interface tools` 예외 |
 | 기본 코딩 에이전트 (`rg`) | 추가 검색 제품 없음; rg 15.2.0 사용 가능 |
 
-[비교 대상 잠금](data/grafana-comparison-targets-v1/README.md) 개정 4가 pi toolchain과 공식 저장소·전체 커밋·아카이브 해시를 고정한다. codemap-search는 작업 트리가 아닌 release tag만 빌드하며 실제 버전·전체 commit·binary hash를 기록한다. 1.0.0 출시 목표를 이유로 제품 빌드를 1.0.0으로 표시하지 않는다. 구버전의 index/baseline/ready 기록은 최신 버전으로 재인증하지 않고 새 cache에서 다시 준비한다.
+[비교 대상 잠금](data/grafana-comparison-targets-v1/README.md) 개정 6이 pi toolchain과 공식 저장소·전체 커밋·아카이브 해시를 고정한다. codemap-search는 작업 트리가 아닌 release tag만 빌드하며 실제 버전·전체 commit·binary hash를 기록한다. 1.0.0 출시 목표를 이유로 제품 빌드를 1.0.0으로 표시하지 않는다. 구버전의 index/baseline/ready 기록은 최신 버전으로 재인증하지 않고 새 cache에서 다시 준비한다.
 
 Graphify 0.9.95의 upstream `uv.lock`은 루트 버전과 필수 PyYAML이 맞지 않아 사용하지 않는다. bundle의 hash-pinned requirements로 공식 wheel을 설치하고 package 파일을 tag 원문과 대조하며, 준비 중 의존성을 다시 해석하지 않는다. Graphify·Serena 모두 `uv pip check`를 통과해야 한다. Graphify의 과거 `v1.0.0` release 대신 현재 upstream latest/PyPI가 일치하는 0.9.95를 사용한다.
 
@@ -55,7 +55,7 @@ pnpm bench:ready
 python3 -m benchmark.route_prepare prepare --solver-model claude-opus-5-5
 ```
 
-입력 해시 확인 → 도구 설치·빌드 → 전체 Grafana 소스 대조 → 제품별 색인 → 중립 조회·종료·상태 복원 → 채점·측정 계약 확인 → 기존 오프라인 검증 → 21개 풀이 입력과 미실행 계획 생성을 수행한다. 제품 도구의 로컬 임베딩 계산은 포함하며 풀이·채점 LLM은 호출하지 않는다.
+입력 해시 확인 → 도구 설치·빌드 → 전체 Grafana 소스 대조 → 제품별 색인 → 중립 조회·종료·상태 복원 → 채점·측정 계약 확인 → 기존 오프라인 검증 → 42개 풀이 입력과 미실행 계획 생성을 수행한다. 제품 도구의 로컬 임베딩 계산은 포함하며 풀이·채점 LLM은 호출하지 않는다.
 
 완료 후 현재 파일과 준비 기록을 대조한다.
 
@@ -80,7 +80,7 @@ python3 -m benchmark.route_prepare verify --solver-model all
 pnpm bench:start
 ```
 
-Grafana 프로필 다음에 풀이 모델을 선택한다. 모델 메뉴에서 Enter를 누르면 기본값 GPT 6.1 Sol이다. 선택한 모델로 7개 비교군 모두를 준비한 뒤 정확한 계획 ID·readiness hash·모델·버전·21회·한도를 표시한다. 별도 실행 확인의 기본값은 **아니요**다. 확인을 거절하면 풀이·채점 0회로 끝난다. Ctrl+C는 새 슬롯을 중단하고 자식 정리 후 ledger/report 위치를 안내한다. 준비와 실행의 lease는 cache/model 구분 없이 공유되며, host 공통 port lease를 먼저 얻는다. 다른 프로세스의 포트를 빼앗거나 종료하지 않는다.
+Grafana 프로필 다음에 풀이 모델을 선택한다. 모델 메뉴에서 Enter를 누르면 기본값 GPT 6.1 Sol이다. 선택한 모델로 7개 비교군 모두를 준비한 뒤 정확한 계획 ID·readiness hash·모델·버전·42회·한도를 표시한다. 별도 실행 확인의 기본값은 **아니요**다. 확인을 거절하면 풀이·채점 0회로 끝난다. Ctrl+C는 새 슬롯을 중단하고 자식 정리 후 ledger/report 위치를 안내한다. 준비와 실행의 lease는 cache/model 구분 없이 공유되며, host 공통 port lease를 먼저 얻는다. 다른 프로세스의 포트를 빼앗거나 종료하지 않는다.
 
 ## 운영자 실행·검토·보고
 
@@ -104,7 +104,7 @@ python3 -m benchmark.cli approve-review < /private/operator/review.json
 python3 -m benchmark.cli report < /private/operator/report.json
 ```
 
-스모크는 같은 `run` 명령과 수명주기를 쓰되 승인 JSON에 `"scope": {"kind": "smoke", "slot_ids": [...]}`를 넣는다. 지정한 슬롯만 실행·채점하고 나머지는 `out_of_scope`로 시작하지 않는다. 결과는 `campaigns/smoke-<campaign_id>/`에 따로 남고 보고서 첫머리에 스모크임을 표시하며 비교 결과로 쓰지 않는다. 범위를 생략하면 21개 슬롯 전체(`{"kind": "full"}`)다.
+스모크는 같은 `run` 명령과 수명주기를 쓰되 승인 JSON에 `"scope": {"kind": "smoke", "slot_ids": [...]}`를 넣는다. 지정한 슬롯만 실행·채점하고 나머지는 `out_of_scope`로 시작하지 않는다. 결과는 `campaigns/smoke-<campaign_id>/`에 따로 남고 보고서 첫머리에 스모크임을 표시하며 비교 결과로 쓰지 않는다. 범위를 생략하면 42개 슬롯 전체(`{"kind": "full"}`)다.
 
 `RunManifest`와 승인·준비 기록은 불변이다. 실행 결과는 cache의 `route-preparation/campaigns/<campaign_id>/`에 따로 저장한다. `ledger.json`은 fsync·atomic replace로 갱신하며 단일 coordinator만 작성한다. solver/grader launch intent를 먼저 내구 저장한다. intent 이후 crash는 실행 여부가 불확실해도 자동 재실행하지 않는다. 정리가 확인되지 않은 process group/workspace는 `blocked`로 두고 추측으로 종료하거나 복원하지 않는다. 미시작 재개만 명시적 `retry_unstarted`로 허용하고 이전 preflight의 원자료도 보존한다. 모델 호출 확인과 CLI spawn은 별개이며 미관측 provider 호출은 null이다.
 
@@ -118,13 +118,13 @@ ready 실패는 `warmup_failed`로 기록하고 solver를 시작하지 않는다
 - `identity_only_anonymization`: identity 근거와 `replacement:"[anonymous-001]"` 같은 중립 표식만 허용한다. 승인된 정확한 구간 외 수정은 금지한다.
 - `reject_packet`: 미채점으로 남긴다.
 
-`approve-review`는 원답변/구간 hash·가역성을 확인하고 units/citations/schema/prompt를 다시 생성해 불변 packet을 봉인할 뿐 **모델을 호출하지 않는다**. 동일 승인 재적용은 기존 seal을 확인한다. 정상 campaign은 `resume`, blocked 예외는 `grade-sealed`에서만 sealed packet의 pi/Astra 채점을 진행한다. schema를 포함한 384 KiB 초과 prompt는 절단하지 않고 실패한다. 채점 packet은 고정 근거·기준(약 57 KB)에 답변과 인용 구간 원문(앞뒤 6줄 포함)을 더하므로, 2026-10-25 스모크의 일반 답변(인용 40~46개)이 155~163 KB였다. 처음 정한 160 KiB에서는 rg 답변이 채점 실패해 384 KiB(Astra 입력 약 115K 토큰, 문맥 272K)로 올렸다. 155 KB packet의 채점은 입력 45,252토큰·50초였다. grader는 언제나 `openai-codex/gpt-6-astra`/`high`이며 `--no-tools --no-mcp`로 실행한다. prompt에 judgment schema를 포함하고 JSON object 하나(선택적으로 단일 json fence)만 받는다. 중복 key·NaN·부가 설명·여러 object를 거부하고 기존 ID·fact 일대일 대응·차원/사유·unit/citation membership까지 검사한다. private registry/검토 근거는 grader 입력에 넣지 않는다.
+`approve-review`는 원답변/구간 hash·가역성을 확인하고 units/citations/schema/prompt를 다시 생성해 불변 packet을 봉인할 뿐 **모델을 호출하지 않는다**. 동일 승인 재적용은 기존 seal을 확인한다. 정상 campaign은 `resume`, blocked 예외는 `grade-sealed`에서만 sealed packet의 pi/Astra 채점을 진행한다. schema를 포함한 384 KiB 초과 prompt는 절단하지 않고 실패한다. 채점 packet은 고정 근거·기준(v3 기준 문항당 약 67~98 KB)에 답변과 인용 구간 원문(앞뒤 6줄 포함)을 더한다. v2 문항 스모크의 일반 답변(인용 40~46개)은 155~163 KB였다. 처음 정한 160 KiB에서는 rg 답변이 채점 실패해 384 KiB(Astra 입력 약 115K 토큰, 문맥 272K)로 올렸다. 155 KB packet의 채점은 입력 45,252토큰·50초였다. grader는 언제나 `openai-codex/gpt-6-astra`/`high`이며 `--no-tools --no-mcp`로 실행한다. prompt에 judgment schema를 포함하고 JSON object 하나(선택적으로 단일 json fence)만 받는다. 중복 key·NaN·부가 설명·여러 object를 거부하고 기존 ID·fact 일대일 대응·차원/사유·unit/citation membership까지 검사한다. private registry/검토 근거는 grader 입력에 넣지 않는다.
 
 채점은 슬롯별 private `PI_CODING_AGENT_DIR`/TMPDIR와 allowlist 환경을 사용한다. 부모의 `PI_*`·모델 provider 환경·개인 extensions/skills/context/MCP를 상속하지 않는다. 고정 pi가 운영자 로그인에서 fresh bearer token을 메모리로 가져오고 private models.json에는 환경 변수 참조만 저장한다. 토큰은 argv·prompt·설정·로그에 쓰지 않으며 stdout/stderr는 저장 전에 redact한다. grader는 `--no-session`으로 pi session 저장을 끄고 redacted `events.jsonl`을 원자료로 보존한다.
 
 하네스는 packet당 한 번만 실행한다. 형식·schema 오류, 빈 답변, timeout, nonzero exit를 채점 실패로 보존하고 자동 재채점하지 않는다. grader도 공통 pi final/identity 판정을 사용하여 빈 final, 마지막 aborted settlement, 관측된 upstream 모델 불일치를 적격 답변으로 받지 않는다. pi의 기본 transport retry(최대 3회)는 유지하며 `auto_retry_start/end`와 시도 횟수를 기록한다. compaction은 기본 설정을 바꾸지 않지만 발생하면 packet 문맥 변경으로 조건 무효·미채점 처리한다. assistant `message_end.usage`와 compaction usage의 `input + output + cacheRead + cacheWrite`를 합산하며 오류/중단 시 미관측 비용을 0으로 단정하지 않는다. `grader-result.json`, ledger/report의 `grader_execution`에는 실패 때도 사용량·`token_accounting`·retry/실패 attempt 수·compaction·상태·근거를 solver 비용과 별도로 남긴다.
 
-보고서는 항상 21행이며 launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
+보고서는 항상 42행이며 launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
 
 운영자 inspection 증거는 ad-hoc 스크립트 대신 다음 공식 명령으로 재생성한다. 실제 catalog와 검증한 불변 readiness projection으로 실제 CUI 함수를 실행하되 backend 호출을 차단하고 실행 확인은 거절한다. 결과는 `docs/briefs/evidence/bench-ready/07-operator-inspection*.json`이며 모델 0회 경계를 기록한다. 실제 터미널 입력은 기존 PTY checks가 별도로 검증한다.
 
@@ -203,7 +203,7 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 - pi 토큰은 assistant `message_end.usage`와 `compaction_end.result.usage`를 집계한다. pi-ai/bridge의 `input`은 cache read를 제외하므로 관측 입력은 `input + cacheRead + cacheWrite`, 총합은 여기에 `output`을 더한다. upstream total과 불일치하거나 compaction/종료/도구 로그가 불완전하면 전체 비용을 인증하지 않는다. retry/compaction event를 원자료에 남기며 pi 기본 retry·compaction 설정은 바꾸지 않는다. assistant provider/model과 노출된 upstream model field를 대조하되 bridge가 버리는 upstream modelUsage나 서버 적용 thinking까지 관측했다고 주장하지 않는다. **GPT identity는 요청 모델명 검증에 한정**된다. pi-ai의 OpenAI Responses 경로는 응답의 실제 `model`을 별도 저장하지 않으므로 요청명이 실제 serving 모델과 일치한다고 독립 인증하지 않는다.
 - pi `auto_retry_start/end`로 실패 attempt 뒤 재시도가 성공하면, 실패 attempt의 보고된 사용량까지 합산하고 미보고분은 **하한 계산에만 0**으로 둔다. `token_accounting: lower_bound`, `complete: false`, retry 횟수와 실패 attempt 수를 execution/ledger/보고서 행에 표시한다. 하한이 500,000을 초과하면 무효이며, 하한이 한도 이내이고 정상 종료·완전한 수집·마지막 답변·cutoff·모델 identity·tool 완결성이 모두 맞으면 채점한다. 이는 미관측 비용이 없거나 실제 전체 비용이 500k 이하라는 인증이 아니다. 최종 답변 없는 retry 실패, usage 전체 부재, 불완전한 수집, retry로 결합되지 않은 실패/중단은 fail-closed다. grader usage에도 같은 하한 표시를 적용하되 하네스 재채점은 하지 않는다. 하한끼리의 비율은 정확한 cache ratio로 표시하지 않는다.
 - 최종 답변을 고정 rubric으로 채점한다. 인용 파서는 보조 정보이며 특정 형식이나 파싱 성공으로 `supported`를 강제하지 않는다. 확장·비채점 참고 사항을 핵심 필수 항목으로 바꾸지 않는다.
-- 도구·모델 식별 노출은 채점 입력 확정 전에 차단하고 원답변과 정확한 구간을 검토 기록에 남긴다. 실행 조건 무효, 실패 사유, 호출 로그 불완전도 결과에서 보존한다. 1회 측정으로 반복 분산이나 통계적 유의성을 주장하지 않는다.
+- 도구·모델 식별 노출은 채점 입력 확정 전에 차단하고 원답변과 정확한 구간을 검토 기록에 남긴다. 실행 조건 무효, 실패 사유, 호출 로그 불완전도 결과에서 보존한다. 문항·비교군별 3회 측정은 반복 편차를 보여 주지만 통계적 유의성을 주장하지 않는다.
 
 ## 기록과 재검증
 

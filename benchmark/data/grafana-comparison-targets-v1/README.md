@@ -1,6 +1,6 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-2026-10-24 확인한 외부 도구 **6개**의 stable 배포·소스를 통합한 `grafana-comparison-targets-v1` **개정 5**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. 이전 개정은 Git 이력에 보존하며 `previous_lock_sha256`은 개정 4의 `e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111`다. 개정 5는 비교 도구 고정값을 바꾸지 않고 pi MCP 클라이언트로 pi-mcp-adapter 6.0.0을 추가했다.
+2026-10-24 확인한 외부 도구 **6개**의 stable 배포·소스를 통합한 `grafana-comparison-targets-v1` **개정 6**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. 이전 개정은 Git 이력에 보존하며 `previous_lock_sha256`은 개정 5의 `45100e782647ef52be8e6d204eb588cc76838e788a7d99134287cc46ee65b019`다. 개정 5는 비교 도구 고정값을 바꾸지 않고 pi MCP 클라이언트로 pi-mcp-adapter 6.0.0을 추가했다. 개정 6은 연결 데이터셋을 grafana-routes-v3로 바꿨다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@
 
 ## 데이터셋 연결
 
-총 7개 비교군은 같은 [Grafana 3문항 데이터셋](../grafana-routes-v2/README.md)을 사용한다. manifest SHA-256은 `ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24`이며 이번 개정에서 manifest·질문·정답·근거를 변경하지 않았다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
+총 7개 비교군은 같은 [Grafana 2문항 데이터셋](../grafana-routes-v3/README.md)을 사용한다. manifest SHA-256은 `45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86`이며 이번 개정은 데이터셋 연결만 바꾸었다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
 
 ## 설치 조건과 고정 파일
 

@@ -1,0 +1,13 @@
+{
+  "dataset_id": "grafana-routes-v3",
+  "questions": [
+    {
+      "id": "alerting-alertmanager",
+      "prompt": "제공된 탐색 도구를 활용해서 알림 규칙 평가 구조 중 Alertmanager와 통신하는 구간 다 확인해줘."
+    },
+    {
+      "id": "live-plugin-stream",
+      "prompt": "제공된 탐색 도구를 활용해서 Grafana Live 스트리밍 구조 중 브라우저가 plugin stream과 통신하는 구간 다 확인해줘."
+    }
+  ]
+}

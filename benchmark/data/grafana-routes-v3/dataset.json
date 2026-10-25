@@ -1,0 +1,714 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v3",
+  "revision": 3,
+  "status": "content_frozen",
+  "supersedes": "grafana-routes-v2",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+  },
+  "target_release": "1.0.0",
+  "evidence_file": "evidence.json",
+  "grading_file": "grading.json",
+  "solver_questions_file": "questions.json",
+  "question_order": [
+    "alerting-alertmanager",
+    "live-plugin-stream"
+  ],
+  "is_difficulty_empirically_validated": false,
+  "questions": [
+    {
+      "id": "alerting-alertmanager",
+      "prompt": "제공된 탐색 도구를 활용해서 알림 규칙 평가 구조 중 Alertmanager와 통신하는 구간 다 확인해줘.",
+      "languages": [
+        "go"
+      ],
+      "scope": "Grafana가 직접 평가하는 알림 규칙의 스케줄 요청 → 규칙 실행 → 상태 관리자/송신 콜백 → 조직별 Alertmanager 인계를 필수로 채점한다. 로컬 인계는 외부 alerting 라이브러리 Base.PutAlerts까지, remote·외부 AM은 송신 큐 이후 HTTP 실행 경계까지 포함한다. 평가 쿼리/DAG·데이터소스 내부, recording rule, 데이터소스 관리 ruler 규칙, HA coordinator·broadcast·승격 세부, 상태 저장소 내부, AM 설정 동기화, contact point 전달 내부, reset/종료 이벤트 전수 목록, 조건 값·재시도 간격은 필수 아님.",
+      "cross_language_binding": null,
+      "limitations": [
+        "정적 연결을 확인했으며 실제 규칙 평가·HTTP 송신·contact point delivery를 실행하지 않았다.",
+        "외부 github.com/grafana/alerting 내부는 고정 checkout의 검증 경계 밖이다.",
+        "난도와 도구별 성능은 실측하지 않았다. 여러 분기는 특정 배포의 활성 상태를 뜻하지 않는다."
+      ],
+      "core_fact_count": 8,
+      "extended_fact_count": 0,
+      "evidence_ids": [
+        "a-base-import",
+        "a-base-put",
+        "a-base-type",
+        "a-delete-send",
+        "a-do-option",
+        "a-evaluate-call",
+        "a-evaluation-channel-receive",
+        "a-evaluation-channel-send",
+        "a-evaluation-job",
+        "a-evaluator",
+        "a-evaluator-header",
+        "a-expire-reset-send",
+        "a-external-manager-binding",
+        "a-external-manager-run",
+        "a-external-send",
+        "a-ha-scheduler-construction",
+        "a-http-default",
+        "a-http-do",
+        "a-http-post",
+        "a-moa-construction",
+        "a-org-create",
+        "a-org-default-factory",
+        "a-org-lookup",
+        "a-org-override",
+        "a-postable-send",
+        "a-queue-signal",
+        "a-remote-mode",
+        "a-remote-override",
+        "a-remote-primary-factory",
+        "a-remote-primary-put",
+        "a-remote-put",
+        "a-remote-secondary-put",
+        "a-remote-sender-binding",
+        "a-router-construction",
+        "a-router-external",
+        "a-router-internal",
+        "a-router-sender-construction",
+        "a-rule-constructor-header",
+        "a-rule-deps",
+        "a-rule-factory",
+        "a-rule-factory-header",
+        "a-rule-goroutine",
+        "a-rule-registry",
+        "a-rule-registry-call",
+        "a-rule-sender",
+        "a-rule-sender-parameter",
+        "a-scheduler-config",
+        "a-scheduler-construction",
+        "a-scheduler-header",
+        "a-send-all",
+        "a-send-all-header",
+        "a-send-batch",
+        "a-send-goroutine",
+        "a-send-loop",
+        "a-send-queue",
+        "a-sender-binding",
+        "a-sender-interface",
+        "a-state-callback",
+        "a-state-readiness",
+        "a-state-selection-callback"
+      ],
+      "difficulty_status": "structural_not_empirical",
+      "facts": [
+        {
+          "id": "A1",
+          "level": "core",
+          "statement": "ngalert가 MultiOrgAlertmanager를 받는 AlertsRouter를 만들고 SchedulerCfg.AlertSender에 넣는다. 스케줄러의 AlertsSender가 rule factory를 거쳐 각 alertRule의 sender로 주입된다.",
+          "required_links": [
+            "MultiOrgAlertmanager를 받는 AlertsRouter → SchedulerCfg.AlertSender",
+            "SchedulerCfg.AlertSender → 스케줄러의 AlertsSender → rule factory → alertRule.sender 주입"
+          ],
+          "evidence_ids": [
+            "a-router-construction",
+            "a-scheduler-config",
+            "a-scheduler-construction",
+            "a-ha-scheduler-construction",
+            "a-scheduler-header",
+            "a-sender-interface",
+            "a-sender-binding",
+            "a-rule-factory",
+            "a-rule-factory-header",
+            "a-rule-sender",
+            "a-rule-constructor-header",
+            "a-rule-sender-parameter",
+            "a-rule-deps"
+          ],
+          "accepted_alternatives": [
+            "NewScheduler의 설정 소비 또는 newRuleFactory/newAlertRule 호출을 따라 router가 규칙 루틴의 sender가 됨을 설명하면 인정한다.",
+            "인터페이스·필드 이름을 전부 열거하지 않아도 구성부와 사용부를 연결하여 같은 주입 관계를 입증하면 인정한다."
+          ]
+        },
+        {
+          "id": "A2",
+          "level": "core",
+          "statement": "스케줄러는 registry/factory로 규칙 루틴을 얻고 새 루틴의 Run을 고루틴에서 실행한다. 스케줄된 job의 Eval이 evalCh로 요청을 보내면 규칙 Run 루프가 받아 evaluate와 evaluator의 Evaluate로 연결한다.",
+          "required_links": [
+            "스케줄 job → 규칙 Eval → evalCh로 평가 요청 전달",
+            "evalCh → 규칙 Run 루프의 수신 → evaluate/Evaluate 호출"
+          ],
+          "evidence_ids": [
+            "a-rule-registry-call",
+            "a-rule-registry",
+            "a-rule-goroutine",
+            "a-evaluation-job",
+            "a-evaluation-channel-send",
+            "a-evaluation-channel-receive",
+            "a-evaluate-call",
+            "a-evaluator-header",
+            "a-evaluator"
+          ],
+          "accepted_alternatives": [
+            "RL1의 생산자 쪽은 runJobFn/Eval 함수명 없이 '스케줄러가 규칙별 evalCh로 평가 요청을 보낸다'는 수준으로 보여도 된다. RL2(Run 루프의 evalCh 수신 → evaluate 호출)는 필요하다. registry·factory 생성·errgroup 기동은 선택이다.",
+            "틱 또는 job 실행 위치에서 규칙별 비동기 채널의 생산자·소비자와 evaluator 호출을 연결해도 된다. 틱 계산·재시도 수치·평가 DAG 내부는 요구하지 않는다."
+          ]
+        },
+        {
+          "id": "A3",
+          "level": "core",
+          "statement": "정기 평가 경로에서 규칙 evaluate는 평가 결과와 a.send를 부르는 콜백을 ProcessEvalResults에 함께 넘긴다. 상태 관리자는 상태 전이와 송신 대상을 계산하고 persister 동기화·선택적 historian 기록 뒤 콜백을 호출한다. 이 경로의 송신은 반환된 전이를 호출자가 다시 보내는 방식이 아니다.",
+          "required_links": [
+            "정기 평가의 evaluate → ProcessEvalResults에 평가 결과와 송신 콜백(state.Sender) 전달",
+            "ProcessEvalResults의 송신 대상 선택 → 전달받은 콜백 호출 → alertRule.send"
+          ],
+          "evidence_ids": [
+            "a-state-callback",
+            "a-state-readiness",
+            "a-state-selection-callback",
+            "a-delete-send",
+            "a-expire-reset-send"
+          ],
+          "accepted_alternatives": [
+            "state.Sender 함수 타입이나 콜백 선언·역호출로 상태 선택 → 콜백 송신을 설명하면 인정한다. persister/historian 순서는 언급하면 정확해야 하며 누락만으로 감점하지 않는다.",
+            "reset/delete/pause 경로의 expireAndSend는 상태 관리자가 반환한 전이를 직접 보낸다. 이는 정기 평가 경로로 한정한 A3와 모순이 아니다.",
+            "readiness 분기·모든 전이 종류·재전송 간격은 필수 설명이 아니다. 언급할 때 NotReady의 중단과 TimedOut의 계속 처리를 혼동하지 않는다."
+          ]
+        },
+        {
+          "id": "A4",
+          "level": "core",
+          "statement": "alertRule.send는 상태 전이를 StateToPostableAlert로 변환해 주입된 sender.Send에 전달한다. AlertsRouter.Send는 조직별 설정과 외부 AM 발견 상태에 따라 조직별 AlertmanagerFor(...).PutAlerts, 외부 SendAlerts, 또는 양쪽으로 라우팅한다.",
+          "required_links": [
+            "alertRule.send의 상태 전이 → StateToPostableAlert 변환 → 주입된 AlertsRouter.Send",
+            "AlertsRouter의 조직별 설정·외부 AM 발견 상태에 따른 내부 경로 → AlertmanagerFor(...).PutAlerts",
+            "AlertsRouter의 외부 경로(내부와 병행 가능) → 조직별 ExternalAlertmanager.SendAlerts"
+          ],
+          "evidence_ids": [
+            "a-postable-send",
+            "a-router-internal",
+            "a-router-external",
+            "a-router-construction",
+            "a-scheduler-config"
+          ],
+          "accepted_alternatives": [
+            "변환된 알림 → AlertsRouter → 조직별 내부/외부 인계라는 동일한 연결을 다른 호출 위치에서 증명해도 된다.",
+            "분기 존재와 목적지가 맞으면 모든 boolean 식·외부 AM 수·동기화 주기를 재현할 필요는 없다."
+          ]
+        },
+        {
+          "id": "A5",
+          "level": "core",
+          "statement": "MultiOrgAlertmanager는 org 맵에서 준비된 Alertmanager 인터페이스를 반환한다. 맵의 인스턴스는 기본 NewAlertmanager factory로 만들되 remote 모드의 factory override로 다른 구현을 선택할 수 있다. 따라서 router의 내부 인계가 항상 로컬 구현을 뜻하지는 않는다.",
+          "required_links": [
+            "MultiOrgAlertmanager의 org 맵 조회·Ready 확인 → 조직별 Alertmanager 인터페이스 반환",
+            "기본 NewAlertmanager factory 또는 remote 모드의 factory override → org 맵에 로컬 또는 forked 등 다른 구현이 들어감(내부 인계가 항상 로컬은 아님)"
+          ],
+          "evidence_ids": [
+            "a-org-lookup",
+            "a-org-create",
+            "a-org-default-factory",
+            "a-org-override",
+            "a-remote-mode",
+            "a-remote-override",
+            "a-moa-construction",
+            "a-remote-primary-factory",
+            "a-remote-primary-put",
+            "a-remote-secondary-put"
+          ],
+          "accepted_alternatives": [
+            "org 조회 → factory 기본 구현/remote override의 연결을 설명하면 인정하며 모든 toggle 이름이나 remote 동기화 정책은 요구하지 않는다.",
+            "remote primary의 remote.PutAlerts 또는 secondary의 internal.PutAlerts 중 하나를 예로 들어 구현 선택을 입증해도 된다. 모든 remote 모드가 원격 송신한다는 일반화는 인정하지 않는다. forked AM의 모드별 PutAlerts 위임은 선택이며, 언급하면 primary → remote, secondary → internal을 정확히 구별해야 한다."
+          ]
+        },
+        {
+          "id": "A6",
+          "level": "core",
+          "statement": "로컬 notifier.alertmanager.PutAlerts는 모델을 외부 github.com/grafana/alerting/notify의 PostableAlerts로 바꾸어 Base.PutAlerts에 넘긴다. 이 wrapper 호출이 저장소에서 확인하는 내부 Alertmanager 인계 경계다.",
+          "required_links": [
+            "로컬 notifier.alertmanager.PutAlerts → alertingNotify.PostableAlerts 모델 변환",
+            "변환된 알림 → 외부 github.com/grafana/alerting/notify 구현의 Base.PutAlerts 인계"
+          ],
+          "evidence_ids": [
+            "a-base-import",
+            "a-base-type",
+            "a-base-put"
+          ],
+          "accepted_alternatives": [
+            "Base의 타입·import·생성자 중 다른 근거와 PutAlerts 호출을 조합해 외부 alerting 라이브러리 경계를 설명해도 된다.",
+            "필드 전체 매핑이나 외부 라이브러리의 dispatcher/contact point 내부는 요구하지 않는다."
+          ]
+        },
+        {
+          "id": "A7",
+          "level": "core",
+          "statement": "remote.Alertmanager.PutAlerts는 같은 ExternalAlertmanager 구현으로 자체 송신기를 만들어 쓴다. 외부 AM 경로의 SendAlerts도 같은 구현에서 모델을 바꿔 Manager.Send에 넘기며, Manager는 queue에 쌓고 more 채널에 신호를 보낸다. 이 호출은 HTTP 완료가 아니라 비동기 송신 인계다.",
+          "required_links": [
+            "ExternalAlertmanager.SendAlerts → Manager.Send queue → more 신호",
+            "Manager.Send의 queue 적재 → more 채널 신호로 비동기 송신 인계(HTTP 완료가 아님)"
+          ],
+          "evidence_ids": [
+            "a-router-external",
+            "a-router-sender-construction",
+            "a-remote-sender-binding",
+            "a-remote-put",
+            "a-external-manager-binding",
+            "a-external-send",
+            "a-send-queue",
+            "a-queue-signal"
+          ],
+          "accepted_alternatives": [
+            "remote PutAlerts 재사용은 필수가 아니다. remote를 언급하면 로컬 Base.PutAlerts가 아니라 같은 sender 구현을 쓰되 인스턴스는 별도임을 정확히 설명해야 한다. remote 경로는 A5에서 채점한다.",
+            "생산자 → ExternalAlertmanager.SendAlerts → Manager.Send 큐 → more 신호를 입증하면 인정한다. remote와 외부 AM은 같은 구현을 쓰지만 송신기·큐 인스턴스는 별도다. 큐 크기·overflow 정책·라벨 정리 세부는 요구하지 않는다."
+          ]
+        },
+        {
+          "id": "A8",
+          "level": "core",
+          "statement": "ExternalAlertmanager.Run이 Manager.Run을 기동하고 그 sendLoop 고루틴은 more 신호를 받아 배치를 꺼내 sendAll/sendOne으로 보낸다. sendOne은 HTTP POST를 구성하여 주입된 opts.Do를 호출하며 기본 Do는 http.Client.Do로 연결된다.",
+          "required_links": [
+            "ExternalAlertmanager.Run → Manager.Run의 sendLoop 고루틴",
+            "more 신호 → queue 배치 소비 → sendAll/sendOne의 대상별 송신",
+            "sendOne의 HTTP POST → opts.Do 실행(기본 Do는 http.Client.Do)"
+          ],
+          "evidence_ids": [
+            "a-external-manager-run",
+            "a-send-goroutine",
+            "a-send-loop",
+            "a-send-batch",
+            "a-send-all-header",
+            "a-send-all",
+            "a-http-post",
+            "a-http-default",
+            "a-http-do",
+            "a-remote-sender-binding",
+            "a-do-option"
+          ],
+          "accepted_alternatives": [
+            "queue 소비 루프 → 대상별 전송 → HTTP 실행 콜백 또는 기본 client.Do의 연결을 입증하면 함수명을 모두 나열하지 않아도 인정한다.",
+            "외부 Alertmanager 서버의 응답 이후 contact point 전달 성공이나 재전송 간격은 요구하지 않는다."
+          ]
+        }
+      ],
+      "wrong_claims": [
+        "평가 호출자가 ProcessEvalResults의 반환 전이를 받아 직접 송신한다.",
+        "AlertsSender는 AlertsRouter를 거치지 않고 로컬 Alertmanager로 바로 바인딩된다.",
+        "router의 내부 경로는 항상 로컬 구현이며 조직별 factory override는 없다.",
+        "remote.Alertmanager.PutAlerts는 항상 로컬 Base.PutAlerts를 거친다.",
+        "외부 SendAlerts나 router.Send가 큐 없이 즉시 HTTP 전송을 완료한다.",
+        "readiness의 NotReady와 TimedOut은 모두 평가 결과 처리를 중단한다."
+      ],
+      "context_notes": [
+        {
+          "id": "A3-readiness-boundary",
+          "related_fact_ids": [
+            "A3"
+          ],
+          "is_required": false,
+          "statement": "NotReady는 ErrNotReady로 반환하지만 TimedOut은 경고 후 계속 처리한다. readiness 세부 설명의 누락을 감점하지 않으며 실제로 제기한 주장만 검토한다.",
+          "evidence_ids": [
+            "a-state-readiness",
+            "a-state-callback"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "live-plugin-stream",
+      "prompt": "제공된 탐색 도구를 활용해서 Grafana Live 스트리밍 구조 중 브라우저가 plugin stream과 통신하는 구간 다 확인해줘.",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "scope": "브라우저의 Live 서비스 호출에서 plugin 및 datasource scope의 구독·비동기 스트림 실행·브라우저 수신·plugin으로의 HTTP/WS 발행까지의 위치와 연결을 필수로 채점한다. runtime 등록, WS URL/tenant 채널/발행 URL 계약, 공용 plugin client dispatch와 수신 observable 체인을 포함한다. 구독 정리는 확장 진단이며 필수 아님. TestData 한 시나리오로 제한하지 않으며 외부 Centrifuge/SDK 내부, 개별 plugin 데이터 생성 알고리즘, pipeline 규칙 엔진 내부와 활성 여부, managed stream·grafana·watch scope, push WebSocket, presence·HA 브로커 내부, 일반 쿼리 실행·패널 렌더링, 버퍼·재시도 수치는 필수 아님.",
+      "cross_language_binding": "WS: TS appUrl에서 /api/live/ws로 연결 ↔ Go /api/live + /ws. WS channel: {tenant namespace}/{scope}/{stream}/{path}; Go는 tenant 접두어를 제거하고 내부 stream segment를 Namespace로 해석한다. HTTP publish: TS api/live/publish ↔ Go /api + /live + /publish, body {channel: scope/stream/path, data}; tenant는 사용자 context에서 얻는다. WS publish는 tenant-prefixed subscription channel을 사용한다.",
+      "limitations": [
+        "WebSocket·실제 프레임 도착 순서·재연결·발행 성공을 실행으로 확인하지 않았다.",
+        "Centrifuge/SDK의 wire encoder·parser 내부는 외부 패키지 경계다. 양쪽 저장소 API와 식별자 대응까지만 확인했다.",
+        "plugin streaming API 자체와 진입 파일은 쉽게 검색할 수 있다. 변별력·기억 저항·난도는 실험 미검증이다."
+      ],
+      "core_fact_count": 8,
+      "extended_fact_count": 1,
+      "evidence_ids": [
+        "l-address-fields",
+        "l-api-prefix",
+        "l-app-init",
+        "l-browser-publish",
+        "l-browser-ws",
+        "l-caller-example",
+        "l-channel-disconnect",
+        "l-channel-handler",
+        "l-channel-handler-path",
+        "l-channel-id",
+        "l-channel-no-listeners",
+        "l-channel-observable",
+        "l-channel-registry",
+        "l-channel-shutdown-binding",
+        "l-client-middlewares",
+        "l-client-registry",
+        "l-client-run",
+        "l-client-subscribe-publish",
+        "l-client-wire",
+        "l-context-getter",
+        "l-core-stream-handler",
+        "l-data-stream-binding",
+        "l-data-stream-buffer",
+        "l-data-stream-entry",
+        "l-data-stream-message",
+        "l-data-stream-observable",
+        "l-data-stream-reuse",
+        "l-data-stream-shutdown",
+        "l-data-stream-subscribe",
+        "l-data-stream-transform",
+        "l-datasource-scope",
+        "l-frame-conversion",
+        "l-frontend-namespace",
+        "l-grpc-packet",
+        "l-grpc-run",
+        "l-grpc-subscribe-publish",
+        "l-http-bind",
+        "l-http-payload",
+        "l-http-publish-dispatch",
+        "l-http-route",
+        "l-identity-namespace",
+        "l-local-publisher",
+        "l-local-subscriber-count",
+        "l-manager-binding",
+        "l-manager-loop",
+        "l-manager-publisher-binding",
+        "l-manager-run",
+        "l-namespace-prefix",
+        "l-namespaced-setting",
+        "l-on-connect",
+        "l-on-publish",
+        "l-on-subscribe",
+        "l-packet-sender",
+        "l-plugin-client-binding",
+        "l-plugin-dispatch",
+        "l-plugin-publish",
+        "l-plugin-runner",
+        "l-plugin-scope",
+        "l-plugin-submit",
+        "l-plugin-subscribe",
+        "l-plugin-support",
+        "l-publication-event",
+        "l-publish-header",
+        "l-publish-namespace",
+        "l-run-stream",
+        "l-run-stream-header",
+        "l-runtime-init",
+        "l-runtime-singleton",
+        "l-scope-switch",
+        "l-service-deps",
+        "l-service-raw-stream",
+        "l-stream-register",
+        "l-stream-stop",
+        "l-stream-submit",
+        "l-stream-submit-header",
+        "l-stream-watch",
+        "l-stream-watch-header",
+        "l-subscribe-dispatch",
+        "l-subscribe-header",
+        "l-subscribe-namespace",
+        "l-subscribe-pipeline-guard",
+        "l-subscription",
+        "l-subscription-publish",
+        "l-transport-publish",
+        "l-websocket-create",
+        "l-websocket-handler",
+        "l-websocket-route",
+        "l-ws-publish-dispatch"
+      ],
+      "difficulty_status": "structural_not_empirical",
+      "facts": [
+        {
+          "id": "L1",
+          "level": "core",
+          "statement": "브라우저의 getGrafanaLiveSrv 호출은 runtime singleton을 조회한다. 앱 초기화의 initGrafanaLive가 CentrifugeService와 backendSrv를 주입한 GrafanaLiveService를 등록하고, 이 구현의 getDataStream은 주입된 CentrifugeService로 위임한다.",
+          "required_links": [
+            "브라우저 getGrafanaLiveSrv 호출 → initGrafanaLive가 앱 초기화 때 등록한 runtime singleton의 GrafanaLiveService",
+            "GrafanaLiveService.getDataStream → 주입된 CentrifugeService.getDataStream"
+          ],
+          "evidence_ids": [
+            "l-runtime-singleton",
+            "l-runtime-init",
+            "l-app-init",
+            "l-caller-example",
+            "l-service-deps",
+            "l-data-stream-entry",
+            "l-frame-conversion",
+            "l-service-raw-stream"
+          ],
+          "accepted_alternatives": [
+            "TestData 직접 호출 대신 DataSourceWithBackend의 meta.channel 인계나 정확한 다른 plugin caller를 제시해도 된다.",
+            "getStream 또는 getDataStream에서 출발해 runtime get/set singleton → 앱 구현 → 주입된 transport를 연결하면 인정한다. 특정 시나리오명은 요구하지 않는다."
+          ]
+        },
+        {
+          "id": "L2",
+          "level": "core",
+          "statement": "Live가 켜져 있고 orgRole이 비어 있지 않으면 CentrifugeService는 브라우저의 app URL을 WebSocket URL /api/live/ws로 바꾸어 연결하고, 채널 객체를 만든 뒤 newSubscription(channel.id).subscribe()로 구독한다. Go는 같은 /api/live/ws를 등록하고 사용자 context를 붙인 요청을 Centrifuge WebSocket handler로 전달하며 연결 시 구독 콜백을 등록한다.",
+          "required_links": [
+            "TS CentrifugeService의 /api/live/ws 연결 → Go의 동일 URL 라우트",
+            "Go WS 라우트 → 사용자 context를 붙인 요청 → Centrifuge WebSocket handler",
+            "TS newSubscription(channel.id).subscribe() → Go 연결 시 등록한 구독 콜백"
+          ],
+          "evidence_ids": [
+            "l-browser-ws",
+            "l-channel-registry",
+            "l-subscription",
+            "l-websocket-route",
+            "l-websocket-create",
+            "l-websocket-handler",
+            "l-on-connect",
+            "l-on-subscribe"
+          ],
+          "accepted_alternatives": [
+            "같은 WS URL의 TS 생성부·Go 라우트/handler와 구독 등록을 대응시키면 인정한다. 앱 subpath를 포함한 완전한 URL 예시도 허용한다.",
+            "transport 내부 handshake 구현·연결 timeout·채널 객체 캐시의 세부 정책은 요구하지 않는다."
+          ]
+        },
+        {
+          "id": "L3",
+          "level": "core",
+          "statement": "TS는 scope/stream/path를 toLiveChannelId로 조립하고 그 바깥에 tenant namespace를 붙여 WS 채널 ID를 만든다. Go는 바깥 접두어를 StripK8sNamespace로 제거·사용자 namespace와 대조한 뒤 나머지를 ParseChannel로 해석한다. TS stream에 대응하는 내부 segment는 Go에서 Namespace라 부르며 바깥 tenant namespace와 다르다.",
+          "required_links": [
+            "TS scope/stream/path의 toLiveChannelId 조립 → tenant namespace를 바깥에 붙인 WS 채널 ID",
+            "Go WS 채널 ID → StripK8sNamespace의 접두어 제거·사용자 namespace 대조 → 내부 scope/stream/path의 ParseChannel 해석"
+          ],
+          "evidence_ids": [
+            "l-address-fields",
+            "l-channel-id",
+            "l-runtime-init",
+            "l-channel-registry",
+            "l-namespaced-setting",
+            "l-frontend-namespace",
+            "l-identity-namespace",
+            "l-namespace-prefix",
+            "l-subscribe-header",
+            "l-subscribe-namespace",
+            "l-channel-handler",
+            "l-scope-switch"
+          ],
+          "accepted_alternatives": [
+            "전체 채널 예시 {tenant}/{scope}/{stream}/{path}와 각 위치의 해석을 양쪽 소스로 연결해도 된다.",
+            "TS의 deprecated namespace 호환 필드를 사용한 설명도 내부 segment와 tenant 접두어를 구분하면 인정한다. 숫자 org ID는 호환 입력이며 항상 현행 접두어라고만 설명하면 인정하지 않는다.",
+            "legacy 숫자의 정확한 canonical 변환값이나 SDK parser 내부 구현은 요구하지 않는다."
+          ]
+        },
+        {
+          "id": "L4",
+          "level": "core",
+          "statement": "Go의 구독 콜백은 handleOnSubscribe에서 채널 handler/factory를 선택한다. plugin scope는 plugin ID, datasource scope는 UID 조회 후 datasource type/UID로 같은 PluginRunner에 합류한다. path별 PluginPathRunner는 주입된 context getter로 plugin 또는 datasource context를 얻어 SubscribeStream을 호출한다.",
+          "required_links": [
+            "Go 구독 콜백 → handleOnSubscribe → GetChannelHandler/factory 선택",
+            "plugin ID 입구와 datasource UID 조회 후 type/UID 입구 → 같은 PluginRunner의 path별 handler",
+            "PluginPathRunner → 주입된 context getter로 plugin/datasource context 획득 → SubscribeStream"
+          ],
+          "evidence_ids": [
+            "l-on-subscribe",
+            "l-subscribe-header",
+            "l-subscribe-pipeline-guard",
+            "l-subscribe-dispatch",
+            "l-channel-handler",
+            "l-channel-handler-path",
+            "l-scope-switch",
+            "l-plugin-scope",
+            "l-datasource-scope",
+            "l-plugin-runner",
+            "l-plugin-subscribe",
+            "l-manager-publisher-binding",
+            "l-context-getter"
+          ],
+          "accepted_alternatives": [
+            "factory·생성자·인터페이스 사용부 중 다른 위치에서 plugin/ds 두 입구가 같은 runner와 context getter를 사용하는 연결을 증명해도 된다.",
+            "채널 cache 정책·컨텍스트 필드 전체·pipeline 내부 규칙은 요구하지 않는다. 여기는 plugin handler에 도달하는 경로이며 pipeline 가드를 항상 활성 경로로 가정하지 않는다."
+          ]
+        },
+        {
+          "id": "L5",
+          "level": "core",
+          "statement": "getStreamPlugin은 plugin store로 지원 여부를 확인하지만 반환하는 StreamHandler는 주입된 공용 plugins.Client다. 이 클라이언트는 middleware handler를 통해 manager client로 이어지고, manager가 registry에서 선택한 Plugin의 client에 SubscribeStream/RunStream/PublishStream을 위임한다. 저장소에는 core handler와 외부 gRPC client 경계가 있다.",
+          "required_links": [
+            "getStreamPlugin의 지원 확인 → plugin 객체 자체가 아닌 주입된 공용 plugins.Client 반환",
+            "공용 middleware client → manager client → registry에서 Plugin 선택",
+            "선택한 Plugin → plugin client의 SubscribeStream/RunStream/PublishStream 위임 → core 또는 gRPC 경계"
+          ],
+          "evidence_ids": [
+            "l-plugin-client-binding",
+            "l-plugin-support",
+            "l-client-wire",
+            "l-client-middlewares",
+            "l-client-subscribe-publish",
+            "l-client-run",
+            "l-client-registry",
+            "l-plugin-dispatch",
+            "l-core-stream-handler",
+            "l-grpc-subscribe-publish",
+            "l-grpc-run",
+            "l-grpc-packet"
+          ],
+          "accepted_alternatives": [
+            "Live → 공용 middleware client → registry 선택 → plugin client라는 연결을 DI 생성물이나 정확한 생성자 주입으로 입증해도 된다.",
+            "core 또는 gRPC 중 한 경계를 정확한 예로 설명해도 인정한다. 모든 plugin이 별도 gRPC 프로세스라는 일반화는 인정하지 않는다. middleware 목록 전체는 요구하지 않는다."
+          ]
+        },
+        {
+          "id": "L6",
+          "level": "core",
+          "statement": "SubscribeStream이 승인되면 PluginPathRunner는 사용자 namespace를 다시 붙인 전체 채널과 handler를 SubmitStream에 넘긴다. manager의 registerCh를 Run 루프가 받아 채널별 실행 고루틴을 만들고 runStream이 StreamRunner.RunStream에 packetSender를 감싼 StreamSender를 주입한다. 장기 스트림은 구독 handler의 동기 생산 루프가 아니다.",
+          "required_links": [
+            "SubscribeStream 승인 → 전체 채널 ID와 handler의 SubmitStream 등록 → registerCh",
+            "manager Run 루프의 registerCh 수신 → 채널별 실행 고루틴 → runStream",
+            "runStream → packetSender를 감싼 StreamSender 주입 → StreamRunner.RunStream"
+          ],
+          "evidence_ids": [
+            "l-plugin-subscribe",
+            "l-plugin-submit",
+            "l-namespace-prefix",
+            "l-stream-submit-header",
+            "l-stream-submit",
+            "l-manager-run",
+            "l-manager-loop",
+            "l-stream-register",
+            "l-run-stream-header",
+            "l-run-stream"
+          ],
+          "accepted_alternatives": [
+            "등록 채널의 생산자/소비자 → 고루틴 → RunStream과 sender 콜백 객체의 연결을 설명하면 인정한다.",
+            "채널 중복 방지·watchStream·초기 데이터·재연결 지연 수치는 추가 필수 항목이 아니다. SubmitStream의 등록 응답 대기를 장기 RunStream 완료 대기와 혼동하지 않는다."
+          ]
+        },
+        {
+          "id": "L7",
+          "level": "core",
+          "statement": "RunStream의 packetSender.Send는 같은 전체 채널 ID로 주입된 ChannelLocalPublisher.PublishLocal에 패킷을 넘기고 일반 경로는 local hub BroadcastPublication으로 이어진다. TS subscription의 publication 콜백은 payload를 channel Subject로 보내며, 주입된 channel observable을 받는 LiveDataStream의 버퍼/observable을 거쳐 GrafanaLiveService의 DataFrame 응답으로 연결된다.",
+          "required_links": [
+            "Go packetSender.Send → 주입된 ChannelLocalPublisher.PublishLocal → 같은 전체 채널 ID의 hub BroadcastPublication",
+            "TS subscription publication payload → channel Subject/observable → LiveDataStream 버퍼/observable → GrafanaLiveService.getDataStream 응답"
+          ],
+          "evidence_ids": [
+            "l-packet-sender",
+            "l-manager-publisher-binding",
+            "l-manager-binding",
+            "l-local-publisher",
+            "l-publication-event",
+            "l-channel-observable",
+            "l-data-stream-binding",
+            "l-data-stream-subscribe",
+            "l-data-stream-message",
+            "l-data-stream-buffer",
+            "l-data-stream-transform",
+            "l-data-stream-observable",
+            "l-data-stream-entry",
+            "l-frame-conversion"
+          ],
+          "accepted_alternatives": [
+            "Go 발행자 주입과 hub → TS publication 이벤트 → channel observable → LiveDataStream → 서비스 응답을 동일 연결의 다른 위치로 증명해도 된다.",
+            "FullFrame/NewValuesSameSchema 타입명·버퍼 크기·readiness 타이머 수치는 요구하지 않는다. packet을 곧바로 화면에 넣는다고 생략하지 않고 중간 수신 체인을 보여야 한다.",
+            "PublishLocal의 pipeline 분기를 코드상 조건부 분기로만 언급하면 감점하지 않는다. 이 checkout의 RunStream publisher는 live.go:176에서 nil을 붙잡으므로, 이 분기가 활성 경로라는 주장은 근거가 없다."
+          ]
+        },
+        {
+          "id": "L8",
+          "level": "core",
+          "statement": "브라우저 publish의 기본 입구는 HTTP api/live/publish에 {channel,data}를 보내는 것이며 useSocket 선택 시 subscription.publish를 쓴다. HTTP 채널은 tenant 접두어 없는 scope/stream/path이고 서버는 사용자 context를 사용한다. WS 채널은 접두어를 포함해 Go에서 제거·검사한다. Go의 HandleHTTPPublish와 OnPublish/handleOnPublish는 plugin 경로에서 같은 path handler의 OnPublish → PublishStream으로 합류한다.",
+          "required_links": [
+            "TS publish → 기본 HTTP api/live/publish의 {channel,data} 또는 useSocket 선택 시 subscription.publish",
+            "TS POST api/live/publish → Go /api 그룹의 /live/publish 라우트 → HandleHTTPPublish",
+            "Go HandleHTTPPublish 및 OnPublish/handleOnPublish → GetChannelHandler → 같은 path handler의 OnPublish",
+            "PluginPathRunner.OnPublish → PublishStream 호출"
+          ],
+          "evidence_ids": [
+            "l-browser-publish",
+            "l-channel-id",
+            "l-channel-registry",
+            "l-transport-publish",
+            "l-subscription-publish",
+            "l-api-prefix",
+            "l-http-route",
+            "l-http-payload",
+            "l-http-bind",
+            "l-http-publish-dispatch",
+            "l-on-publish",
+            "l-publish-header",
+            "l-publish-namespace",
+            "l-ws-publish-dispatch",
+            "l-plugin-publish"
+          ],
+          "accepted_alternatives": [
+            "HTTP URL/body와 WS subscription 발행의 양쪽 원문, 두 서버 입구의 PublishStream 합류를 연결하면 인정한다. tenant 접두어 차이는 L3에서 채점하며 L8에서는 언급이 선택이다. 언급하면 정확해야 한다.",
+            "HTTP는 unprefixed channel+사용자 context, WS는 tenant-prefixed channel이라는 동등한 표현을 허용한다. 선택한 plugin이 실제로 발행을 허용하거나 성공한다고 가정할 필요는 없다."
+          ]
+        },
+        {
+          "id": "LX1",
+          "level": "extended",
+          "statement": "마지막 브라우저 observer가 사라지면 LiveDataStream은 지연 shutdown으로 channel 구독을 해제하고, channel도 listener 부재 확인 뒤 subscription과 registry를 정리한다. 서버는 local subscriber 수를 감시하는 watchStream에서 부재를 확인해 스트림을 중지한다. 개별 구독 해제가 즉시 모든 생산자를 종료하는 방식은 아니다.",
+          "required_links": [
+            "마지막 브라우저 observer 해제 → LiveDataStream의 지연 shutdown → channel observable 구독 해제",
+            "channel listener 부재 확인 → subscription 해제와 registry 정리",
+            "서버 watchStream의 local subscriber 부재 확인 → stopStream의 스트림 취소"
+          ],
+          "evidence_ids": [
+            "l-data-stream-reuse",
+            "l-data-stream-shutdown",
+            "l-data-stream-observable",
+            "l-data-stream-binding",
+            "l-channel-observable",
+            "l-channel-no-listeners",
+            "l-channel-disconnect",
+            "l-channel-shutdown-binding",
+            "l-stream-register",
+            "l-stream-watch-header",
+            "l-stream-watch",
+            "l-stream-stop",
+            "l-local-subscriber-count",
+            "l-manager-publisher-binding"
+          ],
+          "accepted_alternatives": [
+            "프런트의 마지막 observer → 지연 정리 callback과 서버의 구독자 감시 → 취소를 다른 lifecycle 위치에서 연결해도 된다.",
+            "지연 시간·검사 횟수·재구독 타이머 취소 세부는 요구하지 않는다. 이 사실은 확장 진단으로만 보고한다."
+          ]
+        }
+      ],
+      "wrong_claims": [
+        "현행 WS 채널의 바깥 접두어는 항상 숫자 org ID이고 tenant namespace는 사용하지 않는다.",
+        "TS LiveChannelAddress의 namespace가 현행 필수 필드이며 stream은 사용하지 않는다.",
+        "getStreamPlugin은 store에서 찾은 plugin 객체 자체를 StreamHandler로 반환한다.",
+        "SubscribeStream 구독 handler가 RunStream을 동기 호출하여 계속 데이터를 생산한다.",
+        "모든 plugin stream은 별도 프로세스의 gRPC client만 사용한다.",
+        "브라우저 publish는 항상 WebSocket이며 HTTP publish 입구는 없다.",
+        "HTTP 발행 body의 channel에도 WS와 동일하게 tenant 접두어를 붙인다.",
+        "RunStream의 매 패킷은 HTTP /api/live/publish를 거쳐 브라우저에 도착한다."
+      ],
+      "context_notes": [
+        {
+          "id": "L4-pipeline-boundary",
+          "related_fact_ids": [
+            "L4",
+            "L7",
+            "L8"
+          ],
+          "is_required": false,
+          "statement": "소스에는 Pipeline nil 가드와 입력 소비 시 우회가 있다. 고정 checkout의 비테스트 Go에서 .Pipeline 대입 및 Pipeline: 초기화 검색 결과는 0건이었다. RunStream publisher는 live.go:176의 NewChannelLocalPublisher(node, g.Pipeline) 호출에서 생성 시점의 nil을 값으로 붙잡는다(liveplugin/plugin.go:23-24). 나중에 g.Pipeline을 바꾸어도 이 publisher의 필드는 바뀌지 않는다. handler의 nil 가드는 호출 시점의 g.Pipeline을 읽는다. 이 checkout에서 publisher의 pipeline 분기가 활성 경로라는 근거는 없지만 이를 확인하지 않은 엔터프라이즈 빌드나 모든 배포의 런타임 불가능 주장으로 확대하지 않는다.",
+          "evidence_ids": [
+            "l-subscribe-pipeline-guard",
+            "l-local-publisher",
+            "l-manager-publisher-binding",
+            "l-http-bind"
+          ]
+        },
+        {
+          "id": "L6-delivery-order",
+          "related_fact_ids": [
+            "L6",
+            "L7"
+          ],
+          "is_required": false,
+          "statement": "구독 응답 InitialData와 장기 RunStream publication의 실제 네트워크 도착 순서는 이 정적 연결만으로 확정하지 않는다. 숫자 org 접두어의 end-to-end 수신 호환성 역시 실행하지 않았으므로 필수 사실이나 wrong_claim으로 고정하지 않는다.",
+          "evidence_ids": [
+            "l-plugin-submit",
+            "l-stream-register",
+            "l-namespace-prefix"
+          ]
+        }
+      ]
+    }
+  ]
+}

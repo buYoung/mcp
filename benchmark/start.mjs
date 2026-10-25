@@ -100,9 +100,9 @@ export async function interactive({ prompts, call = backend, output = console })
   output.info(`한도: ${plan.spec.limits.elapsed_seconds}초 · 탐색 ${plan.spec.limits.exploration_calls}회 · ${plan.spec.limits.total_tokens.toLocaleString()}토큰(캐시 읽기 제외), 최대 ${plan.spec.concurrency}개 병렬 실행`);
   output.info('응답은 제품 기본값, 색인은 로컬 조건입니다. 문항마다 동일 경로의 조회 전 상태를 복원하도록 준비했습니다.');
   output.info(`준비 기록: ${plan.readiness}`);
-  output.info('준비만으로는 실행하지 않습니다. 승인하면 이 계획에서 최대 21회 풀이와 해당 답변의 Astra 채점을 수행합니다.');
+  output.info(`준비만으로는 실행하지 않습니다. 승인하면 이 계획에서 최대 ${plan.runs}회 풀이와 해당 답변의 Astra 채점을 수행합니다.`);
   const confirmed = await prompts.confirm({
-    message: `계획 ${plan.plan_id} (${solverModel})의 21개 슬롯 실행을 승인합니까?`, default: false,
+    message: `계획 ${plan.plan_id} (${solverModel})의 ${plan.runs}개 슬롯 실행을 승인합니까?`, default: false,
   });
   if (!confirmed) return plan;
   if (!plan.readiness_sha256) throw new Error('불변 readiness hash가 없어 실행을 승인할 수 없습니다.');

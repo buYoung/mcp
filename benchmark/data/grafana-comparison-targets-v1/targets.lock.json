@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "revision": 5,
+  "revision": 6,
   "status": "source_identities_frozen",
   "frozen_at": "2026-10-25T00:00:00+00:00",
   "target_release": "1.0.0",
   "scope": "외부 비교 도구 6개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
   "selection_policy": "2026-10-24 공식 GitHub release/tag와 npm/PyPI stable 배포를 대조했다. zvec-grep 0.2.2는 npm/tag 배포이며 GitHub Release는 없어 관련 필드를 null로 둔다. Graphify v1.0.0은 2026-04-05의 과거 release이고 PyPI에는 없으므로 현재 upstream latest/PyPI의 0.9.95를 선택한다. 준비 중 latest를 다시 해석하지 않는다.",
   "dataset": {
-    "id": "grafana-routes-v2",
-    "manifest_path": "../grafana-routes-v2/manifest.json",
-    "manifest_sha256": "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24",
+    "id": "grafana-routes-v3",
+    "manifest_path": "../grafana-routes-v3/manifest.json",
+    "manifest_sha256": "45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86",
     "source": {
       "repository": "grafana/grafana",
       "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
@@ -351,8 +351,8 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "2026-10-25 pi MCP 클라이언트를 내장 MCP에서 pi-mcp-adapter 6.0.0(npm latest)으로 바꾼다. 내장 MCP의 20 KB 결과 절단 대신 adapter 기본 출력 가드(50 KiB/2,000줄)를 쓰기 위해서다. 비교 도구 6개의 고정값은 개정 4와 같다.",
-  "previous_lock_sha256": "e9324db03d9ca71e893865a3819605e8436f8b0cadb865cfec05bed314cd6111",
+  "revision_reason": "2026-10-25 데이터셋을 grafana-routes-v2(3문항)에서 grafana-routes-v3(2문항: Go 알림→Alertmanager, TypeScript→Go Live plugin stream)으로 바꾼다. 비교 도구 6개와 pi toolchain 고정값은 개정 5와 같다.",
+  "previous_lock_sha256": "45100e782647ef52be8e6d204eb588cc76838e788a7d99134287cc46ee65b019",
   "pi_toolchain": {
     "install_flags": [
       "ci",
