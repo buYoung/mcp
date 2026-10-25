@@ -115,9 +115,9 @@
       }
     }
   },
-  "contract_hash": "b65b9736412b457d36f13457191bc3fcd9a8ef4e2fa2556212b67152f80d9815",
+  "contract_hash": "9d81fc48bec697cadeb3346dd3ff3525f75021d1b0e66db5ebab045d7e49dab0",
   "dependency_hashes": {
-    "01-contract.json": "7feafa4a57f598a5e9577a1d3296fc5a30a5c2ad73778524e7fdf235195bddaa"
+    "01-contract.json": "875d6226d92d962bf1faccda26768a460fdbc543fd8eb3a920e0da6223f9a400"
   },
   "grader_runs": 0,
   "implementation_hashes": {
@@ -126,20 +126,20 @@
     "benchmark/runner.py": "30f7a4548fb123ef87856f866ea84edeaffb5e9c1505d88e9ce4d830129f1c5e"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "894c56b4255d5d6cd4c25bd004970b4536e54dcd825baf0d352309618af7ec13",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "39e8cc2f31d0662fe34aae0f6221e93b43414b97f99fb9fe98ce80373e8322db",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "5ffca5ed861d963fb838a56d7d1b7596dabf5a615091baac7ab06d269623b8b1",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "3ea6b4d246c29005ab64edace5dbef1260d9ea1da80e54d4e2f9584972c166f4",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "929752f50300d83e335475fe2bc8de25e4e20fe3e24f842d79b5ab7c29688356",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1692b9717e71653a43a9d7ae496cde7a085065be7007c2cecefb9ea6d5e9b0a3",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "45100e782647ef52be8e6d204eb588cc76838e788a7d99134287cc46ee65b019",
-    "benchmark/data/grafana-routes-v2/README.md": "1c245a2154b0878997ebae686a1cf7f9f55703743aa29b321b8262b415c71859",
-    "benchmark/data/grafana-routes-v2/SHA256SUMS": "e340cbb89a044c8a9993504b22d38324619f952ada2c3ccd6715ae1da8c60fed",
-    "benchmark/data/grafana-routes-v2/dataset.json": "04c34334adf8de43a91f5e17bef136b815adb6ec29f360b3621914585748dbef",
-    "benchmark/data/grafana-routes-v2/evidence.json": "b5da56c9248396e4d457d3d5f502b6ef3287fc95bd711a3bdd804818cc5b9292",
-    "benchmark/data/grafana-routes-v2/grading.json": "69d9438459b5f17d2552bbd83968893e34a6063d6928dcf3e0f9045844749212",
-    "benchmark/data/grafana-routes-v2/manifest.json": "ee37ee238fe1dc6fc858cf18816c42e707917aae6760b203e6dec85626a71e24",
-    "benchmark/data/grafana-routes-v2/questions.json": "ed38f9eb97ef4bda6590e97caf54d186598873a7b465b5d727b9c4db43f0864e"
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549",
+    "benchmark/data/grafana-routes-v3/README.md": "88a6b6cb75451930625723cc0102910b984ca4d9fea0691cad2d9323e94072ed",
+    "benchmark/data/grafana-routes-v3/SHA256SUMS": "d3c24e62e2f47b0d4f890cc1739a7fe24084290b500dcbb403dd5c91b3c164b5",
+    "benchmark/data/grafana-routes-v3/dataset.json": "11e578539a749baf3b618f206a064ce8cbfa24a618f570a86f0ad1e2d893d7a3",
+    "benchmark/data/grafana-routes-v3/evidence.json": "1b618dd21a11f279a865ff7de38b83412af34e7faf161d91f094e4725a236cdb",
+    "benchmark/data/grafana-routes-v3/grading.json": "c334afb58c4696f33701770c0c45b5e90daef0b1678f96fd6a1f4ae59e41c6b4",
+    "benchmark/data/grafana-routes-v3/manifest.json": "45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86",
+    "benchmark/data/grafana-routes-v3/questions.json": "ddfb4138daa86db2b892bd5305b2837677c4eec59382ad05157f25cfd7e2e0c7"
   },
   "native_output_policy": {
     "automatic_pagination": false,
@@ -179,11 +179,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 20055,
+          "pgid": 41601,
           "stopped": true
         }
       ],
-      "pid": 20055,
+      "pid": 41601,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -238,16 +238,16 @@
     ],
     "probe": "rg over a copied harness source file",
     "probe_source_sha256": "fc42c5939d9297184703b8838806b3b5315295597868c9eab2ec2b01207943d2",
-    "protocol_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792873200495155000/protocol.jsonl",
+    "protocol_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792909704136197000/protocol.jsonl",
     "protocol_sha256": "d6760245aee46fc4035f0f98751be82db0f886c264f7bb15c5a44496b6e4a00c",
-    "relay_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792873200495155000/relay.jsonl",
-    "relay_sha256": "a082093ec265232b5e705ea6d2ee23bc793ff1ab9857350d5ede7a4a0e8bfb2e",
+    "relay_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792909704136197000/relay.jsonl",
+    "relay_sha256": "49e4a11e1ef4ccc01dc2dbbb58e2a87441de0072b4b4695f09615a50f43811ae",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
     "stdout_bytes": 88640,
     "stdout_lines": 1397
   },
-  "recorded_at": "2026-10-24T20:20:03.876565+00:00",
+  "recorded_at": "2026-10-25T06:28:27.834849+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",
