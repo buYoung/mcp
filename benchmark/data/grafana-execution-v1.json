@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "profile": "grafana-routes",
-  "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 준비 전용",
+  "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 2모드 · 준비 전용",
   "dataset_id": "grafana-routes-v3",
   "comparison_lock_id": "grafana-comparison-targets-v1",
   "solver": {
@@ -94,6 +94,11 @@
     "repetitions": "같은 조건 1회 결과가 핵심 사실 7개 중 4개·5개로 흔들려 문항·비교군마다 3회 반복한다",
     "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
     "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
-    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 = 42회 예정."
-  }
+    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 2모드 = 84회 예정.",
+    "measurement_modes": "direct와 codemode(mode only)를 모드마다 3회 측정하고 결과를 합산하지 않는다. codemode 외부 model API는 비활성화한다."
+  },
+  "measurement_modes": [
+    "direct",
+    "codemode"
+  ]
 }

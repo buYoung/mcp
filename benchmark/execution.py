@@ -90,7 +90,7 @@ def authorize_run(prepared: dict, readiness: Path, approval: dict) -> tuple[Path
         rows.append({**slot, "plan_id": prepared["plan_id"], "campaign_id": campaign_id, "schedule_rank": rank,
                      "model": prepared["models"]["solver"]["model"], "backend": prepared["models"]["solver"]["backend"],
                      "reasoning_effort": prepared["models"]["solver"]["reasoning_effort"],
-                     "run_spec_sha256": manifest["run_spec_sha256"][slot["arm"]],
+                     "run_spec_sha256": manifest["run_spec_sha256"][routes.execution_key(slot["arm"], slot["mode"])],
                      "prompt_sha256": prepared["solver_inputs"][slot["id"]]["sha256"],
                      "phase": "pending", "launch_state": "not_started", "cli_launches": 0,
                      "provider_call_observed": None, "conditions_valid": None, "grade_state": "not_eligible"})
@@ -109,14 +109,14 @@ def load_ledger(root: Path) -> tuple[dict, dict]:
     expected = routes.schedule()
     require(len(ledger["slots"]) == len(expected), "계획 slot ledger 누락")
     for row, slot in zip(ledger["slots"], expected):
-        require(all(row[k] == slot[k] for k in ("id", "question_id", "arm", "attempt")), "ledger 순서/슬롯 변경")
-        verify_run_binding(manifest, row, manifest["run_specs"][row["arm"]], current=False)
+        require(all(row[k] == slot[k] for k in ("id", "question_id", "arm", "mode", "attempt")), "ledger 순서/슬롯 변경")
+        verify_run_binding(manifest, row, manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])], current=False)
     return manifest, ledger
 
 
 def verify_run_binding(manifest: dict, slot: dict, spec: dict, *, current=True) -> None:
     prepared = manifest["prepared"]
-    arm = slot["arm"]
+    arm = routes.execution_key(slot["arm"], slot["mode"])
     require(manifest["condition_sha256"] == digest(route_prepare.plan_condition(prepared)), "계획 조건 변경")
     expected = copy.deepcopy(prepared["execution_specs"][arm])
     expected.update(preparation_only=False, campaign_id=manifest["campaign_id"], plan_id=manifest["plan_id"],
@@ -270,7 +270,7 @@ def run_slot(root: Path, manifest: dict, initial: dict, coordinator: LedgerCoord
              prepare_session, solver_executor, collector, restore, source_check) -> dict:
     row = copy.deepcopy(initial)
     state = manifest["prepared"]["arms"][row["arm"]]
-    spec = manifest["run_specs"][row["arm"]]
+    spec = manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])]
     folder = Path(row["folder"])
     folder.mkdir(parents=True, exist_ok=True)
     registry, session, cleanup_errors = ProcessRegistry(folder), None, []
@@ -398,7 +398,7 @@ def grade_packet(root: Path, manifest: dict, initial: dict, coordinator: LedgerC
         require(file_digest(Path(seal["registry"])) == seal["registry_sha256"], "private registry 변경")
         verify_raw_seal(row)
         row = coordinator.change(row["id"], {"grade_state": "grading"}, intent="grader-launch")
-        spec = copy.deepcopy(manifest["run_specs"][row["arm"]])
+        spec = copy.deepcopy(manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])])
         spec.pop("native_agent", None)
         spec["limits"] = {**spec["limits"], "elapsed_seconds": manifest["grader_timeout_seconds"]}
         result = grader_executor(folder / "job", (folder / "prompt.txt").read_text(), grading=True,
@@ -434,7 +434,8 @@ def schedule_workers(rows: list[dict], coordinator: LedgerCoordinator, cancel_ev
             if cancel_event.is_set():
                 pending.clear()
             while len(active) < 4:
-                candidate = next((r for r in pending if r["arm"] not in arms), None)
+                round_number = min((r["attempt"] for r in [*pending, *active.values()]), default=None)
+                candidate = next((r for r in pending if r["attempt"] == round_number and r["arm"] not in arms), None)
                 if candidate is None:
                     break
                 pending.remove(candidate)
@@ -505,7 +506,7 @@ def prepare_review_packets(root: Path, manifest: dict, coordinator: LedgerCoordi
             source_check({**state, "source": str(source)}, corpus)
             result = route_grading.build_review_packet(root,
                 next(q for q in dataset["questions"] if q["id"] == row["question_id"]), row, source,
-                manifest["run_specs"][row["arm"]], Path(row["raw_seal"]), corpus)
+                manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])], Path(row["raw_seal"]), corpus)
             row.update(result)
         except Exception as exc:
             row.update(grade_state="failed", grade_reason=str(exc))

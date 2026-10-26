@@ -14,6 +14,7 @@ DATASET_MANIFEST_SHA256 = "45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc
 TARGET_LOCK_SHA256 = "7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549"
 QUESTION_IDS = ("alerting-alertmanager", "live-plugin-stream")
 REPETITIONS = 3
+MEASUREMENT_MODES = ("direct", "codemode")
 ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
 DATA = settings.ROOT / "data/grafana-routes-v3"
 TARGETS = settings.ROOT / "data/grafana-comparison-targets-v1"
@@ -98,6 +99,7 @@ def load_profile() -> dict:
     profile = read_json(PROFILE_PATH)
     require(profile["schema_version"] == 1 and profile["profile"] == PROFILE, "route 프로필 버전 오류")
     require(tuple(profile["arm_ids"]) == ARM_IDS and profile["repetitions"] == REPETITIONS, "문항별 반복 계획 변경")
+    require(tuple(profile["measurement_modes"]) == MEASUREMENT_MODES, "측정 모드 계약 변경")
     require(profile["concurrency"] == 4 and type(profile["seed"]) is int, "route 동시 실행 수/seed 변경")
     require(profile["solver"] == {"model": "gpt-6.1-sol", "reasoning_effort": "medium"}, "풀이 모델 계약 변경")
     require(profile["solver_choices"] == [
@@ -148,6 +150,11 @@ def contract() -> dict:
     return value
 
 
+def execution_key(arm: str, mode: str) -> str:
+    require(arm in ARM_IDS and mode in MEASUREMENT_MODES, "unknown arm/mode")
+    return f"{arm}/{mode}"
+
+
 def schedule() -> list[dict]:
     profile = load_profile()
     rng = random.Random(profile["seed"])
@@ -157,11 +164,11 @@ def schedule() -> list[dict]:
         questions = list(QUESTION_IDS)
         rng.shuffle(questions)
         for question in questions:
-            arms = list(ARM_IDS)
-            rng.shuffle(arms)
-            rows.extend({"id": f"{question}-{arm}-{attempt}", "question_id": question, "arm": arm,
-                         "attempt": attempt, "status": "planned"} for arm in arms)
-    require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS) * profile["repetitions"],
+            conditions = [(arm, mode) for arm in ARM_IDS for mode in profile["measurement_modes"]]
+            rng.shuffle(conditions)
+            rows.extend({"id": f"{question}-{arm}-{mode}-{attempt}", "question_id": question, "arm": arm,
+                         "mode": mode, "attempt": attempt, "status": "planned"} for arm, mode in conditions)
+    require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS) * profile["repetitions"] * len(MEASUREMENT_MODES),
             "계획 슬롯 오류")
     return rows
 

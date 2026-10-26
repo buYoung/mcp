@@ -116,7 +116,7 @@ class MCPClient:
         if message["method"] == "roots/list":
             response = {"result": {"roots": [{"uri": self.root.as_uri(), "name": "source"}]}}
         else:
-            response = {"error": {"code": -32601, "message": "This local benchmark host does not provide sampling or external services."}}
+            response = {"error": {"code": -32601, "message": "This local host does not provide sampling or external services."}}
         self._send({"jsonrpc": "2.0", "id": message["id"], **response})
 
     def _http(self, message: dict) -> dict | None:

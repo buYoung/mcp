@@ -105,6 +105,132 @@ class BenchChecks(unittest.TestCase):
         self.temporary.cleanup()
 
 
+    def test_measurement_modes_schedule_and_report_are_separate(self):
+        from . import route_contract as routes, route_metrics
+        rows = routes.schedule()
+        expected = len(routes.QUESTION_IDS) * len(routes.ARM_IDS) * routes.REPETITIONS * len(routes.MEASUREMENT_MODES)
+        self.assertEqual(len(rows), expected)
+        self.assertEqual(len({row["id"] for row in rows}), expected)
+        self.assertEqual([row["attempt"] for row in rows], sorted(row["attempt"] for row in rows))
+        for row in rows:
+            self.assertIn(f"-{row['mode']}-", row["id"])
+        report = route_metrics.report(self.root, {}, [], {})
+        self.assertNotIn("quality", report)
+        self.assertNotIn("arms", report)
+        for mode in routes.MEASUREMENT_MODES:
+            for arm in routes.ARM_IDS:
+                self.assertEqual(report["modes"][mode]["arms"][arm]["planned"], len(routes.QUESTION_IDS) * routes.REPETITIONS)
+
+    def test_schedule_workers_serializes_arms_and_rounds(self):
+        from . import execution, route_contract as routes
+        from types import SimpleNamespace
+        lock = threading.Lock()
+        active, finished, maximum = set(), [], [0]
+        rows = routes.schedule()
+        def worker(row):
+            with lock:
+                self.assertNotIn(row["arm"], active)
+                self.assertTrue(all(r in finished for r in [s["id"] for s in rows if s["attempt"] < row["attempt"]]))
+                active.add(row["arm"])
+                maximum[0] = max(maximum[0], len(active))
+            time.sleep(.002)
+            with lock:
+                active.remove(row["arm"])
+                finished.append(row["id"])
+        coordinator = SimpleNamespace(drain=lambda: None, fatal=False, ledger={})
+        execution.schedule_workers(rows, coordinator, threading.Event(), worker)
+        self.assertNotIn("error", coordinator.ledger)
+        self.assertEqual(len(finished), len(rows))
+        self.assertLessEqual(maximum[0], 4)
+
+    def test_pi_audit_native_provenance_never_exempts_user_or_paths(self):
+        from . import pi_audit
+        native = {"initialize": {"instructions": "Use Serena to inspect source."}, "tools": []}
+        body = {"instructions": "Header\nUse Serena to inspect source.", "input": [{"role": "user", "content": "Inspect source."}]}
+        self.assertEqual(pi_audit.audit_request(body, native), [])
+        body["input"][0]["content"] = "Use Serena to inspect source."
+        self.assertTrue(pi_audit.audit_request(body, native))
+        self.assertTrue(pi_audit.audit_text("SMOKE grafana alerting-alertmanager"))
+        text = "Source: file:///tmp/%62ench/private.txt"
+        native["initialize"]["instructions"] = text
+        self.assertTrue(any(v["kind"] == "absolute_path" for v in pi_audit.audit_text(text, inventory=native, product_owned=True)))
+        body = {"instructions": "neutral", "metadata": {"path": "/tmp/graphify/data"}}
+        self.assertTrue(pi_audit.audit_request(body, {}))
+
+    def test_pi_audit_checks_every_system_patch_and_full_user(self):
+        from . import pi_audit
+        folder = self.root / "audit"
+        session = folder / "pi-session"
+        session.mkdir(parents=True)
+        rows = [{"type": "message", "message": {"role": "system", "sections": {"cwd": "/neutral/work"}}},
+                {"type": "message", "message": {"role": "user", "content": "Inspect source."}}]
+        path = session / "session.jsonl"
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        self.assertTrue(pi_audit.audit_session(folder, {})["passed"])
+        rows.append({"type": "message", "message": {"role": "system", "sections": {"rules": "Grafana hint"}}})
+        path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        result = pi_audit.audit_session(folder, {})
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["system_messages_including_patches"], 2)
+
+    def test_read_ranges_policy_uses_each_advertised_path_without_rewriting(self):
+        from .isolation import RelayPolicy
+        source = self.root / "source"
+        source.mkdir()
+        (source / "a.py").write_text("pass\n")
+        schema = {"name": "read", "inputSchema": {"properties": {"file_path": {"type": "string"},
+                  "ranges": {"type": "array", "minItems": 1, "maxItems": 20}}}}
+        policy = RelayPolicy("codemap-search", {"source": str(source)}, [schema], tracked=["a.py"])
+        for alias in ("file_path", "path", "file", "query"):
+            args = {"ranges": [{alias: "a.py", "offset": 1, "limit": 1}, {alias: (source / "a.py").as_uri()}]}
+            original = copy.deepcopy(args)
+            policy.validate("read", args)
+            self.assertEqual(args, original)
+            for bad in ("../private", ".git/config", "/tmp/private"):
+                with self.assertRaises(ContractError):
+                    policy.validate("read", {"ranges": [{alias: "a.py"}, {alias: bad}]})
+        for args in ({"ranges": []}, {"ranges": [{"file_path": "a.py"}] * 21},
+                     {"ranges": [{"file_path": "a.py"}], "file_path": "a.py"},
+                     {"ranges": [{"path": "a.py", "file": "../private"}]}):
+            with self.assertRaises(ContractError):
+                policy.validate("read", args)
+        nullable = {"file_path": "a.py", "ranges": None}
+        policy.validate("read", nullable)
+        self.assertEqual(nullable, {"file_path": "a.py", "ranges": None})
+        with self.assertRaises(ContractError):
+            policy.validate("read", {"file_path": "../private", "ranges": None})
+        schema["inputSchema"]["properties"].pop("ranges")
+        with self.assertRaises(ContractError):
+            policy.validate("read", {"ranges": [{"file_path": "a.py"}]})
+
+    def test_pi_observations_separate_model_tools_and_script_envelopes(self):
+        from .route_metrics import pi_observations
+        events = [{"type": "turn_start"},
+                  {"type": "message_end", "message": {"role": "assistant", "durationMs": 250}},
+                  {"type": "tool_execution_start", "toolName": "codemode"},
+                  {"type": "tool_execution_start", "toolName": "navigation_read", "parentToolCallId": "script"},
+                  {"type": "tool_execution_end", "toolName": "navigation_read", "result": {"details": {"outputGuard": {"truncated": True}}}},
+                  {"type": "tool_execution_end", "toolName": "codemode", "result": {"content": [{"text": "Warning: truncated output (original token count: 20000)"}]}},
+                  {"type": "turn_end"}, {"type": "agent_settled"}]
+        (self.root / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+        calls = [{"arm": "codemap-search", "arguments": {"include_seen": True}, "dispatched": True, "duration_seconds": .5}]
+        observed = pi_observations(self.root, calls, call_log_complete=True)
+        self.assertEqual(observed["model_seconds"], .25)
+        self.assertEqual(observed["tool_seconds"], .5)
+        self.assertEqual(observed["tool_calls_per_turn"], [1])
+        self.assertEqual(observed["model_tool_calls_per_turn"], [1])
+        for key in ("adapter_output_guard_truncated", "codemode_output_truncated", "include_seen_true_calls"):
+            self.assertEqual(observed[key], 1)
+
+    def test_pi_output_guard_covers_native_utf8_budgets(self):
+        from .pi_client import adapter_settings
+        self.assertGreaterEqual(adapter_settings("codemap-search")["outputGuard"]["maxBytes"], 100000)
+        self.assertGreaterEqual(adapter_settings("serena")["outputGuard"]["maxBytes"], len(("😀" * 150000).encode()))
+        for arm in ("codemap-search", "serena", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp"):
+            config = adapter_settings(arm)
+            self.assertFalse(config["semanticSearch"])
+            self.assertGreater(config["outputGuard"]["maxLines"], config["outputGuard"]["maxBytes"])
+
     def test_snapshot_tracks_dirty_new_deleted_and_git_reference(self):
         repo = self.root / "repo"
         crate = repo / "apps/codemap-search"

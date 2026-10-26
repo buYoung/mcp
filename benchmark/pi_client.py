@@ -20,19 +20,30 @@ TOKEN_ENV = "CODEMAP_BENCH_PI_TOKEN"
 NATIVE_TOOLS = ("bash",)
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
 NAVIGATION_SERVER = "navigation"
-# pi-mcp-adapter keeps its defaults (direct-tool output guard 50 KiB / 2,000 lines) except settings that would
-# reach the network or keychain, install or save tools, ask the model or user on a server's behalf, or cut a
-# tool call shorter than the harness-wide 300 s limit.
-ADAPTER_SETTINGS = {"jev": False, "allowInstall": False, "allowScriptToolSave": False, "autoAuth": False,
-                    "sampling": False, "elicitation": False, "requestTimeoutMs": 300000}
+# Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
+# Serena counts Unicode characters: at most four UTF-8 bytes per character.
+OUTPUT_GUARD_BYTES = {"codemap-search": 100000, "serena": 150000 * 4}
+ADAPTER_SETTINGS = {"semanticSearch": False, "allowInstall": False, "allowScriptToolSave": False, "autoAuth": False,
+                    "sampling": False, "elicitation": False, "requestTimeoutMs": 300000,
+                    "outputGuard": {"maxBytes": 1024 * 1024, "maxLines": 1024 * 1024 + 1}}
 # The warm-host shim accepts one connection. "keep-alive" also connects at extension load and again for the
 # session, so the second connection fails; "lazy-keep-alive" connects once at session start and stays connected.
 # Tools are declared directly instead of through `mcp`.
 ADAPTER_SERVER = {"lifecycle": "lazy-keep-alive", "directTools": True}
 
 
+def adapter_settings(arm: str) -> dict:
+    maximum = OUTPUT_GUARD_BYTES.get(arm, ADAPTER_SETTINGS["outputGuard"]["maxBytes"])
+    return {**ADAPTER_SETTINGS, "outputGuard": {"maxBytes": maximum, "maxLines": maximum + 1}}
+
+
+def navigation_tool_names(name: str) -> set[str]:
+    # Deferred adapter tools use the same server/relay as direct aliases.
+    return {navigation_tool_name(name), f"mcp__{NAVIGATION_SERVER}__{name}"}
+
+
 def navigation_tool_name(name: str) -> str:
-    """pi-mcp-adapter 6.0.0 formatToolName with the default "server" prefix."""
+    """pi-mcp-adapter 7.0.0 formatToolName with the default "server" prefix."""
     sanitized, prefix = name.replace(".", "_"), NAVIGATION_SERVER + "_"
     return sanitized if sanitized.startswith(prefix) and len(sanitized) > len(prefix) else prefix + sanitized
 
@@ -44,7 +55,7 @@ def server_instructions_prompt(instructions: str) -> str:
 
 
 def private_root(folder: Path) -> Path:
-    """Solver-visible scratch (TMPDIR, shell HOME, rg copy) uses an opaque cache name, never the slot path."""
+    """Solver-visible cwd and scratch (TMPDIR, shell HOME, rg copy) uses an opaque cache name, never the slot path."""
     from .settings import CACHE
     root = CACHE / digest({"private_root": str(folder.resolve())})[:16]
     require(not root.is_symlink(), "private root symlink 금지")
@@ -52,7 +63,7 @@ def private_root(folder: Path) -> Path:
     root.chmod(0o700)
     record = folder / "private-root.json"
     if not record.exists():
-        write_json(record, {"path": str(root), "purpose": "solver-visible TMPDIR, shell HOME and rg copy"})
+        write_json(record, {"path": str(root), "purpose": "solver-visible cwd, TMPDIR, shell HOME and rg copy"})
     require(read_json(record)["path"] == str(root), "private root binding 변경")
     return root
 
@@ -179,7 +190,7 @@ def capabilities() -> dict:
             "model_free_probes": probes, "model_invocations": 0,
             "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi default",
                          "mcp_client": f"pi-mcp-adapter {tools['versions']['mcp_adapter']} defaults except {sorted(ADAPTER_SETTINGS)}",
-                         "mcp_output_guard": "adapter default: 50 KiB / 2,000 lines head preview; full text spilled under TMPDIR"}}
+                         "mcp_output_guard": {"default": ADAPTER_SETTINGS["outputGuard"], "per_arm_bytes": OUTPUT_GUARD_BYTES}}}
 
 
 def configuration(source: Path, rg_binary: Path) -> dict:
@@ -223,6 +234,7 @@ def shell_wrapper(native: dict, folder: Path) -> Path:
     profile = baseline_boundary(native, folder)
     config = folder / "pi-bash.json"
     (folder / "bash-calls.jsonl").touch(exist_ok=False)
+    (folder / "bash-results.jsonl").touch(exist_ok=False)
     write_json(config, {"folder": str(folder), "profile": profile, "limit": 80}, exclusive=True)
     wrapper = folder / "pi-shell"
     wrapper.write_text(f"#!{sys.executable}\nimport sys\nsys.path.insert(0, {str(Path(__file__).resolve().parent.parent)!r})\n"
@@ -263,17 +275,30 @@ def shell_main(config_path: str, args: list[str]) -> None:
     profile = config["profile"]
     command = wrap(["/usr/bin/env", "-i", *[f"{k}={v}" for k, v in profile["env"].items()],
                     "/bin/bash", "--noprofile", "--norc", "-c", args[1]], profile)
-    os.execve(command[0], command, {})
+    started = time.monotonic()
+    try:
+        result = subprocess.run(command, env={}, cwd=profile["source"])
+        code = result.returncode
+    except BaseException:
+        code = None
+        raise
+    finally:
+        with navigation_lock(folder):
+            append_jsonl(folder / "bash-results.jsonl", {"id": ident, "started_monotonic": started,
+                "finished_monotonic": time.monotonic(), "exit_code": code})
+    raise SystemExit(code if code >= 0 else 128 - code)
 
 
 def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None,
            local_endpoint: str | None = None, local_home: Path | None = None) -> tuple[list[str], Path, dict]:
     from .tool_artifacts import pi_toolchain
     tools = pi_toolchain()
+    require(tools["versions"]["mcp_adapter"] == "7.0.0", "pi-mcp-adapter 7.0.0 lock required")
     folder = folder.resolve()
     native = spec.get("native_agent")
-    workspace = Path(native["source"]) if native else folder / "workspace"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = private_root(folder) / "work"
+    require(not workspace.is_symlink(), "pi cwd symlink 금지")
+    workspace.mkdir(parents=True, exist_ok=True, mode=0o700)
     require(not native or native.get("backend") == BACKEND and not relay_settings, "pi 기준군 설정 오류")
     agent, tmp, sessions = folder / "pi-agent", private_root(folder) / "tmp", folder / "pi-session"
     for path in (agent, tmp, sessions):
@@ -282,20 +307,31 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         path.chmod(0o700)
     provider = spec["provider"]
     settings = {"shellPath": str(shell_wrapper(native, folder))} if native else {}
+    mode = spec.get("measurement_mode", "direct")
+    require(mode in {"direct", "codemode"}, "unknown measurement mode")
+    if mode == "codemode":
+        settings.update(defaultTools=["+codemode"], codemode={"mode": "only"})
     model_endpoint = local_endpoint if provider == "openai-codex" else None
     write_models(agent, provider, local_endpoint=model_endpoint)
     write_json(agent / "settings.json", settings, exclusive=True)
     args = [tools["node"], tools["pi_cli"], *PRIVATE_FLAGS, "--provider", provider, "--model", spec["model"],
             "--thinking", spec["reasoning_effort"], "--session-dir", str(sessions)]
+    if mode == "codemode":
+        # Built-in is replaceable; keep pi's implementation, disabling only out-of-budget model APIs.
+        extension = agent / "script-tools.mjs"
+        factory = Path(tools["pi_cli"]).parent / "extensions/codemode/index.js"
+        extension.write_text("import {createCodemodeExtension} from " + json.dumps(str(factory)) +
+                             ";\nexport default createCodemodeExtension({models:false});\n")
+        args += ["-e", str(extension)]
     instructions = None
     if relay_settings:
         require(server is not None, "pi MCP requires warm-host attachment")
         adapter_config = agent / "mcp-adapter.json"
-        write_json(adapter_config, {"settings": ADAPTER_SETTINGS, "mcpServers": {NAVIGATION_SERVER: {
+        write_json(adapter_config, {"settings": adapter_settings(relay_settings["arm"]), "mcpServers": {NAVIGATION_SERVER: {
             **{k: server[k] for k in ("command", "args", "env")}, **ADAPTER_SERVER}}}, exclusive=True)
         product_tools = [navigation_tool_name(name) for name in relay_settings["enabled_tools"]]
         require(len(set(product_tools)) == len(product_tools), "navigation 도구 이름 충돌")
-        args += ["-e", tools["mcp_adapter_extension"], "--mcp-config", str(adapter_config), "--tools", ",".join(product_tools)]
+        args += ["-e", tools["mcp_adapter_extension"], "--mcp-config", str(adapter_config), "--tools", ",".join([*product_tools, *(["codemode"] if mode == "codemode" else [])])]
         instructions = server.get("instructions") or ""
         require(isinstance(instructions, str), "server instructions 형식 오류")
         if instructions.strip():
@@ -311,8 +347,13 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         write_json(agent / "claude-bridge.json", {"provider": {"pathToClaudeCodeExecutable": tools["claude_code_binary"]}}, exclusive=True)
         args += ["-e", tools["bridge_extension"]]
     if not relay_settings:
-        args += ["--no-mcp", "--tools", "bash"] if native else ["--no-mcp", "--no-tools"]
-    token = operator_token(provider) if provider == "openai-codex" else None
+        args += ["--no-mcp", "--tools", "bash,codemode" if mode == "codemode" else "bash"] if native else ["--no-mcp", "--no-tools"]
+    # A loopback-only test launch must never touch operator credentials.
+    if provider == "openai-codex" and local_endpoint is not None:
+        from .pi_audit import dummy_token
+        token = dummy_token()
+    else:
+        token = operator_token(provider) if provider == "openai-codex" else None
     env = environment(agent_dir=agent, tmp=tmp, provider=provider, token=token,
                       local_endpoint=local_endpoint if provider == "claude-bridge" else None, local_home=local_home)
     if relay_settings:
@@ -322,9 +363,10 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         env["MCP_DIRECT_TOOLS"] = NAVIGATION_SERVER
     validate_models(agent, provider, local_endpoint=model_endpoint)
     write_json(folder / "pi-policy.json", {"toolchain": tools, "provider": provider, "flags": PRIVATE_FLAGS,
-        "requested_model": requested_model(provider, spec["model"]),
+        "requested_model": requested_model(provider, spec["model"]), "measurement_mode": mode,
+        "codemode_models": False if mode == "codemode" else None,
         "mcp_client": ({"extension": "pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"], "config_mode": "exclusive",
-                        "settings": ADAPTER_SETTINGS, "server": ADAPTER_SERVER, "tools": product_tools,
+                        "settings": adapter_settings(relay_settings["arm"]), "server": ADAPTER_SERVER, "tools": product_tools,
                         "server_instructions_sha256": digest(instructions) if instructions else None,
                         "server_instructions": "appended to the system prompt" if instructions and instructions.strip() else "none provided"}
                        if relay_settings else None),
