@@ -13,7 +13,7 @@ import unicodedata
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .core import digest, file_digest, metric, ratio, read_json, require, write_json
+from .core import canonical, digest, file_digest, metric, ratio, read_json, require, write_json
 
 BACKEND = "pi"
 TOKEN_ENV = "CODEMAP_BENCH_PI_TOKEN"
@@ -21,8 +21,8 @@ NATIVE_TOOLS = ("bash",)
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
 NAVIGATION_SERVER = "navigation"
 # Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
-# Serena counts Unicode characters: at most four UTF-8 bytes per character.
-OUTPUT_GUARD_BYTES = {"codemap-search": 100000, "serena": 150000 * 4}
+# Serena's 150k Unicode characters appear in both text and appended structuredContent.
+OUTPUT_GUARD_BYTES = {"codemap-search": 100000, "serena": 1250000}
 ADAPTER_SETTINGS = {"semanticSearch": False, "allowInstall": False, "allowScriptToolSave": False, "autoAuth": False,
                     "sampling": False, "elicitation": False, "requestTimeoutMs": 300000,
                     "outputGuard": {"maxBytes": 1024 * 1024, "maxLines": 1024 * 1024 + 1}}
@@ -296,7 +296,7 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     require(tools["versions"]["mcp_adapter"] == "7.0.0", "pi-mcp-adapter 7.0.0 lock required")
     folder = folder.resolve()
     native = spec.get("native_agent")
-    workspace = private_root(folder) / "work"
+    workspace = Path(native["source"]) if native else private_root(folder) / "work"
     require(not workspace.is_symlink(), "pi cwd symlink 금지")
     workspace.mkdir(parents=True, exist_ok=True, mode=0o700)
     require(not native or native.get("backend") == BACKEND and not relay_settings, "pi 기준군 설정 오류")
@@ -434,13 +434,14 @@ def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | N
             clean = redact(original, token)
             if clean != original:
                 path.write_bytes(clean)
-    removed = None
+    removed, persisted = None, None
     if provider == "claude-bridge":
         real = unicodedata.normalize("NFC", str(workspace.resolve()))
         slug = claude_project_slug(workspace)
         projects = (home or Path(pwd.getpwuid(os.getuid()).pw_dir)).resolve() / ".claude/projects"
         target = projects / slug
         require(target.name == slug and target.parent == projects and not target.is_symlink(), "Claude residue 경로 오류")
+        persisted = {"count": 0, "bytes": 0}
         if target.exists():
             # A slug is lossy. Refuse deletion unless every session header observed binds to this cwd.
             files = list(target.glob("*.jsonl"))
@@ -450,21 +451,105 @@ def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | N
                 rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
                 cwds = {unicodedata.normalize("NFC", r["cwd"]) for r in rows if isinstance(r.get("cwd"), str)}
                 require(cwds == {real}, "Claude residue workspace binding 불일치")
+            # Count metadata only, after validating all session cwd bindings and before deleting this slug.
+            for path in files:
+                session = target / path.stem
+                results = session / "tool-results"
+                require(not session.is_symlink() and not results.is_symlink(), "Claude tool-results link 금지")
+                for result in results.rglob("*"):
+                    require(not result.is_symlink(), "Claude tool-results link 금지")
+                    if result.is_file():
+                        info = result.stat()
+                        require(info.st_nlink == 1, "Claude tool-results hard link 금지")
+                        persisted["count"] += 1
+                        persisted["bytes"] += info.st_size
             shutil.rmtree(target)
             removed = str(target)
-    return {"complete": True, "removed_project": removed, "claude_json_modified_by_harness": False}
+    return {"complete": True, "removed_project": removed, "claude_json_modified_by_harness": False,
+            "claude_persisted_tool_results": persisted}
+
+
+def reconcile_script_cancellations(items: dict, parent: dict) -> None:
+    """Pinned pi uses parent/? for aborted calls; require a complete signature/multiplicity match."""
+    pending = {key: item for key, item in items.items() if item.get("parentToolCallId") == parent["id"]}
+    cancelled = []
+    summary = []
+    for call in parent.get("result", {}).get("details", {}).get("calls", []):
+        try:
+            summary.append((call, json.loads(call["args"])))
+        except (ValueError, KeyError, TypeError):
+            continue
+    def mark(item):
+        starts = [entry for entry in items.values() if entry.get("parentToolCallId") == parent["id"]
+                  and entry["name"] == item["name"] and canonical(entry["input"]) == canonical(item["input"])]
+        matches = [call for call, args in summary if call.get("name") == item["name"] and canonical(args) == canonical(item["input"])]
+        item.update(completed=True, status="cancelled", cancellation_evidence=parent["id"],
+                    cancellation_match="parent+name+args unique" if len(starts) == len(matches) == 1 else "parent+name+args multiplicity")
+    for call, arguments in summary:
+        ident = call.get("id")
+        item = pending.get(ident)
+        if item and item["name"] == call.get("name") and canonical(item["input"]) == canonical(arguments):
+            pending.pop(ident)
+            if call.get("status") == "cancelled":
+                mark(item)
+        elif call.get("status") == "cancelled" and ident == parent["id"] + "/?":
+            cancelled.append((call.get("name"), arguments))
+    signatures = {(name, json.dumps(args, sort_keys=True)) for name, args in cancelled}
+    for name, encoded in signatures:
+        arguments = json.loads(encoded)
+        matches = [item for item in pending.values() if item["name"] == name and canonical(item["input"]) == canonical(arguments)]
+        count = sum(n == name and canonical(args) == canonical(arguments) for n, args in cancelled)
+        if len(matches) == count:
+            for item in matches:
+                mark(item)
+
+
+def cancelled_before_admission(items: list[dict], admissions: list[dict], *, native: bool,
+                               enabled_tools: list[str] | tuple[str, ...] = ()) -> dict:
+    """Only unique parent/name/args cancellation evidence can explain a missing atomic admission."""
+    aliases = {alias: name for name in enabled_tools for alias in navigation_tool_names(name)}
+    calls, ambiguous = [], []
+    for item in items:
+        if item.get("status") != "cancelled":
+            continue
+        if native and item["name"] == "bash":
+            admitted = sum(row.get("command") == item["input"].get("command") for row in admissions)
+            starts = sum(other["name"] == "bash" and other["input"].get("command") == item["input"].get("command") for other in items)
+        elif not native and item["name"] in aliases:
+            admitted = sum(row.get("method") == "tools/call" and row.get("tool") == aliases[item["name"]]
+                           and canonical(row.get("arguments")) == canonical(item["input"]) for row in admissions)
+            starts = sum(aliases.get(other["name"]) == aliases[item["name"]] and canonical(other["input"]) == canonical(item["input"]) for other in items)
+        else:
+            continue
+        if admitted:
+            if admitted < starts:
+                ambiguous.append(item["id"])
+            continue
+        if item.get("cancellation_match") != "parent+name+args unique":
+            ambiguous.append(item["id"])
+            continue
+        calls.append({"id": item["id"], "parentToolCallId": item["parentToolCallId"], "name": item["name"], "arguments": item["input"],
+                      "match": item["cancellation_match"], "dispatched": False, "budget_consumed": False})
+    return {"calls": calls, "ambiguous": ambiguous}
+
+
+def observe_tool_event(items: dict, event: dict) -> None:
+    ident = event["toolCallId"]
+    if event["type"] == "tool_execution_start":
+        items[ident] = {"id": ident, "name": event["toolName"], "input": event.get("args", {}), "completed": False,
+                        "parentToolCallId": event.get("parentToolCallId")}
+    else:
+        item = items.setdefault(ident, {"id": ident, "name": event.get("toolName"), "input": {}, "missing_start": True})
+        item.update(completed=True, result={**event.get("result", {}), "is_error": event.get("isError", False)})
+        if item["name"] == "codemode":
+            reconcile_script_cancellations(items, item)
 
 
 def tool_items(events: list[dict]) -> list[dict]:
     items = {}
     for event in events:
-        if event.get("type") == "tool_execution_start":
-            ident = event["toolCallId"]
-            items[ident] = {"id": ident, "name": event["toolName"], "input": event.get("args", {}), "completed": False}
-        elif event.get("type") == "tool_execution_end":
-            ident = event["toolCallId"]
-            item = items.setdefault(ident, {"id": ident, "name": event.get("toolName"), "input": {}, "missing_start": True})
-            item.update(completed=True, result={**event.get("result", {}), "is_error": event.get("isError", False)})
+        if event.get("type") in {"tool_execution_start", "tool_execution_end"}:
+            observe_tool_event(items, event)
     return list(items.values())
 
 
@@ -542,13 +627,8 @@ class EventState:
                 else:
                     self.errors.append("aborted assistant response")
             self._usage(message.get("usage"), failed=failed)
-        elif kind == "tool_execution_start":
-            self.tools[event["toolCallId"]] = {"id": event["toolCallId"], "name": event["toolName"],
-                                                "input": event.get("args", {}), "completed": False}
-        elif kind == "tool_execution_end":
-            ident = event["toolCallId"]
-            item = self.tools.setdefault(ident, {"id": ident, "name": event.get("toolName"), "input": {}, "missing_start": True})
-            item.update(completed=True, result={**event.get("result", {}), "is_error": event.get("isError", False)})
+        elif kind in {"tool_execution_start", "tool_execution_end"}:
+            observe_tool_event(self.tools, event)
         elif kind == "auto_retry_start":
             self.retry_attempts += 1
             if self.unretried_errors != 1 or not self.last_assistant or self.last_assistant.get("stopReason") != "error":

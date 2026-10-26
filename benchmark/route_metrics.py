@@ -216,7 +216,8 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
 
 def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
     """The wrapper owns admission IDs; repeated commands have no invented event-ID join."""
-    from .pi_client import tool_items
+    import re
+    from .pi_client import cancelled_before_admission, tool_items
     from .runner import read_live_jsonl, read_jsonl_prefix
     runtime = read_json(folder / "runtime.json")
     items = tool_items(read_live_jsonl(folder / "events.jsonl"))
@@ -228,31 +229,37 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
     items = [item for item in items if item["name"] == "bash"]
     finishes, finish_state = read_jsonl_prefix(folder / "bash-results.jsonl")
     by_id = {row["id"]: row for row in finishes}
+    cancellations = cancelled_before_admission(items, admissions, native=True)
+    before_admission = {item["id"] for item in cancellations["calls"]}
     by_command = collections.defaultdict(list)
     for item in items:
-        by_command[item["input"].get("command")].append(item)
+        if item["id"] not in before_admission:
+            by_command[item["input"].get("command")].append(item)
     counts = collections.Counter(row["command"] for row in admissions)
     matched = counts == collections.Counter({command: len(values) for command, values in by_command.items()})
     if not matched:
         violations.append({"reason": "wrapper admission/tool_execution_start command inventory mismatch"})
-    complete = (collected_call_logs(folder, runtime, ("events.jsonl",)) and matched
+    complete = (collected_call_logs(folder, runtime, ("events.jsonl",)) and matched and not cancellations["ambiguous"]
                 and read_jsonl_prefix(folder / "bash-calls.jsonl")[1]["complete"]
-                and all(item["completed"] and not item.get("missing_start") for item in items)
-                and finish_state["complete"] and len(by_id) == len(finishes)
-                and set(by_id) == {row["id"] for row in admissions if row["dispatched"]})
+                and all(item["completed"] and not item.get("missing_start") for item in items))
+    timing_complete = finish_state["complete"] and len(by_id) == len(finishes)
+    timing_complete = timing_complete and set(by_id) <= {row["id"] for row in admissions if row["dispatched"]}
     calls = []
     for row in admissions:
-        finish = by_id.get(row["id"])
+        finish = by_id.get(row["id"]) if timing_complete else None
         candidates = by_command[row["command"]]
         item = candidates[0] if len(candidates) == counts[row["command"]] == 1 else None
         result = item.get("result") if item else None
         text = "\n".join(block.get("text", "") for block in (result or {}).get("content", []) if block.get("type") == "text") if result else None
+        killed = bool(not finish and item and (item.get("status") == "cancelled" or
+                      result and result.get("is_error") and re.search(r"(?:^|\n)Command (?:aborted|timed out after [0-9.]+ seconds)$", text or "")))
         calls.append({**row, "arm": "rg", "arguments": {"command": row["command"]}, "is_auxiliary": False,
-            "status": "rejected" if not row["dispatched"] else "unknown" if result is None else "error" if result.get("is_error") else "success",
+            "status": "rejected" if not row["dispatched"] else "killed" if killed else "unknown" if result is None else "error" if result.get("is_error") else "success",
             "completed": bool(item and item["completed"]), "native_item": item,
             "raw_result": None, "relay_result": None, "raw_json_bytes": None, "relay_json_bytes": None,
             "relay_loss": None, "native_truncated": None, "delivered_lines": None,
             "duration_seconds": finish["finished_monotonic"] - finish["started_monotonic"] if finish else None,
+            "duration_missing_reason": None if finish else "wrapper killed; pi timeout/abort observed" if killed else "wrapper finish unobserved or invalid",
             "native_output_bytes": len(text.encode()) if text is not None else None,
             "client_delivery": {"status": "client_stream_observed" if text is not None else "unknown", "complete": None,
                 "reason": "Unique command matched; provider input unobserved." if item else "Repeated/unmatched command; no invented wrapper/event ID association."}})
@@ -303,6 +310,10 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                                               "reason": "CLI stream is observed; the complete provider input is not observed."}})
     if not native:
         requests, results, errors, terminals, transcript_complete = relay_call_records(folder)
+        if is_pi:
+            from .pi_client import cancelled_before_admission
+            cancellations = cancelled_before_admission(items, list(requests.values()), native=False, enabled_tools=configured["enabled_tools"])
+            complete = complete and not cancellations["ambiguous"]
         complete = complete and transcript_complete and runtime.get("shutdown", {}).get("relay_cleanup", {}).get("complete", False)
         # Relay records keep the product tool name; client items carry the client's prefixed name.
         signature = lambda tool, args: (tool, json.dumps(args, sort_keys=True, ensure_ascii=False))
@@ -341,18 +352,22 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
 
 
 def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool) -> dict:
-    from .pi_client import assistant_messages
+    from .pi_client import assistant_messages, cancelled_before_admission, tool_items
     from .runner import read_jsonl_prefix
     events, collection = read_jsonl_prefix(folder / "events.jsonl")
     per_turn, model_calls = [], []
-    guard = script_truncations = 0
+    guard = script_truncations = direct_calls = 0
+    policy = read_json(folder / "pi-policy.json") if (folder / "pi-policy.json").exists() else {}
     for event in events:
         if event.get("type") == "turn_start":
             per_turn.append(0)
             model_calls.append(0)
-        elif event.get("type") == "tool_execution_start" and per_turn:
-            per_turn[-1] += event["toolName"] != "codemode"
-            model_calls[-1] += not event.get("parentToolCallId")
+        elif event.get("type") == "tool_execution_start":
+            outside_script = not event.get("parentToolCallId")
+            direct_calls += outside_script and event["toolName"] != "codemode"
+            if per_turn:
+                per_turn[-1] += event["toolName"] != "codemode"
+                model_calls[-1] += outside_script
         elif event.get("type") == "tool_execution_end":
             result = event.get("result", {})
             guard += result.get("details", {}).get("outputGuard", {}).get("truncated") is True
@@ -365,16 +380,28 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
     known = [v for v in durations if type(v) in (int, float) and v >= 0]
     dispatched = [c for c in calls if c.get("dispatched") and not c.get("discovery")]
     tool_durations = [c["duration_seconds"] for c in dispatched if c.get("duration_seconds") is not None]
+    native = (folder / "native-agent.json").exists()
+    enabled = read_json(folder / "relay-settings.json")["enabled_tools"] if (folder / "relay-settings.json").exists() else []
+    admissions = read_jsonl_prefix(folder / ("bash-calls.jsonl" if native else "relay.jsonl"))[0]
+    if not native:
+        admissions = [row for row in admissions if row.get("event") == "attempt"]
+    cancellations = cancelled_before_admission(tool_items(events), admissions, native=native, enabled_tools=enabled)
     return {"turns": len(per_turn) if events else None, "turns_complete": collection["complete"] and
                 sum(e.get("type") == "turn_end" for e in events) == len(per_turn),
             "tool_calls_per_turn": per_turn, "tool_calls_per_turn_histogram": dict(collections.Counter(map(str, per_turn))),
             "model_tool_calls_per_turn": model_calls,
+            "direct_calls_outside_script": direct_calls if events and policy.get("measurement_mode") == "codemode" else None,
+            "cancelled_before_admission": len(cancellations["calls"]) if events else None,
+            "cancelled_before_admission_calls": cancellations["calls"],
+            "ambiguous_cancellation_ids": cancellations["ambiguous"],
             "call_distribution_basis": "pi tool_execution_start: direct/nested attempts excluding script envelopes; not authoritative admission",
             "event_metrics_complete": events_complete, "call_metrics_complete": call_log_complete,
             "model_seconds": sum(known) / 1000 if events_complete and messages and len(known) == len(messages) else None,
             "observed_model_seconds": sum(known) / 1000 if known else None,
             "tool_seconds": sum(tool_durations) if call_log_complete and len(tool_durations) == len(dispatched) else None,
             "observed_tool_seconds": sum(tool_durations),
+            "tool_seconds_observed_calls": len(tool_durations),
+            "tool_seconds_missing_calls": len(dispatched) - len(tool_durations),
             "timing_basis": "assistant message_end.durationMs sum; dispatched relay/wrapper durations sum (parallel intervals overlap)",
             "adapter_output_guard_truncated": guard if events else None,
             "codemode_output_truncated": script_truncations if events else None,
@@ -472,7 +499,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                                 "usage_collection", "token_accounting", "retry_attempts", "failed_attempts", "model", "requested_model", "backend", "agent_version", "effort_observation", "codex_version", "thread_id", "provenance",
                                 "phase", "launch_state", "cli_launches", "provider_call_observed", "answer_eligible", "cleanup",
                                 "failure_stage", "grade_state", "grade_reason", "grader_execution", "review", "packet_seal_sha256", "raw_seal", "raw_seal_sha256",
-                                "warm_receipt", "lifecycle_seconds", "cancel_requested")}})
+                                "warm_receipt", "lifecycle_seconds", "cancel_requested", "claude_persisted_tool_results")}})
     for mode in routes.MEASUREMENT_MODES:
         arms = {}
         mode_rows = [row for row in result_rows if row["mode"] == mode]
@@ -542,13 +569,14 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     lines += ["", "미실행·미관측 값은 0점으로 치환하지 않습니다. 핵심과 확장, true/false/indeterminate/미채점을 별도 기록합니다.",
               f"문항·비교군·모드마다 {routes.REPETITIONS}회 반복이며 통계적 유의성을 주장하지 않습니다.",
               "제품 탐색 호출 0회인 답변은 제품 검색 기여의 근거가 아닙니다. 미관측 호출을 0회로 해석하지 않습니다."]
-    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | adapter 절단 | script 절단 | include_seen=true |",
-              "|---|---:|---|---:|---:|---:|---:|---:|"]
+    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | script 밖 직접 호출 | admission 전 취소 | adapter 절단 | script 절단 | include_seen=true | Claude 저장 결과(count/bytes) |",
+              "|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
     for row in result_rows:
         observed = row.get("observations") or {}
         lines.append("| " + " | ".join(cell(v) for v in (row["id"], *[observed.get(key) for key in (
-            "turns", "tool_calls_per_turn", "model_seconds", "tool_seconds", "adapter_output_guard_truncated",
-            "codemode_output_truncated", "include_seen_true_calls")])) + " |")
+            "turns", "tool_calls_per_turn", "model_seconds", "tool_seconds", "observed_tool_seconds", "tool_seconds_missing_calls",
+            "direct_calls_outside_script", "cancelled_before_admission", "adapter_output_guard_truncated", "codemode_output_truncated", "include_seen_true_calls")],
+            row.get("claude_persisted_tool_results"))) + " |")
     lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
     return result

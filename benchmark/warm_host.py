@@ -338,14 +338,21 @@ class WarmSession:
             write_json(self.folder / "attachment.json", {"generation": self.generation, "attached_at": attached_at,
                 "attach_seconds": attached_at - self.solver_start, "ready_at": self.receipt["ready_at"]})
             incoming = queue.Queue()
+            cancelled, request_states = set(), {}
+            cancellation_lock = threading.Lock()
             def receive():
                 try:
                     with conn.makefile("rb") as stream:
                         for line in stream:
                             message = json.loads(line)
                             if message.get("method") == "notifications/cancelled":
-                                self.errors.append("client cancelled in-flight MCP request")
-                                break
+                                ident = message.get("params", {}).get("requestId")
+                                require(type(ident) in (str, int), "invalid cancellation requestId")
+                                with cancellation_lock:
+                                    cancelled.add(ident)
+                                    append_jsonl(self.relay.log, {"event": "client_cancelled", "client_request_id": str(ident),
+                                        "request_state": request_states.get(ident, "queued"), "monotonic": time.monotonic()})
+                                continue
                             incoming.put(line)
                 except (OSError, ValueError) as exc:
                     if not self.closing.is_set():
@@ -367,10 +374,15 @@ class WarmSession:
                 if "id" not in request:
                     if request.get("method") == "notifications/initialized":
                         continue  # MCPClient.initialize already forwards exactly one initialized notification.
-                    if request.get("method") == "notifications/cancelled":
-                        self.errors.append("client cancelled in-flight MCP request")
-                        break
                     continue
+                with cancellation_lock:
+                    if request["id"] in cancelled:
+                        # Admission has not happened: no attempt or budget consumption to invent.
+                        request_states[request["id"]] = "skipped"
+                        append_jsonl(self.relay.log, {"event": "cancelled_before_dispatch", "client_request_id": str(request["id"]),
+                            "dispatched": False, "budget_consumed": False, "monotonic": time.monotonic()})
+                        continue
+                    request_states[request["id"]] = "in_flight"
                 try:
                     method, params = request["method"], request.get("params", {})
                     with self.rpc_lock:
@@ -425,7 +437,14 @@ class WarmSession:
                             "content": [{"type": "text", "text": str(message)}], "isError": True}}
                         append_jsonl(self.relay.log, {"event": "error_as_tool_result", "client_request_id": str(request["id"]),
                                                       "native": isinstance(exc, RPCError), "error": error})
-                conn.sendall((canonical(response) + "\n").encode())
+                with cancellation_lock:
+                    request_states[request["id"]] = "finished"
+                    if request["id"] in cancelled:
+                        # Finish native RPC/logging normally; only delivery is cancelled.
+                        append_jsonl(self.relay.log, {"event": "cancelled_response_discarded", "client_request_id": str(request["id"]),
+                            "monotonic": time.monotonic()})
+                    else:
+                        conn.sendall((canonical(response) + "\n").encode())
                 if self.errors:
                     break
         except Exception as exc:

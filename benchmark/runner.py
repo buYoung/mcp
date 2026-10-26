@@ -752,7 +752,13 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             allowed.update(alias for name in (relay_settings or {}).get("enabled_tools", []) for alias in pi_client.navigation_tool_names(name))
         if any(item["name"] not in allowed for item in items):
             condition_errors.append("Unapproved pi capability observed.")
-        if native_agent and sum(item["name"] == "bash" for item in items) != len(read_live_jsonl(folder / "bash-calls.jsonl")):
+        admissions = (read_live_jsonl(folder / "bash-calls.jsonl") if native_agent else
+                      [row for row in read_live_jsonl(folder / "relay.jsonl") if row.get("event") == "attempt"])
+        cancellations = pi_client.cancelled_before_admission(items, admissions, native=bool(native_agent),
+                                                             enabled_tools=(relay_settings or {}).get("enabled_tools", []))
+        if cancellations["ambiguous"]:
+            condition_errors.append("Unmatched pre-admission cancellation evidence.")
+        if native_agent and sum(item["name"] == "bash" for item in items) - len(cancellations["calls"]) != len(admissions):
             condition_errors.append("pi bash wrapper/tool_execution_start counts differ.")
     conditions_valid = conditions_valid and not condition_errors
     eligibility = answer_eligibility(backend=backend, completed=completed, observed_monotonic=answer_finished_monotonic,
@@ -780,6 +786,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         result["provider"] = spec["provider"]
         result["requested_model"] = pi_client.requested_model(spec["provider"], expected_model)
         result["claude_settings_check"] = claude_settings_check
+        result["claude_persisted_tool_results"] = solver_cleanup.get("pi_private_cleanup", {}).get("claude_persisted_tool_results")
     if backend == "claude_code":
         result["effort_observation"] = {"requested": expected_effort, "source": "explicit CLI --effort; server-applied value unobserved"}
         if claude_result and claude_result.get("is_error"):
