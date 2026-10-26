@@ -40,18 +40,24 @@ def forbidden_words() -> tuple[str, ...]:
     return (*settings.IDENTIFYING_PATH_WORDS, *routes.QUESTION_IDS, "smoke", "grafana")
 
 
+def tool_snippet(tool: dict) -> str:
+    # Adapter 7.0.0 utils.truncateAtWord(description, 100); bridge forwards this exact bullet.
+    description = tool.get("description", "")
+    units = description.encode("utf-16-le")
+    if len(units) <= 200:
+        return description
+    prefix = units[:200].decode("utf-16-le", errors="surrogatepass")
+    space = prefix.rfind(" ")
+    space_units = len(prefix[:space].encode("utf-16-le", errors="surrogatepass")) // 2 if space >= 0 else -1
+    return (prefix[:space] if space_units > 60 else prefix) + "..."
+
+
 def product_text(inventory: dict) -> list[str]:
     """Only recorded native text/identifiers, never a blanket product-name exemption."""
     values = [inventory.get("initialize", {}).get("instructions", "")]
     for tool in inventory.get("tools", []):
         values.extend(text for _, text in strings(tool))
-        # Adapter 7.0.0 utils.truncateAtWord(description, 100), used as pi's tools snippet.
-        description = tool.get("description", "")
-        units = description.encode("utf-16-le")
-        if len(units) > 200:
-            prefix = units[:200].decode("utf-16-le", errors="surrogatepass")
-            space = prefix.rfind(" ")
-            values.append((prefix[:space] if space > 60 else prefix) + "...")
+        values.append(tool_snippet(tool))
         values.extend(pi_client.navigation_tool_names(tool["name"]))
         values.append("mcp__custom-tools__" + pi_client.navigation_tool_name(tool["name"]))
     # Very short schema values (e.g. 'string') are not exemption spans.
@@ -96,13 +102,46 @@ def audit_text(value, *, inventory: dict | None = None, product_owned=False) -> 
     return violations
 
 
+def audit_system(value, inventory: dict) -> list[dict]:
+    """Native exemptions apply to tool declarations and the exact appended envelope, not preamble/rules/docs/cwd."""
+    if isinstance(value, dict) and "sections" in value:
+        errors = path_violations(json.dumps(value, ensure_ascii=False), "system")
+        errors += audit_text(value.get("toolsAdded", []), inventory=inventory, product_owned=True)
+        errors += audit_text(value.get("toolsRemoved", []), inventory=inventory, product_owned=True)
+        errors += audit_text({key: item for key, item in value.items()
+                              if key not in {"sections", "toolsAdded", "toolsRemoved", "content"}})
+        for section, text in value["sections"].items():
+            errors += (audit_text(text, inventory=inventory, product_owned=True) if section == "tools"
+                       else audit_system(text, inventory))
+        errors += audit_system(value.get("content", ""), inventory)
+        return errors
+    errors = []
+    instructions = inventory.get("initialize", {}).get("instructions", "")
+    envelope = pi_client.server_instructions_prompt(instructions).strip() if instructions.strip() else None
+    for location, original in strings(value):
+        errors.extend(path_violations(original, location))
+        text = original.replace(envelope, "[native instructions]") if envelope else original
+        for tool in inventory.get("tools", []):
+            bullet = f"- {pi_client.navigation_tool_name(tool['name'])}: {tool_snippet(tool).strip()}"
+            text = text.replace(bullet, "[native tool snippet]")
+        for match in re.finditer(r"<tools>.*?</tools>", text, flags=re.DOTALL):
+            errors += audit_text(match.group(), inventory=inventory, product_owned=True)
+            text = text.replace(match.group(), "[tool declarations]")
+        errors += audit_text(text)
+    return errors
+
+
 def audit_request(body: dict, inventory: dict) -> list[dict]:
     errors = path_violations(json.dumps(body, ensure_ascii=False), "request")
-    errors += audit_text(body.get("instructions", body.get("system", "")), inventory=inventory, product_owned=True)
+    errors += audit_system(body.get("instructions", body.get("system", "")), inventory)
     errors += audit_text(body.get("tools", []), inventory=inventory, product_owned=True)
     for item in body.get("input", body.get("messages", [])):
-        owned = item.get("role") in {"system", "developer"} or item.get("type") == "additional_tools"
-        errors += audit_text(item, inventory=inventory, product_owned=owned)
+        if item.get("type") == "additional_tools":
+            errors += audit_text(item, inventory=inventory, product_owned=True)
+        elif item.get("role") in {"system", "developer"}:
+            errors += audit_system(item, inventory)
+        else:
+            errors += audit_text(item)
     # Transport metadata is not prompt prose, but any absolute path anywhere in the body is audited.
     for key, value in body.items():
         if key not in {"instructions", "system", "tools", "input", "messages"}:
@@ -153,7 +192,7 @@ def audit_session(folder: Path, inventory: dict) -> dict:
             if role in {"system", "user"}:
                 system_count += role == "system"
                 user_count += role == "user"
-                violations.extend(audit_text(message, inventory=inventory, product_owned=role == "system"))
+                violations.extend(audit_system(message, inventory) if role == "system" else audit_text(message))
     if not files or not system_count or not user_count:
         violations.append({"kind": "missing_system_or_user_session"})
     result = {"passed": not violations, "files": files, "system_messages_including_patches": system_count,

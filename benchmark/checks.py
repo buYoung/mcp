@@ -144,10 +144,12 @@ class BenchChecks(unittest.TestCase):
         self.assertLessEqual(maximum[0], 4)
 
     def test_pi_audit_native_provenance_never_exempts_user_or_paths(self):
-        from . import pi_audit
+        from . import pi_audit, pi_client
         native = {"initialize": {"instructions": "Use Serena to inspect source."}, "tools": []}
-        body = {"instructions": "Header\nUse Serena to inspect source.", "input": [{"role": "user", "content": "Inspect source."}]}
+        body = {"instructions": pi_client.server_instructions_prompt(native["initialize"]["instructions"]),
+                "input": [{"role": "user", "content": "Inspect source."}]}
         self.assertEqual(pi_audit.audit_request(body, native), [])
+        self.assertTrue(pi_audit.audit_system({"sections": {"preamble": "Use Serena to inspect source."}}, native))
         body["input"][0]["content"] = "Use Serena to inspect source."
         self.assertTrue(pi_audit.audit_request(body, native))
         self.assertTrue(pi_audit.audit_text("SMOKE grafana alerting-alertmanager"))
