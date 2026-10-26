@@ -277,7 +277,8 @@ ALIASES = {("codemap-search", "read"): {"path", "file", "query"},
 
 # Arguments a pinned release adds only for some corpora. codemap-search exposes workspace_scope on
 # search in monorepos (Grafana); RelayPolicy validates it as a path through ALIASES.
-CORPUS_DEPENDENT_ARGUMENTS = {("codemap-search", "search"): {"workspace_scope"}}
+CORPUS_DEPENDENT_ARGUMENTS = {("codemap-search", "search"): {"workspace_scope"},
+                              ("codemap-search", "read"): {"ranges"}}
 
 
 def validate_inventory(ident: str, inventory: list[dict]) -> None:
@@ -358,6 +359,8 @@ class RelayPolicy:
         allowed = set(properties) | ALIASES.get((self.ident, name), set())
         require(set(arguments) <= allowed, "알려지지 않은 도구 인자")
         for key, value in arguments.items():
+            if self.ident == "codemap-search" and name == "read" and key == "ranges" and value is None:
+                continue  # Native read treats null as absent; forward it unchanged.
             schema = properties.get(key, {})
             types = schema.get("type")
             types = types if isinstance(types, list) else [types]
@@ -382,6 +385,16 @@ class RelayPolicy:
                             value = "."
                         values.append(self.path(value, file=name == "read"))
                 require(len(set(values)) <= 1, "서로 다른 path aliases")
+                if name == "read" and arguments.get("ranges") is not None:
+                    require("ranges" in properties and isinstance(arguments["ranges"], list), "미광고 ranges 인자")
+                    require(not values and 1 <= len(arguments["ranges"]) <= 20, "read ranges 개수/단일 경로 충돌")
+                    for item in arguments["ranges"]:
+                        require(isinstance(item, dict) and set(item) <= {"file_path", "path", "file", "query", "offset", "limit"},
+                                "read range 인자 오류")
+                        paths = [self.path(item[key], file=True) for key in ("file_path", "path", "file", "query") if key in item]
+                        require(bool(paths) and len(set(paths)) == 1, "read range path aliases 오류")
+                        for key in ("offset", "limit"):
+                            require(key not in item or type(item[key]) is int, "read range 위치 오류")
             elif name == "search":
                 for key in ("workspace_scope", "scope"):
                     if key in arguments:
@@ -406,7 +419,7 @@ class RelayPolicy:
                 value = arguments["project_path"]
                 expected = Path(self.state["modes"]["graph_path"]).parent.parent.resolve()
                 require(isinstance(value, str) and ":" not in value and
-                        (self.source / value).resolve() == expected, "고정 Graphify graph selector 외 경로")
+                        (self.source / value).resolve() == expected, "고정 graph selector 외 경로")
         elif self.ident == "zvec-grep":
             if "root" in arguments:
                 require(self.path(arguments["root"]) == self.source, "다른 workspace root")
