@@ -9,14 +9,14 @@ from . import settings
 from .core import digest, file_digest, read_json, require, write_json
 
 PROFILE = "grafana-routes"
-SOURCE_COMMIT = "c6fad8695a96577eb466d425e6ac4a759ca30f47"
-DATASET_MANIFEST_SHA256 = "45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86"
-TARGET_LOCK_SHA256 = "7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549"
-QUESTION_IDS = ("alerting-alertmanager", "live-plugin-stream")
+SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
+DATASET_MANIFEST_SHA256 = "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4"
+TARGET_LOCK_SHA256 = "de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8"
+QUESTION_IDS = ("git-oauth-authorization", "plugin-http-route-bridge")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")
 ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
-DATA = settings.ROOT / "data/grafana-routes-v3"
+DATA = settings.ROOT / "data/grafana-routes-v4"
 TARGETS = settings.ROOT / "data/grafana-comparison-targets-v1"
 PROFILE_PATH = settings.ROOT / "data/grafana-execution-v1.json"
 EVIDENCE = settings.REPOSITORY / "docs/briefs/evidence/bench-ready"

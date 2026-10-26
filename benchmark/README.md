@@ -8,16 +8,16 @@
 
 | 항목 | 조건 |
 | --- | --- |
-| 코드베이스 | Grafana `c6fad8695a96577eb466d425e6ac4a759ca30f47` |
-| 문항 | 알림 규칙 평가 → Alertmanager 인계(Go), 브라우저 ↔ Grafana Live plugin stream 구독·수신·발행(TypeScript→Go). v3 원문은 보존하며, 식별어 없는 새 문항으로 교체하기 전 준비 감사가 실패하는 것이 정상이다 |
+| 코드베이스 | Grafana main `c0a598f5a49abf2014f67e806075d8ad267c9efb` (2026-10-26). 풀이 모델 학습 기준일(Claude Opus 5.5 2026년 6월, GPT-6.1 Sol 2026-04-30) 이후 커밋을 포함한다 |
+| 문항 | 2026-07-01 이후 코드로 만든 2문항: Git 저장소 연결 인증의 사용자 지정 OAuth 서버 통신(TypeScript→Go), 앱 플러그인 manifest 사용자 정의 API route의 HTTP 배포 백엔드 통신(Go). 질문에 도구 안내 문구와 Grafana 이름을 넣지 않는다. 도구 없이 저장소 이름만 알려 준 기억 측정에서 두 모델 모두 핵심 사실·정답 파일 경로를 맞히지 못한 문항만 채택했다 |
 | 기본 풀이 | `openai-codex/gpt-6.1-sol / medium` — pi 1.4.0 |
 | 선택 가능한 풀이 | `claude-bridge/claude-opus-5-5 / medium` — pi 1.4.0 |
 | 채점 | 풀이 선택과 관계없이 `openai-codex/gpt-6-astra / high` — 고정 pi 1.4.0 |
 | 횟수 | 문항·비교군·모드마다 3회, 총 84개 슬롯, 최대 4개 병렬. 반복 라운드 안에서 direct/codemode를 섞고 라운드 사이에는 이전 solver lifecycle 완료를 기다린다(채점에는 라운드 장벽 없음) |
 | 한도 | 300초, 탐색 80회, 캐시 읽기를 제외한 누적 입력+출력 500,000토큰 |
-| 채점 항목 | 핵심 16개와 확장 1개를 분리, `correct`·`supported`를 각각 판정. 사실별 `required_links`가 필수 연결이다 |
+| 채점 항목 | 핵심 12개와 확장 2개를 분리, `correct`·`supported`를 각각 판정. 사실별 `required_links`가 필수 연결이며 `accepted_alternatives`는 `RLn 대체:`로 대상 연결을 밝힌다 |
 
-정확한 값은 [실행 계약](data/grafana-execution-v1.json)을 따른다. [고정 데이터셋](data/grafana-routes-v3/README.md)의 질문·정답·범위·채점 의미는 유지한다. 이전 3문항 데이터셋 `grafana-routes-v2`의 결과와 같은 점수로 섞지 않는다. 정답 자료를 풀이 대상 소스에 넣지 않는다.
+정확한 값은 [실행 계약](data/grafana-execution-v1.json)을 따른다. [고정 데이터셋](data/grafana-routes-v4/README.md)의 질문·정답·범위·채점 의미는 유지한다. 이전 데이터셋 `grafana-routes-v2`·`grafana-routes-v3`의 결과와 같은 점수로 섞지 않는다. 정답 자료를 풀이 대상 소스에 넣지 않는다.
 
 한 번의 선택으로 7개 비교군에 같은 풀이 모델을 적용한다. 두 모델을 모두 자동 실행하거나 결과를 합산하지 않는다. `direct`와 `codemode`도 독립 조건이며 품질·비용을 합산하지 않는다. 슬롯 ID는 `<question>-<arm>-<mode>-<attempt>`, 실행 spec 키는 `<arm>/<mode>`다. 모델·실행기·추론 강도는 계획 ID와 결과에 포함하고 다른 모델의 결과가 들어오면 거부한다. 채점 항목과 Astra의 추론 강도는 그대로 유지한다. Claude의 `medium`은 [공식 기본값](https://code.claude.com/docs/en/model-config#choose-an-effort-level)을 명시한 값이며, 모델 간 동일한 계산량을 뜻하지 않는다.
 
@@ -25,7 +25,7 @@
 
 | 비교군 | 고정 버전·역할 |
 | --- | --- |
-| codemap-search | 0.13.0 · `codemap-v0.13.0` (`4061c42a5`)의 `git_ref` 스냅샷 빌드 |
+| codemap-search | 0.14.0 · 로컬 태그 `codemap-v0.14.0` (`fc0a368d0`)의 `git_ref` 스냅샷 빌드. 0.13.0 대비 `read`의 여러 범위 읽기(`ranges`) 추가 |
 | CodeGraph (`colbymchenry/codegraph`) | 1.6.2 |
 | zvec-grep | 0.2.2 · npm/tag stable, GitHub Release 없음 |
 | Graphify | 0.9.95 · hash-pinned PyPI wheel + 고정 runtime requirements |
@@ -33,7 +33,7 @@
 | Serena (`oraios/serena`) | 2.1.0 · 로컬 Go·TypeScript LSP, `--agent-interface tools` 예외 |
 | 기본 코딩 에이전트 (`rg`) | 추가 검색 제품 없음; rg 15.2.0 사용 가능 |
 
-[비교 대상 잠금](data/grafana-comparison-targets-v1/README.md) 개정 6이 pi toolchain과 공식 저장소·전체 커밋·아카이브 해시를 고정한다. codemap-search는 작업 트리가 아닌 release tag만 빌드하며 실제 버전·전체 commit·binary hash를 기록한다. 1.0.0 출시 목표를 이유로 제품 빌드를 1.0.0으로 표시하지 않는다. 구버전의 index/baseline/ready 기록은 최신 버전으로 재인증하지 않고 새 cache에서 다시 준비한다.
+[비교 대상 잠금](data/grafana-comparison-targets-v1/README.md) 개정 7이 pi toolchain과 공식 저장소·전체 커밋·아카이브 해시를 고정한다. codemap-search는 작업 트리가 아닌 release tag만 빌드하며 실제 버전·전체 commit·binary hash를 기록한다. 1.0.0 출시 목표를 이유로 제품 빌드를 1.0.0으로 표시하지 않는다. 구버전의 index/baseline/ready 기록은 최신 버전으로 재인증하지 않고 새 cache에서 다시 준비한다.
 
 Graphify 0.9.95의 upstream `uv.lock`은 루트 버전과 필수 PyYAML이 맞지 않아 사용하지 않는다. bundle의 hash-pinned requirements로 공식 wheel을 설치하고 package 파일을 tag 원문과 대조하며, 준비 중 의존성을 다시 해석하지 않는다. Graphify·Serena 모두 `uv pip check`를 통과해야 한다. Graphify의 과거 `v1.0.0` release 대신 현재 upstream latest/PyPI가 일치하는 0.9.95를 사용한다.
 
@@ -211,7 +211,7 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 
 | 제품 | 고정 소스 근거 | adapter maxBytes |
 |---|---|---:|
-| codemap-search 0.13.0 | `codemap-v0.13.0`, `apps/codemap-search/docs/configuration.md:39–53`: 모든 도구 final delivery 기본 100,000 UTF-8 bytes; pi client와 맞추도록 명시 | 100,000 |
+| codemap-search 0.14.0 | `codemap-v0.14.0`(0.13.0과 같은 문구), `apps/codemap-search/docs/configuration.md` Client delivery budgets: 모든 도구 final delivery 기본 100,000 UTF-8 bytes; pi client와 맞추도록 명시 | 100,000 |
 | Serena 2.1.0 (`5e4f5cd`) | `src/serena/resources/serena_config.template.yml:197`, `tools/tools_base.py:258–281`: 기본 150,000 Unicode 문자. 본문 최대 600,000바이트에 adapter 7의 기본 `appendStructuredContent`가 같은 result를 JSON 문자열로 덧붙인다(`tool-registrar.ts:241–253`). 두 사본 1,200,000바이트 + JSON/머리말 여유 50,000바이트. JSON escaping도 이 여유 범위 안이며 native 한도 증가는 보장하지 않음 | 1,250,000 |
 | CodeGraph 1.6.2 (`6560052`) | `src/mcp/tools.ts:128,5278,8416–8420`: 일반 formatter 15,000 UTF-16 단위 + notice, explore hard ceiling 최대 25,000 + 머리말. 전체 도구 공통 byte cap은 확인되지 않음 | 1,048,576 |
 | zvec-grep 0.2.2 (`b1a9148`) | `src/mcp/tools.ts:488–521`의 agent formatter 반환; `src/cli/format/context.ts:37–40`의 hit별 10줄/160자 preview. 전체 응답 byte/문자 hard cap 없음 | 1,048,576 |

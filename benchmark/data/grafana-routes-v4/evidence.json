@@ -1,0 +1,892 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
+  },
+  "hash_encoding": {
+    "source_sha256": "SHA-256 of original file bytes",
+    "git_blob_sha1": "SHA-1 of Git blob header plus original file bytes",
+    "excerpt_sha256": "SHA-256 of UTF-8 text: selected splitlines() joined with LF, without trailing LF"
+  },
+  "source_manifest": {
+    "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go": {
+      "git_blob_sha1": "f8e026dd5fe090842f31d37920915666bdf7af23",
+      "sha256": "42d2aaa8f8ba73a2d01fc0bd87ff825d99e0c0b0115865b5f51d3e160a3dd1b9",
+      "bytes": 10643,
+      "lines": 303
+    },
+    "apps/provisioning/pkg/apis/provisioning/v0alpha1/register.go": {
+      "git_blob_sha1": "282a1beeb5462792e8ecf2c4cb13bbf89e28d34b",
+      "sha256": "3a1f1cd625fa58204607c3e896ec6933530a0fe4c961cde1355818b224fc141e",
+      "bytes": 6351,
+      "lines": 218
+    },
+    "apps/provisioning/pkg/connection/factory.go": {
+      "git_blob_sha1": "712e301f1446b9bb279b645748b6862c828d86ff",
+      "sha256": "1ea4aed7f7588c319698d0ceb0d742a2d31fb28f9fe226d2bf19ba2e00c46dfc",
+      "bytes": 5057,
+      "lines": 178
+    },
+    "apps/provisioning/pkg/connection/gitoauth/connection.go": {
+      "git_blob_sha1": "81bd98daa3f9a74f9d97b5c3bae290bff7f8b440",
+      "sha256": "da4bd78585fe3df15a6067a3d788e6173f08f13475868b035366c129fca546d4",
+      "bytes": 837,
+      "lines": 29
+    },
+    "apps/provisioning/pkg/connection/gitoauth/extra.go": {
+      "git_blob_sha1": "a822692f132c81b9cc68e97b5e88944fc53bb271",
+      "sha256": "856f91960a26a59fcc83aa19fa31b1b424229638714f460b0431ff11b58e7cc8",
+      "bytes": 2249,
+      "lines": 69
+    },
+    "apps/provisioning/pkg/connection/oauth/connection.go": {
+      "git_blob_sha1": "0d49f9371aba3eb2d5b6e3de921c80c2c84da94c",
+      "sha256": "218c31ba3e5ebc2bb976872a20652e1a0b25ee4ded945b7695bc59e7d7520fa2",
+      "bytes": 11153,
+      "lines": 301
+    },
+    "apps/provisioning/pkg/connection/oauth/extra.go": {
+      "git_blob_sha1": "5213fdded76fd9074a7ee1fef15f8c4880f2b537",
+      "sha256": "66799c1198f9552ce91260f025d39d06e3d3e578fded9a3eb9870373197c9b6b",
+      "bytes": 3974,
+      "lines": 123
+    },
+    "pkg/registry/apis/provisioning/connection_authorize.go": {
+      "git_blob_sha1": "ba192dd0db44fb8f5f1087e5ac565274fb5b6827",
+      "sha256": "f1986dc2be8fc4ffc2d31611c90864bb52dc43b03ef5342e4039cf5c7f3f98e1",
+      "bytes": 5043,
+      "lines": 153
+    },
+    "pkg/registry/apis/provisioning/controller/connection.go": {
+      "git_blob_sha1": "e37f2dc16bccfed101ed875ffe53791f4991d4c4",
+      "sha256": "79ec8316ae3ec3b893bcef56f152f278910da57e3e8b5384389c179349da0503",
+      "bytes": 23288,
+      "lines": 627
+    },
+    "pkg/registry/apis/provisioning/extras/register.go": {
+      "git_blob_sha1": "46154d53299cc4ee8168290330558d7ff8068af9",
+      "sha256": "af3d60fe5bbb5bb5fb928027b47a3f069f5041044f698b20784fcc1b90da2b57",
+      "bytes": 4628,
+      "lines": 115
+    },
+    "pkg/registry/apis/provisioning/register.go": {
+      "git_blob_sha1": "71fb43b52d0c2f8f017e44f09d948f9a72d22556",
+      "sha256": "c5705d045f12934b9aaa8c35ba481ba4ecc385a534f65785c52d9411f4c3eb5a",
+      "bytes": 74460,
+      "lines": 1930
+    },
+    "pkg/router/plugin.go": {
+      "git_blob_sha1": "50c597c0766fb7e8924d68dc071fb7f8bb8e5e8d",
+      "sha256": "749e896980fb90ed1e9128b91b954805d61d14105a845e2b76a30cc4f0874d02",
+      "bytes": 21858,
+      "lines": 595
+    },
+    "pkg/router/plugin_breaker.go": {
+      "git_blob_sha1": "49caea1d496993826baa9477e987b6644a6d3dce",
+      "sha256": "17317e75ac119797b90ae05fea1c6e43eeac5a2e01028bda1d842aba21320962",
+      "bytes": 4844,
+      "lines": 156
+    },
+    "pkg/router/plugin_manifests.go": {
+      "git_blob_sha1": "d5eaa164baf7083631e1982420385c73ad9d81c4",
+      "sha256": "777a2b064c4f2e45d0c5596332a82938dd778a1756ee90d36cff529c041c674c",
+      "bytes": 16674,
+      "lines": 469
+    },
+    "pkg/services/pluginsintegration/baasbridge/client.go": {
+      "git_blob_sha1": "60efdbc27e222fe2cee360e911b76652e80fd585",
+      "sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "bytes": 26572,
+      "lines": 721
+    },
+    "pkg/services/pluginsintegration/baasbridge/context.go": {
+      "git_blob_sha1": "3ca2e3fbaa83c8e60bd08712c4eeee43b72e76a8",
+      "sha256": "f682e5867fbe419ccdff38c66a86c58294e891920cc02d5bef02627313b7114f",
+      "bytes": 749,
+      "lines": 23
+    },
+    "pkg/services/pluginsintegration/pluginroute/appsettings/subresources.go": {
+      "git_blob_sha1": "32739496234d646bc6682de33e7971d43a863176",
+      "sha256": "1fb3dcf45f4b32dc0d5cd5e84c6663f0ccc58266b12ca58ace59abb17e5fc936",
+      "bytes": 3059,
+      "lines": 95
+    },
+    "pkg/services/pluginsintegration/pluginroute/handler.go": {
+      "git_blob_sha1": "ed476d244aec656bbf212752fdd9f20c17f30e13",
+      "sha256": "d197687675ddcdf0b6d1f7746cd7be829401305a8c2140eeeee124e4800a2006",
+      "bytes": 16775,
+      "lines": 405
+    },
+    "pkg/services/pluginsintegration/pluginroute/routes.go": {
+      "git_blob_sha1": "4bb12204aab5ca63f3a9f728e6ac17fd6f9e5905",
+      "sha256": "1dafd595afd2b0bd93c92f0f00746f4393866c48bca09a1ad1dba0a4d9a855b4",
+      "bytes": 18941,
+      "lines": 547
+    },
+    "public/app/features/provisioning/Connection/ConnectionOAuthCallbackPage.tsx": {
+      "git_blob_sha1": "1ef7f25b1c27dc0c41fc0cb3dd8b9244f54894e1",
+      "sha256": "efc7a2d630fd359a6e742b9f50229229aff7864d1c36cf50d0de0c66cd6aa056",
+      "bytes": 3075,
+      "lines": 92
+    },
+    "public/app/features/provisioning/hooks/useOAuthAuthorization.ts": {
+      "git_blob_sha1": "e484bdf713993a27c905caebe2c9265246f8e17a",
+      "sha256": "922cab961d71a8a7bdd6a3650078c6dea53b5720831df4b680e8afb11d87f050",
+      "bytes": 2773,
+      "lines": 80
+    },
+    "public/app/features/provisioning/utils/connectionOAuth.ts": {
+      "git_blob_sha1": "6a97d85593c2950c32063daafbbddb547c6ed9fb",
+      "sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "bytes": 6338,
+      "lines": 184
+    },
+    "public/app/features/provisioning/utils/routes.tsx": {
+      "git_blob_sha1": "fdb47d295608e31ff07b11a8366f1d1a3f9e673b",
+      "sha256": "2d59b15685a19c3319944a087da22b70d901a66da1de1e12da714a63160cbbfd",
+      "bytes": 5425,
+      "lines": 154
+    }
+  },
+  "evidence": {
+    "o-request-type": {
+      "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go",
+      "start_line": 192,
+      "end_line": 200,
+      "excerpt_sha256": "90e661079b3070758e69255247961315f74acdd6fbe303da1fb31c2014115393",
+      "source_sha256": "42d2aaa8f8ba73a2d01fc0bd87ff825d99e0c0b0115865b5f51d3e160a3dd1b9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go#L192-L200",
+      "text": "type ConnectionAuthorizeRequest struct {\n\tmetav1.TypeMeta   `json:\",inline\"`\n\tmetav1.ObjectMeta `json:\"metadata,omitempty\"`\n\n\tSpec ConnectionAuthorizeRequestSpec `json:\"spec\"`\n\n\t// +optional\n\tStatus ConnectionAuthorizeRequestStatus `json:\"status,omitempty\"`\n}"
+    },
+    "o-request-spec": {
+      "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go",
+      "start_line": 206,
+      "end_line": 212,
+      "excerpt_sha256": "8ee3e295b3d4559133578f295c03c011736923db30db34bfe2ab9c1221de8874",
+      "source_sha256": "42d2aaa8f8ba73a2d01fc0bd87ff825d99e0c0b0115865b5f51d3e160a3dd1b9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go#L206-L212",
+      "text": "type ConnectionAuthorizeRequestSpec struct {\n\t// The authorization code returned by the provider\n\tCode string `json:\"code\"`\n\n\t// The redirect URI used in the authorization request\n\tRedirectURI string `json:\"redirectURI,omitempty\"`\n}"
+    },
+    "o-response-status": {
+      "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go",
+      "start_line": 218,
+      "end_line": 221,
+      "excerpt_sha256": "7045dab6b28b3e66e52d15fe389efdf1ad97def90fa080c7015830e034828c25",
+      "source_sha256": "42d2aaa8f8ba73a2d01fc0bd87ff825d99e0c0b0115865b5f51d3e160a3dd1b9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go#L218-L221",
+      "text": "type ConnectionAuthorizeRequestStatus struct {\n\t// Whether the connection has been authorized\n\tAuthorized bool `json:\"authorized\"`\n}"
+    },
+    "o-api-version": {
+      "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/register.go",
+      "start_line": 14,
+      "end_line": 18,
+      "excerpt_sha256": "bc72df90ea220b086b84887a6e25b2dc0b0ef49b34eaf059d30e214c67316eb9",
+      "source_sha256": "3a1f1cd625fa58204607c3e896ec6933530a0fe4c961cde1355818b224fc141e",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/apis/provisioning/v0alpha1/register.go#L14-L18",
+      "text": "const (\n\tGROUP      = \"provisioning.grafana.app\"\n\tVERSION    = \"v0alpha1\"\n\tAPIVERSION = GROUP + \"/\" + VERSION\n)"
+    },
+    "o-api-resource": {
+      "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/register.go",
+      "start_line": 122,
+      "end_line": 125,
+      "excerpt_sha256": "0b2640299c8ce9faaa7d45b5ba3617096c65a80ea90805b85cb60a16a436d203",
+      "source_sha256": "3a1f1cd625fa58204607c3e896ec6933530a0fe4c961cde1355818b224fc141e",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/apis/provisioning/v0alpha1/register.go#L122-L125",
+      "text": "var ConnectionResourceInfo = utils.NewResourceInfo(GROUP, VERSION,\n\t\"connections\", \"connection\", \"Connection\",\n\tfunc() runtime.Object { return &Connection{} },     // newObj\n\tfunc() runtime.Object { return &ConnectionList{} }, // newList"
+    },
+    "o-factory-header": {
+      "path": "apps/provisioning/pkg/connection/factory.go",
+      "start_line": 78,
+      "end_line": 78,
+      "excerpt_sha256": "8fb81a017fd2d7c09eefea1cb4671e13fb223174ce80a14fe72f7ccad3f6e65a",
+      "source_sha256": "1ea4aed7f7588c319698d0ceb0d742a2d31fb28f9fe226d2bf19ba2e00c46dfc",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/factory.go#L78-L78",
+      "text": "func (f *factory) Build(ctx context.Context, c *provisioning.Connection) (Connection, error) {"
+    },
+    "o-factory": {
+      "path": "apps/provisioning/pkg/connection/factory.go",
+      "start_line": 92,
+      "end_line": 105,
+      "excerpt_sha256": "6cb1ba644de8caeafd0b402d52930b8d70f0775efa7f6d6b40b1f9090cb87eb3",
+      "source_sha256": "1ea4aed7f7588c319698d0ceb0d742a2d31fb28f9fe226d2bf19ba2e00c46dfc",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/factory.go#L92-L105",
+      "text": "\tfor _, e := range f.extras {\n\t\tif e.Type() == c.Spec.Type {\n\t\t\tif _, enabled := f.enabled[e.Type()]; !enabled {\n\t\t\t\terr := fmt.Errorf(\"connection type %q is not enabled\", e.Type())\n\t\t\t\tspan.RecordError(err)\n\t\t\t\treturn nil, err\n\t\t\t}\n\n\t\t\tconn, err := e.Build(ctx, c)\n\t\t\tif err != nil {\n\t\t\t\tspan.RecordError(err)\n\t\t\t}\n\t\t\treturn conn, err\n\t\t}"
+    },
+    "o-endpoint": {
+      "path": "apps/provisioning/pkg/connection/gitoauth/connection.go",
+      "start_line": 13,
+      "end_line": 19,
+      "excerpt_sha256": "f21788dae61c048fdef4b97dcbe1f3c4d341806cedebb5dc8b522ca525864529",
+      "source_sha256": "da4bd78585fe3df15a6067a3d788e6173f08f13475868b035366c129fca546d4",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/gitoauth/connection.go#L13-L19",
+      "text": "type provider struct {\n\tendpoint oauth2.Endpoint\n}\n\nfunc (p *provider) Endpoint() oauth2.Endpoint {\n\treturn p.endpoint\n}"
+    },
+    "o-git-provider": {
+      "path": "apps/provisioning/pkg/connection/gitoauth/extra.go",
+      "start_line": 17,
+      "end_line": 37,
+      "excerpt_sha256": "6fb7e4bc907e26c10085f7f7a3bfaadb7d4756cf2ed40b9b61206de3160c5fc4",
+      "source_sha256": "856f91960a26a59fcc83aa19fa31b1b424229638714f460b0431ff11b58e7cc8",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/gitoauth/extra.go#L17-L37",
+      "text": "func Extra(decrypter connection.Decrypter, allowInsecure bool) connection.Extra {\n\treturn oauth.NewExtra(\n\t\tdecrypter,\n\t\tprovisioning.GitOAuthConnectionType,\n\t\tprovisioning.GitRepositoryType,\n\t\tnewProvider,\n\t\tfunc(spec provisioning.ConnectionSpec) field.ErrorList {\n\t\t\treturn validateSpec(spec, allowInsecure)\n\t\t},\n\t)\n}\n\nfunc newProvider(_ context.Context, spec provisioning.ConnectionSpec, _ string) (oauth.Provider, error) {\n\tif spec.GitOAuth == nil {\n\t\treturn nil, errors.New(\"gitOAuth configuration is required\")\n\t}\n\treturn &provider{endpoint: oauth2.Endpoint{\n\t\tAuthURL:  spec.GitOAuth.AuthURL,\n\t\tTokenURL: spec.GitOAuth.TokenURL,\n\t}}, nil\n}"
+    },
+    "o-connection": {
+      "path": "apps/provisioning/pkg/connection/oauth/connection.go",
+      "start_line": 37,
+      "end_line": 45,
+      "excerpt_sha256": "18aec49fef15df0c78adfea5a24436ec6028042195731d578b75528eb2a5fbd1",
+      "source_sha256": "218c31ba3e5ebc2bb976872a20652e1a0b25ee4ded945b7695bc59e7d7520fa2",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/oauth/connection.go#L37-L45",
+      "text": "func newConnection(provider Provider, repoType provisioning.RepositoryType, cfg provisioning.ConnectionOAuthConfig, clientSecret, token common.RawSecureValue) *oauthConnection {\n\treturn &oauthConnection{\n\t\tprovider:     provider,\n\t\trepoType:     repoType,\n\t\tclientID:     cfg.ClientID,\n\t\tclientSecret: clientSecret,\n\t\ttoken:        token,\n\t}\n}"
+    },
+    "o-refresh": {
+      "path": "apps/provisioning/pkg/connection/oauth/connection.go",
+      "start_line": 143,
+      "end_line": 187,
+      "excerpt_sha256": "a098b63588f42faed00f7b5fd9eefdf5b2b11a38110293064bba5110db517d38",
+      "source_sha256": "218c31ba3e5ebc2bb976872a20652e1a0b25ee4ded945b7695bc59e7d7520fa2",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/oauth/connection.go#L143-L187",
+      "text": "// GenerateConnectionToken exchanges the stored refresh token for a new access\n// token via the provider's token endpoint. Providers that rotate refresh tokens\n// (e.g. GitLab) return a new one, which is stored as part of the token; when\n// absent the stored refresh token remains valid and is kept.\n// Implements the connection.TokenConnection interface.\nfunc (c *oauthConnection) GenerateConnectionToken(ctx context.Context) (*connection.ExpirableSecureValue, error) {\n\tstored, err := parseToken(c.token)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tif stored.RefreshToken == \"\" {\n\t\treturn nil, fmt.Errorf(\"no refresh token available; authorize the OAuth application again: %w\", connection.ErrAuthentication)\n\t}\n\n\tcfg := oauth2.Config{\n\t\tClientID:     c.clientID,\n\t\tClientSecret: string(c.clientSecret),\n\t\tEndpoint:     c.provider.Endpoint(),\n\t}\n\n\tnext, err := cfg.TokenSource(ctx, &oauth2.Token{RefreshToken: stored.RefreshToken}).Token()\n\tif err != nil {\n\t\t// A revoked or expired authorization is user-actionable: the user must\n\t\t// re-authorize the OAuth application. Transient failures (timeouts, rate\n\t\t// limiting, 5xx, transport errors) stay unwrapped so they classify as\n\t\t// system-caused and are retried rather than surfaced as a credential fault.\n\t\tif isOAuthReauthRequired(err) {\n\t\t\treturn nil, fmt.Errorf(\"refresh access token: %w: %w\", connection.ErrAuthentication, err)\n\t\t}\n\t\treturn nil, fmt.Errorf(\"refresh access token: %w\", err)\n\t}\n\n\tif next.RefreshToken == \"\" {\n\t\tnext.RefreshToken = stored.RefreshToken\n\t}\n\n\traw, err := marshalToken(next)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\t// next.Expiry is zero when the provider does not return an expiry, which maps\n\t// to a non-expiring token on the status.\n\treturn &connection.ExpirableSecureValue{Token: raw, ExpiresAt: next.Expiry}, nil\n}"
+    },
+    "o-exchange": {
+      "path": "apps/provisioning/pkg/connection/oauth/connection.go",
+      "start_line": 229,
+      "end_line": 253,
+      "excerpt_sha256": "ddf9263eea74830b69c4e39a637d1f1dee5479cb72cd6149ae58c6b89d1c16f1",
+      "source_sha256": "218c31ba3e5ebc2bb976872a20652e1a0b25ee4ded945b7695bc59e7d7520fa2",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/oauth/connection.go#L229-L253",
+      "text": "func (c *oauthConnection) ExchangeAuthorizationCode(ctx context.Context, code, redirectURI string) (*connection.ExpirableSecureValue, error) {\n\tif code == \"\" {\n\t\treturn nil, errors.New(\"an authorization code is required\")\n\t}\n\n\tcfg := oauth2.Config{\n\t\tClientID:     c.clientID,\n\t\tClientSecret: string(c.clientSecret),\n\t\tEndpoint:     c.provider.Endpoint(),\n\t\tRedirectURL:  redirectURI,\n\t}\n\n\ttoken, err := cfg.Exchange(ctx, code)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"exchange authorization code: %w\", err)\n\t}\n\n\traw, err := marshalToken(token)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\t// token.Expiry is zero when the provider issues a non-expiring access token.\n\treturn &connection.ExpirableSecureValue{Token: raw, ExpiresAt: token.Expiry}, nil\n}"
+    },
+    "o-token-json": {
+      "path": "apps/provisioning/pkg/connection/oauth/connection.go",
+      "start_line": 288,
+      "end_line": 294,
+      "excerpt_sha256": "35cf10d85ee2b6d58a058552176904ce0b9fdc240007c4e2f6c2dd19343fe56a",
+      "source_sha256": "218c31ba3e5ebc2bb976872a20652e1a0b25ee4ded945b7695bc59e7d7520fa2",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/oauth/connection.go#L288-L294",
+      "text": "func marshalToken(token *oauth2.Token) (common.RawSecureValue, error) {\n\tb, err := json.Marshal(token) // #nosec G117 -- intentional serialization into a secure value for the secret store\n\tif err != nil {\n\t\treturn \"\", err\n\t}\n\treturn common.RawSecureValue(b), nil\n}"
+    },
+    "o-extra-constructor": {
+      "path": "apps/provisioning/pkg/connection/oauth/extra.go",
+      "start_line": 26,
+      "end_line": 40,
+      "excerpt_sha256": "125051579ad49602d9fd7fb0950f4da96fe2aeb24fe9d14dcbbd8ab57ec47170",
+      "source_sha256": "66799c1198f9552ce91260f025d39d06e3d3e578fded9a3eb9870373197c9b6b",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/oauth/extra.go#L26-L40",
+      "text": "func NewExtra(\n\tdecrypter connection.Decrypter,\n\tconnType provisioning.ConnectionType,\n\trepoType provisioning.RepositoryType,\n\tnewProvider NewProviderFunc,\n\tvalidateSpec ValidateSpecFunc,\n) connection.Extra {\n\treturn &extra{\n\t\tdecrypter:    decrypter,\n\t\tconnType:     connType,\n\t\trepoType:     repoType,\n\t\tnewProvider:  newProvider,\n\t\tvalidateSpec: validateSpec,\n\t}\n}"
+    },
+    "o-extra-type": {
+      "path": "apps/provisioning/pkg/connection/oauth/extra.go",
+      "start_line": 50,
+      "end_line": 52,
+      "excerpt_sha256": "ec460c320104b42223d4c7e5ea97b7b719649ec2840e57dcdbcfc793edffc9ca",
+      "source_sha256": "66799c1198f9552ce91260f025d39d06e3d3e578fded9a3eb9870373197c9b6b",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/oauth/extra.go#L50-L52",
+      "text": "func (e *extra) Type() provisioning.ConnectionType {\n\treturn e.connType\n}"
+    },
+    "o-extra": {
+      "path": "apps/provisioning/pkg/connection/oauth/extra.go",
+      "start_line": 54,
+      "end_line": 64,
+      "excerpt_sha256": "2eb688e0b10a91d7f51ceee4f439d6caa35f50bf1d39ffb5d615c88da6be923f",
+      "source_sha256": "66799c1198f9552ce91260f025d39d06e3d3e578fded9a3eb9870373197c9b6b",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/oauth/extra.go#L54-L64",
+      "text": "func (e *extra) Build(ctx context.Context, conn *provisioning.Connection) (connection.Connection, error) {\n\tif conn == nil || conn.Spec.OAuth == nil {\n\t\treturn nil, fmt.Errorf(\"oauth configuration is required\")\n\t}\n\n\tsecure := e.decrypter(conn)\n\n\tclientSecret, err := secure.ClientSecret(ctx)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"decrypt client secret: %w\", err)\n\t}"
+    },
+    "o-extra-build": {
+      "path": "apps/provisioning/pkg/connection/oauth/extra.go",
+      "start_line": 82,
+      "end_line": 92,
+      "excerpt_sha256": "82c158bfd1ae308174b332a4fabd4c6ef696a403d513428de8a0476974e6b1f0",
+      "source_sha256": "66799c1198f9552ce91260f025d39d06e3d3e578fded9a3eb9870373197c9b6b",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/provisioning/pkg/connection/oauth/extra.go#L82-L92",
+      "text": "\tprovider, err := e.newProvider(ctx, conn.Spec, accessToken)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"build provider: %w\", err)\n\t}\n\n\tc := newConnection(provider, e.repoType, *conn.Spec.OAuth, clientSecret, token)\n\tif lister, ok := provider.(connection.RepositoryLister); ok {\n\t\treturn &listingConnection{oauthConnection: c, lister: lister}, nil\n\t}\n\treturn c, nil\n}"
+    },
+    "o-post-method": {
+      "path": "pkg/registry/apis/provisioning/connection_authorize.go",
+      "start_line": 53,
+      "end_line": 55,
+      "excerpt_sha256": "4597fb2f651525e1a489946ba8828bc040e1392c64bb95130989a120dc58aaa3",
+      "source_sha256": "f1986dc2be8fc4ffc2d31611c90864bb52dc43b03ef5342e4039cf5c7f3f98e1",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/connection_authorize.go#L53-L55",
+      "text": "func (*connectionAuthorizeConnector) ConnectMethods() []string {\n\treturn []string{http.MethodPost}\n}"
+    },
+    "o-handler-header": {
+      "path": "pkg/registry/apis/provisioning/connection_authorize.go",
+      "start_line": 61,
+      "end_line": 62,
+      "excerpt_sha256": "ad50ba678bb2d9677886fc4291d12e23b1e732cfa2ca974a8e4ca2f47d60f72d",
+      "source_sha256": "f1986dc2be8fc4ffc2d31611c90864bb52dc43b03ef5342e4039cf5c7f3f98e1",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/connection_authorize.go#L61-L62",
+      "text": "func (c *connectionAuthorizeConnector) Connect(ctx context.Context, name string, opts runtime.Object, responder rest.Responder) (http.Handler, error) {\n\treturn http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {"
+    },
+    "o-handler-body": {
+      "path": "pkg/registry/apis/provisioning/connection_authorize.go",
+      "start_line": 71,
+      "end_line": 79,
+      "excerpt_sha256": "c117ce462534bc6ab85c771e60a2ac1b5142be07abcbd95b6d495cc87054a865",
+      "source_sha256": "f1986dc2be8fc4ffc2d31611c90864bb52dc43b03ef5342e4039cf5c7f3f98e1",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/connection_authorize.go#L71-L79",
+      "text": "\t\tvar req provisioning.ConnectionAuthorizeRequest\n\t\tif err := unmarshalJSON(r, defaultMaxBodySize, &req); err != nil {\n\t\t\tresponder.Error(apierrors.NewBadRequest(\"error decoding ConnectionAuthorizeRequest from request\"))\n\t\t\treturn\n\t\t}\n\t\tif req.Spec.Code == \"\" {\n\t\t\tresponder.Error(apierrors.NewBadRequest(\"spec.code is required\"))\n\t\t\treturn\n\t\t}"
+    },
+    "o-handler-lookup": {
+      "path": "pkg/registry/apis/provisioning/connection_authorize.go",
+      "start_line": 81,
+      "end_line": 107,
+      "excerpt_sha256": "a2026b8a4f36ee593165bfa7a54c559b678b65a19fb8caf2e18c0da7adb36bdb",
+      "source_sha256": "f1986dc2be8fc4ffc2d31611c90864bb52dc43b03ef5342e4039cf5c7f3f98e1",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/connection_authorize.go#L81-L107",
+      "text": "\t\tconn, err := c.access.GetConnectionSpec(ctx, name)\n\t\tif err != nil {\n\t\t\tresponder.Error(err)\n\t\t\treturn\n\t\t}\n\n\t\tbuilt, err := c.access.GetConnection(ctx, name)\n\t\tif err != nil {\n\t\t\tlogger.Error(\"failed to build connection\", \"error\", err)\n\t\t\tresponder.Error(err)\n\t\t\treturn\n\t\t}\n\n\t\tac, ok := built.(connection.OAuthConnection)\n\t\tif !ok {\n\t\t\tresponder.Error(&apierrors.StatusError{\n\t\t\t\tErrStatus: metav1.Status{\n\t\t\t\t\tStatus:  metav1.StatusFailure,\n\t\t\t\t\tCode:    http.StatusNotImplemented,\n\t\t\t\t\tReason:  \"NotImplemented\",\n\t\t\t\t\tMessage: \"Authorization is not supported for this connection type\",\n\t\t\t\t},\n\t\t\t})\n\t\t\treturn\n\t\t}\n\n\t\ttoken, err := ac.ExchangeAuthorizationCode(ctx, req.Spec.Code, req.Spec.RedirectURI)"
+    },
+    "o-persist": {
+      "path": "pkg/registry/apis/provisioning/connection_authorize.go",
+      "start_line": 117,
+      "end_line": 145,
+      "excerpt_sha256": "2dffa77d01f5d81319649ffcc10b1e84a2ce1bda7eb97932003ce32dcad5ca8e",
+      "source_sha256": "f1986dc2be8fc4ffc2d31611c90864bb52dc43b03ef5342e4039cf5c7f3f98e1",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/connection_authorize.go#L117-L145",
+      "text": "\t\ttokenStatus := provisioning.TokenStatus{LastUpdated: time.Now().UnixMilli()}\n\t\tif !token.ExpiresAt.IsZero() {\n\t\t\ttokenStatus.Expiration = token.ExpiresAt.UnixMilli()\n\t\t}\n\n\t\tpatcher := appcontroller.NewConnectionStatusPatcher(c.access.GetClient())\n\t\tpatchOps := []map[string]any{\n\t\t\t{\n\t\t\t\t\"op\":   \"add\",\n\t\t\t\t\"path\": \"/secure/token\",\n\t\t\t\t\"value\": map[string]string{\n\t\t\t\t\t\"create\": string(token.Token),\n\t\t\t\t},\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"op\":    \"add\",\n\t\t\t\t\"path\":  \"/status/token\",\n\t\t\t\t\"value\": tokenStatus,\n\t\t\t},\n\t\t}\n\t\tif err := patcher.Patch(ctx, conn, patchOps...); err != nil {\n\t\t\tlogger.Error(\"failed to store connection token\", \"error\", err)\n\t\t\tresponder.Error(apierrors.NewInternalError(errors.New(\"failed to store the connection token\")))\n\t\t\treturn\n\t\t}\n\n\t\treq.Spec.Code = \"\"\n\t\treq.Status.Authorized = true\n\t\tresponder.Object(http.StatusOK, &req)"
+    },
+    "o-controller-process-header": {
+      "path": "pkg/registry/apis/provisioning/controller/connection.go",
+      "start_line": 318,
+      "end_line": 318,
+      "excerpt_sha256": "ad077b5db68922659fb1a787c3fc4214027a0d4ef4836e518d4c31b340cd4a13",
+      "source_sha256": "79ec8316ae3ec3b893bcef56f152f278910da57e3e8b5384389c179349da0503",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/controller/connection.go#L318-L318",
+      "text": "func (cc *ConnectionController) process(ctx context.Context, key string) (err error) {"
+    },
+    "o-controller-refresh-check": {
+      "path": "pkg/registry/apis/provisioning/controller/connection.go",
+      "start_line": 412,
+      "end_line": 416,
+      "excerpt_sha256": "1b55f8e83d1fd82f014ca28c2d5f1b8a6eb27414dec493e87cc3664dcb3e398d",
+      "source_sha256": "79ec8316ae3ec3b893bcef56f152f278910da57e3e8b5384389c179349da0503",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/controller/connection.go#L412-L416",
+      "text": "\ttokenConn, isTokenConnection := c.(connection.TokenConnection)\n\tvar shouldRefreshToken bool\n\tif isTokenConnection {\n\t\tshouldRefreshToken = cc.shouldGenerateToken(ctx, conn, tokenConn)\n\t}"
+    },
+    "o-controller-refresh-call": {
+      "path": "pkg/registry/apis/provisioning/controller/connection.go",
+      "start_line": 447,
+      "end_line": 451,
+      "excerpt_sha256": "e3fc7c95a44ca6469b3283e9cb18f116d5425630c85d0c4c9a17f84eafc08489",
+      "source_sha256": "79ec8316ae3ec3b893bcef56f152f278910da57e3e8b5384389c179349da0503",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/controller/connection.go#L447-L451",
+      "text": "\tif isTokenConnection && shouldRefreshToken {\n\t\tlogger.Info(\"generating connection token\")\n\n\t\ttokenCtx, tokenSpan := cc.tracer.Start(ctx, \"provisioning.controller.generate_token\", connSpanAttrs(conn))\n\t\ttoken, tokenExpiresAt, tokenOps, err := cc.generateConnectionToken(tokenCtx, tokenConn)"
+    },
+    "o-refresh-decision-header": {
+      "path": "pkg/registry/apis/provisioning/controller/connection.go",
+      "start_line": 527,
+      "end_line": 531,
+      "excerpt_sha256": "8258b2328bd27e9eefd06ead36abc8a1d72cc5b5ea1f1689a9b9bc6cd18a1c40",
+      "source_sha256": "79ec8316ae3ec3b893bcef56f152f278910da57e3e8b5384389c179349da0503",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/controller/connection.go#L527-L531",
+      "text": "func (cc *ConnectionController) shouldGenerateToken(\n\tctx context.Context,\n\tobj *provisioning.Connection,\n\tc connection.TokenConnection,\n) bool {"
+    },
+    "o-refresh-decision-validation": {
+      "path": "pkg/registry/apis/provisioning/controller/connection.go",
+      "start_line": 542,
+      "end_line": 556,
+      "excerpt_sha256": "08bec149766be6dfa65351225afc66b0579299da10b09a1d86a5459173039c8d",
+      "source_sha256": "79ec8316ae3ec3b893bcef56f152f278910da57e3e8b5384389c179349da0503",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/controller/connection.go#L542-L556",
+      "text": "\tif obj.Secure.Token.IsZero() {\n\t\t// An OAuth connection has no token until the user completes the authorization\n\t\t// flow after creation; there is nothing to generate until one is stored.\n\t\tif _, ok := c.(connection.OAuthConnection); ok {\n\t\t\treturn false\n\t\t}\n\t\tcc.tokenMetrics.recordRefreshReason(refreshReasonMissing)\n\t\treturn true\n\t}\n\n\texpiresAt, err := c.ValidateToken()\n\tif err != nil {\n\t\tcc.tokenMetrics.recordRefreshReason(refreshReasonInvalid)\n\t\treturn true\n\t}"
+    },
+    "o-refresh-decision-expiry": {
+      "path": "pkg/registry/apis/provisioning/controller/connection.go",
+      "start_line": 567,
+      "end_line": 583,
+      "excerpt_sha256": "9454f9d3821a080983c48f8d252410bb65ccdca3f97fbf67d1e5ec3e0b7fab8e",
+      "source_sha256": "79ec8316ae3ec3b893bcef56f152f278910da57e3e8b5384389c179349da0503",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/controller/connection.go#L567-L583",
+      "text": "\tif tokenRecentlyCreated(time.UnixMilli(obj.Status.Token.LastUpdated)) {\n\t\treturn false\n\t}\n\n\tif expiresAt.IsZero() {\n\t\treturn false\n\t}\n\n\tcc.tokenMetrics.recordTimeToExpiry(time.Until(expiresAt).Seconds())\n\n\tif shouldRefreshBeforeExpiration(expiresAt, cc.resyncInterval) {\n\t\tcc.tokenMetrics.recordRefreshReason(refreshReasonExpiring)\n\t\treturn true\n\t}\n\n\treturn false\n}"
+    },
+    "o-controller-generate": {
+      "path": "pkg/registry/apis/provisioning/controller/connection.go",
+      "start_line": 588,
+      "end_line": 627,
+      "excerpt_sha256": "e4e404eeb9eb1fdfeed8c74a04562b9ae6256e1b50d805630cfb6c4a818ef0e1",
+      "source_sha256": "79ec8316ae3ec3b893bcef56f152f278910da57e3e8b5384389c179349da0503",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/controller/connection.go#L588-L627",
+      "text": "func (cc *ConnectionController) generateConnectionToken(\n\tctx context.Context,\n\tconn connection.TokenConnection,\n) (token common.RawSecureValue, expiresAt time.Time, patchOperations []map[string]interface{}, err error) {\n\tlogger := logging.FromContext(ctx)\n\n\tstart := time.Now()\n\t// genErr holds the generation failure so the deferred recorder can classify\n\t// its cause. The failure is swallowed below (non-blocking), so it cannot be\n\t// recovered from the named err return.\n\tvar genErr error\n\tdefer func() {\n\t\tif genErr != nil {\n\t\t\tcc.tokenMetrics.recordGenerationError(classifyTokenErrorCause(genErr))\n\t\t} else {\n\t\t\tcc.tokenMetrics.recordGeneration(time.Since(start).Seconds())\n\t\t}\n\t}()\n\n\tgenerated, err := conn.GenerateConnectionToken(ctx)\n\tif err != nil {\n\t\tgenErr = err\n\t\tlogger.Error(\"failed to generate connection token\", \"error\", err)\n\t\treturn \"\", time.Time{}, nil, nil // Non-blocking: return empty patches\n\t}\n\n\tlogger.Info(\"successfully generated new connection token\")\n\n\tpatchOperations = []map[string]interface{}{\n\t\t{\n\t\t\t\"op\":   \"replace\",\n\t\t\t\"path\": \"/secure/token\",\n\t\t\t\"value\": map[string]string{\n\t\t\t\t\"create\": string(generated.Token),\n\t\t\t},\n\t\t},\n\t}\n\n\treturn generated.Token, generated.ExpiresAt, patchOperations, nil\n}"
+    },
+    "o-extra-registration": {
+      "path": "pkg/registry/apis/provisioning/extras/register.go",
+      "start_line": 65,
+      "end_line": 80,
+      "excerpt_sha256": "122064be4ab9f7914ff77b8e9b0590f4cfa2d47c50a9c8077822d234065cb4ba",
+      "source_sha256": "af3d60fe5bbb5bb5fb928027b47a3f069f5041044f698b20784fcc1b90da2b57",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/extras/register.go#L65-L80",
+      "text": "func ProvideProvisioningOSSConnectionExtras(\n\tcfg *setting.Cfg,\n\tdecryptSvc decrypt.DecryptService,\n\tghFactory ghconnection.GithubFactory,\n\tghRepoFactory *github.Factory,\n\treg prometheus.Registerer,\n) []connection.Extra {\n\tdecrypter := connection.ProvideDecrypter(decryptSvc, connection.RegisterDecryptMetrics(reg))\n\treturn []connection.Extra{\n\t\tghconnection.Extra(decrypter, ghFactory),\n\t\tgithuboauth.Extra(decrypter, ghRepoFactory),\n\t\t// http:// OAuth endpoints are only allowed in development or when explicitly opted in,\n\t\t// since the client secret and tokens would otherwise travel in cleartext.\n\t\tgitoauth.Extra(decrypter, cfg.Env == setting.Dev || cfg.ProvisioningAllowInsecure),\n\t}\n}"
+    },
+    "o-enabled-types": {
+      "path": "pkg/registry/apis/provisioning/extras/register.go",
+      "start_line": 107,
+      "end_line": 115,
+      "excerpt_sha256": "bd1f190dbb1946847e9252f0c9be80d6c01aeb345845690ac05f17f4386eee6f",
+      "source_sha256": "af3d60fe5bbb5bb5fb928027b47a3f069f5041044f698b20784fcc1b90da2b57",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/extras/register.go#L107-L115",
+      "text": "func ProvideConnectionFactoryFromConfig(cfg *setting.Cfg, tracer tracing.Tracer, extras []connection.Extra) (connection.Factory, error) {\n\ttypes := cfg.ProvisioningConnectionTypes\n\tif len(types) == 0 {\n\t\t// Enforcing default connection values if settings are not set\n\t\ttypes = []string{string(apisprovisioning.GithubConnectionType)}\n\t}\n\n\treturn connection.ProvideFactory(connection.ToConnectionTypes(types), extras, tracer)\n}"
+    },
+    "o-register-header": {
+      "path": "pkg/registry/apis/provisioning/register.go",
+      "start_line": 833,
+      "end_line": 834,
+      "excerpt_sha256": "accbaa487b788d822b0734c5108a003b037297ec273a150f4f6de61099a8b6da",
+      "source_sha256": "c5705d045f12934b9aaa8c35ba481ba4ecc385a534f65785c52d9411f4c3eb5a",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/register.go#L833-L834",
+      "text": "func (b *APIBuilder) UpdateAPIGroupInfo(apiGroupInfo *genericapiserver.APIGroupInfo, opts builder.APIGroupOptions) error {\n\t// Create repository storage with custom field selectors (e.g., spec.connection.name)"
+    },
+    "o-register": {
+      "path": "pkg/registry/apis/provisioning/register.go",
+      "start_line": 931,
+      "end_line": 933,
+      "excerpt_sha256": "6378d36e330861a60853394e85b376eeb5cae618d2f95c6df2d13fd48c45d354",
+      "source_sha256": "c5705d045f12934b9aaa8c35ba481ba4ecc385a534f65785c52d9411f4c3eb5a",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/register.go#L931-L933",
+      "text": "\tstorage[provisioning.ConnectionResourceInfo.StoragePath(\"status\")] = connectionStatusStorage\n\tstorage[provisioning.ConnectionResourceInfo.StoragePath(\"repositories\")] = WithTimeout(NewConnectionRepositoriesConnector(b), 30*time.Second)\n\tstorage[provisioning.ConnectionResourceInfo.StoragePath(\"authorize\")] = WithTimeout(NewConnectionAuthorizeConnector(b), 30*time.Second)"
+    },
+    "o-lookup": {
+      "path": "pkg/registry/apis/provisioning/register.go",
+      "start_line": 1821,
+      "end_line": 1827,
+      "excerpt_sha256": "3aed796093b6e1367bff7a03599bd3f040373d22fc546cead622ff8e72327f05",
+      "source_sha256": "c5705d045f12934b9aaa8c35ba481ba4ecc385a534f65785c52d9411f4c3eb5a",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/register.go#L1821-L1827",
+      "text": "func (b *APIBuilder) GetConnection(ctx context.Context, name string) (connection.Connection, error) {\n\tobj, err := b.connectionStore.Get(ctx, name, &metav1.GetOptions{})\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\treturn b.asConnection(ctx, obj, nil)\n}"
+    },
+    "o-as-connection": {
+      "path": "pkg/registry/apis/provisioning/register.go",
+      "start_line": 1887,
+      "end_line": 1905,
+      "excerpt_sha256": "d865fe4a993cbfd9c808cb2dd9895a38e5c70e90bb7dca115b5f558f1fcc811c",
+      "source_sha256": "c5705d045f12934b9aaa8c35ba481ba4ecc385a534f65785c52d9411f4c3eb5a",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/provisioning/register.go#L1887-L1905",
+      "text": "func (b *APIBuilder) asConnection(ctx context.Context, obj runtime.Object, old runtime.Object) (connection.Connection, error) {\n\tif obj == nil {\n\t\treturn nil, fmt.Errorf(\"missing connection object\")\n\t}\n\n\tc, ok := obj.(*provisioning.Connection)\n\tif !ok {\n\t\treturn nil, fmt.Errorf(\"expected connection object\")\n\t}\n\n\t// Copy previous values if they exist\n\tif old != nil {\n\t\tif oldConn, ok := old.(*provisioning.Connection); ok {\n\t\t\tconnection.CopySecureValues(c, oldConn)\n\t\t}\n\t}\n\n\treturn b.connectionFactory.Build(ctx, c)\n}"
+    },
+    "b-client-consumer": {
+      "path": "pkg/router/plugin.go",
+      "start_line": 497,
+      "end_line": 501,
+      "excerpt_sha256": "360a9c68851ec9fda0e38219bddeaf8ee461bf2d5730ac2ca2ac7defa504a2a6",
+      "source_sha256": "749e896980fb90ed1e9128b91b954805d61d14105a845e2b76a30cc4f0874d02",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin.go#L497-L501",
+      "text": "func (b *PluginBackend) load(ctx context.Context) (*pluginroute.Handler, error) {\n\tclientV2, clientV3, err := b.client(ctx, b.pluginID)\n\tif err != nil {\n\t\treturn nil, err\n\t}"
+    },
+    "b-load-dispatch": {
+      "path": "pkg/router/plugin.go",
+      "start_line": 518,
+      "end_line": 522,
+      "excerpt_sha256": "61430e4fe5c5fc2474ff0ce002ff5a562379dcd43dce00d764705c3bb13f03af",
+      "source_sha256": "749e896980fb90ed1e9128b91b954805d61d14105a845e2b76a30cc4f0874d02",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin.go#L518-L522",
+      "text": "\tif b.settings != nil {\n\t\treturn b.loadSettings(ctx, cfg, opts, clientV2)\n\t}\n\treturn b.loadManifest(cfg, opts, clientV3)\n}"
+    },
+    "b-load": {
+      "path": "pkg/router/plugin.go",
+      "start_line": 550,
+      "end_line": 574,
+      "excerpt_sha256": "a6f688867b600788ee894eb0f2ec27662837340c2211f8263cd63c02f728752a",
+      "source_sha256": "749e896980fb90ed1e9128b91b954805d61d14105a845e2b76a30cc4f0874d02",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin.go#L550-L574",
+      "text": "func (b *PluginBackend) loadManifest(cfg *setting.Cfg, opts pluginroute.Options, client appclientv3.Client) (*pluginroute.Handler, error) {\n\t// A baasbridge client forwards the requester's own credentials, so an\n\t// exchanged token would go unused.\n\tbridged := baasbridge.IsClient(client) //nolint:staticcheck\n\tif client != nil {\n\t\tclient = &breakerPluginClientV3{Client: client}\n\t}\n\tif !bridged {\n\t\t// Keep authentication outside the breaker: token exchange failures do not\n\t\t// indicate whether the plugin is reachable.\n\t\tvar err error\n\t\tclient, err = v3.WithAuthentication(client, b.pluginID, []string{b.group.Name},\n\t\t\twithAuthFailureOutcome(pluginauth.ClientV3TokenExchanger(b.deps.Cfg, b.deps.PluginAuth, b.pluginID, b.deps.TokenExchanger)))\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t}\n\tapiserverSection := cfg.SectionWithEnvOverrides(searchapi.ConfigSection)\n\topts.ClientV3 = client\n\topts.AccessClient = b.deps.AccessClient\n\topts.Search = b.deps.Unified\n\topts.Store = b.deps.Unified\n\topts.HybridAPIEnabled = apiserverSection.Key(searchapi.ConfigKeyHybrid).MustBool(true)\n\topts.KeysAPIEnabled = apiserverSection.Key(keysapi.ConfigKey).MustBool(false)\n\treturn pluginroute.NewHandler(b.pluginID, b.manifest, opts)"
+    },
+    "b-settings-proxy": {
+      "path": "pkg/router/plugin.go",
+      "start_line": 526,
+      "end_line": 545,
+      "excerpt_sha256": "38db653bbc912e9a39938e9d44c74887d20be73cf4a93e45f24490a43b0c9e0c",
+      "source_sha256": "749e896980fb90ed1e9128b91b954805d61d14105a845e2b76a30cc4f0874d02",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin.go#L526-L545",
+      "text": "func (b *PluginBackend) loadSettings(ctx context.Context, cfg *setting.Cfg, opts pluginroute.Options, client plugins.Client) (*pluginroute.Handler, error) {\n\tif client != nil {\n\t\topts.PluginClient = &breakerPluginClient{Client: client}\n\t}\n\topts.ContextProvider = b.deps.ContextProvider\n\topts.Features = b.deps.Features\n\topts.Settings = appsettings.Options{\n\t\tRegisterProxy:            openfeature.NewDefaultClient().Boolean(ctx, featuremgmt.FlagApppluginsHandleProxyRequests, false, openfeature.TransactionContext(ctx)),\n\t\tAccessControl:            b.deps.AccessControl,\n\t\tDataProxyLogging:         cfg.DataProxyLogging,\n\t\tSendUserHeader:           cfg.SendUserHeader,\n\t\tPluginsAppsSkipVerifyTLS: cfg.PluginsAppsSkipVerifyTLS,\n\t}\n\tif b.deps.PluginSettings != nil {\n\t\topts.Settings.LegacyStore = appsettings.NewLegacySettingsStore(b.pluginID, b.pluginID, b.deps.PluginSettings)\n\t}\n\topts.DualWrite = b.deps.DualWrite\n\topts.StorageOpts = &options.StorageOptions{UnifiedStorageConfig: cfg.UnifiedStorage}\n\topts.BuilderMetrics = b.deps.BuilderMetrics\n\treturn pluginroute.NewAppSettingsHandler(*b.settings, opts)"
+    },
+    "b-breaker-type": {
+      "path": "pkg/router/plugin_breaker.go",
+      "start_line": 73,
+      "end_line": 73,
+      "excerpt_sha256": "980df08a2272cfadcedb1295a6783c08aa463fcd5b35b5b41ca8878cec668214",
+      "source_sha256": "17317e75ac119797b90ae05fea1c6e43eeac5a2e01028bda1d842aba21320962",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin_breaker.go#L73-L73",
+      "text": "type breakerPluginClientV3 struct{ appclientv3.Client }"
+    },
+    "b-breaker-call": {
+      "path": "pkg/router/plugin_breaker.go",
+      "start_line": 97,
+      "end_line": 107,
+      "excerpt_sha256": "039348d8b2ed4b5c2cff8fde576ecb3d921f2d4e35915222975981cc7ecc7088",
+      "source_sha256": "17317e75ac119797b90ae05fea1c6e43eeac5a2e01028bda1d842aba21320962",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin_breaker.go#L97-L107",
+      "text": "func (c *breakerPluginClientV3) CallRoute(ctx context.Context, req *pluginv3.CallRouteRequest) (grpc.ServerStreamingClient[pluginv3.CallRouteResponse], error) {\n\tdone, err := allowPluginCall(ctx)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tdefer reportPluginPanic(done)\n\tstream, err := c.Client.CallRoute(ctx, req)\n\tif err != nil {\n\t\tdone(err)\n\t\treturn nil, err\n\t}"
+    },
+    "b-poll-header": {
+      "path": "pkg/router/plugin_manifests.go",
+      "start_line": 168,
+      "end_line": 168,
+      "excerpt_sha256": "7ceb816e5a0ac503e334d804344e76e3da8c7be6431fa653efa0842526f9bfbd",
+      "source_sha256": "777a2b064c4f2e45d0c5596332a82938dd778a1756ee90d36cff529c041c674c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin_manifests.go#L168-L168",
+      "text": "func (t *pluginManifestsTarget) poll(ctx context.Context, dirty chan<- struct{}) {"
+    },
+    "b-client-registration": {
+      "path": "pkg/router/plugin_manifests.go",
+      "start_line": 201,
+      "end_line": 209,
+      "excerpt_sha256": "0c83a1383f7e864ecde5217424086a363c8601d7b769b900c14c4892db87514b",
+      "source_sha256": "777a2b064c4f2e45d0c5596332a82938dd778a1756ee90d36cff529c041c674c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin_manifests.go#L201-L209",
+      "text": "\t\t\tconnectionID := entry.Definition.JSONData.ID\n\t\t\tif connectionID == \"\" {\n\t\t\t\tconnectionID = manifest.Group\n\t\t\t}\n\t\t\tclients := func(ctx context.Context, id string) (plugins.Client, appclientv3.Client, error) {\n\t\t\t\treturn t.pluginClients(entry.Host, connectionID, manifest)\n\t\t\t}\n\n\t\t\tbackend, err := newPluginBackend(entry.Definition.JSONData.ID, manifest, clients, t.deps, nil)"
+    },
+    "b-select": {
+      "path": "pkg/router/plugin_manifests.go",
+      "start_line": 258,
+      "end_line": 279,
+      "excerpt_sha256": "3eb7916e9127669095e16fade2a8ed35d16f74e8dbae85003a49b7fda5767a2b",
+      "source_sha256": "777a2b064c4f2e45d0c5596332a82938dd778a1756ee90d36cff529c041c674c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin_manifests.go#L258-L279",
+      "text": "func (t *pluginManifestsTarget) pluginClients(host, pluginID string, manifest *app.ManifestData) (plugins.Client, appclientv3.Client, error) {\n\tif host == \"\" {\n\t\treturn nil, nil, nil // no client exists\n\t}\n\tt.connectionsMu.Lock()\n\tdefer t.connectionsMu.Unlock()\n\tif t.closed {\n\t\treturn nil, nil, fmt.Errorf(\"router: plugin manifests target is closed\")\n\t}\n\n\t// Temporarily support the BaaS HTTP style operators\n\tif baasbridge.IsHTTPHost(host) { //nolint:staticcheck\n\t\tclientV3, err := baasbridge.NewClient(host, manifest, baasbridge.Options{ //nolint:staticcheck\n\t\t\tHTTPClient:       &http.Client{Transport: t.httpTransport},\n\t\t\tMaxResponseBytes: int64(t.grpcConfig.Message.MaxRecvSize),\n\t\t\tRouteCredentials: forwardRouteCredentials,\n\t\t})\n\t\tif err != nil {\n\t\t\treturn nil, nil, err\n\t\t}\n\t\treturn nil, clientV3, nil\n\t}"
+    },
+    "b-forward-credentials": {
+      "path": "pkg/router/plugin_manifests.go",
+      "start_line": 307,
+      "end_line": 321,
+      "excerpt_sha256": "0de0fb7cc4493e3ef5166e68d8685eaf27b7c2ea65597235ed2db3ae96ba4494",
+      "source_sha256": "777a2b064c4f2e45d0c5596332a82938dd778a1756ee90d36cff529c041c674c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/router/plugin_manifests.go#L307-L321",
+      "text": "func forwardRouteCredentials(ctx context.Context, header http.Header) error {\n\trequester, err := identity.GetRequester(ctx)\n\tif err != nil {\n\t\treturn nil\n\t}\n\tif token := requester.GetIDToken(); token != \"\" {\n\t\theader.Set(\"X-Grafana-Id\", token)\n\t}\n\tif !baasbridge.DeclaredAccessChecked(ctx) { //nolint:staticcheck\n\t\tif token := requester.GetAccessToken(); token != \"\" {\n\t\t\theader.Set(\"X-Access-Token\", token)\n\t\t}\n\t}\n\treturn nil\n}"
+    },
+    "b-deprecated": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 1,
+      "end_line": 6,
+      "excerpt_sha256": "741c4bfc2ad836d752510ae7ebc5b8526d48de94e2ca97f5a8d4a0300ee67965",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L1-L6",
+      "text": "// Package baasbridge is a shim that lets Grafana call an operator written for\n// apiextensions-apiserver through the plugin v3 client interface.\n//\n// Deprecated: operators should serve the plugin v3 gRPC services. This\n// package will be removed once the remaining operators have moved.\npackage baasbridge"
+    },
+    "b-host-kind": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 87,
+      "end_line": 90,
+      "excerpt_sha256": "1534ff821a460a07524da539f306a55d562bd212f1c6624fbce5cf855422406e",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L87-L90",
+      "text": "func IsHTTPHost(host string) bool {\n\tscheme, _, ok := strings.Cut(host, \"://\")\n\treturn ok && (strings.EqualFold(scheme, \"http\") || strings.EqualFold(scheme, \"https\"))\n}"
+    },
+    "b-new-client": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 121,
+      "end_line": 149,
+      "excerpt_sha256": "04f236d796aba56633a290a23853a12cdd969691991fe763baa281b0e4995bb8",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L121-L149",
+      "text": "func NewClient(host string, manifest *app.ManifestData, opts Options) (appclientv3.Client, error) {\n\tbase, err := url.Parse(host)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"baasbridge: parsing plugin host %q: %w\", host, err)\n\t}\n\t// url.Parse lowercases the scheme.\n\tif (base.Scheme != \"http\" && base.Scheme != \"https\") || base.Host == \"\" {\n\t\treturn nil, fmt.Errorf(\"baasbridge: plugin host %q must be an absolute http or https URL\", host)\n\t}\n\thttpClient := &http.Client{}\n\tif opts.HTTPClient != nil {\n\t\t*httpClient = *opts.HTTPClient\n\t}\n\t// Following a redirect would send the caller's credentials, which net/http\n\t// copies onto the redirected request, to wherever it points.\n\thttpClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }\n\tmaxResponseBytes := opts.MaxResponseBytes\n\tif maxResponseBytes <= 0 {\n\t\tmaxResponseBytes = defaultMaxResponseBytes\n\t}\n\treturn &client{\n\t\tbase:             base,\n\t\tclient:           httpClient,\n\t\tmaxResponseBytes: maxResponseBytes,\n\t\tcredentials:      opts.RouteCredentials,\n\t\tkinds:            httpAdmissionKinds(manifest),\n\t\twebhooks:         webhookPaths(manifest),\n\t}, nil\n}"
+    },
+    "b-is-client": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 169,
+      "end_line": 172,
+      "excerpt_sha256": "acd40784927617f45b11db9af6a2364c62b52e5a7ae7efe8e7fd0a7373f9cc44",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L169-L172",
+      "text": "func IsClient(c appclientv3.Client) bool {\n\t_, ok := c.(*client)\n\treturn ok\n}"
+    },
+    "b-call": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 457,
+      "end_line": 480,
+      "excerpt_sha256": "990d40b44789b88c8ee47f0ea79c60c56d1378ac270cbe32a852d2a304bd2d42",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L457-L480",
+      "text": "func (c *client) CallRoute(ctx context.Context, in *pluginv3.CallRouteRequest) (grpc.ServerStreamingClient[pluginv3.CallRouteResponse], error) {\n\tu, err := url.Parse(in.GetUrl())\n\tif err != nil {\n\t\treturn nil, status.Errorf(codes.InvalidArgument, \"parsing route URL: %v\", err)\n\t}\n\t// JoinPath takes escaped elements: the unescaped path would lose an escaped\n\t// \"/\" in a name, and fail to join one with an escaped \"%\".\n\ttarget := c.base.JoinPath(u.EscapedPath())\n\ttarget.RawQuery = u.RawQuery\n\n\treq, err := http.NewRequestWithContext(ctx, in.GetMethod(), target.String(), bytes.NewReader(in.GetBody()))\n\tif err != nil {\n\t\treturn nil, status.Errorf(codes.InvalidArgument, \"building route request: %v\", err)\n\t}\n\tfor key, values := range in.GetHeaders() {\n\t\tfor _, value := range values.GetValues() {\n\t\t\treq.Header.Add(key, value)\n\t\t}\n\t}\n\tdeleteHeaders(req.Header, hopByHopHeaders)\n\tdeleteHeaders(req.Header, credentialHeaders)\n\tif err := c.setCredentials(ctx, req.Header); err != nil {\n\t\treturn nil, err\n\t}"
+    },
+    "b-do": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 482,
+      "end_line": 493,
+      "excerpt_sha256": "1ab748d74943f9e43287487063903329cf39a5586ed1c8de4607974ac357cc71",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L482-L493",
+      "text": "\t// httpRouteStream closes the body at its end. A caller that stops receiving\n\t// before then leaves it to the request's context, which ends the response.\n\tresp, err := c.client.Do(req) //nolint:bodyclose\n\tif err != nil {\n\t\treturn nil, transportError(ctx, err)\n\t}\n\tif isRedirect(resp) {\n\t\t_ = resp.Body.Close()\n\t\treturn nil, errRouteRedirect(resp)\n\t}\n\treturn newHTTPRouteStream(ctx, resp), nil\n}"
+    },
+    "b-redirect": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 497,
+      "end_line": 511,
+      "excerpt_sha256": "5a7216126ca6f21d070ab2969663028464bf0c27758651fe243dded655447501",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L497-L511",
+      "text": "func isRedirect(resp *http.Response) bool {\n\treturn resp.StatusCode >= 300 && resp.StatusCode <= 399 && resp.Header.Get(\"Location\") != \"\"\n}\n\n// errRouteRedirect answers a redirect with a 502, as the router's proxies do.\n// It is a policy decision, not a sign the operator is unhealthy, so the\n// breaker does not count it.\nfunc errRouteRedirect(resp *http.Response) error {\n\treturn &apierrors.StatusError{ErrStatus: metav1.Status{\n\t\tStatus:  metav1.StatusFailure,\n\t\tCode:    http.StatusBadGateway,\n\t\tReason:  metav1.StatusReasonInternalError,\n\t\tMessage: fmt.Sprintf(\"baasbridge: backend redirect rejected (status %d, location %q)\", resp.StatusCode, resp.Header.Get(\"Location\")),\n\t}}\n}"
+    },
+    "b-credentials-call": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 557,
+      "end_line": 562,
+      "excerpt_sha256": "436ec26b04a29c875a42f78fd0296e7a6fbc043f8f95f8e5bfd3ace19a092e5f",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L557-L562",
+      "text": "func (c *client) setCredentials(ctx context.Context, header http.Header) error {\n\tif c.credentials == nil {\n\t\treturn nil\n\t}\n\treturn c.credentials(ctx, header)\n}"
+    },
+    "b-header-policy": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 611,
+      "end_line": 636,
+      "excerpt_sha256": "b47f4ffba3cc500e86446f939ad8afd2e3c78ebfc9ffd129b4026a7d45fc6ae9",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L611-L636",
+      "text": "var credentialHeaders = []string{\n\t\"Authorization\", \"Proxy-Authorization\", \"Cookie\",\n\t\"X-Access-Token\", \"X-Grafana-Id\", \"X-Id-Token\",\n\t\"X-Remote-User\", \"X-Remote-Group\", \"X-Remote-Extra-\", \"X-Webauth-\", \"Impersonate-\",\n}\n\n// hopByHopHeaders apply to one HTTP connection, so they are not passed on in\n// either direction. Upgrade in particular: the stream cannot carry one.\nvar hopByHopHeaders = []string{\"Connection\", \"Keep-Alive\", \"Proxy-Connection\", \"Te\", \"Trailer\", \"Transfer-Encoding\", \"Upgrade\"}\n\n// deleteHeaders removes each named header, and every header starting with a\n// name that ends in \"-\".\nfunc deleteHeaders(header http.Header, names []string) {\n\tfor _, name := range names {\n\t\tif !strings.HasSuffix(name, \"-\") {\n\t\t\theader.Del(name)\n\t\t\tcontinue\n\t\t}\n\t\tprefix := http.CanonicalHeaderKey(name)\n\t\tfor key := range header {\n\t\t\tif strings.HasPrefix(http.CanonicalHeaderKey(key), prefix) {\n\t\t\t\tdelete(header, key)\n\t\t\t}\n\t\t}\n\t}\n}"
+    },
+    "b-stream-new": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 648,
+      "end_line": 660,
+      "excerpt_sha256": "82a973a2216ba2393b9368b54647e281b8caed32c54c2ff39fac1a7e33f020e7",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L648-L660",
+      "text": "func newHTTPRouteStream(ctx context.Context, resp *http.Response) *httpRouteStream {\n\t// Most route responses are small, so a known length that fits sizes the\n\t// buffer; one more byte lets the read of the whole body also see its end.\n\tsize := routeChunkBytes\n\tif resp.ContentLength >= 0 && resp.ContentLength < routeChunkBytes {\n\t\tsize = int(resp.ContentLength) + 1\n\t}\n\treturn &httpRouteStream{\n\t\tctx:  ctx,\n\t\tresp: resp,\n\t\tbuf:  make([]byte, size),\n\t}\n}"
+    },
+    "b-stream-recv": {
+      "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+      "start_line": 665,
+      "end_line": 699,
+      "excerpt_sha256": "f7fe386f9d12b541d2ff986d677d1caa51aa1e5b3176008a7c92eb55e1e5f17f",
+      "source_sha256": "08d9dd501984deb546ac6bf4c56e6cf149873c0e2cb03f56621ab5eb12a65263",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/client.go#L665-L699",
+      "text": "func (s *httpRouteStream) Recv() (*pluginv3.CallRouteResponse, error) {\n\tif !s.sentHeader {\n\t\ts.sentHeader = true\n\t\tout := &pluginv3.CallRouteResponse{}\n\t\tout.SetCode(int32(s.resp.StatusCode))\n\t\theader := s.resp.Header.Clone()\n\t\tdeleteHeaders(header, hopByHopHeaders)\n\t\theaders := make(map[string]*pluginv3.StringList, len(header))\n\t\tfor key, values := range header {\n\t\t\theaders[key] = pluginv3.StringList_builder{Values: values}.Build()\n\t\t}\n\t\tout.SetHeaders(headers)\n\t\treturn out, nil\n\t}\n\tif s.done {\n\t\treturn nil, io.EOF\n\t}\n\tn, err := s.resp.Body.Read(s.buf)\n\tfor n == 0 && err == nil {\n\t\tn, err = s.resp.Body.Read(s.buf)\n\t}\n\tif err != nil {\n\t\ts.done = true\n\t\t_ = s.resp.Body.Close()\n\t\tif !errors.Is(err, io.EOF) {\n\t\t\treturn nil, transportError(s.ctx, err)\n\t\t}\n\t\tif n == 0 {\n\t\t\treturn nil, io.EOF\n\t\t}\n\t}\n\tout := &pluginv3.CallRouteResponse{}\n\tout.SetBody(bytes.Clone(s.buf[:n]))\n\treturn out, nil\n}"
+    },
+    "b-context": {
+      "path": "pkg/services/pluginsintegration/baasbridge/context.go",
+      "start_line": 5,
+      "end_line": 23,
+      "excerpt_sha256": "7df049d70b4c53def7c14265ab19e06fa803c1bdd06c45b5256861b62394aa0b",
+      "source_sha256": "f682e5867fbe419ccdff38c66a86c58294e891920cc02d5bef02627313b7114f",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/baasbridge/context.go#L5-L23",
+      "text": "type declaredAccessKey struct{}\n\n// WithDeclaredAccessChecked records on a route request's ctx that a declared\n// access check authorized it. Without one the operator authorizes the route\n// itself, and only then is it sent the caller's access token.\n//\n// Deprecated: see the package documentation.\nfunc WithDeclaredAccessChecked(ctx context.Context) context.Context {\n\treturn context.WithValue(ctx, declaredAccessKey{}, true)\n}\n\n// DeclaredAccessChecked reports whether a declared access check authorized the\n// route request in ctx.\n//\n// Deprecated: see the package documentation.\nfunc DeclaredAccessChecked(ctx context.Context) bool {\n\tchecked, _ := ctx.Value(declaredAccessKey{}).(bool)\n\treturn checked\n}"
+    },
+    "b-appsettings-proxy": {
+      "path": "pkg/services/pluginsintegration/pluginroute/appsettings/subresources.go",
+      "start_line": 19,
+      "end_line": 35,
+      "excerpt_sha256": "026dd44d140df9239008b0ff0a8dc052e9683ab93627e5d7969c50e8ad3d9755",
+      "source_sha256": "1fb3dcf45f4b32dc0d5cd5e84c6663f0ccc58266b12ca58ace59abb17e5fc936",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/appsettings/subresources.go#L19-L35",
+      "text": "func (b *Builder) SubresourceHandler(next http.Handler) http.Handler {\n\thandlers := map[string]subresource{\n\t\t\"health\": {methods: []string{http.MethodGet}, handler: &healthHandler{\n\t\t\tgroup:           b.group,\n\t\t\tclient:          b.client,\n\t\t\tcontextProvider: b.getPluginContext,\n\t\t}},\n\t\t\"resources\": {methods: forwardedMethods, handler: &resourcesHandler{\n\t\t\tpluginID:        b.pluginJSON.ID,\n\t\t\tclient:          b.client,\n\t\t\tcontextProvider: b.getPluginContext,\n\t\t}},\n\t}\n\tif b.registersProxy() {\n\t\tb.proxy = newProxy(b)\n\t\thandlers[\"proxy\"] = subresource{methods: forwardedMethods, handler: b.proxy}\n\t}"
+    },
+    "b-appsettings-policy": {
+      "path": "pkg/services/pluginsintegration/pluginroute/appsettings/subresources.go",
+      "start_line": 93,
+      "end_line": 95,
+      "excerpt_sha256": "1bc1a8e5f469fb7cd34e8db7f2b50828b19ebd9880d6930ee179d07ac0d12ef1",
+      "source_sha256": "1fb3dcf45f4b32dc0d5cd5e84c6663f0ccc58266b12ca58ace59abb17e5fc936",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/appsettings/subresources.go#L93-L95",
+      "text": "func (b *Builder) registersProxy() bool {\n\treturn len(b.pluginJSON.Routes) > 0 && b.opts.RegisterProxy\n}"
+    },
+    "b-handler-options": {
+      "path": "pkg/services/pluginsintegration/pluginroute/handler.go",
+      "start_line": 58,
+      "end_line": 68,
+      "excerpt_sha256": "dc23b7821e0552a44044edbc902eb3900d508aee2c603f7abb86337e1cc38e86",
+      "source_sha256": "d197687675ddcdf0b6d1f7746cd7be829401305a8c2140eeeee124e4800a2006",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/handler.go#L58-L68",
+      "text": "type Options struct {\n\tPluginInfo      plugins.Info\n\tStorage         StorageProvider\n\tPluginClient    appsettings.PluginClient\n\tClientV3        appclientv3.Client\n\tContextProvider appsettings.PluginContextWrapper\n\tDecrypter       decrypt.DecryptService\n\tAccessChecker   pluginaccesscontrol.AppAccessChecker\n\t// AccessClient runs the access checks a manifest declares on its routes.\n\t// A route that declares one is refused without it.\n\tAccessClient     authlib.AccessChecker"
+    },
+    "b-builder-assignment": {
+      "path": "pkg/services/pluginsintegration/pluginroute/handler.go",
+      "start_line": 346,
+      "end_line": 370,
+      "excerpt_sha256": "f2f0ff2a17970c557143849509225944087896b076da6d6a1f016382a90399ef",
+      "source_sha256": "d197687675ddcdf0b6d1f7746cd7be829401305a8c2140eeeee124e4800a2006",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/handler.go#L346-L370",
+      "text": "func newManifestBuilder(pluginID string, manifest *app.ManifestData, opts Options) (*manifestBuilder, error) {\n\tif err := ValidateManifest(pluginID, manifest); err != nil {\n\t\treturn nil, err\n\t}\n\n\tif opts.AccessChecker == nil {\n\t\topts.AccessChecker = denyPluginAccess\n\t}\n\tif opts.Tracer == nil {\n\t\topts.Tracer = tracing.NewNoopTracerService()\n\t}\n\treturn &manifestBuilder{\n\t\tgroup:         manifest.Group,\n\t\tmanifest:      manifest,\n\t\tpluginID:      pluginID,\n\t\tclientV3:      opts.ClientV3,\n\t\tdecrypter:     newSecureValueLookup(opts.Decrypter),\n\t\taccessChecker: opts.AccessChecker,\n\t\taccessClient:  opts.AccessClient,\n\t\tsearch:        opts.Search,\n\t\tstore:         opts.Store,\n\t\ttracer:        opts.Tracer,\n\t\topts:          opts,\n\t\tkindPolicies:  kindPolicies(manifest),\n\t}, nil"
+    },
+    "b-manifest-routes": {
+      "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+      "start_line": 97,
+      "end_line": 113,
+      "excerpt_sha256": "2dd9f465caf8d5ba352b9e8aa82d9979bbe8b2414dc076bb033c6d588a98586c",
+      "source_sha256": "1dafd595afd2b0bd93c92f0f00746f4393866c48bca09a1ad1dba0a4d9a855b4",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/routes.go#L97-L113",
+      "text": "func (b *manifestBuilder) versionRoutes(gv schema.GroupVersion, skip func(manifestroutes.Problem)) []manifestroutes.Route {\n\tversion := b.servedVersion(gv)\n\tif version == nil {\n\t\treturn nil\n\t}\n\treturn parseManifestRoutes(*version, skip)\n}\n\n// parseManifestRoutes resolves a version's custom routes from its OpenAPI paths.\n// Deprecated routes were moved there when the manifest was loaded.\nfunc parseManifestRoutes(version app.ManifestVersion, skip func(manifestroutes.Problem)) []manifestroutes.Route {\n\troutes, problems := manifestroutes.Parse(version, routeOptions)\n\tfor _, p := range problems {\n\t\tskip(p)\n\t}\n\treturn routes\n}"
+    },
+    "b-route-mux-header": {
+      "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+      "start_line": 120,
+      "end_line": 123,
+      "excerpt_sha256": "8ac5cadf9cd132a9ada2f355835e9895d751cd0e36b5da274a988346c47c9fc7",
+      "source_sha256": "1dafd595afd2b0bd93c92f0f00746f4393866c48bca09a1ad1dba0a4d9a855b4",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/routes.go#L120-L123",
+      "text": "func (b *manifestBuilder) routeMux(next http.Handler, reg prometheus.Registerer) http.Handler {\n\tif b.manifest == nil {\n\t\treturn next\n\t}"
+    },
+    "b-route-mount": {
+      "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+      "start_line": 128,
+      "end_line": 147,
+      "excerpt_sha256": "87c1898148e0bdfc26c54f7958417afba7aa2929ea1252a182723828c342daa6",
+      "source_sha256": "1dafd595afd2b0bd93c92f0f00746f4393866c48bca09a1ad1dba0a4d9a855b4",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/routes.go#L128-L147",
+      "text": "\tfor _, version := range b.manifest.Versions {\n\t\tif !version.Served {\n\t\t\tcontinue\n\t\t}\n\t\tgv := schema.GroupVersion{Group: b.group, Version: version.Name}\n\t\twarn := func(p manifestroutes.Problem) {\n\t\t\tlogging.DefaultLogger.Warn(\"skipping manifest route\",\n\t\t\t\t\"group\", gv.Group, \"version\", gv.Version, \"path\", p.Path, \"method\", p.Method, \"reason\", p.Reason)\n\t\t}\n\t\t// manifestroutes.Parse has already registered every pattern on a scratch\n\t\t// mux, so registering them again cannot fail.\n\t\troot := \"/apis/\" + gv.String() + \"/\"\n\t\tfor _, route := range b.versionRoutes(gv, warn) {\n\t\t\thandler := metrics.InstrumentHandler(gv.Group, gv.Version, route.Path, b.routeHandler(gv, route))\n\t\t\tfor method := range manifestroutes.Operations(&route.Operations) {\n\t\t\t\tmux.Handle(method+\" \"+root+route.Pattern, handler)\n\t\t\t\tmounted++\n\t\t\t}\n\t\t\tindex.add(version.Name, route)\n\t\t}"
+    },
+    "b-route": {
+      "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+      "start_line": 301,
+      "end_line": 331,
+      "excerpt_sha256": "f47d8e8d0e54757700058080c59b10c961cc7fd2c871807a35e533b64b31f7a9",
+      "source_sha256": "1dafd595afd2b0bd93c92f0f00746f4393866c48bca09a1ad1dba0a4d9a855b4",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/routes.go#L301-L331",
+      "text": "// routeHandler forwards a manifest route to the plugin's v3 route service. A\n// kind subresource route also carries the parent object, named by the path.\nfunc (b *manifestBuilder) routeHandler(gv schema.GroupVersion, route manifestroutes.Route) http.HandlerFunc {\n\tpath, resource := route.Path, \"\"\n\tif route.Kind != nil {\n\t\tpath, resource = route.Subresource, strings.ToLower(route.Kind.Plural)\n\t}\n\tforward := httpadapter.HandlerFunc(b.clientV3)\n\tchecks := routeChecks(gv, route, resource)\n\t// ServeMux matches HEAD against a GET pattern, so a route that declares GET\n\t// but not HEAD is called for HEAD too.\n\theadAsGet := route.Operations.Head == nil && route.Operations.Get != nil\n\treturn func(w http.ResponseWriter, r *http.Request) {\n\t\tctx := r.Context()\n\t\tns := \"\"\n\t\tif route.Namespaced {\n\t\t\tns = r.PathValue(namespaceParameter)\n\t\t\tctx = request.WithNamespace(ctx, ns)\n\t\t\tr = r.WithContext(ctx)\n\t\t}\n\n\t\t// Without this the plugin only sees the raw URL, and no group, version,\n\t\t// namespace or parent object. Path is the declared route, not the one it\n\t\t// was called with, because app-sdk's simple.App finds handlers by exact\n\t\t// declared path; the request URL still carries the concrete one.\n\t\tinfo := httpadapter.RouteInfo{\n\t\t\tGroup:     gv.Group,\n\t\t\tVersion:   gv.Version,\n\t\t\tNamespace: ns,\n\t\t\tPath:      path,\n\t\t}"
+    },
+    "b-route-access": {
+      "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+      "start_line": 363,
+      "end_line": 371,
+      "excerpt_sha256": "4fda9046458783241faff71d1c1b2244d3327762d3feb4e12a11297c3bfc664e",
+      "source_sha256": "1dafd595afd2b0bd93c92f0f00746f4393866c48bca09a1ad1dba0a4d9a855b4",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/routes.go#L363-L371",
+      "text": "\t\tif check, declared := checks[r.Method]; declared {\n\t\t\tif err := b.checkDeclaredAccess(ctx, check, ns, name, parentMeta); err != nil {\n\t\t\t\t_ = errhttp.Write(ctx, err, w)\n\t\t\t\treturn\n\t\t\t}\n\t\t\t// Only an operator behind baasbridge is told; it is then not sent the\n\t\t\t// caller's access token.\n\t\t\tctx = baasbridge.WithDeclaredAccessChecked(ctx) //nolint:staticcheck\n\t\t}"
+    },
+    "b-route-parent": {
+      "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+      "start_line": 373,
+      "end_line": 393,
+      "excerpt_sha256": "74d59c1231b289944bc1da4b1e856435007f9cf9cf528a698f8562ca80029cae",
+      "source_sha256": "1dafd595afd2b0bd93c92f0f00746f4393866c48bca09a1ad1dba0a4d9a855b4",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/routes.go#L373-L393",
+      "text": "\t\tif resource != \"\" {\n\t\t\tparent := &pluginv3.RouteResource{}\n\t\t\tparent.SetResource(resource)\n\t\t\tif parentObj != nil {\n\t\t\t\traw, err := json.Marshal(parentObj)\n\t\t\t\tif err != nil {\n\t\t\t\t\t_ = errhttp.Write(ctx, err, w)\n\t\t\t\t\treturn\n\t\t\t\t}\n\t\t\t\tsv, err := b.decrypter.get(ctx, parentMeta)\n\t\t\t\tif err != nil {\n\t\t\t\t\t_ = errhttp.Write(ctx, err, w)\n\t\t\t\t\treturn\n\t\t\t\t}\n\t\t\t\tparent.SetName(name)\n\t\t\t\tparent.SetRv(parentMeta.GetResourceVersion())\n\t\t\t\tparent.SetRaw(raw)\n\t\t\t\tparent.SetDecryptedSecureValues(sv)\n\t\t\t}\n\t\t\tinfo.Parent = parent\n\t\t}"
+    },
+    "b-route-forward": {
+      "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+      "start_line": 395,
+      "end_line": 407,
+      "excerpt_sha256": "090670220492854e4f725dbc6bb4f38d23593d2d2458ae2c98afc77676a79af9",
+      "source_sha256": "1dafd595afd2b0bd93c92f0f00746f4393866c48bca09a1ad1dba0a4d9a855b4",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/pluginsintegration/pluginroute/routes.go#L395-L407",
+      "text": "\t\t// The caller's identity reaches the plugin only as the access token the\n\t\t// v3 client exchanges for it: httpadapter drops the ID token and the other\n\t\t// credential headers, so the request is not cloned to remove them.\n\t\treq := r.WithContext(httpadapter.WithRouteInfo(ctx, info))\n\t\tif headAsGet && req.Method == http.MethodHead {\n\t\t\t// The plugin is asked for what it declared, and a plugin that finds its\n\t\t\t// handler by method, as app-sdk's simple.App does, has none for HEAD.\n\t\t\treq.Method = http.MethodGet\n\t\t\tw = headResponseWriter{w}\n\t\t}\n\t\tforward.ServeHTTP(w, req)\n\t}\n}"
+    },
+    "o-callback": {
+      "path": "public/app/features/provisioning/Connection/ConnectionOAuthCallbackPage.tsx",
+      "start_line": 12,
+      "end_line": 42,
+      "excerpt_sha256": "fc4620eb47a068297b5fd6ee061827525ea600515835ce527e37bdbe7553140b",
+      "source_sha256": "efc7a2d630fd359a6e742b9f50229229aff7864d1c36cf50d0de0c66cd6aa056",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/Connection/ConnectionOAuthCallbackPage.tsx#L12-L42",
+      "text": "export default function ConnectionOAuthCallbackPage() {\n  const [searchParams] = useSearchParams();\n  const navigate = useNavigate();\n  const [error, setError] = useState<string>();\n  const [done, setDone] = useState(false);\n  const startedRef = useRef(false);\n\n  useEffect(() => {\n    if (startedRef.current) {\n      return;\n    }\n    startedRef.current = true;\n\n    const code = searchParams.get('code');\n    const state = searchParams.get('state');\n    const providerError = searchParams.get('error_description') || searchParams.get('error');\n\n    if (providerError) {\n      const pending = state ? failOAuthAuthorization(state, providerError) : undefined;\n      setError(providerError);\n      if (pending?.popup) {\n        window.close();\n      }\n      return;\n    }\n    if (!code || !state) {\n      setError(t('provisioning.oauth-callback.error-missing-params', 'Missing authorization code'));\n      return;\n    }\n\n    completeOAuthAuthorization(code, state)"
+    },
+    "o-hook-completion": {
+      "path": "public/app/features/provisioning/hooks/useOAuthAuthorization.ts",
+      "start_line": 22,
+      "end_line": 43,
+      "excerpt_sha256": "795b2e21a3c20506d07894b6abdc4e959c1032f5ab7ddffca1ee347ca2ec0686",
+      "source_sha256": "922cab961d71a8a7bdd6a3650078c6dea53b5720831df4b680e8afb11d87f050",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/hooks/useOAuthAuthorization.ts#L22-L43",
+      "text": "export function useOAuthAuthorization(onComplete: (connectionName: string, error?: string) => void) {\n  const tabRef = useRef<Window | null>(null);\n  const [pendingName, setPendingName] = useState<string>();\n  const [isPending, setIsPending] = useState(false);\n  const onCompleteRef = useRef(onComplete);\n  onCompleteRef.current = onComplete;\n\n  useEffect(() => {\n    if (!pendingName) {\n      return;\n    }\n    // COOP on provider pages (e.g. gitlab.com) severs the opened tab's handle, so\n    // `tab.closed` can report true while authorization is still running. Tab state\n    // is unobservable; pending ends only via the completion message or cancel().\n    return onOAuthAuthorizationComplete((name, error) => {\n      if (name === pendingName) {\n        setPendingName(undefined);\n        setIsPending(false);\n        onCompleteRef.current(name, error);\n      }\n    });\n  }, [pendingName]);"
+    },
+    "o-open-tab": {
+      "path": "public/app/features/provisioning/hooks/useOAuthAuthorization.ts",
+      "start_line": 45,
+      "end_line": 52,
+      "excerpt_sha256": "9ce9490b1a05bf5c9bebf14a2afa2de5702f76b9abb00e0b7244187169a9a181",
+      "source_sha256": "922cab961d71a8a7bdd6a3650078c6dea53b5720831df4b680e8afb11d87f050",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/hooks/useOAuthAuthorization.ts#L45-L52",
+      "text": "  const openTab = useCallback(() => {\n    if (!tabRef.current || tabRef.current.closed) {\n      tabRef.current = window.open('', '_blank');\n      if (tabRef.current) {\n        tabRef.current.opener = null;\n      }\n    }\n  }, []);"
+    },
+    "o-tab": {
+      "path": "public/app/features/provisioning/hooks/useOAuthAuthorization.ts",
+      "start_line": 59,
+      "end_line": 72,
+      "excerpt_sha256": "63627d67bddf0a194706b4a11cac30d319f98c89de8b985a1c85af7a4e8ad09e",
+      "source_sha256": "922cab961d71a8a7bdd6a3650078c6dea53b5720831df4b680e8afb11d87f050",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/hooks/useOAuthAuthorization.ts#L59-L72",
+      "text": "  const authorize = useCallback(\n    ({ type, clientID, name, serverUrl, authURL, scopes }: AuthorizeParams): boolean => {\n      const url = buildOAuthAuthorizeUrl(type, clientID, name, serverUrl, { popup: true, authURL, scopes });\n      openTab();\n      if (!tabRef.current) {\n        return false;\n      }\n      tabRef.current.location.href = url;\n      setPendingName(name);\n      setIsPending(true);\n      return true;\n    },\n    [openTab]\n  );"
+    },
+    "o-state-channel": {
+      "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+      "start_line": 18,
+      "end_line": 21,
+      "excerpt_sha256": "80c1afb1e4444b0ec3a0208939a3b63e25ab7a6c12c50654e0fbd3fbff21cbbb",
+      "source_sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/connectionOAuth.ts#L18-L21",
+      "text": "// localStorage (not sessionStorage) so the state survives into the\n// authorization tab, which does not share session storage.\nconst STATE_STORAGE_PREFIX = 'grafana.provisioning.oauth.';\nconst COMPLETION_CHANNEL = 'grafana.provisioning.oauth';"
+    },
+    "o-authorize-url": {
+      "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+      "start_line": 64,
+      "end_line": 95,
+      "excerpt_sha256": "58e1130ac016fb39d49591dcead635f5476473791ab39f119ac982e4c19cc228",
+      "source_sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/connectionOAuth.ts#L64-L95",
+      "text": "export function buildOAuthAuthorizeUrl(\n  type: OAuthConnectionType,\n  clientID: string,\n  connectionName: string,\n  serverUrl?: string,\n  opts?: { popup?: boolean; authURL?: string; scopes?: string[] }\n) {\n  const state = generateUUID();\n  const redirectUri = getOAuthCallbackUri();\n\n  sweepStaleOAuthStates();\n  store.set(\n    `${STATE_STORAGE_PREFIX}${state}`,\n    JSON.stringify({ name: connectionName, redirectUri, popup: opts?.popup, createdAt: Date.now() })\n  );\n\n  const params = new URLSearchParams({\n    client_id: clientID,\n    redirect_uri: redirectUri,\n    response_type: 'code',\n    state,\n  });\n  if (type === 'gitlabOAuth') {\n    params.set('scope', 'api');\n  }\n  if (type === 'githubOAuth' || type === 'githubEnterpriseOAuth') {\n    params.set('scope', 'repo');\n  }\n  if (type === 'gitOAuth' && opts?.scopes?.length) {\n    params.set('scope', opts.scopes.join(' '));\n  }\n"
+    },
+    "o-authorize-endpoint": {
+      "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+      "start_line": 96,
+      "end_line": 107,
+      "excerpt_sha256": "486e6295e60e572e4ab5b13f1d07d7b719583d7fb738e9793cf2197edf9462db",
+      "source_sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/connectionOAuth.ts#L96-L107",
+      "text": "  const authorizeUrl =\n    type === 'githubEnterpriseOAuth'\n      ? // GHES hosts its OAuth endpoints at the server root; drop any path (e.g. /api/v3)\n        `${getServerOrigin(serverUrl) || (serverUrl ?? '').replace(/\\/+$/, '')}/login/oauth/authorize`\n      : type === 'gitOAuth'\n        ? (opts?.authURL ?? '')\n        : type === 'gitlabOAuth' && serverUrl\n          ? `${serverUrl.replace(/\\/+$/, '')}/oauth/authorize`\n          : AUTHORIZE_URLS[type];\n\n  return textUtil.sanitizeUrl(`${authorizeUrl}?${params.toString()}`);\n}"
+    },
+    "o-broadcast": {
+      "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+      "start_line": 110,
+      "end_line": 114,
+      "excerpt_sha256": "1ded005eeb77ce25bfcc2c8fb5b8356ca205a4f2345c10274f989eeb72470c88",
+      "source_sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/connectionOAuth.ts#L110-L114",
+      "text": "function broadcastCompletion(name: string, error?: string) {\n  const channel = new BroadcastChannel(COMPLETION_CHANNEL);\n  channel.postMessage({ name, error });\n  channel.close();\n}"
+    },
+    "o-fail": {
+      "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+      "start_line": 118,
+      "end_line": 130,
+      "excerpt_sha256": "aff0737e01791cf63562888c87ed619191430b8926c2b13aece0773a0ecbf658",
+      "source_sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/connectionOAuth.ts#L118-L130",
+      "text": "export function failOAuthAuthorization(state: string, error: string): { name: string; popup?: boolean } | undefined {\n  const key = `${STATE_STORAGE_PREFIX}${state}`;\n  const raw = store.get(key);\n  if (!raw) {\n    return undefined;\n  }\n  store.delete(key);\n\n  const { name, popup } = JSON.parse(raw);\n  broadcastCompletion(name, error);\n\n  return { name, popup };\n}"
+    },
+    "o-backend-request": {
+      "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+      "start_line": 132,
+      "end_line": 168,
+      "excerpt_sha256": "3ddd4d7acad22c05bcaea37a400f06da76ce882dd4d18332717195b18be8b18b",
+      "source_sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/connectionOAuth.ts#L132-L168",
+      "text": "export async function completeOAuthAuthorization(\n  code: string,\n  state: string\n): Promise<{ name: string; popup?: boolean; error?: string }> {\n  const key = `${STATE_STORAGE_PREFIX}${state}`;\n  const raw = store.get(key);\n  if (!raw) {\n    throw new Error(\n      t(\n        'provisioning.connection-oauth.error-state-expired',\n        'This authorization link has expired or was already used. Start the authorization again.'\n      )\n    );\n  }\n  store.delete(key);\n\n  const { name, redirectUri, popup } = JSON.parse(raw);\n  let error: string | undefined;\n  try {\n    await getBackendSrv().post(\n      `/apis/provisioning.grafana.app/v0alpha1/namespaces/${getAPINamespace()}/connections/${name}/authorize`,\n      {\n        apiVersion: 'provisioning.grafana.app/v0alpha1',\n        kind: 'ConnectionAuthorizeRequest',\n        spec: { code, redirectURI: redirectUri },\n      }\n    );\n  } catch (err) {\n    error =\n      extractErrorMessage(err) ||\n      t('provisioning.connection-oauth.error-authorize-failed', 'Failed to complete authorization');\n  }\n\n  broadcastCompletion(name, error);\n\n  return { name, popup, error };\n}"
+    },
+    "o-listen": {
+      "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+      "start_line": 171,
+      "end_line": 179,
+      "excerpt_sha256": "4b9732cf106d2bbd739ada2c61a7998aca48942463621f4fac78228d17bed42a",
+      "source_sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/connectionOAuth.ts#L171-L179",
+      "text": "export function onOAuthAuthorizationComplete(callback: (connectionName: string, error?: string) => void) {\n  const channel = new BroadcastChannel(COMPLETION_CHANNEL);\n  channel.onmessage = (event) => {\n    if (typeof event.data?.name === 'string') {\n      callback(event.data.name, typeof event.data.error === 'string' ? event.data.error : undefined);\n    }\n  };\n  return () => channel.close();\n}"
+    },
+    "o-callback-uri": {
+      "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+      "start_line": 181,
+      "end_line": 184,
+      "excerpt_sha256": "3cdaac6f5f69503a713fa89a104f90d1242159983f35e5d41b441f06fc50c12c",
+      "source_sha256": "a0687e52786cc26e72a300c0d8da2fefde50c4a6bc8d01f5a762eceb3c7abbe9",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/connectionOAuth.ts#L181-L184",
+      "text": "export function getOAuthCallbackUri() {\n  const subUrl = config.appSubUrl ?? '';\n  return `${window.location.origin}${subUrl}${CONNECTIONS_URL}/oauth-callback`;\n}"
+    },
+    "o-routes-header": {
+      "path": "public/app/features/provisioning/utils/routes.tsx",
+      "start_line": 29,
+      "end_line": 47,
+      "excerpt_sha256": "60639896523f3ff776fe5fae60442f11cea27a44d720f4edff032363f208fc30",
+      "source_sha256": "2d59b15685a19c3319944a087da22b70d901a66da1de1e12da714a63160cbbfd",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/routes.tsx#L29-L47",
+      "text": "export function getProvisioningRoutes(): RouteDescriptor[] {\n  if (!config.provisioningEnabled) {\n    return [];\n  }\n\n  if (!checkRequiredFeatures()) {\n    return [\n      {\n        path: PROVISIONING_URL,\n        roles: adminRoles,\n        component: SafeDynamicImport(\n          () =>\n            import(\n              /* webpackChunkName: \"GettingStartedPage\"*/ 'app/features/provisioning/GettingStarted/GettingStartedPage'\n            )\n        ),\n      },\n    ];\n  }"
+    },
+    "o-callback-route": {
+      "path": "public/app/features/provisioning/utils/routes.tsx",
+      "start_line": 68,
+      "end_line": 76,
+      "excerpt_sha256": "90113493366d17468b6c5e2ccf830473075f46a15a41946930774dd8e800479d",
+      "source_sha256": "2d59b15685a19c3319944a087da22b70d901a66da1de1e12da714a63160cbbfd",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/provisioning/utils/routes.tsx#L68-L76",
+      "text": "      path: `${CONNECTIONS_URL}/oauth-callback`,\n      roles: connectionWriteRole,\n      component: SafeDynamicImport(\n        () =>\n          import(\n            /* webpackChunkName: \"ConnectionOAuthCallbackPage\"*/ 'app/features/provisioning/Connection/ConnectionOAuthCallbackPage'\n          )\n      ),\n    },"
+    }
+  }
+}

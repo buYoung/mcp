@@ -1,0 +1,13 @@
+{
+  "dataset_id": "grafana-routes-v4",
+  "questions": [
+    {
+      "id": "git-oauth-authorization",
+      "prompt": "Git 저장소 연결 인증 구조 중 사용자 지정 OAuth 서버와 통신하는 구간 다 확인해줘."
+    },
+    {
+      "id": "plugin-http-route-bridge",
+      "prompt": "앱 플러그인 manifest의 사용자 정의 API 라우팅 구조 중 HTTP로 배포된 백엔드와 통신하는 구간 다 확인해줘."
+    }
+  ]
+}
