@@ -147,12 +147,14 @@ def verify_readiness(record: dict, *, recapture_context=True) -> None:
     corpus = read_json(Path(record["source_manifest_path"]))
     require(corpus["source_sha256"] == record["source_sha256"], "source identity 변경")
     require(file_digest(Path(record["source_manifest_path"])) == record["source_manifest_sha256"], "source manifest 변경")
+    require(digest(tool_indexes.tracked_manifest(Path(corpus["source"]), corpus["files"])) == corpus["source_sha256"], "고정 checkout 변경")
     for ident in routes.ARM_IDS:
         state = record["arms"][ident]
         require(state["agent_backend"] == solver["backend"], "선택한 실행기와 조회 준비 기록 불일치")
         tool_indexes.verify_probe(state, artifacts)
         require(state["artifact_sha256"] == digest(artifacts[ident]), "실행 artifact 변경")
-        require(digest(tool_indexes.tracked_manifest(Path(state["source"]), corpus["files"])) == corpus["source_sha256"], "source 변경")
+        require(digest(tool_indexes.tracked_manifest(Path(state["source"]), corpus["files"],
+                allowed_metadata=tool_indexes.SOURCE_METADATA[ident])) == corpus["source_sha256"], "source 변경")
         for part in ("source", "home"):
             require(digest(tool_artifacts.tree_files(Path(state[part]))) == state["baseline"]["state_sha256"][part], "native 초기 상태 변경")
             require(digest(tool_artifacts.tree_files(Path(state["baseline"]["paths"][part]))) == state["baseline"]["state_sha256"][part],

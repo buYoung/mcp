@@ -251,7 +251,9 @@ def restore_slot(state: dict) -> dict:
 
 
 def verify_source(state: dict, corpus: dict) -> None:
-    require(digest(tool_indexes.tracked_manifest(Path(state["source"]), corpus["files"])) == corpus["source_sha256"],
+    tool_indexes.verify_source_inventory(Path(corpus["source"]), corpus["files"])
+    require(digest(tool_indexes.tracked_manifest(Path(state["source"]), corpus["files"],
+            allowed_metadata=tool_indexes.SOURCE_METADATA[state["id"]])) == corpus["source_sha256"],
             "solver/product changed tracked source bytes")
 
 
