@@ -228,7 +228,7 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 - prepare/finalize 및 verify는 비교군×모드마다 실제 `pi_client.launch`를 loopback fake provider로 실행하고 첫 instructions/input/tools를 보존한다. native_inventory의 initialize·tool 원문을 hash-bound replay MCP로 제공하므로 제품을 재색인하거나 실제 모델·운영자 인증을 호출하지 않는다. Claude 감사만 전용 fake HOME를 쓴다.
 - 모든 문항의 사용자 프롬프트, 제품 원문이 아닌 system·adapter·codemode 문구, 요청 어디에나 있는 절대 경로 구성요소를 검사한다. 금지어는 `IDENTIFYING_PATH_WORDS` + 모든 문항 ID + `smoke`, `grafana`(대소문자 무시)다. 제품 instructions/description·schema·도구 식별자 및 입증 가능한 렌더링 접두만 예외이며 절대 경로는 예외가 아니다. 감사 원자료·hash·위반 목록은 plan의 `context-audit/`, verify 재캡처는 cache `context-audits/`에 보존한다. v3 Live 문항의 Grafana 때문에 실패하는 것이 정상이며 문항을 하네스가 몰래 고치지 않는다.
 - 뒤늦게 노출되는 source/cwd/TMPDIR 및 adapter·script spill 경로와 relay/wrapper 거부 문구도 준비 때 검사한다. 실행 종료 뒤에는 pi-session의 **모든 system patch와 user 메시지**를 다시 검사하고 위반/누락이면 슬롯 조건을 무효화한다(`context-audit.json`).
-- 결과의 `observations`는 턴 수, 직접/중첩 호출 분포와 model-level 호출 분포, assistant `durationMs` 합, relay 또는 `bash-results.jsonl`의 실행 구간 합, adapter `outputGuard.truncated`, script 출력 절단, `include_seen=true` 요청 수를 기록한다. 병렬 도구 시간 합은 wall time과 더하지 않는다. 불완전한 로그는 관측 부분합과 null 총합을 구별한다. 보고서 schema 3의 `modes.direct`, `modes.codemode`에 별도 품질 집계하며 총 실행 상태만 관리용으로 함께 표시한다.
+- 결과의 `observations`는 턴 수, 직접/중첩 호출 분포와 model-level 호출 분포, assistant `durationMs` 합, relay 또는 `bash-results.jsonl`의 실행 구간 합, adapter `outputGuard.truncated`, script 출력 절단, `include_seen=true` 요청 수(중계 거부 포함)를 기록한다. 병렬 도구 시간 합은 wall time과 더하지 않는다. 불완전한 로그는 관측 부분합과 null 총합을 구별한다. 보고서 schema 3의 `modes.direct`, `modes.codemode`에 별도 품질 집계하며 총 실행 상태만 관리용으로 함께 표시한다.
 
 ## 기록과 재검증
 
