@@ -158,24 +158,44 @@ def declared_tool_names(body: dict) -> set[str]:
     return {tool["name"].removeprefix("mcp__custom-tools__") for tool in tools if tool["name"] != "DeferredToolPlaceholder"}
 
 
-def static_surfaces(folder: Path, source: str) -> dict:
-    """Paths revealed only after truncation/errors must also pass before a model can run."""
+def model_error_messages() -> list[str]:
+    """Audit all runtime relay/shell error paths, including formatted messages and RPC envelopes."""
     from . import isolation, route_transport
-    root = pi_client.private_root(folder)
+    import textwrap
     messages = []
-    for target in (isolation.RelayPolicy, route_transport.NativeRelay.admit,
-                   route_transport.NativeRelay.validate_request, pi_client.shell_main):
-        import textwrap
+    targets = (isolation.RelayPolicy, isolation.wrap, route_transport.MCPClient, route_transport.NativeRelay,
+               route_transport.source_path, route_transport.auxiliary_call, pi_client.shell_main)
+    for target in targets:
         tree = ast.parse(textwrap.dedent(inspect.getsource(target)))
+        module = inspect.getmodule(target)
+        def text(node):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                return node.value
+            if isinstance(node, ast.JoinedStr):
+                return "".join(text(part) if not isinstance(part, ast.FormattedValue) else "{}" for part in node.values)
+            if isinstance(node, ast.Name) and isinstance(getattr(module, node.id, None), str):
+                return getattr(module, node.id)
+            if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+                return text(node.left) + text(node.right)
+            return ""
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
                 name = node.func.id if isinstance(node.func, ast.Name) else ""
-                args = node.args[1:] if name == "require" else node.args if name in {"ContractError", "print"} else []
-                messages.extend(arg.value for arg in args if isinstance(arg, ast.Constant) and isinstance(arg.value, str))
+                args = node.args[1:] if name == "require" else node.args if name in {"ContractError", "ValueError", "RuntimeError", "print"} else []
+                messages.extend(value for arg in args if (value := text(arg)))
+            elif isinstance(node, ast.Dict):
+                messages.extend(value for key, arg in zip(node.keys, node.values)
+                                if isinstance(key, ast.Constant) and key.value in {"message", "text"} and (value := text(arg)))
+    return sorted(set(messages))
+
+
+def static_surfaces(folder: Path, source: str) -> dict:
+    """Paths revealed only after truncation/errors must also pass before a model can run."""
+    root = pi_client.private_root(folder)
     return {"paths": [source, str(root / "work"), str(root / "home"), str(root / "bin/rg"),
                        str(root / "tmp/pi-mcp-output-000000/output-000000.txt"),
                        str(root / "tmp/pi-codemode-000000.txt"), str(root / "tmp/pi-bash-000000.log")],
-            "rejection_messages": messages}
+            "rejection_messages": model_error_messages()}
 
 
 def audit_session(folder: Path, inventory: dict) -> dict:

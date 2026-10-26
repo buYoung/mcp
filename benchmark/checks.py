@@ -183,7 +183,7 @@ class BenchChecks(unittest.TestCase):
         schema = {"name": "read", "inputSchema": {"properties": {"file_path": {"type": "string"},
                   "ranges": {"type": "array", "minItems": 1, "maxItems": 20}}}}
         policy = RelayPolicy("codemap-search", {"source": str(source)}, [schema], tracked=["a.py"])
-        for alias in ("file_path", "path", "file", "query"):
+        for alias in ("file_path", "filePath", "file-path", "FilePath", "path", "file", "query"):
             args = {"ranges": [{alias: "a.py", "offset": 1, "limit": 1}, {alias: (source / "a.py").as_uri()}]}
             original = copy.deepcopy(args)
             policy.validate("read", args)
@@ -194,6 +194,16 @@ class BenchChecks(unittest.TestCase):
         for args in ({"ranges": []}, {"ranges": [{"file_path": "a.py"}] * 21},
                      {"ranges": [{"file_path": "a.py"}], "file_path": "a.py"},
                      {"ranges": [{"path": "a.py", "file": "../private"}]}):
+            with self.assertRaises(ContractError):
+                policy.validate("read", args)
+        for window in ({"start_line": "1", "end_line": "2"}, {"startLine": "1", "end-line": "2"},
+                       {"start": 1, "end": 2}, {"offset": "1", "limit": "2"}):
+            for args in ({"filePath": "a.py", **window}, {"ranges": [{"file-path": "a.py", **window}]}):
+                before = copy.deepcopy(args)
+                policy.validate("read", args)
+                self.assertEqual(args, before)
+        for args in ({"file_path": "a.py", "filePath": "../private"}, {"filePath": "a.py", "unknownWindow": 1},
+                     {"ranges": [{"filePath": "a.py", "unknownWindow": 1}]}):
             with self.assertRaises(ContractError):
                 policy.validate("read", args)
         nullable = {"file_path": "a.py", "ranges": None}
@@ -392,6 +402,18 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         with patch.object(tool_indexes, "workspace_root", return_value=destination.parent):
             with self.assertRaisesRegex(ContractError, "ignored.txt"):
                 tool_indexes.workspace("codemap-search", corpus)
+
+
+
+    def test_pi_audit_includes_runtime_errors_and_fstrings(self):
+        from . import pi_audit, route_transport
+        messages = pi_audit.model_error_messages()
+        for message in ("MCP 응답 형식 오류", "source 경로가 없습니다", "잘못된 read 범위", "도구 인자 타입 오류: {}"):
+            self.assertIn(message, messages)
+        original = pi_audit.inspect.getsource
+        for target in (route_transport.MCPClient, route_transport.auxiliary_call, route_transport.source_path):
+            with patch.object(pi_audit.inspect, "getsource", side_effect=lambda obj: 'def injected():\n    raise ValueError(f"Grafana {key}")\n' if obj is target else original(obj)):
+                self.assertTrue(pi_audit.audit_text(pi_audit.model_error_messages()))
 
 
 

@@ -293,6 +293,21 @@ def validate_inventory(ident: str, inventory: list[dict]) -> None:
         require(expected <= actual <= expected | optional, f"native 인자 inventory 변경: {ident}/{tool['name']}")
 
 
+READ_PATH_KEYS = {"file_path", "path", "file", "query"}
+READ_WINDOW_KEYS = {"offset", "limit", "start_line", "end_line", "start", "end"}
+
+
+def read_argument_key(key: str) -> str:
+    # Native get_arg compares case-insensitively without underscores/hyphens. Never rewrite the request.
+    normalized = key.replace("_", "").replace("-", "").lower()
+    return next((name for name in READ_PATH_KEYS | READ_WINDOW_KEYS
+                 if name.replace("_", "") == normalized), key)
+
+
+def read_window_value(value) -> bool:
+    return type(value) is int or isinstance(value, str) and re.fullmatch(r"\+?[0-9]+", value.strip()) is not None
+
+
 class RelayPolicy:
     def __init__(self, ident: str, state: dict, inventory: list[dict], *, tracked=None):
         self.ident, self.state = ident, state
@@ -357,8 +372,16 @@ class RelayPolicy:
         require(isinstance(arguments, dict), "도구 arguments 객체 필요")
         properties = self.inventory[name]["inputSchema"].get("properties", {})
         allowed = set(properties) | ALIASES.get((self.ident, name), set())
-        require(set(arguments) <= allowed, "알려지지 않은 도구 인자")
+        is_read = self.ident == "codemap-search" and name == "read"
+        if is_read:
+            allowed |= READ_PATH_KEYS | READ_WINDOW_KEYS
+        require(all((read_argument_key(key) if is_read else key) in allowed for key in arguments), "알려지지 않은 도구 인자")
         for key, value in arguments.items():
+            if is_read:
+                key = read_argument_key(key)
+                if key in READ_WINDOW_KEYS:
+                    require(read_window_value(value), "read 위치 오류")
+                    continue
             if self.ident == "codemap-search" and name == "read" and key == "ranges" and value is None:
                 continue  # Native read treats null as absent; forward it unchanged.
             schema = properties.get(key, {})
@@ -378,9 +401,8 @@ class RelayPolicy:
         elif self.ident == "codemap-search":
             if name in {"read", "overview"}:
                 values = []
-                for key in ("file_path", "path", "file", "query"):
-                    if key in arguments:
-                        value = arguments[key]
+                for key, value in arguments.items():
+                    if (read_argument_key(key) if is_read else key) in READ_PATH_KEYS:
                         if name == "overview" and isinstance(value, str) and value in {"", "all", "전체"}:
                             value = "."
                         values.append(self.path(value, file=name == "read"))
@@ -389,12 +411,13 @@ class RelayPolicy:
                     require("ranges" in properties and isinstance(arguments["ranges"], list), "미광고 ranges 인자")
                     require(not values and 1 <= len(arguments["ranges"]) <= 20, "read ranges 개수/단일 경로 충돌")
                     for item in arguments["ranges"]:
-                        require(isinstance(item, dict) and set(item) <= {"file_path", "path", "file", "query", "offset", "limit"},
+                        require(isinstance(item, dict) and all(read_argument_key(key) in READ_PATH_KEYS | READ_WINDOW_KEYS for key in item),
                                 "read range 인자 오류")
-                        paths = [self.path(item[key], file=True) for key in ("file_path", "path", "file", "query") if key in item]
+                        paths = [self.path(value, file=True) for key, value in item.items() if read_argument_key(key) in READ_PATH_KEYS]
                         require(bool(paths) and len(set(paths)) == 1, "read range path aliases 오류")
-                        for key in ("offset", "limit"):
-                            require(key not in item or type(item[key]) is int, "read range 위치 오류")
+                        for key, value in item.items():
+                            if read_argument_key(key) in READ_WINDOW_KEYS:
+                                require(read_window_value(value), "read range 위치 오류")
             elif name == "search":
                 for key in ("workspace_scope", "scope"):
                     if key in arguments:
