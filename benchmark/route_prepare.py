@@ -29,7 +29,7 @@ def execution_spec(state: dict | None = None, *, solver_model: str | None = None
         spec["native_agent"] = state["native_agent"]
     if spec.get("provider") == "claude-bridge":
         from .claude_settings import snapshot
-        workspace = settings.CACHE / "0000000000000000" / "work"
+        workspace = Path(spec["native_agent"]["source"]) if spec.get("native_agent") else settings.CACHE / "0000000000000000" / "work"
         spec["claude_settings"] = snapshot(workspace)
     return spec
 

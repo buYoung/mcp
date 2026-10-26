@@ -428,7 +428,7 @@ def grade_packet(root: Path, manifest: dict, initial: dict, coordinator: LedgerC
         return coordinator.change(row["id"], {"grade_state": "cancelled" if cancel_event.is_set() else "failed", "grade_reason": str(exc)})
 
 
-def schedule_workers(rows: list[dict], coordinator: LedgerCoordinator, cancel_event, worker):
+def schedule_workers(rows: list[dict], coordinator: LedgerCoordinator, cancel_event, worker, *, solver_rounds=False):
     pending, active, arms = list(rows), {}, set()
     with ThreadPoolExecutor(max_workers=4) as pool:
         while pending or active:
@@ -437,7 +437,7 @@ def schedule_workers(rows: list[dict], coordinator: LedgerCoordinator, cancel_ev
                 pending.clear()
             while len(active) < 4:
                 round_number = min((r["attempt"] for r in [*pending, *active.values()]), default=None)
-                candidate = next((r for r in pending if r["attempt"] == round_number and r["arm"] not in arms), None)
+                candidate = next((r for r in pending if (not solver_rounds or r["attempt"] == round_number) and r["arm"] not in arms), None)
                 if candidate is None:
                     break
                 pending.remove(candidate)
@@ -549,7 +549,7 @@ def _run_campaign(root: Path, *, resume=False, retry_unstarted=False, cancel_eve
                        phase="pending", status="planned", conditions_valid=None, grade_state="not_eligible")
         coordinator.commit()
         schedule_workers(eligible, coordinator, cancel_event, lambda row: run_slot(root, manifest, row, coordinator, cancel_event,
-            factory, solver_executor, collector or route_metrics.finish_execution, restore, source_check))
+            factory, solver_executor, collector or route_metrics.finish_execution, restore, source_check), solver_rounds=True)
     for row in coordinator.ledger["slots"]:
         if row["phase"] == "pending" and cancel_event.is_set():
             row.update(phase="terminal", status="cancelled", cancel_requested=True, provider_call_observed=False)

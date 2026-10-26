@@ -324,7 +324,8 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str) -> dict:
     home = pi_client.private_root(folder) / "login" if spec["provider"] == "claude-bridge" else None
     spec = dict(spec)
     if home:
-        spec["claude_settings"] = claude_settings.snapshot(pi_client.private_root(folder) / "work", home=home)
+        workspace = Path(spec["native_agent"]["source"]) if spec.get("native_agent") else pi_client.private_root(folder) / "work"
+        spec["claude_settings"] = claude_settings.snapshot(workspace, home=home)
     process = None
     cwd = env = None
     try:

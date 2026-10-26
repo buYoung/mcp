@@ -120,6 +120,15 @@ class BenchChecks(unittest.TestCase):
         for mode in routes.MEASUREMENT_MODES:
             for arm in routes.ARM_IDS:
                 self.assertEqual(report["modes"][mode]["arms"][arm]["planned"], len(routes.QUESTION_IDS) * routes.REPETITIONS)
+        models = {"solver": {"model": "fixture", "backend": "pi", "reasoning_effort": "medium"},
+                  "grader": {"model": "fixture", "reasoning_effort": "high"}}
+        observed = {**rows[0], "model": "fixture", "backend": "pi", "status": "completed",
+                    "observations": {"direct_calls_outside_script": 1, "cancelled_before_admission": 1},
+                    "claude_persisted_tool_results": {"count": 1, "bytes": 85592}}
+        report = route_metrics.report(self.root, {"models": models}, [observed], {})
+        self.assertEqual(report["rows"][0]["claude_persisted_tool_results"], {"count": 1, "bytes": 85592})
+        self.assertEqual(report["rows"][0]["observations"]["cancelled_before_admission"], 1)
+        self.assertIn('"bytes": 85592', (self.root / "report/results.md").read_text())
 
     def test_schedule_workers_serializes_arms_and_rounds(self):
         from . import execution, route_contract as routes
@@ -138,7 +147,7 @@ class BenchChecks(unittest.TestCase):
                 active.remove(row["arm"])
                 finished.append(row["id"])
         coordinator = SimpleNamespace(drain=lambda: None, fatal=False, ledger={})
-        execution.schedule_workers(rows, coordinator, threading.Event(), worker)
+        execution.schedule_workers(rows, coordinator, threading.Event(), worker, solver_rounds=True)
         self.assertNotIn("error", coordinator.ledger)
         self.assertEqual(len(finished), len(rows))
         self.assertLessEqual(maximum[0], 4)
@@ -219,25 +228,31 @@ class BenchChecks(unittest.TestCase):
         from .route_metrics import pi_observations
         events = [{"type": "turn_start"},
                   {"type": "message_end", "message": {"role": "assistant", "durationMs": 250}},
-                  {"type": "tool_execution_start", "toolName": "codemode"},
-                  {"type": "tool_execution_start", "toolName": "navigation_read", "parentToolCallId": "script"},
-                  {"type": "tool_execution_end", "toolName": "navigation_read", "result": {"details": {"outputGuard": {"truncated": True}}}},
-                  {"type": "tool_execution_end", "toolName": "codemode", "result": {"content": [{"text": "Warning: truncated output (original token count: 20000)"}]}},
+                  {"type": "tool_execution_start", "toolName": "codemode", "toolCallId": "script"},
+                  {"type": "tool_execution_start", "toolName": "navigation_read", "toolCallId": "script/1", "parentToolCallId": "script"},
+                  {"type": "tool_execution_end", "toolName": "navigation_read", "toolCallId": "script/1", "result": {"details": {"outputGuard": {"truncated": True}}}},
+                  {"type": "tool_execution_end", "toolName": "codemode", "toolCallId": "script", "result": {"content": [{"text": "Warning: truncated output (original token count: 20000)"}]}},
                   {"type": "turn_end"}, {"type": "agent_settled"}]
+        events.insert(4, {"type": "tool_execution_start", "toolName": "navigation_read", "toolCallId": "outside"})
+        write_json(self.root / "pi-policy.json", {"measurement_mode": "codemode"})
         (self.root / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
         calls = [{"arm": "codemap-search", "arguments": {"include_seen": True}, "dispatched": True, "duration_seconds": .5}]
         observed = pi_observations(self.root, calls, call_log_complete=True)
         self.assertEqual(observed["model_seconds"], .25)
         self.assertEqual(observed["tool_seconds"], .5)
-        self.assertEqual(observed["tool_calls_per_turn"], [1])
-        self.assertEqual(observed["model_tool_calls_per_turn"], [1])
+        self.assertEqual(observed["tool_calls_per_turn"], [2])
+        self.assertEqual(observed["model_tool_calls_per_turn"], [2])
+        self.assertEqual(observed["direct_calls_outside_script"], 1)
         for key in ("adapter_output_guard_truncated", "codemode_output_truncated", "include_seen_true_calls"):
             self.assertEqual(observed[key], 1)
 
     def test_pi_output_guard_covers_native_utf8_budgets(self):
         from .pi_client import adapter_settings
         self.assertGreaterEqual(adapter_settings("codemap-search")["outputGuard"]["maxBytes"], 100000)
-        self.assertGreaterEqual(adapter_settings("serena")["outputGuard"]["maxBytes"], len(("😀" * 150000).encode()))
+        text = "😀" * 150000
+        appended = text + "\nstructuredContent:\n" + json.dumps({"result": text}, ensure_ascii=False, indent=2)
+        self.assertGreaterEqual(adapter_settings("serena")["outputGuard"]["maxBytes"], len(appended.encode()))
+        self.assertNotIn("appendStructuredContent", adapter_settings("serena"))
         for arm in ("codemap-search", "serena", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp"):
             config = adapter_settings(arm)
             self.assertFalse(config["semanticSearch"])
@@ -404,7 +419,6 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
                 tool_indexes.workspace("codemap-search", corpus)
 
 
-
     def test_pi_audit_includes_runtime_errors_and_fstrings(self):
         from . import pi_audit, route_transport
         messages = pi_audit.model_error_messages()
@@ -414,6 +428,110 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         for target in (route_transport.MCPClient, route_transport.auxiliary_call, route_transport.source_path):
             with patch.object(pi_audit.inspect, "getsource", side_effect=lambda obj: 'def injected():\n    raise ValueError(f"Grafana {key}")\n' if obj is target else original(obj)):
                 self.assertTrue(pi_audit.audit_text(pi_audit.model_error_messages()))
+
+
+    def test_schedule_workers_grading_has_no_round_barrier(self):
+        from . import execution
+        from types import SimpleNamespace
+        later = threading.Event()
+        rows = [{"id": "a1", "arm": "a", "attempt": 1}, {"id": "b1", "arm": "b", "attempt": 1},
+                {"id": "b2", "arm": "b", "attempt": 2}]
+        def worker(row):
+            if row["id"] == "a1":
+                self.assertTrue(later.wait(2), "grader incorrectly waited for the previous round")
+            elif row["id"] == "b2":
+                later.set()
+        coordinator = SimpleNamespace(drain=lambda: None, fatal=False, ledger={})
+        execution.schedule_workers(rows, coordinator, threading.Event(), worker)
+        self.assertNotIn("error", coordinator.ledger)
+
+
+    def test_pi_codemode_reconciles_only_proven_nested_cancellations(self):
+        from . import pi_client
+        events = [{"type": "tool_execution_start", "toolCallId": "s", "toolName": "codemode", "args": {}},
+                  {"type": "tool_execution_start", "toolCallId": "s/1", "parentToolCallId": "s", "toolName": "bash", "args": {"command": "sleep 2"}},
+                  {"type": "tool_execution_end", "toolCallId": "s", "toolName": "codemode", "isError": True,
+                   "result": {"details": {"calls": [{"id": "s/?", "name": "bash", "args": '{"command":"sleep 2"}', "status": "cancelled"}]}}},
+                  {"type": "message_end", "message": {"role": "assistant", "stopReason": "stop", "content": [{"type": "text", "text": "Done"}],
+                   "usage": {"input": 1, "output": 1, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 2}}}, {"type": "agent_settled"}]
+        state = pi_client.EventState()
+        for event in events:
+            state.add(event)
+        self.assertEqual(list(state.tools.values()), pi_client.tool_items(events))
+        self.assertEqual(state.tools["s/1"]["status"], "cancelled")
+        self.assertNotIn("result", state.tools["s/1"])  # No invented output/end timestamp.
+        self.assertTrue(state.usage(terminal_complete=True, evidence="fixture")["complete"])
+        items = list(state.tools.values())
+        before = pi_client.cancelled_before_admission(items, [], native=True)
+        self.assertEqual(len(before["calls"]), 1)
+        self.assertEqual(before["calls"][0]["match"], "parent+name+args unique")
+        self.assertFalse(before["calls"][0]["budget_consumed"])
+        self.assertEqual(pi_client.cancelled_before_admission(items, [{"command": "sleep 2"}], native=True)["calls"], [])
+        for field, value in (("status", "error"), ("args", '{"command":"different"}'), ("id", "other/?")):
+            changed = copy.deepcopy(events)
+            changed[2]["result"]["details"]["calls"][0][field] = value
+            self.assertFalse(pi_client.usage(changed, terminal_complete=True, evidence="fixture")["complete"])
+        duplicate = copy.deepcopy(events)
+        duplicate.insert(2, {**events[1], "toolCallId": "s/2"})
+        self.assertFalse(pi_client.usage(duplicate, terminal_complete=True, evidence="fixture")["complete"])
+        duplicate[3]["result"]["details"]["calls"] *= 2
+        self.assertTrue(pi_client.usage(duplicate, terminal_complete=True, evidence="fixture")["complete"])
+        unmatched = pi_client.cancelled_before_admission(pi_client.tool_items(duplicate), [], native=True)
+        self.assertEqual(unmatched["calls"], [])
+        self.assertEqual(set(unmatched["ambiguous"]), {"s/1", "s/2"})
+        product = copy.deepcopy(events)
+        product[1]["toolName"] = product[2]["result"]["details"]["calls"][0]["name"] = "navigation_read"
+        product[1]["args"] = {"file_path": "source.py"}
+        product[2]["result"]["details"]["calls"][0]["args"] = '{"file_path": "source.py"}'
+        items = pi_client.tool_items(product)
+        self.assertEqual(len(pi_client.cancelled_before_admission(items, [], native=False, enabled_tools=["read"])["calls"]), 1)
+        admitted = [{"method": "tools/call", "tool": "read", "arguments": {"file_path": "source.py"}}]
+        self.assertEqual(pi_client.cancelled_before_admission(items, admitted, native=False, enabled_tools=["read"])["calls"], [])
+
+
+    def test_pi_bash_killed_preserves_call_log_and_partial_timing(self):
+        from . import route_metrics
+        events = [{"type": "tool_execution_start", "toolCallId": "b", "toolName": "bash", "args": {"command": "sleep 3"}},
+                  {"type": "tool_execution_end", "toolCallId": "b", "toolName": "bash", "isError": True,
+                   "result": {"content": [{"type": "text", "text": "Command timed out after 1 seconds"}]}}, {"type": "agent_settled"}]
+        for name, rows in (("events.jsonl", events), ("bash-calls.jsonl", [{"id": 1, "command": "sleep 3", "tool": "bash", "dispatched": True}]),
+                           ("bash-results.jsonl", [])):
+            (self.root / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
+        write_json(self.root / "runtime.json", {"record_collection_complete": True})
+        write_json(self.root / "pi-policy.json", {"measurement_mode": "direct"})
+        calls, complete, _, violations = route_metrics.normalize_pi_native_calls(self.root)
+        self.assertTrue(complete)
+        self.assertEqual(violations, [])
+        self.assertEqual(calls[0]["status"], "killed")
+        observed = route_metrics.pi_observations(self.root, calls, call_log_complete=complete)
+        self.assertIsNone(observed["tool_seconds"])
+        self.assertEqual(observed["observed_tool_seconds"], 0)
+        self.assertEqual(observed["tool_seconds_missing_calls"], 1)
+
+
+    def test_cleanup_private_counts_only_bound_claude_result_metadata(self):
+        from . import pi_client
+        folder, workspace, home = self.root / "slot", self.root / "source", self.root / "local-home"
+        folder.mkdir(); workspace.mkdir()
+        project = home / ".claude/projects" / pi_client.claude_project_slug(workspace)
+        project.mkdir(parents=True)
+        (project / "session.jsonl").write_text(json.dumps({"cwd": str(workspace.resolve())}) + "\n")
+        results = project / "session/tool-results"
+        results.mkdir(parents=True)
+        output = results / "large.txt"
+        output.write_bytes(b"x" * 85592)
+        original_bytes, original_text = Path.read_bytes, Path.read_text
+        def guarded(method):
+            def read(path, *args, **kwargs):
+                self.assertNotIn("tool-results", path.parts)
+                return method(path, *args, **kwargs)
+            return read
+        with patch.object(pi_client, "private_root", return_value=self.root / "private"), \
+             patch.object(Path, "read_bytes", guarded(original_bytes)), patch.object(Path, "read_text", guarded(original_text)):
+            result = pi_client.cleanup_private(folder, workspace, "claude-bridge", None, home=home)
+        self.assertEqual(result["claude_persisted_tool_results"], {"count": 1, "bytes": 85592})
+        self.assertEqual(result["removed_project"], str(project))
+        self.assertFalse(project.exists())
 
 
 
