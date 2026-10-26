@@ -76,7 +76,7 @@ export async function interactive({ prompts, call = backend, output = console })
   const profile = await prompts.select({
     message: '평가 유형을 선택하세요.',
     choices: Object.entries(catalog.profiles).map(([value, item]) => ({
-      name: `${item.name} · ${item.question_ids.length}문항 × ${item.repeats}회`, value,
+      name: `${item.name} · ${item.question_ids.length}문항 × ${item.repeats}회 × ${item.measurement_modes.length}모드`, value,
     })),
   });
   if (catalog.profiles[profile]?.preparation_only !== true) throw new Error('지원하지 않는 벤치 프로필입니다.');
@@ -91,7 +91,8 @@ export async function interactive({ prompts, call = backend, output = console })
   const plan = await call('prepare', { profile, targets, solver_model: solverModel });
   if (!plan.preparation_only || plan.status !== 'prepared_not_executed') throw new Error('준비 결과의 실행 경계가 올바르지 않습니다.');
   if (plan.spec.model !== solverModel || plan.spec.grader_model !== catalog.grader.model) throw new Error('선택한 풀이 모델 또는 고정 채점 모델이 준비 결과와 다릅니다.');
-  output.info(`\n${plan.profile_name}: ${plan.questions}문항 × ${plan.targets.length}개 비교군 × ${plan.repeats}회 = ${plan.runs}회 예정`);
+  output.info(`\n${plan.profile_name}: ${plan.questions}문항 × ${plan.targets.length}개 비교군 × ${plan.repeats}회 × ${plan.modes.length}모드 = ${plan.runs}회 예정`);
+  output.info(`측정 모드: ${plan.modes.join(', ')} (분리 집계, 합산 금지)`);
   output.info(`풀이 ${plan.spec.model} / ${plan.spec.reasoning_effort}, 채점 ${plan.spec.grader_model} / ${plan.spec.grader_reasoning_effort}`);
   output.info(`풀이 실행기: ${plan.spec.solver_backend === 'pi' ? `pi ${plan.agent_version ?? ''} (${plan.spec.provider})` : plan.spec.solver_backend === 'claude_code' ? 'Claude Code' : 'Codex'} · 채점 실행기: ${plan.spec.grader_backend}`);
   output.info(`도구 조건: ${plan.targets.map((item) => `${item.name} (${item.tool_condition})`).join(', ')}`);

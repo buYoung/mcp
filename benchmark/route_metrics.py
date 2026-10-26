@@ -22,6 +22,8 @@ FIELD_PROVENANCE = {
     "elapsed_seconds": {"unit": "seconds", "origin": "total execution clock including collection/cleanup; excludes preparation"},
     "timing": {"unit": "seconds", "origin": "runtime started/model-exited/elapsed timestamps", "missing": "null with reason",
                "scopes": ["model process lifetime including startup", "post-model cleanup", "collection after cutoff may overlap model lifetime"]},
+    "observations": {"unit": "per-slot counts, seconds and distributions", "origin": "pi turns/durationMs/outputGuard/script output plus relay or bash wrapper clocks",
+                     "missing": "null for unobserved totals; observed partial sums retained"},
     "quality": {"unit": "fact dimensions and per-route core completeness", "origin": "validated frozen route judgment"},
 }
 
@@ -201,7 +203,8 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
                       "relay_loss": raw != relayed if result else None,
                       "native_truncated": result.get("native_truncated") if result else None,
                       "client_delivery": delivery, "delivered_lines": parsed_lines, "result_after_model_exit": after_exit,
-                      "duration_seconds": result["finished_monotonic"] - request["started_monotonic"] if result else None})
+                      "duration_seconds": (terminal or result)["finished_monotonic"] - request["started_monotonic"]
+                          if request.get("dispatched") and (terminal or result or {}).get("finished_monotonic") is not None else None})
     complete = complete and not pending_host
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": total_bytes if rollout else None,
@@ -218,7 +221,13 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
     runtime = read_json(folder / "runtime.json")
     items = tool_items(read_live_jsonl(folder / "events.jsonl"))
     admissions = read_live_jsonl(folder / "bash-calls.jsonl")
-    violations = [{"name": item["name"], "reason": "unapproved pi capability"} for item in items if item["name"] != "bash"]
+    mode = read_json(folder / "pi-policy.json").get("measurement_mode", "direct")
+    violations = [{"name": item["name"], "reason": "unapproved pi capability"} for item in items
+                  if item["name"] not in ({"bash", "codemode"} if mode == "codemode" else {"bash"})]
+    host_calls = len(items)
+    items = [item for item in items if item["name"] == "bash"]
+    finishes, finish_state = read_jsonl_prefix(folder / "bash-results.jsonl")
+    by_id = {row["id"]: row for row in finishes}
     by_command = collections.defaultdict(list)
     for item in items:
         by_command[item["input"].get("command")].append(item)
@@ -228,9 +237,12 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
         violations.append({"reason": "wrapper admission/tool_execution_start command inventory mismatch"})
     complete = (collected_call_logs(folder, runtime, ("events.jsonl",)) and matched
                 and read_jsonl_prefix(folder / "bash-calls.jsonl")[1]["complete"]
-                and all(item["completed"] and not item.get("missing_start") for item in items))
+                and all(item["completed"] and not item.get("missing_start") for item in items)
+                and finish_state["complete"] and len(by_id) == len(finishes)
+                and set(by_id) == {row["id"] for row in admissions if row["dispatched"]})
     calls = []
     for row in admissions:
+        finish = by_id.get(row["id"])
         candidates = by_command[row["command"]]
         item = candidates[0] if len(candidates) == counts[row["command"]] == 1 else None
         result = item.get("result") if item else None
@@ -239,14 +251,15 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
             "status": "rejected" if not row["dispatched"] else "unknown" if result is None else "error" if result.get("is_error") else "success",
             "completed": bool(item and item["completed"]), "native_item": item,
             "raw_result": None, "relay_result": None, "raw_json_bytes": None, "relay_json_bytes": None,
-            "relay_loss": None, "native_truncated": None, "delivered_lines": None, "duration_seconds": None,
+            "relay_loss": None, "native_truncated": None, "delivered_lines": None,
+            "duration_seconds": finish["finished_monotonic"] - finish["started_monotonic"] if finish else None,
             "native_output_bytes": len(text.encode()) if text is not None else None,
             "client_delivery": {"status": "client_stream_observed" if text is not None else "unknown", "complete": None,
                 "reason": "Unique command matched; provider input unobserved." if item else "Repeated/unmatched command; no invented wrapper/event ID association."}})
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "complete_result_deliveries": None,
             "source": "events.jsonl", "backend": "pi", "missing_reason": "Complete subsequent provider input is not observed."})
-    return calls, complete, len(items), violations
+    return calls, complete, host_calls, violations
 
 
 def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
@@ -257,7 +270,7 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
     is_pi = runtime.get("backend") == "pi"
     client_tool_name = lambda name: "mcp__navigation__" + name
     if is_pi:
-        from .pi_client import NATIVE_TOOLS, navigation_tool_name, tool_items
+        from .pi_client import NATIVE_TOOLS, navigation_tool_name, navigation_tool_names, tool_items
         client_tool_name = navigation_tool_name
     native = (folder / "native-agent.json").exists()
     configured = read_json(folder / ("native-agent.json" if native else "relay-settings.json"))
@@ -265,6 +278,9 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
     allowed = set(NATIVE_TOOLS) if native else {"ToolSearch", *[client_tool_name(name) for name in configured["enabled_tools"]]}
     if is_pi:
         allowed.discard("ToolSearch")
+        if read_json(folder / "pi-policy.json").get("measurement_mode") == "codemode":
+            allowed.add("codemode")
+            allowed.update(alias for name in configured["enabled_tools"] for alias in navigation_tool_names(name))
     violations = [{"name": c.get("name"), "reason": "unapproved agent capability"} for c in items if c.get("name") not in allowed]
     complete = collected_call_logs(folder, runtime, ("events.jsonl",)) and all(c["completed"] for c in items)
     calls, stream_bytes = [], 0
@@ -292,8 +308,11 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
         signature = lambda tool, args: (tool, json.dumps(args, sort_keys=True, ensure_ascii=False))
         request_counts = collections.Counter(signature(client_tool_name(r["tool"]), r["arguments"]) for r in requests.values())
         by_signature = collections.defaultdict(list)
+        aliases = {alias: navigation_tool_name(name) for name in configured["enabled_tools"]
+                   for alias in navigation_tool_names(name)} if is_pi else {}
         for item in items:
-            by_signature[signature(item.get("name", ""), item.get("input", {}))].append(item)
+            name = item.get("name", "")
+            by_signature[signature(aliases.get(name, name), item.get("input", {}))].append(item)
         for ident, request in requests.items():
             result = results.get(ident)
             raw, relayed = (result.get("raw_result"), result.get("relay_result")) if result else (None, None)
@@ -312,12 +331,56 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                                               "reason": "Unique native call matched in CLI stream; complete provider input remains unobserved."
                                               if seen is not None else "No uniquely matched native client call."},
                           "delivered_lines": None,
-                          "duration_seconds": result["finished_monotonic"] - request["started_monotonic"] if result else None})
+                          "duration_seconds": (terminal or result)["finished_monotonic"] - request["started_monotonic"]
+                          if request.get("dispatched") and (terminal or result or {}).get("finished_monotonic") is not None else None})
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "client_stream_text_bytes": stream_bytes,
             "missing_reason": "Agent JSON events do not expose the complete subsequent provider input.",
             "complete_result_deliveries": None, "source": "events.jsonl", "backend": runtime["backend"]})
     return calls, complete, len(items) if events else None, violations
+
+
+def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool) -> dict:
+    from .pi_client import assistant_messages
+    from .runner import read_jsonl_prefix
+    events, collection = read_jsonl_prefix(folder / "events.jsonl")
+    per_turn, model_calls = [], []
+    guard = script_truncations = 0
+    for event in events:
+        if event.get("type") == "turn_start":
+            per_turn.append(0)
+            model_calls.append(0)
+        elif event.get("type") == "tool_execution_start" and per_turn:
+            per_turn[-1] += event["toolName"] != "codemode"
+            model_calls[-1] += not event.get("parentToolCallId")
+        elif event.get("type") == "tool_execution_end":
+            result = event.get("result", {})
+            guard += result.get("details", {}).get("outputGuard", {}).get("truncated") is True
+            if event.get("toolName") == "codemode":
+                script_truncations += any(block.get("text", "").startswith("Warning: truncated output (")
+                                          for block in result.get("content", []))
+    messages = assistant_messages(events)
+    events_complete = collection["complete"] and bool(events) and events[-1].get("type") == "agent_settled"
+    durations = [m.get("durationMs") for m in messages]
+    known = [v for v in durations if type(v) in (int, float) and v >= 0]
+    dispatched = [c for c in calls if c.get("dispatched") and not c.get("discovery")]
+    tool_durations = [c["duration_seconds"] for c in dispatched if c.get("duration_seconds") is not None]
+    return {"turns": len(per_turn) if events else None, "turns_complete": collection["complete"] and
+                sum(e.get("type") == "turn_end" for e in events) == len(per_turn),
+            "tool_calls_per_turn": per_turn, "tool_calls_per_turn_histogram": dict(collections.Counter(map(str, per_turn))),
+            "model_tool_calls_per_turn": model_calls,
+            "call_distribution_basis": "pi tool_execution_start: direct/nested attempts excluding script envelopes; not authoritative admission",
+            "event_metrics_complete": events_complete, "call_metrics_complete": call_log_complete,
+            "model_seconds": sum(known) / 1000 if events_complete and messages and len(known) == len(messages) else None,
+            "observed_model_seconds": sum(known) / 1000 if known else None,
+            "tool_seconds": sum(tool_durations) if call_log_complete and len(tool_durations) == len(dispatched) else None,
+            "observed_tool_seconds": sum(tool_durations),
+            "timing_basis": "assistant message_end.durationMs sum; dispatched relay/wrapper durations sum (parallel intervals overlap)",
+            "adapter_output_guard_truncated": guard if events else None,
+            "codemode_output_truncated": script_truncations if events else None,
+            "include_seen_true_calls": sum(c.get("arm") == "codemap-search" and c.get("arguments", {}).get("include_seen") is True
+                                            for c in calls if not c.get("discovery")),
+            "evidence": [str(folder / "events.jsonl"), str(folder / ("bash-results.jsonl" if (folder / "native-agent.json").exists() else "relay.jsonl"))]}
 
 
 def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
@@ -342,10 +405,11 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
               "collection_after_cutoff": execution.get("shutdown", {}).get("cleanup_elapsed_seconds"),
               "collection_scope": "may overlap model process lifetime; not an additive duration"}
     return {**entry, **execution, "error": error, "calls": calls, "host_calls": host_calls, "usage": usage, "timing": timing,
+            "observations": pi_observations(folder, calls, call_log_complete=complete) if runtime.get("backend") == "pi" else None,
             "source_snapshot": access["source"],
             "artifacts": {name: str(folder / name) for name in ("execution.json", "runtime.json", "events.jsonl", "rollout.jsonl",
                            "relay.jsonl", "native-agent.json", "relay-settings.json", "delivery.json", "stderr.log", "command.json",
-                           "claude-settings.json", "mcp-config.json", "pi-policy.json", "pi-bash.json", "pi-bash.sb", "bash-calls.jsonl") if (folder / name).exists()},
+                           "claude-settings.json", "mcp-config.json", "pi-policy.json", "pi-bash.json", "pi-bash.sb", "bash-calls.jsonl", "bash-results.jsonl", "context-audit.json") if (folder / name).exists()},
             "call_log_complete": complete, "jsonl_collection": collection, "boundary_violations": violations,
             "conditions_valid": execution.get("conditions_valid", False) and not violations,
             "tool_call_counts": dict(collections.Counter(("auxiliary:" if c.get("is_auxiliary") else "native:") + c["tool"]
@@ -387,7 +451,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     by_id = {r["id"]: r for r in rows}
     require(len(by_id) == len(rows) and set(by_id) <= {r["id"] for r in planned}, "계획 밖 또는 중복 결과")
     require(set(judgments) <= set(by_id), "실행 기록 없는 채점")
-    result_rows, arms = [], {}
+    result_rows, modes = [], {}
     for slot in planned:
         row = by_id.get(slot["id"])
         judgment = judgments.get(slot["id"])
@@ -395,10 +459,11 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
         require(not row or row.get("backend") == manifest["models"]["solver"]["backend"], "선택한 실행기와 다른 실행 결과")
         require(judgment is None or row.get("conditions_valid") is True, "유효한 실행 조건이 확인되지 않은 결과에 채점이 연결되었습니다")
         require(not row or not row.get("reused_from"), "route 프로필은 기존 A 답변을 재사용하지 않습니다")
-        require(not row or all(row[key] == slot[key] for key in ("question_id", "arm", "attempt")), "결과 슬롯 식별 불일치")
+        require(not row or all(row[key] == slot[key] for key in ("question_id", "arm", "mode", "attempt")), "결과 슬롯 식별 불일치")
         result_rows.append({**slot, "status": row["status"] if row else "planned", "judgment": judgment,
                             "elapsed_seconds": row.get("elapsed_seconds") if row else None,
                             "timing": row.get("timing") if row else None,
+                            "observations": row.get("observations") if row else None,
                             "usage": row.get("usage") if row else None,
                             "tool_call_counts": row.get("tool_call_counts") if row else None,
                             **{key: row.get(key) if row else None for key in (
@@ -408,15 +473,20 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                                 "phase", "launch_state", "cli_launches", "provider_call_observed", "answer_eligible", "cleanup",
                                 "failure_stage", "grade_state", "grade_reason", "grader_execution", "review", "packet_seal_sha256", "raw_seal", "raw_seal_sha256",
                                 "warm_receipt", "lifecycle_seconds", "cancel_requested")}})
-    for arm in routes.ARM_IDS:
-        selected = [r for r in result_rows if r["arm"] == arm]
-        graded = [r["judgment"] for r in selected if r["judgment"] is not None]
-        arms[arm] = {"planned": len(selected), "observed": sum(r["cli_launches"] == 1 for r in selected),
-                     "invalid_conditions": sum(r["conditions_valid"] is False for r in selected),
-                     "unconfirmed_conditions": sum(r["status"] not in {"planned", "out_of_scope"} and r["conditions_valid"] is None for r in selected),
-                     # One expected judgment per planned slot (question x repetition) of this arm.
-                     "quality": quality_counts(graded, [questions[r["question_id"]] for r in selected]),
-                     "tool_condition": manifest.get("arms", {}).get(arm, {}).get("tool_condition")}
+    for mode in routes.MEASUREMENT_MODES:
+        arms = {}
+        mode_rows = [row for row in result_rows if row["mode"] == mode]
+        for arm in routes.ARM_IDS:
+            selected = [r for r in mode_rows if r["arm"] == arm]
+            graded = [r["judgment"] for r in selected if r["judgment"] is not None]
+            arms[arm] = {"planned": len(selected), "observed": sum(r["cli_launches"] == 1 for r in selected),
+                         "invalid_conditions": sum(r["conditions_valid"] is False for r in selected),
+                         "unconfirmed_conditions": sum(r["status"] not in {"planned", "out_of_scope"} and r["conditions_valid"] is None for r in selected),
+                         # One expected judgment per planned slot (question x repetition) of this arm.
+                         "quality": quality_counts(graded, [questions[r["question_id"]] for r in selected]),
+                         "tool_condition": manifest.get("arms", {}).get(arm, {}).get("tool_condition")}
+        modes[mode] = {"arms": arms, "quality": quality_counts(
+            [r["judgment"] for r in mode_rows if r["judgment"] is not None], [questions[r["question_id"]] for r in mode_rows])}
     counts = {"planned": len(planned), "cli_started": sum(r["cli_launches"] == 1 for r in result_rows),
               "launch_reserved": sum(r["launch_state"] in {"reserved", "started", "unknown"} for r in result_rows),
               "provider_observed": sum(r["provider_call_observed"] is True for r in result_rows),
@@ -429,13 +499,12 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "out_of_scope": sum(r["status"] == "out_of_scope" for r in result_rows),
               "not_started": sum(r["launch_state"] in {None, "not_started"} for r in result_rows),
               "launch_unknown": sum(r["launch_state"] == "unknown" for r in result_rows)}
-    result = {"schema_version": 2, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
+    result = {"schema_version": 3, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
               "campaign_status": manifest.get("campaign_status"), "blocked_grading": manifest.get("blocked_grading", []),
               "run_scope": manifest.get("run_scope", {"kind": "full"}),
               "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions", "execution_specs")},
               "observed_solver_runs": sum(r["cli_launches"] == 1 for r in result_rows),
-              "arms": arms, "rows": result_rows,
-              "quality": quality_counts(list(judgments.values()), [questions[r["question_id"]] for r in result_rows]),
+              "modes": modes, "rows": result_rows,
               "scope": f"{len(routes.QUESTION_IDS)} fixed routes, {routes.REPETITIONS} attempts per question and arm. Descriptive observations only.",
               "variance_estimated": False}
     write_json(root / "report/summary.json", result)
@@ -451,12 +520,15 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
         lines += [f"풀이: {models['solver']['model']} / {models['solver']['reasoning_effort']}; "
                   f"채점: {models['grader']['model']} / {models['grader']['reasoning_effort']}", ""]
     lines += [f"실행/검토 집계: `{json.dumps(counts, ensure_ascii=False)}`", ""]
-    lines += ["| 도구 | 도구 구성 | 예정 | 관측 | 핵심 완전 충족 | 미채점 |", "|---|---|---:|---:|---:|---:|"]
-    for arm, value in arms.items():
-        complete = value["quality"]["core_complete"]
-        condition = {"assisted": "필수 보조 도구 포함", "native_only": "자체 도구", "native_agent_baseline": "기본 에이전트 · 추가 MCP 없음"}.get(value["tool_condition"], "미연결")
-        label = "기본 에이전트 (rg 사용 가능)" if arm == "rg" else arm
-        lines.append(f"| {label} | {condition} | 3 | {value['observed']} | {complete['true'] if value['observed'] else '미실행'} | {complete['ungraded']} |")
+    for mode, aggregate in modes.items():
+        lines += [f"## {mode} (모드별 독립 집계)", ""]
+        arms = aggregate["arms"]
+        lines += ["| 도구 | 도구 구성 | 예정 | 관측 | 핵심 완전 충족 | 미채점 |", "|---|---|---:|---:|---:|---:|"]
+        for arm, value in arms.items():
+            complete = value["quality"]["core_complete"]
+            condition = {"assisted": "필수 보조 도구 포함", "native_only": "자체 도구", "native_agent_baseline": "기본 에이전트 · 추가 MCP 없음"}.get(value["tool_condition"], "미연결")
+            label = "기본 에이전트 (rg 사용 가능)" if arm == "rg" else arm
+            lines.append(f"| {label} | {condition} | {value['planned']} | {value['observed']} | {complete['true'] if value['observed'] else '미실행'} | {complete['ungraded']} |")
     lines += ["", "| 문항·비교군 | 실행 상태 | launch | 채점/검토 | 조건 유효 | 호출 로그 완결 | 토큰 집계 | retry/실패 attempt | 오류·실패 사유 | 근거 |",
               "|---|---|---|---|---|---|---|---|---|---|"]
     def cell(value):
@@ -468,8 +540,16 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
         lines.append("| " + " | ".join(cell(v) for v in (row["id"], row["status"], row["launch_state"], row["grade_state"], row["conditions_valid"], row["call_log_complete"], row["token_accounting"],
             f"{row['retry_attempts']}/{row['failed_attempts']}", reason, evidence)) + " |")
     lines += ["", "미실행·미관측 값은 0점으로 치환하지 않습니다. 핵심과 확장, true/false/indeterminate/미채점을 별도 기록합니다.",
-              "한 문항당 1회 계획이므로 반복 분산이나 통계적 유의성을 주장하지 않습니다.",
+              f"문항·비교군·모드마다 {routes.REPETITIONS}회 반복이며 통계적 유의성을 주장하지 않습니다.",
               "제품 탐색 호출 0회인 답변은 제품 검색 기여의 근거가 아닙니다. 미관측 호출을 0회로 해석하지 않습니다."]
+    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | adapter 절단 | script 절단 | include_seen=true |",
+              "|---|---:|---|---:|---:|---:|---:|---:|"]
+    for row in result_rows:
+        observed = row.get("observations") or {}
+        lines.append("| " + " | ".join(cell(v) for v in (row["id"], *[observed.get(key) for key in (
+            "turns", "tool_calls_per_turn", "model_seconds", "tool_seconds", "adapter_output_guard_truncated",
+            "codemode_output_truncated", "include_seen_true_calls")])) + " |")
+    lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
     return result
 
@@ -490,7 +570,7 @@ def publish_metrics() -> dict:
         "field_provenance": FIELD_PROVENANCE, "unknown_rules": "Preserve null/reason and dimension-level indeterminate; never fill zero.",
         "native_baseline": {"exploration_calls": "atomic pi bash wrapper admission IDs, cross-checked with tool_execution_start",
                             "delivery": "CLI output is retained separately; repeated command IDs and complete provider input may be unobserved"},
-        "aggregation_rules": "Fixed three-route macro denominator, separate core/extended fact denominators; no variance estimate.",
+        "aggregation_rules": "Separate modes, fixed question x repetition macro denominators, separate core/extended facts; no cross-mode quality aggregation.",
         "offline_verification": {"native_probe_calls": len(calls), "relay_loss": False,
                                  "actual_solver_delivery": "unobserved", "planned_unique_slots": len(routes.schedule())},
         "observed_solver_runs": 0, "limitations": ["Real solver usage and history delivery have not been measured for either selectable model."]},

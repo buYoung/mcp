@@ -26,7 +26,7 @@ DISABLED_FEATURES = ("shell_tool", "unified_exec", "apps", "plugins", "multi_age
 
 
 
-ANSWER_PROMPT = """고정된 Grafana 코드에 대해 아래 질문에 답하라. 읽기 전용 탐색이다.
+ANSWER_PROMPT = """고정된 코드에 대해 아래 질문에 답하라. 읽기 전용 탐색이다.
 코드 접근은 navigation MCP에 노출된 도구만 사용한다. 다른 파일 접근·셸·네트워크·하위 에이전트는 사용하지 않는다.
 근거는 실제 전달된 원문으로 확인하고 최종 답변에 파일 경로와 행 번호를 제시한다.
 import나 이름의 유사성만으로 실제 호출·소비·타입 관계를 단정하지 않는다.
@@ -739,11 +739,20 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     if native_count is not None and native_count > spec["limits"]["exploration_calls"]:
         condition_errors.append("Native command calls exceeded the fixed exploration-call limit.")
     if backend == "pi":
+        from .pi_audit import audit_session
+        inventory_path = prepared_session.state.get("native_inventory") if prepared_session is not None else None
+        inventory = read_json(Path(inventory_path)) if inventory_path else {}
+        context_audit = audit_session(folder, inventory)
+        if not context_audit["passed"]:
+            condition_errors.append("Harness context audit failed; see context-audit.json.")
         items = list(pi_state.tools.values())
         allowed = {"bash"} if native_agent else {pi_client.navigation_tool_name(name) for name in (relay_settings or {}).get("enabled_tools", [])}
+        if spec.get("measurement_mode") == "codemode":
+            allowed.add("codemode")
+            allowed.update(alias for name in (relay_settings or {}).get("enabled_tools", []) for alias in pi_client.navigation_tool_names(name))
         if any(item["name"] not in allowed for item in items):
             condition_errors.append("Unapproved pi capability observed.")
-        if native_agent and len(items) != len(read_live_jsonl(folder / "bash-calls.jsonl")):
+        if native_agent and sum(item["name"] == "bash" for item in items) != len(read_live_jsonl(folder / "bash-calls.jsonl")):
             condition_errors.append("pi bash wrapper/tool_execution_start counts differ.")
     conditions_valid = conditions_valid and not condition_errors
     eligibility = answer_eligibility(backend=backend, completed=completed, observed_monotonic=answer_finished_monotonic,

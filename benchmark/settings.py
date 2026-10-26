@@ -45,7 +45,7 @@ def profiles() -> dict:
     from . import route_contract as routes
     profile = routes.load_profile()
     return {routes.PROFILE: {"name": profile["name"], "question_ids": list(routes.QUESTION_IDS),
-                            "repeats": profile["repetitions"], "preparation_only": True}}
+                            "repeats": profile["repetitions"], "measurement_modes": profile["measurement_modes"], "preparation_only": True}}
 
 
 def targets() -> list[dict]:
