@@ -1,9 +1,15 @@
 //! Multi-window delivery reuses the single-read pipeline, including Jev and history.
 use super::{jev, source_history::SourceHistory, text_content, tool_error_result, McpServer};
-use crate::tools::{live_options::LiveOptions, read};
+use crate::tools::{
+    live_options::{LiveOptions, LiveView},
+    read,
+};
 use serde_json::Value;
 
 fn truncation_note(first: usize, total: usize) -> String {
+    if first == 1 {
+        return format!("[Truncated before range 1 of {total}; retry from ranges[0] with a single read (file_path/offset/limit) or smaller windows.]");
+    }
     format!("[Truncated before range {first} of {total}; retry from ranges[{}] with fewer ranges or smaller windows.]", first - 1)
 }
 
@@ -13,8 +19,13 @@ impl McpServer {
     pub(super) async fn read_ranges(&mut self, arguments: &Value) -> Result<Value, (i64, String)> {
         let ranges = read::ranges(arguments)?.expect("ranges dispatch requires the argument");
         crate::tools::reject_body_task_query(arguments)?;
-        LiveOptions::parse(arguments)?;
+        let options = LiveOptions::parse(arguments)?;
         let config = crate::config::get();
+        if config.jev.is_enabled_for("read")
+            && matches!(options.view, LiveView::Full | LiveView::Source)
+        {
+            jev::require_task(self.registered_task.as_ref(), "read")?;
+        }
         // A batch is still one tool call: later windows do not restart Jev's timeout.
         let deadline = tokio::time::Instant::now().checked_add(config.jev.deadline());
         let cap = config
@@ -26,7 +37,7 @@ impl McpServer {
         // Reserve a whole-item continuation note, including its separator. Never cut
         // a UTF-8 character, source row, callable or duplicate marker mid-item.
         let reserve = truncation_note(ranges.len(), ranges.len()).len() + 2;
-        if cap < reserve {
+        if cap < reserve.max(truncation_note(1, ranges.len()).len()) {
             return Err((-32602, format!("Read ranges output cap ({cap} bytes) cannot fit the truncation notice for range 1. Increase output.read.max_bytes/output.client limits or use a single read.")));
         }
         let _ = self.engine.activate();
@@ -34,7 +45,7 @@ impl McpServer {
         for (index, range) in ranges.iter().enumerate() {
             let checkpoint = self.source_history.pending_checkpoint();
             let mut source_files = Vec::new();
-            let mut response = match read::range_arguments(arguments, range) {
+            let response = match read::range_arguments(arguments, range) {
                 Ok(item_arguments) => {
                     let tool_arguments = SourceHistory::tool_arguments("read", &item_arguments);
                     match jev::live(
@@ -64,16 +75,11 @@ impl McpServer {
                             source_files.retain(|file| file.result_bytes > 0);
                             response
                         }
-                        Err((_, message)) => tool_error_result(&message),
+                        Err((_, message)) => tool_error_result(&crate::redact::source(&message)),
                     }
                 }
-                Err((_, message)) => tool_error_result(&message),
+                Err((_, message)) => tool_error_result(&crate::redact::source(&message)),
             };
-            // Errors and the path-bearing header need masking too. Source responses
-            // were already masked before history, as on the single-read path.
-            if response.get("isError").and_then(Value::as_bool) == Some(true) {
-                crate::redact::response(&mut response);
-            }
             let heading = read::range_heading(index + 1, range);
             let heading = crate::redact::source(&heading);
             let body = response["content"][0]["text"].as_str().unwrap_or("");

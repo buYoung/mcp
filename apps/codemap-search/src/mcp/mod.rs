@@ -399,7 +399,7 @@ impl McpServer {
         let is_read_ranges = tool_name == Some("read")
             && params
                 .and_then(|params| params.get("arguments"))
-                .is_some_and(|arguments| crate::tools::get_arg(arguments, "ranges").is_some());
+                .is_some_and(crate::tools::read::has_ranges);
         let result = match self.handle_request_inner(method, params).await {
             // Negotiation and tool definitions are control metadata. PII rules must
             // not rewrite protocol versions, tool names or schema/enum values.
@@ -579,7 +579,7 @@ impl McpServer {
                 let default_args = serde_json::Value::Object(serde_json::Map::new());
                 let arguments = params.get("arguments").unwrap_or(&default_args);
                 source_history::SourceHistory::validate_arguments(name, arguments)?;
-                if name == "read" && crate::tools::get_arg(arguments, "ranges").is_some() {
+                if name == "read" && crate::tools::read::has_ranges(arguments) {
                     return self.read_ranges(arguments).await;
                 }
                 let tool_arguments = source_history::SourceHistory::tool_arguments(name, arguments);

@@ -219,7 +219,7 @@ pub(super) async fn search(
     Ok(output)
 }
 
-fn require_task<'a>(
+pub(super) fn require_task<'a>(
     task: Option<&'a crate::tools::task::RegisteredTask>,
     tool: &str,
 ) -> Result<&'a crate::tools::task::RegisteredTask, (i64, String)> {

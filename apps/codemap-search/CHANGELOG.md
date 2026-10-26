@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `read ranges` for 1–20 known file windows in one MCP call, with single-read aliases, shared presentation options, per-item errors, connection-local deduplication and whole-item continuation under the existing byte budgets.
+- Added `read ranges` for 1–20 known file windows in one MCP call, with single-read aliases, shared presentation options, per-item errors, connection-local deduplication and whole-item continuation under the existing byte budgets. Either `file_path` or `ranges` is required, but not both; this is checked at runtime without top-level schema combinators.
 - Added OpenRouter decision-model support with provider-specific credentials and strict response validation.
 
 ### Changed

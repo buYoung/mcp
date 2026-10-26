@@ -13,15 +13,20 @@ const READ_FILE_BYTE_CAP: u64 = 262_144;
 
 pub(crate) const MAX_READ_RANGES: usize = 20;
 
+pub(crate) fn has_ranges(args: &Value) -> bool {
+    get_arg(args, "ranges").is_some_and(|value| !value.is_null())
+}
+
 /// Batch validation is separate from item validation so one bad file does not discard
 /// successful windows. Top-level path aliases are just as ambiguous as `file_path`.
 pub(crate) fn ranges(args: &Value) -> Result<Option<&[Value]>, (i64, String)> {
-    let Some(value) = get_arg(args, "ranges") else {
+    if !has_ranges(args) {
         return Ok(None);
-    };
+    }
+    let value = get_arg(args, "ranges").expect("has_ranges requires a non-null argument");
     if ["file_path", "path", "file", "query"]
         .iter()
-        .any(|key| get_arg(args, key).is_some())
+        .any(|key| get_arg(args, key).is_some_and(|value| !value.is_null()))
     {
         return Err((-32602, "Use either 'ranges' or top-level 'file_path' (including path/file/query aliases), not both.".into()));
     }
