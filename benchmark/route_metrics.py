@@ -227,8 +227,9 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
                   if item["name"] not in ({"bash", "codemode"} if mode == "codemode" else {"bash"})]
     host_calls = len(items)
     items = [item for item in items if item["name"] == "bash"]
-    finishes, finish_state = read_jsonl_prefix(folder / "bash-results.jsonl")
-    by_id = {row["id"]: row for row in finishes}
+    finishes, _ = read_jsonl_prefix(folder / "bash-results.jsonl")
+    finish_counts = collections.Counter(row["id"] for row in finishes)
+    by_id = {row["id"]: row for row in finishes if finish_counts[row["id"]] == 1}
     cancellations = cancelled_before_admission(items, admissions, native=True)
     before_admission = {item["id"] for item in cancellations["calls"]}
     by_command = collections.defaultdict(list)
@@ -242,11 +243,9 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
     complete = (collected_call_logs(folder, runtime, ("events.jsonl",)) and matched and not cancellations["ambiguous"]
                 and read_jsonl_prefix(folder / "bash-calls.jsonl")[1]["complete"]
                 and all(item["completed"] and not item.get("missing_start") for item in items))
-    timing_complete = finish_state["complete"] and len(by_id) == len(finishes)
-    timing_complete = timing_complete and set(by_id) <= {row["id"] for row in admissions if row["dispatched"]}
     calls = []
     for row in admissions:
-        finish = by_id.get(row["id"]) if timing_complete else None
+        finish = by_id.get(row["id"])
         candidates = by_command[row["command"]]
         item = candidates[0] if len(candidates) == counts[row["command"]] == 1 else None
         result = item.get("result") if item else None
@@ -381,6 +380,10 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
     dispatched = [c for c in calls if c.get("dispatched") and not c.get("discovery")]
     tool_durations = [c["duration_seconds"] for c in dispatched if c.get("duration_seconds") is not None]
     native = (folder / "native-agent.json").exists()
+    timing_complete = True
+    if native:
+        finishes, finish_state = read_jsonl_prefix(folder / "bash-results.jsonl")
+        timing_complete = finish_state["complete"] and {row["id"] for row in finishes} <= {c["id"] for c in dispatched}
     enabled = read_json(folder / "relay-settings.json")["enabled_tools"] if (folder / "relay-settings.json").exists() else []
     admissions = read_jsonl_prefix(folder / ("bash-calls.jsonl" if native else "relay.jsonl"))[0]
     if not native:
@@ -398,7 +401,7 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
             "event_metrics_complete": events_complete, "call_metrics_complete": call_log_complete,
             "model_seconds": sum(known) / 1000 if events_complete and messages and len(known) == len(messages) else None,
             "observed_model_seconds": sum(known) / 1000 if known else None,
-            "tool_seconds": sum(tool_durations) if call_log_complete and len(tool_durations) == len(dispatched) else None,
+            "tool_seconds": sum(tool_durations) if call_log_complete and timing_complete and len(tool_durations) == len(dispatched) else None,
             "observed_tool_seconds": sum(tool_durations),
             "tool_seconds_observed_calls": len(tool_durations),
             "tool_seconds_missing_calls": len(dispatched) - len(tool_durations),

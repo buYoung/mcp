@@ -507,6 +507,14 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         self.assertIsNone(observed["tool_seconds"])
         self.assertEqual(observed["observed_tool_seconds"], 0)
         self.assertEqual(observed["tool_seconds_missing_calls"], 1)
+        write_json(self.root / "native-agent.json", {})
+        (self.root / "bash-results.jsonl").write_text(json.dumps({"id": 1, "started_monotonic": 1, "finished_monotonic": 2}) + "\npartial")
+        calls, complete, _, _ = route_metrics.normalize_pi_native_calls(self.root)
+        observed = route_metrics.pi_observations(self.root, calls, call_log_complete=complete)
+        self.assertTrue(complete)
+        self.assertIsNone(observed["tool_seconds"])
+        self.assertEqual(observed["observed_tool_seconds"], 1)
+        self.assertEqual(observed["tool_seconds_missing_calls"], 0)
 
 
     def test_cleanup_private_counts_only_bound_claude_result_metadata(self):
