@@ -319,6 +319,7 @@ pub(super) async fn live(
     arguments: &serde_json::Value,
     task: Option<&crate::tools::task::RegisteredTask>,
     config: &ResolvedConfig,
+    shared_deadline: Option<Instant>,
 ) -> Result<crate::tools::live_symbols::PreparedLiveOutput, (i64, String)> {
     use crate::tools::live_options::{LiveOptions, LiveView};
     use crate::tools::live_symbols::{self, PreparedLiveOutput};
@@ -345,7 +346,7 @@ pub(super) async fn live(
     let mut evaluation = None;
     if is_enabled && is_source {
         require_task(task, tool)?;
-        if let Some(deadline_at) = deadline_at(&config.jev) {
+        if let Some(deadline_at) = shared_deadline.or_else(|| deadline_at(&config.jev)) {
             match host.resolve(&config.jev, &config.auth) {
                 Ok(evaluator) => {
                     evaluation = Some((

@@ -1,4 +1,4 @@
-//! `read` — single-file read with `cat -n` style line numbers, mirroring Claude
+//! `read` — file windows with `cat -n` style line numbers, mirroring Claude
 //! Code's Read tool so an agent can swap its built-in without surprises. Direct
 //! filesystem I/O, no index/engine dependency.
 
@@ -10,6 +10,76 @@ use serde_json::Value;
 /// When `limit` is omitted, refuse to read files larger than this so a single call
 /// can't dump an unbounded blob (matches Claude Code's 256 KiB read cap).
 const READ_FILE_BYTE_CAP: u64 = 262_144;
+
+pub(crate) const MAX_READ_RANGES: usize = 20;
+
+/// Batch validation is separate from item validation so one bad file does not discard
+/// successful windows. Top-level path aliases are just as ambiguous as `file_path`.
+pub(crate) fn ranges(args: &Value) -> Result<Option<&[Value]>, (i64, String)> {
+    let Some(value) = get_arg(args, "ranges") else {
+        return Ok(None);
+    };
+    if ["file_path", "path", "file", "query"]
+        .iter()
+        .any(|key| get_arg(args, key).is_some())
+    {
+        return Err((-32602, "Use either 'ranges' or top-level 'file_path' (including path/file/query aliases), not both.".into()));
+    }
+    let ranges = value.as_array().ok_or_else(|| {
+        (
+            -32602,
+            "Parameter 'ranges' must be an array of file windows.".into(),
+        )
+    })?;
+    if ranges.is_empty() || ranges.len() > MAX_READ_RANGES {
+        return Err((
+            -32602,
+            format!("Parameter 'ranges' must contain 1 to {MAX_READ_RANGES} items."),
+        ));
+    }
+    Ok(Some(ranges))
+}
+
+/// Reuse the single-read coercion rules; presentation and delivery options belong to
+/// the batch, never to an individual window. Top-level offset/limit are not inherited.
+pub(crate) fn range_arguments(common: &Value, range: &Value) -> Result<Value, (i64, String)> {
+    if !range.is_object() {
+        return Err((-32602, "Each 'ranges' item must be an object.".into()));
+    }
+    let mut args = serde_json::json!({ "file_path": resolve_file_path_arg(range)? });
+    let (offset, limit) = resolve_window_args(range);
+    if let Some(offset) = offset {
+        args["offset"] = offset.into();
+    }
+    if let Some(limit) = limit {
+        args["limit"] = limit.into();
+    }
+    for key in [
+        "view",
+        "expand",
+        "unresolved",
+        "include_events",
+        "debug",
+        "include_seen",
+    ] {
+        if let Some(value) = get_arg(common, key) {
+            args[key] = value.clone();
+        }
+    }
+    Ok(args)
+}
+
+pub(crate) fn range_heading(index: usize, range: &Value) -> String {
+    let path = resolve_file_path_arg(range).unwrap_or("<missing file_path>");
+    let (offset, limit) = resolve_window_args(range);
+    let offset = offset.unwrap_or(1).max(1);
+    let limit = limit.map_or_else(|| "EOF".into(), |limit| limit.to_string());
+    // JSON quoting keeps paths containing newlines from forging another section.
+    format!(
+        "## Range {index}: {} (requested offset={offset}, limit={limit})\n",
+        serde_json::json!(path)
+    )
+}
 
 /// Extensions read refuses in v1 (binary / image / document / notebook). Searching
 /// these is out of scope; the agent gets an explicit unsupported error.
