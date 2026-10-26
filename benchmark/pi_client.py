@@ -469,36 +469,58 @@ def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | N
             "claude_persisted_tool_results": persisted}
 
 
+ARGS_PREVIEW_CHARS = 200  # pinned codemode previewArgs: JSON.stringify(args), longer text cut to 197 UTF-16 units + "..."
+
+
+def script_args_preview(arguments) -> str:
+    """Mirror of the pinned codemode previewArgs; JavaScript lengths and slices count UTF-16 code units."""
+    text = json.dumps(arguments, ensure_ascii=False, separators=(",", ":"))
+    units = text.encode("utf-16-le", "surrogatepass")
+    if len(units) // 2 <= ARGS_PREVIEW_CHARS:
+        return text
+    return units[:(ARGS_PREVIEW_CHARS - 3) * 2].decode("utf-16-le", "surrogatepass") + "..."
+
+
+def script_args_match(arguments, preview) -> bool:
+    if not isinstance(preview, str):
+        return False
+    if script_args_preview(arguments) == preview:
+        return True
+    try:
+        return canonical(json.loads(preview)) == canonical(arguments)
+    except (ValueError, TypeError):
+        return False
+
+
 def reconcile_script_cancellations(items: dict, parent: dict) -> None:
-    """Pinned pi uses parent/? for aborted calls; require a complete signature/multiplicity match."""
+    """Pinned pi uses parent/? for aborted calls; require a complete signature/multiplicity match.
+
+    The summary keeps only an argument preview, so long arguments match by the same 197-unit prefix.
+    Calls sharing a prefix count as duplicates and stay unreconciled or ambiguous (fail-closed).
+    """
     pending = {key: item for key, item in items.items() if item.get("parentToolCallId") == parent["id"]}
+    summary = [call for call in parent.get("result", {}).get("details", {}).get("calls", []) if isinstance(call.get("args"), str)]
     cancelled = []
-    summary = []
-    for call in parent.get("result", {}).get("details", {}).get("calls", []):
-        try:
-            summary.append((call, json.loads(call["args"])))
-        except (ValueError, KeyError, TypeError):
-            continue
+    same = lambda item, call: item["name"] == call.get("name") and script_args_match(item["input"], call["args"])
     def mark(item):
+        preview = script_args_preview(item["input"])
         starts = [entry for entry in items.values() if entry.get("parentToolCallId") == parent["id"]
-                  and entry["name"] == item["name"] and canonical(entry["input"]) == canonical(item["input"])]
-        matches = [call for call, args in summary if call.get("name") == item["name"] and canonical(args) == canonical(item["input"])]
+                  and entry["name"] == item["name"] and script_args_preview(entry["input"]) == preview]
+        matches = [call for call in summary if same(item, call)]
         item.update(completed=True, status="cancelled", cancellation_evidence=parent["id"],
                     cancellation_match="parent+name+args unique" if len(starts) == len(matches) == 1 else "parent+name+args multiplicity")
-    for call, arguments in summary:
+    for call in summary:
         ident = call.get("id")
         item = pending.get(ident)
-        if item and item["name"] == call.get("name") and canonical(item["input"]) == canonical(arguments):
+        if item and same(item, call):
             pending.pop(ident)
             if call.get("status") == "cancelled":
                 mark(item)
         elif call.get("status") == "cancelled" and ident == parent["id"] + "/?":
-            cancelled.append((call.get("name"), arguments))
-    signatures = {(name, json.dumps(args, sort_keys=True)) for name, args in cancelled}
-    for name, encoded in signatures:
-        arguments = json.loads(encoded)
-        matches = [item for item in pending.values() if item["name"] == name and canonical(item["input"]) == canonical(arguments)]
-        count = sum(n == name and canonical(args) == canonical(arguments) for n, args in cancelled)
+            cancelled.append(call)
+    for name, preview in {(call.get("name"), call["args"]) for call in cancelled}:
+        matches = [item for item in pending.values() if item["name"] == name and script_args_match(item["input"], preview)]
+        count = sum(call.get("name") == name and call["args"] == preview for call in cancelled)
         if len(matches) == count:
             for item in matches:
                 mark(item)

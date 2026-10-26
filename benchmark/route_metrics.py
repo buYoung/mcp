@@ -323,12 +323,17 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
         for item in items:
             name = item.get("name", "")
             by_signature[signature(aliases.get(name, name), item.get("input", {}))].append(item)
+        # Warm host finished these RPCs but withheld the response after the client cancelled them.
+        from .runner import read_jsonl_prefix
+        discarded = {str(row.get("client_request_id")) for row in read_jsonl_prefix(folder / "relay.jsonl")[0]
+                     if row.get("event") == "cancelled_response_discarded"}
         for ident, request in requests.items():
             result = results.get(ident)
             raw, relayed = (result.get("raw_result"), result.get("relay_result")) if result else (None, None)
             key = signature(client_tool_name(request["tool"]), request["arguments"])
             matches = by_signature[key]
-            seen = outputs.get(matches[0]["id"]) if len(matches) == request_counts[key] == 1 else None
+            is_discarded = str(request.get("client_request_id")) in discarded
+            seen = outputs.get(matches[0]["id"]) if len(matches) == request_counts[key] == 1 and not is_discarded else None
             terminal = terminals.get(ident, {})
             calls.append({**request, "status": terminal.get("status") or ("error" if ident in errors or raw and raw.get("isError") else "success" if result else "incomplete"),
                           "terminal": terminal or errors.get(ident),
@@ -336,10 +341,12 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                           "raw_json_bytes": result.get("raw_json_bytes") if result else None,
                           "relay_json_bytes": result.get("relay_json_bytes") if result else None,
                           "relay_loss": raw != relayed if result else None, "native_truncated": None,
+                          "response_discarded": is_discarded,
                           "client_delivery": {"status": "client_stream_observed" if seen is not None else "unknown", "complete": None,
                                               "observed_text_bytes": len(seen.encode()) if seen is not None else None,
                                               "reason": "Unique native call matched in CLI stream; complete provider input remains unobserved."
-                                              if seen is not None else "No uniquely matched native client call."},
+                                              if seen is not None else "Response withheld after client cancellation." if is_discarded
+                                              else "No uniquely matched native client call."},
                           "delivered_lines": None,
                           "duration_seconds": (terminal or result)["finished_monotonic"] - request["started_monotonic"]
                           if request.get("dispatched") and (terminal or result or {}).get("finished_monotonic") is not None else None})
