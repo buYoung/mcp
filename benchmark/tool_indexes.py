@@ -22,6 +22,9 @@ CORPUS = routes.PREPARATION / "corpus.json"
 BASELINES = routes.PREPARATION / "baselines"
 ZVEC_PORT = 19700
 CBM_UI_PORT = 19701
+# Only these product-created roots may exist in an indexed work copy; never in the pinned checkout.
+SOURCE_METADATA = {"codemap-search": {".codemap"}, "codegraph": {".codegraph"}, "zvec-grep": {".zvec-grep"},
+                   "serena": {".serena"}, "codebase-memory-mcp": {".codebase-memory"}, "graphify": set(), "rg": set()}
 
 
 def workspace_root(ident: str) -> Path:
@@ -33,7 +36,28 @@ def workspace_root(ident: str) -> Path:
     return root
 
 
-def tracked_manifest(source: Path, inventory: dict | None = None) -> dict:
+def verify_source_inventory(source: Path, inventory: dict, *, allowed_metadata: set[str] | tuple[str, ...] = ()) -> None:
+    """Git ignores are irrelevant: every non-Git file must be tracked or approved post-index metadata."""
+    require(source.is_dir() and not source.is_symlink(), f"고정 source 디렉터리 필요: {source}")
+    def failed(error):
+        raise error
+    for parent, directories, files in os.walk(source, followlinks=False, onerror=failed):
+        root = Path(parent)
+        for name in list(directories):
+            path = root / name
+            if root == source and name in {".git", *allowed_metadata}:
+                require(not path.is_symlink(), f"source metadata symlink 금지: {path}")
+                directories.remove(name)
+            elif path.is_symlink():
+                files.append(name)
+                directories.remove(name)
+        for name in files:
+            path = root / name
+            relative = str(path.relative_to(source))
+            require(relative == ".git" or relative in inventory, f"미추적/ignored source 파일: {path}")
+
+
+def tracked_manifest(source: Path, inventory: dict | None = None, *, allowed_metadata: set[str] | tuple[str, ...] = ()) -> dict:
     if inventory is None:
         records = subprocess.check_output(["git", "ls-tree", "-rz", "--full-tree", "HEAD"], cwd=source).split(b"\0")
         inventory = {}
@@ -43,6 +67,7 @@ def tracked_manifest(source: Path, inventory: dict | None = None) -> dict:
                 mode, kind, sha = metadata.decode().split()
                 require(kind == "blob", "Git submodule은 별도 source 계약이 필요합니다")
                 inventory[raw_path.decode()] = {"mode": mode, "git_blob_sha1": sha}
+    verify_source_inventory(source, inventory, allowed_metadata=allowed_metadata)
     result = {}
     for name, expected in inventory.items():
         path = source / name
@@ -97,9 +122,11 @@ def workspace(ident: str, corpus: dict) -> tuple[Path, Path]:
     base = workspace_root(ident)
     base.mkdir(parents=True, exist_ok=True)
     source = base / "source"
+    verify_source_inventory(Path(corpus["source"]), corpus["files"])
     if not source.exists():
         copy_source(Path(corpus["source"]), source)
-    require(digest(tracked_manifest(source, corpus["files"])) == corpus["source_sha256"], "arm source 복사 불일치")
+    metadata = SOURCE_METADATA[ident] if (base / "prepared-index.json").exists() else ()
+    require(digest(tracked_manifest(source, corpus["files"], allowed_metadata=metadata)) == corpus["source_sha256"], "arm source 복사 불일치")
     home = base / "home"
     home.mkdir(exist_ok=True)
     from .isolation import preflight
@@ -254,7 +281,7 @@ def prepare_index(ident: str, emit=print) -> dict:
     else:
         index_paths = []
         mode = {"index": "none", "output": "native CLI defaults"}
-    require(digest(tracked_manifest(source, corpus["files"])) == corpus["source_sha256"], "색인 중 추적 source 변경")
+    require(digest(tracked_manifest(source, corpus["files"], allowed_metadata=SOURCE_METADATA[ident])) == corpus["source_sha256"], "색인 중 추적 source 변경")
     for path in index_paths:
         require(path.is_dir() and any(path.iterdir()), f"native index 누락: {path}")
     result = {"id": ident, "source": str(source), "home": str(home), "source_sha256": corpus["source_sha256"],
@@ -359,7 +386,8 @@ def restore_baseline(ident: str, state: dict, baseline: dict) -> dict:
             if stale.name.removeprefix(f"{part}.probe-").isdigit() and stale.is_dir() and not stale.is_symlink():
                 remove_disposable_copy(stale)
     corpus = read_json(CORPUS)
-    require(digest(tracked_manifest(Path(state["source"]), corpus["files"])) == corpus["source_sha256"], "reset source 불일치")
+    verify_source_inventory(Path(corpus["source"]), corpus["files"])
+    require(digest(tracked_manifest(Path(state["source"]), corpus["files"], allowed_metadata=SOURCE_METADATA[ident])) == corpus["source_sha256"], "reset source 불일치")
     from .isolation import preflight
     preflight(Path(state["source"]), Path(state["home"]))
     return {"status": "verified", "same_absolute_paths": True, "probe_state_removed": True,
@@ -532,7 +560,7 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
         groups = registry.cleanup()
         write_json(probe / "preparation-cleanup.json", {"session": cleanup, "groups": groups})
         if cleanup.get("complete") is True and groups["complete"]:
-            require(digest(tracked_manifest(Path(state["source"]), read_json(CORPUS)["files"])) == state["source_sha256"],
+            require(digest(tracked_manifest(Path(state["source"]), read_json(CORPUS)["files"], allowed_metadata=SOURCE_METADATA[ident])) == state["source_sha256"],
                     "probe 중 source 변경")
             # Restore after failed gates too, but never while a product/writer may still be alive.
             reset = restore_baseline(ident, state, baseline)
@@ -561,6 +589,7 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
 
 def publish_indexes(backend="pi") -> dict:
     corpus = read_json(CORPUS)
+    verify_source_inventory(Path(corpus["source"]), corpus["files"])
     artifacts = load_artifacts(verify=False)
     states = {}
     for ident in routes.ARM_IDS:
@@ -568,7 +597,7 @@ def publish_indexes(backend="pi") -> dict:
         require(state["agent_backend"] == backend, "조회 실행기 불일치")
         verify_probe(state, artifacts)
         require(state["status"] == "ready" and state["artifact_sha256"] == digest(artifacts[ident]), "native readiness identity 불일치")
-        require(digest(tracked_manifest(Path(state["source"]), corpus["files"])) == corpus["source_sha256"], "source drift")
+        require(digest(tracked_manifest(Path(state["source"]), corpus["files"], allowed_metadata=SOURCE_METADATA[ident])) == corpus["source_sha256"], "source drift")
         for part in ("source", "home"):
             require(digest(tree_files(Path(state[part]))) == state["baseline"]["state_sha256"][part], "probe 이후 index state drift")
         states[ident] = state

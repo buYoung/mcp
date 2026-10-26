@@ -348,6 +348,53 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         self.assertFalse(flags)
 
 
+    def test_source_inventory_rejects_untracked_and_ignored_before_indexing(self):
+        from . import execution, tool_indexes
+        from .core import digest
+        source = self.root / "grafana"
+        source.mkdir()
+        (source / "tracked.py").write_text("pass\n")
+        (source / ".gitignore").write_text(".codemap/\nignored.txt\n")
+        def git(*args):
+            return subprocess.check_output(["git", *args], cwd=source, stderr=subprocess.DEVNULL, text=True)
+        git("init", "-q")
+        git("add", ".")
+        git("-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture")
+        inventory = tool_indexes.tracked_manifest(source)
+        corpus = {"source": str(source), "files": inventory, "source_sha256": digest(inventory)}
+        state = {"id": "codemap-search", "source": str(source)}
+        for name in ("untracked.txt", "ignored.txt", ".codemap/config.toml"):
+            path = source / name
+            path.parent.mkdir(exist_ok=True)
+            path.write_text("fixture")
+            with self.assertRaisesRegex(ContractError, name):
+                tool_indexes.tracked_manifest(source)
+            with self.assertRaisesRegex(ContractError, name):
+                execution.verify_source(state, corpus)
+            with patch.object(tool_indexes.settings, "CACHE", self.root), \
+                 patch.object(tool_indexes.routes, "PREPARATION", self.root / "preparation"), \
+                 patch.object(tool_indexes.routes, "SOURCE_COMMIT", git("rev-parse", "HEAD").strip()), \
+                 patch.object(tool_indexes.routes, "contract", return_value={"contract_hash": "fixture"}), \
+                 patch.object(tool_indexes, "read_json", return_value={"contract_hash": "fixture"}):
+                with self.assertRaisesRegex(ContractError, name):
+                    tool_indexes.prepare_source(emit=lambda _: None)
+            with patch.object(tool_indexes, "workspace_root", return_value=self.root / "copy"):
+                with self.assertRaisesRegex(ContractError, name):
+                    tool_indexes.workspace("codemap-search", corpus)
+                self.assertFalse((self.root / "copy/source").exists())
+            if name.startswith(".codemap/"):
+                self.assertEqual(tool_indexes.tracked_manifest(source, allowed_metadata={".codemap"}), inventory)
+            path.unlink()
+        tool_indexes.verify_source_inventory(source, inventory)
+        destination = self.root / "copy/source"
+        runner.copy_source(source, destination)
+        (destination / "ignored.txt").write_text("contaminated work copy")
+        with patch.object(tool_indexes, "workspace_root", return_value=destination.parent):
+            with self.assertRaisesRegex(ContractError, "ignored.txt"):
+                tool_indexes.workspace("codemap-search", corpus)
+
+
+
 class RuntimeChecks(unittest.TestCase):
     def test_model_content_field_is_not_mcp_content_array(self):
         from .runner import delivered_leaves
