@@ -2,24 +2,24 @@
 
 한 측정 묶음에서 같은 에이전트·모델·문항·예산으로 **코드 검색 도구별 최종 답변 품질과 탐색 비용**을 비교한다. 풀이 모델은 GPT 6.1 Sol 또는 Claude Opus 5.5 중 하나를 선택하고, 기본값은 GPT 6.1 Sol이다. 에이전트는 도구를 사용하는 공통 사용자이며, 답변 작성 능력의 영향은 공통 사용 조건으로 허용한다. 도구 선택과 호출 순서는 LLM에 맡기고 근거 단계별 분리 집계를 필수로 요구하지 않는다.
 
-현재 하네스는 **Grafana 2문항 × 7개 비교군 × 3회 = 42회 예정**인 `grafana-routes` 하나만 지원한다. 설치·색인·중립 조회·채점 및 측정 계약·풀이 입력의 준비는 `prepared_not_executed`에서 종료한다. 실행은 불변 계획의 정확한 ID·hash·모델에 대한 별도 승인으로만 시작하며, 42-slot ledger에 실패와 미시작까지 보존한다. **제품별 격리·semantic ready warm-host와 runner의 clock 연결이 통합되지 않았다면 실행은 `blocked`로 끝난다.** 준비 성공만으로 실제 실행이 허가되거나 검증된 것은 아니다.
+현재 하네스는 **Grafana 2문항 × 7개 비교군 × 3회 × 2모드 = 84회 예정**인 `grafana-routes` 하나만 지원한다. 설치·색인·중립 조회·채점 및 측정 계약·풀이 입력의 준비는 `prepared_not_executed`에서 종료한다. 실행은 불변 계획의 정확한 ID·hash·모델에 대한 별도 승인으로만 시작하며, 84-slot ledger에 실패와 미시작까지 보존한다. **제품별 격리·semantic ready warm-host와 runner의 clock 연결이 통합되지 않았다면 실행은 `blocked`로 끝난다.** 준비 성공만으로 실제 실행이 허가되거나 검증된 것은 아니다.
 
 ## 고정 조건
 
 | 항목 | 조건 |
 | --- | --- |
 | 코드베이스 | Grafana `c6fad8695a96577eb466d425e6ac4a759ca30f47` |
-| 문항 | 알림 규칙 평가 → Alertmanager 인계(Go), 브라우저 ↔ Grafana Live plugin stream 구독·수신·발행(TypeScript→Go). 질문 앞부분 `제공된 탐색 도구를 활용해서`는 모든 비교군에 같다 |
+| 문항 | 알림 규칙 평가 → Alertmanager 인계(Go), 브라우저 ↔ Grafana Live plugin stream 구독·수신·발행(TypeScript→Go). v3 원문은 보존하며, 식별어 없는 새 문항으로 교체하기 전 준비 감사가 실패하는 것이 정상이다 |
 | 기본 풀이 | `openai-codex/gpt-6.1-sol / medium` — pi 1.4.0 |
 | 선택 가능한 풀이 | `claude-bridge/claude-opus-5-5 / medium` — pi 1.4.0 |
 | 채점 | 풀이 선택과 관계없이 `openai-codex/gpt-6-astra / high` — 고정 pi 1.4.0 |
-| 횟수 | 문항·비교군마다 3회, 총 42개 슬롯, 기본 최대 4개 병렬 실행. 반복마다 문항·비교군 전체를 한 바퀴 돈다 |
+| 횟수 | 문항·비교군·모드마다 3회, 총 84개 슬롯, 최대 4개 병렬. 반복 라운드 안에서 direct/codemode를 섞고 라운드 사이에는 이전 lifecycle 완료를 기다린다 |
 | 한도 | 300초, 탐색 80회, 캐시 읽기를 제외한 누적 입력+출력 500,000토큰 |
 | 채점 항목 | 핵심 16개와 확장 1개를 분리, `correct`·`supported`를 각각 판정. 사실별 `required_links`가 필수 연결이다 |
 
 정확한 값은 [실행 계약](data/grafana-execution-v1.json)을 따른다. [고정 데이터셋](data/grafana-routes-v3/README.md)의 질문·정답·범위·채점 의미는 유지한다. 이전 3문항 데이터셋 `grafana-routes-v2`의 결과와 같은 점수로 섞지 않는다. 정답 자료를 풀이 대상 소스에 넣지 않는다.
 
-한 번의 선택으로 7개 비교군에 같은 풀이 모델을 적용한다. 두 모델을 모두 자동 실행하거나 결과를 합산하지 않는다. 모델·실행기·추론 강도는 계획 ID와 결과에 포함하고 다른 모델의 결과가 들어오면 거부한다. 채점 항목과 Astra의 추론 강도는 그대로 유지한다. Claude의 `medium`은 [공식 기본값](https://code.claude.com/docs/en/model-config#choose-an-effort-level)을 명시한 값이며, 모델 간 동일한 계산량을 뜻하지 않는다.
+한 번의 선택으로 7개 비교군에 같은 풀이 모델을 적용한다. 두 모델을 모두 자동 실행하거나 결과를 합산하지 않는다. `direct`와 `codemode`도 독립 조건이며 품질·비용을 합산하지 않는다. 슬롯 ID는 `<question>-<arm>-<mode>-<attempt>`, 실행 spec 키는 `<arm>/<mode>`다. 모델·실행기·추론 강도는 계획 ID와 결과에 포함하고 다른 모델의 결과가 들어오면 거부한다. 채점 항목과 Astra의 추론 강도는 그대로 유지한다. Claude의 `medium`은 [공식 기본값](https://code.claude.com/docs/en/model-config#choose-an-effort-level)을 명시한 값이며, 모델 간 동일한 계산량을 뜻하지 않는다.
 
 측정은 사전 색인을 사용해 최대 4개 회차를 동시에 진행하는 조건이다. 같은 비교군의 문항은 색인·홈 경로의 복원과 조회가 충돌하지 않도록 순차 실행한다. 이 동시 실행 수는 풀이 회차 간 한도이며 제품 내부의 색인·검색 기본값을 바꾸지 않는다. campaign scheduler는 restore부터 product 종료·사후 검증·baseline 복원까지 최대 4개 lifecycle을 허용하며, 같은 비교군의 lifecycle은 겹치지 않는다. solver 정리가 끝난 뒤 Astra 채점도 최대 4개로 진행한다. 실제 제품 통합과 모델 실행은 별도 검증 대상이다.
 
@@ -55,7 +55,7 @@ pnpm bench:ready
 python3 -m benchmark.route_prepare prepare --solver-model claude-opus-5-5
 ```
 
-입력 해시 확인 → 도구 설치·빌드 → 전체 Grafana 소스 대조 → 제품별 색인 → 중립 조회·종료·상태 복원 → 채점·측정 계약 확인 → 기존 오프라인 검증 → 42개 풀이 입력과 미실행 계획 생성을 수행한다. 제품 도구의 로컬 임베딩 계산은 포함하며 풀이·채점 LLM은 호출하지 않는다.
+입력 해시 확인 → 도구 설치·빌드 → 전체 Grafana 소스 대조 → 제품별 색인 → 중립 조회·종료·상태 복원 → 채점·측정 계약 확인 → 기존 오프라인 검증 → 84개 풀이 입력과 미실행 계획 생성을 수행한다. 제품 도구의 로컬 임베딩 계산은 포함하며 풀이·채점 LLM은 호출하지 않는다.
 
 완료 후 현재 파일과 준비 기록을 대조한다.
 
@@ -80,7 +80,7 @@ python3 -m benchmark.route_prepare verify --solver-model all
 pnpm bench:start
 ```
 
-Grafana 프로필 다음에 풀이 모델을 선택한다. 모델 메뉴에서 Enter를 누르면 기본값 GPT 6.1 Sol이다. 선택한 모델로 7개 비교군 모두를 준비한 뒤 정확한 계획 ID·readiness hash·모델·버전·42회·한도를 표시한다. 별도 실행 확인의 기본값은 **아니요**다. 확인을 거절하면 풀이·채점 0회로 끝난다. Ctrl+C는 새 슬롯을 중단하고 자식 정리 후 ledger/report 위치를 안내한다. 준비와 실행의 lease는 cache/model 구분 없이 공유되며, host 공통 port lease를 먼저 얻는다. 다른 프로세스의 포트를 빼앗거나 종료하지 않는다.
+Grafana 프로필 다음에 풀이 모델을 선택한다. 모델 메뉴에서 Enter를 누르면 기본값 GPT 6.1 Sol이다. 선택한 모델로 7개 비교군 모두를 준비한 뒤 정확한 계획 ID·readiness hash·모델·버전·84회·한도를 표시한다. 별도 실행 확인의 기본값은 **아니요**다. 확인을 거절하면 풀이·채점 0회로 끝난다. Ctrl+C는 새 슬롯을 중단하고 자식 정리 후 ledger/report 위치를 안내한다. 준비와 실행의 lease는 cache/model 구분 없이 공유되며, host 공통 port lease를 먼저 얻는다. 다른 프로세스의 포트를 빼앗거나 종료하지 않는다.
 
 ## 운영자 실행·검토·보고
 
@@ -104,7 +104,7 @@ python3 -m benchmark.cli approve-review < /private/operator/review.json
 python3 -m benchmark.cli report < /private/operator/report.json
 ```
 
-스모크는 같은 `run` 명령과 수명주기를 쓰되 승인 JSON에 `"scope": {"kind": "smoke", "slot_ids": [...]}`를 넣는다. 지정한 슬롯만 실행·채점하고 나머지는 `out_of_scope`로 시작하지 않는다. 결과는 `campaigns/smoke-<campaign_id>/`에 따로 남고 보고서 첫머리에 스모크임을 표시하며 비교 결과로 쓰지 않는다. 범위를 생략하면 42개 슬롯 전체(`{"kind": "full"}`)다.
+스모크는 같은 `run` 명령과 수명주기를 쓰되 승인 JSON에 `"scope": {"kind": "smoke", "slot_ids": [...]}`를 넣는다. 지정한 슬롯만 실행·채점하고 나머지는 `out_of_scope`로 시작하지 않는다. 결과는 `campaigns/smoke-<campaign_id>/`에 따로 남고 보고서 첫머리에 스모크임을 표시하며 비교 결과로 쓰지 않는다. 범위를 생략하면 84개 슬롯 전체(`{"kind": "full"}`)다.
 
 `RunManifest`와 승인·준비 기록은 불변이다. 실행 결과는 cache의 `route-preparation/campaigns/<campaign_id>/`에 따로 저장한다. `ledger.json`은 fsync·atomic replace로 갱신하며 단일 coordinator만 작성한다. solver/grader launch intent를 먼저 내구 저장한다. intent 이후 crash는 실행 여부가 불확실해도 자동 재실행하지 않는다. 정리가 확인되지 않은 process group/workspace는 `blocked`로 두고 추측으로 종료하거나 복원하지 않는다. 미시작 재개만 명시적 `retry_unstarted`로 허용하고 이전 preflight의 원자료도 보존한다. 모델 호출 확인과 CLI spawn은 별개이며 미관측 provider 호출은 null이다.
 
@@ -124,7 +124,7 @@ ready 실패는 `warmup_failed`로 기록하고 solver를 시작하지 않는다
 
 하네스는 packet당 한 번만 실행한다. 형식·schema 오류, 빈 답변, timeout, nonzero exit를 채점 실패로 보존하고 자동 재채점하지 않는다. grader도 공통 pi final/identity 판정을 사용하여 빈 final, 마지막 aborted settlement, 관측된 upstream 모델 불일치를 적격 답변으로 받지 않는다. pi의 기본 transport retry(최대 3회)는 유지하며 `auto_retry_start/end`와 시도 횟수를 기록한다. compaction은 기본 설정을 바꾸지 않지만 발생하면 packet 문맥 변경으로 조건 무효·미채점 처리한다. assistant `message_end.usage`와 compaction usage의 `input + output + cacheRead + cacheWrite`를 합산하며 오류/중단 시 미관측 비용을 0으로 단정하지 않는다. `grader-result.json`, ledger/report의 `grader_execution`에는 실패 때도 사용량·`token_accounting`·retry/실패 attempt 수·compaction·상태·근거를 solver 비용과 별도로 남긴다.
 
-보고서는 항상 42행이며 launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
+보고서는 항상 84행이며 launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
 
 운영자 inspection 증거는 ad-hoc 스크립트 대신 다음 공식 명령으로 재생성한다. 실제 catalog와 검증한 불변 readiness projection으로 실제 CUI 함수를 실행하되 backend 호출을 차단하고 실행 확인은 거절한다. 결과는 `docs/briefs/evidence/bench-ready/07-operator-inspection*.json`이며 모델 0회 경계를 기록한다. 실제 터미널 입력은 기존 PTY checks가 별도로 검증한다.
 
@@ -183,10 +183,11 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 
 ## 도구와 측정 정책
 
-- 제품 응답의 기본값을 유지한다. MCP client는 pi 내장 MCP(20 KB 초과 텍스트의 가운데 절단) 대신 **pi-mcp-adapter 6.0.0**을 쓴다. adapter 기본 출력 가드는 직접 도구 결과의 텍스트를 **50 KiB / 2,000줄에서 앞부분만 남기고** 전체 원문을 TMPDIR 아래 파일에 저장한다. 제품군에는 `read`가 없어 그 파일을 열 수 없다. 제품 자체 한도(codemap 100000, Serena 150000자)와 별개인 공통 client 동작이며 설정을 늘리지 않는다. rg 기준군의 pi bash 결과도 같은 50 KiB / 2,000줄 기본 절단을 따른다. 원본 제품 응답과 pi 전달 관측을 구분한다. 하네스의 공통 바이트·행 제한, 자동 페이지 조회·요약·보충, 경쟁 도구의 예산 증가는 없다. codemap-search의 100000 설정도 각 설정의 단위를 따르며 공통 토큰 한도로 바꾸지 않는다.
+- 제품 응답 설정은 기본값을 유지하되 **pi-mcp-adapter 7.0.0**의 client `settings.outputGuard`를 명시한다. adapter 기본 50 KiB/2,000줄은 codemap 기본 100,000바이트보다 작아 원문 전달을 잘랐으므로 측정 조건으로 유지하지 않는다. `maxBytes`는 아래 표, `maxLines=maxBytes+1`로 바이트 제한이 먼저 걸린다. 전역 설정만 제공하는 adapter를 슬롯마다 구성하므로 제품별 값을 적용한다. 무상한 제품의 1 MiB는 제품 상한이라고 주장하지 않으며 초과 시 절단을 관측·보고한다. 자동 페이지 조회·요약·보충은 하지 않는다. rg의 pi bash 기본 50 KiB/2,000줄과 codemode 기본 script 출력 예산은 변경하지 않는다. adapter 원문 전달, script 출력, Claude Code의 후속 전달 제한은 서로 다른 경계다.
+
 - codemap-search의 `filesystem_permissions`(find·grep·read)는 native scaffold의 **`anywhere`**를 변경 없이 사용한다. `isolation.py`의 제품 child Seatbelt와 제품별 relay 정책이 경계를 집행한다. 별칭 `query`, file URI, 배열·glob·project selector도 거부·기록 대상이다. 동일 프로세스 pre-warm 통합과 전체 corpus 재준비 전에는 소형 probe 성공만으로 실행을 승인하지 않는다.
 - 제품 자체 도구를 우선한다. Graphify에는 원문 본문 조회를 위해 `read`만 보조로 제공한다. zvec-grep의 후속 grep/rg 안내는 보조 도구 추가 사유로 쓰지 않는다. 낮은 품질이나 짧은 응답으로 보조 도구를 늘리지 않는다.
-- `plain rg`는 pi의 **bash만** 사용하는 기준군이다 (`--tools bash --no-mcp`). in-process read/grep/find/ls는 노출하지 않는다. 슬롯별 `shellPath` wrapper가 admission lock 안에서 호출/stop을 원자적으로 검사한다. 80번째는 허용하고 81번째는 실행 전에 거부·기록한다. 명령 하나 안의 복합 shell 명령은 한 호출이며 `tool_execution_start`와 교차 대조한다. wrapper 밖 pi는 신뢰하는 model client이고, shell만 Seatbelt + `env -i`로 실행한다. source·고정 rg·시스템·pi 전용 TMPDIR 읽기, tmp 쓰기만 허용하며 source metadata/정답·다른 작업 트리·세션·캐시·공용 TMPDIR와 network는 거부한다. PATH는 고정 rg의 바이트 동일 복사본 디렉터리와 `/usr/bin:/bin`, HOME/TMPDIR는 슬롯 전용이며 token/`PI_*`는 shell에 전달하지 않는다. pi의 기본 출력 절단과 full-output 임시 파일 정책을 유지한다. CONNECT proxy는 쓰지 않는다. baseline은 `lsopen`, `appleevent-send`, `mach-lookup`과 다른 프로세스 정보(`process-info*` target others, `kern.proc` sysctl)도 거부하며 기본 bash/rg/coreutils에 필요한 Mach lookup 예외는 없다. 준비 canary는 `open -a`, 실제 AppleEvent 전송, `launchctl submit`, `ps -ax`와 perl `sysctl(KERN_PROC_ALL)` 거절, TMPDIR/HOME/PATH에 하네스·제품 이름이 없음과 bash·rg·cat·ls·find·grep·sed·awk·head·wc 동작을 확인한다. 실행 뒤 `bash-calls.jsonl`의 명령도 운영자가 감사해야 하며 VM 수준 격리로 간주하지 않는다.
+- `plain rg`는 pi의 **bash만** 사용하는 기준군이다 (direct: `--tools bash --no-mcp`, codemode: `--tools bash,codemode --no-mcp`). in-process read/grep/find/ls는 노출하지 않는다. 슬롯별 `shellPath` wrapper가 admission lock 안에서 호출/stop을 원자적으로 검사한다. 80번째는 허용하고 81번째는 실행 전에 거부·기록한다. 명령 하나 안의 복합 shell 명령은 한 호출이며 `tool_execution_start`와 교차 대조한다. wrapper 밖 pi는 신뢰하는 model client이고, shell만 Seatbelt + `env -i`로 실행한다. source·고정 rg·시스템·pi 전용 TMPDIR 읽기, tmp 쓰기만 허용하며 source metadata/정답·다른 작업 트리·세션·캐시·공용 TMPDIR와 network는 거부한다. PATH는 고정 rg의 바이트 동일 복사본 디렉터리와 `/usr/bin:/bin`, HOME/TMPDIR는 슬롯 전용이며 token/`PI_*`는 shell에 전달하지 않는다. pi의 기본 출력 절단과 full-output 임시 파일 정책을 유지한다. CONNECT proxy는 쓰지 않는다. baseline은 `lsopen`, `appleevent-send`, `mach-lookup`과 다른 프로세스 정보(`process-info*` target others, `kern.proc` sysctl)도 거부하며 기본 bash/rg/coreutils에 필요한 Mach lookup 예외는 없다. 준비 canary는 `open -a`, 실제 AppleEvent 전송, `launchctl submit`, `ps -ax`와 perl `sysctl(KERN_PROC_ALL)` 거절, TMPDIR/HOME/PATH에 하네스·제품 이름이 없음과 bash·rg·cat·ls·find·grep·sed·awk·head·wc 동작을 확인한다. 실행 뒤 `bash-calls.jsonl`의 명령도 운영자가 감사해야 하며 VM 수준 격리로 간주하지 않는다.
 - Serena 2.1.0의 native interface 기본값은 임의 Python 실행을 노출하는 REPL이다. 검색 전용 계약의 단일 interface 예외로 **`--agent-interface tools`**를 사용하고 native default와 예외 이유를 prepared state에 기록한다. `serena_repl`이 검색 도구 목록에 남으면 준비를 거부한다. 전용 `SERENA_HOME`에서 Grafana 전체 루트를 프로젝트로 등록하고 `go`, `typescript` 언어 서버로 `project index`를 실행한다. 언어별 색인 완료·캐시와 MCP 심볼 조회를 확인한 상태에서 측정을 준비한다. 프로젝트 전환·수정·셸·메모리 기능은 제외하고 원문 읽기와 심볼 검색 등 제품 도구를 제공한다. 응답 한도 150,000자·도구 시간 한도 240초·심볼 정보 예산 10초는 고정 버전의 기본값이다. 언어 서버·Go 캐시도 복원 대상에 포함한다. 상위 하네스의 Node 의존성이 섞이지 않도록 Serena는 ancestor에 `node_modules`가 있는 cache root를 거부한다. 모든 arm의 작업 복사본·홈은 `<CODEMAP_BENCH_CACHE>/<opaque hex>/{source,home}`에 놓고 정확한 경로를 준비 기록에 남긴다. 이 경로는 측정 전까지 보존해야 한다. [고정 버전 설정](https://github.com/oraios/serena/blob/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc/src/serena/resources/serena_config.template.yml)을 따른다.
 - 검색·색인은 로컬 조건이다. Jev는 비활성, Graphify는 빈 출력 디렉터리에서 코드 전용 추출, zvec는 고정 리비전의 `local/potion-code-16m-v2`를 사용한다. zvec index와 MCP 모두 `ZVEC_GREP_MODEL_CACHE=<home>/model-cache`를 공유한다. 제품의 제외 규칙과 선택적 파서 누락은 그대로 기록한다.
 - CodeGraph는 `status --json`의 complete·버전·pending refs/changes를 확인한다. zvec는 check-ready 및 `freshness: fresh`, Graphify는 양수 `graph_stats`와 오류 텍스트 부재, Serena는 tools interface·LSP ready·심볼 응답과 timeout 후 진행 로그 부재를 확인한다. codemap의 warming/stale 응답도 성공으로 받지 않는다. exit 0 또는 `isError=false`만으로 준비 완료를 판정하지 않는다. 전체 corpus의 deeper semantic gate와 live warm hand-off는 별도 검증이 필요하다.
@@ -196,7 +197,7 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 - pi 제품군은 relay의 MCP admission을, pi 기준군은 wrapper admission을 권위 있는 호출 예산으로 사용한다. 잘못된 schema 때문에 pi 자체에서 거절되어 relay까지 도달하지 않은 tool event는 host 시도로만 관측한다. 기존 Codex/Claude Code CLI 경로는 보존하되 기본 campaign에서 사용하지 않는다.
 - usage drain은 0초다. cutoff 즉시 SIGINT를 보내고 이후 SIGTERM·SIGKILL 및 owned process-group 회수 중 출력·사용량은 비용으로 보존한다. CLI 리더가 먼저 종료해도 같은 그룹의 자식과 독립 제품 그룹을 정리한다. wall cutoff는 늦게 감지한 시각이 아니라 `solver_start + 300초`다. 모든 backend는 cutoff 이전의 완전한 final을 입증해야 한다. pi는 `agent_settled` 관측 후 마지막 assistant text만 답변으로 인정한다. stdout/stderr를 non-blocking으로 EAGAIN까지 drain하고, 파싱한 event와 증분 usage/tool/final 상태를 메모리에 유지한다. hot loop에서 events.jsonl을 재독하지 않으며 원시 바이트는 token redaction 외 변경 없이 보존한다. 완료 시각은 해당 record의 마지막 바이트를 읽은 monotonic 시각이다. tool 종료/settlement의 record 번호·read 시각은 runtime의 `event_observations`에 남긴다. 기존 Codex 경로는 rollout timestamp도 대조한다. 늦거나 적격성을 입증하지 못한 답변은 원문·SHA256을 별도 보존하고 채점 답변에서 제외한다.
 - 토큰 한도는 **캐시 읽기를 제외한** 누적 입력(캐시 쓰기 포함)과 출력의 합(`total_tokens - cached_input_tokens`)으로 판정한다. 프로필의 `token_limit_basis`가 이 기준을 고정하며 풀이 프롬프트와 CUI도 같은 기준을 표시한다. pi는 매 턴 전체 문맥을 다시 보내 캐시 읽기가 턴마다 누적되므로, 캐시 포함 합계로는 실제 문맥과 무관하게 약 20턴에서 한도에 닿기 때문이다. 캐시 포함 합계도 `observed_total_tokens_including_cache_reads`로 함께 기록한다. 이 기준의 관측 토큰이 500,000을 초과하면 조건 무효다. 종료 직전·회수 중 증가분도 재검사하며 관측값을 한도로 clamp하지 않는다. 전체 사용량이 미인증이면 완전한 비용/예산 준수를 주장하지 않는다. 단, 아래의 성공한 pi 자동 retry에 한해서는 승인된 하한 합계로 예산·채점 적격성을 판단한다. 즉시 결과와 재집계는 같은 사용량 reconciliation을 사용한다.
-- 제품군 pi는 `-e <고정 pi-mcp-adapter> --mcp-config <private mcp-adapter.json>`과 `PI_MCP_CONFIG_MODE=exclusive`로 실행한다. adapter는 그 파일 하나만 읽고 `~/.config/mcp`, `~/.agents`, `.mcp.json`, `.pi/`, Pi 패키지, Claude 플러그인, 호스트 설정을 읽지 않는다. 서버는 navigation 하나이며 `lifecycle: "lazy-keep-alive"`와 `directTools: true`, 환경 변수 `MCP_DIRECT_TOOLS=navigation`이다. 일회용 shim은 연결을 한 번만 받는데 `keep-alive`는 확장 로드 때와 세션 시작 때 두 번 연결해 두 번째가 실패한다(운영 경로에서 3/3 재현). `lazy-keep-alive`는 세션 시작 때 한 번 연결해 유지하고, 캐시가 없는 `MCP_DIRECT_TOOLS` 선택은 session start가 연결·도구 등록을 끝까지 기다리게 한다. 설정은 기본값을 유지하되 `jev: false`(System One 의미 검색·keychain 미사용), `allowInstall: false`, `allowScriptToolSave: false`, `autoAuth: false`, `sampling: false`, `elicitation: false`, `requestTimeoutMs: 300000`만 지정한다. `--tools`에 `navigation_<도구>` 정확한 이름 목록만 넣어 pi builtin tools·`mcp` 프록시·`mcp__navigation` 묶음·resource tools·codemode를 노출하지 않는다. 첫 모델 요청부터 이 도구만 선언되는 것을 가짜 provider로 확인했다. adapter는 TypeScript를 실행 시점에 컴파일하므로 내장 MCP보다 첫 요청이 약 0.9초 늦다(가짜 provider 실측 0.42초 → 1.35초).
+- 제품군 pi는 `-e <고정 pi-mcp-adapter> --mcp-config <private mcp-adapter.json>`과 `PI_MCP_CONFIG_MODE=exclusive`로 실행한다. adapter는 그 파일 하나만 읽고 `~/.config/mcp`, `~/.agents`, `.mcp.json`, `.pi/`, Pi 패키지, Claude 플러그인, 호스트 설정을 읽지 않는다. 서버는 navigation 하나이며 `lifecycle: "lazy-keep-alive"`와 `directTools: true`, 환경 변수 `MCP_DIRECT_TOOLS=navigation`이다. 일회용 shim은 연결을 한 번만 받는데 `keep-alive`는 확장 로드 때와 세션 시작 때 두 번 연결해 두 번째가 실패한다(운영 경로에서 3/3 재현). `lazy-keep-alive`는 세션 시작 때 한 번 연결해 유지하고, 캐시가 없는 `MCP_DIRECT_TOOLS` 선택은 session start가 연결·도구 등록을 끝까지 기다리게 한다. 설정은 기본값을 유지하되 `semanticSearch: false`(추가 classifier 모델 호출 차단; 7.0.0의 `jev: false`는 비활성화 키가 아님), `allowInstall: false`, `allowScriptToolSave: false`, `autoAuth: false`, `sampling: false`, `elicitation: false`, `requestTimeoutMs: 300000` 및 위 `outputGuard`를 지정한다. extraction은 `allowedServers` 미설정으로 off, MCP Tasks는 server `protocolVersion` 미설정(legacy)으로 off다. direct에서는 `--tools`에 `navigation_<도구>` 정확한 목록만 넣어 builtin·gateway·tool_search·codemode를 노출하지 않는다. codemode에서는 이 목록에 `codemode`를 더하고 아래 설정을 적용한다. 첫 모델 요청부터 이 도구만 선언되는 것을 가짜 provider로 확인했다. adapter는 TypeScript를 실행 시점에 컴파일하므로 내장 MCP보다 첫 요청이 약 0.9초 늦다(가짜 provider 실측 0.42초 → 1.35초).
 - 제품이 initialize에서 준 사용 안내(`instructions`)는 Claude Code·Codex처럼 모델 문맥에 넣는다. 준비 기록(`native_inventory`의 initialize 결과, 계획 조건에 hash로 묶임)의 원문을 `# MCP Server Instructions` 절로 만들어 `--append-system-prompt`로 붙인다. 슬롯마다 실제 제품의 안내가 준비 기록과 다르면 준비 실패로 멈춘다. 안내가 없는 제품(graphify)은 붙이지 않는다.
 - adapter는 연결할 때 서버가 광고한 `resources/list`·`prompts/list`를 자동으로 요청한다. 중계는 이를 `tools/list`처럼 **목록 조회(discovery)**로 기록·검증하되 80회 탐색 예산과 도구 호출 집계에서 뺀다(`client_discovery_calls`). `resources/read`·`prompts/get`은 계속 예산을 쓴다. 준비 단계에서 광고된 목록 조회가 성공하는지 확인한다. 제품은 warm host의 Seatbelt 안에서 실행하고 pi 자체는 native tools가 없는 신뢰 경계 밖 client다. 기존 Codex/Claude timeout 설정과 내부 `MCPClient` 기본 300초는 보존한다.
 - 제품 원본 응답·중계 응답·실제 모델 전달 관측을 구분한다. CLI 출력만으로 모델이 모두 읽었다고 간주하지 않는다. 토큰·시간·호출·오류는 관측한 값과 원자료 경로를 남기며 미관측 값을 0으로 채우지 않는다. 손상된 JSONL은 첫 손상 전의 유효 prefix만 읽고 원본·손상 행·byte offset·불완전 사유를 보존한다. 호출 로그 완결성은 collection·relay 종료·미완료 host/제품 호출·중복 기록을 함께 확인한다. 완전히 기록한 오류 응답은 로그 손실과 구별하며 준비 probe의 transcript 완결성을 solver 로그 완결성으로 표시하지 않는다.
@@ -204,6 +205,30 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 - pi `auto_retry_start/end`로 실패 attempt 뒤 재시도가 성공하면, 실패 attempt의 보고된 사용량까지 합산하고 미보고분은 **하한 계산에만 0**으로 둔다. `token_accounting: lower_bound`, `complete: false`, retry 횟수와 실패 attempt 수를 execution/ledger/보고서 행에 표시한다. 하한이 500,000을 초과하면 무효이며, 하한이 한도 이내이고 정상 종료·완전한 수집·마지막 답변·cutoff·모델 identity·tool 완결성이 모두 맞으면 채점한다. 이는 미관측 비용이 없거나 실제 전체 비용이 500k 이하라는 인증이 아니다. 최종 답변 없는 retry 실패, usage 전체 부재, 불완전한 수집, retry로 결합되지 않은 실패/중단은 fail-closed다. grader usage에도 같은 하한 표시를 적용하되 하네스 재채점은 하지 않는다. 하한끼리의 비율은 정확한 cache ratio로 표시하지 않는다.
 - 최종 답변을 고정 rubric으로 채점한다. 인용 파서는 보조 정보이며 특정 형식이나 파싱 성공으로 `supported`를 강제하지 않는다. 확장·비채점 참고 사항을 핵심 필수 항목으로 바꾸지 않는다.
 - 도구·모델 식별 노출은 채점 입력 확정 전에 차단하고 원답변과 정확한 구간을 검토 기록에 남긴다. 실행 조건 무효, 실패 사유, 호출 로그 불완전도 결과에서 보존한다. 문항·비교군별 3회 측정은 반복 편차를 보여 주지만 통계적 유의성을 주장하지 않는다.
+
+### Client 출력 한도의 고정 소스 근거
+
+| 제품 | 고정 소스 근거 | adapter maxBytes |
+|---|---|---:|
+| codemap-search 0.13.0 | `codemap-v0.13.0`, `apps/codemap-search/docs/configuration.md:39–53`: 모든 도구 final delivery 기본 100,000 UTF-8 bytes; pi client와 맞추도록 명시 | 100,000 |
+| Serena 2.1.0 (`5e4f5cd`) | `src/serena/resources/serena_config.template.yml:197`, `tools/tools_base.py:258–281`: 기본 150,000 Unicode 문자. UTF-8 최악 4바이트/문자이므로 600,000바이트. 호출자가 늘린 native 한도까지 무제한 전달한다고 주장하지 않음 | 600,000 |
+| CodeGraph 1.6.2 (`6560052`) | `src/mcp/tools.ts:128,5278,8416–8420`: 일반 formatter 15,000 UTF-16 단위 + notice, explore hard ceiling 최대 25,000 + 머리말. 전체 도구 공통 byte cap은 확인되지 않음 | 1,048,576 |
+| zvec-grep 0.2.2 (`b1a9148`) | `src/mcp/tools.ts:488–521`의 agent formatter 반환; `src/cli/format/context.ts:37–40`의 hit별 10줄/160자 preview. 전체 응답 byte/문자 hard cap 없음 | 1,048,576 |
+| Graphify 0.9.95 (`92741d1`) | `graphify/serve.py:1120–1307,2312`: 기본 2,000-token 근사(3자/token), edge 보존·notice는 예산 초과 가능. graph_stats/get_node 및 보조 read에도 공통 byte cap 없음 | 1,048,576 |
+| codebase-memory-mcp 0.12.1 (`a7158ac`) | `src/mcp/mcp.c:219–224` JSON 직렬화 및 `src/mcp/compact_out.c` formatter: 개별 개수/스캔 예산과 별개로 전체 응답 byte hard cap 없음 | 1,048,576 |
+
+이 변경은 **client 전달 오류 수정**이며 제품 출력 예산을 늘리지 않는다. 비교 lock README와 SHA256SUMS는 부모의 새 lock 개정에서 함께 갱신한다. 현재 데이터/lock은 그대로이므로 새 데이터셋과 adapter 7.0.0 pin 전에는 운영 준비 완료를 주장하지 않는다. 85,592바이트 fake MCP 회귀 검증에서 pi까지 원문 동일·adapter 절단 0건을 확인했다. GPT의 다음 요청도 전체 전달됐지만 Claude Code 2.1.310은 별도로 persisted-output 2 KiB preview를 만들었다. 이 downstream 한도는 변경하지 않았고 pi 이벤트만으로 모델 전체 전달을 인증하지 않는다.
+
+### 두 측정 모드와 context 감사
+
+- `direct`: 현행 직접 도구. `codemode`: private settings의 `defaultTools: ["+codemode"]`, `codemode: {"mode":"only"}`. pi 1.4.0의 명시적 `--tools`는 defaultTools를 덮어쓰므로 `codemode`도 명시 목록에 넣는다. 기존 private CLI flags는 유지한다.
+- 두 모드 모두 같은 relay/rg admission을 사용한다. 스크립트는 `tools.navigation_read({...})`, rg는 `tools.bash({...})`를 호출한다. nested 호출은 `Promise.all`에서도 각각 80회 예산에 들어가며 81번째를 dispatch 전에 거부한다. shim은 요청을 빠뜨리지 않지만 현재 warm-host의 product RPC는 직렬화된다.
+- codemode의 별도 `models.*` classifier/image API는 예산 밖 모델 호출이므로 모든 비교군에서 끈다. private `script-tools.mjs`가 pinned pi의 `createCodemodeExtension({models:false})` factory를 불러 replaceable builtin을 대체한다. 다른 codemode 기본값은 유지한다. 실제 script의 `typeof models`는 `undefined`다.
+- adapter 7의 deferred `mcp__navigation__<tool>`도 도달 가능하다면 같은 relay를 거친다. 현재 cold `directTools:true`에서는 direct로 등록한 도구를 deferred로 중복 등록하지 않는다. direct에는 `tool_search`가 없고, 이 이름이나 비선언 deferred 도구를 강제로 호출해도 활성화/dispatch하지 못하는 것을 확인했다. 별도 deferred fixture에서도 80/81 경계를 확인했다.
+- prepare/finalize 및 verify는 비교군×모드마다 실제 `pi_client.launch`를 loopback fake provider로 실행하고 첫 instructions/input/tools를 보존한다. native_inventory의 initialize·tool 원문을 hash-bound replay MCP로 제공하므로 제품을 재색인하거나 실제 모델·운영자 인증을 호출하지 않는다. Claude 감사만 전용 fake HOME를 쓴다.
+- 모든 문항의 사용자 프롬프트, 제품 원문이 아닌 system·adapter·codemode 문구, 요청 어디에나 있는 절대 경로 구성요소를 검사한다. 금지어는 `IDENTIFYING_PATH_WORDS` + 모든 문항 ID + `smoke`, `grafana`(대소문자 무시)다. 제품 instructions/description·schema·도구 식별자 및 입증 가능한 렌더링 접두만 예외이며 절대 경로는 예외가 아니다. 감사 원자료·hash·위반 목록은 plan의 `context-audit/`, verify 재캡처는 cache `context-audits/`에 보존한다. v3 Live 문항의 Grafana 때문에 실패하는 것이 정상이며 문항을 하네스가 몰래 고치지 않는다.
+- 뒤늦게 노출되는 source/cwd/TMPDIR 및 adapter·script spill 경로와 relay/wrapper 거부 문구도 준비 때 검사한다. 실행 종료 뒤에는 pi-session의 **모든 system patch와 user 메시지**를 다시 검사하고 위반/누락이면 슬롯 조건을 무효화한다(`context-audit.json`).
+- 결과의 `observations`는 턴 수, 직접/중첩 호출 분포와 model-level 호출 분포, assistant `durationMs` 합, relay 또는 `bash-results.jsonl`의 실행 구간 합, adapter `outputGuard.truncated`, script 출력 절단, `include_seen=true` 요청 수를 기록한다. 병렬 도구 시간 합은 wall time과 더하지 않는다. 불완전한 로그는 관측 부분합과 null 총합을 구별한다. 보고서 schema 3의 `modes.direct`, `modes.codemode`에 별도 품질 집계하며 총 실행 상태만 관리용으로 함께 표시한다.
 
 ## 기록과 재검증
 
@@ -228,7 +253,7 @@ node --check benchmark/start.mjs
 
 ### pi의 private state와 인증
 
-각 슬롯에 workspace 밖 0700 `pi-agent`, `pi-session`을 만든다. 모델이 볼 수 있는 TMPDIR·shell HOME·rg 복사본은 슬롯 경로(캠페인·문항·비교군 이름 포함) 대신 cache root 아래 opaque 16자 이름의 전용 폴더에 두고, 그 위치를 `private-root.json`에 기록한다. `--mode json -ne -ns -np -nc --no-themes -na --offline`, `PI_SKIP_VERSION_CHECK=1`, `PI_TELEMETRY=0`을 고정한다. 제품군에만 고정 pi-mcp-adapter, Claude에만 고정 bridge extension을 명시한다. settings/models/mcp-adapter JSON 외 부모 설정·확장·skills·context files는 읽지 않는다. 환경은 처음부터 allowlist로 구성하고 모든 부모 PI/OPENAI/ANTHROPIC/CODEX/CLAUDE override를 버린다.
+각 슬롯에 workspace 밖 0700 `pi-agent`, `pi-session`을 만든다. **모든 비교군·모드의 pi cwd**와 모델이 볼 수 있는 TMPDIR·shell HOME·rg 복사본은 슬롯 경로(캠페인·문항·비교군 이름 포함) 대신 cache root 아래 opaque 16자 이름의 전용 폴더에 두고, 그 위치를 `private-root.json`에 기록한다. `--mode json -ne -ns -np -nc --no-themes -na --offline`, `PI_SKIP_VERSION_CHECK=1`, `PI_TELEMETRY=0`을 고정한다. 제품군에만 고정 pi-mcp-adapter, Claude에만 고정 bridge extension, codemode 모드에만 아래 제한 factory extension을 명시한다. pi cwd는 `<private_root>/work`이고 rg shell 명령은 wrapper가 원래 source cwd에서 실행한다. Claude project slug도 새 pi cwd realpath로 계산·정리한다. settings/models/mcp-adapter JSON 외 부모 설정·확장·skills·context files는 읽지 않는다. 환경은 처음부터 allowlist로 구성하고 모든 부모 PI/OPENAI/ANTHROPIC/CODEX/CLAUDE override를 버린다.
 
 - OpenAI: solver와 grader는 같은 `pi_client.environment/operator_token/redact`를 사용한다. 신뢰하는 harness가 고정 pi의 `auth print-bearer-token --provider openai-codex --min-expiry 30m`으로 operator의 실제 agent dir에서 token을 얻는다. pi 자체의 lock/refresh만 허용하며 token은 메모리와 전용 env에만 존재한다. production private models.json은 `$CODEMAP_BENCH_PI_TOKEN` 참조만 허용하며 `baseUrl`·API·모델 override는 fail-closed한다. 로컬 검증 seam은 함수의 명시적 loopback URL 인자뿐이며 부모 env나 실행 설정으로 켤 수 없다. stdout/stderr는 저장 전 token을 가리고 종료 후 pi session/temp도 검사한다. token 획득 실패 출력은 공개하지 않는다.
 - Claude: 준비와 매 launch 직전(Popen 전), 슬롯 종료 직후 raw seal 전에 user `~/.claude/settings.json`, macOS managed JSON/drop-in 및 per-user/device managed plist, workspace와 ancestor의 `.claude/settings.json`·`settings.local.json`을 검사한다. 값은 판단/로그에 쓰지 않고 key 이름과 file SHA-256(부재는 null)만 plan condition에 기록한다. bridge는 쿼리마다 model·effort·thinking을 명시하고 child를 `tools: []`, strict MCP, `disableAllHooks`로 실행하므로 그 밖의 설정은 요청을 바꾸지 못한다. 덮어쓰이지 않으면서 전송·인증 경로나 프롬프트를 바꿀 수 있는 `env`, `apiKeyHelper`, `awsAuthRefresh`, `awsCredentialExport`, `outputStyle`, `language`, `forceLoginMethod`, `forceLoginOrgUUID`만 fail-closed하며 오류에는 파일과 key 이름만 표시한다. 나머지 key는 이름과 hash만 기록한다. hash/파일 집합이 바뀌면 재준비가 필요하다. 실행 중 변경이 종료 검사에서 감지되면 해당 슬롯만 condition error로 미채점 처리하며 campaign을 취소하지 않는다. 슬롯 도중 운영자가 Claude 설정을 바꾸는 위험은 시작·종료 비교로 감지하지만, 각 Claude child launch 단위의 불변성을 보장하지 않으며 중간에 바꿨다가 원복한 설정도 검출하지 못한다. 로그인 자격 파일은 이 검사 대상이 아니다. 기존 Claude Code login을 사용하는 real HOME를 유지하고 ANTHROPIC API/base URL/token이나 CLAUDE_CONFIG_DIR를 설정하지 않는다. bridge는 pinned bundled binary, `tools: []`, `dontAsk`, strict custom-tools MCP만 사용한다. 고정 bridge의 실제 Claude Code 요청 variant는 **`claude-opus-5-5[1m]`**이며 `requested_model`로 plan condition, pi-policy, execution/runtime와 결과표 JSON에 기록한다. 이는 bridge→Claude Code 요청값이지 서버가 1M을 실제 제공했다는 관측이 아니다. SDK는 wire model을 bare ID로 변환할 수 있으며 계정의 1M 권한은 별도 hosted smoke에서 확인해야 한다. 모델 실행 후 workspace realpath의 정확한 project slug와 session cwd를 검증하고 그 project 디렉터리만 삭제한다. 다른 project나 `~/.claude.json`은 수정하지 않으며 후자는 Claude 자체가 project entry를 추가할 수 있다.
