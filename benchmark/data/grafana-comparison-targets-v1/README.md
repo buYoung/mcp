@@ -1,6 +1,6 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-2026-10-24 확인한 외부 도구 **6개**의 stable 배포·소스를 통합한 `grafana-comparison-targets-v1` **개정 6**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. 이전 개정은 Git 이력에 보존하며 `previous_lock_sha256`은 개정 5의 `45100e782647ef52be8e6d204eb588cc76838e788a7d99134287cc46ee65b019`다. 개정 5는 비교 도구 고정값을 바꾸지 않고 pi MCP 클라이언트로 pi-mcp-adapter 6.0.0을 추가했다. 개정 6은 연결 데이터셋을 grafana-routes-v3로 바꿨다.
+2026-10-24 확인한 외부 도구 **6개**의 stable 배포·소스를 통합한 `grafana-comparison-targets-v1` **개정 7**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. 이전 개정은 Git 이력에 보존하며 `previous_lock_sha256`은 개정 6의 `7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549`다. 개정 5는 비교 도구 고정값을 바꾸지 않고 pi MCP 클라이언트로 pi-mcp-adapter 6.0.0을 추가했다. 개정 6은 연결 데이터셋을 grafana-routes-v3로 바꿨다. 개정 7은 데이터셋을 grafana-routes-v4로, Grafana 고정 커밋을 학습 기준일 이후의 main으로, codemap-search를 0.14.0으로, pi-mcp-adapter를 7.0.0으로 바꿨다. adapter outputGuard는 각 제품의 응답 상한 이상으로 명시한다(codemap-search 0.13.0 이후 문서의 Client delivery budgets가 client와 server 값을 맞추라고 요구). 제품 설정은 기본값이다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@
 
 ## 데이터셋 연결
 
-총 7개 비교군은 같은 [Grafana 2문항 데이터셋](../grafana-routes-v3/README.md)을 사용한다. manifest SHA-256은 `45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86`이며 이번 개정은 데이터셋 연결만 바꾸었다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
+총 7개 비교군은 같은 [Grafana 2문항 데이터셋](../grafana-routes-v4/README.md)을 사용한다. manifest SHA-256은 `0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4`이며 이번 개정에서 데이터셋과 고정 커밋을 바꾸었다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
 
 ## 설치 조건과 고정 파일
 

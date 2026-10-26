@@ -1,27 +1,27 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "revision": 6,
+  "revision": 7,
   "status": "source_identities_frozen",
-  "frozen_at": "2026-10-25T00:00:00+00:00",
+  "frozen_at": "2026-10-27T00:00:00+00:00",
   "target_release": "1.0.0",
   "scope": "외부 비교 도구 6개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
   "selection_policy": "2026-10-24 공식 GitHub release/tag와 npm/PyPI stable 배포를 대조했다. zvec-grep 0.2.2는 npm/tag 배포이며 GitHub Release는 없어 관련 필드를 null로 둔다. Graphify v1.0.0은 2026-04-05의 과거 release이고 PyPI에는 없으므로 현재 upstream latest/PyPI의 0.9.95를 선택한다. 준비 중 latest를 다시 해석하지 않는다.",
   "dataset": {
-    "id": "grafana-routes-v3",
-    "manifest_path": "../grafana-routes-v3/manifest.json",
-    "manifest_sha256": "45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86",
+    "id": "grafana-routes-v4",
+    "manifest_path": "../grafana-routes-v4/manifest.json",
+    "manifest_sha256": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
     "source": {
       "repository": "grafana/grafana",
-      "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+      "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
     }
   },
   "subject": {
     "id": "codemap-search",
     "target_release": "1.0.0",
-    "version": "0.13.0",
-    "git_ref": "codemap-v0.13.0",
-    "commit": "4061c42a59a296255ce151f6a60683e31b66a2b8",
+    "version": "0.14.0",
+    "git_ref": "codemap-v0.14.0",
+    "commit": "fc0a368d0b37da44c5e2bc9df3617ef75b4891cb",
     "source_and_binary_pin_status": "release_source_frozen_binary_at_preparation"
   },
   "required_comparison_ids": [
@@ -351,8 +351,8 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "2026-10-25 데이터셋을 grafana-routes-v2(3문항)에서 grafana-routes-v3(2문항: Go 알림→Alertmanager, TypeScript→Go Live plugin stream)으로 바꾼다. 비교 도구 6개와 pi toolchain 고정값은 개정 5와 같다.",
-  "previous_lock_sha256": "45100e782647ef52be8e6d204eb588cc76838e788a7d99134287cc46ee65b019",
+  "revision_reason": "2026-10-26 사용자 결정(v4): 데이터셋을 grafana-routes-v4(학습 이후 코드 2문항)로, Grafana 고정 커밋을 c0a598f5a49abf2014f67e806075d8ad267c9efb로, codemap-search를 0.14.0(read 여러 범위, 로컬 태그 codemap-v0.14.0)으로, pi-mcp-adapter를 최신 stable 7.0.0으로 바꾼다. 다른 비교 도구 5개와 rg, pi·bridge·Agent SDK 고정값은 개정 6과 같다.",
+  "previous_lock_sha256": "7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549",
   "pi_toolchain": {
     "install_flags": [
       "ci",
@@ -360,15 +360,15 @@
       "--no-audit",
       "--no-fund"
     ],
-    "node_modules_sha256": "bc1e85dc77b8aebd0094a887de204775e35f3d598efeea51dcfd1cafb4826752",
+    "node_modules_sha256": "ae878e1f79c37289026ba26fe26837750adbdefb4e3d0a05e331b8a1db1ec7c6",
     "node_policy": "Host node: record canonical path, version and SHA256; verify on reuse.",
-    "npm_lock_sha256": "929752f50300d83e335475fe2bc8de25e4e20fe3e24f842d79b5ab7c29688356",
-    "package_sha256": "1692b9717e71653a43a9d7ae496cde7a085065be7007c2cecefb9ea6d5e9b0a3",
+    "npm_lock_sha256": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
+    "package_sha256": "03c36da8f9ad0018e9ef82ce79a74a899f180e9bb50b0e3eb1e9e5ca00957b59",
     "packages": {
       "agent_sdk": "@anthropic-ai/claude-agent-sdk@0.3.310",
       "bridge": "@buyong/pi-claude-bridge@0.13.1",
       "pi": "@earendil-works/pi-coding-agent@1.4.0",
-      "mcp_adapter": "pi-mcp-adapter@6.0.0"
+      "mcp_adapter": "pi-mcp-adapter@7.0.0"
     },
     "platform": "darwin-arm64",
     "versions": {
@@ -376,7 +376,7 @@
       "bridge": "0.13.1",
       "claude_code": "2.1.310",
       "pi": "1.4.0",
-      "mcp_adapter": "6.0.0"
+      "mcp_adapter": "7.0.0"
     }
   }
 }

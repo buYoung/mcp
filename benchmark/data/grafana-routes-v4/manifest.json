@@ -1,0 +1,1853 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v4",
+  "revision": 3,
+  "status": "content_frozen",
+  "supersedes": "grafana-routes-v3",
+  "previous_manifest_sha256": "3aa1e3165b8c9ed2cfa50e6982b6a0f9522ea7f5dde7caff6537c30e78d0be84",
+  "revision_history": [
+    {
+      "revision": 1,
+      "manifest_sha256": "e2825c931db365bfd2c607585c71d18ac594c76446c0a8a7ff7cf323a7d10a20",
+      "snapshot": "dataset-v4/snapshots/r1/grafana-routes-v4/",
+      "reason": "승인된 두 문항의 최초 패키지"
+    },
+    {
+      "revision": 2,
+      "manifest_sha256": "3aa1e3165b8c9ed2cfa50e6982b6a0f9522ea7f5dde7caff6537c30e78d0be84",
+      "snapshot": "dataset-v4/snapshots/r2/grafana-routes-v4/",
+      "reason": "독립 검토 M1·M2·m1–m7·r1 및 사용자 질문 1 문구 변경 결정 반영",
+      "fact_changes": "O4를 O4a/O4b로 분할, O5 core 유지, O6 extended; 핵심 12개·확장 1개"
+    },
+    {
+      "revision": 3,
+      "reason": "사용자 결정 N1(O7 extended 추가) 및 재검토 N2·n3–n5 반영",
+      "fact_changes": "O7 서버측 토큰 갱신 extended 추가, O1 scope 파라미터 정정, RLn 정의·O4a/O4b 중복 요구 해소; 핵심 12개·확장 2개"
+    }
+  ],
+  "approval": {
+    "request": "2026-10-26 사용자 승인(두 문항, 질문 2 manifest 추가)",
+    "scope": "두 문항 데이터 패키지 작성. 고정 소스·하네스 수정 및 모델 실행 제외.",
+    "direction": "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/task-dataset-v4.md",
+    "revision_2": {
+      "direction": "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/task-dataset-v4-r2.md",
+      "reason": "2026-10-26 사용자 결정: 질문 1에서 브라우저가 삭제. 브라우저 인가 이동과 서버측 토큰 교환을 모두 자연 범위로 명확화.",
+      "previous_prompt": "Git 저장소 연결 인증 구조 중 브라우저가 사용자 지정 OAuth 서버와 통신하는 구간 다 확인해줘.",
+      "prompt": "Git 저장소 연결 인증 구조 중 사용자 지정 OAuth 서버와 통신하는 구간 다 확인해줘."
+    },
+    "revision_3": {
+      "direction": "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/task-dataset-v4-r3.md",
+      "reason": "사용자 결정: 사용자 지정 tokenURL의 서버측 갱신을 extended O7로 추가. 재검토 N2·n3–n5도 반영하며 핵심 6+6개와 core_complete 기준은 유지.",
+      "reviewed_manifest_sha256": "3aa1e3165b8c9ed2cfa50e6982b6a0f9522ea7f5dde7caff6537c30e78d0be84"
+    }
+  },
+  "target_release": "1.0.0",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
+  },
+  "question_order": [
+    "git-oauth-authorization",
+    "plugin-http-route-bridge"
+  ],
+  "counts": {
+    "questions": 2,
+    "core_facts": 12,
+    "extended_facts": 2,
+    "source_files": 23,
+    "source_files_with_excerpts": 23,
+    "evidence_ranges": 82,
+    "non_scoring_notes": 4
+  },
+  "files": {
+    "README.md": {
+      "sha256": "b7c385ae0cb4d51ed5cae4c8eb4d4c8684cf6cce7cc015085ce586df21c4040f",
+      "bytes": 9466
+    },
+    "dataset.json": {
+      "sha256": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
+      "bytes": 38504
+    },
+    "evidence.json": {
+      "sha256": "ba67c4c0e10377c575d0dc90ad833a63e02cb09ecec09c6af9d4d2c4b6081dcb",
+      "bytes": 89569
+    },
+    "grading.json": {
+      "sha256": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
+      "bytes": 7759
+    },
+    "questions.json": {
+      "sha256": "58539e12d3f8dfa97567e7b427c66ee77a3ec6773261bad8a92c68607ded0408",
+      "bytes": 452
+    }
+  },
+  "provenance": {
+    "source_identity": "git rev-parse HEAD:<path> plus original-byte Git blob SHA-1 and SHA-256",
+    "questions_checked": 2,
+    "core_facts_checked": 12,
+    "extended_facts_checked": 2,
+    "broken_evidence_references": 0,
+    "unused_evidence_ranges": 0,
+    "duplicate_fact_ids": 0,
+    "fact_count_mismatches": 0,
+    "solver_question_mismatches": 0,
+    "cross_language_facts_with_both_languages": 1,
+    "facts_with_valid_required_links": 14,
+    "accepted_alternatives_with_valid_rl_targets": 32,
+    "facts_with_provenance_fields": 0,
+    "required_links_checked": 32,
+    "wrong_claims_checked": 11,
+    "source_files_checked": 23,
+    "evidence_ranges_checked": 82,
+    "source_mismatches": 0,
+    "invalid_ranges_or_excerpt_hashes": 0,
+    "answerless_evidence_size_estimates": {
+      "git-oauth-authorization": {
+        "evidence_ranges": 49,
+        "excerpt_lines": 631,
+        "evidence_entries_bytes": 43309
+      },
+      "plugin-http-route-bridge": {
+        "evidence_ranges": 33,
+        "excerpt_lines": 478,
+        "evidence_entries_bytes": 32854
+      }
+    },
+    "verification_boundary": "고정 checkout의 원본/발췌·해시·URL·등록/호출/계약을 검토했다. 외부 라이브러리 내부 및 런타임 관측은 포함하지 않는다.",
+    "selection": "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/report-s-source.md",
+    "independent_review": {
+      "path": "/Volumes/Samsung_990_PRO/codemap-bench-work/dataset-v4/review-opus.md",
+      "sha256": "96fe2897acdd16d3efe7b8fea363109571af2c671d848cab67c481daa4d86ade",
+      "scope": "r1·r2 독립 검토 완료. r3는 사용자 결정과 r2 수정안 반영이며 독립 반영 확인은 별도 게이트다.",
+      "revision_2": {
+        "path": "/Volumes/Samsung_990_PRO/codemap-bench-work/dataset-v4/review-opus-r2.md",
+        "sha256": "b1d232dd77c02753700d1e88f35272a8f5732d4b8ecce7da009c6c0e0baf7c22",
+        "conclusion": "수정 후 고정"
+      }
+    },
+    "memory_measurement": {
+      "summary_path": "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/memory/candidates4-summary.md",
+      "summary_sha256": "75de8e04cfc07402430a5554ca0c96338b3fa95f9538b09fde85d18185875ca0",
+      "source_commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb",
+      "runs_per_candidate": 6,
+      "results": {
+        "git-oauth-authorization": {
+          "passed": 6,
+          "core_correct": 0,
+          "core_evidence_path_matches": 0
+        },
+        "plugin-http-route-bridge": {
+          "passed": 6,
+          "core_correct": 0,
+          "core_evidence_path_matches": 0
+        }
+      },
+      "interpretation": "저장소 이름 명시·도구 없음 조건의 기존 기억 측정. 두 후보 모두 6/6 통과. 이 빌드는 모델 요청을 하지 않았다.",
+      "prompt_boundary": "기존 plugin-http-route-bridge 측정은 manifest 추가 전 초안이며 OAuth 측정은 브라우저가 삭제 전 문구다. 질문 1의 새 문구 결과는 reworded_oauth에 별도로 보존한다.",
+      "scope_boundary": "기존 측정 당시 core evidence 파일은 OAuth 11개/bridge 6개다. 새 OAuth 측정의 분모는 결과 파일에 기록되어 있다. 최종 r3 rubric/근거 파일 전체로 재측정한 것으로 표시하지 않는다.",
+      "reworded_oauth": {
+        "result_path": "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/memory/oauth-reworded-run/summary.json",
+        "description": "부모 세션 측정 결과 파일",
+        "summary_sha256": "649425dbef21fc9134ced8747de5b7714bcf8499f1f2cdba845ab0140b6e4095",
+        "results": [
+          {
+            "answer_chars": 1528,
+            "answer_paths_hit": [],
+            "core_correct": [],
+            "core_fulfilled": [],
+            "core_paths": 14,
+            "exclude": false,
+            "graded": true,
+            "run": "git-oauth-authorization-claude-1"
+          },
+          {
+            "answer_chars": 1512,
+            "answer_paths_hit": [],
+            "core_correct": [],
+            "core_fulfilled": [],
+            "core_paths": 14,
+            "exclude": false,
+            "graded": true,
+            "run": "git-oauth-authorization-claude-2"
+          },
+          {
+            "answer_chars": 1900,
+            "answer_paths_hit": [],
+            "core_correct": [],
+            "core_fulfilled": [],
+            "core_paths": 14,
+            "exclude": false,
+            "graded": true,
+            "run": "git-oauth-authorization-claude-3"
+          },
+          {
+            "answer_chars": 969,
+            "answer_paths_hit": [],
+            "core_correct": [],
+            "core_fulfilled": [],
+            "core_paths": 14,
+            "exclude": false,
+            "graded": true,
+            "run": "git-oauth-authorization-gpt-1"
+          },
+          {
+            "answer_chars": 1473,
+            "answer_paths_hit": [],
+            "core_correct": [],
+            "core_fulfilled": [],
+            "core_paths": 14,
+            "exclude": false,
+            "graded": true,
+            "run": "git-oauth-authorization-gpt-2"
+          },
+          {
+            "answer_chars": 1190,
+            "answer_paths_hit": [],
+            "core_correct": [],
+            "core_fulfilled": [],
+            "core_paths": 14,
+            "exclude": false,
+            "graded": true,
+            "run": "git-oauth-authorization-gpt-3"
+          }
+        ],
+        "runs": 6,
+        "passed": 6,
+        "core_correct": 0,
+        "core_evidence_path_matches": 0,
+        "core_evidence_file_counts": [
+          14
+        ],
+        "prompt": "Git 저장소 연결 인증 구조 중 사용자 지정 OAuth 서버와 통신하는 구간 다 확인해줘.",
+        "rubric_boundary": "새 질문 문구의 부모 측정은 r1 O1–O6 모두 core인 rubric을 사용했다. r2의 O4a/O4b 분할·O6 extended 및 완화된 required_links로 재채점한 결과는 아니다."
+      },
+      "revision_2_review": {
+        "path": "/Volumes/Samsung_990_PRO/codemap-bench-work/dataset-v4/review-opus-r2.md",
+        "sha256": "b1d232dd77c02753700d1e88f35272a8f5732d4b8ecce7da009c6c0e0baf7c22",
+        "assessment_kind": "static_review_not_model_regrade",
+        "conclusion": "재측정 불필요",
+        "reason": "재검토 §5는 6개 답변 직접 대조로 r2에서도 core correct=0·경로 일치=0/14의 통과가 유지된다고 판단했다. 이는 검토자의 정적 판정이며 모델 재채점이 아니다. O7은 extended이므로 기억 제외 기준의 core를 바꾸지 않아 재측정이 불필요하다고 판단했다."
+      }
+    },
+    "training_cutoff": {
+      "cutoff_source": "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/cutoff.md",
+      "cutoff_source_sha256": "abb3ff4dde92b1a6d091209bc7a61b385e1a89987486d99a0d93752e52389d00",
+      "cutoff_utc": "2026-07-01T00:00:00+00:00",
+      "models": {
+        "claude-opus-5-5": "Jun 2026 (day unspecified; treated as 2026-06-30)",
+        "gpt-6.1-sol": "2026-04-30"
+      },
+      "method": "최종 fact별 고유 인용 파일과 지정한 경계 담당 정의를 각각 집계한다. 파일은 모든 fact evidence_ids의 경로, 정의는 manifest training_cutoff.questions.per_fact의 provenance_symbol_ids에 명시된 고유 함수/타입이다(모든 함수 전수나 신규 줄 비율 아님). committer date를 UTC 기준일과 비교한다. 합산은 파일+정의 보조 분모다. 중복 인용/공유 정의는 문항 합계에서 한 번만 센다. 합계는 core와 extended를 포함하며 per_fact.level로 구분한다. 기존 함수의 새 호출과 이동/helper 추출은 신규 정의로 부풀리지 않는다.",
+      "input_provenance_sha256": {
+        "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/candidates/git-oauth-authorization/provenance.json": "f7d472f50c56e984498afd10d47781a8c9a3e1f0e312571f41beb98f7e2875fc",
+        "/Volumes/Samsung_990_PRO/codemap-bench-work/v4/candidates/plugin-http-route-bridge/provenance.json": "ddd08ba2e817000719f3fa71d7a2fee17c683066cd1290bcafb02fc52a39bd5a"
+      },
+      "supplemented_records": {
+        "path": "/Volumes/Samsung_990_PRO/codemap-bench-work/dataset-v4/build/provenance-records.json",
+        "sha256": "8ec605be3202a7910fa67b66eda42b96ef6d4a21b160e45413e9e54d36b0976b",
+        "commit_metadata_checked": 22
+      },
+      "questions": {
+        "git-oauth-authorization": {
+          "files": {
+            "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go": {
+              "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "5ecfc79e149b0aeed1e612a82fe522ab2fb717fd",
+                "author_date": "2025-12-16T14:37:07+01:00",
+                "committer_date": "2025-12-16T14:37:07+01:00",
+                "subject": "Provisioning: Add Connection resource (#115272)",
+                "prs": [
+                  "115272"
+                ],
+                "post_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "apps/provisioning/pkg/apis/provisioning/v0alpha1/register.go": {
+              "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/register.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "a84ab52cc7e7ce6d7a1a0f09e7517a1932e85eef",
+                "author_date": "2025-01-09T17:12:01+03:00",
+                "committer_date": "2025-01-09T17:12:01+03:00",
+                "subject": "Provisioning: Add resource types (#98727)",
+                "prs": [
+                  "98727"
+                ],
+                "post_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "apps/provisioning/pkg/connection/factory.go": {
+              "path": "apps/provisioning/pkg/connection/factory.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "e4b79e2fc8db84b735a3e0866c8c0f7445cd6862",
+                "author_date": "2026-01-12T17:52:00+01:00",
+                "committer_date": "2026-01-12T17:52:00+01:00",
+                "subject": "Provisioning: Add Validation and Mutation for `Connection` resource (#115596)",
+                "prs": [
+                  "115596"
+                ],
+                "post_cutoff": false,
+                "author_pre_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "apps/provisioning/pkg/connection/gitoauth/connection.go": {
+              "path": "apps/provisioning/pkg/connection/gitoauth/connection.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "34680390b5f0dcbc3dbae49e7a5d006a52e103fb",
+                "author_date": "2026-10-07T09:11:14-07:00",
+                "committer_date": "2026-10-07T09:11:14-07:00",
+                "subject": "Provisioning: Add generic git OAuth app connections (#134186)",
+                "prs": [
+                  "134186"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "apps/provisioning/pkg/connection/gitoauth/extra.go": {
+              "path": "apps/provisioning/pkg/connection/gitoauth/extra.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "34680390b5f0dcbc3dbae49e7a5d006a52e103fb",
+                "author_date": "2026-10-07T09:11:14-07:00",
+                "committer_date": "2026-10-07T09:11:14-07:00",
+                "subject": "Provisioning: Add generic git OAuth app connections (#134186)",
+                "prs": [
+                  "134186"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "apps/provisioning/pkg/connection/oauth/connection.go": {
+              "path": "apps/provisioning/pkg/connection/oauth/connection.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "c8734a41e7cd5b94456e856ef533ef7ca49ed369",
+                "author_date": "2026-08-06T09:04:17-05:00",
+                "committer_date": "2026-08-06T09:04:17-05:00",
+                "subject": "Provisioning: (4/8) Add OAuth app connection support (#129741)",
+                "prs": [
+                  "129741"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "apps/provisioning/pkg/connection/oauth/extra.go": {
+              "path": "apps/provisioning/pkg/connection/oauth/extra.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "c8734a41e7cd5b94456e856ef533ef7ca49ed369",
+                "author_date": "2026-08-06T09:04:17-05:00",
+                "committer_date": "2026-08-06T09:04:17-05:00",
+                "subject": "Provisioning: (4/8) Add OAuth app connection support (#129741)",
+                "prs": [
+                  "129741"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/registry/apis/provisioning/connection_authorize.go": {
+              "path": "pkg/registry/apis/provisioning/connection_authorize.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "298ff4fe0fabfe10c2f38be5ed4da405d59de5d1",
+                "author_date": "2026-08-14T08:38:32-06:00",
+                "committer_date": "2026-08-14T08:38:32-06:00",
+                "subject": "Provisioning: (5/8) Add connection authorize endpoint (#129742)",
+                "prs": [
+                  "129742"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/registry/apis/provisioning/controller/connection.go": {
+              "path": "pkg/registry/apis/provisioning/controller/connection.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "eb6c22af36aa199899f79f930221a6bc7eb9e3c5",
+                "author_date": "2026-01-09T09:08:49+01:00",
+                "committer_date": "2026-01-09T09:08:49+01:00",
+                "subject": "Provisioning: Add connection operator with health check updates (#116028)",
+                "prs": [
+                  "116028"
+                ],
+                "post_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/registry/apis/provisioning/extras/register.go": {
+              "path": "pkg/registry/apis/provisioning/extras/register.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "b232ba53962467ce2f3a54d21b178afeaa610123",
+                "author_date": "2025-07-16T13:24:24+02:00",
+                "committer_date": "2025-07-16T13:24:24+02:00",
+                "subject": "Provisioning: Move provisioning extras to OSS extensions (#108167)",
+                "prs": [
+                  "108167"
+                ],
+                "post_cutoff": false,
+                "author_pre_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/registry/apis/provisioning/register.go": {
+              "path": "pkg/registry/apis/provisioning/register.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "0c120db84d6a6019e2eb9ce3456225afd7830c6e",
+                "author_date": "2025-01-30T08:11:50+01:00",
+                "committer_date": "2025-01-30T08:11:50+01:00",
+                "subject": "Provisioning: Setup server and storage (#99757)",
+                "prs": [
+                  "99757"
+                ],
+                "post_cutoff": false,
+                "author_pre_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "public/app/features/provisioning/Connection/ConnectionOAuthCallbackPage.tsx": {
+              "path": "public/app/features/provisioning/Connection/ConnectionOAuthCallbackPage.tsx",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "public/app/features/provisioning/hooks/useOAuthAuthorization.ts": {
+              "path": "public/app/features/provisioning/hooks/useOAuthAuthorization.ts",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "public/app/features/provisioning/utils/connectionOAuth.ts": {
+              "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "public/app/features/provisioning/utils/routes.tsx": {
+              "path": "public/app/features/provisioning/utils/routes.tsx",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "77fa2271be7a66422eb0ba51236f42c30b97da0f",
+                "author_date": "2025-03-25T08:59:03+01:00",
+                "committer_date": "2025-03-25T08:59:03+01:00",
+                "subject": "AppPlatform: Introduce experimental Github integration for dashboard configuration management (#96329)",
+                "prs": [
+                  "96329"
+                ],
+                "post_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            }
+          },
+          "symbols": {
+            "o-as-fn": {
+              "path": "pkg/registry/apis/provisioning/register.go",
+              "pickaxe": "func (b *APIBuilder) asConnection(",
+              "introduction": {
+                "commit": "e4b79e2fc8db84b735a3e0866c8c0f7445cd6862",
+                "author_date": "2026-01-12T17:52:00+01:00",
+                "committer_date": "2026-01-12T17:52:00+01:00",
+                "subject": "Provisioning: Add Validation and Mutation for `Connection` resource (#115596)",
+                "prs": [
+                  "115596"
+                ],
+                "post_cutoff": false,
+                "author_pre_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-broadcast-fn": {
+              "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+              "pickaxe": "function broadcastCompletion(",
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-complete": {
+              "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+              "pickaxe": "function completeOAuthAuthorization(",
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-controller-generate-fn": {
+              "path": "pkg/registry/apis/provisioning/controller/connection.go",
+              "pickaxe": "func (cc *ConnectionController) generateConnectionToken(",
+              "introduction": {
+                "commit": "0e787855e796efeb6f77c5a7c17d63289d700ab4",
+                "author_date": "2026-01-22T16:39:44+01:00",
+                "committer_date": "2026-01-22T16:39:44+01:00",
+                "subject": "Provisioning: Implement Connection reconciliation logic (#116613)",
+                "prs": [
+                  "116613"
+                ],
+                "post_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-controller-process-fn": {
+              "path": "pkg/registry/apis/provisioning/controller/connection.go",
+              "pickaxe": "func (cc *ConnectionController) process(",
+              "introduction": {
+                "commit": "eb6c22af36aa199899f79f930221a6bc7eb9e3c5",
+                "author_date": "2026-01-09T09:08:49+01:00",
+                "committer_date": "2026-01-09T09:08:49+01:00",
+                "subject": "Provisioning: Add connection operator with health check updates (#116028)",
+                "prs": [
+                  "116028"
+                ],
+                "post_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-controller-should-generate-fn": {
+              "path": "pkg/registry/apis/provisioning/controller/connection.go",
+              "pickaxe": "func (cc *ConnectionController) shouldGenerateToken(",
+              "introduction": {
+                "commit": "4fe8746a712b120739d5fd9a224c705f15ef1585",
+                "author_date": "2026-01-23T17:46:13+01:00",
+                "committer_date": "2026-01-23T17:46:13+01:00",
+                "subject": "Provisioning: create Connection token in controller (#116768)",
+                "prs": [
+                  "116768"
+                ],
+                "post_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-exchange-fn": {
+              "path": "apps/provisioning/pkg/connection/oauth/connection.go",
+              "pickaxe": "ExchangeAuthorizationCode(",
+              "introduction": {
+                "commit": "c8734a41e7cd5b94456e856ef533ef7ca49ed369",
+                "author_date": "2026-08-06T09:04:17-05:00",
+                "committer_date": "2026-08-06T09:04:17-05:00",
+                "subject": "Provisioning: (4/8) Add OAuth app connection support (#129741)",
+                "prs": [
+                  "129741"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-extras-fn": {
+              "path": "pkg/registry/apis/provisioning/extras/register.go",
+              "pickaxe": "func ProvideProvisioningOSSConnectionExtras(",
+              "introduction": {
+                "commit": "e4b79e2fc8db84b735a3e0866c8c0f7445cd6862",
+                "author_date": "2026-01-12T17:52:00+01:00",
+                "committer_date": "2026-01-12T17:52:00+01:00",
+                "subject": "Provisioning: Add Validation and Mutation for `Connection` resource (#115596)",
+                "prs": [
+                  "115596"
+                ],
+                "post_cutoff": false,
+                "author_pre_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-factory-build": {
+              "path": "apps/provisioning/pkg/connection/factory.go",
+              "pickaxe": "func (f *factory) Build(",
+              "introduction": {
+                "commit": "e4b79e2fc8db84b735a3e0866c8c0f7445cd6862",
+                "author_date": "2026-01-12T17:52:00+01:00",
+                "committer_date": "2026-01-12T17:52:00+01:00",
+                "subject": "Provisioning: Add Validation and Mutation for `Connection` resource (#115596)",
+                "prs": [
+                  "115596"
+                ],
+                "post_cutoff": false,
+                "author_pre_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-git-extra": {
+              "path": "apps/provisioning/pkg/connection/gitoauth/extra.go",
+              "pickaxe": "func Extra(",
+              "introduction": {
+                "commit": "34680390b5f0dcbc3dbae49e7a5d006a52e103fb",
+                "author_date": "2026-10-07T09:11:14-07:00",
+                "committer_date": "2026-10-07T09:11:14-07:00",
+                "subject": "Provisioning: Add generic git OAuth app connections (#134186)",
+                "prs": [
+                  "134186"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-git-provider-fn": {
+              "path": "apps/provisioning/pkg/connection/gitoauth/extra.go",
+              "pickaxe": "func newProvider(",
+              "introduction": {
+                "commit": "34680390b5f0dcbc3dbae49e7a5d006a52e103fb",
+                "author_date": "2026-10-07T09:11:14-07:00",
+                "committer_date": "2026-10-07T09:11:14-07:00",
+                "subject": "Provisioning: Add generic git OAuth app connections (#134186)",
+                "prs": [
+                  "134186"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-handler-type": {
+              "path": "pkg/registry/apis/provisioning/connection_authorize.go",
+              "pickaxe": "type connectionAuthorizeConnector struct",
+              "introduction": {
+                "commit": "298ff4fe0fabfe10c2f38be5ed4da405d59de5d1",
+                "author_date": "2026-08-14T08:38:32-06:00",
+                "committer_date": "2026-08-14T08:38:32-06:00",
+                "subject": "Provisioning: (5/8) Add connection authorize endpoint (#129742)",
+                "prs": [
+                  "129742"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-hook": {
+              "path": "public/app/features/provisioning/hooks/useOAuthAuthorization.ts",
+              "pickaxe": "function useOAuthAuthorization(",
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-listen-fn": {
+              "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+              "pickaxe": "function onOAuthAuthorizationComplete(",
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-lookup-fn": {
+              "path": "pkg/registry/apis/provisioning/register.go",
+              "pickaxe": "func (b *APIBuilder) GetConnection(",
+              "introduction": {
+                "commit": "206a499262dc78f22247e9c5968bb75aa7ae7782",
+                "author_date": "2026-01-16T08:32:39+01:00",
+                "committer_date": "2026-01-16T08:32:39+01:00",
+                "subject": "Provisioning: count for Connection reference in Validation and Tester (#116307)",
+                "prs": [
+                  "116307"
+                ],
+                "post_cutoff": false,
+                "author_pre_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-marshal": {
+              "path": "apps/provisioning/pkg/connection/oauth/connection.go",
+              "pickaxe": "func marshalToken(",
+              "introduction": {
+                "commit": "c8734a41e7cd5b94456e856ef533ef7ca49ed369",
+                "author_date": "2026-08-06T09:04:17-05:00",
+                "committer_date": "2026-08-06T09:04:17-05:00",
+                "subject": "Provisioning: (4/8) Add OAuth app connection support (#129741)",
+                "prs": [
+                  "129741"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-page": {
+              "path": "public/app/features/provisioning/Connection/ConnectionOAuthCallbackPage.tsx",
+              "pickaxe": "function ConnectionOAuthCallbackPage(",
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-provider-endpoint": {
+              "path": "apps/provisioning/pkg/connection/gitoauth/connection.go",
+              "pickaxe": "func (p *provider) Endpoint(",
+              "introduction": {
+                "commit": "34680390b5f0dcbc3dbae49e7a5d006a52e103fb",
+                "author_date": "2026-10-07T09:11:14-07:00",
+                "committer_date": "2026-10-07T09:11:14-07:00",
+                "subject": "Provisioning: Add generic git OAuth app connections (#134186)",
+                "prs": [
+                  "134186"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-refresh-fn": {
+              "path": "apps/provisioning/pkg/connection/oauth/connection.go",
+              "pickaxe": "func (c *oauthConnection) GenerateConnectionToken(",
+              "introduction": {
+                "commit": "741819d2a7134cf48016368d3c414ad5fb02a95a",
+                "author_date": "2026-08-12T07:01:01-07:00",
+                "committer_date": "2026-08-12T08:01:01-06:00",
+                "subject": "Provisioning: OAuth app connection follow-ups (#130294)",
+                "prs": [
+                  "130294"
+                ],
+                "post_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-register-fn": {
+              "path": "pkg/registry/apis/provisioning/register.go",
+              "pickaxe": "func (b *APIBuilder) UpdateAPIGroupInfo(",
+              "introduction": {
+                "commit": "0c120db84d6a6019e2eb9ce3456225afd7830c6e",
+                "author_date": "2025-01-30T08:11:50+01:00",
+                "committer_date": "2025-01-30T08:11:50+01:00",
+                "subject": "Provisioning: Setup server and storage (#99757)",
+                "prs": [
+                  "99757"
+                ],
+                "post_cutoff": false,
+                "author_pre_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-request-spec-fn": {
+              "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go",
+              "pickaxe": "type ConnectionAuthorizeRequestSpec struct",
+              "introduction": {
+                "commit": "298ff4fe0fabfe10c2f38be5ed4da405d59de5d1",
+                "author_date": "2026-08-14T08:38:32-06:00",
+                "committer_date": "2026-08-14T08:38:32-06:00",
+                "subject": "Provisioning: (5/8) Add connection authorize endpoint (#129742)",
+                "prs": [
+                  "129742"
+                ],
+                "post_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-request-type-fn": {
+              "path": "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go",
+              "pickaxe": "type ConnectionAuthorizeRequest struct",
+              "introduction": {
+                "commit": "298ff4fe0fabfe10c2f38be5ed4da405d59de5d1",
+                "author_date": "2026-08-14T08:38:32-06:00",
+                "committer_date": "2026-08-14T08:38:32-06:00",
+                "subject": "Provisioning: (5/8) Add connection authorize endpoint (#129742)",
+                "prs": [
+                  "129742"
+                ],
+                "post_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-routes-fn": {
+              "path": "public/app/features/provisioning/utils/routes.tsx",
+              "pickaxe": "function getProvisioningRoutes(",
+              "introduction": {
+                "commit": "77fa2271be7a66422eb0ba51236f42c30b97da0f",
+                "author_date": "2025-03-25T08:59:03+01:00",
+                "committer_date": "2025-03-25T08:59:03+01:00",
+                "subject": "AppPlatform: Introduce experimental Github integration for dashboard configuration management (#96329)",
+                "prs": [
+                  "96329"
+                ],
+                "post_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-shared-build": {
+              "path": "apps/provisioning/pkg/connection/oauth/extra.go",
+              "pickaxe": "func (e *extra) Build(",
+              "introduction": {
+                "commit": "c8734a41e7cd5b94456e856ef533ef7ca49ed369",
+                "author_date": "2026-08-06T09:04:17-05:00",
+                "committer_date": "2026-08-06T09:04:17-05:00",
+                "subject": "Provisioning: (4/8) Add OAuth app connection support (#129741)",
+                "prs": [
+                  "129741"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "o-url": {
+              "path": "public/app/features/provisioning/utils/connectionOAuth.ts",
+              "pickaxe": "function buildOAuthAuthorizeUrl(",
+              "introduction": {
+                "commit": "8ac7f3ccd03e6af818cb16d5bbeebb027a2bdbb7",
+                "author_date": "2026-08-26T18:08:43-05:00",
+                "committer_date": "2026-08-26T18:08:43-05:00",
+                "subject": "Provisioning: (8/8) Add OAuth app connection UI (#129745)",
+                "prs": [
+                  "129745"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            }
+          },
+          "file_ratio": {
+            "post_cutoff": 8,
+            "total": 15,
+            "percent": 53.33
+          },
+          "symbol_ratio": {
+            "post_cutoff": 16,
+            "total": 25,
+            "percent": 64.0
+          },
+          "combined_ratio": {
+            "post_cutoff": 24,
+            "total": 40,
+            "percent": 60.0
+          },
+          "per_fact": {
+            "O1": {
+              "evidence_files": [
+                "public/app/features/provisioning/hooks/useOAuthAuthorization.ts",
+                "public/app/features/provisioning/utils/connectionOAuth.ts"
+              ],
+              "provenance_symbol_ids": [
+                "o-hook",
+                "o-url"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 2,
+                "total": 2,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 2,
+                "total": 2,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 4,
+                "total": 4,
+                "percent": 100.0
+              }
+            },
+            "O2": {
+              "evidence_files": [
+                "public/app/features/provisioning/Connection/ConnectionOAuthCallbackPage.tsx",
+                "public/app/features/provisioning/utils/connectionOAuth.ts",
+                "public/app/features/provisioning/utils/routes.tsx"
+              ],
+              "provenance_symbol_ids": [
+                "o-complete",
+                "o-page",
+                "o-routes-fn"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 2,
+                "total": 3,
+                "percent": 66.67
+              },
+              "symbol_ratio": {
+                "post_cutoff": 2,
+                "total": 3,
+                "percent": 66.67
+              },
+              "combined_ratio": {
+                "post_cutoff": 4,
+                "total": 6,
+                "percent": 66.67
+              }
+            },
+            "O3": {
+              "evidence_files": [
+                "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go",
+                "apps/provisioning/pkg/apis/provisioning/v0alpha1/register.go",
+                "pkg/registry/apis/provisioning/connection_authorize.go",
+                "pkg/registry/apis/provisioning/register.go",
+                "public/app/features/provisioning/utils/connectionOAuth.ts"
+              ],
+              "provenance_symbol_ids": [
+                "o-complete",
+                "o-handler-type",
+                "o-lookup-fn",
+                "o-register-fn",
+                "o-request-spec-fn",
+                "o-request-type-fn"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 2,
+                "total": 5,
+                "percent": 40.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 4,
+                "total": 6,
+                "percent": 66.67
+              },
+              "combined_ratio": {
+                "post_cutoff": 6,
+                "total": 11,
+                "percent": 54.55
+              }
+            },
+            "O4a": {
+              "evidence_files": [
+                "apps/provisioning/pkg/connection/factory.go",
+                "apps/provisioning/pkg/connection/gitoauth/connection.go",
+                "apps/provisioning/pkg/connection/gitoauth/extra.go",
+                "apps/provisioning/pkg/connection/oauth/connection.go",
+                "apps/provisioning/pkg/connection/oauth/extra.go",
+                "pkg/registry/apis/provisioning/extras/register.go",
+                "pkg/registry/apis/provisioning/register.go"
+              ],
+              "provenance_symbol_ids": [
+                "o-as-fn",
+                "o-extras-fn",
+                "o-factory-build",
+                "o-git-extra",
+                "o-git-provider-fn",
+                "o-provider-endpoint",
+                "o-shared-build"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 4,
+                "total": 7,
+                "percent": 57.14
+              },
+              "symbol_ratio": {
+                "post_cutoff": 4,
+                "total": 7,
+                "percent": 57.14
+              },
+              "combined_ratio": {
+                "post_cutoff": 8,
+                "total": 14,
+                "percent": 57.14
+              }
+            },
+            "O4b": {
+              "evidence_files": [
+                "apps/provisioning/pkg/connection/gitoauth/connection.go",
+                "apps/provisioning/pkg/connection/gitoauth/extra.go",
+                "apps/provisioning/pkg/connection/oauth/connection.go",
+                "apps/provisioning/pkg/connection/oauth/extra.go"
+              ],
+              "provenance_symbol_ids": [
+                "o-exchange-fn",
+                "o-provider-endpoint",
+                "o-shared-build"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 4,
+                "total": 4,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 3,
+                "total": 3,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 7,
+                "total": 7,
+                "percent": 100.0
+              }
+            },
+            "O5": {
+              "evidence_files": [
+                "apps/provisioning/pkg/apis/provisioning/v0alpha1/connections.go",
+                "apps/provisioning/pkg/connection/oauth/connection.go",
+                "pkg/registry/apis/provisioning/connection_authorize.go"
+              ],
+              "provenance_symbol_ids": [
+                "o-exchange-fn",
+                "o-handler-type",
+                "o-marshal",
+                "o-request-type-fn"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 2,
+                "total": 3,
+                "percent": 66.67
+              },
+              "symbol_ratio": {
+                "post_cutoff": 4,
+                "total": 4,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 6,
+                "total": 7,
+                "percent": 85.71
+              }
+            },
+            "O6": {
+              "evidence_files": [
+                "public/app/features/provisioning/Connection/ConnectionOAuthCallbackPage.tsx",
+                "public/app/features/provisioning/hooks/useOAuthAuthorization.ts",
+                "public/app/features/provisioning/utils/connectionOAuth.ts"
+              ],
+              "provenance_symbol_ids": [
+                "o-broadcast-fn",
+                "o-complete",
+                "o-hook",
+                "o-listen-fn",
+                "o-page"
+              ],
+              "level": "extended",
+              "file_ratio": {
+                "post_cutoff": 3,
+                "total": 3,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 5,
+                "total": 5,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 8,
+                "total": 8,
+                "percent": 100.0
+              }
+            },
+            "O7": {
+              "evidence_files": [
+                "apps/provisioning/pkg/connection/gitoauth/connection.go",
+                "apps/provisioning/pkg/connection/gitoauth/extra.go",
+                "apps/provisioning/pkg/connection/oauth/connection.go",
+                "pkg/registry/apis/provisioning/controller/connection.go"
+              ],
+              "provenance_symbol_ids": [
+                "o-controller-generate-fn",
+                "o-controller-process-fn",
+                "o-controller-should-generate-fn",
+                "o-git-provider-fn",
+                "o-provider-endpoint",
+                "o-refresh-fn"
+              ],
+              "level": "extended",
+              "file_ratio": {
+                "post_cutoff": 3,
+                "total": 4,
+                "percent": 75.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 3,
+                "total": 6,
+                "percent": 50.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 6,
+                "total": 10,
+                "percent": 60.0
+              }
+            }
+          }
+        },
+        "plugin-http-route-bridge": {
+          "files": {
+            "pkg/router/plugin.go": {
+              "path": "pkg/router/plugin.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "9b7c7a679b4057689473fc9005fcd5ec3d3d7908",
+                "author_date": "2026-09-15T09:16:10+09:00",
+                "committer_date": "2026-09-15T09:16:10+09:00",
+                "subject": "APP/Plugins: Support plugin router (#132489)",
+                "prs": [
+                  "132489"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/router/plugin_breaker.go": {
+              "path": "pkg/router/plugin_breaker.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "66d9892208070f5e1ffde613a54c61eb4b343f35",
+                "author_date": "2026-10-06T10:32:41+09:00",
+                "committer_date": "2026-10-06T01:32:41Z",
+                "subject": "Router: Scope plugin circuit breaking to client calls (#133943)",
+                "prs": [
+                  "133943"
+                ],
+                "post_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/router/plugin_manifests.go": {
+              "path": "pkg/router/plugin_manifests.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "fc5b3aa9713af7f5e5cf755ce367a686752a00b9",
+                "author_date": "2026-09-16T12:30:26-07:00",
+                "committer_date": "2026-09-16T12:30:26-07:00",
+                "subject": "Router: add routing for arbitrary aggregate apiservers through introspection (#132440)",
+                "prs": [
+                  "132440"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/services/pluginsintegration/baasbridge/client.go": {
+              "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/services/pluginsintegration/baasbridge/context.go": {
+              "path": "pkg/services/pluginsintegration/baasbridge/context.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/services/pluginsintegration/pluginroute/appsettings/subresources.go": {
+              "path": "pkg/services/pluginsintegration/pluginroute/appsettings/subresources.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "bac934f04259fbaaaeed2fd582b0a0764a87c5ab",
+                "author_date": "2026-10-22T17:36:42+09:00",
+                "committer_date": "2026-10-22T17:36:42+09:00",
+                "subject": "Router: Serve app plugin settings APIs from the router (#135657)",
+                "prs": [
+                  "135657"
+                ],
+                "post_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/services/pluginsintegration/pluginroute/handler.go": {
+              "path": "pkg/services/pluginsintegration/pluginroute/handler.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "9b7c7a679b4057689473fc9005fcd5ec3d3d7908",
+                "author_date": "2026-09-15T09:16:10+09:00",
+                "committer_date": "2026-09-15T09:16:10+09:00",
+                "subject": "APP/Plugins: Support plugin router (#132489)",
+                "prs": [
+                  "132489"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "pkg/services/pluginsintegration/pluginroute/routes.go": {
+              "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+              "pickaxe": null,
+              "introduction": {
+                "commit": "5aaeb2eaa2a6c9aa63e44dd7e468ac4538912cd3",
+                "author_date": "2026-09-08T20:32:11+09:00",
+                "committer_date": "2026-09-08T11:32:11Z",
+                "subject": "App Plugins: Register kinds from manifest- #130738 (#132037)",
+                "prs": [
+                  "130738",
+                  "132037"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            }
+          },
+          "symbols": {
+            "b-breaker-call-fn": {
+              "path": "pkg/router/plugin_breaker.go",
+              "pickaxe": "func (c *breakerPluginClientV3) CallRoute(",
+              "introduction": {
+                "commit": "66d9892208070f5e1ffde613a54c61eb4b343f35",
+                "author_date": "2026-10-06T10:32:41+09:00",
+                "committer_date": "2026-10-06T01:32:41Z",
+                "subject": "Router: Scope plugin circuit breaking to client calls (#133943)",
+                "prs": [
+                  "133943"
+                ],
+                "post_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-builder-fn": {
+              "path": "pkg/services/pluginsintegration/pluginroute/handler.go",
+              "pickaxe": "func newManifestBuilder(",
+              "introduction": {
+                "commit": "9b7c7a679b4057689473fc9005fcd5ec3d3d7908",
+                "author_date": "2026-09-15T09:16:10+09:00",
+                "committer_date": "2026-09-15T09:16:10+09:00",
+                "subject": "APP/Plugins: Support plugin router (#132489)",
+                "prs": [
+                  "132489"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "named_definition_introduction": {
+                "commit": "7d14232feee3523f09b95caf51353cdfca2f2194",
+                "author_date": "2026-10-09T20:24:30+09:00",
+                "committer_date": "2026-10-09T11:24:30Z",
+                "subject": "Plugins: Serve and authorize manifest custom routes from their OpenAPI paths (#134605)",
+                "prs": [
+                  "134605"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "origin_review": "The named builder helper reorganizes existing ClientV3 binding. Conservatively trace the binding in the original handler instead of dating it by the helper name."
+            },
+            "b-call-fn": {
+              "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+              "pickaxe": "func (c *client) CallRoute(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-context-fn": {
+              "path": "pkg/services/pluginsintegration/baasbridge/context.go",
+              "pickaxe": "func WithDeclaredAccessChecked(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-credentials-fn": {
+              "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+              "pickaxe": "func (c *client) setCredentials(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-delete": {
+              "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+              "pickaxe": "func deleteHeaders(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-forward": {
+              "path": "pkg/router/plugin_manifests.go",
+              "pickaxe": "func forwardRouteCredentials(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-load-client-fn": {
+              "path": "pkg/router/plugin.go",
+              "pickaxe": "func (b *PluginBackend) load(",
+              "introduction": {
+                "commit": "9b7c7a679b4057689473fc9005fcd5ec3d3d7908",
+                "author_date": "2026-09-15T09:16:10+09:00",
+                "committer_date": "2026-09-15T09:16:10+09:00",
+                "subject": "APP/Plugins: Support plugin router (#132489)",
+                "prs": [
+                  "132489"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "named_definition_introduction": {
+                "commit": "177194a7b6643c756ad76b517f35fa3373ecdec6",
+                "author_date": "2026-10-23T11:40:20+09:00",
+                "committer_date": "2026-10-23T11:40:20+09:00",
+                "subject": "Router: Destroy retired plugin handlers and close unused plugin connections (#135809)",
+                "prs": [
+                  "135809"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "origin_review": "load/loadManifest split the existing PluginBackend.Load path; use the original Load introduction, not October helper extraction, for the cutoff count."
+            },
+            "b-load-fn": {
+              "path": "pkg/router/plugin.go",
+              "pickaxe": "func (b *PluginBackend) loadManifest(",
+              "introduction": {
+                "commit": "9b7c7a679b4057689473fc9005fcd5ec3d3d7908",
+                "author_date": "2026-09-15T09:16:10+09:00",
+                "committer_date": "2026-09-15T09:16:10+09:00",
+                "subject": "APP/Plugins: Support plugin router (#132489)",
+                "prs": [
+                  "132489"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "named_definition_introduction": {
+                "commit": "bac934f04259fbaaaeed2fd582b0a0764a87c5ab",
+                "author_date": "2026-10-22T17:36:42+09:00",
+                "committer_date": "2026-10-22T17:36:42+09:00",
+                "subject": "Router: Serve app plugin settings APIs from the router (#135657)",
+                "prs": [
+                  "135657"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "origin_review": "load/loadManifest split the existing PluginBackend.Load path; use the original Load introduction, not October helper extraction, for the cutoff count."
+            },
+            "b-new": {
+              "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+              "pickaxe": "func NewClient(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-plugin-clients": {
+              "path": "pkg/router/plugin_manifests.go",
+              "pickaxe": "func (t *pluginManifestsTarget) pluginClients(",
+              "introduction": {
+                "commit": "1d3952ffc18f774c00a8dd98db323fd2ba179c18",
+                "author_date": "2026-09-22T01:24:11+09:00",
+                "committer_date": "2026-09-22T01:24:11+09:00",
+                "subject": "MT/PluginsV3: Connect to remote gRPC service (#133145)",
+                "prs": [
+                  "133145"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-poll-fn": {
+              "path": "pkg/router/plugin_manifests.go",
+              "pickaxe": "func (t *pluginManifestsTarget) poll(",
+              "introduction": {
+                "commit": "fc5b3aa9713af7f5e5cf755ce367a686752a00b9",
+                "author_date": "2026-09-16T12:30:26-07:00",
+                "committer_date": "2026-09-16T12:30:26-07:00",
+                "subject": "Router: add routing for arbitrary aggregate apiservers through introspection (#132440)",
+                "prs": [
+                  "132440"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-recv": {
+              "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+              "pickaxe": "func (s *httpRouteStream) Recv(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-redirect-fn": {
+              "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+              "pickaxe": "func errRouteRedirect(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            },
+            "b-route-fn": {
+              "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+              "pickaxe": "func (b *manifestBuilder) routeHandler(",
+              "introduction": {
+                "commit": "5aaeb2eaa2a6c9aa63e44dd7e468ac4538912cd3",
+                "author_date": "2026-09-08T20:32:11+09:00",
+                "committer_date": "2026-09-08T11:32:11Z",
+                "subject": "App Plugins: Register kinds from manifest- #130738 (#132037)",
+                "prs": [
+                  "130738",
+                  "132037"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "named_definition_introduction": {
+                "commit": "cc56be1ebe6863b3a18077be330b8e522efdc6b4",
+                "author_date": "2026-10-07T09:48:26+09:00",
+                "committer_date": "2026-10-07T09:48:26+09:00",
+                "subject": "App/Plugins: Separate settings APIs from routed manifest APIs (#134112)",
+                "prs": [
+                  "134112"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "origin_review": "routes.go is R093 from pkg/registry/apis/appplugin/routes.go and the receiver was renamed. Trace routeHandler without the receiver spelling back to the original implementation, not the later move."
+            },
+            "b-route-mux-fn": {
+              "path": "pkg/services/pluginsintegration/pluginroute/routes.go",
+              "pickaxe": "routeMux(",
+              "introduction": {
+                "commit": "5aaeb2eaa2a6c9aa63e44dd7e468ac4538912cd3",
+                "author_date": "2026-09-08T20:32:11+09:00",
+                "committer_date": "2026-09-08T11:32:11Z",
+                "subject": "App Plugins: Register kinds from manifest- #130738 (#132037)",
+                "prs": [
+                  "130738",
+                  "132037"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "named_definition_introduction": {
+                "commit": "7d14232feee3523f09b95caf51353cdfca2f2194",
+                "author_date": "2026-10-09T20:24:30+09:00",
+                "committer_date": "2026-10-09T11:24:30Z",
+                "subject": "Plugins: Serve and authorize manifest custom routes from their OpenAPI paths (#134605)",
+                "prs": [
+                  "134605"
+                ],
+                "post_cutoff": true,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              },
+              "origin_review": "Conservatively date the manifest route-registration boundary by its earlier routeHandler implementation, rather than the later routeMux helper extraction."
+            },
+            "b-stream-new": {
+              "path": "pkg/services/pluginsintegration/baasbridge/client.go",
+              "pickaxe": "func newHTTPRouteStream(",
+              "introduction": {
+                "commit": "402917be91f75c9c6820ff365ee5959b75f0c04c",
+                "author_date": "2026-10-23T15:41:44+09:00",
+                "committer_date": "2026-10-23T06:41:44Z",
+                "subject": "Router: Serve apiextensions HTTP operators through a plugin v3 client shim (#135815)",
+                "prs": [
+                  "135815"
+                ],
+                "post_cutoff": true,
+                "author_pre_cutoff": false,
+                "public_pr_before_cutoff": "unknown: local main history does not establish PR opening/publication date"
+              }
+            }
+          },
+          "file_ratio": {
+            "post_cutoff": 8,
+            "total": 8,
+            "percent": 100.0
+          },
+          "symbol_ratio": {
+            "post_cutoff": 17,
+            "total": 17,
+            "percent": 100.0
+          },
+          "combined_ratio": {
+            "post_cutoff": 25,
+            "total": 25,
+            "percent": 100.0
+          },
+          "per_fact": {
+            "B1": {
+              "evidence_files": [
+                "pkg/router/plugin.go",
+                "pkg/router/plugin_breaker.go",
+                "pkg/router/plugin_manifests.go",
+                "pkg/services/pluginsintegration/baasbridge/client.go",
+                "pkg/services/pluginsintegration/pluginroute/handler.go"
+              ],
+              "provenance_symbol_ids": [
+                "b-breaker-call-fn",
+                "b-builder-fn",
+                "b-load-client-fn",
+                "b-load-fn",
+                "b-new",
+                "b-plugin-clients",
+                "b-poll-fn"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 5,
+                "total": 5,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 7,
+                "total": 7,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 12,
+                "total": 12,
+                "percent": 100.0
+              }
+            },
+            "B2": {
+              "evidence_files": [
+                "pkg/router/plugin.go",
+                "pkg/router/plugin_breaker.go",
+                "pkg/services/pluginsintegration/baasbridge/client.go",
+                "pkg/services/pluginsintegration/pluginroute/appsettings/subresources.go",
+                "pkg/services/pluginsintegration/pluginroute/handler.go",
+                "pkg/services/pluginsintegration/pluginroute/routes.go"
+              ],
+              "provenance_symbol_ids": [
+                "b-breaker-call-fn",
+                "b-builder-fn",
+                "b-call-fn",
+                "b-load-fn",
+                "b-route-fn",
+                "b-route-mux-fn"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 6,
+                "total": 6,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 6,
+                "total": 6,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 12,
+                "total": 12,
+                "percent": 100.0
+              }
+            },
+            "B3": {
+              "evidence_files": [
+                "pkg/router/plugin_manifests.go",
+                "pkg/services/pluginsintegration/baasbridge/client.go",
+                "pkg/services/pluginsintegration/baasbridge/context.go",
+                "pkg/services/pluginsintegration/pluginroute/routes.go"
+              ],
+              "provenance_symbol_ids": [
+                "b-context-fn",
+                "b-credentials-fn",
+                "b-forward",
+                "b-plugin-clients",
+                "b-route-fn"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 4,
+                "total": 4,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 5,
+                "total": 5,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 9,
+                "total": 9,
+                "percent": 100.0
+              }
+            },
+            "B4": {
+              "evidence_files": [
+                "pkg/router/plugin_manifests.go",
+                "pkg/services/pluginsintegration/baasbridge/client.go"
+              ],
+              "provenance_symbol_ids": [
+                "b-call-fn",
+                "b-credentials-fn",
+                "b-delete",
+                "b-new",
+                "b-plugin-clients"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 2,
+                "total": 2,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 5,
+                "total": 5,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 7,
+                "total": 7,
+                "percent": 100.0
+              }
+            },
+            "B5": {
+              "evidence_files": [
+                "pkg/services/pluginsintegration/baasbridge/client.go"
+              ],
+              "provenance_symbol_ids": [
+                "b-call-fn",
+                "b-new",
+                "b-redirect-fn"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 1,
+                "total": 1,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 3,
+                "total": 3,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 4,
+                "total": 4,
+                "percent": 100.0
+              }
+            },
+            "B6": {
+              "evidence_files": [
+                "pkg/services/pluginsintegration/baasbridge/client.go"
+              ],
+              "provenance_symbol_ids": [
+                "b-call-fn",
+                "b-recv",
+                "b-stream-new"
+              ],
+              "level": "core",
+              "file_ratio": {
+                "post_cutoff": 1,
+                "total": 1,
+                "percent": 100.0
+              },
+              "symbol_ratio": {
+                "post_cutoff": 3,
+                "total": 3,
+                "percent": 100.0
+              },
+              "combined_ratio": {
+                "post_cutoff": 4,
+                "total": 4,
+                "percent": 100.0
+              }
+            }
+          }
+        }
+      },
+      "caveats": [
+        "커밋 날짜가 학습 데이터 미포함을 보장하지 않는다.",
+        "PR 개설/브랜치 공개일은 미확인이다. 외부 네트워크 조회는 하지 않았다.",
+        "초안의 rename/원형 추적을 보존하고 r1의 추가 3파일/4정의, r2의 breaker·appsettings 2파일/CallRoute 1정의, r3의 connection controller 1파일/갱신 관련 4정의 이력을 보충했다. 기존 기록의 도입 커밋 날짜도 Git 원문과 다시 대조했다."
+      ]
+    }
+  },
+  "evaluation_status": {
+    "status_as_of_build": {
+      "source_review": "author_completed",
+      "independent_content_review": "revisions_1_2_reviewed_revision_3_not_reviewed_in_build",
+      "is_difficulty_empirically_validated": false,
+      "grader_calibration_runs": 0,
+      "solver_runs": 0,
+      "model_requests_by_builder": 0
+    }
+  },
+  "execution_contract": {
+    "status": "not_frozen",
+    "binding_rule": "benchmark/route_contract.py DATASET_MANIFEST_SHA256 == sha256(manifest.json)",
+    "status_as_of_build": {
+      "dataset_manifest_binding": "not_bound_by_this_build",
+      "execution_authorized": false,
+      "solver_runs": 0,
+      "grader_runs": 0,
+      "runtime_scenarios_executed": 0
+    },
+    "planned_questions": 2,
+    "planned_arms": 7,
+    "repetitions": 3,
+    "planned_modes": [
+      "direct_tools",
+      "codemode_only"
+    ],
+    "planned_solver_slots_per_mode": 42,
+    "planned_solver_slots_per_model": 84,
+    "snapshot_rule": "status_as_of_build는 revision 3 생성 시점 스냅샷이며 후속 결합/승인에 맞춰 수정하지 않는다. 실제 결합과 실행 승인은 하네스 이력에 별도 기록한다."
+  },
+  "preservation": "의미 변경은 별도 revision으로 기록한다. v2·v3·v4 점수 및 두 도구 모드 결과를 혼합하지 않는다."
+}
