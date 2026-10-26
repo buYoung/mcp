@@ -1,6 +1,6 @@
 # Build from the repository root with this file's allowlisted Docker context.
 # Native Linux architecture avoids x86 emulation on ARM hosts.
-FROM rust:1.98.1-bookworm AS build
+FROM rust:1.99.1-bookworm AS build
 WORKDIR /src/apps/codemap-search
 COPY apps/codemap-search/Cargo.toml apps/codemap-search/Cargo.lock apps/codemap-search/build.rs apps/codemap-search/README.md ./
 COPY apps/codemap-search/src ./src
