@@ -487,6 +487,15 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         self.assertEqual(len(pi_client.cancelled_before_admission(items, [], native=False, enabled_tools=["read"])["calls"]), 1)
         admitted = [{"method": "tools/call", "tool": "read", "arguments": {"file_path": "source.py"}}]
         self.assertEqual(pi_client.cancelled_before_admission(items, admitted, native=False, enabled_tools=["read"])["calls"], [])
+        # Pinned codemode keeps only a 197-unit argument preview; long commands match by that prefix, shared prefixes stay unresolved.
+        long = copy.deepcopy(events)
+        long[1]["args"] = {"command": "rg -n " + "x" * 300}
+        long[2]["result"]["details"]["calls"][0]["args"] = pi_client.script_args_preview(long[1]["args"])
+        self.assertEqual(len(long[2]["result"]["details"]["calls"][0]["args"]), pi_client.ARGS_PREVIEW_CHARS)
+        self.assertTrue(pi_client.usage(long, terminal_complete=True, evidence="fixture")["complete"])
+        shared = copy.deepcopy(long)
+        shared.insert(2, {**long[1], "toolCallId": "s/2", "args": {"command": long[1]["args"]["command"] + "y"}})
+        self.assertFalse(pi_client.usage(shared, terminal_complete=True, evidence="fixture")["complete"])
 
 
     def test_pi_bash_killed_preserves_call_log_and_partial_timing(self):
