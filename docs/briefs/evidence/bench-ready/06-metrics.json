@@ -1,9 +1,9 @@
 {
   "aggregation_rules": "Separate modes, fixed question x repetition macro denominators, separate core/extended facts; no cross-mode quality aggregation.",
-  "contract_hash": "f1c8ff5a7a275ad09671d39dfc12dc7774457df7d6c3c4c27772ac492a7139d9",
+  "contract_hash": "cdd73172aca5e1f78bd5846366a857c6a3ae1226aab485401fccd3928eb9fa7b",
   "dependency_hashes": {
-    "02-delivery.json": "d1390feeba4615022c4da7d5b87e17fad69e6cebd3abc683cebc3b62aa3c8987",
-    "05-grading.json": "feddf854ee29bdeebc9b79d5dd1fb97f81c74e132c5c4de80c27b8ba75f1fb3a"
+    "02-delivery.json": "854f78f508ea573220b33da3667831930ab9ac6247a2bf40adb63340b0594cbd",
+    "05-grading.json": "b95e82f008ee562055b48ecf8d0714d47aed081b6fdfe3ff33d34a5f26ac1601"
   },
   "field_provenance": {
     "client_delivery": {
@@ -27,7 +27,7 @@
     },
     "observations": {
       "missing": "null for unobserved totals; observed partial sums retained",
-      "origin": "pi turns/durationMs/outputGuard/script output plus relay or bash wrapper clocks",
+      "origin": "pi turns/durationMs/outputGuard/bash truncation metadata/script output plus relay or bash wrapper clocks",
       "unit": "per-slot counts, seconds and distributions"
     },
     "quality": {
@@ -73,10 +73,10 @@
   },
   "implementation_hashes": {
     "benchmark/claude_client.py": "1d52d226205b07440ea6f8a1dd72eb7c3cc0b249989c3a0a55a61155d1971bd7",
-    "benchmark/execution.py": "2d9913180e6684f77ff6c196778f7f7206a3da778b52a7de84cc661a1fde2414",
-    "benchmark/pi_client.py": "d00bc7c92fcbea0490730cc87053a602fa201e5f193154174aa6b353d2e6dc29",
-    "benchmark/route_metrics.py": "38acc9c782a7651c921f3f4cea98397d10d1f0b43dad2d39f408d3c730628b06",
-    "benchmark/runner.py": "185293c2a0555ff861ee2f3de16d89c66c9fc19809a2aba7140cacaa36b6fac4"
+    "benchmark/execution.py": "bb2ff51e32892996d42601b1703c429b58bf7f34f68f913310ffee791a12db58",
+    "benchmark/pi_client.py": "76112d0124acc999d265d8c98fe6b6919518cc9e9efaaf6fd9be1cb2cb76df0b",
+    "benchmark/route_metrics.py": "8fbda53fc5c2962a94223dddc7f2e1281f3ed27c470784cdb18a75ebb2a88772",
+    "benchmark/runner.py": "a89a77cda458717b3eee2ff945c0e81c53301b840f4d19656463df637310fb06"
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "065ae8f43e4a1e8f90bfe316761714be0965fb07c282166abd0315fa46940af2",
@@ -119,7 +119,7 @@
     },
     "observations": {
       "missing": "null for unobserved totals; observed partial sums retained",
-      "origin": "pi turns/durationMs/outputGuard/script output plus relay or bash wrapper clocks",
+      "origin": "pi turns/durationMs/outputGuard/bash truncation metadata/script output plus relay or bash wrapper clocks",
       "unit": "per-slot counts, seconds and distributions"
     },
     "quality": {
@@ -174,11 +174,11 @@
     "planned_unique_slots": 84,
     "relay_loss": false
   },
-  "recorded_at": "2026-10-26T23:47:45.648164+00:00",
+  "recorded_at": "2026-10-27T03:42:26.628587+00:00",
   "result_schema": {
     "attempts_per_slot": 1,
     "preview": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/report-contract/report/summary.json",
-    "preview_sha256": "ae88968d231f5edce8b5b56b337a2d2e293cf6a814ce345144d1dd955d614db3",
+    "preview_sha256": "d458357c9f16d31c265a38f34e6a5241630b0c405e775e40f8da051b3b186ed2",
     "slot_keys": [
       "plugin-http-route-bridge-codegraph-direct-1",
       "plugin-http-route-bridge-serena-direct-1",

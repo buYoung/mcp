@@ -30,7 +30,7 @@
             "serena": 1250000
           }
         },
-        "output_truncation": "pi default",
+        "output_truncation": "pi bash default; codemode default output 100000 tokens unless script specifies",
         "retry": "pi default"
       },
       "lock_sha256": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
@@ -124,15 +124,15 @@
       }
     }
   },
-  "contract_hash": "f1c8ff5a7a275ad09671d39dfc12dc7774457df7d6c3c4c27772ac492a7139d9",
+  "contract_hash": "cdd73172aca5e1f78bd5846366a857c6a3ae1226aab485401fccd3928eb9fa7b",
   "dependency_hashes": {
-    "01-contract.json": "d318c48d49b271fffb05b6fd3e7b66eb95a87d404d0c0651996136914f3ab92f"
+    "01-contract.json": "ae4698570058ec4834687c2f6e5b7e2d850ac96c301037f9fe295ae3b38fcb2b"
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/pi_client.py": "d00bc7c92fcbea0490730cc87053a602fa201e5f193154174aa6b353d2e6dc29",
-    "benchmark/route_transport.py": "71c9e48410a126c86900212493077dbe468da9fac9cfdc33732b0e448565cd8c",
-    "benchmark/runner.py": "185293c2a0555ff861ee2f3de16d89c66c9fc19809a2aba7140cacaa36b6fac4"
+    "benchmark/pi_client.py": "76112d0124acc999d265d8c98fe6b6919518cc9e9efaaf6fd9be1cb2cb76df0b",
+    "benchmark/route_transport.py": "f43e8a1146d9cff94fba757a09d8329bd9457b443fee95e3afaddad99d416c55",
+    "benchmark/runner.py": "a89a77cda458717b3eee2ff945c0e81c53301b840f4d19656463df637310fb06"
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "065ae8f43e4a1e8f90bfe316761714be0965fb07c282166abd0315fa46940af2",
@@ -172,7 +172,7 @@
           "serena": 1250000
         }
       },
-      "output_truncation": "pi default",
+      "output_truncation": "pi bash default; codemode default output 100000 tokens unless script specifies",
       "retry": "pi default"
     },
     "flags": [
@@ -197,11 +197,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 41467,
+          "pgid": 15426,
           "stopped": true
         }
       ],
-      "pid": 41467,
+      "pid": 15426,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -255,17 +255,17 @@
       }
     ],
     "probe": "rg over a copied harness source file",
-    "probe_source_sha256": "a81fdcee302e00a5a3cfc346a303ff1440c859f63d0d078b8dc16d908d1aa412",
-    "protocol_log": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/delivery-probe/1793052762697542000/protocol.jsonl",
-    "protocol_sha256": "864c4e922c9be93085aafc32e57481355b571a264a85c0197e9a02a15e30fb25",
-    "relay_log": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/delivery-probe/1793052762697542000/relay.jsonl",
-    "relay_sha256": "96684e223547c3579e73fb1e0b7f8e45c7cbabd5da47d9d51fdba76898cbeeec",
+    "probe_source_sha256": "96bea426ac379e6430526dc6f367341bfc49d37826efff5a4875a4bf66c7ee2f",
+    "protocol_log": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/delivery-probe/1793071480366365000/protocol.jsonl",
+    "protocol_sha256": "8ce9c5225db38113f6e07895f99b3ff562f321392b413ae642ab7d7f8adc749b",
+    "relay_log": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/delivery-probe/1793071480366365000/relay.jsonl",
+    "relay_sha256": "aee740184ed776814a711a99c73c6d265d30be804803da591dbe67f88a8ea759",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
-    "stdout_bytes": 90004,
-    "stdout_lines": 1413
+    "stdout_bytes": 87425,
+    "stdout_lines": 1376
   },
-  "recorded_at": "2026-10-26T22:12:47.578020+00:00",
+  "recorded_at": "2026-10-27T03:24:43.888596+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",

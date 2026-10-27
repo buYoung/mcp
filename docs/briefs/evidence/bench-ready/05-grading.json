@@ -3,9 +3,9 @@
   "calibration_runs": 0,
   "calibration_status": "not_executed",
   "citation_policy": "Parser and source-access labels are advisory; supported is the LLM's judgment of the original answer and fixed source.",
-  "contract_hash": "f1c8ff5a7a275ad09671d39dfc12dc7774457df7d6c3c4c27772ac492a7139d9",
+  "contract_hash": "cdd73172aca5e1f78bd5846366a857c6a3ae1226aab485401fccd3928eb9fa7b",
   "dependency_hashes": {
-    "01-contract.json": "d318c48d49b271fffb05b6fd3e7b66eb95a87d404d0c0651996136914f3ab92f"
+    "01-contract.json": "ae4698570058ec4834687c2f6e5b7e2d850ac96c301037f9fe295ae3b38fcb2b"
   },
   "fact_counts": {
     "core": 12,
@@ -18,7 +18,7 @@
   "grader_runs": 0,
   "implementation_hashes": {
     "benchmark/grading_support.py": "5217b9442cb9b9a1d20fdb698e1bfdb0ed84dd53a57e1aea1027c58cf4a01f88",
-    "benchmark/route_grading.py": "774ab9af7000dc7ac77c95b77c2c0cfbba90a96ff7ac2b4fc672346715705ae9"
+    "benchmark/route_grading.py": "2f6ba4c9d8354c26723928d01a7c8e0edbb13c74c2d32fde301e442b5f8ed20d"
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "065ae8f43e4a1e8f90bfe316761714be0965fb07c282166abd0315fa46940af2",
@@ -62,7 +62,7 @@
       "sha256": "e873b3aceb4388f7b2ff8c6115f855ff7043e5425f96660b069d3c889d9a875e"
     }
   },
-  "recorded_at": "2026-10-26T22:12:47.593255+00:00",
+  "recorded_at": "2026-10-27T03:24:43.901065+00:00",
   "rubric_hash": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
   "schema_version": 1,
   "status": "verified_offline",

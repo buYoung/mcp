@@ -109,7 +109,7 @@
     ],
     "prompt_separation": "passed"
   },
-  "contract_hash": "f1c8ff5a7a275ad09671d39dfc12dc7774457df7d6c3c4c27772ac492a7139d9",
+  "contract_hash": "cdd73172aca5e1f78bd5846366a857c6a3ae1226aab485401fccd3928eb9fa7b",
   "contract_paths": {
     "private_dataset": "benchmark/data/grafana-routes-v4/dataset.json",
     "profile": "benchmark/data/grafana-execution-v1.json",
@@ -132,11 +132,11 @@
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/data/grafana-execution-v1.json": "268cc2566345f26fa6e2bfdf78138233d55b53961425e1b4771efba1baf69fda",
-    "benchmark/execution.py": "2d9913180e6684f77ff6c196778f7f7206a3da778b52a7de84cc661a1fde2414",
-    "benchmark/route_contract.py": "d320a3b34e7fe0f4318654748aa0a50e2d5a52e19e6436e4c9417b6c9cf22001",
-    "benchmark/runner.py": "185293c2a0555ff861ee2f3de16d89c66c9fc19809a2aba7140cacaa36b6fac4",
-    "benchmark/settings.py": "2eb40ddff3bcd95464990d62ffa13bab6108295ddcfa96ed4e196a201838dddc"
+    "benchmark/data/grafana-execution-v1.json": "6eaeb3fedce3fdf910b224124133c9b5814c5c8fcb4950fba017af42a4395629",
+    "benchmark/execution.py": "bb2ff51e32892996d42601b1703c429b58bf7f34f68f913310ffee791a12db58",
+    "benchmark/route_contract.py": "cbee653996dadbbd086506aa4d28f0419d9b5e508efd86da12bdbd58ae2414ab",
+    "benchmark/runner.py": "a89a77cda458717b3eee2ff945c0e81c53301b840f4d19656463df637310fb06",
+    "benchmark/settings.py": "9ac88a2939b2bf68f33c51d72003c8a073a87cccf7b8012d04902002af90a84a"
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "065ae8f43e4a1e8f90bfe316761714be0965fb07c282166abd0315fa46940af2",
@@ -158,11 +158,7 @@
     "Full source validation belongs to index preparation.",
     "Exact model account availability has not been exercised."
   ],
-  "limits": {
-    "elapsed_seconds": 300,
-    "exploration_calls": 80,
-    "total_tokens": 500000
-  },
+  "limits": null,
   "planned_solver_runs": 84,
   "policy_decisions": {
     "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
@@ -207,6 +203,7 @@
       "model": "gpt-6-astra",
       "reasoning_effort": "high"
     },
+    "grader_timeout_seconds": 300,
     "index_mode": {
       "codemap_jev": false,
       "external_ai": false,
@@ -215,11 +212,7 @@
       "zvec_model": "local/potion-code-16m-v2",
       "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
     },
-    "limits": {
-      "elapsed_seconds": 300,
-      "exploration_calls": 80,
-      "total_tokens": 500000
-    },
+    "limits": null,
     "measurement_modes": [
       "direct",
       "codemode"
@@ -273,7 +266,6 @@
         "reasoning_effort": "medium"
       }
     ],
-    "token_limit_basis": "input_excluding_cache_reads_plus_output",
     "tool_access": {
       "allowed_auxiliaries": [
         "rg",
@@ -288,7 +280,7 @@
     "git-oauth-authorization",
     "plugin-http-route-bridge"
   ],
-  "recorded_at": "2026-10-26T22:09:35.793544+00:00",
+  "recorded_at": "2026-10-27T03:24:27.990636+00:00",
   "repetitions": 3,
   "schema_version": 1,
   "solver": {
