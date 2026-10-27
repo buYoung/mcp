@@ -526,29 +526,31 @@ def cli_observations(folder: Path, calls: list[dict], *, call_log_complete: bool
             native_tool_seconds = costs[-1]["totalToolDuration"] / 1000 if isinstance(costs[-1].get("totalToolDuration"), (int, float)) else None
     else:
         rows, _ = read_jsonl_prefix(folder / "rollout.jsonl")
-        current, wrapper_ids, wrapper_turns, native_ids, native_counts = 0, [], {}, set(), []
-        current_native = 0
+        current, wrapper_ids, wrapper_turns, native_ids = 0, [], {}, set()
+        native_counts, last_custom_turn = collections.Counter(), None
         for row in rows:
             payload = row.get("payload", {})
             if row.get("type") == "response_item":
                 if payload.get("type") in {"function_call", "custom_tool_call"}:
                     current += 1
                     wrapper_ids.append(payload.get("id"))
+                    if payload.get("type") == "custom_tool_call":
+                        last_custom_turn = len(model_calls)
                 if payload.get("type") in {"function_call_output", "custom_tool_call_output"}:
                     outputs.append(payload.get("output", ""))
             elif payload.get("type") == "item_completed" and payload.get("item", {}).get("type") == "CommandExecution":
                 ident = payload["item"].get("id")
                 if ident not in native_ids:
                     native_ids.add(ident)
-                    current_native += 1
+                    # CommandExecution follows its response's usage record in the pinned CLI.
+                    native_counts[last_custom_turn] += 1
             elif row.get("type") == "token_usage_record":
                 wrapper_turns.update({ident: len(model_calls) for ident in wrapper_ids})
                 model_calls.append(current)
-                native_counts.append(current_native)
-                current, current_native, wrapper_ids = 0, 0, []
+                current, wrapper_ids = 0, []
         if (folder / "native-agent.json").exists():
-            per_turn = native_counts
-            if sum(per_turn) != len(calls) or any("Process running with session ID" in json.dumps(out) or "Script running with cell ID" in json.dumps(out) for out in outputs):
+            per_turn = [native_counts[index] for index in range(len(model_calls))]
+            if sum(per_turn) != len(calls) or None in native_counts or any("Process running with session ID" in json.dumps(out) or "Script running with cell ID" in json.dumps(out) for out in outputs):
                 per_turn = None
                 attribution_missing = "asynchronous native command cannot be uniquely attributed to a model response"
         else:

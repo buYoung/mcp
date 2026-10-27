@@ -178,7 +178,7 @@ prepare/verify는 실제 pinned CLI와 loopback fake provider로 첫 instruction
 
 토큰은 Codex의 response-identified token_usage_record와 누적/terminal reconciliation, Claude의 message/stream usage와 native result 누적 usage로 집계한다. 캐시 읽기 제외 입력(쓰기 포함)+출력 및 캐시 포함 전체를 함께 기록하며 clamp하지 않는다. 오류/중단·미완료 호출·손상 JSONL은 미관측 비용을 0으로 추정하지 않고 incomplete로 남긴다. 정상 완결성이 인증되지 않은 답변은 채점하지 않는다.
 
-turns·호출 분포·relay dispatch/refusal·native 호출·CLI 절단·Claude persisted marker와 파일 count/bytes를 백엔드별로 기록한다. Claude API/tool duration은 자체 cost-state, 제품 tool duration은 relay clock을 사용한다. Codex가 native 로그로 공개하지 않는 전체 model-request duration은 null이며 wall time에서 도구 시간을 빼서 꾸며내지 않는다. 병렬 도구 구간 합을 wall time에 더하지 않는다. raw JSON/relay JSON/CLI 관측/실제 wire는 서로 다른 전달 증거다.
+turns·호출 분포·relay dispatch/refusal·native 호출·CLI 절단·Claude persisted marker와 파일 count/bytes를 백엔드별로 기록한다. Codex `CommandExecution`은 usage record 뒤에 나타나므로 직전 `custom_tool_call`의 응답 턴에 귀속한다. 비동기 실행으로 유일한 귀속을 증명할 수 없으면 벡터를 null로 둔다. Claude API/tool duration은 자체 cost-state, 제품 tool duration은 relay clock을 사용한다. Codex가 native 로그로 공개하지 않는 전체 model-request duration은 null이며 wall time에서 도구 시간을 빼서 꾸며내지 않는다. 병렬 도구 구간 합을 wall time에 더하지 않는다. raw JSON/relay JSON/CLI 관측/실제 wire는 서로 다른 전달 증거다.
 
 ## 검증과 실행 경계
 
