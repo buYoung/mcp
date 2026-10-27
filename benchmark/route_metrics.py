@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import collections
 import json
+import re
+import shlex
 from pathlib import Path
 
 from . import route_contract as routes
@@ -22,7 +24,7 @@ FIELD_PROVENANCE = {
     "elapsed_seconds": {"unit": "seconds", "origin": "total execution clock including collection/cleanup; excludes preparation"},
     "timing": {"unit": "seconds", "origin": "runtime started/model-exited/elapsed timestamps", "missing": "null with reason",
                "scopes": ["model process lifetime including startup", "post-model cleanup", "collection after cutoff may overlap model lifetime"]},
-    "observations": {"unit": "per-slot counts, seconds and distributions", "origin": "pi turns/durationMs/outputGuard/bash truncation metadata/script output plus relay or bash wrapper clocks",
+    "observations": {"unit": "per-slot counts, seconds and distributions", "origin": "backend response IDs, native transcript timings/truncation markers and relay clocks",
                      "missing": "null for unobserved totals; observed partial sums retained"},
     "quality": {"unit": "fact dimensions and per-route core completeness", "origin": "validated frozen route judgment"},
 }
@@ -74,13 +76,32 @@ def collected_call_logs(folder: Path, runtime: dict, names: tuple[str, ...]) -> 
                 and all(state["complete"] and state["valid_records"] for state in states))
 
 
+def codex_wire_outputs(folder: Path) -> dict | None:
+    policy, wire = folder / "cli-policy.json", folder / "requests.json"
+    if not policy.exists() or not wire.exists() or not read_json(policy).get("local_provider"):
+        return None
+    return {item["call_id"]: item.get("output") for request in read_json(wire) for item in request.get("input", [])
+            if item.get("type") in {"custom_tool_call_output", "function_call_output"} and item.get("call_id")}
+
+
 def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
     from .native_baseline import command_items
     from .runner import output_blocks, read_live_jsonl
     events, rollout = read_live_jsonl(folder / "events.jsonl"), read_live_jsonl(folder / "rollout.jsonl")
     runtime = read_json(folder / "runtime.json") if (folder / "runtime.json").exists() else {}
     calls = []
-    for item in command_items(events):
+    durations = collections.defaultdict(list)
+    for row in rollout:
+        payload = row.get("payload", {})
+        item = payload.get("item", {})
+        if payload.get("type") == "item_completed" and item.get("type") == "CommandExecution" and item.get("duration"):
+            duration = item["duration"]
+            command_text = item.get("command", [])
+            key = shlex.join(command_text) if isinstance(command_text, list) else command_text
+            durations[key].append(duration.get("secs", 0) + duration.get("nanos", 0) / 1e9)
+    native_items = command_items(events)
+    command_counts = collections.Counter(item.get("command") for item in native_items)
+    for item in native_items:
         output = item.get("aggregated_output")
         calls.append({"id": item["id"], "arm": "rg", "tool": "command_execution", "is_auxiliary": False,
                       "arguments": {"command": item.get("command")},
@@ -88,7 +109,8 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                       "completed": item["completed"], "dispatched": True, "native_item": item,
                       "native_output_bytes": len(output.encode()) if isinstance(output, str) else None,
                       "raw_result": None, "relay_result": None, "raw_json_bytes": None, "relay_json_bytes": None,
-                      "relay_loss": None, "native_truncated": None, "delivered_lines": None, "duration_seconds": None,
+                      "relay_loss": None, "native_truncated": None, "delivered_lines": None,
+                      "duration_seconds": durations[item.get("command")][0] if len(durations[item.get("command")]) == command_counts[item.get("command")] == 1 else None,
                       "client_delivery": {"status": "unknown", "complete": None,
                                           "reason": "CLI aggregated_output is not proof of what the model saw; preserve native logs."}})
     payloads = [r.get("payload", {}) for r in rollout if r.get("type") == "response_item"]
@@ -104,8 +126,8 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                 and None not in host_ids and len(host_ids) == len(set(host_ids)) == len(output_ids)
                 and set(host_ids) == set(output_ids))
     if write_delivery:
-        write_json(folder / "delivery.json", {"actual_model_output_bytes": total_bytes if rollout else None,
-                   "missing_reason": None if rollout else "No real solver rollout was observed.",
+        write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "rollout_output_bytes": total_bytes if rollout else None,
+                   "missing_reason": "Native stdout and rollout precede model history truncation.",
                    "complete_result_deliveries": None, "source": "rollout.jsonl; native command items in events.jsonl",
                    "limitation": "Native CLI output and model-delivered output are separate observations."})
     return calls, complete, len(host) if rollout else None, violations
@@ -127,7 +149,8 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
     complete = transcript_complete and (probe_only or collected_call_logs(folder, runtime, ("events.jsonl", "rollout.jsonl")))
     if not probe_only:
         complete = complete and runtime.get("shutdown", {}).get("relay_cleanup", {}).get("complete", False)
-    violations, host_calls, total_bytes = [], 0, 0
+    violations, host_calls, total_bytes, wire_bytes = [], 0, 0, 0
+    wire_outputs = codex_wire_outputs(folder)
     for row in rollout:
         payload = row.get("payload", {})
         if row.get("type") != "response_item":
@@ -146,7 +169,7 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
             pending_host.add(call_id)
             wrappers[call_id] = wrapper
             host_calls += 1
-            if name not in {"exec", "wait"}:
+            if name not in {"exec", "wait", "apply_patch", "update_plan", "request_user_input", "request_user_input_async", "curr_time", "sleep"}:
                 violations.append({"name": name, "reason": "unapproved host capability"})
         elif payload.get("type") in {"custom_tool_call_output", "function_call_output"}:
             call_id = payload.get("call_id")
@@ -154,8 +177,9 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
                 complete = False
             pending_host.discard(call_id)
             wrapper = wrappers.get(call_id)
-            for block in output_blocks(payload):
-                total_bytes += len(block.encode())
+            total_bytes += sum(len(block.encode()) for block in output_blocks(payload))
+            for block in output_blocks({"output": (wire_outputs or {}).get(call_id, "")}):
+                wire_bytes += len(block.encode())
                 import re
                 match = re.search(r"Script running with cell ID ([^\s]+)", block)
                 if match:
@@ -168,7 +192,7 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
         relayed = result.get("relay_result") if result else None
         text = content_text(relayed) if relayed else ""
         delivery = {"status": "unknown", "complete": None, "observed_text_bytes": None,
-                    "reason": "No uniquely matched client output."}
+                    "reason": "Next provider input unobserved; raw rollout precedes history truncation." if wire_outputs is None else "No uniquely matched client output."}
         parsed_lines = None
         after_exit = bool(result and runtime.get("model_exited_monotonic") is not None
                           and result["finished_monotonic"] > runtime["model_exited_monotonic"])
@@ -207,10 +231,11 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
                           if request.get("dispatched") and (terminal or result or {}).get("finished_monotonic") is not None else None})
     complete = complete and not pending_host
     if write_delivery:
-        write_json(folder / "delivery.json", {"actual_model_output_bytes": total_bytes if rollout else None,
-                   "missing_reason": None if rollout else "No real solver rollout was observed.",
-                   "complete_result_deliveries": sum(c["client_delivery"]["complete"] is True for c in calls),
-                   "source": "rollout.jsonl"})
+        write_json(folder / "delivery.json", {"actual_model_output_bytes": wire_bytes if wire_outputs is not None else None,
+                   "rollout_output_bytes": total_bytes if rollout else None,
+                   "missing_reason": None if wire_outputs is not None else "Raw rollout precedes history truncation; next provider input unobserved.",
+                   "complete_result_deliveries": sum(c["client_delivery"]["complete"] is True for c in calls) if wire_outputs is not None else None,
+                   "source": "requests.json (explicit loopback capture)" if wire_outputs is not None else "rollout.jsonl (pre-history)"})
     return calls, complete, host_calls if rollout else None, violations
 
 
@@ -300,8 +325,8 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
         if native:
             result = item.get("result")
             calls.append({"id": item["id"], "arm": "rg", "tool": item.get("name"), "arguments": item.get("input"),
-                          "is_auxiliary": False, "status": "incomplete" if result is None else "error" if result.get("is_error") else "success",
-                          "completed": item["completed"], "dispatched": True, "native_item": item, "raw_result": None, "relay_result": None,
+                          "is_auxiliary": False, "status": "rejected" if item.get("non_execution_kind") else "incomplete" if result is None else "error" if result.get("is_error") else "success",
+                          "completed": item["completed"], "dispatched": item.get("dispatched", True), "native_item": item, "raw_result": None, "relay_result": None,
                           "native_output_bytes": len(text.encode()) if text is not None else None,
                           "raw_json_bytes": None, "relay_json_bytes": None, "relay_loss": None, "native_truncated": None,
                           "delivered_lines": None, "duration_seconds": None,
@@ -428,6 +453,142 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
             "evidence": [str(folder / "events.jsonl"), str(folder / ("bash-results.jsonl" if (folder / "native-agent.json").exists() else "relay.jsonl"))]}
 
 
+def codex_history_observation(folder: Path) -> dict:
+    """Raw rollout is pre-history: certify next-request changes only with explicit local wire evidence."""
+    from .runner import read_jsonl_prefix
+    result = {"observed": False, "wire_output_truncated": None, "history_truncated": None,
+              "missing_reason": "CLI rollout/stdout do not expose the next provider input"}
+    policy = folder / "cli-policy.json"
+    wire = folder / "requests.json"
+    if not wire.exists() or not policy.exists() or not read_json(policy).get("local_provider"):
+        return result
+    raw = {r["payload"].get("call_id"): r["payload"].get("output") for r in read_jsonl_prefix(folder / "rollout.jsonl")[0]
+           if r.get("type") == "response_item" and r.get("payload", {}).get("type") in {"function_call_output", "custom_tool_call_output"}}
+    requests = read_json(wire)
+    if not raw or len(requests) < 2:
+        return {**result, "missing_reason": "no subsequent tool-output request observed"}
+    observed, truncated, changed, unknown = set(), set(), set(), set()
+    marker = lambda value: bool(re.search(r"Warning: truncated output|…\d+ (?:tokens|chars) truncated…|Output truncated", json.dumps(value, ensure_ascii=False)))
+    for request in requests:
+        for item in request.get("input", []):
+            if item.get("type") not in {"function_call_output", "custom_tool_call_output"}:
+                continue
+            ident, output = item.get("call_id"), item.get("output")
+            observed.add(ident)
+            if marker(output):
+                truncated.add(ident)
+            if ident in raw and output != raw[ident]:
+                (changed if marker(output) else unknown).add(ident)
+    complete = set(raw) <= observed and not unknown
+    return {"observed": True, "wire_output_truncated": len(truncated), "history_truncated": len(changed) if complete else None,
+            "missing_reason": None if complete else "some output changes or subsequent deliveries cannot be classified",
+            "evidence": str(wire), "sha256": file_digest(wire)}
+
+
+def claude_auxiliary_requests(folder: Path) -> dict:
+    """Count helper API traffic separately when observable; native stdout is not a complete network log."""
+    from .runner import read_jsonl_prefix
+    observed = [row for path in folder.glob("claude-session-*.jsonl") for row in read_jsonl_prefix(path)[0]
+                if row.get("type") == "api-request" and row.get("querySource") == "count_tokens"]
+    result = {"count_tokens_requests": None, "observed_auxiliary_sampling_requests": len(observed),
+              "complete": False, "scope": "outside solver assistant/tool turn accounting",
+              "missing_reason": "native CLI does not certify all count_tokens HTTP requests"}
+    wire = folder / "count-requests.json"
+    if wire.exists() and (folder / "cli-policy.json").exists() and read_json(folder / "cli-policy.json").get("local_provider"):
+        sampling = sum(request.get("max_tokens") == 1 and not request.get("system") for request in read_json(folder / "requests.json")) if (folder / "requests.json").exists() else 0
+        result.update(count_tokens_requests=len(read_json(wire)), observed_auxiliary_sampling_requests=sampling, complete=True, missing_reason=None,
+                      evidence=str(wire), sha256=file_digest(wire))
+    return result
+
+
+def cli_observations(folder: Path, calls: list[dict], *, call_log_complete: bool) -> dict:
+    from .runner import read_jsonl_prefix
+    runtime = read_json(folder / "runtime.json")
+    backend = runtime["backend"]
+    events, collection = read_jsonl_prefix(folder / "events.jsonl")
+    per_turn, model_calls, outputs, model_seconds, native_tool_seconds = [], [], [], None, None
+    attribution_missing = None
+    if backend == "claude_code":
+        messages = {}
+        for event in events:
+            if event.get("type") == "assistant":
+                message = event.get("message", {})
+                messages.setdefault(message.get("id"), {}).update({block.get("id", str(index)): block
+                    for index, block in enumerate(message.get("content", [])) if block.get("type") == "tool_use"})
+            if event.get("type") == "user":
+                outputs.extend(block for block in event.get("message", {}).get("content", []) if isinstance(block, dict) and block.get("type") == "tool_result")
+        per_turn = [len(blocks) for blocks in messages.values()]
+        model_calls = list(per_turn)
+        costs = [row for path in folder.glob("claude-session-*.jsonl") for row in read_jsonl_prefix(path)[0]
+                 if row.get("type") == "cost-state"]
+        if costs:
+            model_seconds = costs[-1]["totalAPIDuration"] / 1000 if isinstance(costs[-1].get("totalAPIDuration"), (int, float)) else None
+            native_tool_seconds = costs[-1]["totalToolDuration"] / 1000 if isinstance(costs[-1].get("totalToolDuration"), (int, float)) else None
+    else:
+        rows, _ = read_jsonl_prefix(folder / "rollout.jsonl")
+        current, wrapper_ids, wrapper_turns, native_ids, native_counts = 0, [], {}, set(), []
+        current_native = 0
+        for row in rows:
+            payload = row.get("payload", {})
+            if row.get("type") == "response_item":
+                if payload.get("type") in {"function_call", "custom_tool_call"}:
+                    current += 1
+                    wrapper_ids.append(payload.get("id"))
+                if payload.get("type") in {"function_call_output", "custom_tool_call_output"}:
+                    outputs.append(payload.get("output", ""))
+            elif payload.get("type") == "item_completed" and payload.get("item", {}).get("type") == "CommandExecution":
+                ident = payload["item"].get("id")
+                if ident not in native_ids:
+                    native_ids.add(ident)
+                    current_native += 1
+            elif row.get("type") == "token_usage_record":
+                wrapper_turns.update({ident: len(model_calls) for ident in wrapper_ids})
+                model_calls.append(current)
+                native_counts.append(current_native)
+                current, current_native, wrapper_ids = 0, 0, []
+        if (folder / "native-agent.json").exists():
+            per_turn = native_counts
+            if sum(per_turn) != len(calls) or any("Process running with session ID" in json.dumps(out) or "Script running with cell ID" in json.dumps(out) for out in outputs):
+                per_turn = None
+                attribution_missing = "asynchronous native command cannot be uniquely attributed to a model response"
+        else:
+            per_turn = [0] * len(model_calls)
+            for call in calls:
+                if call.get("discovery"):
+                    continue
+                index = wrapper_turns.get(call.get("metadata", {}).get("itemId"))
+                if index is None:
+                    attribution_missing = "relay itemId cannot be joined to a model response"
+                else:
+                    per_turn[index] += 1
+            if attribution_missing:
+                per_turn = None
+    durations = [call["duration_seconds"] for call in calls if call.get("dispatched") and call.get("duration_seconds") is not None]
+    dispatched = [call for call in calls if call.get("dispatched") and not call.get("discovery")]
+    missing = sum(call.get("duration_seconds") is None for call in dispatched)
+    tool_seconds = sum(durations) if call_log_complete and not missing else None
+    if backend == "claude_code" and (folder / "native-agent.json").exists():
+        tool_seconds = native_tool_seconds if call_log_complete else None
+    texts = [json.dumps(output, ensure_ascii=False) for output in outputs]
+    truncated = sum(bool(re.search(r"Warning: truncated output|[.…]\d+ tokens truncated|Output truncated", text)) for text in texts)
+    persisted = sum(text.count("<persisted-output>") for text in texts)
+    return {"backend": backend, "turns": len(model_calls) if collection["complete"] else None,
+            "tool_calls_per_turn": per_turn, "tool_calls_per_turn_histogram": dict(collections.Counter(map(str, per_turn))) if per_turn is not None else None,
+            "model_tool_calls_per_turn": model_calls, "tool_call_attribution_missing_reason": attribution_missing,
+            "model_seconds": model_seconds,
+            "model_seconds_missing_reason": "Codex rollout does not expose complete per-request model duration" if backend == "codex" else None,
+            "tool_seconds": tool_seconds, "observed_tool_seconds": sum(durations),
+            "tool_seconds_observed_calls": len(durations), "tool_seconds_missing_calls": missing,
+            "codex_output_truncated": truncated if backend == "codex" else None,
+            "codex_history_delivery": codex_history_observation(folder) if backend == "codex" else None,
+            "claude_persisted_output_markers": persisted if backend == "claude_code" else None,
+            "claude_output_token_truncated": sum("[OUTPUT TRUNCATED - exceeded " in text for text in texts) if backend == "claude_code" else None,
+            "claude_token_guard_observation_complete": persisted == 0 if backend == "claude_code" else None,
+            "claude_auxiliary_requests": claude_auxiliary_requests(folder) if backend == "claude_code" else None,
+            "timing_basis": "Claude cost-state API/tool milliseconds; Codex CommandExecution.duration; relay intervals (parallel sums overlap)",
+            "include_seen_true_calls": sum(call.get("arm") == "codemap-search" and call.get("arguments", {}).get("include_seen") is True for call in calls)}
+
+
 def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
     calls, complete, host_calls, violations = normalize_calls(folder)
     runtime = read_json(folder / "runtime.json")
@@ -450,11 +611,11 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
               "collection_after_cutoff": execution.get("shutdown", {}).get("cleanup_elapsed_seconds"),
               "collection_scope": "may overlap model process lifetime; not an additive duration"}
     return {**entry, **execution, "error": error, "calls": calls, "host_calls": host_calls, "usage": usage, "timing": timing,
-            "observations": pi_observations(folder, calls, call_log_complete=complete) if runtime.get("backend") == "pi" else None,
+            "observations": pi_observations(folder, calls, call_log_complete=complete) if runtime.get("backend") == "pi" else cli_observations(folder, calls, call_log_complete=complete),
             "source_snapshot": access["source"],
             "artifacts": {name: str(folder / name) for name in ("execution.json", "runtime.json", "events.jsonl", "rollout.jsonl",
                            "relay.jsonl", "native-agent.json", "relay-settings.json", "delivery.json", "stderr.log", "command.json",
-                           "claude-settings.json", "mcp-config.json", "pi-policy.json", "pi-bash.json", "pi-bash.sb", "bash-calls.jsonl", "bash-results.jsonl", "context-audit.json") if (folder / name).exists()},
+                           "claude-settings.json", "mcp-config.json", "cli-policy.json", "native-shell-cleanup.json", "requests.json", "count-requests.json", "pi-policy.json", "pi-bash.json", "pi-bash.sb", "bash-calls.jsonl", "bash-results.jsonl", "context-audit.json") if (folder / name).exists()},
             "call_log_complete": complete, "jsonl_collection": collection, "boundary_violations": violations,
             "conditions_valid": execution.get("conditions_valid", False) and not violations,
             "tool_call_counts": dict(collections.Counter(("auxiliary:" if c.get("is_auxiliary") else "native:") + c["tool"]
@@ -492,7 +653,8 @@ def quality_counts(judgments: list[dict], questions: list[dict]) -> dict:
 def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dict:
     dataset = routes.load_dataset()
     questions = {q["id"]: q for q in dataset["questions"]}
-    planned = routes.schedule()
+    model = manifest.get("models", {}).get("solver", {}).get("model")
+    planned = routes.schedule(model)
     by_id = {r["id"]: r for r in rows}
     require(len(by_id) == len(rows) and set(by_id) <= {r["id"] for r in planned}, "계획 밖 또는 중복 결과")
     require(set(judgments) <= set(by_id), "실행 기록 없는 채점")
@@ -522,7 +684,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                                 "phase", "launch_state", "cli_launches", "provider_call_observed", "answer_eligible", "cleanup",
                                 "failure_stage", "grade_state", "grade_reason", "grader_execution", "review", "packet_seal_sha256", "raw_seal", "raw_seal_sha256",
                                 "warm_receipt", "lifecycle_seconds", "cancel_requested", "claude_persisted_tool_results")}})
-    for mode in routes.MEASUREMENT_MODES:
+    for mode in routes.solver_measurement_modes(model):
         arms = {}
         mode_rows = [row for row in result_rows if row["mode"] == mode]
         for arm in routes.ARM_IDS:
@@ -548,7 +710,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "out_of_scope": sum(r["status"] == "out_of_scope" for r in result_rows),
               "not_started": sum(r["launch_state"] in {None, "not_started"} for r in result_rows),
               "launch_unknown": sum(r["launch_state"] == "unknown" for r in result_rows)}
-    result = {"schema_version": 4, "solver_limits": None, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
+    result = {"schema_version": 4, "solver_limits": None, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(planned),
               "campaign_status": manifest.get("campaign_status"), "blocked_grading": manifest.get("blocked_grading", []),
               "run_scope": manifest.get("run_scope", {"kind": "full"}),
               "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions", "execution_specs")},
@@ -591,17 +753,16 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     lines += ["", "미실행·미관측 값은 0점으로 치환하지 않습니다. 핵심과 확장, true/false/indeterminate/미채점을 별도 기록합니다.",
               f"문항·비교군·모드마다 {routes.REPETITIONS}회 반복이며 통계적 유의성을 주장하지 않습니다.",
               "제품 탐색 호출 0회인 답변은 제품 검색 기여의 근거가 아닙니다. 미관측 호출을 0회로 해석하지 않습니다."]
-    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | script 밖 직접 호출 | admission 전 취소 | adapter 절단 | script 절단 | bash content 절단 | nested bash structuredContent 절단 | include_seen=true | Claude 저장 결과(count/bytes) |",
-              "|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
+    lines += ["", "## 슬롯 관측 지표 (모델별 단일 모드)", "", "| 슬롯 | 턴 | 턴당 탐색 호출 | 턴당 model-level 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | Codex rollout 절단 표식 | Codex history 전달 | Claude 저장 표식 | include_seen=true | Claude 저장 결과(count/bytes) |",
+              "|---|---:|---|---|---:|---:|---:|---:|---:|---|---:|---:|---|"]
     for row in result_rows:
         observed = row.get("observations") or {}
         lines.append("| " + " | ".join(cell(v) for v in (row["id"], *[observed.get(key) for key in (
-            "turns", "tool_calls_per_turn", "model_seconds", "tool_seconds", "observed_tool_seconds", "tool_seconds_missing_calls",
-            "direct_calls_outside_script", "cancelled_before_admission", "adapter_output_guard_truncated", "codemode_output_truncated",
-            "bash_content_truncated", "bash_nested_structured_content_truncated", "include_seen_true_calls")],
+            "turns", "tool_calls_per_turn", "model_tool_calls_per_turn", "model_seconds", "tool_seconds", "observed_tool_seconds", "tool_seconds_missing_calls",
+            "codex_output_truncated", "codex_history_delivery", "claude_persisted_output_markers", "include_seen_true_calls")],
             row.get("claude_persisted_tool_results"))) + " |")
-    lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",
-              "direct bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(기본 100,000토큰)의 절단은 별도로 셉니다."]
+    lines += ["", "Claude 모델 시간은 transcript API duration, 도구 시간은 relay 구간 합 또는 native cost-state입니다. Codex의 미관측 model 시간은 null입니다.",
+              "병렬 도구 구간 합을 wall time에 더하지 않습니다. Codex raw rollout의 표식 0은 history 절단 0의 증명이 아니며 실제 다음 요청이 없으면 history는 미관측입니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
     return result
 

@@ -23,7 +23,7 @@ NAVIGATION_SERVER = "navigation"
 CODEMODE_MAX_OUTPUT_TOKENS = 100000
 # Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
 # Serena's 150k Unicode characters appear in both text and appended structuredContent.
-OUTPUT_GUARD_BYTES = {"codemap-search": 100000, "serena": 1250000}
+from .client_delivery import PRODUCT_TEXT_BYTES as OUTPUT_GUARD_BYTES
 ADAPTER_SETTINGS = {"semanticSearch": False, "allowInstall": False, "allowScriptToolSave": False, "autoAuth": False,
                     "sampling": False, "elicitation": False, "requestTimeoutMs": 300000,
                     "outputGuard": {"maxBytes": 1024 * 1024, "maxLines": 1024 * 1024 + 1}}
@@ -462,39 +462,45 @@ def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | N
             clean = redact(original, token)
             if clean != original:
                 path.write_bytes(clean)
-    removed, persisted = None, None
     if provider == "claude-bridge":
-        real = unicodedata.normalize("NFC", str(workspace.resolve()))
-        slug = claude_project_slug(workspace)
-        projects = (home or Path(pwd.getpwuid(os.getuid()).pw_dir)).resolve() / ".claude/projects"
-        target = projects / slug
-        require(target.name == slug and target.parent == projects and not target.is_symlink(), "Claude residue 경로 오류")
-        persisted = {"count": 0, "bytes": 0}
-        if target.exists():
-            # A slug is lossy. Refuse deletion unless every session header observed binds to this cwd.
-            files = list(target.glob("*.jsonl"))
-            require(bool(files), "Claude residue workspace binding 없음")
-            for path in files:
-                require(not path.is_symlink() and path.stat().st_nlink == 1, "Claude residue session link 금지")
-                rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
-                cwds = {unicodedata.normalize("NFC", r["cwd"]) for r in rows if isinstance(r.get("cwd"), str)}
-                require(cwds == {real}, "Claude residue workspace binding 불일치")
-            # Count metadata only, after validating all session cwd bindings and before deleting this slug.
-            for path in files:
-                session = target / path.stem
-                results = session / "tool-results"
-                require(not session.is_symlink() and not results.is_symlink(), "Claude tool-results link 금지")
-                for result in results.rglob("*"):
-                    require(not result.is_symlink(), "Claude tool-results link 금지")
-                    if result.is_file():
-                        info = result.stat()
-                        require(info.st_nlink == 1, "Claude tool-results hard link 금지")
-                        persisted["count"] += 1
-                        persisted["bytes"] += info.st_size
-            shutil.rmtree(target)
-            removed = str(target)
+        return cleanup_claude_project(workspace, home=home)
+    return {"complete": True, "removed_project": None, "claude_json_modified_by_harness": False, "claude_persisted_tool_results": None}
+
+
+def cleanup_claude_project(workspace: Path, *, home: Path | None = None) -> dict:
+    """Delete only a harness-created session slug after every transcript is bound to the expected cwd."""
+    removed, persisted = None, None
+    real = unicodedata.normalize("NFC", str(workspace.resolve()))
+    slug = claude_project_slug(workspace)
+    projects = (home or Path(pwd.getpwuid(os.getuid()).pw_dir)).resolve() / ".claude/projects"
+    target = projects / slug
+    require(target.name == slug and target.parent == projects and not target.is_symlink(), "Claude residue 경로 오류")
+    persisted = {"count": 0, "bytes": 0}
+    if target.exists():
+        # A slug is lossy. Refuse deletion unless every session header observed binds to this cwd.
+        files = list(target.glob("*.jsonl"))
+        require(bool(files), "Claude residue workspace binding 없음")
+        for path in files:
+            require(not path.is_symlink() and path.stat().st_nlink == 1, "Claude residue session link 금지")
+            rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+            cwds = {unicodedata.normalize("NFC", r["cwd"]) for r in rows if isinstance(r.get("cwd"), str)}
+            require(cwds == {real}, "Claude residue workspace binding 불일치")
+        # Count metadata only, after validating all session cwd bindings and before deleting this slug.
+        for path in files:
+            session = target / path.stem
+            results = session / "tool-results"
+            require(not session.is_symlink() and not results.is_symlink(), "Claude tool-results link 금지")
+            for result in results.rglob("*"):
+                require(not result.is_symlink(), "Claude tool-results link 금지")
+                if result.is_file():
+                    info = result.stat()
+                    require(info.st_nlink == 1, "Claude tool-results hard link 금지")
+                    persisted["count"] += 1
+                    persisted["bytes"] += info.st_size
+        shutil.rmtree(target)
+        removed = str(target)
     return {"complete": True, "removed_project": removed, "claude_json_modified_by_harness": False,
-            "claude_persisted_tool_results": persisted}
+        "claude_persisted_tool_results": persisted}
 
 
 ARGS_PREVIEW_CHARS = 200  # pinned codemode previewArgs: JSON.stringify(args), longer text cut to 197 UTF-16 units + "..."

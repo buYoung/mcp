@@ -369,6 +369,14 @@ def latch_cutoff(folder: Path, reason: str, observed: dict, *, start: float | No
     return cutoff
 
 
+def client_tool_metadata(tool: dict) -> dict:
+    """Preserve native MCP metadata; only fill an absent Claude delivery budget."""
+    meta = tool.get("_meta", {})
+    if "anthropic/maxResultSizeChars" in meta:
+        return tool
+    return {**tool, "_meta": {**meta, "anthropic/maxResultSizeChars": 500000}}
+
+
 class NativeRelay:
     def __init__(self, config: dict):
         self.config = config
@@ -418,7 +426,7 @@ class NativeRelay:
             self.policy = RelayPolicy(self.config["arm"], self.config.get("policy_state", {"source": str(self.root)}),
                                       self.inventory, tracked=self.config.get("tracked_files"))
             append_jsonl(self.log, {"event": "inventory", "native_tools": native, "tools": self.inventory})
-        return self.inventory
+        return [client_tool_metadata(tool) for tool in self.inventory]
 
     def admit(self, ident, method: str, params: dict, validate) -> dict:
         """Reserve one attempt and record dispatch atomically; validate must not perform RPCs.

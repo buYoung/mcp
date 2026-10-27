@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "revision": 7,
+  "revision": 8,
   "status": "source_identities_frozen",
   "frozen_at": "2026-10-27T00:00:00+00:00",
   "target_release": "1.0.0",
@@ -351,8 +351,8 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "2026-10-26 사용자 결정(v4): 데이터셋을 grafana-routes-v4(학습 이후 코드 2문항)로, Grafana 고정 커밋을 c0a598f5a49abf2014f67e806075d8ad267c9efb로, codemap-search를 0.14.0(read 여러 범위, 로컬 태그 codemap-v0.14.0)으로, pi-mcp-adapter를 최신 stable 7.0.0으로 바꾼다. 다른 비교 도구 5개와 rg, pi·bridge·Agent SDK 고정값은 개정 6과 같다.",
-  "previous_lock_sha256": "7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549",
+  "revision_reason": "풀이를 pinned Codex CLI 0.164.0 기본 code_mode_only·Claude Code 2.1.311 direct로 전환. 모델별 42슬롯이며 pi toolchain은 채점용으로 유지.",
+  "previous_lock_sha256": "de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8",
   "pi_toolchain": {
     "install_flags": [
       "ci",
@@ -377,6 +377,40 @@
       "claude_code": "2.1.310",
       "pi": "1.4.0",
       "mcp_adapter": "7.0.0"
+    }
+  },
+  "cli_toolchain": {
+    "versions": {
+      "codex": "0.164.0",
+      "claude_code": "2.1.311"
+    },
+    "package_sha256": "519444dde90d2b3f115b46aeda9c939b1f2a8f9d24974101288c84d44cfb1b5f",
+    "npm_lock_sha256": "cf7ef941e0fb2367f72458fde9a3d37b990eb9b32c4427506fe9dfa382876022",
+    "node_modules_sha256": "ec8f528e6ff0baf19838f7ae053d5fe145850aa6b3722c96a6fc3c461f84b464",
+    "install_flags": [
+      "ci",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund"
+    ],
+    "executables": {
+      "codex": {
+        "relative_path": "@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
+        "sha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf"
+      },
+      "claude_code": {
+        "relative_path": "@anthropic-ai/claude-code-darwin-arm64/claude",
+        "sha256": "85d8c08707fcfd1e78ffa0204eefbc6ec9e4fe22f375fb2767ef85d957ed3161"
+      }
+    },
+    "platform": "darwin-arm64",
+    "packages": {
+      "codex": "@openai/codex@0.164.0",
+      "claude_code": "@anthropic-ai/claude-code@2.1.311"
+    },
+    "codex_source": {
+      "url": "https://codeload.github.com/openai/codex/tar.gz/refs/tags/rust-v0.164.0",
+      "sha256": "57f8c2f88fe5b6eaf08672212b6372362ca044bee43d6e57b6ad032152be772e"
     }
   }
 }

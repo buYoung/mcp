@@ -42,20 +42,17 @@ def environment(solver_backend="pi") -> dict:
                 "cargo": command(["cargo", "--version"]).strip()}
     require(sys.version_info >= (3, 12), "Python 3.12 이상이 필요합니다")
     require(os.name == "posix", "이 벤치 하네스는 macOS/Linux를 지원합니다")
-    for executable in ("git", "cargo", "rustc", "codex", "node"):
+    for executable in ("git", "cargo", "rustc", "node"):
         require(shutil.which(executable) is not None, f"실행 파일이 없습니다: {executable}")
-    version = command(["codex", "--version"]).strip()
-    help_text = command(["codex", "exec", "--help"])
-    required = ("--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json", "--output-schema")
-    require(all(option in help_text for option in required),
-            f"{version}: 벤치 실행에 필요한 Codex 옵션이 없습니다: {', '.join(x for x in required if x not in help_text)}")
-    login = subprocess.run(["codex", "login", "status"], capture_output=True, timeout=30)
-    require(login.returncode == 0, "Codex 로그인이 필요합니다: codex login")
+    from .codex_client import capabilities as codex_capabilities
+    from .tool_artifacts import cli_toolchain, pi_toolchain
+    codex = codex_capabilities()
     extra = {}
     if solver_backend == "claude_code":
         from .claude_client import capabilities
-        extra["claude"] = capabilities()
-    return {**extra, "solver_backend": solver_backend, "codex_version": version, "python": platform.python_version(),
+        extra["claude"] = capabilities(check_auth=False)
+    return {**extra, "solver_backend": solver_backend, "codex_version": codex["version"],
+            "cli_toolchain": cli_toolchain(), "grader_toolchain": pi_toolchain(), "python": platform.python_version(),
             "node": command(["node", "--version"]).strip(),
             "rustc": command(["rustc", "-Vv"]).strip(), "cargo": command(["cargo", "--version"]).strip()}
 

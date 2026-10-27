@@ -180,7 +180,7 @@ class WarmSession:
                     self._remaining()
                     start = time.monotonic()
                     self.initialized = self.relay.initialize({"protocolVersion": "2025-03-26", "capabilities": {},
-                        "clientInfo": {"name": "readiness-probe", "version": "1"}})
+                        "clientInfo": {"name": "codex-mcp-client" if self.backend == "codex" else "claude-code" if self.backend == "claude_code" else "pi", "version": "preparation-probe"}})
                     initialized_seconds = time.monotonic() - start
                     self._register_groups()
                     self.inventory = self.relay.product.list_tools()
@@ -394,6 +394,9 @@ class WarmSession:
                             expected = "pi" if self.backend == "pi" else "claude" if self.backend == "claude_code" else "codex"
                             require(expected in info.get("name", "").lower(), "unexpected MCP client identity")
                             result = self.relay.initialize(params)  # Actual clientInfo/capabilities/protocol, never cached.
+                            if (result.get("instructions") or "") != (self.initialized.get("instructions") or ""):
+                                self.errors.append("live server instructions differ from prepared instructions")
+                                raise ValueError(self.errors[-1])
                             if self.ident == "zvec-grep":
                                 product = self.relay.product
                                 require(product.session_id and product.session_id != self.session_reset["deleted_session_id"]

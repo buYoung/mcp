@@ -2,26 +2,40 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
 from .core import canonical, command, file_digest, require, write_json
 
-PROFILE = "grafana_baseline"
+PROFILE = "local_read"
+
+
+def pinned_rg(source: Path, rg_binary: Path) -> Path:
+    """The shell can reveal command paths; keep the verified rg copy under an opaque source sibling."""
+    destination = source.resolve().parent / "bin" / "rg"
+    destination.parent.mkdir(exist_ok=True)
+    require(not destination.is_symlink(), "rg copy symlink forbidden")
+    if not destination.exists():
+        shutil.copy2(rg_binary, destination)
+    require(file_digest(destination) == file_digest(rg_binary), "rg copy drift")
+    return destination
 
 
 def configuration(source: Path, rg_binary: Path) -> dict:
-    source, rg_binary = source.resolve(), rg_binary.resolve()
-    search_path = str(rg_binary.parent) + os.pathsep + os.environ.get("PATH", os.defpath)
+    source, rg_binary = source.resolve(), pinned_rg(source, rg_binary)
+    search_path = str(rg_binary.parent) + os.pathsep + "/usr/bin:/bin"
     prefix = f"permissions.{PROFILE}"
     from .isolation import METADATA
+    # Codex renders permission paths into model context. rg's read-only, cleanliness-checked source
+    # has no product metadata; do not leak product names by listing nonexistent denied directories.
     return {"schema": "grafana-native-agent-v1", "mode": "native_agent", "source": str(source),
             "rg_binary": str(rg_binary), "rg_sha256": file_digest(rg_binary), "search_product_mcp": False,
             "env": {"PATH": search_path},
             "config": {"default_permissions": PROFILE,
                        f"{prefix}.filesystem": {":root": "deny", ":minimal": "read",
                                                 str(source): "read", str(rg_binary.parent): "read",
-                                                **{str(source / name): "deny" for name in sorted(METADATA)}},
+                                                **{str(source / name): "deny" for name in sorted(METADATA) if name == ".git" or (source / name).exists()}},
                        f"{prefix}.network.enabled": False,
                        "shell_environment_policy.set.PATH": search_path},
             "native_tools": "Codex defaults; no shell/unified_exec/code_mode override",
@@ -59,7 +73,8 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     codex_home.mkdir(exist_ok=True)  # Empty configuration; no auth link or credential access.
     env = clean_environment({"CODEX_HOME": str(codex_home)})
     source = Path(value["source"])
-    base = ["codex", "sandbox", "-C", str(source), "-P", PROFILE, *options(value), "--"]
+    from .codex_client import executable
+    base = [executable(), "sandbox", "-C", str(source), "-P", PROFILE, *options(value), "--"]
     cases = [("source_read", ["/bin/cat", "README.md"], True),
              ("native_rg", ["/bin/sh", "-c", 'command -v rg && rg --version && rg Grafana README.md'], True),
              ("native_rg_login", [os.environ.get("SHELL", "/bin/sh"), "-lc", 'command -v rg && rg --version && rg Grafana README.md'], True)]
@@ -67,7 +82,7 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     from .isolation import canary_files, hidden_references
     scratch = source / ".benchmark-write-boundary-probe"
     require(not scratch.exists(), "write probe path already exists")
-    canaries = canary_files(source, folder / "boundary")
+    canaries = canary_files(source, folder / "boundary", metadata_root=source / ".git")
     _, targets = canaries.__enter__()
     cases.extend(("canary_" + name, ["/bin/cat", str(path)], False)
                  for name, path in targets.items())
@@ -96,7 +111,7 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
         result = subprocess.run(base + ["/bin/test", "-e", str(path)], cwd=source, env=env, capture_output=True, timeout=30)
         observations.append({"name": "existence_only", "path": str(path), "exists": result.returncode == 0})
     write_json(folder / "probe.json", observations)
-    inventory = {"mode": "native_agent", "codex_version": command(["codex", "--version"]).strip(),
+    inventory = {"mode": "native_agent", "codex_version": command([executable(), "--version"]).strip(),
                  "configuration": value, "search_product_mcp": False,
                  "tool_inventory_observation": "No solver was launched; actual model tool inventory is unobserved.",
                  "boundary_probe": "source read and pinned rg allowed; outside reads and source writes denied"}
