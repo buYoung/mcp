@@ -103,13 +103,13 @@
   ],
   "checks": {
     "bundle_hashes": "passed",
-    "planned_unique_keys": 84,
+    "planned_unique_keys": 42,
     "profiles": [
       "grafana-routes"
     ],
     "prompt_separation": "passed"
   },
-  "contract_hash": "cdd73172aca5e1f78bd5846366a857c6a3ae1226aab485401fccd3928eb9fa7b",
+  "contract_hash": "3c13eb783e86ad4074aea4f87721a9630a72f63375b1bc1f268af9de1d36e55a",
   "contract_paths": {
     "private_dataset": "benchmark/data/grafana-routes-v4/dataset.json",
     "profile": "benchmark/data/grafana-execution-v1.json",
@@ -132,20 +132,22 @@
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/data/grafana-execution-v1.json": "6eaeb3fedce3fdf910b224124133c9b5814c5c8fcb4950fba017af42a4395629",
-    "benchmark/execution.py": "bb2ff51e32892996d42601b1703c429b58bf7f34f68f913310ffee791a12db58",
-    "benchmark/route_contract.py": "cbee653996dadbbd086506aa4d28f0419d9b5e508efd86da12bdbd58ae2414ab",
-    "benchmark/runner.py": "a89a77cda458717b3eee2ff945c0e81c53301b840f4d19656463df637310fb06",
-    "benchmark/settings.py": "9ac88a2939b2bf68f33c51d72003c8a073a87cccf7b8012d04902002af90a84a"
+    "benchmark/data/grafana-execution-v1.json": "15b5944f86ec79d96a99fadc4c6e31e5a91df35284666e62137ad1136e253956",
+    "benchmark/execution.py": "8b1fcac17905dbec8948c837936b0e276ff15fe6aa59aca73f2b5facee101011",
+    "benchmark/route_contract.py": "2f5831899ab3aa6f5316f6cbcf3b05ba7fde5515ae15beb6a6169a3229984506",
+    "benchmark/runner.py": "1a2467f1421ed2dc70481301f988013781de8bd1dd855d49f7c6aafd79692989",
+    "benchmark/settings.py": "74c8b3dfa9f305176b781cfe036494636e9d879479354e7a936d193a4e7da66d"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "065ae8f43e4a1e8f90bfe316761714be0965fb07c282166abd0315fa46940af2",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "8b4718f2658b91d08393a91f1f92fd9ce2e577fc0e1fe690add4bc2fad488b31",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "ec8904ed0026be882668c76fe364b2051626cc07847e8bea034b8cedddfdb27e",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "7a306eb35533ca3b1fd048071949ef0221e80aa2ea93cb445e85450e32f15dff",
+    "benchmark/data/grafana-comparison-targets-v1/cli-package-lock.json": "cf7ef941e0fb2367f72458fde9a3d37b990eb9b32c4427506fe9dfa382876022",
+    "benchmark/data/grafana-comparison-targets-v1/cli-package.json": "519444dde90d2b3f115b46aeda9c939b1f2a8f9d24974101288c84d44cfb1b5f",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "03c36da8f9ad0018e9ef82ce79a74a899f180e9bb50b0e3eb1e9e5ca00957b59",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
     "benchmark/data/grafana-routes-v4/README.md": "b7c385ae0cb4d51ed5cae4c8eb4d4c8684cf6cce7cc015085ce586df21c4040f",
     "benchmark/data/grafana-routes-v4/SHA256SUMS": "8dce9a29307bd232384310ebc38a8cf585860dd462e682940ae2bec037700a66",
     "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
@@ -159,7 +161,7 @@
     "Exact model account availability has not been exercised."
   ],
   "limits": null,
-  "planned_solver_runs": 84,
+  "planned_solver_runs": 42,
   "policy_decisions": {
     "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
     "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
@@ -168,11 +170,11 @@
     "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
     "index_mode": "로컬 검색·색인으로 준비 (권장)",
     "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
-    "measurement_modes": "direct와 codemode(mode only)를 모드마다 3회 측정하고 결과를 합산하지 않는다. codemode 외부 model API는 비활성화한다.",
+    "measurement_modes": "GPT는 Codex 0.164.0 기본 code_mode_only(exec/wait), Claude는 direct. 모델별 단일 모드 42슬롯이며 모델·모드 결과를 합산하지 않는다. pi codemode는 사용하지 않는다.",
     "questions": "학습 기준일(2026-07-01) 이후 코드로 만든 2문항(grafana-routes-v4): TypeScript→Go 사용자 지정 Git OAuth 서버 통신, Go 앱 플러그인 manifest 사용자 정의 route의 HTTP 배포 백엔드 통신. 질문 앞부분 도구 문구와 Grafana 이름은 넣지 않는다. 기억 측정으로 제외 여부를 검증했다",
     "repetitions": "같은 조건 1회 결과가 핵심 사실 7개 중 4개·5개로 흔들려 문항·비교군마다 3회 반복한다",
-    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 2모드 = 84회 예정.",
-    "solver_selection": "pi 1.4.0: openai-codex/gpt-6.1-sol 또는 claude-bridge/claude-opus-5-5, thinking medium",
+    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 모델별 단일 모드 = 42회 예정.",
+    "solver_selection": "codex exec 0.164.0 / gpt-6.1-sol 또는 claude -p 2.1.311 / claude-opus-5-5, reasoning medium",
     "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
     "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
   },
@@ -188,12 +190,12 @@
     ],
     "baseline": {
       "arm": "rg",
-      "call_unit": "atomic shell wrapper admission, cross-checked with pi tool_execution_start",
+      "call_unit": "native command_execution item ID (Codex) or tool_use ID (Claude)",
       "mode": "native_agent",
       "rg_version": "15.2.0",
       "search_product_mcp": false,
       "source_access": "read-only fixed corpus and minimal runtime; no reference/report access",
-      "tools": "pi bash only, per-slot Seatbelt shell wrapper; no MCP or in-process filesystem tools"
+      "tools": "Codex default shell; Claude Bash/Read/Glob/Grep; no search product MCP"
     },
     "comparison_lock_id": "grafana-comparison-targets-v1",
     "concurrency": 4,
@@ -217,7 +219,7 @@
       "direct",
       "codemode"
     ],
-    "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 2모드 · 준비 전용",
+    "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 모델별 단일 모드 · 준비 전용",
     "native_output_policy": {
       "automatic_pagination": false,
       "client_delivery": "record_observed_limits_and_unknowns_separately",
@@ -234,11 +236,11 @@
       "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
       "index_mode": "로컬 검색·색인으로 준비 (권장)",
       "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
-      "measurement_modes": "direct와 codemode(mode only)를 모드마다 3회 측정하고 결과를 합산하지 않는다. codemode 외부 model API는 비활성화한다.",
+      "measurement_modes": "GPT는 Codex 0.164.0 기본 code_mode_only(exec/wait), Claude는 direct. 모델별 단일 모드 42슬롯이며 모델·모드 결과를 합산하지 않는다. pi codemode는 사용하지 않는다.",
       "questions": "학습 기준일(2026-07-01) 이후 코드로 만든 2문항(grafana-routes-v4): TypeScript→Go 사용자 지정 Git OAuth 서버 통신, Go 앱 플러그인 manifest 사용자 정의 route의 HTTP 배포 백엔드 통신. 질문 앞부분 도구 문구와 Grafana 이름은 넣지 않는다. 기억 측정으로 제외 여부를 검증했다",
       "repetitions": "같은 조건 1회 결과가 핵심 사실 7개 중 4개·5개로 흔들려 문항·비교군마다 3회 반복한다",
-      "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 2모드 = 84회 예정.",
-      "solver_selection": "pi 1.4.0: openai-codex/gpt-6.1-sol 또는 claude-bridge/claude-opus-5-5, thinking medium",
+      "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 모델별 단일 모드 = 42회 예정.",
+      "solver_selection": "codex exec 0.164.0 / gpt-6.1-sol 또는 claude -p 2.1.311 / claude-opus-5-5, reasoning medium",
       "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
       "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
     },
@@ -252,17 +254,17 @@
     },
     "solver_choices": [
       {
-        "backend": "pi",
+        "backend": "codex",
+        "measurement_mode": "codemode",
         "model": "gpt-6.1-sol",
         "name": "GPT 6.1 Sol",
-        "provider": "openai-codex",
         "reasoning_effort": "medium"
       },
       {
-        "backend": "pi",
+        "backend": "claude_code",
+        "measurement_mode": "direct",
         "model": "claude-opus-5-5",
         "name": "Claude Opus 5.5",
-        "provider": "claude-bridge",
         "reasoning_effort": "medium"
       }
     ],
@@ -280,7 +282,7 @@
     "git-oauth-authorization",
     "plugin-http-route-bridge"
   ],
-  "recorded_at": "2026-10-27T03:24:27.990636+00:00",
+  "recorded_at": "2026-10-27T14:22:02.811548+00:00",
   "repetitions": 3,
   "schema_version": 1,
   "solver": {
@@ -289,17 +291,17 @@
   },
   "solver_choices": [
     {
-      "backend": "pi",
+      "backend": "codex",
+      "measurement_mode": "codemode",
       "model": "gpt-6.1-sol",
       "name": "GPT 6.1 Sol",
-      "provider": "openai-codex",
       "reasoning_effort": "medium"
     },
     {
-      "backend": "pi",
+      "backend": "claude_code",
+      "measurement_mode": "direct",
       "model": "claude-opus-5-5",
       "name": "Claude Opus 5.5",
-      "provider": "claude-bridge",
       "reasoning_effort": "medium"
     }
   ],
