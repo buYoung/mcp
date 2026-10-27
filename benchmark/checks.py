@@ -254,6 +254,22 @@ class BenchChecks(unittest.TestCase):
         for key in ("adapter_output_guard_truncated", "codemode_output_truncated", "include_seen_true_calls"):
             self.assertEqual(observed[key], 1)
 
+    def test_pi_observations_separate_bash_content_and_nested_structured_truncation(self):
+        from .route_metrics import pi_observations
+        events = [{"type": "tool_execution_end", "toolName": "bash", "toolCallId": "direct", "result": {
+                      "details": {"truncation": {"truncated": True}}, "structuredContent": {"truncated": True}}},
+                  {"type": "tool_execution_end", "toolName": "bash", "toolCallId": "script/1", "parentToolCallId": "script", "result": {
+                      "details": {"truncation": {"truncated": True}}, "structuredContent": {"truncated": False}}},
+                  {"type": "tool_execution_end", "toolName": "bash", "toolCallId": "script/2", "parentToolCallId": "script", "result": {
+                      "details": {"truncation": {"truncated": True}}, "structuredContent": {"truncated": True}}},
+                  {"type": "agent_settled"}]
+        (self.root / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+        observed = pi_observations(self.root, [], call_log_complete=True)
+        self.assertEqual(observed["bash_content_truncated"], 3)
+        self.assertEqual(observed["bash_nested_structured_content_truncated"], 1)
+        self.assertEqual(observed["codemode_output_truncated"], 0)
+        self.assertEqual(observed["adapter_output_guard_truncated"], 0)
+
     def test_pi_output_guard_covers_native_utf8_budgets(self):
         from .pi_client import adapter_settings
         self.assertGreaterEqual(adapter_settings("codemap-search")["outputGuard"]["maxBytes"], 100000)
@@ -265,6 +281,50 @@ class BenchChecks(unittest.TestCase):
             config = adapter_settings(arm)
             self.assertFalse(config["semanticSearch"])
             self.assertGreater(config["outputGuard"]["maxLines"], config["outputGuard"]["maxBytes"])
+
+    def test_pi_codemode_extension_defaults_output_without_changing_description(self):
+        from .pi_client import codemode_extension_source
+        factory = self.root / "@earendil-works/pi-coding-agent/dist/extensions/codemode/index.js"
+        parser = self.root / "@earendil-works/pi-codemode/dist/source.js"
+        factory.parent.mkdir(parents=True)
+        parser.parent.mkdir(parents=True)
+        write_json(self.root / "package.json", {"type": "module"})
+        factory.write_text('''export const createCodemodeExtension = options => pi => pi.registerTool({
+  name: "codemode", description: "unchanged native description", parameters: {type: "object"},
+  execute: (...args) => ({args, models: options.models})
+});''')
+        parser.write_text('''export function parseCodemodeSource(input) {
+  if (input === "invalid") throw new Error("native parse error");
+  const newline = input.indexOf("\\n");
+  const directive = input.startsWith("// @options:");
+  const options = directive ? JSON.parse(input.slice(12, newline)) : {};
+  return {code: directive ? input.slice(newline) : input,
+          options: {maxOutputTokens: options.max_output_tokens, timeoutMs: options.timeout_ms}};
+}''')
+        extension = self.root / "script-tools.mjs"
+        extension.write_text(codemode_extension_source(factory))
+        script = '''import assert from 'node:assert/strict';
+import extension from %s;
+let tool;
+extension({registerTool: value => {tool = value;}});
+assert.equal(tool.description, 'unchanged native description');
+assert.deepEqual(tool.parameters, {type:'object'});
+for (const options of [null, {timeout_ms:900}, {max_output_tokens:32, timeout_ms:700}, {max_output_tokens:0}]) {
+  const params = {code: (options ? '// @options: '+JSON.stringify(options)+'\\n' : '')+'text("sample");'};
+  const result = tool.execute('id', params, 'signal', 'update', 'context');
+  assert.equal(result.models, false);
+  assert.deepEqual(result.args.slice(2), ['signal','update','context']);
+  if (options?.max_output_tokens !== undefined) assert.equal(result.args[1], params);
+  else {
+    const applied = JSON.parse(result.args[1].code.split('\\n')[0].slice(12));
+    assert.equal(applied.max_output_tokens, 100000);
+    assert.equal(applied.timeout_ms, options?.timeout_ms);
+  }
+}
+assert.throws(() => tool.execute('id', {code:'invalid'}), /native parse error/);
+''' % json.dumps(extension.as_uri())
+        result = subprocess.run(["node", "--input-type=module"], input=script, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_snapshot_tracks_dirty_new_deleted_and_git_reference(self):
         repo = self.root / "repo"
