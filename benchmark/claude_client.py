@@ -7,7 +7,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .core import file_digest, metric, ratio, read_json, require, write_json
+from .core import canonical, digest, file_digest, metric, ratio, read_json, require, write_json
 
 BACKEND = "claude_code"
 NATIVE_TOOLS = ("Bash", "Read", "Glob", "Grep")
@@ -208,59 +208,62 @@ def config_file_stat(home: Path) -> dict | None:
     return {"size": info.st_size, "mtime_ns": info.st_mtime_ns, "inode": info.st_ino}
 
 
-def operator_home_state() -> dict:
-    """Metadata only: never open operator settings, credentials, caches or transcripts."""
-    home = Path.home()
-    result = {"claude_json": config_file_stat(home), "trees": {}}
-    for name in (".claude/projects", ".claude/backups", "Library/Caches/claude-cli-nodejs"):
-        root = home / name
-        paths = [root, *root.rglob("*")] if root.exists() else []
-        result["trees"][name] = {str(path.relative_to(home)): {
-            "size": info.st_size, "mtime_ns": info.st_mtime_ns, "inode": info.st_ino}
-            for path in paths for info in [path.lstat()]}
-    return result
+OPERATOR_HOME_TREES = (".claude/projects", ".claude/backups", "Library/Caches/claude-cli-nodejs")
+SLUG_TREES = {".claude/projects", "Library/Caches/claude-cli-nodejs"}
 
 
-def operator_home_observation(before: dict, harness_paths: list[Path]) -> dict:
-    """Harness Claude runs use private HOMEs, so a leak appears under a slug computed from harness paths.
+def operator_home_state(harness_paths: list[Path] = ()) -> dict:
+    """Metadata only: never open operator settings, credentials, caches or transcripts.
 
-    The parent agent session and the operator's other Claude sessions keep writing the real HOME (new
-    transcripts, MCP logs, `.claude.json`, backups). Those are observed, never a reason to void a slot.
+    Entries under a slug computed from harness paths (all under CACHE) are kept by name. Every other
+    entry belongs to the parent agent or the operator's other sessions and is kept only as a count and
+    digest, so slot records never list other projects. Entries that vanish mid-scan are skipped.
     """
     from .pi_client import claude_project_slug
     from .settings import CACHE
+    home = Path.home()
     slugs = {claude_project_slug(path) for path in [*harness_paths, CACHE]}
     cache_slug = claude_project_slug(CACHE)
-    after = operator_home_state()
+    related, unrelated = {}, []
+    for name in OPERATOR_HOME_TREES:
+        root = home / name
+        paths = [str(root)]
+        for directory, directories, files in os.walk(root, onerror=lambda error: None):
+            paths += [os.path.join(directory, entry) for entry in (*directories, *files)]
+        for path in paths:
+            try:
+                info = os.lstat(path)
+            except FileNotFoundError:
+                continue
+            key = str(Path(path).relative_to(home))
+            meta = {"size": info.st_size, "mtime_ns": info.st_mtime_ns, "inode": info.st_ino}
+            parts = Path(path).relative_to(root).parts
+            if name in SLUG_TREES and parts and (parts[0] in slugs or parts[0].startswith(cache_slug + "-")):
+                related[key] = meta
+            else:
+                unrelated.append(key + canonical(meta))
+    return {"claude_json": config_file_stat(home), "related": related,
+            "unrelated": {"entries": len(unrelated), "sha256": digest(sorted(unrelated))}}
 
-    def harness_related(name: str, path: str) -> bool:
-        relative = Path(path).relative_to(name).parts
-        return (name in {".claude/projects", "Library/Caches/claude-cli-nodejs"} and bool(relative)
-                and (relative[0] in slugs or relative[0].startswith(cache_slug + "-")))
 
-    added, removed, changed = [], [], []
-    for name, previous in before["trees"].items():
-        current = after["trees"][name]
-        added += [{"path": path, "harness_related": harness_related(name, path)}
-                  for path in sorted(current.keys() - previous.keys())]
-        removed += [{"path": path, "harness_related": harness_related(name, path)}
-                    for path in sorted(previous.keys() - current.keys())]
-        changed += [{"path": path, "before": previous[path], "after": current[path],
-                     "harness_related": harness_related(name, path)}
-                    for path in sorted(previous.keys() & current.keys()) if previous[path] != current[path]]
-    present = sorted({slug for slug in slugs for name in (".claude/projects", "Library/Caches/claude-cli-nodejs")
-                      if (Path.home() / name / slug).exists()})
-    config_unchanged = before["claude_json"] == after["claude_json"]
-    related = [item["path"] for item in (*added, *removed, *changed) if item["harness_related"]]
-    return {"passed": not related and not present, "harness_related_paths": related,
-            "concurrent_session_changes": {"new": sum(not i["harness_related"] for i in added),
-                                           "removed": sum(not i["harness_related"] for i in removed),
-                                           "changed": sum(not i["harness_related"] for i in changed),
-                                           "claude_json_changed": not config_unchanged},
-            "new_paths": added, "removed_paths": removed, "changed_existing": changed,
-            "harness_slugs_checked": sorted(slugs), "harness_slugs_present": present,
-            "claude_json_before": before["claude_json"], "claude_json_after": after["claude_json"],
-            "claude_json_unchanged": config_unchanged}
+def operator_home_observation(before: dict, harness_paths: list[Path]) -> dict:
+    """Harness Claude runs use private HOMEs, so a leak appears as a new or changed harness-related entry.
+
+    Harness-related entries that already existed (for example an older campaign's caches) and stayed
+    unchanged are not a leak. The parent agent session and the operator's other Claude sessions keep
+    writing the real HOME (transcripts, MCP logs, `.claude.json`, backups); that is observed only.
+    """
+    after = operator_home_state(harness_paths)
+    old, new = before["related"], after["related"]
+    related = {"new": sorted(new.keys() - old.keys()), "removed": sorted(old.keys() - new.keys()),
+               "changed": sorted(path for path in old.keys() & new.keys() if old[path] != new[path])}
+    return {"passed": not any(related.values()), "harness_related_changes": related,
+            "harness_related_preexisting": sorted({Path(path).relative_to(name).parts[0] for path in old for name in SLUG_TREES
+                                                    if path.startswith(name + "/")}),
+            "concurrent_session_changes": {"entries_before": before["unrelated"]["entries"],
+                                           "entries_after": after["unrelated"]["entries"],
+                                           "changed": before["unrelated"]["sha256"] != after["unrelated"]["sha256"],
+                                           "claude_json_changed": before["claude_json"] != after["claude_json"]}}
 
 
 def private_home_metadata(home: Path) -> dict:
@@ -289,10 +292,11 @@ def prepare_private(folder: Path, workspace: Path, env: dict, *, source: Path | 
     require(home == private_root(folder) / "home" and home != Path.home().resolve(), "Claude HOME is not slot-owned")
     target = home / ".claude/projects" / claude_project_slug(workspace)
     require(not target.exists() and not target.is_symlink(), "pre-existing Claude project: refuse unrelated residue cleanup")
+    harness_paths = [path.resolve() for path in (folder, workspace, home, home.parent, source or workspace)]
     write_json(folder / "claude-private.json", {"workspace": str(workspace.resolve()), "home": str(home),
         "project": str(target), "claude_json_before": config_file_stat(home),
-        "operator_home_before": operator_home_state(),
-        "harness_paths": [str(path.resolve()) for path in (folder, workspace, home, home.parent, source or workspace)]}, exclusive=True)
+        "operator_home_before": operator_home_state(harness_paths),
+        "harness_paths": [str(path) for path in harness_paths]}, exclusive=True)
 
 
 def cleanup_private(folder: Path, workspace: Path, env: dict) -> dict:
@@ -331,6 +335,40 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
         if binding.exists() and not (folder / "private-cleanup.json").exists():
             value = read_json(binding)
             write_json(folder / "private-cleanup.json", cleanup_private(folder, Path(value["workspace"]), {"HOME": value["home"]}))
+
+
+def proxy_owner_probe(profile: dict, folder: Path, workspace: Path, env: dict) -> list[dict]:
+    """Prove the proxy tells the registered process from its children, using the proxy's own log.
+
+    Only here is zsh registered in place of the CLI: a child curl (as from the Bash tool) must be refused
+    as `not_cli_socket_owner`; the registered process itself passes the owner gate and is then refused by
+    the host rule (github.com is not an allowed host), so no external connection is made.
+    """
+    from .isolation import claude_baseline_command
+    proxy_url = f"http://127.0.0.1:{profile['port']}"
+    # A trailing command keeps zsh from exec-ing curl in place, so curl runs as a child.
+    cases = [("bash_child_proxy_connect_denied", f"/usr/bin/curl --fail --max-time 10 --proxy {proxy_url} https://api.anthropic.com/; exit $?", "child"),
+             ("bash_child_proxy_plain_denied", f"/usr/bin/curl --fail --noproxy '*' --max-time 10 {proxy_url}/; exit $?", "child"),
+             ("owner_proxy_disallowed_host_denied", f"exec /usr/bin/curl --fail --max-time 10 --proxy {proxy_url} https://github.com/", "owner")]
+    results = []
+    for name, script, kind in cases:
+        case_folder = folder / "proxy-owner" / name
+        case_folder.mkdir(parents=True)
+        checked = subprocess.run(claude_baseline_command(["/bin/zsh", "-f", "-c", script], {**profile, "cli_executable": "/bin/zsh"},
+                                                         case_folder), cwd=workspace, env=env, capture_output=True, timeout=30)
+        log_path = case_folder / "claude-proxy.jsonl"
+        log = [json.loads(line) for line in log_path.read_text().splitlines() if line.strip()] if log_path.exists() else []
+        if kind == "child":
+            verified = bool(log) and all(entry.get("reason") == "not_cli_socket_owner" and entry["cli_pid"] > 0
+                                         and entry["peer_pid"] != entry["cli_pid"] for entry in log)
+        else:
+            verified = bool(log) and all("reason" not in entry and entry["peer_pid"] == entry["cli_pid"] > 0
+                                         and entry.get("host") == "github.com" and entry["permitted"] is False for entry in log)
+        results.append({"name": name, "expected_access": "deny", "exit_code": checked.returncode,
+                        "stderr": checked.stderr.decode(errors="replace"), "proxy_log": log, "owner_gate_verified": verified})
+        require(checked.returncode not in (0, 125), f"Claude proxy owner probe 실패: {name}")
+        require(verified, f"Claude proxy owner gate 판별 실패: {name}")
+    return results
 
 
 def _probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
@@ -372,11 +410,6 @@ def _probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
                  ("pinned_rg", [value["rg_binary"], "--version"], True),
                  ("proxy_github_denied", ["/usr/bin/curl", "--fail", "--max-time", "10", "https://github.com"], False),
                  ("direct_github_denied", ["/usr/bin/curl", "--fail", "--noproxy", "*", "--max-time", "10", "https://github.com"], False)]
-        proxy_url = f"http://127.0.0.1:{profile['port']}"
-        cases += [("bash_proxy_connect_denied", ["/bin/zsh", "-f", "-c",
-                   f"exec /usr/bin/curl --fail --max-time 10 --proxy {proxy_url} https://api.anthropic.com/"], False),
-                  ("bash_proxy_plain_denied", ["/bin/zsh", "-f", "-c",
-                   f"exec /usr/bin/curl --fail --noproxy '*' --max-time 10 {proxy_url}/"], False)]
         cases.extend((name, ["/bin/cat", str(path)], False) for name, path in targets.items())
         cases.extend(("rg_" + name, [value["rg_binary"], "ISOLATION_", str(path)], False)
                      for name, path in targets.items() if name.startswith("claude-"))
@@ -390,6 +423,8 @@ def _probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
             write_json(folder / "boundary-probe.json", boundaries)
             require(checked.returncode >= 0 and checked.returncode != 125, f"Claude boundary launcher 실패: {name}")
             require((checked.returncode == 0) == allowed, f"Claude outer boundary 실패: {name}")
+        boundaries += proxy_owner_probe(profile, folder, workspace, probe_env)
+        write_json(folder / "boundary-probe.json", boundaries)
     private_cleanup = cleanup_private(folder, workspace, env)
     write_json(folder / "private-cleanup.json", private_cleanup)
     require(private_cleanup["complete"], "Claude probe private HOME cleanup incomplete")
