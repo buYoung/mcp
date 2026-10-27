@@ -348,6 +348,23 @@ class BenchChecks(unittest.TestCase):
                          {"initialize": {"capabilities": {"resources": {}}}}), [])
         self.assertTrue(cli_audit.audit_tools(resources, {"solver_backend": "claude_code"}, {"enabled_tools": ["read"]}, {}))
 
+    def test_codex_native_command_attribution_uses_preceding_custom_call_turn(self):
+        from .route_metrics import cli_observations
+        folder = self.root / "turns"; folder.mkdir()
+        write_json(folder / "runtime.json", {"backend": "codex"})
+        write_json(folder / "native-agent.json", {})
+        (folder / "events.jsonl").write_text('{}\n')
+        rows = []
+        for number in (1, 2):
+            rows += [{"type": "response_item", "payload": {"type": "custom_tool_call", "id": f"c{number}"}},
+                     {"type": "token_usage_record", "payload": {}},
+                     {"type": "event_msg", "payload": {"type": "item_completed", "item": {"type": "CommandExecution", "id": f"n{number}"}}}]
+        rows.append({"type": "token_usage_record", "payload": {}})
+        (folder / "rollout.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+        observed = cli_observations(folder, [{}, {}], call_log_complete=True)
+        self.assertEqual(observed["tool_calls_per_turn"], [1, 1, 0])
+        self.assertEqual(observed["model_tool_calls_per_turn"], [1, 1, 0])
+
     def test_proxy_peer_pid_matches_client_endpoint_not_server_or_ambiguous_owner(self):
         from .isolation import proxy_peer_pid
         output = "p21\nn127.0.0.1:20798->127.0.0.1:51000\np22\nn127.0.0.1:51000->127.0.0.1:20798\n"
