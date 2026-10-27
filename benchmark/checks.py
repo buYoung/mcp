@@ -307,7 +307,7 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual(result["private_home_residue"]["files"], 5)
         self.assertEqual(result["private_home_residue"]["categories"][".claude/backups"]["files"], 1)
 
-    def test_claude_operator_home_observation_only_exempts_existing_unrelated_sessions(self):
+    def test_claude_operator_home_observation_fails_only_on_harness_related_entries(self):
         from .claude_client import operator_home_observation
         from .pi_client import claude_project_slug
         workspace = self.root / "work"
@@ -325,18 +325,28 @@ class BenchChecks(unittest.TestCase):
             after["trees"][".claude/projects"][own]["size"] = 2
             self.assertFalse(operator_home_observation(before, [workspace])["passed"])
             after["trees"][".claude/projects"][own]["size"] = 1
+            # Concurrent sessions (the parent agent, other projects) create files and rewrite .claude.json.
             after["trees"][".claude/projects"][".claude/projects/-unrelated-work/new.jsonl"] = {"size": 1}
+            after["claude_json"] = {"size": 9}
+            observed = operator_home_observation(before, [workspace])
+            self.assertTrue(observed["passed"])
+            self.assertEqual(observed["concurrent_session_changes"],
+                             {"new": 1, "removed": 0, "changed": 1, "claude_json_changed": True})
+            after["trees"][".claude/projects"][own.replace("a.jsonl", "new.jsonl")] = {"size": 1}
             self.assertFalse(operator_home_observation(before, [workspace])["passed"])
 
     def test_cli_context_audit_rejects_user_skills_home_and_hosted_tools(self):
         from . import cli_audit
-        root = str(self.root / "0123456789abcdef/codex-home/skills/.system")
+        # A cache outside HOME: a TMPDIR under HOME would trip the operator-home check itself.
+        cache = Path("/private/var/fixture-cache")
+        root = str(cache / "0123456789abcdef/codex-home/skills/.system")
         section = ("<skills_instructions>\n### Skill roots\n- `r0` = `" + root + "`\n### Available skills\n"
                    "- imagegen: Built-in skill. (file: r0/imagegen/SKILL.md)\n</skills_instructions>")
         request = {"input": [{"role": "developer", "content": section}], "tools": [{"type": "namespace", "name": "functions",
                    "tools": [{"name": "exec"}, {"name": "wait"}]}]}
-        self.assertEqual(cli_audit.audit_request(request, {}), [])
-        self.assertEqual(cli_audit.skill_context(request)[0][0]["name"], "imagegen")
+        with patch.object(settings, "CACHE", cache):
+            self.assertEqual(cli_audit.audit_request(request, {}), [])
+            self.assertEqual(cli_audit.skill_context(request)[0][0]["name"], "imagegen")
         self.assertTrue(cli_audit.audit_request({"system": section.replace(root, str(Path.home() / ".agents/skills"))}, {}))
         self.assertTrue(cli_audit.audit_request({"system": "Use ~/.agents/skills"}, {}))
         self.assertTrue(cli_audit.audit_request({"messages": [{"role": "user", "content": str(Path.home())}]}, {}))

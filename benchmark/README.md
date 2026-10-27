@@ -168,7 +168,7 @@ Claude rg는 전체 CLI를 하나의 outer Seatbelt로 감싼다(중첩 Seatbelt
 
 Claude Bash의 detached group은 private Unix socket의 Darwin LOCAL_PEERPID로 실제 연결 프로세스를 확인하고, CLI descendant와 PGID를 등록한 뒤에만 모델 명령을 실행한다. PID를 모델 입력에서 받지 않는다. 취소·정상 종료 모두 등록된 shell group까지 회수한 뒤 원자료를 봉인한다. 소유권을 입증하지 못한 PID는 추측으로 종료하지 않는다. Seatbelt는 VM 수준의 격리가 아니다.
 
-Claude launch는 기존 슬롯 HOME을 거부한다. 종료 후 자체 transcript의 cwd binding을 대조하고 redact하여 raw slot에 보존한다. private HOME의 `.claude/projects/<slug>/<session>/tool-results`에서 저장 결과 개수·bytes를 내용 없이 계수한다. MCP logs·backups·설정 등을 범주별 파일 수·bytes로 기록한 뒤 소유권을 확인한 private HOME 전체를 지운다. 다른 project/credential 파일은 읽거나 정리하지 않는다. 실제 HOME의 projects·backups·CLI cache는 항목 메타데이터만 전후 검사하여 새 파일/디렉터리 0, 슬롯 cwd/HOME/source/cache 관련 slug 부재, `~/.claude.json` size/mtime/inode 동일을 확인한다. 동시 실행 중인 다른 세션의 **기존** 파일 메타 변경은 하네스 경로에서 계산되는 slug가 아님을 확인한 경우에만 별도 관측하고 무효 사유에서 제외한다. 관련 slug의 변경·새 항목은 실패-폐쇄하며 실제 HOME을 편집하지 않는다.
+Claude launch는 기존 슬롯 HOME을 거부한다. 종료 후 자체 transcript의 cwd binding을 대조하고 redact하여 raw slot에 보존한다. private HOME의 `.claude/projects/<slug>/<session>/tool-results`에서 저장 결과 개수·bytes를 내용 없이 계수한다. MCP logs·backups·설정 등을 범주별 파일 수·bytes로 기록한 뒤 소유권을 확인한 private HOME 전체를 지운다. 다른 project/credential 파일은 읽거나 정리하지 않는다. 실제 HOME의 projects·backups·CLI cache는 항목 메타데이터만 전후 검사한다. 하네스의 Claude 프로세스는 모두 슬롯 전용 HOME에서 실행되므로, 실제 HOME 유출은 슬롯 cwd/HOME/source/cache에서 계산되는 slug 아래에 나타난다. 이 관련 slug의 새 항목·변경·삭제와 관련 slug의 존재만 실패-폐쇄한다. 부모 에이전트 세션과 운영자의 다른 Claude 세션은 측정 중에도 실제 HOME에 새 transcript·MCP log·backup을 만들고 `~/.claude.json`을 고치므로, 관련 없는 항목의 추가·변경·삭제와 `~/.claude.json` size/mtime/inode 변화는 `concurrent_session_changes`로 개수만 기록하고 무효 사유로 쓰지 않는다. 실제 HOME을 편집하지 않는다.
 
 ## 문맥 감사와 지표
 
