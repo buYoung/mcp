@@ -20,6 +20,7 @@ TOKEN_ENV = "CODEMAP_BENCH_PI_TOKEN"
 NATIVE_TOOLS = ("bash",)
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
 NAVIGATION_SERVER = "navigation"
+CODEMODE_MAX_OUTPUT_TOKENS = 100000
 # Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
 # Serena's 150k Unicode characters appear in both text and appended structuredContent.
 OUTPUT_GUARD_BYTES = {"codemap-search": 100000, "serena": 1250000}
@@ -188,7 +189,7 @@ def capabilities() -> dict:
             "node_path": tools["node"], "node_sha256": tools["node_sha256"], "required_flags": flags,
             "auth": "runtime only; operator token/Claude login not exercised during preparation",
             "model_free_probes": probes, "model_invocations": 0,
-            "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi default",
+            "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi bash default; codemode default output 100000 tokens unless script specifies",
                          "mcp_client": f"pi-mcp-adapter {tools['versions']['mcp_adapter']} defaults except {sorted(ADAPTER_SETTINGS)}",
                          "mcp_output_guard": {"default": ADAPTER_SETTINGS["outputGuard"], "per_arm_bytes": OUTPUT_GUARD_BYTES}}}
 
@@ -282,6 +283,27 @@ def shell_main(config_path: str, args: list[str]) -> None:
     raise SystemExit(code if code >= 0 else 128 - code)
 
 
+def codemode_extension_source(factory: Path) -> str:
+    """Wrap execution only; retain pinned parsing, tool descriptions and explicit script options."""
+    parser = factory.parents[4] / "pi-codemode/dist/source.js"
+    return ("import {createCodemodeExtension} from " + json.dumps(str(factory)) + ";\n"
+            "import {parseCodemodeSource} from " + json.dumps(str(parser)) + ";\n"
+            "const defaultMaxOutputTokens = " + str(CODEMODE_MAX_OUTPUT_TOKENS) + ";\n" + """
+export default (pi) => createCodemodeExtension({models:false})({
+  ...pi,
+  registerTool(tool) {
+    pi.registerTool({...tool, execute(toolCallId, params, ...rest) {
+      const {code, options} = parseCodemodeSource(params.code);
+      if (options.maxOutputTokens !== undefined) return tool.execute(toolCallId, params, ...rest);
+      const defaults = {max_output_tokens: defaultMaxOutputTokens};
+      if (options.timeoutMs !== undefined) defaults.timeout_ms = options.timeoutMs;
+      return tool.execute(toolCallId, {...params, code: '// @options: ' + JSON.stringify(defaults) + '\\n' + code}, ...rest);
+    }});
+  },
+});
+""")
+
+
 def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None,
            local_endpoint: str | None = None, local_home: Path | None = None) -> tuple[list[str], Path, dict]:
     from .tool_artifacts import pi_toolchain
@@ -310,11 +332,10 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     args = [tools["node"], tools["pi_cli"], *PRIVATE_FLAGS, "--provider", provider, "--model", spec["model"],
             "--thinking", spec["reasoning_effort"], "--session-dir", str(sessions)]
     if mode == "codemode":
-        # Built-in is replaceable; keep pi's implementation, disabling only out-of-budget model APIs.
+        # Built-in is replaceable; wrap its executor without changing the model-visible description.
         extension = agent / "script-tools.mjs"
         factory = Path(tools["pi_cli"]).parent / "extensions/codemode/index.js"
-        extension.write_text("import {createCodemodeExtension} from " + json.dumps(str(factory)) +
-                             ";\nexport default createCodemodeExtension({models:false});\n")
+        extension.write_text(codemode_extension_source(factory))
         args += ["-e", str(extension)]
     instructions = None
     if relay_settings:
@@ -358,6 +379,7 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     write_json(folder / "pi-policy.json", {"toolchain": tools, "provider": provider, "flags": PRIVATE_FLAGS,
         "requested_model": requested_model(provider, spec["model"]), "measurement_mode": mode,
         "codemode_models": False if mode == "codemode" else None,
+        "codemode_default_max_output_tokens": CODEMODE_MAX_OUTPUT_TOKENS if mode == "codemode" else None,
         "mcp_client": ({"extension": "pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"], "config_mode": "exclusive",
                         "settings": adapter_settings(relay_settings["arm"]), "server": ADAPTER_SERVER, "tools": product_tools,
                         "server_instructions_sha256": digest(instructions) if instructions else None,

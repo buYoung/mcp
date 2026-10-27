@@ -22,7 +22,7 @@ FIELD_PROVENANCE = {
     "elapsed_seconds": {"unit": "seconds", "origin": "total execution clock including collection/cleanup; excludes preparation"},
     "timing": {"unit": "seconds", "origin": "runtime started/model-exited/elapsed timestamps", "missing": "null with reason",
                "scopes": ["model process lifetime including startup", "post-model cleanup", "collection after cutoff may overlap model lifetime"]},
-    "observations": {"unit": "per-slot counts, seconds and distributions", "origin": "pi turns/durationMs/outputGuard/script output plus relay or bash wrapper clocks",
+    "observations": {"unit": "per-slot counts, seconds and distributions", "origin": "pi turns/durationMs/outputGuard/bash truncation metadata/script output plus relay or bash wrapper clocks",
                      "missing": "null for unobserved totals; observed partial sums retained"},
     "quality": {"unit": "fact dimensions and per-route core completeness", "origin": "validated frozen route judgment"},
 }
@@ -363,6 +363,7 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
     events, collection = read_jsonl_prefix(folder / "events.jsonl")
     per_turn, model_calls = [], []
     guard = script_truncations = direct_calls = 0
+    bash_content_truncations = bash_nested_structured_truncations = 0
     policy = read_json(folder / "pi-policy.json") if (folder / "pi-policy.json").exists() else {}
     for event in events:
         if event.get("type") == "turn_start":
@@ -380,6 +381,9 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
             if event.get("toolName") == "codemode":
                 script_truncations += any(block.get("text", "").startswith("Warning: truncated output (")
                                           for block in result.get("content", []))
+            elif event.get("toolName") == "bash":
+                bash_content_truncations += result.get("details", {}).get("truncation", {}).get("truncated") is True
+                bash_nested_structured_truncations += bool(event.get("parentToolCallId")) and result.get("structuredContent", {}).get("truncated") is True
     messages = assistant_messages(events)
     events_complete = collection["complete"] and bool(events) and events[-1].get("type") == "agent_settled"
     durations = [m.get("durationMs") for m in messages]
@@ -415,6 +419,8 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
             "timing_basis": "assistant message_end.durationMs sum; dispatched relay/wrapper durations sum (parallel intervals overlap)",
             "adapter_output_guard_truncated": guard if events else None,
             "codemode_output_truncated": script_truncations if events else None,
+            "bash_content_truncated": bash_content_truncations if events else None,
+            "bash_nested_structured_content_truncated": bash_nested_structured_truncations if events else None,
             "include_seen_true_calls": sum(c.get("arm") == "codemap-search" and c.get("arguments", {}).get("include_seen") is True
                                             for c in calls if not c.get("discovery")),
             "evidence": [str(folder / "events.jsonl"), str(folder / ("bash-results.jsonl" if (folder / "native-agent.json").exists() else "relay.jsonl"))]}
@@ -580,15 +586,17 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     lines += ["", "미실행·미관측 값은 0점으로 치환하지 않습니다. 핵심과 확장, true/false/indeterminate/미채점을 별도 기록합니다.",
               f"문항·비교군·모드마다 {routes.REPETITIONS}회 반복이며 통계적 유의성을 주장하지 않습니다.",
               "제품 탐색 호출 0회인 답변은 제품 검색 기여의 근거가 아닙니다. 미관측 호출을 0회로 해석하지 않습니다."]
-    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | script 밖 직접 호출 | admission 전 취소 | adapter 절단 | script 절단 | include_seen=true | Claude 저장 결과(count/bytes) |",
-              "|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
+    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | script 밖 직접 호출 | admission 전 취소 | adapter 절단 | script 절단 | bash content 절단 | nested bash structuredContent 절단 | include_seen=true | Claude 저장 결과(count/bytes) |",
+              "|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
     for row in result_rows:
         observed = row.get("observations") or {}
         lines.append("| " + " | ".join(cell(v) for v in (row["id"], *[observed.get(key) for key in (
             "turns", "tool_calls_per_turn", "model_seconds", "tool_seconds", "observed_tool_seconds", "tool_seconds_missing_calls",
-            "direct_calls_outside_script", "cancelled_before_admission", "adapter_output_guard_truncated", "codemode_output_truncated", "include_seen_true_calls")],
+            "direct_calls_outside_script", "cancelled_before_admission", "adapter_output_guard_truncated", "codemode_output_truncated",
+            "bash_content_truncated", "bash_nested_structured_content_truncated", "include_seen_true_calls")],
             row.get("claude_persisted_tool_results"))) + " |")
-    lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다."]
+    lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",
+              "bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(기본 100,000토큰)의 절단은 별도로 셉니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
     return result
 
