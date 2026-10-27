@@ -308,32 +308,43 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual(result["private_home_residue"]["categories"][".claude/backups"]["files"], 1)
 
     def test_claude_operator_home_observation_fails_only_on_harness_related_entries(self):
-        from .claude_client import operator_home_observation
+        from .claude_client import operator_home_observation, operator_home_state
         from .pi_client import claude_project_slug
-        workspace = self.root / "work"
-        own = ".claude/projects/" + claude_project_slug(workspace) + "/a.jsonl"
-        unrelated = ".claude/projects/-unrelated-work/b.jsonl"
-        before = {"claude_json": None, "trees": {".claude/projects": {own: {"size": 1}, unrelated: {"size": 1}}}}
-        after = copy.deepcopy(before); after["trees"][".claude/projects"][unrelated]["size"] = 2
-        with patch("benchmark.claude_client.operator_home_state", return_value=after):
-            self.assertTrue(operator_home_observation(before, [workspace])["passed"])
-            other_slot = ".claude/projects/" + claude_project_slug(self.root / "other-slot/work") + "/c.jsonl"
-            before["trees"][".claude/projects"][other_slot] = {"size": 1}
-            after["trees"][".claude/projects"][other_slot] = {"size": 2}
-            self.assertFalse(operator_home_observation(before, [workspace])["passed"])
-            after["trees"][".claude/projects"][other_slot]["size"] = 1
-            after["trees"][".claude/projects"][own]["size"] = 2
-            self.assertFalse(operator_home_observation(before, [workspace])["passed"])
-            after["trees"][".claude/projects"][own]["size"] = 1
-            # Concurrent sessions (the parent agent, other projects) create files and rewrite .claude.json.
-            after["trees"][".claude/projects"][".claude/projects/-unrelated-work/new.jsonl"] = {"size": 1}
-            after["claude_json"] = {"size": 9}
+        home, cache = self.root / "operator-home", self.root / "cache"
+        workspace = cache / "0123456789abcdef/work"
+        def write(relative, text="x"):
+            path = home / relative; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(text); return path
+        own = ".claude/projects/" + claude_project_slug(workspace)
+        older_slug = claude_project_slug(cache / "fedcba9876543210/source")
+        older = "Library/Caches/claude-cli-nodejs/" + older_slug + "/mcp-logs-navigation/old.jsonl"
+        write(older)  # an earlier campaign's residue
+        other = write(".claude/projects/-unrelated-work/b.jsonl")
+        with patch.object(settings, "CACHE", cache), patch("pathlib.Path.home", return_value=home):
+            before = operator_home_state([workspace])
+            self.assertNotIn("-unrelated-work", json.dumps(before))
+            # The parent agent and other sessions create and change entries and rewrite .claude.json.
+            other.write_text("xy"); write(".claude/projects/-unrelated-work/new.jsonl"); write(".claude.json", "{}")
             observed = operator_home_observation(before, [workspace])
             self.assertTrue(observed["passed"])
-            self.assertEqual(observed["concurrent_session_changes"],
-                             {"new": 1, "removed": 0, "changed": 1, "claude_json_changed": True})
-            after["trees"][".claude/projects"][own.replace("a.jsonl", "new.jsonl")] = {"size": 1}
-            self.assertFalse(operator_home_observation(before, [workspace])["passed"])
+            self.assertEqual(observed["harness_related_preexisting"], [older_slug])
+            self.assertTrue(observed["concurrent_session_changes"]["changed"])
+            self.assertTrue(observed["concurrent_session_changes"]["claude_json_changed"])
+            self.assertNotIn("-unrelated-work", json.dumps(observed))
+            write(own + "/leak.jsonl")
+            leaked = operator_home_observation(before, [workspace])
+            self.assertFalse(leaked["passed"])
+            self.assertIn(own + "/leak.jsonl", leaked["harness_related_changes"]["new"])
+            before = operator_home_state([workspace])
+            write(older, "changed")
+            self.assertEqual(operator_home_observation(before, [workspace])["harness_related_changes"]["changed"], [older])
+            # An entry that vanishes mid-scan (backup rotation, log cleanup) is skipped, not an error.
+            real_lstat = os.lstat
+            def vanishing(path, *args, **kwargs):
+                if str(path).endswith("new.jsonl"):
+                    raise FileNotFoundError(path)
+                return real_lstat(path, *args, **kwargs)
+            with patch("benchmark.claude_client.os.lstat", side_effect=vanishing):
+                self.assertTrue(operator_home_observation(before, [workspace])["harness_related_changes"]["changed"])
 
     def test_cli_context_audit_rejects_user_skills_home_and_hosted_tools(self):
         from . import cli_audit

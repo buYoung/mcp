@@ -21,6 +21,9 @@ IDENTIFYING_PATH_WORDS = ("codemap", "codegraph", "zvec", "graphify", "codebase-
 def require_neutral_cache() -> None:
     found = [word for word in IDENTIFYING_PATH_WORDS if word in str(CACHE).lower()]
     require(not found, f"CODEMAP_BENCH_CACHE 경로가 제품·하네스를 드러냅니다({', '.join(found)}). 중립적인 경로를 쓰세요")
+    # Solver-visible cwd and skill roots live under CACHE; the context audit rejects any HOME string.
+    require(not CACHE.resolve().is_relative_to(Path.home().resolve()),
+            "CODEMAP_BENCH_CACHE가 HOME 아래에 있어 모델 문맥에 운영자 HOME이 드러납니다. HOME 밖 경로를 쓰세요")
 
 
 def execution_settings(solver_model: str | None = None) -> dict:
