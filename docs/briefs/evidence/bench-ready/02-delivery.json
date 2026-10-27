@@ -19,12 +19,21 @@
       "backend": "pi",
       "defaults": {
         "compaction": "pi default",
-        "mcp_client": "pi-mcp-adapter 6.0.0 defaults except ['allowInstall', 'allowScriptToolSave', 'autoAuth', 'elicitation', 'jev', 'requestTimeoutMs', 'sampling']",
-        "mcp_output_guard": "adapter default: 50 KiB / 2,000 lines head preview; full text spilled under TMPDIR",
+        "mcp_client": "pi-mcp-adapter 7.0.0 defaults except ['allowInstall', 'allowScriptToolSave', 'autoAuth', 'elicitation', 'outputGuard', 'requestTimeoutMs', 'sampling', 'semanticSearch']",
+        "mcp_output_guard": {
+          "default": {
+            "maxBytes": 1048576,
+            "maxLines": 1048577
+          },
+          "per_arm_bytes": {
+            "codemap-search": 100000,
+            "serena": 1250000
+          }
+        },
         "output_truncation": "pi default",
         "retry": "pi default"
       },
-      "lock_sha256": "929752f50300d83e335475fe2bc8de25e4e20fe3e24f842d79b5ab7c29688356",
+      "lock_sha256": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
       "model_free_probes": {
         "help": {
           "args": [
@@ -54,7 +63,7 @@
             "-na",
             "--offline",
             "-e",
-            "/Volumes/Samsung_990_PRO/wscache/pi-toolchain/installation/node_modules/pi-mcp-adapter",
+            "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/pi-mcp-adapter",
             "--mcp-config",
             "<temporary>/mcp-adapter.json",
             "--help"
@@ -74,7 +83,7 @@
             "-na",
             "--offline",
             "-e",
-            "/Volumes/Samsung_990_PRO/wscache/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
+            "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
             "--list-models"
           ],
           "exit_code": 0,
@@ -103,43 +112,43 @@
         "--session-dir",
         "--thinking"
       ],
-      "toolchain_sha256": "ab8ab3b5914d63035a95e9bfe674a3ecb71f7f6a74b64dddcbcde52642370fcc",
+      "toolchain_sha256": "89a7a9ecabd9dd2228c1ef4e3c6284039c2e50a84ce920b30b41c42fa5e11f31",
       "version": "1.4.0",
       "versions": {
         "agent_sdk": "0.3.310",
         "bridge": "0.13.1",
         "claude_code": "2.1.310",
-        "mcp_adapter": "6.0.0",
+        "mcp_adapter": "7.0.0",
         "node": "v24.14.0",
         "pi": "1.4.0"
       }
     }
   },
-  "contract_hash": "9d81fc48bec697cadeb3346dd3ff3525f75021d1b0e66db5ebab045d7e49dab0",
+  "contract_hash": "f1c8ff5a7a275ad09671d39dfc12dc7774457df7d6c3c4c27772ac492a7139d9",
   "dependency_hashes": {
-    "01-contract.json": "875d6226d92d962bf1faccda26768a460fdbc543fd8eb3a920e0da6223f9a400"
+    "01-contract.json": "d318c48d49b271fffb05b6fd3e7b66eb95a87d404d0c0651996136914f3ab92f"
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/pi_client.py": "3060bb6e353af250bf1c8a5dc8a358f7d37636e2a276cd02215bbf8af5cea7b3",
-    "benchmark/route_transport.py": "1e7067c3ff00fc4bbe3346664bdfd6da63ae7058addee01ee5e0a215c0c423b9",
-    "benchmark/runner.py": "30f7a4548fb123ef87856f866ea84edeaffb5e9c1505d88e9ce4d830129f1c5e"
+    "benchmark/pi_client.py": "d00bc7c92fcbea0490730cc87053a602fa201e5f193154174aa6b353d2e6dc29",
+    "benchmark/route_transport.py": "71c9e48410a126c86900212493077dbe468da9fac9cfdc33732b0e448565cd8c",
+    "benchmark/runner.py": "185293c2a0555ff861ee2f3de16d89c66c9fc19809a2aba7140cacaa36b6fac4"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "5ffca5ed861d963fb838a56d7d1b7596dabf5a615091baac7ab06d269623b8b1",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "3ea6b4d246c29005ab64edace5dbef1260d9ea1da80e54d4e2f9584972c166f4",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "065ae8f43e4a1e8f90bfe316761714be0965fb07c282166abd0315fa46940af2",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "8b4718f2658b91d08393a91f1f92fd9ce2e577fc0e1fe690add4bc2fad488b31",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "929752f50300d83e335475fe2bc8de25e4e20fe3e24f842d79b5ab7c29688356",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1692b9717e71653a43a9d7ae496cde7a085065be7007c2cecefb9ea6d5e9b0a3",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "03c36da8f9ad0018e9ef82ce79a74a899f180e9bb50b0e3eb1e9e5ca00957b59",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549",
-    "benchmark/data/grafana-routes-v3/README.md": "88a6b6cb75451930625723cc0102910b984ca4d9fea0691cad2d9323e94072ed",
-    "benchmark/data/grafana-routes-v3/SHA256SUMS": "d3c24e62e2f47b0d4f890cc1739a7fe24084290b500dcbb403dd5c91b3c164b5",
-    "benchmark/data/grafana-routes-v3/dataset.json": "11e578539a749baf3b618f206a064ce8cbfa24a618f570a86f0ad1e2d893d7a3",
-    "benchmark/data/grafana-routes-v3/evidence.json": "1b618dd21a11f279a865ff7de38b83412af34e7faf161d91f094e4725a236cdb",
-    "benchmark/data/grafana-routes-v3/grading.json": "c334afb58c4696f33701770c0c45b5e90daef0b1678f96fd6a1f4ae59e41c6b4",
-    "benchmark/data/grafana-routes-v3/manifest.json": "45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86",
-    "benchmark/data/grafana-routes-v3/questions.json": "ddfb4138daa86db2b892bd5305b2837677c4eec59382ad05157f25cfd7e2e0c7"
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8",
+    "benchmark/data/grafana-routes-v4/README.md": "b7c385ae0cb4d51ed5cae4c8eb4d4c8684cf6cce7cc015085ce586df21c4040f",
+    "benchmark/data/grafana-routes-v4/SHA256SUMS": "8dce9a29307bd232384310ebc38a8cf585860dd462e682940ae2bec037700a66",
+    "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
+    "benchmark/data/grafana-routes-v4/evidence.json": "ba67c4c0e10377c575d0dc90ad833a63e02cb09ecec09c6af9d4d2c4b6081dcb",
+    "benchmark/data/grafana-routes-v4/grading.json": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
+    "benchmark/data/grafana-routes-v4/manifest.json": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
+    "benchmark/data/grafana-routes-v4/questions.json": "58539e12d3f8dfa97567e7b427c66ee77a3ec6773261bad8a92c68607ded0408"
   },
   "native_output_policy": {
     "automatic_pagination": false,
@@ -152,8 +161,17 @@
   "pi_policy": {
     "defaults": {
       "compaction": "pi default",
-      "mcp_client": "pi-mcp-adapter 6.0.0 defaults except ['allowInstall', 'allowScriptToolSave', 'autoAuth', 'elicitation', 'jev', 'requestTimeoutMs', 'sampling']",
-      "mcp_output_guard": "adapter default: 50 KiB / 2,000 lines head preview; full text spilled under TMPDIR",
+      "mcp_client": "pi-mcp-adapter 7.0.0 defaults except ['allowInstall', 'allowScriptToolSave', 'autoAuth', 'elicitation', 'outputGuard', 'requestTimeoutMs', 'sampling', 'semanticSearch']",
+      "mcp_output_guard": {
+        "default": {
+          "maxBytes": 1048576,
+          "maxLines": 1048577
+        },
+        "per_arm_bytes": {
+          "codemap-search": 100000,
+          "serena": 1250000
+        }
+      },
       "output_truncation": "pi default",
       "retry": "pi default"
     },
@@ -179,11 +197,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 41601,
+          "pgid": 41467,
           "stopped": true
         }
       ],
-      "pid": 41601,
+      "pid": 41467,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -237,17 +255,17 @@
       }
     ],
     "probe": "rg over a copied harness source file",
-    "probe_source_sha256": "fc42c5939d9297184703b8838806b3b5315295597868c9eab2ec2b01207943d2",
-    "protocol_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792909704136197000/protocol.jsonl",
-    "protocol_sha256": "d6760245aee46fc4035f0f98751be82db0f886c264f7bb15c5a44496b6e4a00c",
-    "relay_log": "/Volumes/Samsung_990_PRO/wscache/route-preparation/delivery-probe/1792909704136197000/relay.jsonl",
-    "relay_sha256": "49e4a11e1ef4ccc01dc2dbbb58e2a87441de0072b4b4695f09615a50f43811ae",
+    "probe_source_sha256": "a81fdcee302e00a5a3cfc346a303ff1440c859f63d0d078b8dc16d908d1aa412",
+    "protocol_log": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/delivery-probe/1793052762697542000/protocol.jsonl",
+    "protocol_sha256": "864c4e922c9be93085aafc32e57481355b571a264a85c0197e9a02a15e30fb25",
+    "relay_log": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/delivery-probe/1793052762697542000/relay.jsonl",
+    "relay_sha256": "96684e223547c3579e73fb1e0b7f8e45c7cbabd5da47d9d51fdba76898cbeeec",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
-    "stdout_bytes": 88640,
-    "stdout_lines": 1397
+    "stdout_bytes": 90004,
+    "stdout_lines": 1413
   },
-  "recorded_at": "2026-10-25T06:28:27.834849+00:00",
+  "recorded_at": "2026-10-26T22:12:47.578020+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",

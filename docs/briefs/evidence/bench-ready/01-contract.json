@@ -1,14 +1,14 @@
 {
   "arms": [
     {
-      "commit": "4061c42a59a296255ce151f6a60683e31b66a2b8",
-      "git_ref": "codemap-v0.13.0",
+      "commit": "fc0a368d0b37da44c5e2bc9df3617ef75b4891cb",
+      "git_ref": "codemap-v0.14.0",
       "id": "codemap-search",
       "name": "codemap-search",
       "path": "apps/codemap-search",
       "pin_status": "release_source_frozen_binary_at_preparation",
       "role": "subject",
-      "version": "0.13.0"
+      "version": "0.14.0"
     },
     {
       "commit": "6560052a6f856855d3f71eee838fd66ccfa4285d",
@@ -103,27 +103,27 @@
   ],
   "checks": {
     "bundle_hashes": "passed",
-    "planned_unique_keys": 42,
+    "planned_unique_keys": 84,
     "profiles": [
       "grafana-routes"
     ],
     "prompt_separation": "passed"
   },
-  "contract_hash": "9d81fc48bec697cadeb3346dd3ff3525f75021d1b0e66db5ebab045d7e49dab0",
+  "contract_hash": "f1c8ff5a7a275ad09671d39dfc12dc7774457df7d6c3c4c27772ac492a7139d9",
   "contract_paths": {
-    "private_dataset": "benchmark/data/grafana-routes-v3/dataset.json",
+    "private_dataset": "benchmark/data/grafana-routes-v4/dataset.json",
     "profile": "benchmark/data/grafana-execution-v1.json",
-    "solver_questions": "benchmark/data/grafana-routes-v3/questions.json"
+    "solver_questions": "benchmark/data/grafana-routes-v4/questions.json"
   },
   "dependency_hashes": {},
   "fact_counts": {
-    "alerting-alertmanager": {
-      "core": 8,
-      "extended": 0
+    "git-oauth-authorization": {
+      "core": 6,
+      "extended": 2
     },
-    "live-plugin-stream": {
-      "core": 8,
-      "extended": 1
+    "plugin-http-route-bridge": {
+      "core": 6,
+      "extended": 0
     }
   },
   "grader": {
@@ -132,27 +132,27 @@
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/data/grafana-execution-v1.json": "cca81791c1cc45cacfccb0cd97a8d35cbb5fb9f9fafc5931d3c67458858cf5cd",
-    "benchmark/execution.py": "36b95ea7dde42c8de1c2f6918918dc2cd5fac8de86f10430093b7a63ffb54ab8",
-    "benchmark/route_contract.py": "f42f49d548c56b6372cab386307821f958f41484a5f5444eabdf169cb70d38e9",
-    "benchmark/runner.py": "30f7a4548fb123ef87856f866ea84edeaffb5e9c1505d88e9ce4d830129f1c5e",
-    "benchmark/settings.py": "3f2ab114879db5670c92fc6f7cee55211b89125ca532cf0ecadccffe1276238b"
+    "benchmark/data/grafana-execution-v1.json": "268cc2566345f26fa6e2bfdf78138233d55b53961425e1b4771efba1baf69fda",
+    "benchmark/execution.py": "2d9913180e6684f77ff6c196778f7f7206a3da778b52a7de84cc661a1fde2414",
+    "benchmark/route_contract.py": "d320a3b34e7fe0f4318654748aa0a50e2d5a52e19e6436e4c9417b6c9cf22001",
+    "benchmark/runner.py": "185293c2a0555ff861ee2f3de16d89c66c9fc19809a2aba7140cacaa36b6fac4",
+    "benchmark/settings.py": "2eb40ddff3bcd95464990d62ffa13bab6108295ddcfa96ed4e196a201838dddc"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "5ffca5ed861d963fb838a56d7d1b7596dabf5a615091baac7ab06d269623b8b1",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "3ea6b4d246c29005ab64edace5dbef1260d9ea1da80e54d4e2f9584972c166f4",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "065ae8f43e4a1e8f90bfe316761714be0965fb07c282166abd0315fa46940af2",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "8b4718f2658b91d08393a91f1f92fd9ce2e577fc0e1fe690add4bc2fad488b31",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "929752f50300d83e335475fe2bc8de25e4e20fe3e24f842d79b5ab7c29688356",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1692b9717e71653a43a9d7ae496cde7a085065be7007c2cecefb9ea6d5e9b0a3",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "03c36da8f9ad0018e9ef82ce79a74a899f180e9bb50b0e3eb1e9e5ca00957b59",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "7a022bbd17439e3414967a987990e66f8bc7a76153b4fe76e45c9e3f3faa8549",
-    "benchmark/data/grafana-routes-v3/README.md": "88a6b6cb75451930625723cc0102910b984ca4d9fea0691cad2d9323e94072ed",
-    "benchmark/data/grafana-routes-v3/SHA256SUMS": "d3c24e62e2f47b0d4f890cc1739a7fe24084290b500dcbb403dd5c91b3c164b5",
-    "benchmark/data/grafana-routes-v3/dataset.json": "11e578539a749baf3b618f206a064ce8cbfa24a618f570a86f0ad1e2d893d7a3",
-    "benchmark/data/grafana-routes-v3/evidence.json": "1b618dd21a11f279a865ff7de38b83412af34e7faf161d91f094e4725a236cdb",
-    "benchmark/data/grafana-routes-v3/grading.json": "c334afb58c4696f33701770c0c45b5e90daef0b1678f96fd6a1f4ae59e41c6b4",
-    "benchmark/data/grafana-routes-v3/manifest.json": "45e686ec823abe8d5f5027a08e10cad032f8fb30fb47ee7dcf7dc21f5113ae86",
-    "benchmark/data/grafana-routes-v3/questions.json": "ddfb4138daa86db2b892bd5305b2837677c4eec59382ad05157f25cfd7e2e0c7"
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8",
+    "benchmark/data/grafana-routes-v4/README.md": "b7c385ae0cb4d51ed5cae4c8eb4d4c8684cf6cce7cc015085ce586df21c4040f",
+    "benchmark/data/grafana-routes-v4/SHA256SUMS": "8dce9a29307bd232384310ebc38a8cf585860dd462e682940ae2bec037700a66",
+    "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
+    "benchmark/data/grafana-routes-v4/evidence.json": "ba67c4c0e10377c575d0dc90ad833a63e02cb09ecec09c6af9d4d2c4b6081dcb",
+    "benchmark/data/grafana-routes-v4/grading.json": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
+    "benchmark/data/grafana-routes-v4/manifest.json": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
+    "benchmark/data/grafana-routes-v4/questions.json": "58539e12d3f8dfa97567e7b427c66ee77a3ec6773261bad8a92c68607ded0408"
   },
   "limitations": [
     "Full source validation belongs to index preparation.",
@@ -163,7 +163,7 @@
     "exploration_calls": 80,
     "total_tokens": 500000
   },
-  "planned_solver_runs": 42,
+  "planned_solver_runs": 84,
   "policy_decisions": {
     "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
     "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
@@ -172,9 +172,10 @@
     "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
     "index_mode": "로컬 검색·색인으로 준비 (권장)",
     "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
-    "questions": "기존 3문항(grafana-routes-v2)을 Go 알림→Alertmanager 1문항과 TypeScript→Go Live plugin stream 1문항(grafana-routes-v3)으로 대체한다. 질문 앞부분은 모든 비교군에 같은 중립 문구다",
+    "measurement_modes": "direct와 codemode(mode only)를 모드마다 3회 측정하고 결과를 합산하지 않는다. codemode 외부 model API는 비활성화한다.",
+    "questions": "학습 기준일(2026-07-01) 이후 코드로 만든 2문항(grafana-routes-v4): TypeScript→Go 사용자 지정 Git OAuth 서버 통신, Go 앱 플러그인 manifest 사용자 정의 route의 HTTP 배포 백엔드 통신. 질문 앞부분 도구 문구와 Grafana 이름은 넣지 않는다. 기억 측정으로 제외 여부를 검증했다",
     "repetitions": "같은 조건 1회 결과가 핵심 사실 7개 중 4개·5개로 흔들려 문항·비교군마다 3회 반복한다",
-    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 = 42회 예정.",
+    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 2모드 = 84회 예정.",
     "solver_selection": "pi 1.4.0: openai-codex/gpt-6.1-sol 또는 claude-bridge/claude-opus-5-5, thinking medium",
     "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
     "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
@@ -200,7 +201,7 @@
     },
     "comparison_lock_id": "grafana-comparison-targets-v1",
     "concurrency": 4,
-    "dataset_id": "grafana-routes-v3",
+    "dataset_id": "grafana-routes-v4",
     "execution_authorized": false,
     "grader": {
       "model": "gpt-6-astra",
@@ -219,7 +220,11 @@
       "exploration_calls": 80,
       "total_tokens": 500000
     },
-    "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 준비 전용",
+    "measurement_modes": [
+      "direct",
+      "codemode"
+    ],
+    "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 2모드 · 준비 전용",
     "native_output_policy": {
       "automatic_pagination": false,
       "client_delivery": "record_observed_limits_and_unknowns_separately",
@@ -236,9 +241,10 @@
       "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
       "index_mode": "로컬 검색·색인으로 준비 (권장)",
       "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
-      "questions": "기존 3문항(grafana-routes-v2)을 Go 알림→Alertmanager 1문항과 TypeScript→Go Live plugin stream 1문항(grafana-routes-v3)으로 대체한다. 질문 앞부분은 모든 비교군에 같은 중립 문구다",
+      "measurement_modes": "direct와 codemode(mode only)를 모드마다 3회 측정하고 결과를 합산하지 않는다. codemode 외부 model API는 비활성화한다.",
+      "questions": "학습 기준일(2026-07-01) 이후 코드로 만든 2문항(grafana-routes-v4): TypeScript→Go 사용자 지정 Git OAuth 서버 통신, Go 앱 플러그인 manifest 사용자 정의 route의 HTTP 배포 백엔드 통신. 질문 앞부분 도구 문구와 Grafana 이름은 넣지 않는다. 기억 측정으로 제외 여부를 검증했다",
       "repetitions": "같은 조건 1회 결과가 핵심 사실 7개 중 4개·5개로 흔들려 문항·비교군마다 3회 반복한다",
-      "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 = 42회 예정.",
+      "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 2모드 = 84회 예정.",
       "solver_selection": "pi 1.4.0: openai-codex/gpt-6.1-sol 또는 claude-bridge/claude-opus-5-5, thinking medium",
       "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",
       "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다"
@@ -279,10 +285,10 @@
     }
   },
   "question_ids": [
-    "alerting-alertmanager",
-    "live-plugin-stream"
+    "git-oauth-authorization",
+    "plugin-http-route-bridge"
   ],
-  "recorded_at": "2026-10-25T06:28:08.789705+00:00",
+  "recorded_at": "2026-10-26T22:09:35.793544+00:00",
   "repetitions": 3,
   "schema_version": 1,
   "solver": {
@@ -306,7 +312,7 @@
     }
   ],
   "solver_runs": 0,
-  "source_commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47",
+  "source_commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb",
   "status": "verified",
   "tool_access": {
     "allowed_auxiliaries": [
