@@ -143,8 +143,8 @@ def verify_readiness(record: dict, *, recapture_context=True) -> None:
         require(record["host"]["codex_version"] == capabilities()["version"], "Codex 버전 변경")
     require(record["host"]["solver_backend"] == solver["backend"], "풀이 실행기 변경")
     if solver["backend"] == "claude_code":
-        from .claude_client import capabilities, require_native_auth
-        require_native_auth()
+        from .claude_client import capabilities, require_operator_auth
+        require_operator_auth()
         require(record["host"]["claude"] == capabilities(check_auth=False), "Claude Code 버전 변경")
     require(record["host"].get("cli_toolchain") == tool_artifacts.cli_toolchain(), "solver CLI toolchain 변경")
     artifacts = tool_artifacts.load_artifacts()
@@ -303,8 +303,8 @@ def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
     solvers = routes.load_profile()["solver_choices"] if solver_model == "all" else [routes.solver_model(solver_model)]
     settings.require_neutral_cache()
     if any(s["backend"] == "claude_code" for s in solvers):
-        from .claude_client import capabilities, require_native_auth
-        require_native_auth()
+        from .claude_client import capabilities, require_operator_auth
+        require_operator_auth()
         capabilities()
     if any(s["backend"] == "claude_code" for s in solvers):
         from .claude_client import managed_policy

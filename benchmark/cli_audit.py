@@ -24,8 +24,44 @@ def native_text(inventory: dict) -> dict:
     return result
 
 
+def skill_context(value) -> tuple[list[dict], list[dict]]:
+    """Only the pinned client's private built-in skill root may supply skill entries."""
+    entries, errors = [], []
+    system_root = re.compile(re.escape(str(settings.CACHE.resolve())) + r"/[0-9a-f]{16}/codex-home/skills/\.system")
+    for location, text in pi_audit.strings(value):
+        for section in re.findall(r"<skills_instructions>([\s\S]*?)</skills_instructions>", text):
+            roots = dict(re.findall(r"^- `([^`]+)` = `([^`]+)`$", section, re.MULTILINE))
+            for alias, root in roots.items():
+                if not system_root.fullmatch(root):
+                    errors.append({"kind": "user_skill_root", "location": location, "root": root})
+            for name, path in re.findall(r"^- ([^:\n]+):[^\n]*\(file: ([^)]+)\)$", section, re.MULTILINE):
+                alias, _, relative = path.partition("/")
+                root = roots.get(alias, "")
+                if not system_root.fullmatch(root) or ".." in Path(relative).parts:
+                    errors.append({"kind": "user_skill_entry", "location": location, "name": name, "file": path})
+                else:
+                    entry = {"name": name, "root": root, "file": relative}
+                    if entry not in entries:
+                        entries.append(entry)
+            listed = re.findall(r"^- [^`][^\n]+", section, re.MULTILINE)
+            parsed = re.findall(r"^- ([^:\n]+):[^\n]*\(file: ([^)]+)\)$", section, re.MULTILINE)
+            if len(listed) != len(parsed):
+                errors.append({"kind": "unrecognized_skill_entry", "location": location})
+    return entries, errors
+
+
+def private_context_violations(value) -> list[dict]:
+    errors = skill_context(value)[1]
+    for location, text in pi_audit.strings(value):
+        if str(Path.home()) in text:
+            errors.append({"kind": "operator_home_in_context", "location": location})
+        if re.search(r"(?:~|\$HOME|/[^\s`<>\"']*)/\.(?:agents|claude|codex)/skills(?!/\.system)", text):
+            errors.append({"kind": "user_skill_path", "location": location})
+    return errors
+
+
 def audit_system(value, inventory: dict) -> list[dict]:
-    errors = []
+    errors = private_context_violations(value)
     instructions = inventory.get("initialize", {}).get("instructions", "")
     for location, original in pi_audit.strings(value):
         errors += pi_audit.path_violations(original, location)
@@ -42,7 +78,8 @@ def audit_system(value, inventory: dict) -> list[dict]:
 
 
 def audit_request(body: dict, inventory: dict) -> list[dict]:
-    errors = pi_audit.path_violations(json.dumps(body, ensure_ascii=False), "request")
+    errors = private_context_violations(body)
+    errors += pi_audit.path_violations(json.dumps(body, ensure_ascii=False), "request")
     errors += audit_system(body.get("instructions", body.get("system", "")), inventory)
     errors += pi_audit.audit_text(body.get("tools", []), inventory=native_text(inventory), product_owned=True)
     for item in body.get("input", body.get("messages", [])):
@@ -59,16 +96,18 @@ def declared_tools(body: dict) -> set[str]:
     result = set()
     for tool in declarations:
         if tool.get("type") == "namespace":
-            result.update(tool["name"] + "." + child["name"] for child in tool["tools"])
-        elif tool.get("name"):
-            result.add(tool["name"])
+            result.update(tool["name"] + "." + (child.get("name") or child.get("type", "unknown")) for child in tool["tools"])
+        else:
+            result.add(tool.get("name") or tool.get("type", "unknown"))
     return result
 
 
-def audit_tools(body: dict, spec: dict, relay: dict | None) -> list[dict]:
+def audit_tools(body: dict, spec: dict, relay: dict | None, inventory: dict) -> list[dict]:
     declared = declared_tools(body)
     if spec["solver_backend"] == "claude_code":
         expected = {"mcp__navigation__" + name for name in relay["enabled_tools"]} if relay else set(claude_client.NATIVE_TOOLS)
+        if relay and "resources" in inventory.get("initialize", {}).get("capabilities", {}):
+            expected |= set(claude_client.RESOURCE_TOOLS)
         allowed = expected
     else:
         expected = {"functions.exec", "functions.wait"}
@@ -102,7 +141,7 @@ def audit_nested_tools(body: dict, relay: dict | None) -> tuple[list[str], list[
 def audit_session(folder: Path, inventory: dict, backend: str) -> dict:
     from .runner import read_jsonl_prefix
     paths = [folder / "rollout.jsonl"] if backend == "codex" else sorted(folder.glob("claude-session-*.jsonl"))
-    errors, files, systems, users = [], [], 0, 0
+    errors, files, systems, users, system_skills = [], [], 0, 0, []
     for path in paths:
         rows, state = read_jsonl_prefix(path)
         if not state["complete"]:
@@ -110,6 +149,9 @@ def audit_session(folder: Path, inventory: dict, backend: str) -> dict:
         if path.is_file():
             files.append({"path": str(path), "sha256": file_digest(path)})
         for row in rows:
+            for skill in skill_context(row)[0]:
+                if skill not in system_skills:
+                    system_skills.append(skill)
             payload = row.get("payload", {})
             if backend == "codex":
                 if row.get("type") == "session_meta":
@@ -144,10 +186,12 @@ def audit_session(folder: Path, inventory: dict, backend: str) -> dict:
                     content = [block for block in content if block.get("type") != "tool_result"]
                 if content:
                     users += 1
+                    errors += private_context_violations(content)
                     errors += pi_audit.audit_text(content)
     if not files or not systems or not users:
         errors.append({"kind": "missing_system_or_user_session", "systems": systems, "users": users})
-    result = {"passed": not errors, "violations": errors, "files": files, "system_messages_including_patches": systems, "user_messages": users}
+    result = {"passed": not errors, "violations": errors, "files": files, "system_messages_including_patches": systems,
+              "user_messages": users, "system_skills": system_skills}
     write_json(folder / "context-audit.json", result)
     return result
 
@@ -171,7 +215,7 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, port=0) -> di
                   "instructions": inventory["initialize"].get("instructions", "")}
     backend = spec["solver_backend"]
     provider = pi_audit.CaptureProvider(shutil.which("node"), port=port, inspect_codex_tools=backend == "codex")
-    home = private_root(folder) / "login" if backend == "claude_code" else None
+    home = private_root(folder) / "home" if backend == "claude_code" else None
     process = cwd = env = monitor = None
     try:
         launch = claude_client.launch if home else codex_client.launch
@@ -202,7 +246,7 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, port=0) -> di
         write_json(folder / "capture-cleanup.json", cleanup)
         require(cleanup["complete"], "local capture cleanup incomplete")
         violations = audit_request(provider.requests[0], inventory)
-        violations += audit_tools(provider.requests[0], spec, relay)
+        violations += audit_tools(provider.requests[0], spec, relay, inventory)
         nested = []
         if backend == "codex":
             nested, nested_errors = audit_nested_tools(provider.requests[1], relay)
@@ -214,7 +258,9 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, port=0) -> di
             if rollout:
                 shutil.copyfile(rollout, folder / "rollout.jsonl")
         else:
-            write_json(folder / "private-cleanup.json", claude_client.cleanup_private(folder, cwd, env))
+            private_cleanup = claude_client.cleanup_private(folder, cwd, env)
+            write_json(folder / "private-cleanup.json", private_cleanup)
+            require(private_cleanup["complete"], "local capture private HOME cleanup incomplete")
         session = audit_session(folder, inventory, backend)
         violations += session["violations"]
         root = private_root(folder)
@@ -226,7 +272,8 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, port=0) -> di
                   "replayed_initialize_sha256": digest(inventory.get("initialize")), "replayed_tools_sha256": digest(selected),
                   "request": str(folder / "request.json"), "request_sha256": file_digest(folder / "request.json"),
                   "command": str(folder / "command.json"), "command_sha256": file_digest(folder / "command.json"),
-                  "session_audit": session, "declared_tools": sorted(declared_tools(provider.requests[0])), "nested_tools": nested, "hosted_model_requests": 0}
+                  "session_audit": session, "system_skills": skill_context(provider.requests[0])[0],
+                  "declared_tools": sorted(declared_tools(provider.requests[0])), "nested_tools": nested, "hosted_model_requests": 0}
         write_json(folder / "audit.json", result)
         return result
     finally:
