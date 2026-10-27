@@ -222,30 +222,41 @@ def operator_home_state() -> dict:
 
 
 def operator_home_observation(before: dict, harness_paths: list[Path]) -> dict:
-    """Concurrent unrelated sessions may append old files, but must not create new residue."""
+    """Harness Claude runs use private HOMEs, so a leak appears under a slug computed from harness paths.
+
+    The parent agent session and the operator's other Claude sessions keep writing the real HOME (new
+    transcripts, MCP logs, `.claude.json`, backups). Those are observed, never a reason to void a slot.
+    """
     from .pi_client import claude_project_slug
     from .settings import CACHE
     slugs = {claude_project_slug(path) for path in [*harness_paths, CACHE]}
     cache_slug = claude_project_slug(CACHE)
     after = operator_home_state()
+
+    def harness_related(name: str, path: str) -> bool:
+        relative = Path(path).relative_to(name).parts
+        return (name in {".claude/projects", "Library/Caches/claude-cli-nodejs"} and bool(relative)
+                and (relative[0] in slugs or relative[0].startswith(cache_slug + "-")))
+
     added, removed, changed = [], [], []
     for name, previous in before["trees"].items():
         current = after["trees"][name]
-        added += sorted(current.keys() - previous.keys())
-        removed += sorted(previous.keys() - current.keys())
-        for path in sorted(previous.keys() & current.keys()):
-            if previous[path] != current[path]:
-                relative = Path(path).relative_to(name).parts
-                slug = relative[0] if relative else None
-                unrelated = (name in {".claude/projects", "Library/Caches/claude-cli-nodejs"}
-                             and slug is not None and slug not in slugs and not slug.startswith(cache_slug + "-"))
-                changed.append({"path": path, "slug": slug, "before": previous[path], "after": current[path],
-                                "unrelated_session": unrelated})
+        added += [{"path": path, "harness_related": harness_related(name, path)}
+                  for path in sorted(current.keys() - previous.keys())]
+        removed += [{"path": path, "harness_related": harness_related(name, path)}
+                    for path in sorted(previous.keys() - current.keys())]
+        changed += [{"path": path, "before": previous[path], "after": current[path],
+                     "harness_related": harness_related(name, path)}
+                    for path in sorted(previous.keys() & current.keys()) if previous[path] != current[path]]
     present = sorted({slug for slug in slugs for name in (".claude/projects", "Library/Caches/claude-cli-nodejs")
                       if (Path.home() / name / slug).exists()})
     config_unchanged = before["claude_json"] == after["claude_json"]
-    return {"passed": not added and not removed and not present and config_unchanged
-                      and all(item["unrelated_session"] for item in changed),
+    related = [item["path"] for item in (*added, *removed, *changed) if item["harness_related"]]
+    return {"passed": not related and not present, "harness_related_paths": related,
+            "concurrent_session_changes": {"new": sum(not i["harness_related"] for i in added),
+                                           "removed": sum(not i["harness_related"] for i in removed),
+                                           "changed": sum(not i["harness_related"] for i in changed),
+                                           "claude_json_changed": not config_unchanged},
             "new_paths": added, "removed_paths": removed, "changed_existing": changed,
             "harness_slugs_checked": sorted(slugs), "harness_slugs_present": present,
             "claude_json_before": before["claude_json"], "claude_json_after": after["claude_json"],
