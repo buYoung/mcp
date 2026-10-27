@@ -746,8 +746,9 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                      conditions_valid=conditions_valid and (grading or token_measurement["token_accounting"] in {"complete", "lower_bound"}))
     answer_eligible = eligibility["eligible"]
     answer = final_text if answer_eligible else ""
+    after_cutoff = bool(stop and stop.cutoff)
     if not answer_eligible and final_text:
-        excluded = folder / "post-cutoff-answer.txt"
+        excluded = folder / ("post-cutoff-answer.txt" if after_cutoff else "excluded-answer.txt")
         excluded.write_text(final_text, encoding="utf-8")
         eligibility.update(excluded_answer_path=str(excluded), excluded_answer_sha256=file_digest(excluded))
     (folder / "answer.txt").write_text(answer, encoding="utf-8")
@@ -779,8 +780,8 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         result["condition_errors"] = condition_errors
     result["answer_eligibility"] = eligibility
     result["answer_eligible"] = answer_eligible
-    result["usage_collection"] = {"drain_seconds": 0, "answer_within_cutoff": answer_eligible,
-                                  "post_cutoff_answer_excluded": bool(final_text) and not answer_eligible,
+    result["usage_collection"] = {"drain_seconds": 0, "answer_excluded": bool(final_text) and not answer_eligible,
+                                  "post_cutoff_answer_excluded": after_cutoff and bool(final_text) and not answer_eligible,
                                   "whole_cost_includes_cleanup": True}
     write_json(folder / "execution.json", result)
     return result
