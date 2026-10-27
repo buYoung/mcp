@@ -35,11 +35,11 @@ Codex 0.164.0의 내장 `models-manager/models.json`은 gpt-6.1-sol에 `tool_mod
 
 macOS arm64, Python 3.12+, Node 22.19+, npm/pnpm, uv, Git, Cargo, Go/gopls가 필요하다. `CODEMAP_BENCH_CACHE`는 제품·하네스 이름 없는 중립 경로여야 한다(`codemap`, `codegraph`, `zvec`, `graphify`, `codebase-memory`, `serena`, `bench`, `route`, `campaign` 금지). 두 CLI는 `<cache>/cli-toolchain`, 채점 pi는 `<cache>/pi-toolchain`에 `npm ci --ignore-scripts --no-audit --no-fund`로 설치하고 매 재사용 때 hash를 검증한다. 개인 설치물·설정·extensions를 변경하지 않는다.
 
-- Codex 인증은 CLI가 읽는다. 격리 CODEX_HOME에 운영자의 auth.json을 symlink하고 종료 후 링크만 지운다. 하네스는 자격 파일 내용을 열거나 복사하지 않는다.
-- Claude 제품군은 기존 사용자 로그인을 사용할 수 있다. 명시적으로 제공한 `CLAUDE_CODE_OAUTH_TOKEN` 또는 `CODEMAP_BENCH_CLAUDE_TOKEN_FILE`도 지원한다. 두 공급원을 동시에 지정하지 않는다. 파일은 운영자 소유의 0600 regular file이어야 하며 토큰은 메모리와 CLI 환경에만 둔다.
-- **Claude rg는 명시적 OAuth token이 필요하다.** outer Seatbelt는 keychain/Mach 접근까지 차단한다. 없으면 prepare와 실행 전 검증이 명확한 오류로 중단된다. 하네스가 로그인하거나 토큰을 출력하지 않는다. 실제 계정·모델 권한은 별도 운영자 확인 사항이다.
+- Codex 인증은 CLI가 읽는다. 격리 CODEX_HOME에 운영자의 auth.json을 symlink하고 종료 후 링크만 지운다. **프로세스 HOME도 슬롯 전용 `<cache>/<16hex>/home`**으로 설정하여 실제 HOME의 개인 skills가 유입되지 않게 한다. 하네스는 Codex 자격 파일 내용을 열거나 복사하지 않는다.
+- **모든 Claude 비교군은 슬롯 전용 HOME + 명시적 운영자 OAuth token을 사용한다.** 기존 사용자 로그인·실제 HOME 사용 경로는 없다. `CLAUDE_CODE_OAUTH_TOKEN` 또는 `CODEMAP_BENCH_CLAUDE_TOKEN_FILE` 중 하나만 지정한다. 파일은 운영자 소유의 0600 regular file이어야 하며 symlink/hardlink를 거부한다. 읽기 오류는 경로 없는 메시지로 보고한다. 환경 토큰은 읽은 뒤 부모 환경에서 제거하고 메모리에만 보관해 CLI 환경에 넣는다. 일반 `core.command()` 자식에는 전달하지 않는다.
+- Claude rg의 outer Seatbelt는 keychain/Mach 접근까지 차단한다. 토큰이 없으면 제품군·rg 모두 prepare와 실행 전 검증이 중단된다. 하네스가 로그인하거나 토큰을 출력하지 않는다. private HOME의 모델 없는 `auth status` 성공은 실제 모델 권한 검증을 대신하지 않는다.
 - Claude의 사용자/프로젝트 설정은 `--restricted --setting-sources ''`, 명시 MCP는 `--strict-mcp-config`, hooks·memory·CLAUDE.md·slash commands는 비활성화한다. admin managed policy는 CLI flags보다 우선하므로 존재만 검사하여 실패-폐쇄한다. 값을 읽지 않는다. 준비·시작·종료 시 확인한다.
-- CLI 부모 환경은 allowlist로 만들며 provider URL·모델 override·개인 plugins/hooks를 상속하지 않는다. loopback test endpoint는 함수의 명시적 인자로만 켤 수 있다. Claude fake provider에는 반드시 별도 HOME와 더미 키를 쓴다.
+- CLI 부모 환경은 allowlist로 만들며 provider URL·모델 override·개인 plugins/hooks를 상속하지 않는다. loopback test endpoint는 함수의 명시적 인자로만 켤 수 있다. Claude fake provider에도 실제 실행과 같은 슬롯 전용 HOME 규칙을 적용하고 더미 키만 쓴다. version/help/auth probe도 임시 private HOME에서 실행한다.
 
 ```sh
 export CODEMAP_BENCH_CACHE=/neutral/path
@@ -123,7 +123,9 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 
 relay는 원본 instructions·description·schema·메타·결과를 보존한다. product capabilities/resources/prompts도 경로·도구 정책과 같은 admission/logging을 거친다. root/scope/path 별칭·배열·glob·file URI·metadata 접근을 검증하고 거절을 기록하되 요청을 몰래 다시 쓰지 않는다. discovery는 탐색 호출에서 제외한다. request cancellation은 admission 전/후를 구분하고 이미 dispatch한 RPC는 terminal까지 기록한 뒤 응답만 버린다. 제품/CLI 취소·정리·로그 손상·usage 완결성은 실패-폐쇄하며 자동 재풀이·재채점하지 않는다.
 
-초기 준비의 MCP clientInfo는 선택 backend를 사용한다. 실제 attach 시에는 **실제 CLI initialize를 그대로 제품에 전달**한다. codemap이 `codex-mcp-client`에서만 주는 Codex 전용 안내를 readiness-probe identity로 누락시키지 않는다. 준비 원문 instructions와 live 원문을 비교한다. Codex 0.164.0은 initialize instructions를 첫 wire 요청에 자동 삽입하지 않아 하네스가 그 **원문만** developer_instructions로 전달한다. Claude는 native MCP instructions 경로를 쓴다. 긴 CodeGraph 안내를 CLI가 `… [truncated]` 접두로 렌더링하는 기본 동작은 유지하고, 문맥 감사는 정확한 원문 접두 일치만 예외로 인정한다. 제품 안내 내용을 재구성하거나 제품의 응답 동작을 모방하지 않는다.
+초기 준비의 MCP clientInfo는 선택 backend를 사용한다. 실제 attach 시에는 **실제 CLI initialize를 그대로 제품에 전달**한다. codemap이 `codex-mcp-client`에서만 주는 Codex 전용 안내를 readiness-probe identity로 누락시키지 않는다. 준비 원문 instructions와 live 원문을 비교한다. Codex 0.164.0은 `code_mode_only`에서 MCP namespace를 deferred로 두므로 namespace 설명에 속한 initialize instructions가 첫 요청에 보이지 않는다(`core/src/tools/spec_plan.rs`의 deferred namespace 분기). 하네스는 첫 요청부터 제품 안내를 제공하기 위해 **중립 머리말 `MCP instructions: navigation`, 빈 줄, 제품 원문, 끝 개행**을 `developer_instructions`로 추가 전달한다. 이것은 Codex 기본 자동 전달이라고 주장하지 않으며 deferred namespace 동작 자체는 바꾸지 않는다. pi adapter에도 원문 안내를 prompt로 추가했고 Claude는 native MCP instructions 경로로 받는 것과 같은 '제품 원문 안내를 모든 비교군에 제공' 원칙이다. 머리말은 Claude Code 형식을 흉내 내지 않는다. 긴 CodeGraph 안내를 Claude가 `… [truncated]` 접두로 렌더링하는 기본 동작은 유지하고, 문맥 감사는 정확한 원문 접두 일치만 예외로 인정한다. 제품 안내 내용을 재구성하거나 제품의 응답 동작을 모방하지 않는다.
+
+Claude 제품군은 기본 `ListMcpResourcesTool`·`ReadMcpResourceTool`을 `--tools`와 `--allowedTools`에 포함한다. 실제 노출은 제품이 `resources` capability를 광고하는 Graphify·Serena에서만 필수이고, 나머지 제품과 rg에서는 미노출을 감사한다. Codex도 exec 내부의 기본 resource 도구를 유지하지만 광고하지 않는 제품에는 읽을 resource가 없으므로 같은 제품 capability 조건이다. relay의 `resources/read`는 탐색 호출, `resources/list`·templates/list는 discovery로 그대로 계수한다.
 
 ### Client 출력 기준과 고정 소스 근거
 
@@ -162,15 +164,15 @@ Claude 메타가 없을 때 persistence ceiling은 50000자, 메타가 있으면
 
 Codex는 named read-only filesystem permission과 network deny를 사용한다. source·중립 경로의 고정 rg·최소 runtime 읽기, slot tmp 쓰기만 허용한다. 모델 문맥에 렌더링되는 denied paths에는 존재하는 source metadata만 넣는다. rg source는 제품 metadata가 없는 청결 상태이며 읽기 전용이므로, 존재하지 않는 제품 이름을 나열해 문맥을 오염시키지 않는다.
 
-Claude rg는 전체 CLI를 하나의 outer Seatbelt로 감싼다(중첩 Seatbelt 없음). native Bash는 `CLAUDE_CODE_SHELL` private wrapper를 통해 PATH/HOME/TMPDIR/LANG/LC_ALL만 받은 zsh를 실행한다. 도구 목록·명령·기본 출력은 유지하며 auth/provider 환경은 제거한다. 외부 파일·source 쓰기·임의 network 외에도 lsopen·AppleEvent·Mach/keychain·다른 프로세스 정보·kern.proc를 거부한다. model traffic만 허용된 CONNECT proxy를 통한다. Bash 명령에 OAuth token을 주지 않으며 stdout/stderr/전사본은 저장 전 redact한다.
+Claude rg는 전체 CLI를 하나의 outer Seatbelt로 감싼다(중첩 Seatbelt 없음). native Bash는 `CLAUDE_CODE_SHELL` private wrapper를 통해 PATH/HOME/TMPDIR/LANG/LC_ALL만 받은 zsh를 실행한다. 도구 목록·명령·기본 출력은 유지하며 auth/provider 환경은 제거한다. 외부 파일·source 쓰기·임의 network 외에도 lsopen·AppleEvent·Mach/keychain·다른 프로세스 정보·kern.proc를 거부한다. HTTPS는 host allowlist CONNECT proxy를 통한다. proxy는 sandbox 밖의 `lsof`로 accept한 TCP 연결의 정확한 양 끝점을 조회하여 소유 PID가 이번 pinned CLI PID일 때만 전달한다. gated exec로 PID 등록 전에 연결하지 못하게 하며, 조회 실패·중복 소유·Bash 자식·다른 PID는 HTTP를 해석하거나 upstream에 접속하기 전에 거부한다. Bash의 CONNECT와 proxy 포트 평문 HTTP 모두 경계 probe에 포함한다. TCP handshake 자체는 Seatbelt의 허용 포트 때문에 가능하지만 데이터 전달은 거부된다. TLS 내부의 API 경로/내용까지 판별하는 'model traffic만' 보장은 아니며 **CLI 소유 연결 + 지정 host:443** 보장이다. 제품군 CLI는 native Bash가 없고 이 rg proxy를 사용하지 않는다. loopback fake provider도 같은 PID gate를 거치되 승인된 CLI 연결만 지정한 로컬 HTTP 서버로 전달한다. Bash 명령과 proxy에 OAuth token을 주지 않으며 stdout/stderr/전사본은 저장 전 redact한다.
 
 Claude Bash의 detached group은 private Unix socket의 Darwin LOCAL_PEERPID로 실제 연결 프로세스를 확인하고, CLI descendant와 PGID를 등록한 뒤에만 모델 명령을 실행한다. PID를 모델 입력에서 받지 않는다. 취소·정상 종료 모두 등록된 shell group까지 회수한 뒤 원자료를 봉인한다. 소유권을 입증하지 못한 PID는 추측으로 종료하지 않는다. Seatbelt는 VM 수준의 격리가 아니다.
 
-Claude launch 전 정확한 workspace slug가 이미 존재하면 거부한다. 종료 후 모든 자체 transcript의 cwd binding을 대조하고 그 slug만 지운다. 다른 project/credential 파일은 읽거나 정리하지 않는다. 저장 결과는 파일 내용이 아닌 개수·크기로 계수한다. 자체 전사본은 사후 감사용으로 raw slot에 보존한다. `~/.claude.json`은 내용을 읽지 않고 크기·mtime·inode 변화만 기록하며 하네스가 편집하지 않는다.
+Claude launch는 기존 슬롯 HOME을 거부한다. 종료 후 자체 transcript의 cwd binding을 대조하고 redact하여 raw slot에 보존한다. private HOME의 `.claude/projects/<slug>/<session>/tool-results`에서 저장 결과 개수·bytes를 내용 없이 계수한다. MCP logs·backups·설정 등을 범주별 파일 수·bytes로 기록한 뒤 소유권을 확인한 private HOME 전체를 지운다. 다른 project/credential 파일은 읽거나 정리하지 않는다. 실제 HOME의 projects·backups·CLI cache는 항목 메타데이터만 전후 검사하여 새 파일/디렉터리 0, 슬롯 cwd/HOME/source/cache 관련 slug 부재, `~/.claude.json` size/mtime/inode 동일을 확인한다. 동시 실행 중인 다른 세션의 **기존** 파일 메타 변경은 하네스 경로에서 계산되는 slug가 아님을 확인한 경우에만 별도 관측하고 무효 사유에서 제외한다. 관련 slug의 변경·새 항목은 실패-폐쇄하며 실제 HOME을 편집하지 않는다.
 
 ## 문맥 감사와 지표
 
-prepare/verify는 실제 pinned CLI와 loopback fake provider로 첫 instructions/system·tools·input을 캡처한다. Codex code mode는 추가 synthetic `ALL_TOOLS` 이름 조회로 nested 도구도 확인한다(실제 모델/검색 호출 아님). 제품군의 shell/network/subagent 혼입, rg의 검색 MCP 혼입을 거부한다. 모든 문항 프롬프트, 절대 경로 구성요소와 하네스 문구에서 `IDENTIFYING_PATH_WORDS` + 문항 ID + smoke/grafana를 검사한다. 원문 제품 instructions·description·schema·도구 식별자만 provenance-bound 예외이며 절대 경로는 예외가 아니다.
+prepare/verify는 실제 pinned CLI와 loopback fake provider로 첫 instructions/system·tools·input을 캡처한다. Codex code mode는 추가 synthetic `ALL_TOOLS` 이름 조회로 nested 도구도 확인한다(실제 모델/검색 호출 아님). 제품군의 shell/network/subagent 혼입, rg의 검색 MCP 혼입을 거부한다. 모든 문항 프롬프트, 절대 경로 구성요소와 하네스 문구에서 `IDENTIFYING_PATH_WORDS` + 문항 ID + smoke/grafana를 검사한다. 원문 제품 instructions·description·schema·도구 식별자만 provenance-bound 예외이며 절대 경로는 예외가 아니다. 실제 `Path.home()` 문자열·사용자 skill root·`<skills_instructions>`의 사용자 항목도 거부한다. private CODEX_HOME의 `.system` skill만 제품 기본값으로 허용하고 이름·root·파일 목록을 감사 증거에 기록한다(현재 imagegen, openai-docs, skill-creator, skill-installer). 이름 없는 hosted 도구는 `type`으로 선언 목록에 넣어 허용 집합 밖이면 거부한다.
 
 슬롯 후 Codex rollout의 system/developer/user/turn context와 Claude 자체 transcript의 모든 prompt snapshot·API request shape·system attachment·user 메시지를 다시 검사한다. 제품 tool-result 본문은 질문의 실제 소스이므로 하네스 문구로 취급하지 않는다. 감사 실패/필수 전사본 누락은 조건 무효다. 원자료·hash·위반 목록은 `context-audit.json`에 남는다.
 

@@ -109,7 +109,8 @@ def require(condition: bool, message: str) -> None:
 
 
 def command(args: list[str], cwd: Path | None = None, timeout_seconds=120) -> str:
-    result = subprocess.run(args, cwd=cwd, text=True, stdout=subprocess.PIPE,
+    env = {key: value for key, value in os.environ.items() if key != "CLAUDE_CODE_OAUTH_TOKEN"}
+    result = subprocess.run(args, cwd=cwd, env=env, text=True, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, timeout=timeout_seconds)
     require(result.returncode == 0, f"command failed ({args[0]}): {result.stderr[-2000:]}")
     return result.stdout

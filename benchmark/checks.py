@@ -231,16 +231,184 @@ class BenchChecks(unittest.TestCase):
         self.assertTrue(any('tools."read".output_token_limit=100000' in arg for arg in args))
         self.assertIn("tool_output_token_limit=100000", args)
         self.assertFalse((Path(env["CODEX_HOME"]) / "auth.json").exists())
+        self.assertEqual(Path(env["HOME"]), Path(env["CODEX_HOME"]).parent / "home")
+        self.assertNotEqual(Path(env["HOME"]), Path.home())
+        self.assertIn('developer_instructions="MCP instructions: navigation\\n\\nRead source.\\n"', args)
         folder = self.root / "launch-a"; folder.mkdir()
         with patch("benchmark.claude_client.executable", return_value="/usr/bin/false"), patch("benchmark.claude_client.managed_policy", return_value={}):
             args, cwd, env = claude_client.launch(folder, settings.execution_settings("claude-opus-5-5"), relay,
-                server=server, local_endpoint="http://127.0.0.1:20652", local_home=self.root / "login")
+                server=server, local_endpoint="http://127.0.0.1:20752")
         self.assertEqual(args[args.index("--setting-sources") + 1], "")
-        self.assertEqual(args[args.index("--tools") + 1], "")
+        self.assertEqual(set(args[args.index("--tools") + 1].split(",")), set(claude_client.RESOURCE_TOOLS))
+        self.assertEqual(set(args[args.index("--allowedTools") + 1].split(",")), {*claude_client.RESOURCE_TOOLS, "mcp__navigation__read"})
         self.assertIn("--restricted", args)
         self.assertEqual(env["MAX_MCP_OUTPUT_TOKENS"], "50000")
         self.assertEqual(env["ENABLE_TOOL_SEARCH"], "false")
-        self.assertEqual(env["HOME"], str(self.root / "login"))
+        from .pi_client import private_root
+        self.assertEqual(env["HOME"], str(private_root(folder) / "home"))
+        self.assertEqual(env["TMPDIR"], str(private_root(folder) / "home/tmp"))
+        folder = self.root / "launch-production"; folder.mkdir()
+        with patch("benchmark.claude_client.executable", return_value="/usr/bin/false"), \
+                patch("benchmark.claude_client.managed_policy", return_value={}), \
+                patch("benchmark.claude_client.operator_token", return_value=(None, "missing")):
+            with self.assertRaisesRegex(ContractError, "All Claude arms require"):
+                claude_client.launch(folder, settings.execution_settings("claude-opus-5-5"), relay, server=server)
+        with patch("benchmark.claude_client.executable", return_value="/usr/bin/false"), \
+                patch("benchmark.claude_client.managed_policy", return_value={}), \
+                patch("benchmark.claude_client.operator_token", return_value=("fixture-value", "oauth_env")):
+            args, cwd, env = claude_client.launch(folder, settings.execution_settings("claude-opus-5-5"), relay, server=server)
+        self.assertEqual(env["HOME"], str(private_root(folder) / "home"))
+        self.assertEqual(env["CLAUDE_CODE_OAUTH_TOKEN"], "fixture-value")
+        self.assertNotIn("ANTHROPIC_BASE_URL", env)
+        self.assertTrue(claude_client.cleanup_private(folder, cwd, env)["complete"])
+
+    def test_claude_operator_token_errors_hide_paths_and_env_is_consumed(self):
+        from . import claude_client, core
+        with patch.object(claude_client, "_ENV_TOKEN", None), patch.dict(os.environ, {}, clear=True):
+            missing = self.root / "sensitive-location"
+            os.environ["CODEMAP_BENCH_CLAUDE_TOKEN_FILE"] = str(missing)
+            with self.assertRaises(ValueError) as error:
+                claude_client.operator_token()
+            self.assertNotIn(str(missing), str(error.exception))
+            self.assertIsNone(error.exception.__cause__)
+            linked = self.root / "linked-token"
+            linked.symlink_to(missing)
+            os.environ["CODEMAP_BENCH_CLAUDE_TOKEN_FILE"] = str(linked)
+            with self.assertRaises(ValueError) as error:
+                claude_client.operator_token()
+            self.assertNotIn(str(linked), str(error.exception))
+            os.environ.pop("CODEMAP_BENCH_CLAUDE_TOKEN_FILE")
+            os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = "fixture-value"
+            self.assertEqual(core.command([sys.executable, "-c", "import os; print('CLAUDE_CODE_OAUTH_TOKEN' in os.environ)"]).strip(), "False")
+            self.assertEqual(claude_client.operator_token(), ("fixture-value", "oauth_env"))
+            self.assertNotIn("CLAUDE_CODE_OAUTH_TOKEN", os.environ)
+            self.assertEqual(claude_client.environment()["CLAUDE_CODE_OAUTH_TOKEN"], "fixture-value")
+            self.assertEqual(claude_client.operator_token(), ("fixture-value", "oauth_env"))
+
+    def test_claude_cleanup_removes_all_private_home_residue_without_reading_it(self):
+        from . import claude_client
+        from .pi_client import private_root, claude_project_slug
+        folder = self.root / "private"; folder.mkdir()
+        workspace = private_root(folder) / "work"; workspace.mkdir()
+        home = private_root(folder) / "home"; home.mkdir()
+        env = {"HOME": str(home)}
+        claude_client.prepare_private(folder, workspace, env)
+        project = home / ".claude/projects" / claude_project_slug(workspace)
+        project.mkdir(parents=True)
+        (project / "session.jsonl").write_text(json.dumps({"cwd": str(workspace), "type": "user"}) + "\n")
+        output = project / "session/tool-results/result.txt"; output.parent.mkdir(parents=True); output.write_text("a" * 600000)
+        for name in (".claude/backups/backup", "Library/Caches/claude-cli-nodejs/local/mcp-logs-navigation/log", ".claude.json"):
+            path = home / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(b"\xff")
+        result = claude_client.cleanup_private(folder, workspace, env)
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["operator_home_observation"]["passed"])
+        self.assertFalse(home.exists())
+        self.assertEqual(result["claude_persisted_tool_results"], {"count": 1, "bytes": 600000})
+        self.assertEqual(result["private_home_residue"]["files"], 5)
+        self.assertEqual(result["private_home_residue"]["categories"][".claude/backups"]["files"], 1)
+
+    def test_claude_operator_home_observation_only_exempts_existing_unrelated_sessions(self):
+        from .claude_client import operator_home_observation
+        from .pi_client import claude_project_slug
+        workspace = self.root / "work"
+        own = ".claude/projects/" + claude_project_slug(workspace) + "/a.jsonl"
+        unrelated = ".claude/projects/-unrelated-work/b.jsonl"
+        before = {"claude_json": None, "trees": {".claude/projects": {own: {"size": 1}, unrelated: {"size": 1}}}}
+        after = copy.deepcopy(before); after["trees"][".claude/projects"][unrelated]["size"] = 2
+        with patch("benchmark.claude_client.operator_home_state", return_value=after):
+            self.assertTrue(operator_home_observation(before, [workspace])["passed"])
+            other_slot = ".claude/projects/" + claude_project_slug(self.root / "other-slot/work") + "/c.jsonl"
+            before["trees"][".claude/projects"][other_slot] = {"size": 1}
+            after["trees"][".claude/projects"][other_slot] = {"size": 2}
+            self.assertFalse(operator_home_observation(before, [workspace])["passed"])
+            after["trees"][".claude/projects"][other_slot]["size"] = 1
+            after["trees"][".claude/projects"][own]["size"] = 2
+            self.assertFalse(operator_home_observation(before, [workspace])["passed"])
+            after["trees"][".claude/projects"][own]["size"] = 1
+            after["trees"][".claude/projects"][".claude/projects/-unrelated-work/new.jsonl"] = {"size": 1}
+            self.assertFalse(operator_home_observation(before, [workspace])["passed"])
+
+    def test_cli_context_audit_rejects_user_skills_home_and_hosted_tools(self):
+        from . import cli_audit
+        root = str(self.root / "0123456789abcdef/codex-home/skills/.system")
+        section = ("<skills_instructions>\n### Skill roots\n- `r0` = `" + root + "`\n### Available skills\n"
+                   "- imagegen: Built-in skill. (file: r0/imagegen/SKILL.md)\n</skills_instructions>")
+        request = {"input": [{"role": "developer", "content": section}], "tools": [{"type": "namespace", "name": "functions",
+                   "tools": [{"name": "exec"}, {"name": "wait"}]}]}
+        self.assertEqual(cli_audit.audit_request(request, {}), [])
+        self.assertEqual(cli_audit.skill_context(request)[0][0]["name"], "imagegen")
+        self.assertTrue(cli_audit.audit_request({"system": section.replace(root, str(Path.home() / ".agents/skills"))}, {}))
+        self.assertTrue(cli_audit.audit_request({"system": "Use ~/.agents/skills"}, {}))
+        self.assertTrue(cli_audit.audit_request({"messages": [{"role": "user", "content": str(Path.home())}]}, {}))
+        request["tools"].append({"type": "web_search"})
+        self.assertIn("web_search", cli_audit.declared_tools(request))
+        self.assertTrue(cli_audit.audit_tools(request, self.spec, None, {}))
+        resources = {"tools": [{"name": name} for name in ("mcp__navigation__read", "ListMcpResourcesTool", "ReadMcpResourceTool")]}
+        self.assertEqual(cli_audit.audit_tools(resources, {"solver_backend": "claude_code"}, {"enabled_tools": ["read"]},
+                         {"initialize": {"capabilities": {"resources": {}}}}), [])
+        self.assertTrue(cli_audit.audit_tools(resources, {"solver_backend": "claude_code"}, {"enabled_tools": ["read"]}, {}))
+
+    def test_proxy_peer_pid_matches_client_endpoint_not_server_or_ambiguous_owner(self):
+        from .isolation import proxy_peer_pid
+        output = "p21\nn127.0.0.1:20798->127.0.0.1:51000\np22\nn127.0.0.1:51000->127.0.0.1:20798\n"
+        with patch("benchmark.isolation.subprocess.run", return_value=subprocess.CompletedProcess([], 0, output)):
+            self.assertEqual(proxy_peer_pid(("127.0.0.1", 51000), ("127.0.0.1", 20798)), 22)
+        output += "p23\nn127.0.0.1:51000->127.0.0.1:20798\n"
+        with patch("benchmark.isolation.subprocess.run", return_value=subprocess.CompletedProcess([], 0, output)):
+            self.assertIsNone(proxy_peer_pid(("127.0.0.1", 51000), ("127.0.0.1", 20798)))
+        with patch("benchmark.isolation.subprocess.run", side_effect=subprocess.TimeoutExpired("lsof", 5)):
+            self.assertIsNone(proxy_peer_pid(("127.0.0.1", 51000), ("127.0.0.1", 20798)))
+
+    @unittest.skipUnless(sys.platform == "darwin", "TCP owner verification uses Darwin lsof")
+    def test_claude_proxy_allows_only_authenticated_cli_socket_owner(self):
+        import selectors
+        import socket
+        import socketserver
+        class Echo(socketserver.BaseRequestHandler):
+            def handle(self):
+                self.request.settimeout(5)
+                self.request.sendall(self.request.recv(16))
+        class Local(socketserver.TCPServer):
+            allow_reuse_address = True
+        with Local(("127.0.0.1", 20797), Echo) as upstream:
+            upstream.timeout = 5
+            thread = threading.Thread(target=upstream.handle_request); thread.start()
+            log = self.root / "proxy.jsonl"
+            code = ("import socket; from pathlib import Path; from benchmark.isolation import _serve_proxy; "
+                    "original=socket.create_connection; "
+                    "socket.create_connection=lambda target,timeout: original(('127.0.0.1',20797),timeout) "
+                    "if target==('api.anthropic.com',443) else (_ for _ in ()).throw(ValueError('unexpected upstream')); "
+                    f"_serve_proxy(20798,Path({str(log)!r}),{os.getpid()})")
+            proxy = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                with selectors.DefaultSelector() as selector:
+                    selector.register(proxy.stdout, selectors.EVENT_READ)
+                    self.assertTrue(selector.select(5), "proxy did not start")
+                    self.assertEqual(proxy.stdout.readline(), b"ready\n")
+                with socket.create_connection(("127.0.0.1", 20798), timeout=5) as connection:
+                    connection.sendall(b"CONNECT api.anthropic.com:443 HTTP/1.1\r\n\r\n")
+                    self.assertIn(b"200 Connection Established", connection.recv(4096))
+                    connection.sendall(b"echo")
+                    self.assertEqual(connection.recv(16), b"echo")
+                for request in ("CONNECT api.anthropic.com:443 HTTP/1.1\r\n\r\n", "GET / HTTP/1.1\r\n\r\n"):
+                    child_code = ("import socket; s=socket.create_connection(('127.0.0.1',20798),timeout=5); "
+                                  f"s.sendall({request.encode()!r}); print(s.recv(4096).decode())")
+                    child = subprocess.run([sys.executable, "-c", child_code], capture_output=True, text=True, timeout=10)
+                    self.assertEqual(child.returncode, 0, child.stderr)
+                    self.assertIn("403 Forbidden", child.stdout)
+                rows = read_jsonl(log)
+                self.assertTrue(rows[0]["permitted"])
+                self.assertEqual(rows[0]["peer_pid"], os.getpid())
+                self.assertEqual(len(rows), 3)
+                self.assertTrue(all(not row["permitted"] and row["reason"] == "not_cli_socket_owner" for row in rows[1:]))
+            finally:
+                proxy.terminate()
+                try:
+                    proxy.communicate(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proxy.kill(); proxy.communicate(timeout=5)
+                thread.join(timeout=6)
+            self.assertFalse(thread.is_alive())
 
     def test_cli_context_audit_covers_native_instructions_and_every_snapshot(self):
         from . import cli_audit
@@ -259,7 +427,7 @@ class BenchChecks(unittest.TestCase):
         rows.append({"type": "attachment", "attachment": {"type": "prompt_snapshot", "systemPrompt": ["Grafana hint"]}})
         path.write_text("".join(json.dumps(r) + "\n" for r in rows))
         self.assertFalse(cli_audit.audit_session(folder, inventory, "claude_code")["passed"])
-        self.assertTrue(cli_audit.audit_tools({"tools": [{"name": "Bash"}]}, {"solver_backend": "claude_code"}, {"enabled_tools": ["read"]}))
+        self.assertTrue(cli_audit.audit_tools({"tools": [{"name": "Bash"}]}, {"solver_backend": "claude_code"}, {"enabled_tools": ["read"]}, {}))
 
     def test_schedule_workers_serializes_arms_and_rounds(self):
         from . import execution, route_contract as routes

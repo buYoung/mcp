@@ -50,9 +50,8 @@ def navigation_tool_name(name: str) -> str:
 
 
 def server_instructions_prompt(instructions: str) -> str:
-    # Same placement and shape as Claude Code's MCP server instructions section; the text is the product's own.
-    return ("# MCP Server Instructions\n\nThe following MCP servers have provided instructions for how to use "
-            f"their tools and resources:\n\n## {NAVIGATION_SERVER}\n{instructions}\n")
+    # Neutral harness label; the following instructions remain the product's original text.
+    return f"MCP instructions: {NAVIGATION_SERVER}\n\n{instructions}\n"
 
 
 def private_root(folder: Path) -> Path:

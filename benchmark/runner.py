@@ -80,6 +80,10 @@ def isolated_environment(folder: Path, *, link_auth=True) -> tuple[dict, Path]:
     allowed = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR"}
     env = {key: value for key, value in os.environ.items() if key in allowed}
     from .settings import CACHE
+    private_home = folder / "home"
+    require(not private_home.is_symlink(), "private HOME symlink forbidden")
+    private_home.mkdir(mode=0o700, exist_ok=True)
+    env["HOME"] = str(private_home.resolve())
     env["CODEMAP_BENCH_CACHE"] = str(CACHE)
     env["CODEX_HOME"] = str(home.resolve())
     return env, home

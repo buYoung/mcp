@@ -7,40 +7,48 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .core import canonical, command, file_digest, metric, ratio, read_json, require, write_json
+from .core import file_digest, metric, ratio, read_json, require, write_json
 
 BACKEND = "claude_code"
 NATIVE_TOOLS = ("Bash", "Read", "Glob", "Grep")
+RESOURCE_TOOLS = ("ListMcpResourcesTool", "ReadMcpResourceTool")
+_ENV_TOKEN = os.environ.pop("CLAUDE_CODE_OAUTH_TOKEN", None)
 
 
 def operator_token() -> tuple[str | None, str]:
     """An explicitly supplied token is held in memory only; never log its value or digest."""
-    token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+    global _ENV_TOKEN
+    supplied = os.environ.pop("CLAUDE_CODE_OAUTH_TOKEN", None)
+    if supplied is not None:
+        _ENV_TOKEN = supplied
+    token = _ENV_TOKEN
     filename = os.environ.get("CODEMAP_BENCH_CLAUDE_TOKEN_FILE")
     require(not (token and filename), "provide only one Claude token source")
     if filename:
         import stat
-        with os.fdopen(os.open(Path(filename).expanduser(), os.O_RDONLY | os.O_NOFOLLOW)) as stream:
-            info = os.fstat(stream.fileno())
-            require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and stat.S_IMODE(info.st_mode) == 0o600
-                    and info.st_uid == os.getuid(), "Claude token file must be an owned 0600 regular file, not a link")
-            require(info.st_size <= 16384, "Claude token file too large")
-            token = stream.read(16385).strip()
+        try:
+            with os.fdopen(os.open(Path(filename).expanduser(), os.O_RDONLY | os.O_NOFOLLOW)) as stream:
+                info = os.fstat(stream.fileno())
+                require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and stat.S_IMODE(info.st_mode) == 0o600
+                        and info.st_uid == os.getuid(), "Claude token file must be an owned 0600 regular file, not a link")
+                require(info.st_size <= 16384, "Claude token file too large")
+                token = stream.read(16385).strip()
+        except (OSError, UnicodeError):
+            raise ValueError("Claude token file could not be read (details withheld)") from None
     if token is not None:
         require(bool(token) and not any(c.isspace() for c in token), "invalid Claude token format")
-    return token, "oauth_file" if filename else "oauth_env" if token else "user_login"
+    return token, "oauth_file" if filename else "oauth_env" if token else "missing"
 
 
-def require_native_auth() -> None:
+def require_operator_auth() -> None:
     token, _ = operator_token()
-    require(bool(token), "Claude rg requires operator CLAUDE_CODE_OAUTH_TOKEN or CODEMAP_BENCH_CLAUDE_TOKEN_FILE (owned 0600); keychain access is denied")
+    require(bool(token), "All Claude arms require operator CLAUDE_CODE_OAUTH_TOKEN or CODEMAP_BENCH_CLAUDE_TOKEN_FILE (owned 0600); user login is disabled")
 
 
 def environment(*, local=False) -> dict:
-    # The CLI owns authentication. Do not read, copy or log credentials or inherit model overrides.
-    allowed = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR",
-               "CLAUDE_CODE_OAUTH_TOKEN"}
-    env = {key: value for key, value in os.environ.items() if key in allowed and key != "CLAUDE_CODE_OAUTH_TOKEN"}
+    # HOME is supplied by each private launch; no user-login or model override inheritance.
+    allowed = {"PATH", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR"}
+    env = {key: value for key, value in os.environ.items() if key in allowed}
     token, _ = (None, "local_stub") if local else operator_token()
     if token:
         env["CLAUDE_CODE_OAUTH_TOKEN"] = token
@@ -81,17 +89,27 @@ def managed_policy() -> dict:
 
 
 def capabilities(*, check_auth=True) -> dict:
+    import tempfile
+    from .isolation import private_environment
+    from .settings import CACHE
+    before = operator_home_state()
     binary = executable()
-    version = command([binary, "--version"]).strip()
-    require(version == "2.1.311 (Claude Code)", "Claude Code pin mismatch")
-    help_text = command([binary, "--help"])
+    with tempfile.TemporaryDirectory(dir=CACHE, prefix="") as directory:
+        env = {**environment(local=True), **private_environment(Path(directory) / "home")}
+        version = subprocess.run([binary, "--version"], cwd=directory, env=env, capture_output=True, text=True, check=True, timeout=30).stdout.strip()
+        require(version == "2.1.311 (Claude Code)", "Claude Code pin mismatch")
+        help_text = subprocess.run([binary, "--help"], cwd=directory, env=env, capture_output=True, text=True, check=True, timeout=30).stdout
+        if check_auth:
+            require_operator_auth()
+            env.update(environment())
+            login = subprocess.run([binary, "auth", "status"], cwd=directory, env=env, capture_output=True, timeout=30)
+            require(_logged_in(login), "Claude operator OAuth login not recognized in private HOME")
+    require(operator_home_observation(before, [Path(directory), Path(directory) / "home"])["passed"],
+            "operator Claude HOME changed during capability probe")
     flags = ("--restricted", "--model", "--effort", "--tools", "--settings", "--setting-sources",
              "--strict-mcp-config", "--mcp-config", "--disable-slash-commands", "--include-partial-messages",
              "--output-format", "--system-prompt-snapshot")
     require(all(flag in help_text for flag in flags), "Claude Code에 필요한 실행 옵션이 없습니다")
-    if check_auth:
-        login = subprocess.run([binary, "auth", "status"], env=environment(), capture_output=True, timeout=30)
-        require(_logged_in(login), "Claude Code 로그인이 필요합니다: claude auth login")
     return {"backend": BACKEND, "version": version, "required_flags": list(flags)}
 
 
@@ -116,6 +134,8 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
            local_endpoint: str | None = None, local_home: Path | None = None) -> tuple[list[str], Path, dict]:
     from .pi_client import private_root, local_endpoint_url
     root = private_root(folder)
+    if local_endpoint is None:
+        require_operator_auth()
     current_policy = managed_policy()
     require(spec.get("claude_settings", current_policy) == current_policy, "Claude policy changed since preparation")
     native = spec.get("native_agent")
@@ -133,7 +153,7 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         from .runner import navigation_server
         server = server if server is not None else navigation_server(folder, relay_settings)
         mcp["mcpServers"]["navigation"] = {key: server[key] for key in ("command", "args", "env")}
-        permitted = ["mcp__navigation__" + name for name in relay_settings["enabled_tools"]]
+        permitted = [*RESOURCE_TOOLS, *("mcp__navigation__" + name for name in relay_settings["enabled_tools"])]
     policy_path, mcp_path = folder / "claude-settings.json", folder / "mcp-config.json"
     write_json(policy_path, policy, exclusive=True)
     write_json(mcp_path, mcp, exclusive=True)
@@ -141,36 +161,33 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
             "--include-partial-messages", "--model", spec["model"], "--effort", spec["reasoning_effort"],
             "--restricted", "--setting-sources", "", "--settings", str(policy_path),
             "--strict-mcp-config", "--mcp-config", str(mcp_path), "--disable-slash-commands",
-            "--system-prompt-snapshot", "on", "--permission-mode", "dontAsk", "--tools", ",".join(NATIVE_TOOLS) if native else ""]
+            "--system-prompt-snapshot", "on", "--permission-mode", "dontAsk", "--tools", ",".join(NATIVE_TOOLS if native else RESOURCE_TOOLS if relay_settings else ())]
     if native or permitted:
         args += ["--allowedTools", ",".join(NATIVE_TOOLS if native else permitted)]
-    env = environment(local=local_endpoint is not None)
-    (root / "tmp").mkdir(exist_ok=True)
-    env.update(TMPDIR=str(root / "tmp"), CLAUDE_CODE_TMPDIR=str(root / "tmp"), ENABLE_TOOL_SEARCH="false")
+    home = root / "home"
+    require(local_home is None or local_endpoint is not None and local_home == home, "local HOME must equal the slot private HOME")
+    require(not home.exists() and not home.is_symlink(), "pre-existing Claude HOME: refuse unrelated residue cleanup")
+    from .isolation import private_environment
+    env = {**environment(local=local_endpoint is not None), **private_environment(home)}
+    env.update(CLAUDE_CODE_TMPDIR=env["TMPDIR"], ENABLE_TOOL_SEARCH="false")
     if relay_settings:
         from .client_delivery import output_limits
         env["MAX_MCP_OUTPUT_TOKENS"] = str(output_limits(relay_settings["arm"])["claude_tokens"])
-    if local_endpoint is not None or local_home is not None:
-        require(local_endpoint is not None and local_home is not None, "local Claude requires loopback and private HOME")
-        require(local_home.resolve() != Path.home().resolve() and not local_home.is_symlink(), "local HOME must be private")
-        local_home.mkdir(parents=True, exist_ok=True)
-        env.pop("CLAUDE_CODE_OAUTH_TOKEN", None)
-        env.update(HOME=str(local_home.resolve()), ANTHROPIC_BASE_URL=local_endpoint_url(local_endpoint),
-                   ANTHROPIC_API_KEY="local-model-free-dummy-key")
+    if local_endpoint is not None:
+        env.update(ANTHROPIC_BASE_URL=local_endpoint_url(local_endpoint), ANTHROPIC_API_KEY="local-model-free-dummy-key")
     if native:
         from .isolation import claude_baseline_command, claude_baseline_profile
         env.update(native["env"])
-        require(local_endpoint is not None or env.get("CLAUDE_CODE_OAUTH_TOKEN"),
-                "Claude rg requires operator CLAUDE_CODE_OAUTH_TOKEN or CODEMAP_BENCH_CLAUDE_TOKEN_FILE (0600); keychain access is denied")
-        profile = claude_baseline_profile(native, folder, local_endpoint=local_endpoint, local_home=local_home)
+        profile = claude_baseline_profile(native, folder, local_endpoint=local_endpoint, local_home=home)
         env.update(profile["env"])
         env["CLAUDE_CODE_SHELL"] = native_shell(folder, native, env)
         args = claude_baseline_command(args, profile, folder)
     env.update(MCP_TOOL_TIMEOUT="300000", MCP_TIMEOUT="120000")
-    prepare_private(folder, workspace, env)
+    prepare_private(folder, workspace, env, source=Path(relay_settings["source"]) if relay_settings and relay_settings.get("source") else workspace)
     write_json(folder / "cli-policy.json", {"backend": BACKEND, "measurement_mode": "direct",
         "mcp_output_tokens": int(env["MAX_MCP_OUTPUT_TOKENS"]) if relay_settings else None,
-        "local_provider": local_endpoint is not None}, exclusive=True)
+        "local_provider": local_endpoint is not None, "private_home": str(home),
+        "authentication": "local_stub" if local_endpoint else "operator_oauth"}, exclusive=True)
     return args, workspace, env
 
 
@@ -191,21 +208,91 @@ def config_file_stat(home: Path) -> dict | None:
     return {"size": info.st_size, "mtime_ns": info.st_mtime_ns, "inode": info.st_ino}
 
 
-def prepare_private(folder: Path, workspace: Path, env: dict) -> None:
+def operator_home_state() -> dict:
+    """Metadata only: never open operator settings, credentials, caches or transcripts."""
+    home = Path.home()
+    result = {"claude_json": config_file_stat(home), "trees": {}}
+    for name in (".claude/projects", ".claude/backups", "Library/Caches/claude-cli-nodejs"):
+        root = home / name
+        paths = [root, *root.rglob("*")] if root.exists() else []
+        result["trees"][name] = {str(path.relative_to(home)): {
+            "size": info.st_size, "mtime_ns": info.st_mtime_ns, "inode": info.st_ino}
+            for path in paths for info in [path.lstat()]}
+    return result
+
+
+def operator_home_observation(before: dict, harness_paths: list[Path]) -> dict:
+    """Concurrent unrelated sessions may append old files, but must not create new residue."""
     from .pi_client import claude_project_slug
+    from .settings import CACHE
+    slugs = {claude_project_slug(path) for path in [*harness_paths, CACHE]}
+    cache_slug = claude_project_slug(CACHE)
+    after = operator_home_state()
+    added, removed, changed = [], [], []
+    for name, previous in before["trees"].items():
+        current = after["trees"][name]
+        added += sorted(current.keys() - previous.keys())
+        removed += sorted(previous.keys() - current.keys())
+        for path in sorted(previous.keys() & current.keys()):
+            if previous[path] != current[path]:
+                relative = Path(path).relative_to(name).parts
+                slug = relative[0] if relative else None
+                unrelated = (name in {".claude/projects", "Library/Caches/claude-cli-nodejs"}
+                             and slug is not None and slug not in slugs and not slug.startswith(cache_slug + "-"))
+                changed.append({"path": path, "slug": slug, "before": previous[path], "after": current[path],
+                                "unrelated_session": unrelated})
+    present = sorted({slug for slug in slugs for name in (".claude/projects", "Library/Caches/claude-cli-nodejs")
+                      if (Path.home() / name / slug).exists()})
+    config_unchanged = before["claude_json"] == after["claude_json"]
+    return {"passed": not added and not removed and not present and config_unchanged
+                      and all(item["unrelated_session"] for item in changed),
+            "new_paths": added, "removed_paths": removed, "changed_existing": changed,
+            "harness_slugs_checked": sorted(slugs), "harness_slugs_present": present,
+            "claude_json_before": before["claude_json"], "claude_json_after": after["claude_json"],
+            "claude_json_unchanged": config_unchanged}
+
+
+def private_home_metadata(home: Path) -> dict:
+    """Count owned residue without reading config, backups, MCP logs or persisted output."""
+    import stat
+    result = {"files": 0, "bytes": 0, "categories": {}}
+    require(not home.is_symlink(), "Claude private HOME link forbidden")
+    for path in home.rglob("*"):
+        info = path.lstat()
+        require(not stat.S_ISLNK(info.st_mode) and info.st_uid == os.getuid(), "Claude private residue ownership mismatch")
+        if stat.S_ISREG(info.st_mode):
+            require(info.st_nlink == 1, "Claude private residue hard link forbidden")
+            relative = str(path.relative_to(home))
+            category = next((prefix for prefix in (".claude/projects", ".claude/backups", "Library/Caches/claude-cli-nodejs", ".claude.json")
+                             if relative == prefix or relative.startswith(prefix + "/")), "other")
+            counts = result["categories"].setdefault(category, {"files": 0, "bytes": 0})
+            for key, value in (("files", 1), ("bytes", info.st_size)):
+                counts[key] += value
+                result[key] += value
+    return result
+
+
+def prepare_private(folder: Path, workspace: Path, env: dict, *, source: Path | None = None) -> None:
+    from .pi_client import claude_project_slug, private_root
     home = Path(env["HOME"]).resolve()
+    require(home == private_root(folder) / "home" and home != Path.home().resolve(), "Claude HOME is not slot-owned")
     target = home / ".claude/projects" / claude_project_slug(workspace)
     require(not target.exists() and not target.is_symlink(), "pre-existing Claude project: refuse unrelated residue cleanup")
     write_json(folder / "claude-private.json", {"workspace": str(workspace.resolve()), "home": str(home),
-        "project": str(target), "claude_json_before": config_file_stat(home)}, exclusive=True)
+        "project": str(target), "claude_json_before": config_file_stat(home),
+        "operator_home_before": operator_home_state(),
+        "harness_paths": [str(path.resolve()) for path in (folder, workspace, home, home.parent, source or workspace)]}, exclusive=True)
 
 
 def cleanup_private(folder: Path, workspace: Path, env: dict) -> dict:
-    from .pi_client import cleanup_claude_project as cleanup
+    from .pi_client import cleanup_claude_project as cleanup, private_root, claude_project_slug
     binding = read_json(folder / "claude-private.json")
     home = Path(env["HOME"]).resolve()
-    require(binding["workspace"] == str(workspace.resolve()) and binding["home"] == str(home), "Claude cleanup binding changed")
+    require(binding["workspace"] == str(workspace.resolve()) and binding["home"] == str(home)
+            and home == private_root(folder) / "home" and home != Path.home().resolve(), "Claude cleanup binding changed")
+    residue = private_home_metadata(home)
     target = Path(binding["project"])
+    require(target == home / ".claude/projects" / claude_project_slug(workspace), "Claude project binding changed")
     # Only harness-created, cwd-bound transcripts are copied. Never inspect other operator sessions or credentials.
     for path in sorted(target.glob("*.jsonl")):
         require(not path.is_symlink() and path.stat().st_nlink == 1, "Claude transcript link forbidden")
@@ -216,12 +303,16 @@ def cleanup_private(folder: Path, workspace: Path, env: dict) -> dict:
         destination.write_bytes(redact(path.read_bytes(), env.get("CLAUDE_CODE_OAUTH_TOKEN") or env.get("ANTHROPIC_API_KEY")))
     result = cleanup(workspace, home=home)
     result.update(claude_json_before=binding["claude_json_before"], claude_json_after=config_file_stat(home),
-                  claude_json_changed=binding["claude_json_before"] != config_file_stat(home))
+                  claude_json_changed=binding["claude_json_before"] != config_file_stat(home), private_home_residue=residue)
+    shutil.rmtree(home)
+    observation = operator_home_observation(binding["operator_home_before"], [Path(path) for path in binding["harness_paths"]])
+    result.update(removed_home=str(home), private_home_remaining=home.exists(), operator_home_observation=observation)
+    result["complete"] = result["complete"] and not home.exists() and observation["passed"]
     return result
 
 
 def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
-    require_native_auth()
+    require_operator_auth()
     try:
         return _probe(value, folder, denied_paths)
     finally:
@@ -270,19 +361,27 @@ def _probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
                  ("pinned_rg", [value["rg_binary"], "--version"], True),
                  ("proxy_github_denied", ["/usr/bin/curl", "--fail", "--max-time", "10", "https://github.com"], False),
                  ("direct_github_denied", ["/usr/bin/curl", "--fail", "--noproxy", "*", "--max-time", "10", "https://github.com"], False)]
+        proxy_url = f"http://127.0.0.1:{profile['port']}"
+        cases += [("bash_proxy_connect_denied", ["/bin/zsh", "-f", "-c",
+                   f"exec /usr/bin/curl --fail --max-time 10 --proxy {proxy_url} https://api.anthropic.com/"], False),
+                  ("bash_proxy_plain_denied", ["/bin/zsh", "-f", "-c",
+                   f"exec /usr/bin/curl --fail --noproxy '*' --max-time 10 {proxy_url}/"], False)]
         cases.extend((name, ["/bin/cat", str(path)], False) for name, path in targets.items())
         cases.extend(("rg_" + name, [value["rg_binary"], "ISOLATION_", str(path)], False)
                      for name, path in targets.items() if name.startswith("claude-"))
         cases.append(("source_read_after_denials", ["/bin/cat", "README.md"], True))
         for name, argv, allowed in cases:
-            checked = subprocess.run(claude_baseline_command(argv, profile, folder), cwd=workspace, env=env,
+            probe_env = {key: value for key, value in env.items() if key not in {"CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"}}
+            checked = subprocess.run(claude_baseline_command(argv, profile, folder), cwd=workspace, env=probe_env,
                                      capture_output=True, timeout=30)
             boundaries.append({"name": name, "expected_access": "allow" if allowed else "deny",
                                "exit_code": checked.returncode, "stderr": checked.stderr.decode(errors="replace")})
             write_json(folder / "boundary-probe.json", boundaries)
             require(checked.returncode >= 0 and checked.returncode != 125, f"Claude boundary launcher 실패: {name}")
             require((checked.returncode == 0) == allowed, f"Claude outer boundary 실패: {name}")
-    write_json(folder / "private-cleanup.json", cleanup_private(folder, workspace, env))
+    private_cleanup = cleanup_private(folder, workspace, env)
+    write_json(folder / "private-cleanup.json", private_cleanup)
+    require(private_cleanup["complete"], "Claude probe private HOME cleanup incomplete")
     require(_logged_in(auth), "Claude outer profile에서 로그인 인식 실패: baseline blocked; "
             "자격 파일/기록을 허용하지 않습니다. 운영자가 CLAUDE_CODE_OAUTH_TOKEN을 환경으로 제공한 뒤 재검증하세요")
     observation = {"name": "claude_init_only", "exit_code": result.returncode, "command": args,
