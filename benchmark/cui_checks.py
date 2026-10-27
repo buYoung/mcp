@@ -66,6 +66,7 @@ catch(error) {{ process.exitCode=error.name==='BenchCancelled'?130:1; }}
         if self.pid == 0:
             os.execvpe("node", ["node", str(script)], env)
         self.buffer = b""
+        self.transcript = b""
         self.status = None
 
     def wait(self, text):
@@ -78,6 +79,7 @@ catch(error) {{ process.exitCode=error.name==='BenchCancelled'?130:1; }}
                     self.buffer += os.read(self.fd, 65536)
                 except OSError:
                     break
+        self.transcript += self.buffer
         if expected not in self.buffer:
             raise AssertionError(f"Missing prompt {text}: {self.buffer.decode(errors='replace')[-3000:]}")
         self.buffer = b""
@@ -131,6 +133,9 @@ class CUIChecks(unittest.TestCase):
             cui.wait("측정에 사용할 풀이 모델을 선택하세요.")
             cui.send("\r")
             cui.wait("실행을 승인합니까?")
+            self.assertIn("풀이 제한 없음".encode(), cui.transcript)
+            self.assertIn("채점 제한 300초".encode(), cui.transcript)
+            self.assertNotIn("탐색 80회".encode(), cui.transcript)
             cui.send("\r")
             self.assertEqual(cui.finish(), 0)
             self.assertEqual([c["action"] for c in cui.calls()], ["catalog", "prepare"])

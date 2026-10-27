@@ -107,8 +107,8 @@ def load_profile() -> dict:
         {"model": "claude-opus-5-5", "name": "Claude Opus 5.5", "backend": "pi", "reasoning_effort": "medium", "provider": "claude-bridge"},
     ], "풀이 모델 선택 계약 변경")
     require(profile["grader"] == {"model": "gpt-6-astra", "reasoning_effort": "high"}, "채점 모델 계약 변경")
-    require(profile["limits"] == {"elapsed_seconds": 300, "exploration_calls": 80, "total_tokens": 500000}
-            and profile["token_limit_basis"] == "input_excluding_cache_reads_plus_output"
+    require(profile["limits"] is None and "token_limit_basis" not in profile
+            and profile["grader_timeout_seconds"] == 300
             and profile["execution_authorized"] is False,
             "준비 전용 실행 경계 변경")
     require(profile["baseline"]["arm"] == "rg" and profile["baseline"]["mode"] == "native_agent"

@@ -53,7 +53,7 @@ def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
     settled_at = None
     parse_failed = False
     start = time.monotonic()
-    deadline = start + settings["limits"]["elapsed_seconds"]
+    deadline = start + settings["grader_timeout_seconds"]
     cleanup = {"complete": True, "started": False, "steps": []}
 
     with (folder / "events.jsonl").open("xb") as stdout, (folder / "stderr.log").open("xb") as stderr:
@@ -124,7 +124,7 @@ def execute(folder: Path, prompt: str, *, settings: dict, output_schema: dict,
             if cancel_event is not None and cancel_event.is_set():
                 raise ValueError("grader cancelled before launch")
             start, started_unix = time.monotonic(), time.time()
-            deadline = start + settings["limits"]["elapsed_seconds"]
+            deadline = start + settings["grader_timeout_seconds"]
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE, start_new_session=True)
             stop = ExecutionStop(folder, process, start, started_unix_seconds=started_unix, wall_deadline=deadline)

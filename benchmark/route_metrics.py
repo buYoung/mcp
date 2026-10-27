@@ -498,6 +498,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
         require(not row or not row.get("reused_from"), "route 프로필은 기존 A 답변을 재사용하지 않습니다")
         require(not row or all(row[key] == slot[key] for key in ("question_id", "arm", "mode", "attempt")), "결과 슬롯 식별 불일치")
         result_rows.append({**slot, "status": row["status"] if row else "planned", "judgment": judgment,
+                            "solver_limits": None,
                             "elapsed_seconds": row.get("elapsed_seconds") if row else None,
                             "timing": row.get("timing") if row else None,
                             "observations": row.get("observations") if row else None,
@@ -505,7 +506,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                             "tool_call_counts": row.get("tool_call_counts") if row else None,
                             **{key: row.get(key) if row else None for key in (
                                 "conditions_valid", "error", "failure_reason", "condition_errors", "boundary_violations",
-                                "call_log_complete", "host_calls", "artifact", "artifacts", "shutdown", "budget", "native_call_budget",
+                                "call_log_complete", "host_calls", "artifact", "artifacts", "shutdown", "token_measurement", "native_calls",
                                 "usage_collection", "token_accounting", "retry_attempts", "failed_attempts", "model", "requested_model", "backend", "agent_version", "effort_observation", "codex_version", "thread_id", "provenance",
                                 "phase", "launch_state", "cli_launches", "provider_call_observed", "answer_eligible", "cleanup",
                                 "failure_stage", "grade_state", "grade_reason", "grader_execution", "review", "packet_seal_sha256", "raw_seal", "raw_seal_sha256",
@@ -536,7 +537,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "out_of_scope": sum(r["status"] == "out_of_scope" for r in result_rows),
               "not_started": sum(r["launch_state"] in {None, "not_started"} for r in result_rows),
               "launch_unknown": sum(r["launch_state"] == "unknown" for r in result_rows)}
-    result = {"schema_version": 3, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
+    result = {"schema_version": 4, "solver_limits": None, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
               "campaign_status": manifest.get("campaign_status"), "blocked_grading": manifest.get("blocked_grading", []),
               "run_scope": manifest.get("run_scope", {"kind": "full"}),
               "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions", "execution_specs")},
@@ -545,7 +546,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "scope": f"{len(routes.QUESTION_IDS)} fixed routes, {routes.REPETITIONS} attempts per question and arm. Descriptive observations only.",
               "variance_estimated": False}
     write_json(root / "report/summary.json", result)
-    lines = ["# Grafana 경로 벤치마크", ""]
+    lines = ["# Grafana 경로 벤치마크", "", "풀이 제한 없음(시간·탐색 호출·토큰). 사용량과 token accounting은 계속 기록합니다.", ""]
     if manifest.get("run_scope", {}).get("kind") == "smoke":
         lines += ["**스모크 실행입니다. 지정한 슬롯만 실행했고 나머지는 `out_of_scope`입니다. 비교 결과로 쓰지 않습니다.**",
                   "지정 슬롯: `" + ", ".join(manifest["run_scope"]["slot_ids"]) + "`", ""]
