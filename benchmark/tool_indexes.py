@@ -425,8 +425,8 @@ def probe_configuration(ident: str, state: dict, artifacts: dict) -> dict:
         # Serena 2.x defaults to arbitrary-Python REPL, outside the search-only contract.
         client_config["launch"] = [*launch, "start-mcp-server", "--project", str(source),
                                    "--agent-interface", "tools"]
-        # Preserve Serena's native 240-second tool timeout within the common 300-second run budget.
-        client_config["timeout_seconds"] = routes.load_profile()["limits"]["elapsed_seconds"]
+        # Preserve the product RPC timeout above Serena's native 240 seconds, independent of solver duration.
+        client_config["timeout_seconds"] = 300
     client_config["product_arm"] = ident
     return {"schema": "grafana-route-relay-v1", "arm": ident, "source": str(source),
             "policy_state": {key: state[key] for key in ("source", "home", "modes")},

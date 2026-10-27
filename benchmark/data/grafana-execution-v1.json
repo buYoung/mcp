@@ -31,12 +31,8 @@
   "repetitions": 3,
   "concurrency": 4,
   "seed": 20260907,
-  "limits": {
-    "elapsed_seconds": 300,
-    "exploration_calls": 80,
-    "total_tokens": 500000
-  },
-  "token_limit_basis": "input_excluding_cache_reads_plus_output",
+  "limits": null,
+  "grader_timeout_seconds": 300,
   "arm_ids": [
     "codemap-search",
     "codegraph",

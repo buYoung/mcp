@@ -98,7 +98,7 @@ export async function interactive({ prompts, call = backend, output = console })
   output.info(`도구 조건: ${plan.targets.map((item) => `${item.name} (${item.tool_condition})`).join(', ')}`);
   output.info(`실제 버전: ${plan.targets.map((item) => `${item.id}=${item.actual_version}`).join(', ')}`);
   output.info(`계획 ID: ${plan.plan_id} · readiness SHA256: ${plan.readiness_sha256}`);
-  output.info(`한도: ${plan.spec.limits.elapsed_seconds}초 · 탐색 ${plan.spec.limits.exploration_calls}회 · ${plan.spec.limits.total_tokens.toLocaleString()}토큰(캐시 읽기 제외), 최대 ${plan.spec.concurrency}개 병렬 실행`);
+  output.info(`풀이 제한 없음(시간·탐색 호출·토큰) · 최대 ${plan.spec.concurrency}개 병렬 실행 · 채점 제한 ${plan.spec.grader_timeout_seconds}초`);
   output.info('응답은 제품 기본값, 색인은 로컬 조건입니다. 문항마다 동일 경로의 조회 전 상태를 복원하도록 준비했습니다.');
   output.info(`준비 기록: ${plan.readiness}`);
   output.info(`준비만으로는 실행하지 않습니다. 승인하면 이 계획에서 최대 ${plan.runs}회 풀이와 해당 답변의 Astra 채점을 수행합니다.`);

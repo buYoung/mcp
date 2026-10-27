@@ -345,7 +345,7 @@ def pending_call_ids(rows: list[dict]) -> list[str]:
 
 def latch_cutoff(folder: Path, reason: str, observed: dict, *, start: float | None = None,
                  started_unix_seconds: float | None = None, wall_deadline: float | None = None) -> dict:
-    """Called with navigation_lock held; a relay rejection may latch before the runner sees it."""
+    """Called with navigation_lock held; preserve the first stop reason and effective time."""
     from .runner import read_live_jsonl
     path = folder / "stop.json"
     if path.exists():
@@ -424,7 +424,7 @@ class NativeRelay:
         """Reserve one attempt and record dispatch atomically; validate must not perform RPCs.
 
         The warm host reuses this gate only for solver traffic, with its slot log/stop directory.
-        Rejected validation attempts consume budget, but are never counted as dispatches.
+        Rejected validation attempts are counted, but are never counted as dispatches.
         """
         with navigation_lock(self.log.parent):
             self.attempts += 1
@@ -439,31 +439,16 @@ class NativeRelay:
                        "started_monotonic": time.monotonic(), "discovery": discovery,
                        "is_auxiliary": is_tool and fields.get("name") in self.config.get("auxiliaries", [])}
             append_jsonl(self.log, {**request, "event": "attempt"})
-            limit = self.config.get("limits", routes.load_profile()["limits"])["exploration_calls"]
             consumed = False
             reason = "validation_error"
             try:
-                clock_path = self.log.with_name("process.json")
-                clock = read_json(clock_path) if clock_path.exists() else {}
-                deadline = clock.get("wall_deadline_monotonic")
-                if deadline is not None and time.monotonic() >= deadline:
-                    latch_cutoff(self.log.parent, "timeout", {})
                 reason = "stopped"
                 require(not self.log.with_name("stop.json").exists(), "실행 중단 이후 탐색 금지")
-                reason = "call_limit"
                 if not discovery:
-                    if self.count >= limit:
-                        cutoff = latch_cutoff(self.log.parent, "call_limit", {})
-                        append_jsonl(self.log, {"event": "limit", "id": request["id"], **cutoff})
-                        raise ContractError("탐색 호출 한도")
                     self.count += 1
                     consumed = True
                 reason = "validation_error"
                 validate()
-                if deadline is not None and time.monotonic() >= deadline:
-                    latch_cutoff(self.log.parent, "timeout", {})
-                    reason = "stopped"
-                    raise ContractError("실행 중단 이후 탐색 금지")
             except (ValueError, OSError, KeyError, TypeError, subprocess.SubprocessError) as exc:
                 append_jsonl(self.log, {**request, "event": "terminal", "status": "rejected", "reason": reason,
                                        "dispatched": False, "budget_consumed": consumed,
@@ -476,8 +461,7 @@ class NativeRelay:
                 return request
             finally:
                 append_jsonl(self.log, {"event": "budget", "id": request["id"], "attempts": self.attempts,
-                                       "consumed_calls": self.count, "dispatched_calls": self.dispatched,
-                                       "limit_calls": limit, "budget_exhausted": self.count >= limit})
+                                       "consumed_calls": self.count, "dispatched_calls": self.dispatched})
 
     def validate_request(self, method: str, params: dict) -> None:
         require(isinstance(params, dict), "잘못된 MCP 인자")

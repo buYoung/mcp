@@ -21,10 +21,7 @@ from .core import ContractError, digest, file_digest, read_json, require
 
 
 def answer_prompt(spec: dict, question: dict) -> str:
-    prefix = runner.ANSWER_PROMPT.split("실행 제한은")[0]
-    limits = spec["limits"]
-    return (prefix + f"실행 제한은 {limits['elapsed_seconds']}초, 실제 탐색 호출 {limits['exploration_calls']}회, "
-            f"캐시 읽기를 제외한 누적 입력+출력 토큰 {limits['total_tokens']}개다.\n\n" + question["prompt"])
+    return runner.ANSWER_PROMPT + "\n" + question["prompt"]
 
 
 def catalog() -> dict:
@@ -83,7 +80,7 @@ def authorize_run(prepared: dict, readiness: Path, approval: dict) -> tuple[Path
                 "condition_sha256": digest(route_prepare.plan_condition(prepared)), "authorization": authorization,
                 "prepared": copy.deepcopy(prepared), "models": copy.deepcopy(prepared["models"]), "run_specs": specs,
                 "run_spec_sha256": {arm: digest(spec) for arm, spec in specs.items()},
-                "concurrency": 4, "grader_timeout_seconds": 300, "packet_bytes_limit": 384 * 1024}
+                "concurrency": 4, "grader_timeout_seconds": routes.load_profile()["grader_timeout_seconds"], "packet_bytes_limit": 384 * 1024}
     durable_json(root / "manifest.json", manifest, exclusive=True)
     rows = []
     for rank, slot in enumerate(prepared["planned_runs"]):
@@ -93,7 +90,7 @@ def authorize_run(prepared: dict, readiness: Path, approval: dict) -> tuple[Path
                      "run_spec_sha256": manifest["run_spec_sha256"][routes.execution_key(slot["arm"], slot["mode"])],
                      "prompt_sha256": prepared["solver_inputs"][slot["id"]]["sha256"],
                      "phase": "pending", "launch_state": "not_started", "cli_launches": 0,
-                     "provider_call_observed": None, "conditions_valid": None, "grade_state": "not_eligible"})
+                     "provider_call_observed": None, "conditions_valid": None, "grade_state": "not_eligible", "solver_limits": None})
         if slot["id"] not in selected:
             rows[-1].update(phase="terminal", status="out_of_scope", provider_call_observed=False,
                             grade_reason="outside smoke scope")
@@ -402,7 +399,7 @@ def grade_packet(root: Path, manifest: dict, initial: dict, coordinator: LedgerC
         row = coordinator.change(row["id"], {"grade_state": "grading"}, intent="grader-launch")
         spec = copy.deepcopy(manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])])
         spec.pop("native_agent", None)
-        spec["limits"] = {**spec["limits"], "elapsed_seconds": manifest["grader_timeout_seconds"]}
+        spec["grader_timeout_seconds"] = manifest["grader_timeout_seconds"]
         result = grader_executor(folder / "job", (folder / "prompt.txt").read_text(), grading=True,
             output_schema=read_json(folder / "schema.json"), relay_settings=None, settings=spec,
             usage_drain_seconds=0, cancel_event=cancel_event)
@@ -482,7 +479,7 @@ def recover_interrupted(root: Path, coordinator: LedgerCoordinator) -> None:
 
 
 def grading_eligible(row: dict) -> bool:
-    return (row.get("status") in {"completed", "timeout", "call_limit", "token_limit"}
+    return (row.get("status") == "completed"
             and row.get("conditions_valid") is True and row.get("answer_eligible") is True
             and bool(row.get("answer", "").strip()))
 

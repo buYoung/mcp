@@ -383,7 +383,7 @@ def prepare_packets(experiment: Path, dataset: dict, runs: list[dict], source: P
     batches = []
     for run in runs:
         if (run.get("conditions_valid") is not True or run.get("answer_eligible") is not True
-                or not run.get("answer", "").strip() or run["status"] not in {"completed", "timeout", "call_limit", "token_limit"}):
+                or not run.get("answer", "").strip() or run["status"] != "completed"):
             continue
         question = next(q for q in dataset["questions"] if q["id"] == run["question_id"])
         result = build_review_packet(experiment, question, run, source, spec, Path(run["raw_seal"]),

@@ -197,7 +197,7 @@ def configuration(source: Path, rg_binary: Path) -> dict:
     return {"schema": "grafana-native-agent-v1", "backend": BACKEND, "mode": "native_agent",
             "source": str(source.resolve()), "rg_binary": str(rg_binary.resolve()), "rg_sha256": file_digest(rg_binary),
             "search_product_mcp": False, "tools": ["bash"], "native_tools": "pi bash via per-slot Seatbelt wrapper",
-            "call_unit": "atomic wrapper admission; 80th allowed, 81st rejected before exec",
+            "call_unit": "atomic wrapper admission; calls measured without a limit",
             "output_policy": "pi defaults; no harness clipping"}
 
 
@@ -235,7 +235,7 @@ def shell_wrapper(native: dict, folder: Path) -> Path:
     config = folder / "pi-bash.json"
     (folder / "bash-calls.jsonl").touch(exist_ok=False)
     (folder / "bash-results.jsonl").touch(exist_ok=False)
-    write_json(config, {"folder": str(folder), "profile": profile, "limit": 80}, exclusive=True)
+    write_json(config, {"folder": str(folder), "profile": profile}, exclusive=True)
     wrapper = folder / "pi-shell"
     wrapper.write_text(f"#!{sys.executable}\nimport sys\nsys.path.insert(0, {str(Path(__file__).resolve().parent.parent)!r})\n"
                        f"from benchmark.pi_client import shell_main\nshell_main({str(config)!r}, sys.argv[1:])\n")
@@ -245,7 +245,7 @@ def shell_wrapper(native: dict, folder: Path) -> Path:
 
 def shell_main(config_path: str, args: list[str]) -> None:
     """Trusted unsandboxed launcher. Admission and stop share the relay's atomic lock."""
-    from .route_transport import navigation_lock, latch_cutoff, append_jsonl
+    from .route_transport import navigation_lock, append_jsonl
     from .runner import read_jsonl_prefix
     from .isolation import wrap
     from .execution import ProcessRegistry
@@ -258,19 +258,12 @@ def shell_main(config_path: str, args: list[str]) -> None:
         require(collection["complete"], "pi bash admission log 불완전")
         ident = len(rows) + 1
         stopped = (folder / "stop.json").exists()
-        process = read_json(folder / "process.json") if (folder / "process.json").exists() else {}
-        expired = time.monotonic() >= process.get("wall_deadline_monotonic", float("inf"))
-        allowed = not stopped and not expired and ident <= config["limit"]
+        allowed = not stopped
         append_jsonl(log, {"id": ident, "tool": "bash", "command": redact(args[1], os.environ.get(TOKEN_ENV)), "dispatched": allowed,
                            "pid": os.getpid(), "pgid": os.getpgrp(), "start_fingerprint": ProcessRegistry.fingerprint(os.getpid()),
                            "status": "admitted" if allowed else "rejected", "monotonic": time.monotonic()})
-        if not allowed and not stopped:
-            latch_cutoff(folder, "timeout" if expired else "call_limit", {},
-                         start=process.get("started_monotonic", time.monotonic()),
-                         started_unix_seconds=process.get("started_unix_seconds"),
-                         wall_deadline=process.get("wall_deadline_monotonic"))
     if not allowed:
-        print("Exploration call rejected before execution: 80-call budget or solver cutoff.", file=sys.stderr)
+        print("Exploration call rejected before execution: solver stopped.", file=sys.stderr)
         raise SystemExit(81)
     profile = config["profile"]
     command = wrap(["/usr/bin/env", "-i", *[f"{k}={v}" for k, v in profile["env"].items()],

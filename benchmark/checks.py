@@ -42,6 +42,8 @@ effort = next(json.loads(v.split('=',1)[1]) for v in args if v.startswith('model
 row({'type':'turn_context','payload':{'model':model,'effort':effort}})
 print(json.dumps({'type':'thread.started','thread_id':ident}),flush=True)
 usage={'input_tokens':100,'output_tokens':20,'cached_input_tokens':30,'total_tokens':120}
+if 'FIXTURE_LARGE' in prompt:
+    usage.update(input_tokens=600040,total_tokens=600060)
 def record(response, factor):
     total={k:v*factor for k,v in usage.items()}
     row({'type':'token_usage_record','payload':{'response_id':response,'usage':usage,'turn_token_usage':total,'thread_token_usage':total}})
@@ -61,8 +63,9 @@ if 'FIXTURE_WAIT' in prompt:
     while True: time.sleep(.02)
 if 'FIXTURE_MALFORMED' in prompt:
     print('not-json',flush=True); time.sleep(1); sys.exit(1)
-answer = ''
+answer = '완성 답변'
 if 'FIXTURE_DRAIN' in prompt:
+    (folder/'fixture-pid').write_text(str(os.getpid()))
     while True: time.sleep(.01)
 row({'type':'response_item','payload':{'role':'assistant','phase':'final_answer','content':[{'type':'output_text','text':answer}]}})
 row({'type':'event_msg','payload':{'type':'task_complete'}})
@@ -115,6 +118,11 @@ class BenchChecks(unittest.TestCase):
         for row in rows:
             self.assertIn(f"-{row['mode']}-", row["id"])
         report = route_metrics.report(self.root, {}, [], {})
+        self.assertEqual(report["schema_version"], 4)
+        self.assertIsNone(report["solver_limits"])
+        self.assertTrue(all(row["solver_limits"] is None for row in report["rows"]))
+        self.assertIn("풀이 제한 없음", (self.root / "report/results.md").read_text())
+        self.assertNotIn("budget", report["rows"][0])
         self.assertNotIn("quality", report)
         self.assertNotIn("arms", report)
         for mode in routes.MEASUREMENT_MODES:
@@ -285,10 +293,102 @@ class BenchChecks(unittest.TestCase):
         self.assertIn("old.rs", frozen["files"])
 
 
+    def test_solver_contract_prompt_and_readiness_require_unlimited_execution(self):
+        from . import execution, route_contract as routes, route_prepare
+        from .core import digest
+        profile = routes.load_profile()
+        self.assertIsNone(profile["limits"])
+        self.assertNotIn("token_limit_basis", profile)
+        self.assertIsNone(settings.execution_settings()["limits"])
+        self.assertEqual(profile["grader_timeout_seconds"], 300)
+        question = routes.solver_questions()[0]
+        prompt = execution.answer_prompt(profile, question)
+        self.assertEqual(prompt, runner.ANSWER_PROMPT + "\n" + question["prompt"])
+        self.assertNotIn("실행 제한은", prompt)
+        old = {**profile, "limits": {"elapsed_seconds": 300, "exploration_calls": 80, "total_tokens": 500000},
+               "token_limit_basis": "input_excluding_cache_reads_plus_output"}
+        path = self.root / "old-profile.json"
+        write_json(path, old)
+        with patch.object(routes, "PROFILE_PATH", path), self.assertRaises(ContractError):
+            routes.load_profile()
+        condition = {"contract_hash": "old-contract"}
+        record = {**condition, "plan_id": digest(condition)[:32], "status": "prepared_not_executed",
+                  "technical_ready": True, "execution_authorized": False}
+        with patch.object(route_prepare, "plan_condition", return_value=condition):
+            with self.assertRaisesRegex(ContractError, "route 실행 계약 변경"):
+                route_prepare.verify_readiness(record)
+
+    def test_authorize_run_keeps_grader_timeout_separate_from_solver_limits(self):
+        from . import execution, route_contract as routes, route_prepare
+        from .core import digest, file_digest, read_json
+        condition = {"contract_hash": routes.contract()["contract_hash"]}
+        planned = routes.schedule()
+        prepared = {"plan_id": digest(condition)[:32], "models": {"solver": routes.solver_model()},
+                    "planned_runs": planned,
+                    "execution_specs": {routes.execution_key(arm, mode): settings.execution_settings()
+                                        for arm in routes.ARM_IDS for mode in routes.MEASUREMENT_MODES},
+                    "solver_inputs": {row["id"]: {"sha256": "fixture"} for row in planned}}
+        path = self.root / "readiness.json"
+        write_json(path, prepared)
+        approval = {"confirmed": True, "actor": "offline fixture", "plan_id": prepared["plan_id"],
+                    "readiness_sha256": file_digest(path), "solver_model": prepared["models"]["solver"]["model"]}
+        with patch.object(route_prepare, "plan_condition", return_value=condition), \
+                patch.object(routes, "PREPARATION", self.root / "preparation"):
+            root, manifest = execution.authorize_run(prepared, path, approval)
+        self.assertEqual(manifest["grader_timeout_seconds"], 300)
+        self.assertTrue(all(spec["limits"] is None and not spec["preparation_only"] for spec in manifest["run_specs"].values()))
+        self.assertTrue(all(spec["preparation_only"] for spec in prepared["execution_specs"].values()))
+        self.assertTrue(all(row["solver_limits"] is None for row in read_json(root / "ledger.json")["slots"]))
+
+    def test_runner_records_over_500000_tokens_without_disqualifying_answer(self):
+        result = runner.execute_codex(self.root / "large-usage", "FIXTURE_LARGE", codex_version="fixture")
+        self.assertEqual(result["status"], "completed")
+        self.assertTrue(result["answer_eligible"] and result["conditions_valid"])
+        self.assertEqual(result["token_measurement"]["observed_tokens_after_collection"], 600030)
+        self.assertEqual(result["usage"]["observed"]["total_tokens"], 600060)
+        self.assertIsNone(result["solver_limits"])
+        self.assertIsNone(result["shutdown"]["cutoff"])
+        self.assertNotIn("budget", result)
+        self.assertNotIn("limit_tokens", result["token_measurement"])
+        self.assertEqual(result["usage"], runner.recorded_usage(self.root / "large-usage"))
+        eligibility = runner.answer_eligibility(backend="pi", completed=True, observed_monotonic=1000,
+            final_row=None, start=0, started_unix_seconds=0, wall_deadline=None, cutoff=None, conditions_valid=True)
+        self.assertTrue(eligibility["eligible"])
+        self.assertIsNone(eligibility["effective_cutoff_monotonic"])
+
+    def test_native_relay_counts_over_80_calls_and_still_honors_stop(self):
+        from .route_transport import NativeRelay, append_jsonl
+        relay = NativeRelay({"arm": "codemap-search", "source": str(self.root), "log": str(self.root / "relay.jsonl")})
+        for ident in range(82):
+            request = relay.admit(ident, "tools/call", {"name": "read", "arguments": {}}, lambda: None)
+            append_jsonl(relay.log, {**request, "event": "terminal", "status": "completed"})
+        self.assertEqual(relay.count, 82)
+        self.assertEqual(relay.dispatched, 82)
+        self.assertFalse((self.root / "stop.json").exists())
+        write_json(self.root / "stop.json", {"reason": "interrupted"})
+        with self.assertRaisesRegex(ContractError, "실행 중단 이후"):
+            relay.admit(83, "tools/call", {"name": "read"}, lambda: None)
+        self.assertEqual(relay.dispatched, 82)
+        self.assertFalse(any("limit_calls" in row or row.get("event") == "limit" for row in read_jsonl(relay.log)))
+
+    def test_pi_grader_retains_its_separate_timeout(self):
+        spec = settings.execution_settings()
+        spec.update(preparation_only=False, grader_timeout_seconds=.2)
+        cli = self.root / "slow_pi.py"
+        cli.write_text("import sys, time\nsys.stdin.read()\ntime.sleep(10)\n")
+        tools = {"node": sys.executable, "pi_cli": str(cli), "versions": {"pi": "fixture"}}
+        with patch.object(pi_grader.tool_artifacts, "pi_toolchain", return_value=tools), \
+                patch.object(pi_grader.pi_client, "operator_token", return_value="fixture-token"):
+            result = runner.execute_model(self.root / "grader-timeout", "fixture", settings=spec,
+                                          grading=True, output_schema={})
+        self.assertEqual(result["status"], "timeout")
+        self.assertFalse(result["conditions_valid"])
+        self.assertLess(result["elapsed_seconds"], 5)
+
     def test_explicit_settings_version_and_usage_reach_execution(self):
         spec = settings.execution_settings("claude-opus-5-5")
         spec["preparation_only"] = False
-        spec["limits"]["total_tokens"] = 4321
+        spec["grader_timeout_seconds"] = 3
         cli = self.root / "fake_pi.py"
         cli.write_text('''import json, sys
 sys.stdin.read()
@@ -335,22 +435,31 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
             os.kill(int((folder / "fixture-pid").read_text()), 0)
 
 
-    def test_zero_drain_excludes_late_answer_but_certifies_completed_usage(self):
+    def test_operator_cancel_excludes_late_answer_but_certifies_completed_usage(self):
         spec = settings.execution_settings()
         spec["preparation_only"] = False
         spec["solver_backend"] = "codex"
-        spec["limits"]["total_tokens"] = 90  # First usage: 100 input (30 cache reads) + 20 output = 90 budget tokens.
         folder = self.root / "drain-session"
+        cancelled = threading.Event()
+        def cancel_when_started():
+            deadline = time.monotonic() + 5
+            while not (folder / "fixture-pid").exists() and time.monotonic() < deadline:
+                time.sleep(.01)
+            cancelled.set()
+        watcher = threading.Thread(target=cancel_when_started)
+        watcher.start()
         result = runner.execute_codex(folder, "FIXTURE_DRAIN", settings=spec, usage_drain_seconds=0,
-                                      codex_version="fixture")
-        self.assertEqual(result["status"], "token_limit")
+                                      codex_version="fixture", cancel_event=cancelled)
+        watcher.join()
+        self.assertEqual(result["status"], "interrupted")
         self.assertEqual(result["answer"], "")
         self.assertTrue(result["usage_collection"]["post_cutoff_answer_excluded"])
         self.assertEqual((folder / "post-cutoff-answer.txt").read_text(), "제한 이후의 답변")
         self.assertEqual(result["usage"]["total_tokens"]["value"], 240)
-        self.assertEqual(result["budget"]["observed_cleanup_tokens"], 90)
+        self.assertIsNone(result["token_measurement"]["observed_cleanup_tokens"])
         self.assertEqual([step["signal"] for step in result["shutdown"]["steps"]], ["SIGINT"])
-        self.assertFalse(result["conditions_valid"])
+        self.assertTrue(result["conditions_valid"])
+        self.assertFalse(result["answer_eligible"])
 
 
     def test_unsupported_log_is_failure(self):
@@ -616,7 +725,7 @@ class RuntimeChecks(unittest.TestCase):
             folder = Path(temporary); process = Mock(pid=12345); process.poll.return_value = None
             with patch("benchmark.runner.time.monotonic") as clock, patch("benchmark.runner.signal_target", return_value=True) as send:
                 clock.return_value = 10
-                stop = ExecutionStop(folder, process, 0); stop.request("token_limit", {"total_tokens": 504000})
+                stop = ExecutionStop(folder, process, 0); stop.request("interrupted", {"total_tokens": 504000})
                 stop.request("timeout", {"total_tokens": 900000})
                 clock.return_value = 12.99; stop.advance(); self.assertEqual(send.call_count, 1)
                 clock.return_value = 13; stop.advance()
@@ -624,7 +733,7 @@ class RuntimeChecks(unittest.TestCase):
                 clock.return_value = 16; stop.advance()
                 self.assertEqual([s["signal"] for s in stop.steps], ["SIGINT", "SIGTERM", "SIGKILL"])
                 self.assertEqual(stop.cutoff["observed_usage"]["total_tokens"], 504000)
-                self.assertEqual(stop.cutoff["reason"], "token_limit")
+                self.assertEqual(stop.cutoff["reason"], "interrupted")
 
     def test_terminal_certification_requires_normal_completion_and_collection(self):
         from .core import append_jsonl
@@ -642,7 +751,7 @@ class RuntimeChecks(unittest.TestCase):
                 result = recorded_usage(folder)
                 self.assertEqual(result["consistency"]["status"], "valid")
                 self.assertIsNone(result["total_tokens"]["value"])
-            write_json(folder / "runtime.json", {**runtime, "termination": "token_limit"})
+            write_json(folder / "runtime.json", {**runtime, "termination": "interrupted"})
             self.assertTrue(recorded_usage(folder)["complete"])
             write_json(folder / "runtime.json", runtime)
             append_jsonl(folder / "rollout.jsonl", {"type": "response_item", "payload": {"type": "custom_tool_call", "call_id": "pending"}})
@@ -681,7 +790,6 @@ while True: time.sleep(.02)
         spec = settings.execution_settings()
         spec["preparation_only"] = False
         spec["solver_backend"] = "codex"
-        spec["limits"]["total_tokens"] = 90  # Budget tokens exclude the 30 cache reads.
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary)
             popen = subprocess.Popen
@@ -691,11 +799,21 @@ while True: time.sleep(.02)
                 import os
                 home = path / "codex-home"; home.mkdir()
                 return {**os.environ, "CODEX_HOME": str(home)}, home
+            cancelled = threading.Event()
+            def cancel_when_usage_recorded():
+                deadline = time.monotonic() + 5
+                rollout = folder / "codex-home/sessions/fixture-thread.jsonl"
+                while not rollout.exists() and time.monotonic() < deadline:
+                    time.sleep(.01)
+                cancelled.set()
+            watcher = threading.Thread(target=cancel_when_usage_recorded)
+            watcher.start()
             with patch("benchmark.runner.subprocess.Popen", side_effect=launch), patch("benchmark.runner.isolated_environment", side_effect=environment):
-                result = execute_codex(folder, "fixture", settings=spec)
-            self.assertEqual(result["status"], "token_limit")
-            self.assertEqual(result["budget"]["observed_tokens_at_cutoff"], 90)
-            self.assertEqual(result["budget"]["observed_cleanup_tokens"], 90)
+                result = execute_codex(folder, "fixture", settings=spec, cancel_event=cancelled)
+            watcher.join()
+            self.assertEqual(result["status"], "interrupted")
+            self.assertIsNone(result["token_measurement"]["observed_tokens_at_cutoff"])
+            self.assertIsNone(result["token_measurement"]["observed_cleanup_tokens"])
             self.assertEqual(result["usage"]["observed"]["total_tokens"], 240)
             self.assertEqual(result["usage"], recorded_usage(folder))
             self.assertIsNone(result["usage"]["total_tokens"]["value"])
@@ -724,7 +842,7 @@ while True: time.sleep(.02)
                 result = cleanup_relay(folder, pump)
                 self.assertTrue(result["complete"])
                 self.assertIsNotNone(child.poll())
-                write_json(folder / "run.json", {"status": "token_limit"})
+                write_json(folder / "run.json", {"status": "interrupted"})
             finally:
                 if child.poll() is None: child.kill()
                 child.wait()
