@@ -425,7 +425,8 @@ class NativeRelay:
                     self.inventory.append(tool)
             self.policy = RelayPolicy(self.config["arm"], self.config.get("policy_state", {"source": str(self.root)}),
                                       self.inventory, tracked=self.config.get("tracked_files"))
-            append_jsonl(self.log, {"event": "inventory", "native_tools": native, "tools": self.inventory})
+            append_jsonl(self.log, {"event": "inventory", "native_tools": native, "tools": self.inventory,
+                                   "client_tools": [client_tool_metadata(tool) for tool in self.inventory]})
         return [client_tool_metadata(tool) for tool in self.inventory]
 
     def admit(self, ident, method: str, params: dict, validate) -> dict:

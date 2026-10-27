@@ -14,7 +14,7 @@ from .responses import content_text, source_lines
 FIELD_PROVENANCE = {
     "raw_json_bytes": {"unit": "UTF-8 bytes", "origin": "native result serialized as canonical JSON"},
     "relay_json_bytes": {"unit": "UTF-8 bytes", "origin": "actual relay result serialized as canonical JSON"},
-    "client_observed_text_bytes": {"unit": "UTF-8 bytes", "origin": "matched client rollout block", "missing": "null with reason"},
+    "client_observed_text_bytes": {"unit": "UTF-8 bytes", "origin": "matched wire capture or native CLI stream; raw Codex rollout is pre-history", "missing": "null with reason"},
     "native_truncated": {"unit": "boolean or null", "origin": "native explicit metadata only", "missing": "null, never inferred from sparsity"},
     "relay_loss": {"unit": "boolean", "origin": "raw/relay canonical result equality"},
     "client_delivery": {"unit": "state", "origin": "wrapper ID plus exact JSON/text match or observed prefix", "missing": "unknown"},

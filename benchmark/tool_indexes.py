@@ -450,6 +450,7 @@ def probe_inputs(state: dict, artifacts: dict) -> dict:
                 "benchmark/tool_indexes.py", "benchmark/route_transport.py", "benchmark/native_baseline.py",
                 "benchmark/tool_artifacts.py", "benchmark/serena_support.py", "benchmark/route_prepare.py", "benchmark/runner.py",
                 "benchmark/responses.py", "benchmark/core.py", "benchmark/settings.py", "benchmark/usage.py", "benchmark/claude_client.py",
+                "benchmark/codex_client.py", "benchmark/cli_shell.py", "benchmark/client_delivery.py",
                 "benchmark/pi_client.py", "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"])}
 
 
@@ -608,6 +609,7 @@ def publish_indexes(backend="codex") -> dict:
                             "evidence_ranges": corpus["verified_excerpts"]},
         "prepared_states": states, "solver_runs": 0, "grader_runs": 0},
         implementation=["benchmark/tool_indexes.py", "benchmark/native_baseline.py", "benchmark/route_transport.py", "benchmark/claude_client.py",
+                        "benchmark/codex_client.py", "benchmark/cli_shell.py", "benchmark/client_delivery.py",
                         "benchmark/pi_client.py", "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"],
         dependencies=["02-delivery.json", "03-artifacts.json"])
 
