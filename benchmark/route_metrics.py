@@ -382,7 +382,9 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
                 script_truncations += any(block.get("text", "").startswith("Warning: truncated output (")
                                           for block in result.get("content", []))
             elif event.get("toolName") == "bash":
-                bash_content_truncations += result.get("details", {}).get("truncation", {}).get("truncated") is True
+                # Scripts receive structuredContent, so only direct bash content reaches the model.
+                bash_content_truncations += (not event.get("parentToolCallId")
+                                             and result.get("details", {}).get("truncation", {}).get("truncated") is True)
                 bash_nested_structured_truncations += bool(event.get("parentToolCallId")) and result.get("structuredContent", {}).get("truncated") is True
     messages = assistant_messages(events)
     events_complete = collection["complete"] and bool(events) and events[-1].get("type") == "agent_settled"
@@ -494,6 +496,9 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     by_id = {r["id"]: r for r in rows}
     require(len(by_id) == len(rows) and set(by_id) <= {r["id"] for r in planned}, "계획 밖 또는 중복 결과")
     require(set(judgments) <= set(by_id), "실행 기록 없는 채점")
+    # Schema 4 has no limit fields; do not relabel campaigns run under the old limits as unlimited.
+    require(all(spec.get("limits") is None for spec in manifest.get("run_specs", {}).values()),
+            "풀이 제한이 있던 과거 실행은 현재 보고서 형식으로 다시 만들지 않습니다")
     result_rows, modes = [], {}
     for slot in planned:
         row = by_id.get(slot["id"])
@@ -596,7 +601,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
             "bash_content_truncated", "bash_nested_structured_content_truncated", "include_seen_true_calls")],
             row.get("claude_persisted_tool_results"))) + " |")
     lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",
-              "bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(기본 100,000토큰)의 절단은 별도로 셉니다."]
+              "direct bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(기본 100,000토큰)의 절단은 별도로 셉니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
     return result
 

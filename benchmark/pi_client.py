@@ -289,6 +289,16 @@ def codemode_extension_source(factory: Path) -> str:
     return ("import {createCodemodeExtension} from " + json.dumps(str(factory)) + ";\n"
             "import {parseCodemodeSource} from " + json.dumps(str(parser)) + ";\n"
             "const defaultMaxOutputTokens = " + str(CODEMODE_MAX_OUTPUT_TOKENS) + ";\n" + """
+// A prepended options line moves VM positions down one line; restore them in pi's error section only,
+// never in script output.
+const errorMarker = "Script error:\\n";
+const restoreLine = (text) => {
+  const start = text.lastIndexOf(errorMarker);
+  return start < 0 ? text : text.slice(0, start) + text.slice(start).replace(/codemode\\.js:(\\d+)/g,
+    (_, line) => `codemode.js:${Math.max(1, Number(line) - 1)}`);
+};
+const restoreResult = (result) => !result.isError ? result : {...result, content: (result.content ?? []).map((block) =>
+  block.type === "text" ? {...block, text: restoreLine(block.text)} : block)};
 export default (pi) => createCodemodeExtension({models:false})({
   ...pi,
   registerTool(tool) {
@@ -297,7 +307,10 @@ export default (pi) => createCodemodeExtension({models:false})({
       if (options.maxOutputTokens !== undefined) return tool.execute(toolCallId, params, ...rest);
       const defaults = {max_output_tokens: defaultMaxOutputTokens};
       if (options.timeoutMs !== undefined) defaults.timeout_ms = options.timeoutMs;
-      return tool.execute(toolCallId, {...params, code: '// @options: ' + JSON.stringify(defaults) + '\\n' + code}, ...rest);
+      const header = '// @options: ' + JSON.stringify(defaults);
+      // An existing options line: the pinned parser keeps its newline in code, so positions stay native.
+      if (code !== params.code) return tool.execute(toolCallId, {...params, code: header + code}, ...rest);
+      return Promise.resolve(tool.execute(toolCallId, {...params, code: header + '\\n' + params.code}, ...rest)).then(restoreResult);
     }});
   },
 });

@@ -265,7 +265,7 @@ class BenchChecks(unittest.TestCase):
                   {"type": "agent_settled"}]
         (self.root / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
         observed = pi_observations(self.root, [], call_log_complete=True)
-        self.assertEqual(observed["bash_content_truncated"], 3)
+        self.assertEqual(observed["bash_content_truncated"], 1)
         self.assertEqual(observed["bash_nested_structured_content_truncated"], 1)
         self.assertEqual(observed["codemode_output_truncated"], 0)
         self.assertEqual(observed["adapter_output_guard_truncated"], 0)
@@ -291,7 +291,10 @@ class BenchChecks(unittest.TestCase):
         write_json(self.root / "package.json", {"type": "module"})
         factory.write_text('''export const createCodemodeExtension = options => pi => pi.registerTool({
   name: "codemode", description: "unchanged native description", parameters: {type: "object"},
-  execute: (...args) => ({args, models: options.models})
+  execute: (...args) => args[1].code.includes('fail')
+    ? {isError: true, content: [{type: 'text', text: 'Script failed'}, {type: 'image'},
+       {type: 'text', text: 'printed codemode.js:9:1\\nScript error:\\nError: x\\n    at <anonymous> (codemode.js:3:1)'}]}
+    : {args, models: options.models}
 });''')
         parser.write_text('''export function parseCodemodeSource(input) {
   if (input === "invalid") throw new Error("native parse error");
@@ -311,16 +314,24 @@ assert.equal(tool.description, 'unchanged native description');
 assert.deepEqual(tool.parameters, {type:'object'});
 for (const options of [null, {timeout_ms:900}, {max_output_tokens:32, timeout_ms:700}, {max_output_tokens:0}]) {
   const params = {code: (options ? '// @options: '+JSON.stringify(options)+'\\n' : '')+'text("sample");'};
-  const result = tool.execute('id', params, 'signal', 'update', 'context');
+  const result = await tool.execute('id', params, 'signal', 'update', 'context');
   assert.equal(result.models, false);
   assert.deepEqual(result.args.slice(2), ['signal','update','context']);
   if (options?.max_output_tokens !== undefined) assert.equal(result.args[1], params);
   else {
-    const applied = JSON.parse(result.args[1].code.split('\\n')[0].slice(12));
+    const [header, ...body] = result.args[1].code.split('\\n');
+    const applied = JSON.parse(header.slice(12));
     assert.equal(applied.max_output_tokens, 100000);
     assert.equal(applied.timeout_ms, options?.timeout_ms);
+    // Script lines keep their positions when the model already wrote an options line.
+    assert.deepEqual(body, ['text("sample");']);
   }
 }
+const failed = await tool.execute('id', {code: 'fail();'});
+assert.equal(failed.content[2].text, 'printed codemode.js:9:1\\nScript error:\\nError: x\\n    at <anonymous> (codemode.js:2:1)');
+assert.deepEqual(failed.content.slice(0, 2), [{type: 'text', text: 'Script failed'}, {type: 'image'}]);
+const explicit = await tool.execute('id', {code: '// @options: {"timeout_ms":5}\\nfail();'});
+assert.match(explicit.content[2].text, /codemode\\.js:3:1/);
 assert.throws(() => tool.execute('id', {code:'invalid'}), /native parse error/);
 ''' % json.dumps(extension.as_uri())
         result = subprocess.run(["node", "--input-type=module"], input=script, text=True, capture_output=True)
