@@ -11,7 +11,7 @@ from .core import digest, file_digest, read_json, require, write_json
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
 DATASET_MANIFEST_SHA256 = "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4"
-TARGET_LOCK_SHA256 = "de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8"
+TARGET_LOCK_SHA256 = "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0"
 QUESTION_IDS = ("git-oauth-authorization", "plugin-http-route-bridge")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")
@@ -103,8 +103,8 @@ def load_profile() -> dict:
     require(profile["concurrency"] == 4 and type(profile["seed"]) is int, "route 동시 실행 수/seed 변경")
     require(profile["solver"] == {"model": "gpt-6.1-sol", "reasoning_effort": "medium"}, "풀이 모델 계약 변경")
     require(profile["solver_choices"] == [
-        {"model": "gpt-6.1-sol", "name": "GPT 6.1 Sol", "backend": "pi", "reasoning_effort": "medium", "provider": "openai-codex"},
-        {"model": "claude-opus-5-5", "name": "Claude Opus 5.5", "backend": "pi", "reasoning_effort": "medium", "provider": "claude-bridge"},
+        {"model": "gpt-6.1-sol", "name": "GPT 6.1 Sol", "backend": "codex", "reasoning_effort": "medium", "measurement_mode": "codemode"},
+        {"model": "claude-opus-5-5", "name": "Claude Opus 5.5", "backend": "claude_code", "reasoning_effort": "medium", "measurement_mode": "direct"},
     ], "풀이 모델 선택 계약 변경")
     require(profile["grader"] == {"model": "gpt-6-astra", "reasoning_effort": "high"}, "채점 모델 계약 변경")
     require(profile["limits"] is None and "token_limit_basis" not in profile
@@ -155,8 +155,13 @@ def execution_key(arm: str, mode: str) -> str:
     return f"{arm}/{mode}"
 
 
-def schedule() -> list[dict]:
+def solver_measurement_modes(model: str | None = None) -> tuple[str, ...]:
+    return (solver_model(model)["measurement_mode"],)
+
+
+def schedule(model: str | None = None) -> list[dict]:
     profile = load_profile()
+    modes = solver_measurement_modes(model)
     rng = random.Random(profile["seed"])
     rows = []
     # Each repetition is a full question x arm round, so a stopped campaign keeps whole rounds comparable.
@@ -164,11 +169,11 @@ def schedule() -> list[dict]:
         questions = list(QUESTION_IDS)
         rng.shuffle(questions)
         for question in questions:
-            conditions = [(arm, mode) for arm in ARM_IDS for mode in profile["measurement_modes"]]
+            conditions = [(arm, mode) for arm in ARM_IDS for mode in modes]
             rng.shuffle(conditions)
             rows.extend({"id": f"{question}-{arm}-{mode}-{attempt}", "question_id": question, "arm": arm,
                          "mode": mode, "attempt": attempt, "status": "planned"} for arm, mode in conditions)
-    require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS) * profile["repetitions"] * len(MEASUREMENT_MODES),
+    require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS) * profile["repetitions"] * len(modes),
             "계획 슬롯 오류")
     return rows
 

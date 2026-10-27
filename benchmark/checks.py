@@ -14,7 +14,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from . import grading_support, pi_grader, resources, runner, settings
-from .core import ContractError, read_jsonl, write_json
+from .core import ContractError, digest, read_jsonl, write_json
 from .responses import source_lines, text_result
 from .usage import usage_metrics
 
@@ -24,13 +24,15 @@ import datetime, json, os, signal, sys, time, uuid
 from pathlib import Path
 args = sys.argv[1:]
 if args == ['--version']:
-    print('codex-cli fixture-99.1'); sys.exit(0)
+    print('codex-cli 0.164.0'); sys.exit(0)
 if args == ['exec', '--help']:
     print('--ignore-user-config --ignore-rules --skip-git-repo-check --json --output-schema'); sys.exit(0)
 if args == ['login', 'status']: sys.exit(0)
+signal.signal(signal.SIGALRM, lambda signum, frame: sys.exit(124))
+signal.alarm(15)  # Fixture safety only; never a solver execution limit.
 prompt = sys.stdin.read()
-folder = Path.cwd().parent
 home = Path(os.environ['CODEX_HOME'])
+folder = home.parent
 ident = uuid.uuid4().hex
 rollout = home / 'sessions' / (ident + '.jsonl')
 rollout.parent.mkdir(parents=True)
@@ -39,6 +41,8 @@ def row(value):
     with rollout.open('a') as stream: stream.write(json.dumps(value)+'\n')
 model = args[args.index('-m')+1]
 effort = next(json.loads(v.split('=',1)[1]) for v in args if v.startswith('model_reasoning_effort='))
+row({'type':'session_meta','payload':{'base_instructions':{'text':'Inspect source.'}}})
+row({'type':'response_item','payload':{'role':'user','content':[{'type':'input_text','text':prompt}]}})
 row({'type':'turn_context','payload':{'model':model,'effort':effort}})
 print(json.dumps({'type':'thread.started','thread_id':ident}),flush=True)
 usage={'input_tokens':100,'output_tokens':20,'cached_input_tokens':30,'total_tokens':120}
@@ -95,6 +99,10 @@ class BenchChecks(unittest.TestCase):
         self.environment = patch.dict(os.environ, {"PATH": str(self.bin) + os.pathsep + os.environ["PATH"],
                                                  "CODEX_HOME": str(self.root / "empty-auth")})
         self.environment.start()
+        for target, value in (("benchmark.settings.CACHE", self.root), ("benchmark.codex_client.executable", lambda: str(codex))):
+            patched = patch(target, value)
+            patched.start()
+            self.addCleanup(patched.stop)
 
         self.spec = settings.execution_settings()
         self.spec["preparation_only"] = False
@@ -103,6 +111,17 @@ class BenchChecks(unittest.TestCase):
         self.defaults.start()
 
     def tearDown(self):
+        import signal
+        for path in self.root.rglob("process.json"):
+            value = json.loads(path.read_text())
+            pid = value["pid"]
+            command = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True).stdout
+            if str(self.bin / "codex") in command:
+                try:
+                    if os.getpgid(pid) == pid:
+                        os.killpg(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
         self.defaults.stop()
         self.environment.stop()
         self.temporary.cleanup()
@@ -111,7 +130,7 @@ class BenchChecks(unittest.TestCase):
     def test_measurement_modes_schedule_and_report_are_separate(self):
         from . import route_contract as routes, route_metrics
         rows = routes.schedule()
-        expected = len(routes.QUESTION_IDS) * len(routes.ARM_IDS) * routes.REPETITIONS * len(routes.MEASUREMENT_MODES)
+        expected = len(routes.QUESTION_IDS) * len(routes.ARM_IDS) * routes.REPETITIONS * len(routes.solver_measurement_modes())
         self.assertEqual(len(rows), expected)
         self.assertEqual(len({row["id"] for row in rows}), expected)
         self.assertEqual([row["attempt"] for row in rows], sorted(row["attempt"] for row in rows))
@@ -125,18 +144,122 @@ class BenchChecks(unittest.TestCase):
         self.assertNotIn("budget", report["rows"][0])
         self.assertNotIn("quality", report)
         self.assertNotIn("arms", report)
-        for mode in routes.MEASUREMENT_MODES:
+        for mode in routes.solver_measurement_modes():
             for arm in routes.ARM_IDS:
                 self.assertEqual(report["modes"][mode]["arms"][arm]["planned"], len(routes.QUESTION_IDS) * routes.REPETITIONS)
-        models = {"solver": {"model": "fixture", "backend": "pi", "reasoning_effort": "medium"},
+        models = {"solver": routes.solver_model(),
                   "grader": {"model": "fixture", "reasoning_effort": "high"}}
-        observed = {**rows[0], "model": "fixture", "backend": "pi", "status": "completed",
+        observed = {**rows[0], "model": "gpt-6.1-sol", "backend": "codex", "status": "completed",
                     "observations": {"direct_calls_outside_script": 1, "cancelled_before_admission": 1},
                     "claude_persisted_tool_results": {"count": 1, "bytes": 85592}}
         report = route_metrics.report(self.root, {"models": models}, [observed], {})
         self.assertEqual(report["rows"][0]["claude_persisted_tool_results"], {"count": 1, "bytes": 85592})
         self.assertEqual(report["rows"][0]["observations"]["cancelled_before_admission"], 1)
         self.assertIn('"bytes": 85592', (self.root / "report/results.md").read_text())
+
+    def test_cli_solver_contract_retains_pi_grader_and_model_specific_slot_keys(self):
+        from . import route_contract as routes
+        profile = routes.load_profile()
+        self.assertEqual(routes.solver_measurement_modes(), ("codemode",))
+        self.assertEqual(routes.solver_measurement_modes("claude-opus-5-5"), ("direct",))
+        self.assertEqual(len(routes.schedule("claude-opus-5-5")), 42)
+        self.assertEqual(len(routes.schedule()), 42)
+        self.assertEqual([s["backend"] for s in profile["solver_choices"]], ["codex", "claude_code"])
+        self.assertEqual(settings.execution_settings()["grader_backend"], "pi")
+        self.assertTrue(all("-codemode-" in row["id"] for row in routes.schedule()))
+        pins = routes.frozen_inputs()["lock"]
+        self.assertEqual(pins["revision"], 8)
+        self.assertEqual(pins["cli_toolchain"]["versions"], {"codex": "0.164.0", "claude_code": "2.1.311"})
+        self.assertIn("pi_toolchain", pins)
+
+    def test_codex_solver_cannot_select_legacy_grader(self):
+        with self.assertRaisesRegex(ContractError, "pi/Astra"):
+            runner.execute_codex(self.root / "legacy-grader", "unused", grading=True)
+
+    def test_client_delivery_converts_reference_bytes_once_and_leaves_rg_defaults(self):
+        from .client_delivery import output_limits
+        self.assertEqual(output_limits("codemap-search"), {"reference_text_bytes": 100000, "codex_tokens": 100000, "claude_tokens": 50000})
+        self.assertEqual(output_limits("serena"), {"reference_text_bytes": 1250000, "codex_tokens": 312500, "claude_tokens": 625000})
+        for arm in ("codegraph", "zvec-grep", "graphify", "codebase-memory-mcp"):
+            self.assertEqual(output_limits(arm), {"reference_text_bytes": 1048576, "codex_tokens": 262144, "claude_tokens": 524288})
+        self.assertTrue(all(value is None for value in output_limits("rg").values()))
+
+    def test_codex_history_observation_never_certifies_raw_rollout_as_wire(self):
+        from .route_metrics import codex_history_observation
+        folder = self.root / "history"; folder.mkdir()
+        payload = {"type": "custom_tool_call_output", "call_id": "c1", "output": [{"type": "input_text", "text": "a" * 50000}]}
+        (folder / "rollout.jsonl").write_text(json.dumps({"type": "response_item", "payload": payload}) + "\n")
+        self.assertIsNone(codex_history_observation(folder)["history_truncated"])
+        write_json(folder / "cli-policy.json", {"local_provider": True})
+        write_json(folder / "requests.json", [{"input": []}, {"input": [payload]}])
+        self.assertEqual(codex_history_observation(folder)["history_truncated"], 0)
+        write_json(folder / "requests.json", [{"input": []}, {"input": [{**payload, "output": [{"type": "input_text", "text": "a…100 tokens truncated…a"}]}]}])
+        self.assertEqual(codex_history_observation(folder)["history_truncated"], 1)
+        write_json(folder / "cli-policy.json", {"local_provider": False})
+        self.assertFalse(codex_history_observation(folder)["observed"])
+
+    def test_claude_permission_denial_and_explicit_private_token_file(self):
+        from .claude_client import operator_token, tool_items
+        events = [{"type": "system", "subtype": "permission_denied", "message": "Permission denied"},
+                  {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "false"}}]}},
+                  {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1", "content": "Permission denied", "is_error": True}]},
+                   "tool_result_meta": [{"id": "t1", "non_execution_kind": "permission-rule"}]}]
+        self.assertFalse(tool_items(events)[0]["dispatched"])
+        path = self.root / "local-token"; path.write_text("local-fixture-value\n"); path.chmod(0o644)
+        with patch.dict(os.environ, {"CODEMAP_BENCH_CLAUDE_TOKEN_FILE": str(path)}, clear=True):
+            with self.assertRaises(ContractError): operator_token()
+            path.chmod(0o600)
+            self.assertEqual(operator_token(), ("local-fixture-value", "oauth_file"))
+
+    def test_relay_client_metadata_preserves_native_and_fills_only_absent_budget(self):
+        from .route_transport import client_tool_metadata
+        native = {"name": "read", "_meta": {"anthropic/maxResultSizeChars": 100000, "other": "original"}}
+        self.assertIs(client_tool_metadata(native), native)
+        without = {"name": "graph_stats", "_meta": {"other": "original"}}
+        result = client_tool_metadata(without)
+        self.assertEqual(result["_meta"], {"other": "original", "anthropic/maxResultSizeChars": 500000})
+        self.assertNotIn("anthropic/maxResultSizeChars", without["_meta"])
+
+    def test_cli_launch_uses_private_paths_and_product_only_output_policy(self):
+        from . import codex_client, claude_client
+        folder = self.root / "launch"; folder.mkdir()
+        relay = {"arm": "codemap-search", "enabled_tools": ["read"]}
+        server = {"command": "/usr/bin/false", "args": [], "env": {}, "instructions": "Read source."}
+        args, cwd, env = codex_client.launch(folder, self.spec, relay, server=server, local_endpoint="http://127.0.0.1:20651")
+        self.assertNotEqual(cwd, folder / "workspace")
+        self.assertIn("agents.enabled=false", args)
+        self.assertTrue(any('tools."read".output_token_limit=100000' in arg for arg in args))
+        self.assertIn("tool_output_token_limit=100000", args)
+        self.assertFalse((Path(env["CODEX_HOME"]) / "auth.json").exists())
+        folder = self.root / "launch-a"; folder.mkdir()
+        with patch("benchmark.claude_client.executable", return_value="/usr/bin/false"), patch("benchmark.claude_client.managed_policy", return_value={}):
+            args, cwd, env = claude_client.launch(folder, settings.execution_settings("claude-opus-5-5"), relay,
+                server=server, local_endpoint="http://127.0.0.1:20652", local_home=self.root / "login")
+        self.assertEqual(args[args.index("--setting-sources") + 1], "")
+        self.assertEqual(args[args.index("--tools") + 1], "")
+        self.assertIn("--restricted", args)
+        self.assertEqual(env["MAX_MCP_OUTPUT_TOKENS"], "50000")
+        self.assertEqual(env["ENABLE_TOOL_SEARCH"], "false")
+        self.assertEqual(env["HOME"], str(self.root / "login"))
+
+    def test_cli_context_audit_covers_native_instructions_and_every_snapshot(self):
+        from . import cli_audit
+        inventory = {"initialize": {"instructions": "Use codemap for source."}, "tools": [{"name": "read", "description": "codemap source read"}]}
+        request = {"system": "Use codemap for source.", "tools": [{"name": "mcp__navigation__read", "description": "codemap source read"}], "messages": [{"role": "user", "content": "Inspect source."}]}
+        self.assertEqual(cli_audit.audit_request(request, inventory), [])
+        request["messages"][0]["content"] = "Use codemap for source."
+        self.assertTrue(cli_audit.audit_request(request, inventory))
+        folder = self.root / "session"; folder.mkdir(parents=True)
+        rows = [{"type": "attachment", "attachment": {"type": "prompt_snapshot", "systemPrompt": ["Use codemap for source."]}},
+                {"type": "user", "message": {"role": "user", "content": "Inspect source."}},
+                {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "content": "Grafana source body"}]}}]
+        path = folder / "claude-session-local.jsonl"
+        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+        self.assertTrue(cli_audit.audit_session(folder, inventory, "claude_code")["passed"])
+        rows.append({"type": "attachment", "attachment": {"type": "prompt_snapshot", "systemPrompt": ["Grafana hint"]}})
+        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+        self.assertFalse(cli_audit.audit_session(folder, inventory, "claude_code")["passed"])
+        self.assertTrue(cli_audit.audit_tools({"tools": [{"name": "Bash"}]}, {"solver_backend": "claude_code"}, {"enabled_tools": ["read"]}))
 
     def test_schedule_workers_serializes_arms_and_rounds(self):
         from . import execution, route_contract as routes
@@ -397,7 +520,7 @@ assert.throws(() => tool.execute('id', {code:'invalid'}), /native parse error/);
         prepared = {"plan_id": digest(condition)[:32], "models": {"solver": routes.solver_model()},
                     "planned_runs": planned,
                     "execution_specs": {routes.execution_key(arm, mode): settings.execution_settings()
-                                        for arm in routes.ARM_IDS for mode in routes.MEASUREMENT_MODES},
+                                        for arm in routes.ARM_IDS for mode in routes.solver_measurement_modes()},
                     "solver_inputs": {row["id"]: {"sha256": "fixture"} for row in planned}}
         path = self.root / "readiness.json"
         write_json(path, prepared)
@@ -487,9 +610,10 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
     def test_zero_drain_cancel_reaps_process(self):
         cancelled = threading.Event()
         folder = self.root / "cancel-session"
+        fixture_pid = settings.CACHE / digest({"private_root": str(folder.resolve())})[:16] / "fixture-pid"
         def cancel_when_started():
             deadline = time.monotonic() + 5
-            while not (folder / "fixture-pid").exists() and time.monotonic() < deadline:
+            while not fixture_pid.exists() and time.monotonic() < deadline:
                 time.sleep(.01)
             cancelled.set()
         watcher = threading.Thread(target=cancel_when_started)
@@ -497,13 +621,14 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         start = time.monotonic()
         result = runner.execute_codex(folder, "FIXTURE_WAIT", cancel_event=cancelled, usage_drain_seconds=0,
                                       codex_version="fixture")
-        watcher.join()
+        watcher.join(timeout=6)
+        self.assertFalse(watcher.is_alive())
         self.assertLess(time.monotonic() - start, 10)
         self.assertEqual(result["status"], "interrupted")
         self.assertEqual(result["usage"]["observed"]["total_tokens"], 240)
         self.assertIsNone(result["usage"]["total_tokens"]["value"])
         with self.assertRaises(ProcessLookupError):
-            os.kill(int((folder / "fixture-pid").read_text()), 0)
+            os.kill(int(fixture_pid.read_text()), 0)
 
 
     def test_operator_cancel_excludes_late_answer_but_certifies_completed_usage(self):
@@ -511,17 +636,19 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         spec["preparation_only"] = False
         spec["solver_backend"] = "codex"
         folder = self.root / "drain-session"
+        fixture_pid = settings.CACHE / digest({"private_root": str(folder.resolve())})[:16] / "fixture-pid"
         cancelled = threading.Event()
         def cancel_when_started():
             deadline = time.monotonic() + 5
-            while not (folder / "fixture-pid").exists() and time.monotonic() < deadline:
+            while not fixture_pid.exists() and time.monotonic() < deadline:
                 time.sleep(.01)
             cancelled.set()
         watcher = threading.Thread(target=cancel_when_started)
         watcher.start()
         result = runner.execute_codex(folder, "FIXTURE_DRAIN", settings=spec, usage_drain_seconds=0,
                                       codex_version="fixture", cancel_event=cancelled)
-        watcher.join()
+        watcher.join(timeout=6)
+        self.assertFalse(watcher.is_alive())
         self.assertEqual(result["status"], "interrupted")
         self.assertEqual(result["answer"], "")
         self.assertTrue(result["usage_collection"]["post_cutoff_answer_excluded"])
@@ -854,6 +981,8 @@ def stop(signum, frame):
     print(json.dumps({"type":"turn.failed"}), flush=True)
     sys.exit(0)
 signal.signal(signal.SIGINT, stop)
+signal.signal(signal.SIGALRM, lambda signum, frame: sys.exit(124))
+signal.alarm(15)
 print(json.dumps({"type":"thread.started","thread_id":"fixture-thread"}), flush=True)
 record("r1", 1)
 while True: time.sleep(.02)
@@ -866,9 +995,9 @@ while True: time.sleep(.02)
             popen = subprocess.Popen
             def launch(args, **kwargs):
                 return popen([sys.executable, "-c", script], **kwargs)
-            def environment(path):
+            def environment(path, **ignored):
                 import os
-                home = path / "codex-home"; home.mkdir()
+                home = folder / "codex-home"; home.mkdir()
                 return {**os.environ, "CODEX_HOME": str(home)}, home
             cancelled = threading.Event()
             def cancel_when_usage_recorded():
@@ -879,9 +1008,12 @@ while True: time.sleep(.02)
                 cancelled.set()
             watcher = threading.Thread(target=cancel_when_usage_recorded)
             watcher.start()
-            with patch("benchmark.runner.subprocess.Popen", side_effect=launch), patch("benchmark.runner.isolated_environment", side_effect=environment):
+            with patch("benchmark.runner.subprocess.Popen", side_effect=launch), patch("benchmark.runner.isolated_environment", side_effect=environment), \
+                 patch("benchmark.settings.CACHE", folder), patch("benchmark.codex_client.executable", return_value="local-fixture"), \
+                 patch("benchmark.codex_client.capabilities", return_value={"version": "fixture"}):
                 result = execute_codex(folder, "fixture", settings=spec, cancel_event=cancelled)
-            watcher.join()
+            watcher.join(timeout=6)
+            self.assertFalse(watcher.is_alive())
             self.assertEqual(result["status"], "interrupted")
             self.assertIsNone(result["token_measurement"]["observed_tokens_at_cutoff"])
             self.assertIsNone(result["token_measurement"]["observed_cleanup_tokens"])

@@ -776,20 +776,28 @@ CLAUDE_PROXY_HOSTS = frozenset({"api.anthropic.com", "claude.ai", "platform.clau
 CLAUDE_PROXY_PORT = 19550
 
 
-def claude_baseline_profile(value: dict, folder: Path) -> dict:
-    cli = Path(shutil.which("claude") or "claude").resolve()
-    home = (folder / "cli-home").resolve()
+def claude_baseline_profile(value: dict, folder: Path, *, local_endpoint=None, local_home=None) -> dict:
+    from .claude_client import executable
+    from .pi_client import private_root, local_endpoint_url
+    cli = Path(executable()).resolve()
+    home = (local_home or private_root(folder) / "home").resolve()
     env = private_environment(home, home / "tmp")
-    env.update(CLAUDE_CONFIG_DIR=str(home / "claude"), CLAUDE_CODE_TMPDIR=env["TMPDIR"],
-               HTTP_PROXY=f"http://127.0.0.1:{CLAUDE_PROXY_PORT}", HTTPS_PROXY=f"http://127.0.0.1:{CLAUDE_PROXY_PORT}",
-               NO_PROXY="")
-    reads = [Path(value["source"]), Path(value["rg_binary"]).parent, cli.parent, home,
+    env.update(CLAUDE_CODE_TMPDIR=env["TMPDIR"])
+    port = CLAUDE_PROXY_PORT
+    if local_endpoint is not None:
+        port = urllib.parse.urlsplit(local_endpoint_url(local_endpoint)).port
+    else:
+        env.update(HTTP_PROXY=f"http://127.0.0.1:{port}", HTTPS_PROXY=f"http://127.0.0.1:{port}", NO_PROXY="")
+    reads = [Path(value["source"]), Path(value["rg_binary"]).parent, cli.parent, home, private_root(folder) / "bin",
              folder / "claude-settings.json", folder / "mcp-config.json"]
     # Native CLI installs may be a node script rather than the standalone binary.
     node = shutil.which("node")
     if node:
         reads.extend(runtime_roots({"installation": str(cli.parent), "launch": [node]}))
-    text = _profile_text(reads, [home], port=CLAUDE_PROXY_PORT, unix_roots=[home])
+    from .cli_shell import socket_path
+    text = _profile_text(reads, [home], port=port, unix_roots=[home, socket_path(folder)])
+    text += "(deny lsopen)\n(deny appleevent-send)\n(deny mach-lookup)\n"
+    text += '(deny process-info* (target others))\n(deny sysctl-read (sysctl-name-prefix "kern.proc"))\n'
     text += "".join(f"(deny file-read-data (subpath {json.dumps(str(Path(value['source']) / name))}))\n"
                     for name in sorted(METADATA))
     path = folder / "claude-outer.sb"
@@ -797,11 +805,15 @@ def claude_baseline_profile(value: dict, folder: Path) -> dict:
     path.chmod(0o600)
     return {"profile_path": str(path.resolve()), "profile_sha256": file_digest(path), "env": env,
             "allowed": {"read": [str(p.resolve()) for p in reads], "write": [str(home)],
-                        "proxy_hosts": sorted(CLAUDE_PROXY_HOSTS), "inner_sandbox": False}, "port": CLAUDE_PROXY_PORT}
+                        "proxy_hosts": sorted(CLAUDE_PROXY_HOSTS), "inner_sandbox": False}, "port": port,
+            "local_provider": local_endpoint is not None}
 
 
 def claude_baseline_command(command: list[str], profile: dict, folder: Path) -> list[str]:
     from .core import write_json
+    if profile.get("local_provider"):
+        write_json(folder / "claude-boundary.json", {"profile": profile, "proxy_log": None})
+        return wrap(command, profile)
     config = folder / "claude-boundary.json"
     write_json(config, {"profile": profile, "proxy_log": str((folder / "claude-proxy.jsonl").resolve())})
     bootstrap = (f"import sys; sys.path.insert(0, {str(Path(__file__).resolve().parent.parent)!r}); "

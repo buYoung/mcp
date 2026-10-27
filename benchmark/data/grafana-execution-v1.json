@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "profile": "grafana-routes",
-  "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 2모드 · 준비 전용",
+  "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 모델별 단일 모드 · 준비 전용",
   "dataset_id": "grafana-routes-v4",
   "comparison_lock_id": "grafana-comparison-targets-v1",
   "solver": {
@@ -12,16 +12,16 @@
     {
       "model": "gpt-6.1-sol",
       "name": "GPT 6.1 Sol",
-      "backend": "pi",
+      "backend": "codex",
       "reasoning_effort": "medium",
-      "provider": "openai-codex"
+      "measurement_mode": "codemode"
     },
     {
       "model": "claude-opus-5-5",
       "name": "Claude Opus 5.5",
-      "backend": "pi",
+      "backend": "claude_code",
       "reasoning_effort": "medium",
-      "provider": "claude-bridge"
+      "measurement_mode": "direct"
     }
   ],
   "grader": {
@@ -46,9 +46,9 @@
     "arm": "rg",
     "mode": "native_agent",
     "search_product_mcp": false,
-    "tools": "pi bash only, per-slot Seatbelt shell wrapper; no MCP or in-process filesystem tools",
+    "tools": "Codex default shell; Claude Bash/Read/Glob/Grep; no search product MCP",
     "rg_version": "15.2.0",
-    "call_unit": "atomic shell wrapper admission, cross-checked with pi tool_execution_start",
+    "call_unit": "native command_execution item ID (Codex) or tool_use ID (Claude)",
     "source_access": "read-only fixed corpus and minimal runtime; no reference/report access"
   },
   "native_output_policy": {
@@ -85,13 +85,13 @@
     "index_mode": "로컬 검색·색인으로 준비 (권장)",
     "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
     "concurrency": "사전 색인을 사용해 측정을 최대 4개 병렬로 진행한다. 같은 비교군의 문항은 색인·홈 복원 충돌을 막기 위해 순차 실행한다.",
-    "solver_selection": "pi 1.4.0: openai-codex/gpt-6.1-sol 또는 claude-bridge/claude-opus-5-5, thinking medium",
+    "solver_selection": "codex exec 0.164.0 / gpt-6.1-sol 또는 claude -p 2.1.311 / claude-opus-5-5, reasoning medium",
     "questions": "학습 기준일(2026-07-01) 이후 코드로 만든 2문항(grafana-routes-v4): TypeScript→Go 사용자 지정 Git OAuth 서버 통신, Go 앱 플러그인 manifest 사용자 정의 route의 HTTP 배포 백엔드 통신. 질문 앞부분 도구 문구와 Grafana 이름은 넣지 않는다. 기억 측정으로 제외 여부를 검증했다",
     "repetitions": "같은 조건 1회 결과가 핵심 사실 7개 중 4개·5개로 흔들려 문항·비교군마다 3회 반복한다",
     "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
     "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
-    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 2모드 = 84회 예정.",
-    "measurement_modes": "direct와 codemode(mode only)를 모드마다 3회 측정하고 결과를 합산하지 않는다. codemode 외부 model API는 비활성화한다."
+    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 모델별 단일 모드 = 42회 예정.",
+    "measurement_modes": "GPT는 Codex 0.164.0 기본 code_mode_only(exec/wait), Claude는 direct. 모델별 단일 모드 42슬롯이며 모델·모드 결과를 합산하지 않는다. pi codemode는 사용하지 않는다."
   },
   "measurement_modes": [
     "direct",

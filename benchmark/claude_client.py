@@ -13,17 +13,44 @@ BACKEND = "claude_code"
 NATIVE_TOOLS = ("Bash", "Read", "Glob", "Grep")
 
 
-def environment() -> dict:
+def operator_token() -> tuple[str | None, str]:
+    """An explicitly supplied token is held in memory only; never log its value or digest."""
+    token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+    filename = os.environ.get("CODEMAP_BENCH_CLAUDE_TOKEN_FILE")
+    require(not (token and filename), "provide only one Claude token source")
+    if filename:
+        import stat
+        with os.fdopen(os.open(Path(filename).expanduser(), os.O_RDONLY | os.O_NOFOLLOW)) as stream:
+            info = os.fstat(stream.fileno())
+            require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and stat.S_IMODE(info.st_mode) == 0o600
+                    and info.st_uid == os.getuid(), "Claude token file must be an owned 0600 regular file, not a link")
+            require(info.st_size <= 16384, "Claude token file too large")
+            token = stream.read(16385).strip()
+    if token is not None:
+        require(bool(token) and not any(c.isspace() for c in token), "invalid Claude token format")
+    return token, "oauth_file" if filename else "oauth_env" if token else "user_login"
+
+
+def require_native_auth() -> None:
+    token, _ = operator_token()
+    require(bool(token), "Claude rg requires operator CLAUDE_CODE_OAUTH_TOKEN or CODEMAP_BENCH_CLAUDE_TOKEN_FILE (owned 0600); keychain access is denied")
+
+
+def environment(*, local=False) -> dict:
     # The CLI owns authentication. Do not read, copy or log credentials or inherit model overrides.
     allowed = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR",
-               "CLAUDE_CONFIG_DIR", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"}
-    env = {key: value for key, value in os.environ.items() if key in allowed}
+               "CLAUDE_CODE_OAUTH_TOKEN"}
+    env = {key: value for key, value in os.environ.items() if key in allowed and key != "CLAUDE_CODE_OAUTH_TOKEN"}
+    token, _ = (None, "local_stub") if local else operator_token()
+    if token:
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = token
     from .settings import CACHE
     env.update(CODEMAP_BENCH_CACHE=str(CACHE), MCP_TOOL_TIMEOUT="300000", MCP_TIMEOUT="120000")
     env.update({key: "1" for key in (
         "CLAUDE_CODE_DISABLE_CLAUDE_MDS", "CLAUDE_CODE_DISABLE_AUTO_MEMORY", "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS",
         "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL",
-        "CLAUDE_CODE_DISABLE_TERMINAL_TITLE")})
+        "CLAUDE_CODE_DISABLE_TERMINAL_TITLE", "CLAUDE_CODE_DISABLE_BUNDLED_SKILLS",
+        "CLAUDE_CODE_DISABLE_FILE_MENTIONS", "CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS", "DISABLE_AUTOUPDATER") })
     return env
 
 
@@ -35,22 +62,43 @@ def _logged_in(result: subprocess.CompletedProcess) -> bool:
     return result.returncode == 0 and isinstance(status, dict) and status.get("loggedIn") is True
 
 
-def capabilities() -> dict:
-    require(shutil.which("claude") is not None, "Claude Code CLI가 필요합니다: claude")
-    version = command(["claude", "--version"]).strip()
-    help_text = command(["claude", "--help"])
+def executable() -> str:
+    from .tool_artifacts import cli_toolchain
+    return cli_toolchain()["claude_code"]
+
+
+def managed_policy() -> dict:
+    """CLI flags cannot override admin policy. Refuse it by existence without reading any values."""
+    import pwd
+    from .claude_settings import MANAGED_ROOT, MANAGED_PREFERENCES
+    paths = [MANAGED_ROOT / "managed-settings.json", MANAGED_PREFERENCES / "com.anthropic.claudecode.plist",
+             MANAGED_PREFERENCES / pwd.getpwuid(os.getuid()).pw_name / "com.anthropic.claudecode.plist"]
+    dropins = MANAGED_ROOT / "managed-settings.d"
+    if dropins.exists():
+        paths.extend(p for p in dropins.iterdir() if p.suffix == ".json")
+    require(not any(p.exists() or p.is_symlink() for p in paths), "Claude managed policy exists; independent review required")
+    return {"managed_files_absent": sorted(map(str, paths)), "setting_sources": [], "restricted": True}
+
+
+def capabilities(*, check_auth=True) -> dict:
+    binary = executable()
+    version = command([binary, "--version"]).strip()
+    require(version == "2.1.311 (Claude Code)", "Claude Code pin mismatch")
+    help_text = command([binary, "--help"])
     flags = ("--restricted", "--model", "--effort", "--tools", "--settings", "--setting-sources",
              "--strict-mcp-config", "--mcp-config", "--disable-slash-commands", "--include-partial-messages",
-             "--output-format", "--no-session-persistence")
+             "--output-format", "--system-prompt-snapshot")
     require(all(flag in help_text for flag in flags), "Claude Code에 필요한 실행 옵션이 없습니다")
-    login = subprocess.run(["claude", "auth", "status"], env=environment(), capture_output=True, timeout=30)
-    require(_logged_in(login), "Claude Code 로그인이 필요합니다: claude auth login")
-    return {"backend": BACKEND, "version": version, "required_flags": list(flags), "login_available": True}
+    if check_auth:
+        login = subprocess.run([binary, "auth", "status"], env=environment(), capture_output=True, timeout=30)
+        require(_logged_in(login), "Claude Code 로그인이 필요합니다: claude auth login")
+    return {"backend": BACKEND, "version": version, "required_flags": list(flags)}
 
 
 def configuration(source: Path, rg_binary: Path) -> dict:
-    source, rg_binary = source.resolve(), rg_binary.resolve()
-    search_path = str(rg_binary.parent) + os.pathsep + os.environ.get("PATH", os.defpath)
+    from .native_baseline import pinned_rg
+    source, rg_binary = source.resolve(), pinned_rg(source, rg_binary)
+    search_path = str(rg_binary.parent) + os.pathsep + "/usr/bin:/bin"
     # One outer Seatbelt fences the CLI and all native tools. Nested Bash Seatbelt is impossible.
     return {"schema": "grafana-native-agent-v1", "backend": BACKEND, "mode": "native_agent", "source": str(source),
             "rg_binary": str(rg_binary), "rg_sha256": file_digest(rg_binary), "search_product_mcp": False,
@@ -64,14 +112,20 @@ def configuration(source: Path, rg_binary: Path) -> dict:
             "output_policy": "native tool and client defaults; no harness clipping"}
 
 
-def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None) -> tuple[list[str], Path, dict]:
+def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None,
+           local_endpoint: str | None = None, local_home: Path | None = None) -> tuple[list[str], Path, dict]:
+    from .pi_client import private_root, local_endpoint_url
+    root = private_root(folder)
+    current_policy = managed_policy()
+    require(spec.get("claude_settings", current_policy) == current_policy, "Claude policy changed since preparation")
     native = spec.get("native_agent")
-    workspace = Path(native["source"]) if native else folder / "workspace"
+    workspace = Path(native["source"]) if native else root / "work"
     workspace.mkdir(parents=True, exist_ok=True)
     require(not native or native.get("backend") == BACKEND and not relay_settings, "Claude 기준군 설정 오류")
     policy = {"disableAllHooks": True, "autoMemoryEnabled": False, "enabledPlugins": {},
               "permissions": {"defaultMode": "dontAsk", "blockReadsOutsideWorkingDirectories": True}}
     if native:
+        require(file_digest(Path(native["rg_binary"])) == native["rg_sha256"], "rg copy drift")
         policy.update(native["config"])
     mcp = {"mcpServers": {}}
     permitted = []
@@ -83,25 +137,101 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     policy_path, mcp_path = folder / "claude-settings.json", folder / "mcp-config.json"
     write_json(policy_path, policy, exclusive=True)
     write_json(mcp_path, mcp, exclusive=True)
-    args = [shutil.which("claude") or "claude", "--print", "--verbose", "--output-format", "stream-json",
+    args = [executable(), "--print", "--verbose", "--output-format", "stream-json",
             "--include-partial-messages", "--model", spec["model"], "--effort", spec["reasoning_effort"],
             "--restricted", "--setting-sources", "", "--settings", str(policy_path),
             "--strict-mcp-config", "--mcp-config", str(mcp_path), "--disable-slash-commands",
-            "--no-session-persistence", "--permission-mode", "dontAsk", "--tools", ",".join(NATIVE_TOOLS) if native else ""]
-    if permitted:
-        args += ["--allowedTools", ",".join(permitted)]
-    env = environment()
+            "--system-prompt-snapshot", "on", "--permission-mode", "dontAsk", "--tools", ",".join(NATIVE_TOOLS) if native else ""]
+    if native or permitted:
+        args += ["--allowedTools", ",".join(NATIVE_TOOLS if native else permitted)]
+    env = environment(local=local_endpoint is not None)
+    (root / "tmp").mkdir(exist_ok=True)
+    env.update(TMPDIR=str(root / "tmp"), CLAUDE_CODE_TMPDIR=str(root / "tmp"), ENABLE_TOOL_SEARCH="false")
+    if relay_settings:
+        from .client_delivery import output_limits
+        env["MAX_MCP_OUTPUT_TOKENS"] = str(output_limits(relay_settings["arm"])["claude_tokens"])
+    if local_endpoint is not None or local_home is not None:
+        require(local_endpoint is not None and local_home is not None, "local Claude requires loopback and private HOME")
+        require(local_home.resolve() != Path.home().resolve() and not local_home.is_symlink(), "local HOME must be private")
+        local_home.mkdir(parents=True, exist_ok=True)
+        env.pop("CLAUDE_CODE_OAUTH_TOKEN", None)
+        env.update(HOME=str(local_home.resolve()), ANTHROPIC_BASE_URL=local_endpoint_url(local_endpoint),
+                   ANTHROPIC_API_KEY="local-model-free-dummy-key")
     if native:
         from .isolation import claude_baseline_command, claude_baseline_profile
         env.update(native["env"])
-        profile = claude_baseline_profile(native, folder)
+        require(local_endpoint is not None or env.get("CLAUDE_CODE_OAUTH_TOKEN"),
+                "Claude rg requires operator CLAUDE_CODE_OAUTH_TOKEN or CODEMAP_BENCH_CLAUDE_TOKEN_FILE (0600); keychain access is denied")
+        profile = claude_baseline_profile(native, folder, local_endpoint=local_endpoint, local_home=local_home)
         env.update(profile["env"])
+        env["CLAUDE_CODE_SHELL"] = native_shell(folder, native, env)
         args = claude_baseline_command(args, profile, folder)
     env.update(MCP_TOOL_TIMEOUT="300000", MCP_TIMEOUT="120000")
+    prepare_private(folder, workspace, env)
+    write_json(folder / "cli-policy.json", {"backend": BACKEND, "measurement_mode": "direct",
+        "mcp_output_tokens": int(env["MAX_MCP_OUTPUT_TOKENS"]) if relay_settings else None,
+        "local_provider": local_endpoint is not None}, exclusive=True)
     return args, workspace, env
 
 
+def native_shell(folder: Path, native: dict, env: dict) -> str:
+    """Keep the native Bash tool, but never give its shell the CLI's authentication environment."""
+    from .cli_shell import wrapper
+    allowed = {"PATH": native["env"]["PATH"], "HOME": env["HOME"], "TMPDIR": env["TMPDIR"],
+               "LANG": env.get("LANG", "en_US.UTF-8"), "LC_ALL": env.get("LC_ALL", "en_US.UTF-8")}
+    return wrapper(folder, allowed)
+
+
+def config_file_stat(home: Path) -> dict | None:
+    """Observe changes without opening the operator's .claude.json (which may contain credentials)."""
+    path = home / ".claude.json"
+    if not path.exists():
+        return None
+    info = path.stat()
+    return {"size": info.st_size, "mtime_ns": info.st_mtime_ns, "inode": info.st_ino}
+
+
+def prepare_private(folder: Path, workspace: Path, env: dict) -> None:
+    from .pi_client import claude_project_slug
+    home = Path(env["HOME"]).resolve()
+    target = home / ".claude/projects" / claude_project_slug(workspace)
+    require(not target.exists() and not target.is_symlink(), "pre-existing Claude project: refuse unrelated residue cleanup")
+    write_json(folder / "claude-private.json", {"workspace": str(workspace.resolve()), "home": str(home),
+        "project": str(target), "claude_json_before": config_file_stat(home)}, exclusive=True)
+
+
+def cleanup_private(folder: Path, workspace: Path, env: dict) -> dict:
+    from .pi_client import cleanup_claude_project as cleanup
+    binding = read_json(folder / "claude-private.json")
+    home = Path(env["HOME"]).resolve()
+    require(binding["workspace"] == str(workspace.resolve()) and binding["home"] == str(home), "Claude cleanup binding changed")
+    target = Path(binding["project"])
+    # Only harness-created, cwd-bound transcripts are copied. Never inspect other operator sessions or credentials.
+    for path in sorted(target.glob("*.jsonl")):
+        require(not path.is_symlink() and path.stat().st_nlink == 1, "Claude transcript link forbidden")
+        rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+        require({r["cwd"] for r in rows if isinstance(r.get("cwd"), str)} == {str(workspace.resolve())}, "Claude transcript cwd mismatch")
+        destination = folder / ("claude-session-" + path.name)
+        from .pi_client import redact
+        destination.write_bytes(redact(path.read_bytes(), env.get("CLAUDE_CODE_OAUTH_TOKEN") or env.get("ANTHROPIC_API_KEY")))
+    result = cleanup(workspace, home=home)
+    result.update(claude_json_before=binding["claude_json_before"], claude_json_after=config_file_stat(home),
+                  claude_json_changed=binding["claude_json_before"] != config_file_stat(home))
+    return result
+
+
 def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
+    require_native_auth()
+    try:
+        return _probe(value, folder, denied_paths)
+    finally:
+        binding = folder / "claude-private.json"
+        if binding.exists() and not (folder / "private-cleanup.json").exists():
+            value = read_json(binding)
+            write_json(folder / "private-cleanup.json", cleanup_private(folder, Path(value["workspace"]), {"HOME": value["home"]}))
+
+
+def _probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     """Model-free auth/startup plus real commands under the identical outer boundary."""
     from .settings import execution_settings
     folder.mkdir(parents=True, exist_ok=True)
@@ -110,16 +240,29 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     spec["native_agent"] = value
     args, workspace, env = launch(folder, spec, None)
     args.append("--init-only")
-    result = subprocess.run(args, cwd=workspace, env=env, input=b"", capture_output=True, timeout=60)
-    (folder / "startup.stdout").write_bytes(result.stdout)
-    (folder / "startup.stderr").write_bytes(result.stderr)
+    from .cli_shell import ShellMonitor
+    from .runner import cleanup_solver
+    from .pi_client import redact
+    monitor = ShellMonitor(folder)
+    process = None
+    try:
+        process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, start_new_session=True)
+        monitor.started(process)
+        stdout, stderr = process.communicate(b"", timeout=60)
+        result = subprocess.CompletedProcess(args, process.returncode, stdout, stderr)
+    finally:
+        cleanup = cleanup_solver(process, lambda: None)
+        native_cleanup = monitor.close(lambda: None)
+        require(cleanup["complete"] and native_cleanup["complete"], "Claude startup cleanup incomplete")
+    (folder / "startup.stdout").write_bytes(redact(result.stdout, env.get("CLAUDE_CODE_OAUTH_TOKEN")))
+    (folder / "startup.stderr").write_bytes(redact(result.stderr, env.get("CLAUDE_CODE_OAUTH_TOKEN")))
     require(result.returncode == 0, f"Claude 준비 시작 검증 실패: {folder / 'startup.stderr'}")
     from .isolation import canary_files, claude_baseline_command, hidden_references
     profile = read_json(folder / "claude-boundary.json")["profile"]
-    auth = subprocess.run(claude_baseline_command([shutil.which("claude"), "auth", "status"], profile, folder),
+    auth = subprocess.run(claude_baseline_command([executable(), "auth", "status"], profile, folder),
                           cwd=workspace, env=env, capture_output=True, timeout=60)
-    write_json(folder / "auth-probe.json", {"exit_code": auth.returncode, "stdout": auth.stdout.decode(errors="replace"),
-                                          "stderr": auth.stderr.decode(errors="replace"), "model_invocations": 0})
+    write_json(folder / "auth-probe.json", {"exit_code": auth.returncode, "logged_in": _logged_in(auth), "model_invocations": 0})
     # Keep boundary evidence even when auth is blocked; never publish a ready baseline in that case.
     boundaries = []
     with canary_files(workspace, folder / "boundary") as (_, targets):
@@ -139,6 +282,7 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
             write_json(folder / "boundary-probe.json", boundaries)
             require(checked.returncode >= 0 and checked.returncode != 125, f"Claude boundary launcher 실패: {name}")
             require((checked.returncode == 0) == allowed, f"Claude outer boundary 실패: {name}")
+    write_json(folder / "private-cleanup.json", cleanup_private(folder, workspace, env))
     require(_logged_in(auth), "Claude outer profile에서 로그인 인식 실패: baseline blocked; "
             "자격 파일/기록을 허용하지 않습니다. 운영자가 CLAUDE_CODE_OAUTH_TOKEN을 환경으로 제공한 뒤 재검증하세요")
     observation = {"name": "claude_init_only", "exit_code": result.returncode, "command": args,
@@ -162,11 +306,15 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
 
 def tool_items(events: list[dict]) -> list[dict]:
     """Deduplicate partial/final tool blocks by the provider's tool_use ID."""
-    items, results = {}, {}
+    items, results, non_execution = {}, {}, {}
     for event in events:
         if event.get("parent_tool_use_id"):
             continue
-        blocks = event.get("message", {}).get("content", [])
+        for meta in event.get("tool_result_meta", []):
+            if meta.get("non_execution_kind"):
+                non_execution[meta.get("id")] = meta["non_execution_kind"]
+        message = event.get("message")
+        blocks = message.get("content", []) if isinstance(message, dict) else []
         if event.get("type") == "stream_event" and event.get("event", {}).get("type") == "content_block_start":
             blocks = [event["event"].get("content_block", {})]
         if not isinstance(blocks, list):
@@ -176,7 +324,8 @@ def tool_items(events: list[dict]) -> list[dict]:
                 items[block["id"]] = {**items.get(block["id"], {}), **block}
             elif block.get("type") == "tool_result" and isinstance(block.get("tool_use_id"), str):
                 results[block["tool_use_id"]] = block
-    return [{**item, "completed": ident in results, "result": results.get(ident)} for ident, item in items.items()]
+    return [{**item, "completed": ident in results, "result": results.get(ident),
+             "non_execution_kind": non_execution.get(ident), "dispatched": ident not in non_execution} for ident, item in items.items()]
 
 
 def usage(events: list[dict], *, terminal_complete: bool, evidence: str) -> dict:

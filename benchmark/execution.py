@@ -103,7 +103,7 @@ def load_ledger(root: Path) -> tuple[dict, dict]:
     manifest, ledger = read_json(root / "manifest.json"), read_json(root / "ledger.json")
     require(ledger["manifest_sha256"] == file_digest(root / "manifest.json"), "RunManifest 변경")
     require(ledger["campaign_id"] == manifest["campaign_id"] and manifest["cache"] == str(settings.CACHE.resolve()), "campaign/cache 불일치")
-    expected = routes.schedule()
+    expected = routes.schedule(manifest["models"]["solver"]["model"])
     require(len(ledger["slots"]) == len(expected), "계획 slot ledger 누락")
     for row, slot in zip(ledger["slots"], expected):
         require(all(row[k] == slot[k] for k in ("id", "question_id", "arm", "mode", "attempt")), "ledger 순서/슬롯 변경")

@@ -223,7 +223,7 @@ def audit_session(folder: Path, inventory: dict) -> dict:
 
 class CaptureProvider:
     """One loopback request, a fixed final response; no operator auth or hosted transport."""
-    def __init__(self, node: str, *, port: int = 0):
+    def __init__(self, node: str, *, port: int = 0, inspect_codex_tools=False):
         self.requests, self.errors = [], []
         owner = self
 
@@ -248,23 +248,32 @@ class CaptureProvider:
                         self.end_headers()
                         self.wfile.write(b'{"input_tokens":100}')
                         return
-                    require(self.path in {"/codex/responses", "/v1/messages", "/v1/messages?beta=true"}, "unexpected local endpoint")
+                    require(self.path in {"/codex/responses", "/v1/responses", "/v1/messages", "/v1/messages?beta=true"}, "unexpected local endpoint")
                     owner.requests.append(body)
-                    require(len(owner.requests) == 1, "unexpected second request in first-request audit")
+                    require(len(owner.requests) <= (2 if inspect_codex_tools else 1), "unexpected request in context audit")
                     self.send_response(200)
                     self.send_header("Content-Type", "text/event-stream")
                     self.end_headers()
                     def send(kind, **fields):
                         self.wfile.write(("event: " + kind + "\ndata: " + json.dumps({"type": kind, **fields}) + "\n\n").encode())
                         self.wfile.flush()
-                    if self.path == "/codex/responses":
-                        send("response.created", response={"id": "resp_local", "status": "in_progress"})
-                        item = {"type": "message", "id": "msg_local", "role": "assistant", "content": []}
+                    if self.path in {"/codex/responses", "/v1/responses"}:
+                        response_id = "resp_local_" + str(len(owner.requests))
+                        send("response.created", response={"id": response_id, "status": "in_progress"})
+                        if inspect_codex_tools and len(owner.requests) == 1:
+                            item = {"type": "custom_tool_call", "id": "inspect_tools", "call_id": "inspect_tools",
+                                    "namespace": "functions", "name": "exec", "input": "text(ALL_TOOLS.map(({name}) => name))"}
+                            send("response.output_item.added", output_index=0, item=item)
+                            send("response.output_item.done", output_index=0, item={**item, "status": "completed"})
+                            send("response.completed", response={"id": response_id, "status": "completed", "model": body["model"], "output": [item],
+                                 "usage": {"input_tokens": 100, "output_tokens": 1, "total_tokens": 101}})
+                            return
+                        item = {"type": "message", "id": "msg_local", "role": "assistant", "phase": "final_answer", "content": []}
                         send("response.output_item.added", output_index=0, item=item)
                         send("response.output_text.delta", output_index=0, content_index=0, delta="Done.")
                         item.update(status="completed", content=[{"type": "output_text", "text": "Done.", "annotations": []}])
                         send("response.output_item.done", output_index=0, item=item)
-                        send("response.completed", response={"id": "resp_local", "status": "completed", "model": body["model"], "output": [item],
+                        send("response.completed", response={"id": response_id, "status": "completed", "model": body["model"], "output": [item],
                              "usage": {"input_tokens": 100, "output_tokens": 1, "total_tokens": 101}})
                     else:
                         send("message_start", message={"id": "msg_local", "type": "message", "role": "assistant", "model": body["model"],
@@ -295,6 +304,8 @@ def replay(path: Path) -> None:
     data = read_json(path)
     for line in sys.stdin:
         request = json.loads(line)
+        from .core import append_jsonl
+        append_jsonl(path.with_suffix(".requests.jsonl"), request)
         if "id" not in request:
             continue
         method = request["method"]

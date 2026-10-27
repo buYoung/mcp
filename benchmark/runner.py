@@ -44,13 +44,10 @@ def tokens_excluding_cache_reads(observed: dict) -> int:
 def codex_options(grading=False, settings: dict | None = None) -> list[str]:
     spec = settings or default_settings()
     settings = {"model_reasoning_effort": spec["grader_reasoning_effort"] if grading else spec["reasoning_effort"],
-                "web_search": "disabled", "approval_policy": "never", "sandbox_mode": "read-only",
+                "web_search": "disabled", "approval_policy": "never",
                 "project_doc_max_bytes": 0,
-                "suppress_unstable_features_warning": True, "tools.view_image": False,
-                "model_auto_compact_token_limit": 500000,
-                "features.code_mode_host": not grading,
-                "features.code_mode.enabled": not grading,
-                "features.code_mode.excluded_tool_namespaces": ["functions", "agents", "multi_agent_v1", "multi_agent_v2", "web", "image_gen", "clock"],
+                "suppress_unstable_features_warning": True, "agents.enabled": False,
+                "features.skip_host_skill_discovery": True,
                 **{f"features.{feature}": False for feature in DISABLED_FEATURES}}
     if spec.get("native_output_policy", {}).get("product_defaults"):
         # Product instructions own their output guidance. Client history remains observable separately.
@@ -71,13 +68,13 @@ def codex_options(grading=False, settings: dict | None = None) -> list[str]:
 
 
 
-def isolated_environment(folder: Path) -> tuple[dict, Path]:
+def isolated_environment(folder: Path, *, link_auth=True) -> tuple[dict, Path]:
     """Codex owns credential reading; this code links its existing login without reading or logging it."""
     home = folder / "codex-home"
     home.mkdir(parents=True, exist_ok=True)
     existing = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
     auth = existing / "auth.json"
-    if auth.exists() and not (home / "auth.json").exists():
+    if link_auth and auth.exists() and not (home / "auth.json").exists():
         (home / "auth.json").symlink_to(auth.resolve())
     # No parent thread identity, imported config, proxy credentials or unrelated API keys.
     allowed = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR"}
@@ -137,9 +134,7 @@ def signal_target(pid: int, signum: int, *, group=False) -> bool:
     except PermissionError:
         # Darwin can return EPERM for an exiting, unreaped process group.
         # A zero-signal permission failure still means it may exist; keep waiting.
-        if signum == 0:
-            return True
-        raise
+        return signum == 0  # Keep bounded cleanup polling; a denied signal is recorded as not sent.
 
 
 
@@ -196,6 +191,8 @@ def cleanup_solver(process, pump) -> dict:
     require(pgid != os.getpgrp(), "unsafe solver process group")
     steps = []
     for signum in (signal.SIGTERM, signal.SIGKILL):
+        if callable(getattr(process, "poll", None)):
+            process.poll()
         if not signal_target(pgid, 0, group=True):
             break
         steps.append({"signal": signal.Signals(signum).name, "target": "solver_group", "pgid": pgid,
@@ -203,6 +200,8 @@ def cleanup_solver(process, pump) -> dict:
         deadline = time.monotonic() + 3
         while signal_target(pgid, 0, group=True) and time.monotonic() < deadline:
             pump()
+            if callable(getattr(process, "poll", None)):
+                process.poll()
     return {"complete": not signal_target(pgid, 0, group=True), "started": True, "steps": steps, "pgid": pgid}
 
 
@@ -292,14 +291,16 @@ def execute_codex(folder: Path, prompt: str, relay_settings: dict | None = None,
                   usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
                   codex_version: str | None = None, prepared_session=None) -> dict:
     spec = settings or default_settings()
-    require(grading or spec.get("solver_backend", "codex") == "codex", "Claude 풀이에는 execute_model을 사용하세요")
+    require(not grading, "채점은 execute_model의 pi/Astra 경로를 사용하세요")
+    require(spec.get("solver_backend", "codex") == "codex", "Claude 풀이에는 execute_model을 사용하세요")
     return _execute_agent(folder, prompt, relay_settings, grading, output_schema, usage_drain_seconds,
                           settings=spec, cancel_event=cancel_event, codex_version=codex_version, backend="codex", prepared_session=prepared_session)
 
 
 def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
                   usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
-                  codex_version: str | None = None, agent_version: str | None = None, prepared_session=None) -> dict:
+                  codex_version: str | None = None, agent_version: str | None = None, prepared_session=None,
+                  local_endpoint: str | None = None, local_home: Path | None = None) -> dict:
     spec = settings or default_settings()
     require(spec["grader_model"] == "gpt-6-astra" and spec["grader_reasoning_effort"] == "high", "채점은 Astra/high로 고정합니다")
     if grading:
@@ -308,7 +309,7 @@ def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None,
         return execute(folder, prompt, settings=spec, output_schema=output_schema,
                        cancel_event=cancel_event, usage_drain_seconds=usage_drain_seconds)
     backend = spec["solver_backend"]
-    require(backend in {"codex", "claude_code", "pi"}, "지원하지 않는 코딩 에이전트")
+    require(backend in {"codex", "claude_code"}, "지원하지 않는 풀이 실행기")
     if not grading:
         from .route_contract import solver_model
         selected = solver_model(spec["model"])
@@ -317,7 +318,8 @@ def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None,
                 and (backend != "pi" or spec.get("provider") == selected["provider"]), "풀이 모델과 실행기 계약 불일치")
     return _execute_agent(folder, prompt, relay_settings, grading, output_schema, usage_drain_seconds,
                           settings=spec, cancel_event=cancel_event, codex_version=codex_version,
-                          backend=backend, agent_version=None if grading else agent_version, prepared_session=prepared_session)
+                          backend=backend, agent_version=None if grading else agent_version, prepared_session=prepared_session,
+                          local_endpoint=local_endpoint, local_home=local_home)
 
 
 def navigation_server(folder: Path, relay_settings: dict, prepared_session=None) -> dict:
@@ -358,7 +360,8 @@ def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: flo
 
 def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
                    usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
-                   codex_version: str | None = None, backend="codex", agent_version: str | None = None, prepared_session=None) -> dict:
+                   codex_version: str | None = None, backend="codex", agent_version: str | None = None, prepared_session=None,
+                  local_endpoint: str | None = None, local_home: Path | None = None) -> dict:
     from . import claude_client, pi_client
     client = pi_client if backend == "pi" else claude_client
     spec = settings or default_settings()
@@ -367,9 +370,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             and usage_drain_seconds == 0, "usage drain must be zero")
     folder = folder.resolve()
     folder.mkdir(parents=True, exist_ok=True)
-    workspace = folder / "workspace"
-    workspace.mkdir(exist_ok=True)
-    env, home = isolated_environment(folder) if backend == "codex" else (None, None)
+    env = home = None
     if prepared_session is not None:
         require(not grading and prepared_session.backend == backend, "warm session/backend mismatch")
         require(prepared_session.folder == folder, "warm session/solver slot mismatch")
@@ -377,39 +378,27 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         require(relay_settings is None or relay_settings == prepared_session.relay_settings, "warm relay settings mismatch")
         relay_settings = prepared_session.relay_settings
     native_agent = spec.get("native_agent") if not grading else None
-    codex_command = "codex"
     if native_agent:
         require(not relay_settings and native_agent["search_product_mcp"] is False, "기본 에이전트 기준군에 MCP를 추가할 수 없습니다")
-        workspace = Path(native_agent["source"])
-        codex_command = shutil.which("codex") or "codex"
-        # PATH pin is applied to tool commands by shell_environment_policy, not the CLI's own runtime.
         write_json(folder / "native-agent.json", native_agent, exclusive=True)
-    args = ([codex_command, "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json",
-             "-C", str(workspace), "-m", spec["grader_model"] if grading else spec["model"]] + codex_options(grading, spec)
-            if backend == "codex" else [])
     server = navigation_server(folder, relay_settings, prepared_session) if relay_settings else None
-    if backend == "claude_code":
-        require(not grading and not output_schema, "Claude Code legacy 풀이에는 채점/구조화 출력을 연결하지 않습니다")
-        agent_version = agent_version or command(["claude", "--version"]).strip()
-        args, workspace, env = claude_client.launch(folder, spec, relay_settings, server=server)
-    if backend == "pi":
-        require(not grading and not output_schema, "pi 채점은 전용 grader executor를 사용하세요")
+    if backend == "codex":
+        from . import codex_client
+        args, workspace, env = codex_client.launch(folder, spec, relay_settings, server=server, local_endpoint=local_endpoint)
+        home = Path(env["CODEX_HOME"])
+        agent_version = codex_version = codex_client.capabilities()["version"]
+    elif backend == "claude_code":
+        require(not grading and not output_schema, "Claude 풀이에는 채점/구조화 출력을 연결하지 않습니다")
+        agent_version = claude_client.capabilities(check_auth=False)["version"]
+        args, workspace, env = claude_client.launch(folder, spec, relay_settings, server=server,
+                                                  local_endpoint=local_endpoint, local_home=local_home)
+    else:
         args, workspace, env = pi_client.launch(folder, spec, relay_settings, server=server)
         agent_version = pi_client.capabilities()["version"]
-    if relay_settings and backend == "codex":
-        # JSON object syntax is not TOML table syntax; encode this table explicitly.
-        for key, value in server.items():
-            if isinstance(value, dict):
-                value_text = "{" + ", ".join(f"{k} = {canonical(v)}" for k, v in value.items()) + "}"
-            else:
-                value_text = canonical(value)
-            args += ["-c", f"mcp_servers.navigation.{key}={value_text}"]
     if output_schema:
         schema_path = folder / "output-schema.json"
         write_json(schema_path, output_schema, exclusive=True)
         args += ["--output-schema", str(schema_path)]
-    if backend == "codex":
-        args += ["-"]
     write_json(folder / "command.json", {"args": args, "cwd": str(workspace), "model": spec["grader_model"] if grading else spec["model"],
                                         "backend": backend, "agent_version": agent_version or codex_version,
                                         "requested_model": spec.get("requested_model"),
@@ -430,8 +419,14 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     pi_state = pi_client.EventState() if backend == "pi" else None
     events = pi_state.events if pi_state else []
     event_observations = []
-    stderr_eof = backend != "pi"
-    token = env.get(pi_client.TOKEN_ENV) if backend == "pi" else None
+    redact_stream = backend in {"pi", "claude_code"}
+    stderr_eof = not redact_stream
+    token = (env.get(pi_client.TOKEN_ENV) if backend == "pi" else
+             env.get("CLAUDE_CODE_OAUTH_TOKEN") or env.get("ANTHROPIC_API_KEY") if backend == "claude_code" else None)
+    shell_monitor = None
+    if backend == "claude_code" and native_agent:
+        from .cli_shell import ShellMonitor
+        shell_monitor = ShellMonitor(folder, prepared_session.registry if prepared_session is not None else None)
     model_exited_monotonic = None
     answer_finished_monotonic = None
     event_parse_failed = False
@@ -453,11 +448,11 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                             stderr_eof = True
                         else:
                             is_stdout_eof = True
-                        if backend == "pi" and pending:
+                        if redact_stream and pending:
                             (error_file if key.data == "stderr" else event_file).write(pi_client.redact(bytes(pending), token))
                         selector.unregister(key.fileobj)
                         break
-                    if backend != "pi":
+                    if not redact_stream:
                         event_file.write(chunk)
                     pending.extend(chunk)
                     start_line = 0
@@ -468,7 +463,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                             break
                         line = bytes(pending[start_line:end])
                         start_line = scan = end + 1
-                        if backend == "pi":
+                        if redact_stream:
                             line = pi_client.redact(line, token)
                             (error_file if key.data == "stderr" else event_file).write(line + b"\n")
                         if key.data == "stderr" or not line or event_parse_failed:
@@ -490,7 +485,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                   or backend == "codex" and event.get("type") == "turn.completed"
                                   or backend == "pi" and event.get("type") == "agent_settled"):
                                 answer_finished_monotonic = read_at
-                            if backend == "pi" and event.get("type") in {"tool_execution_end", "agent_settled"}:
+                            if event.get("type") in {"tool_execution_end", "agent_settled", "item.started", "item.completed", "turn.completed", "assistant", "user", "result", "stream_event"}:
                                 event_observations.append({"record": len(events), "type": event["type"], "read_monotonic": read_at})
                         except (ValueError, KeyError) as exc:
                             event_parse_failed = True
@@ -515,7 +510,9 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             if prepared_session is not None:
                 prepared_session.open_solver_gate(start)
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE,
-                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE if backend == "pi" else error_file, start_new_session=True)
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE if redact_stream else error_file, start_new_session=True)
+            if shell_monitor:
+                shell_monitor.started(process)
             stop = ExecutionStop(folder, process, start, usage_drain_seconds,
                                  started_unix_seconds=started_unix_seconds, wall_deadline=wall_deadline)
             stop.backend = backend
@@ -524,7 +521,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                                  "wall_deadline_monotonic": wall_deadline}, exclusive=True)
             os.set_blocking(process.stdout.fileno(), False)
             selector.register(process.stdout, selectors.EVENT_READ)
-            if backend == "pi":
+            if redact_stream:
                 os.set_blocking(process.stderr.fileno(), False)
                 selector.register(process.stderr, selectors.EVENT_READ, "stderr")
             if prepared_session is not None:
@@ -577,6 +574,10 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                 except (OSError, ValueError, KeyError) as exc:
                     launch_error = f"unsupported {backend} event log during cleanup: {exc}"
             solver_cleanup = cleanup_solver(process, cleanup_pump)
+            if shell_monitor:
+                shell_cleanup = shell_monitor.close(cleanup_pump)
+                solver_cleanup["native_shell_groups"] = shell_cleanup
+                solver_cleanup["complete"] = solver_cleanup["complete"] and shell_cleanup["complete"]
             if backend == "pi" and native_agent:
                 shell_cleanup = pi_client.cleanup_shells(folder, cleanup_pump)
                 solver_cleanup["shell_groups"] = shell_cleanup
@@ -589,24 +590,39 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             selector.close()
             if process:
                 process.stdout.close()
-                if backend == "pi":
+                if redact_stream:
                     process.stderr.close()
-            if backend == "pi":
+            if redact_stream:
                 if stderr_buffer and not stderr_eof:
                     error_file.write(pi_client.redact(bytes(stderr_buffer), token))
                 if buffer and not is_stdout_eof:
                     event_file.write(pi_client.redact(bytes(buffer), token))
                 event_file.flush()
                 error_file.flush()
+            if backend == "pi":
                 try:
                     residue = pi_client.cleanup_private(folder, workspace, spec["provider"], token, home=Path(env["HOME"]))
                 except (ValueError, OSError) as exc:
                     residue = {"complete": False, "error": pi_client.redact(str(exc), token)}
                     solver_cleanup["complete"] = False
                 solver_cleanup["pi_private_cleanup"] = residue
+            if backend == "claude_code":
+                try:
+                    residue = claude_client.cleanup_private(folder, workspace, env)
+                except (ValueError, OSError) as exc:
+                    residue = {"complete": False, "error": str(exc)}
+                solver_cleanup["claude_private_cleanup"] = residue
+                solver_cleanup["complete"] = solver_cleanup["complete"] and residue["complete"]
             if home:
                 (home / "auth.json").unlink(missing_ok=True)
     claude_settings_check = None
+    if backend == "claude_code":
+        try:
+            current = claude_client.managed_policy()
+            require(current == spec.get("claude_settings", current), "Claude policy changed since preparation")
+            claude_settings_check = {"verified": True}
+        except (OSError, ValueError) as exc:
+            claude_settings_check = {"verified": False, "error": str(exc)}
     if backend == "pi" and spec["provider"] == "claude-bridge":
         from .claude_settings import verify
         try:
@@ -689,6 +705,13 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                         "shutdown": shutdown, "token_measurement": token_measurement})
     final_rows = [r for r in records if r.get("type") == "response_item"
                       and r.get("payload", {}).get("role") == "assistant" and r["payload"].get("phase") == "final_answer"]
+    if backend == "codex" and not final_rows:
+        assistants = [r for r in records if r.get("type") == "response_item" and r.get("payload", {}).get("role") == "assistant"]
+        terminals = [r["payload"] for r in records if r.get("type") == "event_msg" and r.get("payload", {}).get("type") == "task_complete"]
+        if assistants and terminals:
+            text = "\n".join(c.get("text", "") for c in assistants[-1]["payload"].get("content", []) if c.get("type") == "output_text")
+            if text and terminals[-1].get("last_agent_message") == text:
+                final_rows = assistants[-1:]
     final_text = "\n".join(c.get("text", "") for r in final_rows[-1:] for c in r["payload"].get("content", []) if c.get("type") == "output_text")
     claude_result = pi_state.answer if pi_state is not None else client.final_result(events) if backend == "claude_code" else None
     if backend in {"claude_code", "pi"}:
@@ -716,6 +739,13 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     if claude_settings_check and not claude_settings_check["verified"]:
         condition_errors.append(claude_settings_check["error"])
         status = termination = "environment_error"
+    if backend in {"codex", "claude_code"}:
+        from .cli_audit import audit_session
+        inventory_path = prepared_session.state.get("native_inventory") if prepared_session is not None else None
+        inventory = read_json(Path(inventory_path)) if inventory_path else {}
+        context_audit = audit_session(folder, inventory, backend)
+        if not context_audit["passed"]:
+            condition_errors.append("Harness context audit failed; see context-audit.json.")
     if backend == "pi":
         from .pi_audit import audit_session
         inventory_path = prepared_session.state.get("native_inventory") if prepared_session is not None else None
@@ -767,7 +797,9 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         result["requested_model"] = pi_client.requested_model(spec["provider"], expected_model)
         result["claude_settings_check"] = claude_settings_check
         result["claude_persisted_tool_results"] = solver_cleanup.get("pi_private_cleanup", {}).get("claude_persisted_tool_results")
+    result["token_accounting"] = token_measurement["token_accounting"]
     if backend == "claude_code":
+        result["claude_persisted_tool_results"] = solver_cleanup.get("claude_private_cleanup", {}).get("claude_persisted_tool_results")
         result["effort_observation"] = {"requested": expected_effort, "source": "explicit CLI --effort; server-applied value unobserved"}
         if claude_result and claude_result.get("is_error"):
             result["error"] = claude_result.get("errors") or claude_result.get("subtype")

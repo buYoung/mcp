@@ -25,13 +25,12 @@ def require_neutral_cache() -> None:
 
 def execution_settings(solver_model: str | None = None) -> dict:
     from .route_contract import load_profile, solver_model as resolve_solver
-    from .pi_client import requested_model
     profile = load_profile()
     solver = resolve_solver(solver_model)
     return {"profile": profile["profile"], "preparation_only": True,
-            "model": solver["model"], "requested_model": requested_model(solver["provider"], solver["model"]),
+            "model": solver["model"], "requested_model": solver["model"],
             "reasoning_effort": solver["reasoning_effort"],
-            "solver_backend": solver["backend"], "provider": solver["provider"],
+            "solver_backend": solver["backend"], "measurement_mode": solver["measurement_mode"],
             "grader_backend": "pi",
             "grader_model": profile["grader"]["model"], "grader_reasoning_effort": profile["grader"]["reasoning_effort"],
             "seed": profile["seed"], "concurrency": profile["concurrency"], "limits": copy.deepcopy(profile["limits"]),
