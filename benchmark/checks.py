@@ -465,6 +465,8 @@ class BenchChecks(unittest.TestCase):
         rg = install / "rg"
         rg.write_text("#!/bin/sh\nexit 0\n")
         rg.chmod(0o700)
+        (self.root / "neutral").mkdir()
+        self.enterContext(patch.object(settings, "CACHE", self.root / "neutral"))
         # An unsandboxed control proves the syscall itself works, without inspecting its buffer.
         control = subprocess.run(isolation.kern_procargs_command(os.getpid()), capture_output=True, timeout=10)
         self.assertEqual(control.returncode, 0, control.stderr)
