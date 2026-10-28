@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved
+
+- Server instructions now ask agents to send independent tool calls together in one response as separate calls and to begin with several narrow lookups instead of one broad search. The paragraph appears twice on purpose.
+
 ## [0.14.0] - 2026-10-26
 
 ### Added
