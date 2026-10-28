@@ -20,19 +20,20 @@ REQUEST_AFFECTING_KEYS = frozenset({"env", "apiKeyHelper", "awsAuthRefresh", "aw
                                     "outputStyle", "language", "forceLoginMethod", "forceLoginOrgUUID"})
 
 
-def snapshot(workspace: Path, *, home: Path | None = None) -> dict:
+def snapshot(workspace: Path, *, home: Path) -> dict:
     """Keep only file hashes/key names. Never retain or report setting values or parse errors."""
     user = pwd.getpwuid(os.getuid())
-    home = home or Path(user.pw_dir)
+    require(home.resolve() != Path(user.pw_dir).resolve(), "Claude actual HOME inspection forbidden")
     workspace = workspace.resolve()
-    paths = {str(p): p for p in (home / ".claude/settings.json", MANAGED_ROOT / "managed-settings.json",
-        MANAGED_PREFERENCES / "com.anthropic.claudecode.plist",
-        MANAGED_PREFERENCES / user.pw_name / "com.anthropic.claudecode.plist")}
+    paths = {"<private-home>/.claude/settings.json": home / ".claude/settings.json"}
+    managed = [MANAGED_ROOT / "managed-settings.json", MANAGED_PREFERENCES / "com.anthropic.claudecode.plist",
+               MANAGED_PREFERENCES / user.pw_name / "com.anthropic.claudecode.plist"]
+    require(not any(p.exists() or p.is_symlink() for p in managed), "Claude managed policy present; values are not read")
     dropins = MANAGED_ROOT / "managed-settings.d"
     try:
         if dropins.exists():
             require(dropins.is_dir() and not dropins.is_symlink(), f"Claude settings directory rejected: {dropins}")
-            paths.update({str(p): p for p in sorted(dropins.iterdir()) if p.suffix == ".json"})
+            require(not any(p.suffix == ".json" for p in dropins.iterdir()), "Claude managed policy present; values are not read")
     except OSError:
         raise ValueError(f"Claude settings directory unreadable: {dropins}") from None
     for name in ("settings.json", "settings.local.json"):
@@ -66,7 +67,7 @@ def snapshot(workspace: Path, *, home: Path | None = None) -> dict:
             "request_affecting_keys": sorted(REQUEST_AFFECTING_KEYS)}
 
 
-def verify(expected: dict, workspace: Path, *, home: Path | None = None) -> dict:
+def verify(expected: dict, workspace: Path, *, home: Path) -> dict:
     require(isinstance(expected, dict), "Claude prepared settings condition missing")
     current = snapshot(workspace, home=home)
     changed = sorted(key for key in expected.get("files", {}).keys() | current["files"].keys()

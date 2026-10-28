@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .core import canonical, digest, file_digest, metric, ratio, read_json, require, write_json
+from .claude_auth import Credential, ChildEnvChannel
 
 BACKEND = "pi"
 TOKEN_ENV = "CODEMAP_BENCH_PI_TOKEN"
@@ -26,7 +27,7 @@ CODEMODE_MAX_OUTPUT_TOKENS = 100000
 from .client_delivery import (PRODUCT_TEXT_BYTES as OUTPUT_GUARD_BYTES, DEFAULT_TEXT_BYTES,
                               CLAUDE_RESULT_META, CLAUDE_PRODUCT_CHARS)
 ADAPTER_SETTINGS = {"autoEnableCodemode": False, "maxOutputBytes": DEFAULT_TEXT_BYTES}
-ADAPTER_SERVER = {"timeout": 300}
+ADAPTER_SERVER = {"timeout": 300, "exposure": "direct"}
 RESOURCE_TOOLS = ("list_mcp_resources", "list_mcp_resource_templates", "read_mcp_resource")
 
 
@@ -111,14 +112,15 @@ def environment(*, agent_dir: Path, tmp: Path, provider: str, token: str | None 
     env.update(HOME=pwd.getpwuid(os.getuid()).pw_dir, TMPDIR=str(tmp.resolve()),
                PI_CODING_AGENT_DIR=str(agent_dir.resolve()), PI_SKIP_VERSION_CHECK="1", PI_TELEMETRY="0",
                CODEMAP_BENCH_CACHE=str(CACHE))
-    if local_endpoint is not None or local_home is not None:
-        require(provider == "claude-bridge" and local_endpoint is not None and local_home is not None,
-                "Claude local transport requires both loopback endpoint and private HOME")
+    if provider == "claude-bridge":
+        require(local_home is not None, "Claude requires a slot-private HOME")
         home = local_home.resolve()
-        require(home != Path(env["HOME"]).resolve() and not local_home.is_symlink(), "local Claude HOME must be private")
-        home.mkdir(parents=True, exist_ok=True, mode=0o700)
-        env.update(HOME=str(home), ANTHROPIC_BASE_URL=local_endpoint_url(local_endpoint),
-                   ANTHROPIC_API_KEY="local-model-free-dummy-key")
+        require(home != Path(env["HOME"]).resolve() and not local_home.is_symlink(), "Claude 실제 HOME 사용 금지")
+        require(home.is_dir(), "Claude private HOME missing")
+        env["HOME"] = str(home)
+        require(local_endpoint is None, "Claude endpoint/auth must go only through the bridge child-env API")
+    else:
+        require(local_home is None and local_endpoint is None, "unexpected OpenAI environment override")
     if token is not None:
         require(provider == "openai-codex" and bool(token) and "\n" not in token, "pi token/provider 오류")
         env[TOKEN_ENV] = token
@@ -146,17 +148,19 @@ def operator_token(provider: str) -> str:
     return token
 
 
-def capabilities() -> dict:
+def capabilities(*, toolchain: dict | None = None) -> dict:
     from .tool_artifacts import pi_toolchain
     import tempfile
     from .settings import CACHE
-    tools = pi_toolchain()
+    tools = toolchain or pi_toolchain()
     with tempfile.TemporaryDirectory(prefix="pi-capabilities-", dir=CACHE) as directory:
         root = Path(directory)
         agent = root / "agent"
         agent.mkdir(mode=0o700)
         write_models(agent, "openai-codex")
+        (root / "home").mkdir(mode=0o700)
         env = environment(agent_dir=agent, tmp=root, provider="openai-codex", token="model-free-dummy")
+        env["HOME"] = str(root / "home")  # Model-free bridge loading must not inspect operator HOME.
         probes = {}
         write_json(agent / "mcp.json", {**ADAPTER_SETTINGS, "mcpServers": {}})
         for name, args in (("help", [*PRIVATE_FLAGS, "--help"]),
@@ -312,9 +316,32 @@ export default (pi) => createCodemodeExtension({models:false})({
 
 
 def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None,
-           local_endpoint: str | None = None, local_home: Path | None = None) -> tuple[list[str], Path, dict]:
+           local_endpoint: str | None = None, credential: Credential | None = None,
+           toolchain: dict | None = None) -> tuple[list[str], Path, dict, ChildEnvChannel | None]:
+    owned_before = (folder / "claude-home.json").exists()
+    try:
+        return _launch(folder, spec, relay_settings, server=server, local_endpoint=local_endpoint,
+                       credential=credential, toolchain=toolchain)
+    except BaseException:
+        if not owned_before and (folder / "claude-home.json").is_file():
+            from .claude_auth import cleanup_home
+            cleanup_home(folder, Path(spec.get("native_agent", {}).get("source", folder)), None)
+        raise
+
+
+def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None,
+           local_endpoint: str | None = None, credential: Credential | None = None,
+           toolchain: dict | None = None) -> tuple[list[str], Path, dict, ChildEnvChannel | None]:
     from .tool_artifacts import pi_toolchain
-    tools = pi_toolchain()
+    tools = toolchain or pi_toolchain()
+    from . import claude_auth
+    is_claude = spec["provider"] == "claude-bridge"
+    if is_claude:
+        require(tools.get("bridge_child_env_api") == claude_auth.CHILD_ENV_CONTRACT,
+                "Claude bridge child-env API 행동 검증 증거가 필요합니다")
+        credential = credential or claude_auth.read_token_file()
+    else:
+        require(credential is None, "Claude credentials cannot be used by GPT")
     require(Path(tools["mcp_adapter_extension"]).name == "pi-mcp-adapter"
             and Path(tools["mcp_adapter_extension"]).parent.name == "@buyong", "scoped MCP adapter lock required")
     folder = folder.resolve()
@@ -345,13 +372,21 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         factory = Path(tools["pi_cli"]).parent / "extensions/codemode/index.js"
         extension.write_text(codemode_extension_source(factory))
         args += ["-e", str(extension)]
+    if is_claude:
+        home = claude_auth.create_home(folder)
+        bridge = agent / "private-bridge.mjs"
+        bridge.write_text(claude_auth.bridge_extension_source(Path(tools["bridge_extension"])))
+        # Credentials must be read/closed before other extension/session-start child processes.
+        args[2:2] = ["-e", str(bridge)]
+    else:
+        home = None
     instructions = None
     if relay_settings:
         require(server is not None, "pi MCP requires warm-host attachment")
         require(not (workspace / ".pi/mcp.json").exists(), "project MCP config forbidden")
         adapter_config = agent / "mcp.json"
         server_config = {**{k: server[k] for k in ("command", "args", "env")}, **ADAPTER_SERVER,
-                         "exposure": mode, "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}
+                         "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}
         write_json(adapter_config, {**adapter_settings(relay_settings["arm"]),
                                    "mcpServers": {NAVIGATION_SERVER: server_config}}, exclusive=True)
         product_tools = [navigation_tool_name(name) for name in relay_settings["enabled_tools"]]
@@ -367,7 +402,7 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
             args += ["--append-system-prompt", str(prompt_file)]
     if provider == "claude-bridge":
         from . import claude_settings
-        claude_settings.verify(spec.get("claude_settings"), workspace, home=local_home)
+        claude_settings.verify(spec.get("claude_settings"), workspace, home=home)
         require(spec.get("requested_model") == requested_model(provider, spec["model"]), "Claude requested model condition changed")
         # The bridge reads this file independently of pi's -na project policy.
         require(not (workspace / ".pi/claude-bridge.json").exists(), "project bridge config would override the pinned binary")
@@ -379,7 +414,7 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         meta_extension = agent / "delivery-meta.mjs"
         meta_extension.write_text("export default pi => pi.events.on('tool-meta', request => {\n"
                                   "  if (typeof request?.reply === 'function') request.reply(" + json.dumps(metadata) + ");\n});\n")
-        args += ["-e", str(meta_extension), "-e", tools["bridge_extension"]]
+        args += ["-e", str(meta_extension)]
     if not relay_settings:
         args += ["--no-mcp", "--tools", "bash,codemode" if mode == "codemode" else "bash"] if native else ["--no-mcp", "--no-tools"]
     # A loopback-only test launch must never touch operator credentials.
@@ -389,7 +424,7 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     else:
         token = operator_token(provider) if provider == "openai-codex" else None
     env = environment(agent_dir=agent, tmp=tmp, provider=provider, token=token,
-                      local_endpoint=local_endpoint if provider == "claude-bridge" else None, local_home=local_home)
+                      local_home=home)
     validate_models(agent, provider, local_endpoint=model_endpoint)
     write_json(folder / "pi-policy.json", {"toolchain": tools, "provider": provider, "flags": PRIVATE_FLAGS,
         "requested_model": requested_model(provider, spec["model"]), "measurement_mode": mode,
@@ -402,26 +437,29 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
                                "native_bash": "bridge default (52224)"} if provider == "claude-bridge" else None,
         "mcp_client": ({"extension": "@buyong/pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"],
                         "config_mode": "private PI_CODING_AGENT_DIR/mcp.json, project config rejected",
-                        "settings": adapter_settings(relay_settings["arm"]), "server": {**ADAPTER_SERVER, "exposure": mode,
-                            "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}, "tools": product_tools,
+                        "settings": adapter_settings(relay_settings["arm"]), "server": {**ADAPTER_SERVER, "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}, "tools": product_tools,
                         "resource_tools": resource_tools, "model_api_features": "none in adapter; codemode models:false",
-                        "setting_reasons": {"exposure": "slot measurement mode", "maxOutputBytes": "client >= product cap, including resources",
+                        "setting_reasons": {"exposure": "direct in both modes; pi mode only hides declarations but lists nested tools", "maxOutputBytes": "client >= product cap, including resources",
                                             "timeout": "existing per-RPC 300 seconds; no solver limit", "autoEnableCodemode": "harness selects slot mode"},
                         "server_instructions_sha256": digest(instructions) if instructions else None,
                         "server_instructions": "appended to the system prompt" if instructions and instructions.strip() else "none provided"}
                        if relay_settings else None),
         "claude_settings": spec.get("claude_settings"),
-        "defaults": capabilities()["defaults"],
-        "auth": ("loopback dummy credentials, private Claude HOME" if local_home else
-                 "memory-only bearer env" if token else "Claude Code existing login, real HOME"),
-        "claude_residue": "only exact workspace project slug removed; ~/.claude.json, backups and plugin store may remain"}, exclusive=True)
-    return args, workspace, env
+        "defaults": capabilities(toolchain=tools)["defaults"],
+        "auth": "operator token file -> anonymous pipe -> bridge SDK child env only" if is_claude else "memory-only bearer env",
+        "claude_child_env_api": claude_auth.CHILD_ENV_CONTRACT if is_claude else None,
+        "claude_residue": "entire owned private HOME removed; real HOME is not used" if is_claude else None}, exclusive=True)
+    channel = claude_auth.ChildEnvChannel(credential, local_endpoint=local_endpoint) if is_claude else None
+    if channel:
+        env[claude_auth.CHILD_ENV_FD] = str(channel.read_fd)
+    return args, workspace, env, channel
 
 
-def redact(data: bytes | str, token: str | None) -> bytes | str:
+def redact(data: bytes | str, token: str | tuple[str, ...] | None) -> bytes | str:
     if not token:
         return data
-    variants = {token, json.dumps(token)[1:-1]}
+    values = (token,) if isinstance(token, str) else token
+    variants = {variant for value in values for variant in (value, json.dumps(value)[1:-1]) if variant}
     for value in sorted(variants, key=len, reverse=True):
         data = data.replace(value.encode(), b"[REDACTED]") if isinstance(data, bytes) else data.replace(value, "[REDACTED]")
     return data
@@ -466,6 +504,7 @@ def claude_project_slug(workspace: Path) -> str:
 
 def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | None, *, home: Path | None = None) -> dict:
     # Pi's own session writer is not routed through stdout. Sanitize it after owned children stop.
+    credential_leak = False
     paths = [p for p in folder.iterdir() if p.suffix in {".json", ".jsonl", ".txt", ".log"}]
     scratch = private_root(folder)
     for root in (folder / "pi-session", folder / "pi-agent", scratch / "tmp", scratch / "home"):
@@ -475,9 +514,14 @@ def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | N
             original = path.read_bytes()
             clean = redact(original, token)
             if clean != original:
+                credential_leak |= provider == "claude-bridge"
                 path.write_bytes(clean)
     if provider == "claude-bridge":
-        return cleanup_claude_project(workspace, home=home)
+        from .claude_auth import cleanup_home
+        result = cleanup_home(folder, workspace, token)
+        result["credential_leak_detected"] |= credential_leak
+        result["complete"] = result["complete"] and not credential_leak
+        return result
     return {"complete": True, "removed_project": None, "claude_json_modified_by_harness": False, "claude_persisted_tool_results": None}
 
 

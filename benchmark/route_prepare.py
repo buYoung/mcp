@@ -30,7 +30,7 @@ def execution_spec(state: dict | None = None, *, solver_model: str | None = None
     if spec.get("provider") == "claude-bridge":
         from .claude_settings import snapshot
         workspace = Path(spec["native_agent"]["source"]) if spec.get("native_agent") else settings.CACHE / "0000000000000000" / "work"
-        spec["claude_settings"] = snapshot(workspace)
+        spec["claude_settings"] = snapshot(workspace, home=settings.CACHE / "0000000000000000/login")
     return spec
 
 
@@ -304,7 +304,9 @@ def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
         capabilities()
     if any(s.get("provider") == "claude-bridge" for s in solvers):
         from .claude_settings import snapshot
-        snapshot(settings.CACHE / "0000000000000000" / "work")  # Reject host/project overrides before expensive preparation.
+        from .claude_auth import read_token_file
+        read_token_file()  # Validate in memory only; never record the path/token in preparation evidence.
+        snapshot(settings.CACHE / "0000000000000000/work", home=settings.CACHE / "0000000000000000/login")
     with campaign_lease():
         tool_artifacts.pi_toolchain()
         harness_at_start = settings.harness_identity()

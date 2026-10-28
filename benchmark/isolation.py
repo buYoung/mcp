@@ -138,6 +138,8 @@ def product_profile(ident: str, state: dict, artifact: dict, *, slot_tmp: Path) 
     require(not preparation_network or ident == "serena", "승인되지 않은 제품 준비 network 예외")
     text = _profile_text(reads, writes, port=port, unix_roots=unix, cbm=ident == "codebase-memory-mcp",
                          preparation_network=preparation_network)
+    # Model-facing products cannot read credentials from another process environment via sysctl.
+    text += '(deny process-info* (target others))\n(deny sysctl-read (sysctl-name-prefix "kern.proc"))\n'
     # The profile is harness-owned, outside all product-writable roots.
     directory = source.parent / "isolation"
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -152,7 +154,7 @@ def product_profile(ident: str, state: dict, artifact: dict, *, slot_tmp: Path) 
             "allowed": {"read": sorted({str(p) for p in reads}), "write": sorted({str(p) for p in writes}),
                         "system_read": list(SYSTEM_READ), "unix": [str(p) for p in unix],
                         "cbm_tmp": "/private/tmp/cbm-*" if ident == "codebase-memory-mcp" else None,
-                        "preparation_network": preparation_network}, "port": port}
+                        "preparation_network": preparation_network, "process_info_others": False}, "port": port}
 
 
 def wrap(launch: list[str], profile: dict) -> list[str]:

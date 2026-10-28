@@ -126,6 +126,19 @@ def verify_artifact(artifact: dict, *, full=True) -> None:
                 f"설치 파일 변경: {artifact['id']}")
 
 
+def installed_pi_tools(installation: Path, pins: dict) -> dict:
+    """Paths for a verified npm installation; this does not assert behavior readiness."""
+    node = Path(shutil.which("node") or "").resolve()
+    require(node.is_file(), "pi requires node")
+    modules = installation / "node_modules"
+    return {"node": str(node), "pi_cli": str(modules / "@earendil-works/pi-coding-agent/dist/cli.js"),
+            "bridge_extension": str(modules / "@buyong/pi-claude-bridge/src/index.ts"),
+            "mcp_adapter_extension": str(modules / "@buyong/pi-mcp-adapter"),
+            "claude_code_binary": str(modules / "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"),
+            "versions": {"node": command([str(node), "--version"]).strip(), **pins["versions"]},
+            "lock_sha256": pins["npm_lock_sha256"], "node_sha256": file_digest(node)}
+
+
 def pi_toolchain() -> dict:
     """Benchmark-owned npm install; every reuse verifies the complete pinned package tree."""
     import fcntl
@@ -150,17 +163,16 @@ def pi_toolchain() -> dict:
             require(node.is_file() and npm is not None, "pi install에 node/npm 필요")
             run_logged([npm, *pins["install_flags"]], installation, root / "install.log")
             modules = installation / "node_modules"
-            value = {"node": str(node), "pi_cli": str(modules / "@earendil-works/pi-coding-agent/dist/cli.js"),
-                     "bridge_extension": str(modules / "@buyong/pi-claude-bridge/src/index.ts"),
-                     "mcp_adapter_extension": str(modules / "@buyong/pi-mcp-adapter"),
-                     "claude_code_binary": str(modules / "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"),
-                     "versions": {"node": command([str(node), "--version"]).strip(), **pins["versions"]},
-                     "lock_sha256": pins["npm_lock_sha256"], "node_sha256": file_digest(node)}
+            value = installed_pi_tools(installation, pins)
             require(subprocess.check_output([value["node"], value["pi_cli"], "--version"], text=True,
                     env=clean_environment({"PI_CODING_AGENT_DIR": str(root / "version-agent"),
                                            "PI_SKIP_VERSION_CHECK": "1", "PI_TELEMETRY": "0"})).strip()
                     == pins["versions"]["pi"], "pi 버전 변경")
-            require(command([value["claude_code_binary"], "--version"]).strip() == pins["versions"]["claude_code"] + " (Claude Code)", "Claude binary 버전 변경")
+            import tempfile
+            with tempfile.TemporaryDirectory(dir=settings.CACHE) as private_home:
+                version = subprocess.run([value["claude_code_binary"], "--version"],
+                    env=clean_environment({"HOME": private_home}), cwd=private_home, capture_output=True, text=True, timeout=30)
+                require(version.returncode == 0 and version.stdout.strip() == pins["versions"]["claude_code"] + " (Claude Code)", "Claude binary 버전 변경")
             require(read_json(Path(value["mcp_adapter_extension"]) / "package.json")["version"] == pins["versions"]["mcp_adapter"],
                     "pi-mcp-adapter 버전 변경")
             require(digest(tree_files(modules)) == pins["node_modules_sha256"], "pi 설치 tree hash 불일치")
@@ -177,7 +189,10 @@ def pi_toolchain() -> dict:
                     "mcp_adapter_extension": "@buyong/pi-mcp-adapter",
                     "claude_code_binary": "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"}
         require(all(Path(value[key]) == installation / "node_modules" / path for key, path in expected.items()), "pi artifact 경로 변경")
-        return value
+        from .pi_probe import verify_behavior_proof
+        from .claude_auth import CHILD_ENV_CONTRACT
+        verify_behavior_proof(pins, digest(tree_files(installation / "node_modules")))
+        return {**value, "bridge_child_env_api": CHILD_ENV_CONTRACT, "behavior_probe_sha256": pins["behavior_probe"]["sha256"]}
 
 
 def prepare_one(ident: str, emit=print) -> dict:
@@ -370,7 +385,7 @@ def publish_artifacts() -> dict:
         "pi_toolchain": pi_toolchain(),
         "verification": {"artifact_hashes": "passed", "source_versions": "passed"},
         "limitations": ["No Grafana index or solver/grader inference was created by artifact preparation."]},
-        implementation=["benchmark/tool_artifacts.py", "benchmark/pi_lock.py", "benchmark/resources.py"], dependencies=["01-contract.json"])
+        implementation=["benchmark/tool_artifacts.py", "benchmark/pi_lock.py", "benchmark/pi_probe.py", "benchmark/claude_auth.py", "benchmark/resources.py"], dependencies=["01-contract.json"])
 
 
 def main() -> None:

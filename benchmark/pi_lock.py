@@ -59,6 +59,8 @@ def require_publications() -> dict:
         require(file_digest(routes.TARGETS / name) == pins[key], "pi npm pin 변경")
     require(re.fullmatch(r"[0-9a-f]{64}", pins.get("node_modules_sha256") or "") is not None, "pi installation tree pin missing")
     validate_npm_lock(read_json(routes.TARGETS / "pi-package.json"), read_json(routes.TARGETS / "pi-package-lock.json"), pins)
+    from .pi_probe import verify_behavior_proof
+    verify_behavior_proof(pins)
     return pins
 
 
@@ -113,7 +115,14 @@ def pin_publications(versions: dict, integrities: dict) -> None:
     validate_npm_lock(manifest, read_json(root / "package-lock.json"), pins)
     run_logged([npm, *pins["install_flags"]], root, root / "install.log", env=env)
     pins["node_modules_sha256"] = digest(tree_files(root / "node_modules"))
+    pins["npm_lock_sha256"] = file_digest(root / "package-lock.json")
+    from .tool_artifacts import installed_pi_tools
+    from .pi_probe import run_behavior_probe
+    pins["behavior_probe"] = run_behavior_probe(installed_pi_tools(root, pins), root / "node_modules", root / "behavior-probe")
     pins["status"] = "published"
+    lock["revision_reason"] = ("pi npm 게시물 고정 및 loopback 행동 검증 완료: "
+        + ", ".join(name + "@" + versions[key] for key, name in PUBLISHED_PACKAGES.items())
+        + "; private HOME/child-env API, 결과 메타, codemode 노출을 설치 tree에 결합. 실제 모델 실행 승인은 별도.")
     for source, target in (("package.json", "pi-package.json"), ("package-lock.json", "pi-package-lock.json")):
         shutil.copyfile(root / source, routes.TARGETS / target)
     (routes.TARGETS / "targets.lock.json").write_text(json.dumps(lock, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

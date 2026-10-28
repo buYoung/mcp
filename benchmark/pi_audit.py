@@ -145,12 +145,29 @@ def audit_request(body: dict, inventory: dict) -> list[dict]:
     return errors
 
 
-def declared_tool_names(body: dict) -> set[str]:
+def request_tools(body: dict) -> list[dict]:
     tools = [*body.get("tools", [])]
     for item in body.get("input", []):
         if item.get("type") == "additional_tools":
             tools.extend(item["tools"])
-    return {tool["name"].removeprefix("mcp__custom-tools__") for tool in tools if tool["name"] != "DeferredToolPlaceholder"}
+    return tools
+
+
+def declared_tool_names(body: dict) -> set[str]:
+    return {tool["name"].removeprefix("mcp__custom-tools__") for tool in request_tools(body)
+            if tool["name"] != "DeferredToolPlaceholder"}
+
+
+def audit_codemode_catalog(body: dict, allowed: set[str], *, product: bool) -> dict:
+    tools = [tool for tool in request_tools(body) if tool["name"].removeprefix("mcp__custom-tools__") == "codemode"]
+    text = tools[0].get("description", "") if len(tools) == 1 else ""
+    listed = set(re.findall(r"(?m)^### `([A-Za-z0-9_]+)`", text))
+    omitted = re.findall(r"(?m)^## [^\n]*\((?:some )?tools not listed\)", text)
+    namespace = "## mcp__navigation" in text
+    valid = ("Nested tools:" in text and listed <= allowed and (bool(listed) or namespace)
+             and (listed == allowed or bool(omitted)) and (not product or namespace))
+    return {"passed": valid, "listed_tools": sorted(listed), "inline_count": len(listed),
+            "allowed_count": len(allowed), "omission_markers": omitted, "inline_budget": "pi default (3000)"}
 
 
 def model_error_messages() -> list[str]:
@@ -218,8 +235,8 @@ def audit_session(folder: Path, inventory: dict) -> dict:
 
 class CaptureProvider:
     """One loopback request, a fixed final response; no operator auth or hosted transport."""
-    def __init__(self, node: str, *, port: int = 0):
-        self.requests, self.errors = [], []
+    def __init__(self, node: str, *, port: int = 0, expected_auth: str | None = None):
+        self.requests, self.errors, self.auth_matches = [], [], []
         owner = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
@@ -244,6 +261,11 @@ class CaptureProvider:
                         self.wfile.write(b'{"input_tokens":100}')
                         return
                     require(self.path in {"/codex/responses", "/v1/messages", "/v1/messages?beta=true"}, "unexpected local endpoint")
+                    if expected_auth is not None:
+                        match = self.headers.get("Authorization") == "Bearer " + expected_auth
+                        owner.auth_matches.append(match)
+                        require(match, "local OAuth authentication header mismatch")
+                        require(expected_auth not in json.dumps(body), "credential leaked into request body")
                     owner.requests.append(body)
                     require(len(owner.requests) == 1, "unexpected second request in first-request audit")
                     self.send_response(200)
@@ -288,6 +310,12 @@ class CaptureProvider:
 
 def replay(path: Path) -> None:
     data = read_json(path)
+    keys = ("CLAUDE_CODE_OAUTH_TOKEN", "CODEMAP_BENCH_CLAUDE_TOKEN_FILE", "CODEMAP_BENCH_CLAUDE_CHILD_ENV_FD")
+    canary = {"server": {key: key in os.environ for key in keys}}
+    child = subprocess.run([sys.executable, "-c", "import json,os;print(json.dumps({k:k in os.environ for k in " + repr(keys) + "}))"],
+                           capture_output=True, check=True)
+    canary["child"] = json.loads(child.stdout)
+    write_json(path.with_suffix(".environment.json"), canary)
     for line in sys.stdin:
         request = json.loads(line)
         from .core import append_jsonl
@@ -300,8 +328,10 @@ def replay(path: Path) -> None:
         print(json.dumps({"jsonrpc": "2.0", "id": request["id"], "result": result}), flush=True)
 
 
-def capture(folder: Path, state: dict, spec: dict, prompt: str) -> dict:
-    from . import claude_settings, tool_artifacts
+def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: dict | None = None, port: int = 0,
+            observer: Path | None = None) -> dict:
+    from . import claude_settings, tool_artifacts, claude_auth
+    import secrets
     from .route_transport import READ_TOOL
     folder.mkdir(parents=True, exist_ok=False)
     inventory = read_json(Path(state["native_inventory"]))
@@ -320,36 +350,71 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str) -> dict:
                   "env": {"PYTHONPATH": str(settings.REPOSITORY), "PYTHONDONTWRITEBYTECODE": "1"},
                   "instructions": inventory["initialize"].get("instructions", ""),
                   "capabilities": inventory["initialize"].get("capabilities", {})}
-    provider = CaptureProvider(tool_artifacts.pi_toolchain()["node"])
-    home = pi_client.private_root(folder) / "login" if spec["provider"] == "claude-bridge" else None
+    tools = toolchain or tool_artifacts.pi_toolchain()
+    if spec["provider"] == "claude-bridge" and observer is None:
+        from .pi_probe import tool_list_observer
+        observer = tool_list_observer(tools, folder)
+    credential = claude_auth.Credential("local-" + secrets.token_urlsafe(24)) if spec["provider"] == "claude-bridge" else None
+    provider = CaptureProvider(tools["node"], port=port, expected_auth=credential.token if credential else None)
+    home = claude_auth.home_path(folder) if credential else None
     spec = dict(spec)
     if home:
         workspace = Path(spec["native_agent"]["source"]) if spec.get("native_agent") else pi_client.private_root(folder) / "work"
         spec["claude_settings"] = claude_settings.snapshot(workspace, home=home)
     process = None
-    cwd = env = None
+    cwd = env = channel = None
     try:
-        args, cwd, env = pi_client.launch(folder, spec, relay, server=server, local_endpoint=provider.endpoint, local_home=home)
+        args, cwd, env, channel = pi_client.launch(folder, spec, relay, server=server, local_endpoint=provider.endpoint,
+                                                  credential=credential, toolchain=tools)
+        if observer:
+            args[1:1] = ["--import", str(observer)]
+            env["BENCH_PROBE_TOOL_LIST"] = str(folder / "bridge-tools.jsonl")
         process = subprocess.Popen(args, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, start_new_session=True)
+                                   stderr=subprocess.PIPE, start_new_session=True,
+                                   pass_fds=(channel.read_fd,) if channel else ())
+        if channel:
+            channel.close_parent_read()
         try:
             stdout, stderr = process.communicate(prompt.encode(), timeout=90)
         except subprocess.TimeoutExpired:
             os.killpg(process.pid, signal.SIGKILL)
             process.communicate()
             raise ValueError("local request audit timed out") from None
-        (folder / "events.jsonl").write_bytes(stdout)
-        (folder / "stderr.log").write_bytes(stderr)
+        redactions = credential.redactions if credential else env.get(pi_client.TOKEN_ENV)
+        (folder / "events.jsonl").write_bytes(pi_client.redact(stdout, redactions))
+        (folder / "stderr.log").write_bytes(pi_client.redact(stderr, redactions))
         write_json(folder / "request.json", provider.requests)
         write_json(folder / "command.json", {"args": args, "cwd": str(cwd)})
         require(process.returncode == 0 and len(provider.requests) == 1 and not provider.errors, "local request capture failed")
         body = provider.requests[0]
         violations = audit_request(body, inventory)
+        env_canary = read_json(replay_path.with_suffix(".environment.json")) if relay else None
+        if env_canary and any(value for process in env_canary.values() for value in process.values()):
+            violations.append({"kind": "MCP child credential environment leak"})
         expected = ({"codemode"} if spec.get("measurement_mode") == "codemode" else
                     {pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]} if relay else {"bash"})
         if relay and spec.get("measurement_mode") != "codemode" and "resources" in inventory["initialize"].get("capabilities", {}):
             expected.update(pi_client.RESOURCE_TOOLS)
         declared = declared_tool_names(body)
+        descriptions = None
+        full_body = body
+        if credential:
+            from .pi_probe import bridge_tools, description_delivery
+            full_tools = bridge_tools(folder)
+            descriptions = description_delivery(body, full_tools)
+            violations += descriptions["violations"]
+            full_body = {"tools": list(full_tools.values())}
+        nested = None
+        if spec.get("measurement_mode") == "codemode":
+            allowed = {pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]} if relay else {"bash"}
+            if relay and "resources" in inventory["initialize"].get("capabilities", {}):
+                allowed.update(pi_client.RESOURCE_TOOLS)
+            nested = audit_codemode_catalog(full_body, allowed, product=bool(relay))
+            delivered = audit_codemode_catalog(body, allowed, product=bool(relay))
+            nested["delivered_complete_headers"] = delivered["inline_count"]
+            nested["delivered_tools"] = delivered["listed_tools"]
+            if not nested["passed"]:
+                violations.append({"kind": "codemode_nested_catalog", **nested})
         instructions = inventory.get("initialize", {}).get("instructions", "")
         system = body.get("instructions", body.get("system", ""))
         if instructions.strip() and not any(instructions in text for _, text in strings(system)):
@@ -369,19 +434,25 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str) -> dict:
                   "replayed_tools_sha256": digest(selected) if relay else None,
                   "request": str(folder / "request.json"), "request_sha256": file_digest(folder / "request.json"),
                   "command": str(folder / "command.json"), "command_sha256": file_digest(folder / "command.json"),
-                  "session_audit": session, "declared_tools": sorted(declared), "hosted_model_requests": 0}
+                  "session_audit": session, "declared_tools": sorted(declared), "nested_catalog": nested,
+                  "description_delivery": descriptions,
+                  "oauth_header_matches": provider.auth_matches if credential else None, "mcp_environment_canary": env_canary, "hosted_model_requests": 0}
         write_json(folder / "audit.json", result)
         return result
     finally:
         provider.close()
+        if channel:
+            channel.close()
         if process is not None:
             from .runner import cleanup_solver
             cleanup = cleanup_solver(process, lambda: None)
             write_json(folder / "capture-cleanup.json", cleanup)
             require(cleanup["complete"], "local capture process cleanup incomplete")
         if cwd is not None:
-            cleanup = pi_client.cleanup_private(folder, cwd, spec["provider"], env.get(pi_client.TOKEN_ENV), home=home)
+            cleanup = pi_client.cleanup_private(folder, cwd, spec["provider"],
+                credential.redactions if credential else env.get(pi_client.TOKEN_ENV), home=home)
             write_json(folder / "private-cleanup.json", cleanup)
+            require(cleanup["complete"], "private credential/HOME cleanup validation failed")
 
 
 def prepare_audit(states: dict, specs: dict, root: Path) -> dict:

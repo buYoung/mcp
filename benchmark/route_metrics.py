@@ -368,7 +368,7 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
     from .runner import read_jsonl_prefix
     events, collection = read_jsonl_prefix(folder / "events.jsonl")
     per_turn, model_calls = [], []
-    guard = script_truncations = direct_calls = 0
+    guard = nested_guard = script_truncations = direct_calls = 0
     bash_content_truncations = bash_nested_structured_truncations = 0
     policy = read_json(folder / "pi-policy.json") if (folder / "pi-policy.json").exists() else {}
     for event in events:
@@ -384,8 +384,10 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
         elif event.get("type") == "tool_execution_end":
             result = event.get("result", {})
             name = event.get("toolName", "")
-            guard += (name.startswith("mcp__navigation__") or name in RESOURCE_TOOLS) and any(
+            adapter_truncated = (name.startswith("mcp__navigation__") or name in RESOURCE_TOOLS) and any(
                 block.get("text", "").startswith("Warning: truncated output (") for block in result.get("content", []))
+            guard += adapter_truncated and not event.get("parentToolCallId")
+            nested_guard += adapter_truncated and bool(event.get("parentToolCallId"))
             if event.get("toolName") == "codemode":
                 script_truncations += any(block.get("text", "").startswith("Warning: truncated output (")
                                           for block in result.get("content", []))
@@ -428,6 +430,7 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
             "tool_seconds_missing_calls": len(dispatched) - len(tool_durations),
             "timing_basis": "assistant message_end.durationMs sum; dispatched relay/wrapper durations sum (parallel intervals overlap)",
             "adapter_output_guard_truncated": guard if events else None,
+            "adapter_nested_content_truncated": nested_guard if events else None,
             "codemode_output_truncated": script_truncations if events else None,
             "bash_content_truncated": bash_content_truncations if events else None,
             "bash_nested_structured_content_truncated": bash_nested_structured_truncations if events else None,
@@ -605,7 +608,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
         observed = row.get("observations") or {}
         lines.append("| " + " | ".join(cell(v) for v in (row["id"], *[observed.get(key) for key in (
             "turns", "tool_calls_per_turn", "model_seconds", "tool_seconds", "observed_tool_seconds", "tool_seconds_missing_calls",
-            "direct_calls_outside_script", "cancelled_before_admission", "adapter_output_guard_truncated", "codemode_output_truncated",
+            "direct_calls_outside_script", "cancelled_before_admission", "adapter_output_guard_truncated", "adapter_nested_content_truncated", "codemode_output_truncated",
             "bash_content_truncated", "bash_nested_structured_content_truncated", "include_seen_true_calls")],
             row.get("claude_persisted_tool_results"))) + " |")
     lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",

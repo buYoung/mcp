@@ -238,7 +238,7 @@ class BenchChecks(unittest.TestCase):
                   {"type": "message_end", "message": {"role": "assistant", "durationMs": 250}},
                   {"type": "tool_execution_start", "toolName": "codemode", "toolCallId": "script"},
                   {"type": "tool_execution_start", "toolName": "mcp__navigation__read", "toolCallId": "script/1", "parentToolCallId": "script"},
-                  {"type": "tool_execution_end", "toolName": "mcp__navigation__read", "toolCallId": "script/1", "result": {"details": {"server": "navigation", "fullOutputPath": "/tmp/local-output.txt"}, "content": [{"type": "text", "text": "Warning: truncated output (original token count: 40000)"}]}},
+                  {"type": "tool_execution_end", "toolName": "mcp__navigation__read", "toolCallId": "script/1", "parentToolCallId": "script", "result": {"details": {"server": "navigation", "fullOutputPath": "/tmp/local-output.txt"}, "content": [{"type": "text", "text": "Warning: truncated output (original token count: 40000)"}]}},
                   {"type": "tool_execution_end", "toolName": "codemode", "toolCallId": "script", "result": {"content": [{"text": "Warning: truncated output (original token count: 20000)"}]}},
                   {"type": "turn_end"}, {"type": "agent_settled"}]
         events.insert(4, {"type": "tool_execution_start", "toolName": "mcp__navigation__read", "toolCallId": "outside"})
@@ -251,7 +251,8 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual(observed["tool_calls_per_turn"], [2])
         self.assertEqual(observed["model_tool_calls_per_turn"], [2])
         self.assertEqual(observed["direct_calls_outside_script"], 1)
-        for key in ("adapter_output_guard_truncated", "codemode_output_truncated", "include_seen_true_calls"):
+        self.assertEqual(observed["adapter_output_guard_truncated"], 0)
+        for key in ("adapter_nested_content_truncated", "codemode_output_truncated", "include_seen_true_calls"):
             self.assertEqual(observed[key], 1)
 
     def test_pi_observations_separate_bash_content_and_nested_structured_truncation(self):
@@ -356,11 +357,14 @@ class BenchChecks(unittest.TestCase):
                 (cwd / "node_modules/installed.txt").write_text("fixture")
         with patch.object(settings, "CACHE", self.root / "neutral"), patch.object(routes, "TARGETS", targets), \
                 patch.object(routes, "DATA", data), patch.object(routes, "__file__", str(contract)), \
-                patch.object(tool_artifacts, "run_logged", side_effect=npm):
+                patch.object(tool_artifacts, "run_logged", side_effect=npm), \
+                patch("benchmark.pi_probe.run_behavior_probe", return_value={"path": "fixture", "sha256": "a" * 64}) as probe:
             pi_lock.pin_publications({"mcp_adapter": "0.1.0", "bridge": "0.13.2"},
                                      {"mcp_adapter": integrity, "bridge": integrity})
         pins = read_json(targets / "targets.lock.json")["pi_toolchain"]
         self.assertEqual(pins["status"], "published")
+        probe.assert_called_once()
+        self.assertIn("행동 검증 완료", read_json(targets / "targets.lock.json")["revision_reason"])
         self.assertEqual(pins["package_sha256"], file_digest(targets / "pi-package.json"))
         self.assertEqual(pins["npm_lock_sha256"], file_digest(targets / "pi-package-lock.json"))
         self.assertEqual(len(pins["node_modules_sha256"]), 64)
@@ -371,6 +375,38 @@ class BenchChecks(unittest.TestCase):
         for line in (targets / "SHA256SUMS").read_text().splitlines():
             checksum, name = line.split()
             self.assertEqual(checksum, file_digest(targets / name))
+
+    def test_pi_probe_requires_exact_claude_description_prefix(self):
+        from .pi_probe import description_delivery, NATIVE_DESCRIPTION_MARKER
+        full = {name: {"description": "Original tool description with multiple lines.\nSecond line."}
+                for name in ("codemode", "bash", "read_mcp_resource", "mcp__navigation__read")}
+        for name, tool in full.items():
+            body = {"tools": [{"name": "mcp__custom-tools__" + name, "description": tool["description"]}]}
+            self.assertTrue(description_delivery(body, full)["passed"])
+            body["tools"][0]["description"] = tool["description"][:18] + NATIVE_DESCRIPTION_MARKER
+            self.assertTrue(description_delivery(body, full)["passed"])
+            body["tools"][0]["description"] = "Changed prefix" + NATIVE_DESCRIPTION_MARKER
+            self.assertFalse(description_delivery(body, full)["passed"])
+            body["tools"][0]["description"] = tool["description"][:18] + "[other marker]"
+            self.assertFalse(description_delivery(body, full)["passed"])
+
+    def test_pi_behavior_gate_rejects_test_double_and_drift(self):
+        from .pi_probe import verify_behavior_proof, PROBE_SCHEMA
+        from .core import file_digest
+        path = self.root / "behavior.json"
+        value = {"schema": PROBE_SCHEMA, "passed": True, "test_double": True, "node_modules_sha256": "a" * 64}
+        write_json(path, value)
+        pins = {"node_modules_sha256": "a" * 64, "behavior_probe": {"path": str(path), "sha256": file_digest(path), "node_modules_sha256": "a" * 64}}
+        with self.assertRaisesRegex(ContractError, "대역"):
+            verify_behavior_proof(pins)
+        value["test_double"] = False
+        write_json(path, value)
+        pins["behavior_probe"]["sha256"] = file_digest(path)
+        with self.assertRaisesRegex(ContractError, "tree"):
+            verify_behavior_proof(pins, "b" * 64)
+        path.write_text("changed")
+        with self.assertRaises(ContractError):
+            verify_behavior_proof(pins)
 
     def test_pi_client_metadata_preserves_native_and_supplements_only_missing_key(self):
         from .client_delivery import client_tool_metadata, CLAUDE_RESULT_META
@@ -383,14 +419,14 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual(client_tool_metadata({"name": "search"})["_meta"], {CLAUDE_RESULT_META: 500000})
 
     def test_pi_launch_uses_scoped_adapter_resources_and_codemode_metadata(self):
-        from . import pi_client, tool_artifacts, claude_settings
+        from . import pi_client, tool_artifacts, claude_settings, claude_auth
         from .core import read_json
         modules = self.root / "node_modules"
         tools = {"node": "node", "pi_cli": str(modules / "@earendil-works/pi-coding-agent/dist/cli.js"),
                  "mcp_adapter_extension": str(modules / "@buyong/pi-mcp-adapter"),
                  "bridge_extension": str(modules / "@buyong/pi-claude-bridge/src/index.ts"),
                  "claude_code_binary": str(modules / "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"),
-                 "versions": {"mcp_adapter": "0.1.0", "bridge": "fixture"}}
+                 "versions": {"mcp_adapter": "0.1.0", "bridge": "fixture"}, "bridge_child_env_api": claude_auth.CHILD_ENV_CONTRACT}
         relay = {"arm": "graphify", "enabled_tools": ["graph_stats"]}
         server = {"command": "python3", "args": [], "env": {}, "instructions": "Native instructions.\nSecond line.",
                   "capabilities": {"resources": {}}}
@@ -403,12 +439,15 @@ class BenchChecks(unittest.TestCase):
                 folder.mkdir()
                 spec = settings.execution_settings("claude-opus-5-5")
                 spec["measurement_mode"] = mode
-                argv, cwd, env = pi_client.launch(folder, spec, relay, server=server,
-                    local_endpoint="http://127.0.0.1:20850", local_home=self.root / "login")
+                argv, cwd, env, channel = pi_client.launch(folder, spec, relay, server=server,
+                    local_endpoint="http://127.0.0.1:20850", credential=claude_auth.Credential("fake-oauth-only"))
+                channel.close()
+                self.assertNotIn("fake-oauth-only", json.dumps(env))
+                self.assertNotIn("CLAUDE_CODE_OAUTH_TOKEN", env)
                 config = read_json(folder / "pi-agent/mcp.json")
                 self.assertEqual(config["maxOutputBytes"], 1048576)
                 self.assertEqual(config["mcpServers"]["navigation"]["maxOutputBytes"], 1048576)
-                self.assertEqual(config["mcpServers"]["navigation"]["exposure"], mode)
+                self.assertEqual(config["mcpServers"]["navigation"]["exposure"], "direct")
                 self.assertFalse(config["autoEnableCodemode"])
                 self.assertNotIn("--mcp-config", argv)
                 self.assertNotIn("MCP_DIRECT_TOOLS", env)
@@ -864,8 +903,11 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
 
     def test_cleanup_private_counts_only_bound_claude_result_metadata(self):
         from . import pi_client
-        folder, workspace, home = self.root / "slot", self.root / "source", self.root / "local-home"
-        folder.mkdir(); workspace.mkdir()
+        from . import claude_auth
+        folder, workspace, home = self.root / "slot", self.root / "source", self.root / "private/login"
+        folder.mkdir(); workspace.mkdir(); home.parent.mkdir()
+        with patch.object(pi_client, "private_root", return_value=home.parent):
+            claude_auth.create_home(folder)
         project = home / ".claude/projects" / pi_client.claude_project_slug(workspace)
         project.mkdir(parents=True)
         (project / "session.jsonl").write_text(json.dumps({"cwd": str(workspace.resolve())}) + "\n")
@@ -883,8 +925,8 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
              patch.object(Path, "read_bytes", guarded(original_bytes)), patch.object(Path, "read_text", guarded(original_text)):
             result = pi_client.cleanup_private(folder, workspace, "claude-bridge", None, home=home)
         self.assertEqual(result["claude_persisted_tool_results"], {"count": 1, "bytes": 85592})
-        self.assertEqual(result["removed_project"], str(project))
-        self.assertFalse(project.exists())
+        self.assertTrue(result["private_home_removed"])
+        self.assertFalse(home.exists())
 
 
 

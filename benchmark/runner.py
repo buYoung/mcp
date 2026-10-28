@@ -315,9 +315,12 @@ def execute_model(folder: Path, prompt: str, relay_settings: dict | None = None,
         expected_backend = selected["backend"] if backend == "pi" else ("claude_code" if spec["model"].startswith("claude-") else "codex")
         require(spec["reasoning_effort"] == selected["reasoning_effort"] and backend == expected_backend
                 and (backend != "pi" or spec.get("provider") == selected["provider"]), "풀이 모델과 실행기 계약 불일치")
-    return _execute_agent(folder, prompt, relay_settings, grading, output_schema, usage_drain_seconds,
-                          settings=spec, cancel_event=cancel_event, codex_version=codex_version,
-                          backend=backend, agent_version=None if grading else agent_version, prepared_session=prepared_session)
+    from contextlib import ExitStack
+    with ExitStack() as launch_resources:
+        return _execute_agent(folder, prompt, relay_settings, grading, output_schema, usage_drain_seconds,
+                              settings=spec, cancel_event=cancel_event, codex_version=codex_version,
+                              backend=backend, agent_version=None if grading else agent_version,
+                              prepared_session=prepared_session, launch_resources=launch_resources)
 
 
 def navigation_server(folder: Path, relay_settings: dict, prepared_session=None) -> dict:
@@ -358,7 +361,7 @@ def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: flo
 
 def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
                    usage_drain_seconds: float = 0, *, settings: dict | None = None, cancel_event=None,
-                   codex_version: str | None = None, backend="codex", agent_version: str | None = None, prepared_session=None) -> dict:
+                   codex_version: str | None = None, backend="codex", agent_version: str | None = None, prepared_session=None, launch_resources=None) -> dict:
     from . import claude_client, pi_client
     client = pi_client if backend == "pi" else claude_client
     spec = settings or default_settings()
@@ -392,9 +395,18 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         require(not grading and not output_schema, "Claude Code legacy 풀이에는 채점/구조화 출력을 연결하지 않습니다")
         agent_version = agent_version or command(["claude", "--version"]).strip()
         args, workspace, env = claude_client.launch(folder, spec, relay_settings, server=server)
+    channel = None
     if backend == "pi":
         require(not grading and not output_schema, "pi 채점은 전용 grader executor를 사용하세요")
-        args, workspace, env = pi_client.launch(folder, spec, relay_settings, server=server)
+        args, workspace, env, channel = pi_client.launch(folder, spec, relay_settings, server=server)
+        if channel:
+            require(launch_resources is not None, "Claude launch resource owner missing")
+            launch_resources.callback(channel.close)
+            def cleanup_unfinished_home():
+                from .claude_auth import cleanup_home
+                if Path(env["HOME"]).exists():
+                    cleanup_home(folder, workspace, channel.credential.redactions)
+            launch_resources.callback(cleanup_unfinished_home)
         agent_version = pi_client.capabilities()["version"]
     if relay_settings and backend == "codex":
         # JSON object syntax is not TOML table syntax; encode this table explicitly.
@@ -431,7 +443,8 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
     events = pi_state.events if pi_state else []
     event_observations = []
     stderr_eof = backend != "pi"
-    token = env.get(pi_client.TOKEN_ENV) if backend == "pi" else None
+    token = channel.credential.redactions if channel else env.get(pi_client.TOKEN_ENV) if backend == "pi" else None
+    claude_settings_check = None
     model_exited_monotonic = None
     answer_finished_monotonic = None
     event_parse_failed = False
@@ -515,7 +528,10 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
             if prepared_session is not None:
                 prepared_session.open_solver_gate(start)
             process = subprocess.Popen(args, cwd=workspace, env=env, stdin=subprocess.PIPE,
-                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE if backend == "pi" else error_file, start_new_session=True)
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE if backend == "pi" else error_file, start_new_session=True,
+                                       pass_fds=(channel.read_fd,) if channel else ())
+            if channel:
+                channel.close_parent_read()
             stop = ExecutionStop(folder, process, start, usage_drain_seconds,
                                  started_unix_seconds=started_unix_seconds, wall_deadline=wall_deadline)
             stop.backend = backend
@@ -598,22 +614,22 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                     event_file.write(pi_client.redact(bytes(buffer), token))
                 event_file.flush()
                 error_file.flush()
+                if spec["provider"] == "claude-bridge":
+                    from .claude_settings import verify
+                    try:
+                        verify(spec.get("claude_settings"), workspace, home=Path(env["HOME"]))
+                        claude_settings_check = {"verified": True}
+                    except (OSError, ValueError) as exc:
+                        claude_settings_check = {"verified": False, "error": pi_client.redact(str(exc), token)}
                 try:
                     residue = pi_client.cleanup_private(folder, workspace, spec["provider"], token, home=Path(env["HOME"]))
                 except (ValueError, OSError) as exc:
                     residue = {"complete": False, "error": pi_client.redact(str(exc), token)}
                     solver_cleanup["complete"] = False
                 solver_cleanup["pi_private_cleanup"] = residue
+                solver_cleanup["complete"] = solver_cleanup["complete"] and residue["complete"]
             if home:
                 (home / "auth.json").unlink(missing_ok=True)
-    claude_settings_check = None
-    if backend == "pi" and spec["provider"] == "claude-bridge":
-        from .claude_settings import verify
-        try:
-            verify(spec.get("claude_settings"), workspace, home=Path(env["HOME"]))
-            claude_settings_check = {"verified": True}
-        except (OSError, ValueError) as exc:
-            claude_settings_check = {"verified": False, "error": pi_client.redact(str(exc), token)}
     elapsed = time.monotonic() - start
     termination = stop.cutoff["reason"] if stop and stop.cutoff else None
     rollout_path = find_rollout(home, thread_id) if home else None
