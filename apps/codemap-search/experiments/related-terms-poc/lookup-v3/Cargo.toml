@@ -17,7 +17,7 @@ codemap-search = { path = "../../.." }
 # and links the same bundled SQLite as the product. Tantivy's default `stemmer` feature
 # provides the Snowball English stemmer used for `word_stems`.
 tantivy = "=0.27.0"
-rusqlite = { version = "=0.40.2", features = ["bundled"] }
+rusqlite = { version = "=0.41.1", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "=1.0.154"
 sha2 = "=0.11.1"
