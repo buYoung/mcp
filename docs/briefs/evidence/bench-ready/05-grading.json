@@ -3,9 +3,9 @@
   "calibration_runs": 0,
   "calibration_status": "not_executed",
   "citation_policy": "Parser and source-access labels are advisory; supported is the LLM's judgment of the original answer and fixed source.",
-  "contract_hash": "3c13eb783e86ad4074aea4f87721a9630a72f63375b1bc1f268af9de1d36e55a",
+  "contract_hash": "177580c2a4518257689719486ec0d8b0cfc06a233abcc874f0eff39625da7bb8",
   "dependency_hashes": {
-    "01-contract.json": "ba82a14a536e1261286a054d44fe8fbd9e4dfada180f71ed602d68be2e6837a2"
+    "01-contract.json": "7919b14658f91f1acc21692850b63e386956d0d13619d674bbb397ee8cd517f1"
   },
   "fact_counts": {
     "core": 12,
@@ -21,21 +21,19 @@
     "benchmark/route_grading.py": "2f6ba4c9d8354c26723928d01a7c8e0edbb13c74c2d32fde301e442b5f8ed20d"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "ec8904ed0026be882668c76fe364b2051626cc07847e8bea034b8cedddfdb27e",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "7a306eb35533ca3b1fd048071949ef0221e80aa2ea93cb445e85450e32f15dff",
-    "benchmark/data/grafana-comparison-targets-v1/cli-package-lock.json": "cf7ef941e0fb2367f72458fde9a3d37b990eb9b32c4427506fe9dfa382876022",
-    "benchmark/data/grafana-comparison-targets-v1/cli-package.json": "519444dde90d2b3f115b46aeda9c939b1f2a8f9d24974101288c84d44cfb1b5f",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "d8d7093d4861ebc56d30e21f602301cbed75462b53409af3399a9ac7dc205966",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "a8b7218a09e898f08a89f2a220750d24ae0bc69908134bfc7174a35b93151c6f",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "03c36da8f9ad0018e9ef82ce79a74a899f180e9bb50b0e3eb1e9e5ca00957b59",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1b72008fa9a46b091607e4be84f35cfae29c5447e013ade7cb809538bedc4f42",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
-    "benchmark/data/grafana-routes-v4/README.md": "b7c385ae0cb4d51ed5cae4c8eb4d4c8684cf6cce7cc015085ce586df21c4040f",
-    "benchmark/data/grafana-routes-v4/SHA256SUMS": "8dce9a29307bd232384310ebc38a8cf585860dd462e682940ae2bec037700a66",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "3efdb0d381e24a4e58f94b1bc189998d570a86e51558a977a9c24a943299e87d",
+    "benchmark/data/grafana-routes-v4/README.md": "12f388531c80e2c89e914153502d1ded76fb8c7b0036de29980fb97c37a39068",
+    "benchmark/data/grafana-routes-v4/SHA256SUMS": "2bdb3721fc90f5d75d72eb9425997ee7923cf8cc3c8cbdb71c6f7c7f65882ffb",
     "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
     "benchmark/data/grafana-routes-v4/evidence.json": "ba67c4c0e10377c575d0dc90ad833a63e02cb09ecec09c6af9d4d2c4b6081dcb",
     "benchmark/data/grafana-routes-v4/grading.json": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
-    "benchmark/data/grafana-routes-v4/manifest.json": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
+    "benchmark/data/grafana-routes-v4/manifest.json": "b292a2a3979c063d65d6df2c4ba86fef420604f0f617104d6d80399257fef8bf",
     "benchmark/data/grafana-routes-v4/questions.json": "58539e12d3f8dfa97567e7b427c66ee77a3ec6773261bad8a92c68607ded0408"
   },
   "judgment_schema": {
@@ -64,7 +62,7 @@
       "sha256": "e873b3aceb4388f7b2ff8c6115f855ff7043e5425f96660b069d3c889d9a875e"
     }
   },
-  "recorded_at": "2026-10-27T14:22:21.093657+00:00",
+  "recorded_at": "2026-10-28T18:08:10.973543+00:00",
   "rubric_hash": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
   "schema_version": 1,
   "status": "verified_offline",

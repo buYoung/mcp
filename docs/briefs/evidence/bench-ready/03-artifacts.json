@@ -155,11 +155,11 @@
       }
     },
     "codemap-search": {
-      "actual_version": "0.14.0",
+      "actual_version": "0.14.2",
       "backend": "native_rust",
       "build": {
-        "binary": "/Volumes/Samsung_990_PRO/wsv4/products/cc2cad796e3c79be520e0dba6d2d2cd13fe9784f358d50894b71aa5e37197d2e/target/aarch64-apple-darwin/release/codemap-search",
-        "binary_sha256": "22d5d715c95aa35a8f86e1f428f93492aa65fdaa8fede7c1a4ab7e2b4bcc8ae8",
+        "binary": "/Volumes/Samsung_990_PRO/wsv4/products/620af1e859392bbd6e423a4d381084d574111226f236b3bad989e2afdab1ee8f/target/aarch64-apple-darwin/release/codemap-search",
+        "binary_sha256": "fe380e850a012d4228a106c3c94f0ad577d864543f3141eec1bc02c97a62c954",
         "command": [
           "cargo",
           "build",
@@ -168,14 +168,14 @@
           "--target",
           "aarch64-apple-darwin",
           "--manifest-path",
-          "/Volumes/Samsung_990_PRO/wsv4/products/cc2cad796e3c79be520e0dba6d2d2cd13fe9784f358d50894b71aa5e37197d2e/source/Cargo.toml",
+          "/Volumes/Samsung_990_PRO/wsv4/products/620af1e859392bbd6e423a4d381084d574111226f236b3bad989e2afdab1ee8f/source/Cargo.toml",
           "--target-dir",
-          "/Volumes/Samsung_990_PRO/wsv4/products/cc2cad796e3c79be520e0dba6d2d2cd13fe9784f358d50894b71aa5e37197d2e/target"
+          "/Volumes/Samsung_990_PRO/wsv4/products/620af1e859392bbd6e423a4d381084d574111226f236b3bad989e2afdab1ee8f/target"
         ],
-        "elapsed_seconds": 68.76710045803338,
+        "elapsed_seconds": 91.83668762492016,
         "exit_code": 0,
         "identity": {
-          "commit": "fc0a368d0b37da44c5e2bc9df3617ef75b4891cb",
+          "commit": "9b29f397edb7a43f8f2ff0982492a09f7f50d4e5",
           "dirty": false,
           "files": {
             ".dockerignore": {
@@ -188,19 +188,19 @@
             },
             "CHANGELOG.ko.md": {
               "mode": 420,
-              "sha256": "ed20a88f3d5dabe9e3ec3260170864d156de0545229f345d2a21c540745f3acf"
+              "sha256": "952ff8f572d6192881ca88efa7e2bb9e0dae4658f470b769b775559d723734ab"
             },
             "CHANGELOG.md": {
               "mode": 420,
-              "sha256": "cdc3b741f4fd4ab080c791169e6fb482e0ebc6bbe205ae4ed2e4503a074e45ba"
+              "sha256": "060387f250869b2298badfbb50c225f3e2ca17332624da36be568e15ffc0a58f"
             },
             "Cargo.lock": {
               "mode": 420,
-              "sha256": "cab8f4587c02ce50e0f9bbb3d6f4a422052bced9d9cb4fd45182cc500d81a1bd"
+              "sha256": "2fb2cdb442b08f4e1810cf856a9e44beaea8e560a27c16418fd762a0057cbda7"
             },
             "Cargo.toml": {
               "mode": 420,
-              "sha256": "4fa297526d83cae78b52605803b890ad17ea5cc7da6ad3abd5c257f0dd4af195"
+              "sha256": "a48a410cd7bac626386c31093e66e1e1c7a5ee678872bff677417428f0adb084"
             },
             "LICENSE": {
               "mode": 420,
@@ -208,11 +208,11 @@
             },
             "README.ko.md": {
               "mode": 420,
-              "sha256": "5c2fc4c4ded74a77d1655a694c0bd0d320b85c94e41607dcadbd6223739b021e"
+              "sha256": "255fb2ba5d6ff70803f1ffbbfa95fec5667594051c60063b0eff75541bf08878"
             },
             "README.md": {
               "mode": 420,
-              "sha256": "cbbfa068e2894731da7455d564c1a2abe09d5566127a1f5bee2930c7eb0d963e"
+              "sha256": "6f6d3befb69d3336fc7bf921f75bbcc39e33dc042211face535172377302cf80"
             },
             "build.rs": {
               "mode": 420,
@@ -272,11 +272,11 @@
             },
             "docs/configuration.ko.md": {
               "mode": 420,
-              "sha256": "a8935862b70d2fb6aff4464d1c824bad36ba49511948bc0b93e5bc62d05fd170"
+              "sha256": "7513612ff1a5c712ead25a226a91823d382b2e57fbe6c7f6d977a820b3560cee"
             },
             "docs/configuration.md": {
               "mode": 420,
-              "sha256": "e1bf7c84dc80c1e825e6f836ecb468948d891b77f3296ea41410a83247da46a5"
+              "sha256": "3b8d78c6bc992783bacf558b8dedc5fb1c0c0461b66f7d7ba6cff8bb40754fcf"
             },
             "docs/development-language-commands.ko.md": {
               "mode": 420,
@@ -368,7 +368,7 @@
             },
             "docs/prompt-regression-runbook.ko.md": {
               "mode": 420,
-              "sha256": "a51a0c819d1f41613d0c351b5fee5e02abf9bbd523df1a37d3df26bb3c9b742c"
+              "sha256": "4fab2b126d9a5776df8d4df0eaee6713a6d7b17626a3944185dd4caa561fb86f"
             },
             "docs/public-repository-validation.ko.md": {
               "mode": 420,
@@ -9524,7 +9524,7 @@
             },
             "src/config/output.rs": {
               "mode": 420,
-              "sha256": "4284ddc035ffda2968b2085894e5e63b0d229de723405a49a9ac0a9b430f559f"
+              "sha256": "0581d6f52791779008221c9d7bf924cdfaa4e1fbf7a3bda1c98333cc10b1a52d"
             },
             "src/config/redact.rs": {
               "mode": 420,
@@ -9544,11 +9544,11 @@
             },
             "src/config_template.ko.toml": {
               "mode": 420,
-              "sha256": "b16e0fcfb02354382748b27915e761a257758aa1462cda51bde6fa156e948d96"
+              "sha256": "4d2a68c9616c4dc0c4cf76383c4708e33f5890c1d1e14dc705c2fc2577716ad0"
             },
             "src/config_template.toml": {
               "mode": 420,
-              "sha256": "c41cbfe008c00b5b6c7b35a2f838194a452562d3e83fdc810c11ac7e9977f108"
+              "sha256": "cb00b624b370086de5f2e885fa1b7a6efebac8ad7a457ab7ce2f207b9f9fa8e5"
             },
             "src/declarations.rs": {
               "mode": 420,
@@ -10364,7 +10364,7 @@
             },
             "src/tools/instructions/server.ko.md": {
               "mode": 420,
-              "sha256": "48c61ecdbd574d780a7045deafe7d57891ca6d9dccdda650edf75f851dc1de42"
+              "sha256": "ff0460fb0cf1b50c6d22f8b6fcb4fcdd13cd6268153a335817e000f3708f16db"
             },
             "src/tools/instructions/server.linux.md": {
               "mode": 420,
@@ -10376,7 +10376,7 @@
             },
             "src/tools/instructions/server.md": {
               "mode": 420,
-              "sha256": "71c08d2d0b13f80f4132f59aa4dfe114449ee1398a478eb476e34f7b096d8d78"
+              "sha256": "727abaa3dfd31b628d2740cb64982019f823465eb60a204d6a7e06af1f2d6e2e"
             },
             "src/tools/instructions/server.windows.md": {
               "mode": 420,
@@ -10524,7 +10524,7 @@
             },
             "src/tools/mod.rs": {
               "mode": 420,
-              "sha256": "f45310c898f55224d029c1389cd19b1e8a78024ec2fbd7128ea742ecaf76bdc3"
+              "sha256": "8c4f7fc82c2faeac2271fc627a7d7ac4b3e749eaf2ec59ff914cf77c0d0afb07"
             },
             "src/tools/overview.rs": {
               "mode": 420,
@@ -12335,35 +12335,35 @@
               "sha256": "91cfc6377a9ba02e4178260fad878b986f41d8f33a88427b0a7dfc1a3fb6a68f"
             }
           },
-          "git_ref": "codemap-v0.14.0",
+          "git_ref": "codemap-v0.14.2",
           "kind": "git",
-          "source_sha256": "5e57720180a864931866d2611bfe0ee71e93d429e8406e8fdf94161ed23f1d7f",
-          "version": "0.14.0"
+          "source_sha256": "b473ecd7dd506a297e040fb46919216ffb10fa8cece494cfd51b7a8d40723d0e",
+          "version": "0.14.2"
         },
         "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1",
-        "source_snapshot": "/Volumes/Samsung_990_PRO/wsv4/products/cc2cad796e3c79be520e0dba6d2d2cd13fe9784f358d50894b71aa5e37197d2e/source"
+        "source_snapshot": "/Volumes/Samsung_990_PRO/wsv4/products/620af1e859392bbd6e423a4d381084d574111226f236b3bad989e2afdab1ee8f/source"
       },
       "dependencies": {
-        "Cargo.lock": "cab8f4587c02ce50e0f9bbb3d6f4a422052bced9d9cb4fd45182cc500d81a1bd"
+        "Cargo.lock": "2fb2cdb442b08f4e1810cf856a9e44beaea8e560a27c16418fd762a0057cbda7"
       },
       "executables": [
         {
-          "path": "/Volumes/Samsung_990_PRO/wsv4/products/cc2cad796e3c79be520e0dba6d2d2cd13fe9784f358d50894b71aa5e37197d2e/target/aarch64-apple-darwin/release/codemap-search",
-          "sha256": "22d5d715c95aa35a8f86e1f428f93492aa65fdaa8fede7c1a4ab7e2b4bcc8ae8"
+          "path": "/Volumes/Samsung_990_PRO/wsv4/products/620af1e859392bbd6e423a4d381084d574111226f236b3bad989e2afdab1ee8f/target/aarch64-apple-darwin/release/codemap-search",
+          "sha256": "fe380e850a012d4228a106c3c94f0ad577d864543f3141eec1bc02c97a62c954"
         }
       ],
       "id": "codemap-search",
-      "installation": "/Volumes/Samsung_990_PRO/wsv4/products/cc2cad796e3c79be520e0dba6d2d2cd13fe9784f358d50894b71aa5e37197d2e/source",
-      "installation_sha256": "5e57720180a864931866d2611bfe0ee71e93d429e8406e8fdf94161ed23f1d7f",
+      "installation": "/Volumes/Samsung_990_PRO/wsv4/products/620af1e859392bbd6e423a4d381084d574111226f236b3bad989e2afdab1ee8f/source",
+      "installation_sha256": "b473ecd7dd506a297e040fb46919216ffb10fa8cece494cfd51b7a8d40723d0e",
       "launch": [
-        "/Volumes/Samsung_990_PRO/wsv4/products/cc2cad796e3c79be520e0dba6d2d2cd13fe9784f358d50894b71aa5e37197d2e/target/aarch64-apple-darwin/release/codemap-search"
+        "/Volumes/Samsung_990_PRO/wsv4/products/620af1e859392bbd6e423a4d381084d574111226f236b3bad989e2afdab1ee8f/target/aarch64-apple-darwin/release/codemap-search"
       ],
       "model_assets": [],
       "runtime": {
         "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1"
       },
       "source_pin": {
-        "commit": "fc0a368d0b37da44c5e2bc9df3617ef75b4891cb",
+        "commit": "9b29f397edb7a43f8f2ff0982492a09f7f50d4e5",
         "dirty": false,
         "files": {
           ".dockerignore": {
@@ -12376,19 +12376,19 @@
           },
           "CHANGELOG.ko.md": {
             "mode": 420,
-            "sha256": "ed20a88f3d5dabe9e3ec3260170864d156de0545229f345d2a21c540745f3acf"
+            "sha256": "952ff8f572d6192881ca88efa7e2bb9e0dae4658f470b769b775559d723734ab"
           },
           "CHANGELOG.md": {
             "mode": 420,
-            "sha256": "cdc3b741f4fd4ab080c791169e6fb482e0ebc6bbe205ae4ed2e4503a074e45ba"
+            "sha256": "060387f250869b2298badfbb50c225f3e2ca17332624da36be568e15ffc0a58f"
           },
           "Cargo.lock": {
             "mode": 420,
-            "sha256": "cab8f4587c02ce50e0f9bbb3d6f4a422052bced9d9cb4fd45182cc500d81a1bd"
+            "sha256": "2fb2cdb442b08f4e1810cf856a9e44beaea8e560a27c16418fd762a0057cbda7"
           },
           "Cargo.toml": {
             "mode": 420,
-            "sha256": "4fa297526d83cae78b52605803b890ad17ea5cc7da6ad3abd5c257f0dd4af195"
+            "sha256": "a48a410cd7bac626386c31093e66e1e1c7a5ee678872bff677417428f0adb084"
           },
           "LICENSE": {
             "mode": 420,
@@ -12396,11 +12396,11 @@
           },
           "README.ko.md": {
             "mode": 420,
-            "sha256": "5c2fc4c4ded74a77d1655a694c0bd0d320b85c94e41607dcadbd6223739b021e"
+            "sha256": "255fb2ba5d6ff70803f1ffbbfa95fec5667594051c60063b0eff75541bf08878"
           },
           "README.md": {
             "mode": 420,
-            "sha256": "cbbfa068e2894731da7455d564c1a2abe09d5566127a1f5bee2930c7eb0d963e"
+            "sha256": "6f6d3befb69d3336fc7bf921f75bbcc39e33dc042211face535172377302cf80"
           },
           "build.rs": {
             "mode": 420,
@@ -12460,11 +12460,11 @@
           },
           "docs/configuration.ko.md": {
             "mode": 420,
-            "sha256": "a8935862b70d2fb6aff4464d1c824bad36ba49511948bc0b93e5bc62d05fd170"
+            "sha256": "7513612ff1a5c712ead25a226a91823d382b2e57fbe6c7f6d977a820b3560cee"
           },
           "docs/configuration.md": {
             "mode": 420,
-            "sha256": "e1bf7c84dc80c1e825e6f836ecb468948d891b77f3296ea41410a83247da46a5"
+            "sha256": "3b8d78c6bc992783bacf558b8dedc5fb1c0c0461b66f7d7ba6cff8bb40754fcf"
           },
           "docs/development-language-commands.ko.md": {
             "mode": 420,
@@ -12556,7 +12556,7 @@
           },
           "docs/prompt-regression-runbook.ko.md": {
             "mode": 420,
-            "sha256": "a51a0c819d1f41613d0c351b5fee5e02abf9bbd523df1a37d3df26bb3c9b742c"
+            "sha256": "4fab2b126d9a5776df8d4df0eaee6713a6d7b17626a3944185dd4caa561fb86f"
           },
           "docs/public-repository-validation.ko.md": {
             "mode": 420,
@@ -21712,7 +21712,7 @@
           },
           "src/config/output.rs": {
             "mode": 420,
-            "sha256": "4284ddc035ffda2968b2085894e5e63b0d229de723405a49a9ac0a9b430f559f"
+            "sha256": "0581d6f52791779008221c9d7bf924cdfaa4e1fbf7a3bda1c98333cc10b1a52d"
           },
           "src/config/redact.rs": {
             "mode": 420,
@@ -21732,11 +21732,11 @@
           },
           "src/config_template.ko.toml": {
             "mode": 420,
-            "sha256": "b16e0fcfb02354382748b27915e761a257758aa1462cda51bde6fa156e948d96"
+            "sha256": "4d2a68c9616c4dc0c4cf76383c4708e33f5890c1d1e14dc705c2fc2577716ad0"
           },
           "src/config_template.toml": {
             "mode": 420,
-            "sha256": "c41cbfe008c00b5b6c7b35a2f838194a452562d3e83fdc810c11ac7e9977f108"
+            "sha256": "cb00b624b370086de5f2e885fa1b7a6efebac8ad7a457ab7ce2f207b9f9fa8e5"
           },
           "src/declarations.rs": {
             "mode": 420,
@@ -22552,7 +22552,7 @@
           },
           "src/tools/instructions/server.ko.md": {
             "mode": 420,
-            "sha256": "48c61ecdbd574d780a7045deafe7d57891ca6d9dccdda650edf75f851dc1de42"
+            "sha256": "ff0460fb0cf1b50c6d22f8b6fcb4fcdd13cd6268153a335817e000f3708f16db"
           },
           "src/tools/instructions/server.linux.md": {
             "mode": 420,
@@ -22564,7 +22564,7 @@
           },
           "src/tools/instructions/server.md": {
             "mode": 420,
-            "sha256": "71c08d2d0b13f80f4132f59aa4dfe114449ee1398a478eb476e34f7b096d8d78"
+            "sha256": "727abaa3dfd31b628d2740cb64982019f823465eb60a204d6a7e06af1f2d6e2e"
           },
           "src/tools/instructions/server.windows.md": {
             "mode": 420,
@@ -22712,7 +22712,7 @@
           },
           "src/tools/mod.rs": {
             "mode": 420,
-            "sha256": "f45310c898f55224d029c1389cd19b1e8a78024ec2fbd7128ea742ecaf76bdc3"
+            "sha256": "8c4f7fc82c2faeac2271fc627a7d7ac4b3e749eaf2ec59ff914cf77c0d0afb07"
           },
           "src/tools/overview.rs": {
             "mode": 420,
@@ -24523,12 +24523,12 @@
             "sha256": "91cfc6377a9ba02e4178260fad878b986f41d8f33a88427b0a7dfc1a3fb6a68f"
           }
         },
-        "git_ref": "codemap-v0.14.0",
+        "git_ref": "codemap-v0.14.2",
         "kind": "git",
-        "source_sha256": "5e57720180a864931866d2611bfe0ee71e93d429e8406e8fdf94161ed23f1d7f",
-        "version": "0.14.0"
+        "source_sha256": "b473ecd7dd506a297e040fb46919216ffb10fa8cece494cfd51b7a8d40723d0e",
+        "version": "0.14.2"
       },
-      "version_output": "codemap-search 0.14.0"
+      "version_output": "codemap-search 0.14.2"
     },
     "graphify": {
       "actual_version": "graphify 0.9.95",
@@ -24937,19 +24937,9 @@
       }
     }
   },
-  "cli_toolchain": {
-    "claude_code": "/Volumes/Samsung_990_PRO/wsv4/cli-toolchain/installation/node_modules/@anthropic-ai/claude-code-darwin-arm64/claude",
-    "codex": "/Volumes/Samsung_990_PRO/wsv4/cli-toolchain/installation/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
-    "installation_sha256": "ec8f528e6ff0baf19838f7ae053d5fe145850aa6b3722c96a6fc3c461f84b464",
-    "lock_sha256": "cf7ef941e0fb2367f72458fde9a3d37b990eb9b32c4427506fe9dfa382876022",
-    "versions": {
-      "claude_code": "2.1.311",
-      "codex": "0.164.0"
-    }
-  },
-  "contract_hash": "3c13eb783e86ad4074aea4f87721a9630a72f63375b1bc1f268af9de1d36e55a",
+  "contract_hash": "177580c2a4518257689719486ec0d8b0cfc06a233abcc874f0eff39625da7bb8",
   "dependency_hashes": {
-    "01-contract.json": "ba82a14a536e1261286a054d44fe8fbd9e4dfada180f71ed602d68be2e6837a2"
+    "01-contract.json": "7919b14658f91f1acc21692850b63e386956d0d13619d674bbb397ee8cd517f1"
   },
   "host": {
     "machine": "arm64",
@@ -24957,48 +24947,51 @@
     "system": "Darwin"
   },
   "implementation_hashes": {
-    "benchmark/resources.py": "ba3c811aaa4c1ae54e410014c7f0e2f1139e8817c6b4c4ecc469423b22688201",
-    "benchmark/tool_artifacts.py": "b084b6dc8026f780f72ce2550ba8da11b2a261fe540a0c74cfe31727fe78391a"
+    "benchmark/claude_auth.py": "8cb54a824f3ba80d6da7ec921910416a31caa951e80d4eb61272968702d07d5b",
+    "benchmark/pi_lock.py": "3085f6b6c79a437f58ffeb4873e7c149bb211f299e378f18095b39a4b238e2ce",
+    "benchmark/pi_probe.py": "6c2bc6d34b00c5e60bf87cbf709a8dfc75971d210f5288ff175af91be1a27e39",
+    "benchmark/resources.py": "ebff1103cd0f5e25abe4bd41d6e9ba05cdd3ef7e691a694629554c2db1bac8a0",
+    "benchmark/tool_artifacts.py": "24bd0d95ff3f455f7d1991430c06f736ed4b92f32b17006c0d046fad4ab95401"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "ec8904ed0026be882668c76fe364b2051626cc07847e8bea034b8cedddfdb27e",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "7a306eb35533ca3b1fd048071949ef0221e80aa2ea93cb445e85450e32f15dff",
-    "benchmark/data/grafana-comparison-targets-v1/cli-package-lock.json": "cf7ef941e0fb2367f72458fde9a3d37b990eb9b32c4427506fe9dfa382876022",
-    "benchmark/data/grafana-comparison-targets-v1/cli-package.json": "519444dde90d2b3f115b46aeda9c939b1f2a8f9d24974101288c84d44cfb1b5f",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "d8d7093d4861ebc56d30e21f602301cbed75462b53409af3399a9ac7dc205966",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "a8b7218a09e898f08a89f2a220750d24ae0bc69908134bfc7174a35b93151c6f",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
-    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "03c36da8f9ad0018e9ef82ce79a74a899f180e9bb50b0e3eb1e9e5ca00957b59",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
+    "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1b72008fa9a46b091607e4be84f35cfae29c5447e013ade7cb809538bedc4f42",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
-    "benchmark/data/grafana-routes-v4/README.md": "b7c385ae0cb4d51ed5cae4c8eb4d4c8684cf6cce7cc015085ce586df21c4040f",
-    "benchmark/data/grafana-routes-v4/SHA256SUMS": "8dce9a29307bd232384310ebc38a8cf585860dd462e682940ae2bec037700a66",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "3efdb0d381e24a4e58f94b1bc189998d570a86e51558a977a9c24a943299e87d",
+    "benchmark/data/grafana-routes-v4/README.md": "12f388531c80e2c89e914153502d1ded76fb8c7b0036de29980fb97c37a39068",
+    "benchmark/data/grafana-routes-v4/SHA256SUMS": "2bdb3721fc90f5d75d72eb9425997ee7923cf8cc3c8cbdb71c6f7c7f65882ffb",
     "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
     "benchmark/data/grafana-routes-v4/evidence.json": "ba67c4c0e10377c575d0dc90ad833a63e02cb09ecec09c6af9d4d2c4b6081dcb",
     "benchmark/data/grafana-routes-v4/grading.json": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
-    "benchmark/data/grafana-routes-v4/manifest.json": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
+    "benchmark/data/grafana-routes-v4/manifest.json": "b292a2a3979c063d65d6df2c4ba86fef420604f0f617104d6d80399257fef8bf",
     "benchmark/data/grafana-routes-v4/questions.json": "58539e12d3f8dfa97567e7b427c66ee77a3ec6773261bad8a92c68607ded0408"
   },
   "limitations": [
     "No Grafana index or solver/grader inference was created by artifact preparation."
   ],
   "pi_toolchain": {
+    "behavior_probe_sha256": "697591e7f6db4c4a3e3f0355e805b0dc22e896e0b097dadde13678a6818903cb",
+    "bridge_child_env_api": "createClaudeBridgeExtension/getChildEnv-v1",
     "bridge_extension": "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
     "claude_code_binary": "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
-    "lock_sha256": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
-    "mcp_adapter_extension": "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/pi-mcp-adapter",
+    "lock_sha256": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
+    "mcp_adapter_extension": "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/@buyong/pi-mcp-adapter",
     "node": "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
     "node_sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55",
     "pi_cli": "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/@earendil-works/pi-coding-agent/dist/cli.js",
     "versions": {
-      "agent_sdk": "0.3.310",
-      "bridge": "0.13.1",
-      "claude_code": "2.1.310",
-      "mcp_adapter": "7.0.0",
+      "agent_sdk": "0.3.311",
+      "bridge": "0.14.0",
+      "claude_code": "2.1.311",
+      "mcp_adapter": "0.1.2",
       "node": "v24.14.0",
       "pi": "1.4.0"
     }
   },
-  "recorded_at": "2026-10-27T14:22:17.547487+00:00",
+  "recorded_at": "2026-10-28T18:08:04.299801+00:00",
   "schema_version": 1,
   "status": "verified",
   "verification": {
