@@ -6,6 +6,8 @@ codemap-search의 주요 변경 사항을 이 파일에 기록합니다.
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-10-29
+
 ### 추가
 
 - 각 도구의 `tools/list` 항목에 `output.client.pi_max_bytes`를 `_meta["pi/maxOutputBytes"]`로 전달합니다. 이제 [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)는 `mcp.json`에 같은 값을 넣지 않아도 codemap-search의 전달 한도를 적용합니다. pi 기본 MCP는 도구 메타데이터를 읽지 않으므로 결과를 계속 20KB에서 자릅니다.
