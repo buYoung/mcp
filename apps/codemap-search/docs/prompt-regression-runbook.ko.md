@@ -35,7 +35,7 @@
 
 현재 구현은 설명을 압축한 구성에 네 가지 도구별 판단 규칙을 함께 둔다. 유지보수할 때는 다음 역할 분담을 유지한다.
 
-- **서버·공통 안내:** `server.md`에는 도구 소개, 최초 안내 호출, 도구 선택 가이드를 두고, 근거 재사용·종료 조건·출력 해석·권한 설명은 `initial_instructions` 호출 결과인 `initial_instructions.result.md`에 모은다.
+- **서버·공통 안내:** `server.md`에는 도구 소개, 최초 안내 호출, 도구 선택 가이드, 병렬 도구 호출 안내를 두고, 근거 재사용·종료 조건·출력 해석·권한 설명은 `initial_instructions` 호출 결과인 `initial_instructions.result.md`에 모은다. 병렬 도구 호출 안내는 같은 문단을 일부러 두 번 둔다. pi와 gpt-6.1-terra로 시험했을 때 이 문단을 한 번 둔 경우보다 두 번 둔 경우에 독립 호출을 한 응답에 함께 보내는 비율이 높았으므로, 중복으로 보고 하나를 지우지 않는다.
 - **모노레포 안내:** 공통 `initial_instructions.result.md` 뒤에 `initial_instructions.result.monorepo.md`의 범위 선택 안내를 덧붙인다. `initial_instructions`, `overview`, `search`의 설명은 각각 하나의 Markdown 파일을 사용한다. 이전의 `initial_instructions.monorepo.md`, `overview.monorepo.md`, `search.monorepo.md`는 통합된 파일이다.
 - **도구·인자 설명:** 도구 설명에는 선택 조건과 필요한 출력 설명을, 입력 스키마에는 인자 계약을 둔다. `tools/mod.rs`의 공통 설명 변수는 소스 중복을 줄이지만, 각 도구의 최종 스키마에는 해당 설명이 각각 포함된다. 네 가지 판단 규칙은 각 도구 설명에서도 유지한다.
 
@@ -89,7 +89,7 @@ If grep/search already supplied the needed file and line, use read directly.
 
 | 소스 | 최종 소비 위치 | 유지할 내용 |
 |---|---|---|
-| [server.md](../src/tools/instructions/server.md) | MCP `initialize.instructions`. `{shell_commands}` 자리에 실행 OS의 `server.<windows\|macos\|linux>.md`를 넣음 | 도구 소개, search 사용 조건, 최초 안내 호출, 도구 선택 가이드(셸 명령 대신 쓸 도구). `server.md`는 `format!` 문자열이라 중괄호는 `{{`, `}}`로 씁니다 |
+| [server.md](../src/tools/instructions/server.md) | MCP `initialize.instructions`. `{shell_commands}` 자리에 실행 OS의 `server.<windows\|macos\|linux>.md`를 넣음 | 도구 소개, search 사용 조건, 최초 안내 호출, 도구 선택 가이드(셸 명령 대신 쓸 도구), 병렬 도구 호출 안내(같은 문단 두 번). `server.md`는 `format!` 문자열이라 중괄호는 `{{`, `}}`로 씁니다 |
 | [initial_instructions.result.md](../src/tools/instructions/tools/initial_instructions.result.md) | `tools/call initial_instructions`의 결과(도구 설명인 `initial_instructions.md`와 별개) | 공통 흐름, 근거 사용, 종료 조건, 출력 해석 |
 | [initial_instructions.result.monorepo.md](../src/tools/instructions/tools/initial_instructions.result.monorepo.md) | 모노레포의 `initial_instructions` 결과 확장 | 범위 선택과 이미 제공한 루트 개요의 재사용 |
 | [tools 디렉터리](../src/tools/instructions/tools) | `tools/list`의 각 `description`. 해당 도구의 Jev 단계가 켜지면 `<도구>.jev.md`만 사용. `initial_instructions`는 항상 같은 설명과 빈 입력 스키마를 사용하고, 켜진 필터를 쓰기 전의 작업 등록 안내는 `register_task.md`에 두며, 이 도구는 Jev가 켜졌을 때만 목록에 나옴. `<도구>.result*.md`는 설명이 아니라 호출 결과 | 도구 선택·추가 호출 판단·도구별 출력 설명 |

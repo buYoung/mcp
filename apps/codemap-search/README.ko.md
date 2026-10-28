@@ -51,6 +51,28 @@ command = "codemap-search"
 args = ["mcp"]
 ```
 
+### pi
+
+pi 기본 MCP가 도구 `_meta`를 전달할 때까지 [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)를 사용하세요. pi 1.4.0은 이 메타데이터를 무시하고 모델에 전달하는 MCP 결과를 20KB로 자릅니다.
+
+```sh
+pi install npm:@buyong/pi-mcp-adapter
+```
+
+`~/.pi/agent/settings.json`의 `extensions`에 `-builtin:mcp`를 추가하거나 `pi config`의 **Built-in**에서 `mcp`를 꺼서 기본 MCP를 비활성화합니다. pi를 재시작하거나 `/reload`를 실행하세요.
+
+`~/.pi/agent/mcp.json` 또는 신뢰한 프로젝트의 `.pi/mcp.json`에 서버를 추가합니다.
+
+```json
+{
+  "mcpServers": {
+    "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
+  }
+}
+```
+
+탐색할 저장소에서 pi를 시작하세요. adapter는 `mcp.json`에 `maxOutputBytes`를 설정하지 않아도 codemap-search의 출력 한도를 적용합니다. [클라이언트 전달 한도](./docs/configuration.ko.md#클라이언트-전달-한도)를 참고하세요.
+
 ### OpenCode
 
 전역 `~/.config/opencode/opencode.json` 또는 프로젝트의 `opencode.json`에 추가합니다.
@@ -101,7 +123,7 @@ MCP 초기화 시 또는 설정 변경을 다시 읽은 뒤 다음 요청에서 
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
-| `read` | 줄 번호와 함께 원문 읽기 | `file_path`, `offset`, `limit` |
+| `read` | 줄 번호와 함께 여러 원문 범위 읽기 | `file_path`, `offset`, `limit` 또는 `ranges` |
 | `analyze` | 인덱스 용량 또는 기록된 읽기 동작을 압축 JSON으로 분석 | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 | `synonyms` (선택형) | 로컬 뜻 사전에서 분야·주제별 대체 이름 조회 | `terms`: 선별한 검색 의미 단위 또는 한 개념을 이루는 기술 용어 1–16개 |
 
@@ -111,11 +133,13 @@ MCP 초기화 시 또는 설정 변경을 다시 읽은 뒤 다음 요청에서 
 
 오프라인 [Luna/Pi 리플레이](../../docs/related-terms/luna-replay.html)는 앞서 관측한 로그를 입력 거절·시간 초과까지 포함해 재구성합니다. 화면 녹화나 이번 표시 개선의 효과를 측정한 자료는 아닙니다.
 
-MCP 도구 `search`·`read`·`grep`은 공통 불리언 옵션 `include_seen`을 제공하며 기본값은 `false`입니다. 이미 전달한 변경 없는 소스와 같은 응답 안의 반복 소스를 생략합니다. 새 원문은 유지하고 응답마다 `<--removed duplicated-->` 안내를 한 번만 남깁니다. `include_seen=true`는 이 중복 제거만 우회하며 Jev·마스킹·출력 상한은 그대로 적용합니다. `find`는 중복 제거에서 제외하며 매번 현재 결과를 반환합니다. 전달 이력은 연결별로 관리하고 초기화·작업 등록·설정 변경 시 지웁니다. 파일이 바뀌면 새 원문을 반환하며 Jev가 꺼져 있어도 중복 제거는 적용됩니다.
+MCP 도구 `search`·`read`·`grep`은 공통 불리언 옵션 `include_seen`을 제공하며 기본값은 `false`입니다. 이미 전달한 변경 없는 소스와 같은 응답 안의 반복 소스를 생략합니다. 새 원문은 유지하고 응답마다(`read ranges`에서는 각 범위마다) `<--removed duplicated-->` 안내를 한 번만 남깁니다. `include_seen=true`는 이 중복 제거만 우회하며 Jev·마스킹·출력 상한은 그대로 적용합니다. `find`는 중복 제거에서 제외하며 매번 현재 결과를 반환합니다. 전달 이력은 연결별로 관리하고 초기화·작업 등록·설정 변경 시 지웁니다. 파일이 바뀌면 새 원문을 반환하며 Jev가 꺼져 있어도 중복 제거는 적용됩니다.
 
 저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. 프로젝트 루트는 해당 프로젝트의 색인 파일만 집계합니다. `[output.overview].is_stats_enabled = false`이면 해당 섹션을 생략합니다. 집계 불가·대기 파일이 있으면 부분 결과로 표시합니다.
 
-동작이나 구현 위치를 찾을 때는 `search`, 정확한 식별자·주석·방금 수정한 내용에는 `grep`을 사용합니다. `grep.pattern`은 정규식이므로 코드의 특수문자를 그대로 찾으려면 이스케이프해야 합니다. JSON 문자열 이스케이프는 별도입니다. `grep` 기본 출력은 줄 번호가 있는 `content`이고, `files_with_matches`와 `count`는 경로 또는 개수를 반환합니다. `read`는 `path`/`file`, 1부터 시작하는 양끝 포함 `start_line`/`end_line` 별칭도 받습니다.
+동작이나 구현 위치를 찾을 때는 `search`, 정확한 식별자·주석·방금 수정한 내용에는 `grep`을 사용합니다. `grep.pattern`은 정규식이므로 코드의 특수문자를 그대로 찾으려면 이스케이프해야 합니다. JSON 문자열 이스케이프는 별도입니다. `grep` 기본 출력은 줄 번호가 있는 `content`이고, `files_with_matches`와 `count`는 경로 또는 개수를 반환합니다. `read`는 `path`/`file`/`query`, 1부터 시작하는 양끝 포함 `start_line`/`end_line` 또는 `start`/`end` 별칭과 camel/kebab 변형도 받습니다.
+
+알려진 여러 범위는 `{"ranges":[{"file_path":"src/main.rs","offset":10,"limit":20},{"file_path":"src/lib.rs","offset":40,"limit":15}],"view":"source"}`처럼 `ranges`로 한 번에 읽습니다. 최상위 `file_path`(별칭 포함) 대신 1~20개 항목을 넣습니다. 각 항목은 같은 경로·범위 별칭을 받으며 최상위 `view`, `expand`, `include_seen` 등 공통 옵션이 모든 항목에 적용됩니다. 경로·요청 범위 제목과 함께 입력 순서대로 반환하고 항목 오류 뒤에도 계속합니다. 합산 결과는 read·클라이언트 바이트 한도를 지키며, 넘치면 항목 전체를 미루고 처음 생략한 범위를 안내합니다. [요청별 출력 제어](./docs/configuration.ko.md#readgrep-요청별-출력-제어)를 참고하세요.
 
 모노레포에서 `overview`로 선택한 폴더는 이후 `search`의 범위가 됩니다. 파일은 부모 폴더를 선택합니다. 명시적 `workspace_scope`가 우선하며 `all`/`전체`는 저장소 전체입니다. 구현 위치를 모르면 읽기 전용 전체 검색으로 시작해 실제 경로를 확인한 뒤 좁힙니다. 선택된 범위는 임의로 확대하지 않습니다. 상위 결과는 상세 발췌, 나머지는 제한된 목록으로 표시합니다. 출력이 잘리면 질의를 좁히거나 안내된 줄 범위를 읽으세요.
 

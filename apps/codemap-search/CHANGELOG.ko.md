@@ -6,6 +6,29 @@ codemap-search의 주요 변경 사항을 이 파일에 기록합니다.
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-10-29
+
+### 추가
+
+- 각 도구의 `tools/list` 항목에 `output.client.pi_max_bytes`를 `_meta["pi/maxOutputBytes"]`로 전달합니다. 이제 [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)는 `mcp.json`에 같은 값을 넣지 않아도 codemap-search의 전달 한도를 적용합니다. pi 기본 MCP는 도구 메타데이터를 읽지 않으므로 결과를 계속 20KB에서 자릅니다.
+
+## [0.14.1] - 2026-10-28
+
+### 개선
+
+- 서버 안내에서 서로 독립된 도구 호출은 한 응답에 각각 별도 호출로 함께 보내고, 넓은 검색 하나 대신 범위가 좁은 조회 여러 개로 시작하도록 안내합니다. 이 문단은 의도적으로 두 번 넣었습니다.
+
+## [0.14.0] - 2026-10-26
+
+### 추가
+
+- 알려진 파일 범위 1~20개를 MCP 한 번으로 읽는 `read ranges` 추가: 단일 read 별칭·공통 출력 옵션·항목별 오류·연결별 중복 제거·기존 바이트 상한에 따른 항목 단위 이어 읽기 지원. `file_path`와 `ranges` 중 하나가 필수이며 동시 사용은 오류로 처리하고, 최상위 schema 조합 키 없이 런타임에서 검사
+- 제공자별 인증과 엄격한 응답 검증을 적용한 OpenRouter decision 모델 지원 추가
+
+### 변경
+
+- TypeSafe 기본 decision 모델을 `jev-1.14.0`으로 갱신
+
 ## [0.13.0] - 2026-10-23
 
 ### 추가

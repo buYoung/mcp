@@ -23,7 +23,7 @@ claude_max_result_chars = 100000
 codex_output_token_limit = 100000
 
 # Maximum bytes in an MCP result in pi (codemap-search default 100000).
-# Set settings.outputGuard.maxBytes in pi-mcp-adapter to the same value.
+# @buyong/pi-mcp-adapter reads it from tool metadata; pi's built-in MCP cuts results at 20 KB.
 pi_max_bytes = 100000
 
 # Maximum bytes in a tool result in opencode (codemap-search default 100000).

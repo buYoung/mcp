@@ -6,6 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-10-29
+
+### Added
+
+- Each tool now advertises `output.client.pi_max_bytes` as `_meta["pi/maxOutputBytes"]` in `tools/list`, so [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter) applies codemap-search's delivery limit without a matching `mcp.json` setting. pi's built-in MCP support ignores tool metadata and still cuts results at 20 KB.
+
+## [0.14.1] - 2026-10-28
+
+### Improved
+
+- Server instructions now ask agents to send independent tool calls together in one response as separate calls and to begin with several narrow lookups instead of one broad search. The paragraph appears twice on purpose.
+
+## [0.14.0] - 2026-10-26
+
+### Added
+
+- Added `read ranges` for 1–20 known file windows in one MCP call, with single-read aliases, shared presentation options, per-item errors, connection-local deduplication and whole-item continuation under the existing byte budgets. Either `file_path` or `ranges` is required, but not both; this is checked at runtime without top-level schema combinators.
+- Added OpenRouter decision-model support with provider-specific credentials and strict response validation.
+
+### Changed
+
+- Updated the default TypeSafe decision model to `jev-1.14.0`.
+
 ## [0.13.0] - 2026-10-23
 
 ### Added
