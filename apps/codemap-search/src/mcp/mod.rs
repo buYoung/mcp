@@ -7,6 +7,7 @@
 mod global_instructions;
 mod jev;
 pub mod protocol;
+mod read_ranges;
 mod source_history;
 
 use crate::index::EngineSupervisor;
@@ -395,10 +396,17 @@ impl McpServer {
                     .and_then(Value::as_str)
             })
             .flatten();
+        let is_read_ranges = tool_name == Some("read")
+            && params
+                .and_then(|params| params.get("arguments"))
+                .is_some_and(crate::tools::read::has_ranges);
         let result = match self.handle_request_inner(method, params).await {
             // Negotiation and tool definitions are control metadata. PII rules must
             // not rewrite protocol versions, tool names or schema/enum values.
-            Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
+            // Ranges already mask/fold/budget each item with its own file identity.
+            Ok(value) if matches!(method, "initialize" | "tools/list") || is_read_ranges => {
+                Ok(value)
+            }
             Ok(mut value) => {
                 // analyze masks its structured values before serializing compact JSON.
                 if tool_name != Some("analyze") {
@@ -571,6 +579,9 @@ impl McpServer {
                 let default_args = serde_json::Value::Object(serde_json::Map::new());
                 let arguments = params.get("arguments").unwrap_or(&default_args);
                 source_history::SourceHistory::validate_arguments(name, arguments)?;
+                if name == "read" && crate::tools::read::has_ranges(arguments) {
+                    return self.read_ranges(arguments).await;
+                }
                 let tool_arguments = source_history::SourceHistory::tool_arguments(name, arguments);
                 let arguments = tool_arguments.as_ref();
 
@@ -682,6 +693,7 @@ impl McpServer {
                             arguments,
                             self.registered_task.as_ref(),
                             &crate::config::get(),
+                            None,
                         )
                         .await?;
                         self.pending_source_files = output.source_files;

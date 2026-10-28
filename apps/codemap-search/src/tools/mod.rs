@@ -463,11 +463,23 @@ pub fn list_tools() -> Value {
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },
                                 "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "callable reads the smallest supported named callable at offset/start, including attached attributes, and overrides limit/end; none (default) reads a line window." },
-                                "file_path": { "type": "string", "description": "File to read, workspace-relative or absolute within the stated permission. Aliases: path/file/query." },
+                                "file_path": { "type": "string", "description": "File to read, workspace-relative or absolute within the stated permission. Aliases: path/file/query. Either file_path or ranges is required; using both is an error." },
                                 "offset": { "type": "integer", "description": "1-indexed start line (default 1). Aliases: 'start_line'/'start'." },
-                                "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." }
-                            },
-                            "required": ["file_path"]
+                                "limit": { "type": "integer", "description": "Max lines to read from offset. The 1-based inclusive 'end_line'/'end' aliases derive limit relative to the effective offset. String-typed numerics (e.g. \"228\") are accepted." },
+                                "ranges": {
+                                    "type": "array", "minItems": 1, "maxItems": read::MAX_READ_RANGES,
+                                    "description": "Read several known file windows in one call, in order. Either file_path or ranges is required; using both is an error. Shared view/expand/include_seen and other presentation options apply to every item. Top-level offset/limit are not inherited. Item errors remain inline; the total byte budget may defer whole items with a continuation notice.",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "file_path": { "type": "string", "description": "File to read with the same permissions as a single read. Aliases: path/file/query; camel/kebab variants are accepted." },
+                                            "offset": { "type": "integer", "description": "1-indexed start (default 1). Aliases: start_line/start, including camel/kebab variants. String numerics accepted." },
+                                            "limit": { "type": "integer", "description": "Max lines. Inclusive end_line/end aliases derive limit from the effective offset; explicit offset/limit win. Camel/kebab variants and string numerics accepted." }
+                                        },
+                                        "required": ["file_path"]
+                                    }
+                                }
+                            }
                         }
                     },
                     {
@@ -544,9 +556,17 @@ pub fn list_tools() -> Value {
             .unwrap()
             .push(synonyms::definition());
     }
+    let mut meta = serde_json::Map::new();
     if let Some(limit) = config.client_output.claude_max_result_chars {
+        meta.insert("anthropic/maxResultSizeChars".into(), limit.into());
+    }
+    // Read by @buyong/pi-mcp-adapter; pi's built-in MCP drops tool `_meta`.
+    if let Some(limit) = config.client_output.pi_max_bytes {
+        meta.insert("pi/maxOutputBytes".into(), limit.into());
+    }
+    if !meta.is_empty() {
         for tool in result["tools"].as_array_mut().into_iter().flatten() {
-            tool["_meta"] = serde_json::json!({ "anthropic/maxResultSizeChars": limit });
+            tool["_meta"] = Value::Object(meta.clone());
         }
     }
     result

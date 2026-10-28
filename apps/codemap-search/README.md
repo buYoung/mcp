@@ -49,6 +49,28 @@ command = "codemap-search"
 args = ["mcp"]
 ```
 
+### pi
+
+Until pi's built-in MCP support passes tool `_meta`, use [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter). pi 1.4.0 ignores that metadata and cuts model-facing MCP results to 20 KB.
+
+```sh
+pi install npm:@buyong/pi-mcp-adapter
+```
+
+Turn off built-in MCP by adding `-builtin:mcp` to `extensions` in `~/.pi/agent/settings.json`, or turn off `mcp` under **Built-in** in `pi config`. Restart pi or run `/reload`.
+
+Add the server to `~/.pi/agent/mcp.json` or a trusted project's `.pi/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
+  }
+}
+```
+
+Start pi in the repository to inspect. The adapter applies codemap-search's output limit without a `maxOutputBytes` setting in `mcp.json`; see [client delivery budgets](./docs/configuration.md#client-delivery-budgets).
+
 ### OpenCode
 
 Use global `~/.config/opencode/opencode.json` or project `opencode.json`:
@@ -99,7 +121,7 @@ Synchronization runs on MCP initialization, or the next request after a reloaded
 | `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
-| `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
+| `read` | Read live source windows with line numbers | `file_path`, `offset`, `limit`, or `ranges` |
 | `analyze` | Inspect index footprint or recorded reading activity as compact JSON | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 | `synonyms` (opt-in) | Find alternative names by field and topic in the local sense dictionary | `terms`: 1–16 selected search words, short operation compounds or one-concept technical terms |
 
@@ -109,11 +131,13 @@ Once codebase evidence is ready, `synonyms` prioritizes senses and words found i
 
 The offline [Luna/Pi replay](../../docs/related-terms/luna-replay.html) reconstructs the earlier observation logs, including client validation rejections and timeouts. It is not a screen recording or a measurement of these later display improvements.
 
-The MCP tools `search`, `read` and `grep` share the optional boolean `include_seen` (default `false`). Repeated unchanged source is omitted, including short spans, boundary lines and repeats within the same response. `find` always returns its current results and has no `include_seen` option. New source stays, and each affected response contains one `<--removed duplicated-->` marker without repeated source locations or recovery instructions. Set `include_seen=true` to return the current tool result without this deduplication, including after context loss. Other selection, masking, truncation notices and output limits still apply. History is connection-local and clears on initialization, task registration or configuration reload; changed files provide fresh source. This rule also applies when Jev is off.
+The MCP tools `search`, `read` and `grep` share the optional boolean `include_seen` (default `false`). Repeated unchanged source is omitted, including short spans, boundary lines and repeats within the same response. `find` always returns its current results and has no `include_seen` option. New source stays, and each affected response (each window in a `read ranges` batch) contains one `<--removed duplicated-->` marker without repeated source locations or recovery instructions. Set `include_seen=true` to return the current tool result without this deduplication, including after context loss. Other selection, masking, truncation notices and output limits still apply. History is connection-local and clears on initialization, task registration or configuration reload; changed files provide fresh source. This rule also applies when Jev is off.
 
 Repository-root and monorepo workspace-root `overview` output includes indexed-file language statistics by default. A project root counts only that project's indexed files. Set `[output.overview].is_stats_enabled = false` to omit that section. Unavailable or pending files make the result explicitly partial.
 
-Use `search` for behavior or unknown implementation locations; use `grep` for exact identifiers, comments and just-edited content. `grep.pattern` is a regex, so escape metacharacters for literal code. JSON escaping is a separate layer. `grep` defaults to numbered `content`; `files_with_matches` and `count` return paths or counts. `read` also accepts `path`/`file` and 1-based inclusive `start_line`/`end_line` aliases.
+Use `search` for behavior or unknown implementation locations; use `grep` for exact identifiers, comments and just-edited content. `grep.pattern` is a regex, so escape metacharacters for literal code. JSON escaping is a separate layer. `grep` defaults to numbered `content`; `files_with_matches` and `count` return paths or counts. `read` also accepts `path`/`file`/`query` and 1-based inclusive `start_line`/`end_line` or `start`/`end` aliases, including camel/kebab variants.
+
+Use `ranges` to read several known windows in one call, for example `{"ranges":[{"file_path":"src/main.rs","offset":10,"limit":20},{"file_path":"src/lib.rs","offset":40,"limit":15}],"view":"source"}`. Supply 1–20 items instead of top-level `file_path` (or its aliases). Each item accepts the same path/window aliases; top-level `view`, `expand`, `include_seen` and other presentation options apply to all items. Results keep input order with path/window headings; item errors do not stop later items. The combined result obeys the read and client byte caps, deferring whole items with a notice identifying the first omitted range. See [live request controls](./docs/configuration.md#live-request-controls).
 
 In monorepos, `overview` on a directory selects that exact scope for later `search`; a file selects its parent. Explicit `workspace_scope` overrides it; `all`/`전체` selects the whole repository. If the implementation scope is unknown, start with read-only repo-wide discovery and narrow from returned paths. Search never silently widens a chosen scope. Top matches have detailed snippets; the compact tail is bounded. Narrow the query or follow the supplied read ranges when output is partial.
 
