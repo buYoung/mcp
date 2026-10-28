@@ -50,7 +50,7 @@ Codex Code Mode has a separate output budget for each `exec` call. Only connecti
 
 The `MCP client delivery context` diagnostic records whether `params._meta.callId` was present, its value only when it matches `exec-` followed by a hyphenated UUID, response bytes and the configured Codex limit. This internal ID pattern is only a Code Mode hint; it does not reveal the exec budget or confirm delivery to model context. It does not change filtering, output limits or duplicate history.
 
-`output.client.pi_max_bytes` and `output.client.opencode_max_bytes` accept integer bytes or size strings and both default to `100000` bytes. pi ([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`) and opencode ([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config)) read no server metadata; by default they keep only the leading 51200 bytes of a larger text result and save the rest to a file. Set the client and server to matching values; using the server's `100000`-byte default requires raising the client's limit too. codemap-search never changes client settings. Their line limit (default 2000) is not enforced.
+`output.client.pi_max_bytes` and `output.client.opencode_max_bytes` accept integer bytes or size strings and both default to `100000` bytes. Each tool advertises `pi_max_bytes` as `_meta["pi/maxOutputBytes"]` in `tools/list`. [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter) applies it ahead of `maxOutputBytes` in `mcp.json`; reconnect MCP so pi reloads tool metadata. pi's built-in MCP support ignores tool metadata and cuts larger results to 20 KB. opencode ([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config)) reads no server metadata; by default it keeps only the leading 51200 bytes of a larger text result and saves the rest to a file. Set opencode to the same value as `opencode_max_bytes`; using the server's `100000`-byte default requires raising opencode's limit too. codemap-search never changes client settings. opencode's line limit (default 2000) is not enforced.
 
 ## Files and precedence
 
@@ -219,7 +219,8 @@ MCP watches `config.toml` and `auth.toml` in the repo/global config directories 
 | `auth.toml` `[jev].api_key`, `[openrouter].api_key` | Subsequent enabled Jev requests after reload; a changed key rebuilds the shared HTTPS evaluator |
 | `[output.client].claude_max_result_chars` | Final delivery limit after reload; reconnect MCP to refresh client metadata |
 | `[output.client].codex_output_token_limit` | Final delivery limit after reload; re-export/merge codex-config for the client |
-| `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | Final delivery limit after reload; no client change |
+| `[output.client].pi_max_bytes` | Final delivery limit after reload; reconnect MCP to refresh client metadata |
+| `[output.client].opencode_max_bytes` | Final delivery limit after reload; no client change |
 
 Manual exclusion changes update file filters and request a full index refresh. Removed files disappear from results and newly included files become searchable when the refresh finishes. If indexing is unavailable, recover or restart the server before checking the results.
 
@@ -236,7 +237,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output].max_bytes` | integer bytes or size string | unset | Common MCP response ceiling; a same-layer tool override wins |
 | `[output.client].claude_max_result_chars` | integer characters, 1–500000 | `100000` | Claude tools/list metadata and final delivery limit (as bytes); reconnect required |
 | `[output.client].codex_output_token_limit` | positive integer tokens | `100000` | Codex export and final delivery limit (3.5 bytes per token) |
-| `[output.client].pi_max_bytes` | integer bytes or size string | `100000` | pi final delivery limit |
+| `[output.client].pi_max_bytes` | integer bytes or size string | `100000` | pi tools/list metadata and final delivery limit; reconnect required |
 | `[output.client].opencode_max_bytes` | integer bytes or size string | `100000` | opencode final delivery limit |
 | `[output.overview].is_stats_enabled` | bool | `true` | Include indexed-file language statistics in repository-root and monorepo project-root `overview` output; `false` omits the section |
 | `[output.overview].max_bytes` | integer bytes or size string | common budget | Overview ceiling; no extra cap if common is unset |
@@ -535,7 +536,7 @@ claude_max_result_chars = 100000
 codex_output_token_limit = 100000
 
 # Maximum bytes in an MCP result in pi (codemap-search default 100000).
-# Set settings.outputGuard.maxBytes in pi-mcp-adapter to the same value.
+# @buyong/pi-mcp-adapter reads it from tool metadata; pi's built-in MCP cuts results at 20 KB.
 pi_max_bytes = 100000
 
 # Maximum bytes in a tool result in opencode (codemap-search default 100000).

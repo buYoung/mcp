@@ -51,6 +51,28 @@ command = "codemap-search"
 args = ["mcp"]
 ```
 
+### pi
+
+pi 기본 MCP가 도구 `_meta`를 전달할 때까지 [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)를 사용하세요. pi 1.4.0은 이 메타데이터를 무시하고 모델에 전달하는 MCP 결과를 20KB로 자릅니다.
+
+```sh
+pi install npm:@buyong/pi-mcp-adapter
+```
+
+`~/.pi/agent/settings.json`의 `extensions`에 `-builtin:mcp`를 추가하거나 `pi config`의 **Built-in**에서 `mcp`를 꺼서 기본 MCP를 비활성화합니다. pi를 재시작하거나 `/reload`를 실행하세요.
+
+`~/.pi/agent/mcp.json` 또는 신뢰한 프로젝트의 `.pi/mcp.json`에 서버를 추가합니다.
+
+```json
+{
+  "mcpServers": {
+    "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
+  }
+}
+```
+
+탐색할 저장소에서 pi를 시작하세요. adapter는 `mcp.json`에 `maxOutputBytes`를 설정하지 않아도 codemap-search의 출력 한도를 적용합니다. [클라이언트 전달 한도](./docs/configuration.ko.md#클라이언트-전달-한도)를 참고하세요.
+
 ### OpenCode
 
 전역 `~/.config/opencode/opencode.json` 또는 프로젝트의 `opencode.json`에 추가합니다.

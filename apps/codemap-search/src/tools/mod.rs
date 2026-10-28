@@ -556,9 +556,17 @@ pub fn list_tools() -> Value {
             .unwrap()
             .push(synonyms::definition());
     }
+    let mut meta = serde_json::Map::new();
     if let Some(limit) = config.client_output.claude_max_result_chars {
+        meta.insert("anthropic/maxResultSizeChars".into(), limit.into());
+    }
+    // Read by @buyong/pi-mcp-adapter; pi's built-in MCP drops tool `_meta`.
+    if let Some(limit) = config.client_output.pi_max_bytes {
+        meta.insert("pi/maxOutputBytes".into(), limit.into());
+    }
+    if !meta.is_empty() {
         for tool in result["tools"].as_array_mut().into_iter().flatten() {
-            tool["_meta"] = serde_json::json!({ "anthropic/maxResultSizeChars": limit });
+            tool["_meta"] = Value::Object(meta.clone());
         }
     }
     result

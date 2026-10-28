@@ -50,7 +50,7 @@ Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. 
 
 `MCP client delivery context` 진단 로그는 `params._meta.callId` 유무, `exec-` 뒤에 하이픈을 포함한 UUID가 오는 형식에 한정한 ID 값, 응답 바이트 수와 설정된 Codex 한도를 기록합니다. 이 내부 ID 형식은 Code Mode의 단서일 뿐이며 실제 exec 예산이나 모델 문맥에 전달됐는지는 알 수 없습니다. 이 값으로 필터·출력 한도·중복 이력을 바꾸지 않습니다.
 
-`output.client.pi_max_bytes`와 `output.client.opencode_max_bytes`는 정수 바이트 또는 크기 문자열이며 기본값은 각각 `100000`바이트입니다. pi([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`)와 opencode([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config))는 서버 메타데이터를 읽지 않으며, 기본으로 큰 텍스트 결과의 앞 51200바이트만 남기고 나머지는 파일로 저장합니다. 클라이언트와 서버에 같은 값을 설정하세요. 서버 기본값인 `100000`바이트를 사용하려면 클라이언트 한도도 높여야 합니다. codemap-search는 클라이언트 설정을 바꾸지 않습니다. 줄 수 한도(기본 2000줄)는 맞추지 않습니다.
+`output.client.pi_max_bytes`와 `output.client.opencode_max_bytes`는 정수 바이트 또는 크기 문자열이며 기본값은 각각 `100000`바이트입니다. 각 도구의 `tools/list` 항목에 `pi_max_bytes`를 `_meta["pi/maxOutputBytes"]`로 전달합니다. [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)는 이 값을 `mcp.json`의 `maxOutputBytes`보다 먼저 적용합니다. pi가 도구 메타데이터를 다시 읽도록 MCP를 재연결하세요. pi 기본 MCP는 도구 메타데이터를 읽지 않고 큰 결과를 20KB로 자릅니다. opencode([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config))는 서버 메타데이터를 읽지 않으며, 기본으로 큰 텍스트 결과의 앞 51200바이트만 남기고 나머지는 파일로 저장합니다. opencode에도 `opencode_max_bytes`와 같은 값을 설정하세요. 서버 기본값인 `100000`바이트를 사용하려면 opencode 한도도 높여야 합니다. codemap-search는 클라이언트 설정을 바꾸지 않습니다. opencode의 줄 수 한도(기본 2000줄)는 맞추지 않습니다.
 
 ## 설정 위치와 우선순위
 
@@ -218,7 +218,8 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `auth.toml`의 `[jev].api_key`, `[openrouter].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
 | `[output.client].claude_max_result_chars` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
 | `[output.client].codex_output_token_limit` | 최종 전달 한도는 재로드 후 적용; 클라이언트는 codex-config를 다시 병합 |
-| `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트 변경 불필요 |
+| `[output.client].pi_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
+| `[output.client].opencode_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트 변경 불필요 |
 
 제외 규칙을 직접 바꾸면 파일 필터를 갱신하고 전체 색인 갱신을 요청합니다. 갱신 완료 후 제외된 파일은 결과에서 사라지고 새로 포함한 파일은 검색할 수 있습니다. 색인 기능을 사용할 수 없으면 복구하거나 서버를 재시작한 뒤 결과를 확인하세요.
 
@@ -235,7 +236,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output].max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | 공통 MCP 응답 한도. 도구별 예외가 같은 계층에서 우선 |
 | `[output.client].claude_max_result_chars` | 정수(문자), 1~500000 | `100000` | Claude tools/list 메타데이터와 최종 전달 한도(바이트 기준). 재연결 필요 |
 | `[output.client].codex_output_token_limit` | 양의 정수(토큰) | `100000` | Codex 설정 내보내기와 최종 전달 한도(토큰당 3.5바이트) |
-| `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | pi 최종 전달 한도 |
+| `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | pi tools/list 메타데이터와 최종 전달 한도. 재연결 필요 |
 | `[output.client].opencode_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | opencode 최종 전달 한도 |
 | `[output.overview].is_stats_enabled` | bool | `true` | 저장소 루트와 모노레포 프로젝트 루트 `overview`에 색인 파일 언어 통계 포함. `false`면 해당 섹션 생략 |
 | `[output.overview].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | 개요 응답 한도. 공통값도 없으면 추가 제한 없음 |
@@ -535,7 +536,7 @@ claude_max_result_chars = 100000
 codex_output_token_limit = 100000
 
 # pi가 받는 MCP 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
-# pi-mcp-adapter의 settings.outputGuard.maxBytes도 같은 값으로 설정하세요.
+# @buyong/pi-mcp-adapter는 도구 메타데이터에서 이 값을 읽습니다. pi 기본 MCP는 결과를 20KB에서 자릅니다.
 pi_max_bytes = 100000
 
 # opencode가 받는 도구 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).

@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Each tool now advertises `output.client.pi_max_bytes` as `_meta["pi/maxOutputBytes"]` in `tools/list`, so [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter) applies codemap-search's delivery limit without a matching `mcp.json` setting. pi's built-in MCP support ignores tool metadata and still cuts results at 20 KB.
+
 ## [0.14.1] - 2026-10-28
 
 ### Improved

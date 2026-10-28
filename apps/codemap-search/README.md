@@ -49,6 +49,28 @@ command = "codemap-search"
 args = ["mcp"]
 ```
 
+### pi
+
+Until pi's built-in MCP support passes tool `_meta`, use [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter). pi 1.4.0 ignores that metadata and cuts model-facing MCP results to 20 KB.
+
+```sh
+pi install npm:@buyong/pi-mcp-adapter
+```
+
+Turn off built-in MCP by adding `-builtin:mcp` to `extensions` in `~/.pi/agent/settings.json`, or turn off `mcp` under **Built-in** in `pi config`. Restart pi or run `/reload`.
+
+Add the server to `~/.pi/agent/mcp.json` or a trusted project's `.pi/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
+  }
+}
+```
+
+Start pi in the repository to inspect. The adapter applies codemap-search's output limit without a `maxOutputBytes` setting in `mcp.json`; see [client delivery budgets](./docs/configuration.md#client-delivery-budgets).
+
 ### OpenCode
 
 Use global `~/.config/opencode/opencode.json` or project `opencode.json`:
