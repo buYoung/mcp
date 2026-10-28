@@ -355,6 +355,7 @@ class BenchChecks(unittest.TestCase):
             else:
                 (cwd / "node_modules").mkdir()
                 (cwd / "node_modules/installed.txt").write_text("fixture")
+                write_json(cwd / "node_modules/@buyong/pi-claude-bridge/package.json", {"pi": {"extensions": ["./src/index.ts"]}})
         with patch.object(settings, "CACHE", self.root / "neutral"), patch.object(routes, "TARGETS", targets), \
                 patch.object(routes, "DATA", data), patch.object(routes, "__file__", str(contract)), \
                 patch.object(tool_artifacts, "run_logged", side_effect=npm), \
@@ -375,6 +376,117 @@ class BenchChecks(unittest.TestCase):
         for line in (targets / "SHA256SUMS").read_text().splitlines():
             checksum, name = line.split()
             self.assertEqual(checksum, file_digest(targets / name))
+
+        before = read_json(targets / "targets.lock.json")
+        manifests = {name: (targets / name).read_bytes() for name in ("pi-package.json", "pi-package-lock.json")}
+        for failure in ("tree", "behavior", None):
+            def install(args, cwd, log, **kwargs):
+                npm(args, cwd, log, **kwargs)
+                if failure == "tree":
+                    (cwd / "node_modules/installed.txt").write_text("drift")
+            with patch.object(settings, "CACHE", self.root / "neutral"), patch.object(routes, "TARGETS", targets), \
+                    patch.object(routes, "DATA", data), patch.object(routes, "__file__", str(contract)), \
+                    patch.object(routes, "TARGET_LOCK_SHA256", file_digest(targets / "targets.lock.json")), \
+                    patch.object(tool_artifacts, "run_logged", side_effect=install), \
+                    patch("benchmark.pi_probe.run_behavior_probe", side_effect=ContractError("probe failed") if failure == "behavior" else None,
+                          return_value={"path": "new-proof", "sha256": "b" * 64}) as rerun:
+                if failure:
+                    with self.assertRaises(ContractError):
+                        pi_lock.reprobe_publications()
+                    self.assertEqual(read_json(targets / "targets.lock.json"), before)
+                    if failure == "tree":
+                        rerun.assert_not_called()
+                else:
+                    pi_lock.reprobe_publications()
+                    after = read_json(targets / "targets.lock.json")
+                    self.assertEqual(after["pi_toolchain"].pop("behavior_probe"), {"path": "new-proof", "sha256": "b" * 64})
+                    expected = copy.deepcopy(before)
+                    expected["pi_toolchain"].pop("behavior_probe")
+                    self.assertEqual(after, expected)
+            self.assertEqual(commands[-1], ["ci", "--ignore-scripts", "--no-audit", "--no-fund"])
+            self.assertEqual({name: (targets / name).read_bytes() for name in manifests}, manifests)
+
+    def test_claude_auth_absolute_file_redactions(self):
+        from . import claude_auth, pi_client
+        token_file = self.root / "credential"
+        token_file.write_text("fake-private-credential")
+        token_file.chmod(0o600)
+        with patch.dict(os.environ, {claude_auth.TOKEN_FILE_ENV: "token"}), patch.object(Path, "lstat", side_effect=AssertionError("no relative stat")):
+            with self.assertRaisesRegex(ContractError, "절대 경로"):
+                claude_auth.read_token_file()
+        with patch.dict(os.environ, {claude_auth.TOKEN_FILE_ENV: str(token_file)}):
+            credential = claude_auth.read_token_file()
+        self.assertTrue(all(Path(path).is_absolute() for path in credential.paths))
+        self.assertEqual(pi_client.redact('{"input_tokens":10}', credential.redactions), '{"input_tokens":10}')
+
+    def test_claude_auth_runtime_guard_rejects_parent_environment_leaks(self):
+        from . import claude_auth
+        import shutil
+        bridge = self.root / "bridge.mjs"
+        bridge.write_text('export function createClaudeBridgeExtension({getChildEnv}) { return () => {\n'
+                          'if (process.env.LEAK_TEST === "1") process.env.EXTRA_TEST_VALUE = "prefix-" + getChildEnv({purpose:"provider"}).CLAUDE_CODE_OAUTH_TOKEN;\n}; }\n')
+        extension = self.root / "guard.mjs"
+        extension.write_text(claude_auth.bridge_extension_source(bridge))
+        driver = self.root / "guard-driver.mjs"
+        driver.write_text('import extension from "./guard.mjs";\nconst hooks = new Map();\n'
+                          'extension({on:(event,handler)=>hooks.set(event,handler)});\n'
+                          'hooks.get(process.argv[2])();\nconsole.log("guard passed");\n')
+        for event in ("tool_call", "agent_end"):
+            for leak in (False, True):
+                credential = claude_auth.Credential("fake-runtime-guard-credential")
+                channel = claude_auth.ChildEnvChannel(credential)
+                try:
+                    result = subprocess.run([shutil.which("node"), str(driver), event], cwd=self.root,
+                        env={"HOME": str(self.root), claude_auth.CHILD_ENV_FD: str(channel.read_fd), "LEAK_TEST": "1" if leak else "0"},
+                        pass_fds=(channel.read_fd,), capture_output=True, timeout=10)
+                finally:
+                    channel.close()
+                self.assertEqual(result.returncode, 1 if leak else 0)
+                self.assertNotIn(credential.token.encode(), result.stdout + result.stderr)
+                self.assertEqual(b"guard passed" in result.stdout, not leak)
+
+    def test_bridge_entry_manifest_is_exact(self):
+        from .tool_artifacts import validate_bridge_entry
+        path = self.root / "@buyong/pi-claude-bridge/package.json"
+        for entry in (["./dist/index.js"], ["./src/index.ts", "./extra.ts"], [], None):
+            write_json(path, {"pi": {"extensions": entry}})
+            with self.assertRaisesRegex(ContractError, "pi.extensions"):
+                validate_bridge_entry(self.root)
+        write_json(path, {"pi": {"extensions": ["./src/index.ts"]}})
+        validate_bridge_entry(self.root)
+
+    def test_kern_procargs_denial_in_rg_and_product_preparation(self):
+        import shlex
+        from . import isolation, pi_client, warm_host
+        source, home, install = (self.root / name for name in ("source", "home", "install"))
+        for path in (source, home, install):
+            path.mkdir()
+        (source / "README.md").write_text("Local fixture.")
+        rg = install / "rg"
+        rg.write_text("#!/bin/sh\nexit 0\n")
+        rg.chmod(0o700)
+        # An unsandboxed control proves the syscall itself works, without inspecting its buffer.
+        control = subprocess.run(isolation.kern_procargs_command(os.getpid()), capture_output=True, timeout=10)
+        self.assertEqual(control.returncode, 0, control.stderr)
+        config = pi_client.configuration(source, rg)
+        folder = self.root / "slot"
+        folder.mkdir()
+        wrapper = pi_client.shell_wrapper(config, folder)
+        result = subprocess.run([str(wrapper), "-c", shlex.join(isolation.kern_procargs_command(os.getpid()))], cwd=source,
+                                env={"HOME": str(home), "PATH": os.environ["PATH"]}, capture_output=True, timeout=10)
+        self.assertTrue(isolation.process_environment_observation(result)["rejected"])
+        for code, payload in ((0, {"return_code": 0, "errno": 0}), (2, {"return_code": -1, "errno": 22})):
+            with self.assertRaises(ContractError):
+                isolation.process_environment_observation(subprocess.CompletedProcess([], code, json.dumps(payload).encode()))
+        warm = warm_host.WarmSession.__new__(warm_host.WarmSession)
+        warm.state = {"source": str(source), "home": str(home)}
+        with patch("benchmark.tool_indexes.product_environment", return_value={}):
+            warm.profile = isolation.product_profile("serena", warm.state, {"id": "serena", "installation": str(install), "launch": [str(rg)]}, slot_tmp=home / "tmp")
+        warm.ident, warm.backend, warm.solver_start, warm.receipt, warm.initialized = "serena", "pi", None, {}, {"capabilities": {}}
+        with patch.object(warm_host.readiness, "probes", return_value=[]), patch.object(isolation, "boundary_canaries", return_value=[]):
+            evidence = warm.verify_preparation()["boundary_canaries"]
+        self.assertEqual(evidence[0]["errno"], 1)
+        self.assertEqual(evidence[0]["profile_sha256"], warm.profile["profile_sha256"])
 
     def test_pi_probe_requires_exact_claude_description_prefix(self):
         from .pi_probe import description_delivery, NATIVE_DESCRIPTION_MARKER

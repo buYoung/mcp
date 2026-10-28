@@ -75,6 +75,7 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
                 "mcp_adapter_extension": "@buyong/pi-mcp-adapter", "claude_code_binary": "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"}
     require(test_double or all(Path(tools[key]).resolve() == (modules / value).resolve() for key, value in expected.items()),
             "behavior probe must use the installed package entries")
+    tool_artifacts.validate_bridge_entry(modules)
     root.mkdir(parents=True, exist_ok=False)
     tree = digest(tool_artifacts.tree_files(modules))
     record = {"schema": PROBE_SCHEMA, "passed": False, "test_double": test_double, "node_modules_sha256": tree,
@@ -107,10 +108,12 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
                 spec = settings.execution_settings("claude-opus-5-5")
                 spec["measurement_mode"] = mode
                 if arm == "rg":
-                    # Metadata-only bash fixture; no command or rg invocation is requested.
+                    # Bash env is requested only in direct; no rg invocation is needed.
                     spec["native_agent"] = pi_client.configuration(source, native_fixture)
                 folder = root / f"{arm}-{mode}"
-                result = pi_audit.capture(folder, state, spec, "Inspect only supplied source.", toolchain=candidate, port=port)
+                env_probe = arm == "rg" and mode == "direct"
+                result = pi_audit.capture(folder, state, spec, "Inspect only supplied source.", toolchain=candidate, port=port,
+                                          bash_env_probe=env_probe)
                 require(result["passed"], "installed pi first-request/codemode audit failed")
                 actual = bridge_tools(folder)
                 expected = 500000 if mode == "codemode" or arm not in {"codemap-search", "rg"} else 100000 if arm == "codemap-search" else 52224
@@ -118,7 +121,7 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
                         "installed bridge result-size metadata mismatch")
                 if arm == "codemap-search" and mode == "direct":
                     require(actual["mcp__navigation__read"]["_meta"].get("vendor/test") == "preserved", "product metadata was not preserved")
-                require(result["oauth_header_matches"] == [True], "bridge child OAuth/header contract failed")
+                require(result["oauth_header_matches"] == [True] * (2 if env_probe else 1), "bridge provider OAuth/header check failed")
                 cleanup = read_json(folder / "private-cleanup.json")
                 require(cleanup["complete"] and cleanup["private_home_removed"], "private Claude HOME cleanup failed")
                 record["conditions"][f"{arm}/{mode}"] = {"passed": True, "expected_result_chars": expected,
@@ -126,7 +129,8 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
                     "audit_sha256": file_digest(folder / "audit.json"), "tool_list": str(folder / "bridge-tools.jsonl"),
                     "tool_list_sha256": file_digest(folder / "bridge-tools.jsonl"), "request": result["request"],
                     "request_sha256": result["request_sha256"], "nested_catalog": result["nested_catalog"],
-                    "description_delivery": result["description_delivery"], "private_home_removed": True}
+                    "description_delivery": result["description_delivery"], "bash_environment": result["bash_environment"],
+                    "private_home_removed": True}
         require(digest(tool_artifacts.tree_files(modules)) == tree, "installation changed during behavior probe")
         require(implementation_hashes() == record["implementation_hashes"], "harness changed during behavior probe")
         record["passed"] = True
@@ -144,11 +148,13 @@ def verify_behavior_proof(pins: dict, actual_tree: str | None = None) -> dict:
     require(value.get("schema") == PROBE_SCHEMA and value.get("passed") is True
             and value.get("node_modules_sha256") == proof.get("node_modules_sha256") == pins["node_modules_sha256"]
             and (actual_tree is None or actual_tree == value["node_modules_sha256"]), "pi 행동 증거와 설치 tree 불일치")
-    require(value.get("implementation_hashes") == implementation_hashes(), "pi 행동 검사 구현 변경: 게시물 loopback 재검증 필요")
+    require(value.get("implementation_hashes") == implementation_hashes(), "pi 검사 구현 변경: python3 -m benchmark.pi_lock reprobe 필요")
     require(value.get("bridge_api", {}).get("contract") == CHILD_ENV_CONTRACT, "bridge child-env API 증거 누락")
     expected = {f"{arm}/{mode}" for arm in ("codemap-search", "codegraph", "graphify", "rg") for mode in ("direct", "codemode")}
     require(set(value.get("conditions", {})) == expected and all(row.get("passed") is True for row in value["conditions"].values()),
             "pi 게시물 행동 검사 조건 누락")
+    require(value["conditions"]["rg/direct"].get("bash_environment") ==
+            {"requests": 2, "tool_succeeded": True, "credential_and_path_absent": True}, "pi provider bash env 검사 증거 누락")
     for row in value["conditions"].values():
         for key in ("audit", "tool_list", "request"):
             require(file_digest(Path(row[key])) == row[key + "_sha256"], "pi 행동 검증 원자료 변경")

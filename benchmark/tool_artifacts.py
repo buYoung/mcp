@@ -126,11 +126,19 @@ def verify_artifact(artifact: dict, *, full=True) -> None:
                 f"설치 파일 변경: {artifact['id']}")
 
 
+def validate_bridge_entry(modules: Path) -> None:
+    manifest = read_json(modules / "@buyong/pi-claude-bridge/package.json")
+    pi = manifest.get("pi")
+    require(isinstance(pi, dict) and pi.get("extensions") == ["./src/index.ts"],
+            'Claude bridge pi.extensions must be exactly ["./src/index.ts"]')
+
+
 def installed_pi_tools(installation: Path, pins: dict) -> dict:
     """Paths for a verified npm installation; this does not assert behavior readiness."""
     node = Path(shutil.which("node") or "").resolve()
     require(node.is_file(), "pi requires node")
     modules = installation / "node_modules"
+    validate_bridge_entry(modules)
     return {"node": str(node), "pi_cli": str(modules / "@earendil-works/pi-coding-agent/dist/cli.js"),
             "bridge_extension": str(modules / "@buyong/pi-claude-bridge/src/index.ts"),
             "mcp_adapter_extension": str(modules / "@buyong/pi-mcp-adapter"),
@@ -189,6 +197,7 @@ def pi_toolchain() -> dict:
                     "mcp_adapter_extension": "@buyong/pi-mcp-adapter",
                     "claude_code_binary": "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"}
         require(all(Path(value[key]) == installation / "node_modules" / path for key, path in expected.items()), "pi artifact 경로 변경")
+        validate_bridge_entry(installation / "node_modules")
         from .pi_probe import verify_behavior_proof
         from .claude_auth import CHILD_ENV_CONTRACT
         verify_behavior_proof(pins, digest(tree_files(installation / "node_modules")))

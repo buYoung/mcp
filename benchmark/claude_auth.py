@@ -35,6 +35,7 @@ def read_token_file() -> Credential:
     descriptor = None
     try:
         path = Path(value).expanduser()
+        require(path.is_absolute(), "Claude 토큰 파일은 절대 경로여야 합니다 (경로 비공개)")
         before = path.lstat()
         require(stat.S_ISREG(before.st_mode) and before.st_uid == os.geteuid()
                 and stat.S_IMODE(before.st_mode) == 0o600 and before.st_nlink == 1,
@@ -51,7 +52,7 @@ def read_token_file() -> Credential:
         token = raw.decode("utf-8").strip()
         require(bool(token) and not any(c.isspace() for c in token) and "\x00" not in token,
                 "Claude 토큰 파일이 비었거나 형식이 잘못됐습니다")
-        return Credential(token, tuple(dict.fromkeys((value, str(path.absolute()), str(path.resolve())))))
+        return Credential(token, tuple(dict.fromkeys((str(path), str(path.resolve())))))
     except (OSError, UnicodeError):
         raise ValueError("Claude 토큰 파일을 안전하게 읽을 수 없습니다 (내용과 경로 비공개)") from None
     finally:
@@ -98,7 +99,7 @@ class ChildEnvChannel:
 
 def bridge_extension_source(bridge: Path) -> str:
     return ('import * as bridge from ' + json.dumps(str(bridge)) + ';\n'
-            'import {readFileSync, closeSync} from "node:fs";\n'
+            'import {readFileSync, closeSync, writeSync} from "node:fs";\n'
             f'const fdKey = {json.dumps(CHILD_ENV_FD)};\n' + '''
 export default (pi) => {
   const fd = Number(process.env[fdKey]);
@@ -118,6 +119,15 @@ export default (pi) => {
   } finally {
     if (Number.isInteger(fd) && fd >= 3) { try { closeSync(fd); } catch {} }
   }
+  const guardParentEnv = () => {
+    if (Object.values(process.env).some(value => value?.includes(credentials.oauthToken))) {
+      // agent_end exceptions can be swallowed by pi; exit before any further child/tool spawn.
+      try { writeSync(2, "Claude credential found in pi process.env; execution rejected\\n"); }
+      finally { process.exit(1); }
+    }
+  };
+  pi.on("tool_call", guardParentEnv);
+  pi.on("agent_end", guardParentEnv);
   const getChildEnv = ({purpose}) => {
     if (purpose !== "provider" && purpose !== "summary") throw new Error("Unsupported Claude child purpose");
     return Object.freeze({CLAUDE_CODE_OAUTH_TOKEN: credentials.oauthToken,

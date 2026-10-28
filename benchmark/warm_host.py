@@ -274,6 +274,7 @@ class WarmSession:
                 observations.append({"discovery": method, "items": len(listed[capability]), "result_sha256": digest(listed)})
         from . import isolation
         canaries = isolation.boundary_canaries(self.ident, self.warm_call, self.state)
+        canaries.append(isolation.probe_process_environment(self.profile, Path(self.state["source"])))
         if self.ident == "graphify":
             result = self.warm_call("read", {"file_path": "README.md"})
             require(result["content"][0]["text"] == (Path(self.state["source"]) / "README.md").read_text(), "auxiliary source changed")

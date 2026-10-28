@@ -234,8 +234,9 @@ def audit_session(folder: Path, inventory: dict) -> dict:
 
 
 class CaptureProvider:
-    """One loopback request, a fixed final response; no operator auth or hosted transport."""
-    def __init__(self, node: str, *, port: int = 0, expected_auth: str | None = None):
+    """Loopback first request, optionally followed by one bash env result; no hosted transport."""
+    def __init__(self, node: str, *, port: int = 0, expected_auth: str | None = None,
+                 bash_env_probe: bool = False, forbidden_values: tuple[str, ...] = ()):
         self.requests, self.errors, self.auth_matches = [], [], []
         owner = self
 
@@ -266,8 +267,9 @@ class CaptureProvider:
                         owner.auth_matches.append(match)
                         require(match, "local OAuth authentication header mismatch")
                         require(expected_auth not in json.dumps(body), "credential leaked into request body")
+                    require(all(value not in json.dumps(body) for value in forbidden_values), "private credential/path leaked into request body")
                     owner.requests.append(body)
-                    require(len(owner.requests) == 1, "unexpected second request in first-request audit")
+                    require(len(owner.requests) <= (2 if bash_env_probe else 1), "unexpected request count in local audit")
                     self.send_response(200)
                     self.send_header("Content-Type", "text/event-stream")
                     self.end_headers()
@@ -284,12 +286,18 @@ class CaptureProvider:
                         send("response.completed", response={"id": "resp_local", "status": "completed", "model": body["model"], "output": [item],
                              "usage": {"input_tokens": 100, "output_tokens": 1, "total_tokens": 101}})
                     else:
-                        send("message_start", message={"id": "msg_local", "type": "message", "role": "assistant", "model": body["model"],
+                        send("message_start", message={"id": "msg_local_" + str(len(owner.requests)), "type": "message", "role": "assistant", "model": body["model"],
                              "content": [], "stop_reason": None, "stop_sequence": None, "usage": {"input_tokens": 100, "output_tokens": 0}})
-                        send("content_block_start", index=0, content_block={"type": "text", "text": ""})
-                        send("content_block_delta", index=0, delta={"type": "text_delta", "text": "Done."})
+                        call_env = bash_env_probe and len(owner.requests) == 1
+                        if call_env:
+                            send("content_block_start", index=0, content_block={"type": "tool_use", "id": "tool_env",
+                                 "name": "mcp__custom-tools__bash", "input": {}})
+                            send("content_block_delta", index=0, delta={"type": "input_json_delta", "partial_json": '{"command":"env"}'})
+                        else:
+                            send("content_block_start", index=0, content_block={"type": "text", "text": ""})
+                            send("content_block_delta", index=0, delta={"type": "text_delta", "text": "Done."})
                         send("content_block_stop", index=0)
-                        send("message_delta", delta={"stop_reason": "end_turn", "stop_sequence": None}, usage={"output_tokens": 1})
+                        send("message_delta", delta={"stop_reason": "tool_use" if call_env else "end_turn", "stop_sequence": None}, usage={"output_tokens": 1})
                         send("message_stop")
                 except (BrokenPipeError, ConnectionResetError):
                     pass
@@ -329,9 +337,12 @@ def replay(path: Path) -> None:
 
 
 def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: dict | None = None, port: int = 0,
-            observer: Path | None = None) -> dict:
+            observer: Path | None = None, bash_env_probe: bool = False) -> dict:
     from . import claude_settings, tool_artifacts, claude_auth
     import secrets
+    import tempfile
+    require(not bash_env_probe or (spec["provider"] == "claude-bridge" and spec.get("native_agent")
+                                  and spec.get("measurement_mode") == "direct"), "bash env probe requires Claude rg/direct")
     from .route_transport import READ_TOOL
     folder.mkdir(parents=True, exist_ok=False)
     inventory = read_json(Path(state["native_inventory"]))
@@ -355,7 +366,14 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
         from .pi_probe import tool_list_observer
         observer = tool_list_observer(tools, folder)
     credential = claude_auth.Credential("local-" + secrets.token_urlsafe(24)) if spec["provider"] == "claude-bridge" else None
-    provider = CaptureProvider(tools["node"], port=port, expected_auth=credential.token if credential else None)
+    credential_file = tempfile.NamedTemporaryFile(mode="w", dir=folder.parent, prefix=".probe-token-") if bash_env_probe else None
+    if credential_file:
+        credential_file.write(credential.token)
+        credential_file.flush()
+        path = Path(credential_file.name).absolute()
+        credential.paths = tuple(dict.fromkeys((str(path), str(path.resolve()))))
+    provider = CaptureProvider(tools["node"], port=port, expected_auth=credential.token if credential else None,
+                               bash_env_probe=bash_env_probe, forbidden_values=credential.redactions if credential else ())
     home = claude_auth.home_path(folder) if credential else None
     spec = dict(spec)
     if home:
@@ -385,7 +403,18 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
         (folder / "stderr.log").write_bytes(pi_client.redact(stderr, redactions))
         write_json(folder / "request.json", provider.requests)
         write_json(folder / "command.json", {"args": args, "cwd": str(cwd)})
-        require(process.returncode == 0 and len(provider.requests) == 1 and not provider.errors, "local request capture failed")
+        require(process.returncode == 0 and len(provider.requests) == (2 if bash_env_probe else 1) and not provider.errors,
+                "local provider request capture failed (summary/callback-failure behavior is not tested)")
+        bash_environment = None
+        if bash_env_probe:
+            from .core import read_jsonl
+            events = read_jsonl(folder / "events.jsonl")
+            calls = [e for e in events if e.get("type") == "tool_execution_start" and e.get("toolName") == "bash"]
+            ends = [e for e in events if e.get("type") == "tool_execution_end" and e.get("toolName") == "bash"]
+            require(len(calls) == len(ends) == 1 and calls[0].get("args") == {"command": "env"}
+                    and not ends[0].get("isError"), "provider probe did not execute bash env successfully")
+            require(any("HOME=" in text and "PATH=" in text for _, text in strings(ends[0].get("result"))), "bash env output missing")
+            bash_environment = {"requests": 2, "tool_succeeded": True, "credential_and_path_absent": True}
         body = provider.requests[0]
         violations = audit_request(body, inventory)
         env_canary = read_json(replay_path.with_suffix(".environment.json")) if relay else None
@@ -435,12 +464,14 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
                   "request": str(folder / "request.json"), "request_sha256": file_digest(folder / "request.json"),
                   "command": str(folder / "command.json"), "command_sha256": file_digest(folder / "command.json"),
                   "session_audit": session, "declared_tools": sorted(declared), "nested_catalog": nested,
-                  "description_delivery": descriptions,
+                  "description_delivery": descriptions, "bash_environment": bash_environment,
                   "oauth_header_matches": provider.auth_matches if credential else None, "mcp_environment_canary": env_canary, "hosted_model_requests": 0}
         write_json(folder / "audit.json", result)
         return result
     finally:
         provider.close()
+        if credential_file:
+            credential_file.close()
         if channel:
             channel.close()
         if process is not None:

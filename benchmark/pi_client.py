@@ -218,7 +218,8 @@ def baseline_boundary(native: dict, folder: Path) -> dict:
     # Basic shell/navigation utilities need no external Mach service lookup.
     text += "(deny lsopen)\n(deny appleevent-send)\n(deny mach-lookup)\n"
     # Other processes' names and arguments (products, harness, other slots) are not exploration targets.
-    text += "(deny process-info* (target others))\n(deny sysctl-read (sysctl-name-prefix \"kern.proc\"))\n"
+    # Seatbelt target "others" excludes same-group peers; deny all targets and allow self only.
+    text += "(deny process-info*)\n(allow process-info* (target self))\n(deny sysctl-read (sysctl-name-prefix \"kern.proc\"))\n"
     for name in sorted(METADATA | {".pi", ".claude"}):
         text += f"(deny file-read-data file-write* (subpath {json.dumps(str(source / name))}))\n"
     profile = folder / "pi-bash.sb"
@@ -338,7 +339,7 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
     is_claude = spec["provider"] == "claude-bridge"
     if is_claude:
         require(tools.get("bridge_child_env_api") == claude_auth.CHILD_ENV_CONTRACT,
-                "Claude bridge child-env API 행동 검증 증거가 필요합니다")
+                "Claude bridge API 존재/provider OAuth·도구 메타 검사 증거가 필요합니다 (summary·callback 실패 동작은 별도 검토)")
         credential = credential or claude_auth.read_token_file()
     else:
         require(credential is None, "Claude credentials cannot be used by GPT")
@@ -523,42 +524,6 @@ def cleanup_private(folder: Path, workspace: Path, provider: str, token: str | N
         result["complete"] = result["complete"] and not credential_leak
         return result
     return {"complete": True, "removed_project": None, "claude_json_modified_by_harness": False, "claude_persisted_tool_results": None}
-
-
-def cleanup_claude_project(workspace: Path, *, home: Path | None = None) -> dict:
-    """Delete only a harness-created session slug after every transcript is bound to the expected cwd."""
-    removed, persisted = None, None
-    real = unicodedata.normalize("NFC", str(workspace.resolve()))
-    slug = claude_project_slug(workspace)
-    projects = (home or Path(pwd.getpwuid(os.getuid()).pw_dir)).resolve() / ".claude/projects"
-    target = projects / slug
-    require(target.name == slug and target.parent == projects and not target.is_symlink(), "Claude residue 경로 오류")
-    persisted = {"count": 0, "bytes": 0}
-    if target.exists():
-        # A slug is lossy. Refuse deletion unless every session header observed binds to this cwd.
-        files = list(target.glob("*.jsonl"))
-        require(bool(files), "Claude residue workspace binding 없음")
-        for path in files:
-            require(not path.is_symlink() and path.stat().st_nlink == 1, "Claude residue session link 금지")
-            rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
-            cwds = {unicodedata.normalize("NFC", r["cwd"]) for r in rows if isinstance(r.get("cwd"), str)}
-            require(cwds == {real}, "Claude residue workspace binding 불일치")
-        # Count metadata only, after validating all session cwd bindings and before deleting this slug.
-        for path in files:
-            session = target / path.stem
-            results = session / "tool-results"
-            require(not session.is_symlink() and not results.is_symlink(), "Claude tool-results link 금지")
-            for result in results.rglob("*"):
-                require(not result.is_symlink(), "Claude tool-results link 금지")
-                if result.is_file():
-                    info = result.stat()
-                    require(info.st_nlink == 1, "Claude tool-results hard link 금지")
-                    persisted["count"] += 1
-                    persisted["bytes"] += info.st_size
-        shutil.rmtree(target)
-        removed = str(target)
-    return {"complete": True, "removed_project": removed, "claude_json_modified_by_harness": False,
-        "claude_persisted_tool_results": persisted}
 
 
 ARGS_PREVIEW_CHARS = 200  # pinned codemode previewArgs: JSON.stringify(args), longer text cut to 197 UTF-16 units + "..."
@@ -816,7 +781,7 @@ def usage(events: list[dict], *, terminal_complete: bool, evidence: str) -> dict
 
 def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     """No model/auth requests: execute canaries through the actual shell wrapper."""
-    from .isolation import canary_files, hidden_references
+    from .isolation import canary_files, hidden_references, kern_procargs_command, process_environment_observation
     from .settings import CACHE, RUNS
     folder.mkdir(parents=True, exist_ok=True)
     wrapper = shell_wrapper(value, folder)
@@ -835,6 +800,7 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
                  ("launchctl", "launchctl submit -l codemap-bench-canary-$$ -p /usr/bin/true", False),
                  ("process_list", "ps -ax", False),
                  ("process_table", process_table, False),
+                 ("process_environment", shlex.join(kern_procargs_command(os.getpid())), False),
                  ("private_paths", 'case "$TMPDIR $HOME $PATH" in *route-preparation*|*campaigns*|*codemap*|*bench*) exit 1;; esac', True),
                  ("coreutils", "set -e -o pipefail; bash --version; cat README.md | head -n 1 | grep . | sed -n 1p | awk \'{print}\' | wc -l; ls .; find . -maxdepth 1 -type f", True)]
         cases.extend((name, "cat " + shlex.quote(str(path)), False) for name, path in targets.items())
@@ -843,6 +809,8 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
             boundaries.append({"name": name, "exit_code": result.returncode, "expected_allowed": allowed,
                                "stderr": result.stderr.decode(errors="replace")})
             require((result.returncode == 0) == allowed, f"pi bash boundary 실패: {name}")
+            if name == "process_environment":
+                boundaries[-1].update(process_environment_observation(result))
     result = subprocess.run([str(wrapper), "-c", "env"], cwd=value["source"],
                             env={**os.environ, TOKEN_ENV: "STUB_SECRET", "PI_PARENT_SECRET": "STUB_SECRET"}, capture_output=True, timeout=10)
     require(result.returncode == 0 and b"STUB_SECRET" not in result.stdout and b"PI_" not in result.stdout,

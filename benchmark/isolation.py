@@ -139,7 +139,8 @@ def product_profile(ident: str, state: dict, artifact: dict, *, slot_tmp: Path) 
     text = _profile_text(reads, writes, port=port, unix_roots=unix, cbm=ident == "codebase-memory-mcp",
                          preparation_network=preparation_network)
     # Model-facing products cannot read credentials from another process environment via sysctl.
-    text += '(deny process-info* (target others))\n(deny sysctl-read (sysctl-name-prefix "kern.proc"))\n'
+    # Seatbelt target "others" excludes same-group peers; deny all targets and allow self only.
+    text += '(deny process-info*)\n(allow process-info* (target self))\n(deny sysctl-read (sysctl-name-prefix "kern.proc"))\n'
     # The profile is harness-owned, outside all product-writable roots.
     directory = source.parent / "isolation"
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -162,6 +163,28 @@ def wrap(launch: list[str], profile: dict) -> list[str]:
     require(file_digest(Path(profile["profile_path"])) == profile["profile_sha256"], "격리 profile hash 불일치")
     require(launch and Path(launch[0]).name != "sandbox-exec", "중첩 Seatbelt 금지")
     return ["/usr/bin/sandbox-exec", "-f", profile["profile_path"], *launch]
+
+
+def kern_procargs_command(parent_pid: int) -> list[str]:
+    """Read no buffer content: require KERN_PROCARGS2 to fail with EPERM, not an unrelated error."""
+    code = (f'$m=pack("i3",1,49,{parent_pid});$b="\\0"x1048576;$l=pack("Q",length($b));'
+            '$r=syscall(202,$m,3,$b,$l,0,0);$e=0+$!;'
+            'printf "{\\"return_code\\":%d,\\"errno\\":%d}\\n",$r,$e;'
+            'exit($r==0 ? 0 : $e==1 ? 1 : 2);')
+    return ["/usr/bin/perl", "-e", code]
+
+
+def process_environment_observation(result: subprocess.CompletedProcess) -> dict:
+    require(result.returncode == 1 and json.loads(result.stdout) == {"return_code": -1, "errno": 1},
+            "KERN_PROCARGS2 must be denied with EPERM")
+    return {"name": "process_environment", "sysctl": "KERN_PROCARGS2", "expected_allowed": False,
+            "exit_code": result.returncode, "errno": 1, "rejected": True}
+
+
+def probe_process_environment(profile: dict, source: Path) -> dict:
+    result = subprocess.run(wrap(kern_procargs_command(os.getpid()), profile), cwd=source,
+                            env=profile["env"], capture_output=True, timeout=10)
+    return {**process_environment_observation(result), "profile_sha256": profile["profile_sha256"]}
 
 
 def cbm_temporary_paths() -> set[Path]:

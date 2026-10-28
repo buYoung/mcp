@@ -45,7 +45,7 @@ def validate_npm_lock(manifest: dict, lock: dict, pins: dict) -> None:
             "Agent SDK native binary version mismatch")
 
 
-def require_publications() -> dict:
+def _publication_pins() -> dict:
     require(file_digest(routes.TARGETS / "targets.lock.json") == routes.TARGET_LOCK_SHA256, "pi tools lock 변경")
     pins = read_json(routes.TARGETS / "targets.lock.json")["pi_toolchain"]
     require(pins.get("status") == "published",
@@ -59,6 +59,11 @@ def require_publications() -> dict:
         require(file_digest(routes.TARGETS / name) == pins[key], "pi npm pin 변경")
     require(re.fullmatch(r"[0-9a-f]{64}", pins.get("node_modules_sha256") or "") is not None, "pi installation tree pin missing")
     validate_npm_lock(read_json(routes.TARGETS / "pi-package.json"), read_json(routes.TARGETS / "pi-package-lock.json"), pins)
+    return pins
+
+
+def require_publications() -> dict:
+    pins = _publication_pins()
     from .pi_probe import verify_behavior_proof
     verify_behavior_proof(pins)
     return pins
@@ -130,16 +135,53 @@ def pin_publications(versions: dict, integrities: dict) -> None:
     print(f"npm publication pins and coupled hashes updated; install evidence: {root}")
 
 
+def reprobe_publications() -> None:
+    """Refresh behavior evidence only; never resolve versions or accept a changed installation tree."""
+    from .tool_artifacts import clean_environment, installed_pi_tools, run_logged, tree_files
+    from .pi_probe import run_behavior_probe
+    require(platform.system() == "Darwin" and platform.machine() == "arm64", "pi reprobe requires darwin-arm64")
+    settings.require_neutral_cache()
+    pins = _publication_pins()  # Old behavior evidence may be stale; publication/integrity pins may not.
+    lock_path = routes.TARGETS / "targets.lock.json"
+    lock_hash = file_digest(lock_path)
+    lock = read_json(lock_path)
+    root = settings.CACHE / digest({"pi-reprobe": time.time_ns()})[:16]
+    root.mkdir(parents=True, exist_ok=False)
+    for source, target in (("pi-package.json", "package.json"), ("pi-package-lock.json", "package-lock.json")):
+        shutil.copyfile(routes.TARGETS / source, root / target)
+    env = clean_environment({"HOME": str(root / "home"), "npm_config_cache": str(root / "npm-cache"),
+                            "npm_config_userconfig": str(root / "user.npmrc"),
+                            "npm_config_globalconfig": str(root / "global.npmrc"), "npm_config_registry": "https://registry.npmjs.org/"})
+    Path(env["HOME"]).mkdir()
+    npm = shutil.which("npm")
+    require(npm is not None, "npm required")
+    run_logged([npm, "ci", "--ignore-scripts", "--no-audit", "--no-fund"], root, root / "install.log", env=env)
+    require(file_digest(root / "package.json") == pins["package_sha256"]
+            and file_digest(root / "package-lock.json") == pins["npm_lock_sha256"], "pi reprobe npm lock changed")
+    require(digest(tree_files(root / "node_modules")) == pins["node_modules_sha256"], "pi reprobe installation tree mismatch")
+    proof = run_behavior_probe(installed_pi_tools(root, pins), root / "node_modules", root / "behavior-probe")
+    require(file_digest(lock_path) == lock_hash
+            and file_digest(routes.TARGETS / "pi-package.json") == pins["package_sha256"]
+            and file_digest(routes.TARGETS / "pi-package-lock.json") == pins["npm_lock_sha256"], "pi publication lock changed during reprobe")
+    lock["pi_toolchain"]["behavior_probe"] = proof
+    lock_path.write_text(json.dumps(lock, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    refresh_hashes()
+    print(f"pi behavior evidence and coupled hashes refreshed; unchanged installation: {root}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="action", required=True)
     commands.add_parser("refresh-hashes")
+    commands.add_parser("reprobe")
     pin = commands.add_parser("pin")
     for flag in ("adapter-version", "adapter-integrity", "bridge-version", "bridge-integrity"):
         pin.add_argument("--" + flag, required=True)
     args = parser.parse_args()
     if args.action == "refresh-hashes":
         refresh_hashes()
+    elif args.action == "reprobe":
+        reprobe_publications()
     else:
         pin_publications({"mcp_adapter": args.adapter_version, "bridge": args.bridge_version},
                          {"mcp_adapter": args.adapter_integrity, "bridge": args.bridge_integrity})
