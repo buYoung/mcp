@@ -10,7 +10,7 @@
   "dataset": {
     "id": "grafana-routes-v4",
     "manifest_path": "../grafana-routes-v4/manifest.json",
-    "manifest_sha256": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
+    "manifest_sha256": "292c14c388436548cc5dfe5fd8c0e048240d0b9df001edc49e4c8a985a063ac4",
     "source": {
       "repository": "grafana/grafana",
       "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
@@ -19,9 +19,9 @@
   "subject": {
     "id": "codemap-search",
     "target_release": "1.0.0",
-    "version": "0.14.0",
-    "git_ref": "codemap-v0.14.0",
-    "commit": "fc0a368d0b37da44c5e2bc9df3617ef75b4891cb",
+    "version": "0.14.1",
+    "git_ref": "codemap-v0.14.1",
+    "commit": "f9a01a8e96c8b9b62cd280d37191b35c0ce6c2e7",
     "source_and_binary_pin_status": "release_source_frozen_binary_at_preparation"
   },
   "required_comparison_ids": [
@@ -351,7 +351,7 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "2026-10-28 사용자 결정: 풀이를 pi direct/codemode 두 모드로 복원한다. @buyong/pi-mcp-adapter와 결과 크기 수정 bridge는 npm 게시 대기이며 prepare는 실패-폐쇄한다. Agent SDK 0.3.311은 검증 소스의 pnpm lock과 일치시킨다.",
+  "revision_reason": "2026-10-28 사용자 결정: 풀이를 pi direct/codemode 두 모드로 복원하고 codemap-search 0.14.1을 git_ref로 고정한다. @buyong/pi-mcp-adapter와 결과 크기 수정 bridge는 npm 게시 대기이며 prepare는 실패-폐쇄한다. Agent SDK 0.3.311은 검증 소스의 pnpm lock과 일치시킨다.",
   "previous_lock_sha256": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
   "pi_toolchain": {
     "install_flags": [

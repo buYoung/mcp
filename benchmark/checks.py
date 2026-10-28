@@ -436,7 +436,7 @@ class BenchChecks(unittest.TestCase):
                     runner.execute_model(self.root / backend, "fixture", settings=spec)
         subject = routes.arm_contracts()[0]
         self.assertEqual((subject["version"], subject["git_ref"], subject["commit"]),
-                         ("0.14.0", "codemap-v0.14.0", "fc0a368d0b37da44c5e2bc9df3617ef75b4891cb"))
+                         ("0.14.1", "codemap-v0.14.1", "f9a01a8e96c8b9b62cd280d37191b35c0ce6c2e7"))
 
     def test_pi_codemode_extension_defaults_output_without_changing_description(self):
         from .pi_client import codemode_extension_source

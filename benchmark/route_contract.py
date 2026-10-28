@@ -10,8 +10,8 @@ from .core import digest, file_digest, read_json, require, write_json
 
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
-DATASET_MANIFEST_SHA256 = "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4"
-TARGET_LOCK_SHA256 = "64b3f0b18b16d82242d80f440f2c2312a386fbbd302e9bc50fb250858d1d6a7f"
+DATASET_MANIFEST_SHA256 = "292c14c388436548cc5dfe5fd8c0e048240d0b9df001edc49e4c8a985a063ac4"
+TARGET_LOCK_SHA256 = "5d0a785656cf77f0aedc84062e54807e41cc0277de624809890a2ae1fc320881"
 QUESTION_IDS = ("git-oauth-authorization", "plugin-http-route-bridge")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")
