@@ -612,7 +612,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
             "bash_content_truncated", "bash_nested_structured_content_truncated", "include_seen_true_calls")],
             row.get("claude_persisted_tool_results"))) + " |")
     lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",
-              "direct bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(기본 100,000토큰)의 절단은 별도로 셉니다."]
+              "direct bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(pi 기본값, 스크립트의 `// @options` 우선)의 절단은 별도로 셉니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
     return result
 

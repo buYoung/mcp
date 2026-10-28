@@ -571,7 +571,7 @@ class BenchChecks(unittest.TestCase):
                                  pi_client.server_instructions_prompt(server["instructions"]))
                 metadata = (folder / "pi-agent/delivery-meta.mjs").read_text()
                 self.assertIn('"read_mcp_resource": {"anthropic/maxResultSizeChars": 500000}', metadata)
-                self.assertEqual('"codemode": {"anthropic/maxResultSizeChars": 500000}' in metadata, mode == "codemode")
+                self.assertNotIn('"codemode"', metadata)
                 self.assertNotIn('"bash"', metadata)
                 self.assertEqual(read_json(folder / "pi-agent/settings.json").get("codemode"),
                                  {"mode": "only"} if mode == "codemode" else None)
@@ -589,30 +589,17 @@ class BenchChecks(unittest.TestCase):
                     runner.execute_model(self.root / backend, "fixture", settings=spec)
         subject = routes.arm_contracts()[0]
         self.assertEqual((subject["version"], subject["git_ref"], subject["commit"]),
-                         ("0.14.1", "codemap-v0.14.1", "f9a01a8e96c8b9b62cd280d37191b35c0ce6c2e7"))
+                         ("0.14.2", "codemap-v0.14.2", "9b29f397edb7a43f8f2ff0982492a09f7f50d4e5"))
 
-    def test_pi_codemode_extension_defaults_output_without_changing_description(self):
+    def test_pi_codemode_extension_keeps_native_execution_and_disables_models(self):
         from .pi_client import codemode_extension_source
         factory = self.root / "@earendil-works/pi-coding-agent/dist/extensions/codemode/index.js"
-        parser = self.root / "@earendil-works/pi-codemode/dist/source.js"
         factory.parent.mkdir(parents=True)
-        parser.parent.mkdir(parents=True)
         write_json(self.root / "package.json", {"type": "module"})
         factory.write_text('''export const createCodemodeExtension = options => pi => pi.registerTool({
   name: "codemode", description: "unchanged native description", parameters: {type: "object"},
-  execute: (...args) => args[1].code.includes('fail')
-    ? {isError: true, content: [{type: 'text', text: 'Script failed'}, {type: 'image'},
-       {type: 'text', text: 'printed codemode.js:9:1\\nScript error:\\nError: x\\n    at <anonymous> (codemode.js:3:1)'}]}
-    : {args, models: options.models}
+  execute: (...args) => ({args, models: options.models})
 });''')
-        parser.write_text('''export function parseCodemodeSource(input) {
-  if (input === "invalid") throw new Error("native parse error");
-  const newline = input.indexOf("\\n");
-  const directive = input.startsWith("// @options:");
-  const options = directive ? JSON.parse(input.slice(12, newline)) : {};
-  return {code: directive ? input.slice(newline) : input,
-          options: {maxOutputTokens: options.max_output_tokens, timeoutMs: options.timeout_ms}};
-}''')
         extension = self.root / "script-tools.mjs"
         extension.write_text(codemode_extension_source(factory))
         script = '''import assert from 'node:assert/strict';
@@ -621,27 +608,13 @@ let tool;
 extension({registerTool: value => {tool = value;}});
 assert.equal(tool.description, 'unchanged native description');
 assert.deepEqual(tool.parameters, {type:'object'});
-for (const options of [null, {timeout_ms:900}, {max_output_tokens:32, timeout_ms:700}, {max_output_tokens:0}]) {
+for (const options of [null, {timeout_ms:900}, {max_output_tokens:32}]) {
   const params = {code: (options ? '// @options: '+JSON.stringify(options)+'\\n' : '')+'text("sample");'};
   const result = await tool.execute('id', params, 'signal', 'update', 'context');
   assert.equal(result.models, false);
-  assert.deepEqual(result.args.slice(2), ['signal','update','context']);
-  if (options?.max_output_tokens !== undefined) assert.equal(result.args[1], params);
-  else {
-    const [header, ...body] = result.args[1].code.split('\\n');
-    const applied = JSON.parse(header.slice(12));
-    assert.equal(applied.max_output_tokens, 100000);
-    assert.equal(applied.timeout_ms, options?.timeout_ms);
-    // Script lines keep their positions when the model already wrote an options line.
-    assert.deepEqual(body, ['text("sample");']);
-  }
+  // No default options line is added; pi applies its own output budget.
+  assert.deepEqual(result.args, ['id', params, 'signal', 'update', 'context']);
 }
-const failed = await tool.execute('id', {code: 'fail();'});
-assert.equal(failed.content[2].text, 'printed codemode.js:9:1\\nScript error:\\nError: x\\n    at <anonymous> (codemode.js:2:1)');
-assert.deepEqual(failed.content.slice(0, 2), [{type: 'text', text: 'Script failed'}, {type: 'image'}]);
-const explicit = await tool.execute('id', {code: '// @options: {"timeout_ms":5}\\nfail();'});
-assert.match(explicit.content[2].text, /codemode\\.js:3:1/);
-assert.throws(() => tool.execute('id', {code:'invalid'}), /native parse error/);
 ''' % json.dumps(extension.as_uri())
         result = subprocess.run(["node", "--input-type=module"], input=script, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)

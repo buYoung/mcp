@@ -10,7 +10,7 @@
   "dataset": {
     "id": "grafana-routes-v4",
     "manifest_path": "../grafana-routes-v4/manifest.json",
-    "manifest_sha256": "292c14c388436548cc5dfe5fd8c0e048240d0b9df001edc49e4c8a985a063ac4",
+    "manifest_sha256": "b292a2a3979c063d65d6df2c4ba86fef420604f0f617104d6d80399257fef8bf",
     "source": {
       "repository": "grafana/grafana",
       "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
@@ -19,9 +19,9 @@
   "subject": {
     "id": "codemap-search",
     "target_release": "1.0.0",
-    "version": "0.14.1",
-    "git_ref": "codemap-v0.14.1",
-    "commit": "f9a01a8e96c8b9b62cd280d37191b35c0ce6c2e7",
+    "version": "0.14.2",
+    "git_ref": "codemap-v0.14.2",
+    "commit": "9b29f397edb7a43f8f2ff0982492a09f7f50d4e5",
     "source_and_binary_pin_status": "release_source_frozen_binary_at_preparation"
   },
   "required_comparison_ids": [
@@ -351,7 +351,7 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "2026-10-28 사용자 결정: 풀이를 pi direct/codemode 두 모드로 복원하고 codemap-search 0.14.1을 git_ref로 고정한다. @buyong/pi-mcp-adapter와 결과 크기 수정 bridge는 npm 게시 대기이며 prepare는 실패-폐쇄한다. Agent SDK 0.3.311은 검증 소스의 pnpm lock과 일치시킨다.",
+  "revision_reason": "pi npm 게시물 고정 및 loopback 행동 검증 완료: @buyong/pi-mcp-adapter@0.1.2, @buyong/pi-claude-bridge@0.14.0; private HOME/child-env API, 결과 메타, codemode 노출을 설치 tree에 결합. 실제 모델 실행 승인은 별도.",
   "previous_lock_sha256": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
   "pi_toolchain": {
     "install_flags": [
@@ -360,42 +360,47 @@
       "--no-audit",
       "--no-fund"
     ],
-    "node_modules_sha256": null,
+    "node_modules_sha256": "2c3d39f1fb7309d70853e017ecda0176aaeef40903af22b1b3d39a17415db8b2",
     "node_policy": "Host node: record canonical path, version and SHA256; verify on reuse.",
-    "npm_lock_sha256": "3a35892af845ac8e33ffe8fb3e9c647d89bff359e86d7520a595f33188b16eea",
-    "package_sha256": "b10ae4b73225d0ddf427421557627bc296c676f5f8681ac23b05aa578a4497f8",
+    "npm_lock_sha256": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
+    "package_sha256": "1b72008fa9a46b091607e4be84f35cfae29c5447e013ade7cb809538bedc4f42",
     "packages": {
       "agent_sdk": "@anthropic-ai/claude-agent-sdk@0.3.311",
-      "bridge": null,
+      "bridge": "@buyong/pi-claude-bridge@0.14.0",
       "pi": "@earendil-works/pi-coding-agent@1.4.0",
-      "mcp_adapter": null
+      "mcp_adapter": "@buyong/pi-mcp-adapter@0.1.2"
     },
     "platform": "darwin-arm64",
     "versions": {
       "agent_sdk": "0.3.311",
-      "bridge": null,
+      "bridge": "0.14.0",
       "claude_code": "2.1.311",
       "pi": "1.4.0",
-      "mcp_adapter": null
+      "mcp_adapter": "0.1.2"
     },
     "publications": {
       "bridge": {
-        "integrity": null,
         "name": "@buyong/pi-claude-bridge",
-        "version": null
+        "version": "0.14.0",
+        "integrity": "sha512-XuzxtcGuFryj9Kttx2+jvQ5Sr4xJOgR02kYzATi1Gwr/Z9Tzsb2fL5W1J4ZjNAndJrzJKbZklCcXpM70R3bTVA=="
       },
       "mcp_adapter": {
-        "integrity": null,
         "name": "@buyong/pi-mcp-adapter",
-        "version": null
+        "version": "0.1.2",
+        "integrity": "sha512-FKWX00BZu0t0379PLagqTSosPOcC+ARyxzSbXoepfNmNBQZyxAXf3XA3uHvHiWgb+4zh2pBVkduI9rhOqo1JxA=="
       }
     },
-    "status": "pending_publication",
+    "status": "published",
     "validation_source": {
       "branch": "refactor/pi-mcp-adapter-effect-v4",
       "commit": "e051582b05b67596f3235c0f69fe5a41dfe81bf0",
       "policy": "source tarballs are scratch-only validation inputs; never accepted by preparation",
       "repository": "buYoung/pi-packages"
+    },
+    "behavior_probe": {
+      "path": "/Volumes/Samsung_990_PRO/wsv4/b2ad0f1cb98d4b00/behavior-probe/result.json",
+      "sha256": "697591e7f6db4c4a3e3f0355e805b0dc22e896e0b097dadde13678a6818903cb",
+      "node_modules_sha256": "2c3d39f1fb7309d70853e017ecda0176aaeef40903af22b1b3d39a17415db8b2"
     }
   }
 }

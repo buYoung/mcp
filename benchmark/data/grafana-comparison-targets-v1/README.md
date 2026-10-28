@@ -1,6 +1,6 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-2026-10-28 **개정 9**다. 외부 비교군 6개의 버전·소스는 개정 8과 같다. 풀이를 pi direct/codemode(모델당 84슬롯)로 되돌리고, 평가 제품을 codemap-search 0.14.1로 고정한다. `previous_lock_sha256`은 Git 이력에 보존된 개정 8을 가리킨다. 새 `@buyong/pi-mcp-adapter`와 결과 크기 수정 bridge의 npm 버전·integrity는 **게시 대기(null)**이며 prepare는 이전 설치물이나 scratch tarball로 우회할 수 없다. 제품 설정은 기본값이다.
+2026-10-28 **개정 9**다. 외부 비교군 6개의 버전·소스는 개정 8과 같다. 풀이를 pi direct/codemode(모델당 84슬롯)로 되돌리고, 평가 제품을 codemap-search 0.14.2로 고정한다. `previous_lock_sha256`은 Git 이력에 보존된 개정 8을 가리킨다. 새 `@buyong/pi-mcp-adapter`와 child-env API를 넣은 `@buyong/pi-claude-bridge`는 `pi_lock pin`으로 npm 버전·integrity를 고정하며 prepare는 이전 설치물이나 scratch tarball로 우회할 수 없다. 제품 설정은 기본값이다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -13,7 +13,7 @@
 
 - CodeGraph는 사용자가 선택한 공식 `@colbymchenry/codegraph` Node 구현이다. zvec-grep은 `@zvec/zvec-grep` Node 구현이다. zvec 0.2.2에는 GitHub Release가 없으므로 release URL/ID/시각은 `null`이다. GitHub latest의 오래된 0.2.0 메타데이터를 빌려 쓰지 않는다.
 - Graphify는 공식 `Graphify-Labs/graphify`의 `graphifyy` Python 구현이다. `v1.0.0`은 2026-04-05의 과거 release이며 PyPI에는 없다. 현재 upstream latest와 PyPI가 일치하는 0.9.95를 선택했다.
-- 평가 제품 codemap-search는 작업 트리가 아니라 `codemap-v0.14.1` (`f9a01a8e96c8b9b62cd280d37191b35c0ce6c2e7`)의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.14.1**이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
+- 평가 제품 codemap-search는 작업 트리가 아니라 `codemap-v0.14.2` (`9b29f397edb7a43f8f2ff0982492a09f7f50d4e5`)의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.14.2**이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
 
 ## 데이터셋 연결
 

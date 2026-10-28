@@ -590,7 +590,7 @@ def publish_delivery() -> dict:
         "client_identity": "forward the actual initialize clientInfo and capabilities",
         "client_limits": {"pi": agent,
                           "history_limit": None, "history_limit_reason": "Client default has not been measured with a live model.",
-                          "harness_override": "adapter maxOutputBytes >= product budget", "code_mode_budget": pi_client.CODEMODE_MAX_OUTPUT_TOKENS},
+                          "harness_override": "adapter maxOutputBytes >= product budget", "code_mode_budget": "pi default; script // @options wins"},
         "raw_relay_checks": {"status": "passed", "probe": "rg over a copied harness source file",
                              "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
                              "stdout_bytes": len(original.stdout), "stdout_lines": len(original.stdout.splitlines()),

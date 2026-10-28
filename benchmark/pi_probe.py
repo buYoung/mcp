@@ -116,8 +116,10 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
                                           bash_env_probe=env_probe)
                 require(result["passed"], "installed pi first-request/codemode audit failed")
                 actual = bridge_tools(folder)
-                expected = 500000 if mode == "codemode" or arm not in {"codemap-search", "rg"} else 100000 if arm == "codemap-search" else 52224
-                require(actual and all(t.get("_meta", {}).get("anthropic/maxResultSizeChars") == expected for t in actual.values()),
+                # pi tools (rg bash, codemode) keep the bridge default; product tools keep or fill their own budget.
+                expected = {name: 52224 if name == "codemode" or arm == "rg" else 100000 if arm == "codemap-search" else 500000
+                            for name in actual}
+                require(actual and all(t.get("_meta", {}).get("anthropic/maxResultSizeChars") == expected[name] for name, t in actual.items()),
                         "installed bridge result-size metadata mismatch")
                 if arm == "codemap-search" and mode == "direct":
                     require(actual["mcp__navigation__read"]["_meta"].get("vendor/test") == "preserved", "product metadata was not preserved")

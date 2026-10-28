@@ -74,4 +74,4 @@ shasum -a 256 -c SHA256SUMS
 
 계획은 모델당 **2문항 × 7비교군 × 3회 × 2모드 = 84슬롯**(모드별 42)이다. 계획은 실행 승인이 아니다. `execution_contract.status=not_frozen`이며 독립 내용 리뷰와 하네스 source commit·question ID·manifest/target-lock 결합은 후속 게이트다.
 
-평가 제품은 codemap-search **0.14.1**, 로컬 태그 `codemap-v0.14.1`(`f9a01a8e96c8b9b62cd280d37191b35c0ce6c2e7`)의 `git_ref` 스냅샷이다. pi direct/codemode 두 모드에 같은 initialize 안내 전문을 전달한다. 0.14.0 대비 서버 안내 끝에 병렬 호출 문단을 두 번 추가했다. 문항·정답·고정 Grafana 소스는 변경하지 않았다. 새 adapter·bridge의 npm 게시 고정 전에는 prepare가 중단된다.
+평가 제품은 codemap-search **0.14.2**, 로컬 태그 `codemap-v0.14.2`(`9b29f397edb7a43f8f2ff0982492a09f7f50d4e5`)의 `git_ref` 스냅샷이다. pi direct/codemode 두 모드에 같은 initialize 안내 전문을 전달한다. 0.14.1에서 서버 안내 끝에 병렬 호출 문단을 두 번 추가했고, 0.14.2는 안내를 바꾸지 않고 도구 목록에 pi 출력 한도 메타데이터를 추가했다. 문항·정답·고정 Grafana 소스는 변경하지 않았다. 새 adapter·bridge의 npm 게시 고정 전에는 prepare가 중단된다.

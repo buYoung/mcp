@@ -21,7 +21,6 @@ TOKEN_ENV = "CODEMAP_BENCH_PI_TOKEN"
 NATIVE_TOOLS = ("bash",)
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
 NAVIGATION_SERVER = "navigation"
-CODEMODE_MAX_OUTPUT_TOKENS = 100000
 # Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
 # Keep the approved Serena allowance (originally sized for text + structuredContent in adapter 7).
 from .client_delivery import (PRODUCT_TEXT_BYTES as OUTPUT_GUARD_BYTES, DEFAULT_TEXT_BYTES,
@@ -185,10 +184,10 @@ def capabilities(*, toolchain: dict | None = None) -> dict:
             "node_path": tools["node"], "node_sha256": tools["node_sha256"], "required_flags": flags,
             "auth": "runtime only; operator token/Claude login not exercised during preparation",
             "model_free_probes": probes, "model_invocations": 0,
-            "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi bash default; codemode default output 100000 tokens unless script specifies",
+            "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi bash default; pi codemode default output unless the script's // @options line sets it",
                          "mcp_client": f"@buyong/pi-mcp-adapter {tools['versions']['mcp_adapter']}; private mcp.json; explicit exposure/timeout/output guard",
                          "mcp_output_guard": {"default": DEFAULT_TEXT_BYTES, "per_arm_bytes": OUTPUT_GUARD_BYTES},
-                         "claude_result_chars": {"missing_product_meta": CLAUDE_PRODUCT_CHARS, "codemode": CLAUDE_PRODUCT_CHARS,
+                         "claude_result_chars": {"missing_product_meta": CLAUDE_PRODUCT_CHARS, "codemode": "bridge default (52224)",
                                                  "native_bash": "bridge default (52224)"}}}
 
 
@@ -283,37 +282,9 @@ def shell_main(config_path: str, args: list[str]) -> None:
 
 
 def codemode_extension_source(factory: Path) -> str:
-    """Wrap execution only; retain pinned parsing, tool descriptions and explicit script options."""
-    parser = factory.parents[4] / "pi-codemode/dist/source.js"
+    """Pinned codemode without the models API; description, parsing and output budget stay native."""
     return ("import {createCodemodeExtension} from " + json.dumps(str(factory)) + ";\n"
-            "import {parseCodemodeSource} from " + json.dumps(str(parser)) + ";\n"
-            "const defaultMaxOutputTokens = " + str(CODEMODE_MAX_OUTPUT_TOKENS) + ";\n" + """
-// A prepended options line moves VM positions down one line; restore them in pi's error section only,
-// never in script output.
-const errorMarker = "Script error:\\n";
-const restoreLine = (text) => {
-  const start = text.lastIndexOf(errorMarker);
-  return start < 0 ? text : text.slice(0, start) + text.slice(start).replace(/codemode\\.js:(\\d+)/g,
-    (_, line) => `codemode.js:${Math.max(1, Number(line) - 1)}`);
-};
-const restoreResult = (result) => !result.isError ? result : {...result, content: (result.content ?? []).map((block) =>
-  block.type === "text" ? {...block, text: restoreLine(block.text)} : block)};
-export default (pi) => createCodemodeExtension({models:false})({
-  ...pi,
-  registerTool(tool) {
-    pi.registerTool({...tool, execute(toolCallId, params, ...rest) {
-      const {code, options} = parseCodemodeSource(params.code);
-      if (options.maxOutputTokens !== undefined) return tool.execute(toolCallId, params, ...rest);
-      const defaults = {max_output_tokens: defaultMaxOutputTokens};
-      if (options.timeoutMs !== undefined) defaults.timeout_ms = options.timeoutMs;
-      const header = '// @options: ' + JSON.stringify(defaults);
-      // An existing options line: the pinned parser keeps its newline in code, so positions stay native.
-      if (code !== params.code) return tool.execute(toolCallId, {...params, code: header + code}, ...rest);
-      return Promise.resolve(tool.execute(toolCallId, {...params, code: header + '\\n' + params.code}, ...rest)).then(restoreResult);
-    }});
-  },
-});
-""")
+            "export default createCodemodeExtension({models:false});\n")
 
 
 def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dict | None = None,
@@ -368,7 +339,7 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
     args = [tools["node"], tools["pi_cli"], *PRIVATE_FLAGS, "--provider", provider, "--model", spec["model"],
             "--thinking", spec["reasoning_effort"], "--session-dir", str(sessions)]
     if mode == "codemode":
-        # Built-in is replaceable; wrap its executor without changing the model-visible description.
+        # Built-in is replaceable; only the models API is turned off.
         extension = agent / "script-tools.mjs"
         factory = Path(tools["pi_cli"]).parent / "extensions/codemode/index.js"
         extension.write_text(codemode_extension_source(factory))
@@ -410,8 +381,6 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
         write_json(agent / "claude-bridge.json", {"provider": {"pathToClaudeCodeExecutable": tools["claude_code_binary"]}}, exclusive=True)
         metadata = {name: {CLAUDE_RESULT_META: CLAUDE_PRODUCT_CHARS}
                     for name in (resource_tools if relay_settings else [])}
-        if mode == "codemode":
-            metadata["codemode"] = {CLAUDE_RESULT_META: CLAUDE_PRODUCT_CHARS}
         meta_extension = agent / "delivery-meta.mjs"
         meta_extension.write_text("export default pi => pi.events.on('tool-meta', request => {\n"
                                   "  if (typeof request?.reply === 'function') request.reply(" + json.dumps(metadata) + ");\n});\n")
@@ -430,10 +399,9 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
     write_json(folder / "pi-policy.json", {"toolchain": tools, "provider": provider, "flags": PRIVATE_FLAGS,
         "requested_model": requested_model(provider, spec["model"]), "measurement_mode": mode,
         "codemode_models": False if mode == "codemode" else None,
-        "codemode_default_max_output_tokens": CODEMODE_MAX_OUTPUT_TOKENS if mode == "codemode" else None,
+        "codemode_output_budget": "pi default; the script's // @options line wins" if mode == "codemode" else None,
         "claude_result_meta": {"product": "preserve native _meta; fill absent anthropic/maxResultSizeChars with 500000",
-                               "codemode": CLAUDE_PRODUCT_CHARS if mode == "codemode" else None,
-                               "codemode_reason": "shared 100000-token script output budget; scripts can combine several product results",
+                               "codemode": "bridge default (52224)" if mode == "codemode" else None,
                                "resources": CLAUDE_PRODUCT_CHARS if relay_settings else None,
                                "native_bash": "bridge default (52224)"} if provider == "claude-bridge" else None,
         "mcp_client": ({"extension": "@buyong/pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"],
