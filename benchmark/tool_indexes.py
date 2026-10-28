@@ -14,7 +14,7 @@ import tomllib
 from pathlib import Path
 
 from . import route_contract as routes, settings
-from .tool_artifacts import cli_toolchain, clean_environment, load_artifacts, run_logged, tree_files
+from .tool_artifacts import clean_environment, load_artifacts, run_logged, tree_files
 from .core import command, digest, file_digest, read_json, read_jsonl, require, write_json
 from .runner import copy_source
 
@@ -436,22 +436,21 @@ def probe_configuration(ident: str, state: dict, artifacts: dict) -> dict:
 
 def probe_inputs(state: dict, artifacts: dict) -> dict:
     """Bind evidence to the settings/code actually probed, before publishing a new handoff."""
-    backend = state.get("agent_backend", "codex")
+    backend = state.get("agent_backend", "pi")
     from .pi_client import capabilities
     agent = capabilities() if backend == "pi" else None
     return {"contract_hash": routes.contract()["contract_hash"], "artifact_sha256": digest(artifacts[state["id"]]),
-            "agent_backend": backend, "agent_version": agent["versions"] if agent else cli_toolchain(),
+            "agent_backend": backend, "agent_version": agent["versions"] if agent else command(["claude" if backend == "claude_code" else "codex", "--version"]).strip(),
             "pi_lock_sha256": agent["lock_sha256"] if agent else None,
             "pi_toolchain_sha256": agent["toolchain_sha256"] if agent else None,
             "source_sha256": state["source_sha256"], "baseline": state["baseline"],
             "configuration": probe_configuration(state["id"], state, artifacts),
-            "codex_version": None if agent else command([cli_toolchain()["codex"], "--version"]).strip(),
+            "codex_version": None if agent else command(["codex", "--version"]).strip(),
             "implementation_hashes": routes.implementation_hashes([
                 "benchmark/tool_indexes.py", "benchmark/route_transport.py", "benchmark/native_baseline.py",
                 "benchmark/tool_artifacts.py", "benchmark/serena_support.py", "benchmark/route_prepare.py", "benchmark/runner.py",
                 "benchmark/responses.py", "benchmark/core.py", "benchmark/settings.py", "benchmark/usage.py", "benchmark/claude_client.py",
-                "benchmark/codex_client.py", "benchmark/cli_shell.py", "benchmark/client_delivery.py",
-                "benchmark/pi_client.py", "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"])}
+                "benchmark/pi_client.py", "benchmark/pi_audit.py", "benchmark/pi_lock.py", "benchmark/client_delivery.py", "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"])}
 
 
 def verify_probe(state: dict, artifacts: dict) -> None:
@@ -483,17 +482,17 @@ def probe_output_digest(state: dict) -> str:
         "auxiliary_necessity", "probes", "cleanup", "reset", "prepared_index_ready", "warmup_policy", "isolation")})
 
 
-def ready_path(ident: str, backend="codex") -> Path:
+def ready_path(ident: str, backend="pi") -> Path:
     require(backend in {"codex", "claude_code", "pi"}, "지원하지 않는 조회 실행기")
     return workspace_root(ident) / ({"codex": "ready.json", "claude_code": "ready-claude.json", "pi": "ready-pi.json"}[backend])
 
 
-def index_handoff(backend="codex") -> str:
+def index_handoff(backend="pi") -> str:
     require(backend in {"codex", "claude_code", "pi"}, "지원하지 않는 조회 실행기")
     return {"codex": "04-indexes.json", "claude_code": "04-indexes-claude.json", "pi": "04-indexes-pi.json"}[backend]
 
 
-def probe_is_current(ident: str, backend="codex") -> bool:
+def probe_is_current(ident: str, backend="pi") -> bool:
     path = ready_path(ident, backend)
     if not path.exists():
         return False
@@ -509,7 +508,7 @@ def verify_native_probe(ident: str, name: str, result: dict, state: dict | None 
     assert_ready(ident, name, result, state)
 
 
-def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
+def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
     import threading
     from . import readiness, isolation
     from .execution import ProcessRegistry
@@ -588,7 +587,7 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
     return result
 
 
-def publish_indexes(backend="codex") -> dict:
+def publish_indexes(backend="pi") -> dict:
     corpus = read_json(CORPUS)
     verify_source_inventory(Path(corpus["source"]), corpus["files"])
     artifacts = load_artifacts(verify=False)
@@ -609,8 +608,7 @@ def publish_indexes(backend="codex") -> dict:
                             "evidence_ranges": corpus["verified_excerpts"]},
         "prepared_states": states, "solver_runs": 0, "grader_runs": 0},
         implementation=["benchmark/tool_indexes.py", "benchmark/native_baseline.py", "benchmark/route_transport.py", "benchmark/claude_client.py",
-                        "benchmark/codex_client.py", "benchmark/cli_shell.py", "benchmark/client_delivery.py",
-                        "benchmark/pi_client.py", "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"],
+                        "benchmark/pi_client.py", "benchmark/pi_audit.py", "benchmark/pi_lock.py", "benchmark/client_delivery.py", "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"],
         dependencies=["02-delivery.json", "03-artifacts.json"])
 
 

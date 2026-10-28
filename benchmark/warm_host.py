@@ -180,7 +180,7 @@ class WarmSession:
                     self._remaining()
                     start = time.monotonic()
                     self.initialized = self.relay.initialize({"protocolVersion": "2025-03-26", "capabilities": {},
-                        "clientInfo": {"name": "codex-mcp-client" if self.backend == "codex" else "claude-code" if self.backend == "claude_code" else "pi", "version": "preparation-probe"}})
+                        "clientInfo": {"name": "pi" if self.backend == "pi" else "readiness-probe", "version": "1"}})
                     initialized_seconds = time.monotonic() - start
                     self._register_groups()
                     self.inventory = self.relay.product.list_tools()
@@ -302,7 +302,8 @@ class WarmSession:
                 "cwd": str(settings.REPOSITORY), "env": {"PYTHONPATH": str(settings.REPOSITORY), "PYTHONDONTWRITEBYTECODE": "1",
                     "CODEMAP_BENCH_CACHE": str(settings.CACHE)}, "required": True,
                 "startup_timeout_sec": 120, "tool_timeout_sec": 300, "enabled_tools": self.relay_settings["enabled_tools"],
-                "instructions": self.initialized.get("instructions") or ""}
+                "instructions": self.initialized.get("instructions") or "",
+                "capabilities": self.initialized.get("capabilities", {})}
 
     def open_solver_gate(self, start: float):
         require(self.receipt is not None and self.receipt["ready_at"] <= start <= time.monotonic(), "solver clock precedes ready")
@@ -394,9 +395,8 @@ class WarmSession:
                             expected = "pi" if self.backend == "pi" else "claude" if self.backend == "claude_code" else "codex"
                             require(expected in info.get("name", "").lower(), "unexpected MCP client identity")
                             result = self.relay.initialize(params)  # Actual clientInfo/capabilities/protocol, never cached.
-                            if (result.get("instructions") or "") != (self.initialized.get("instructions") or ""):
-                                self.errors.append("live server instructions differ from prepared instructions")
-                                raise ValueError(self.errors[-1])
+                            require((result.get("instructions") or "") == (self.initialized.get("instructions") or ""),
+                                    "attached server instructions changed")
                             if self.ident == "zvec-grep":
                                 product = self.relay.product
                                 require(product.session_id and product.session_id != self.session_reset["deleted_session_id"]

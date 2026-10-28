@@ -22,31 +22,28 @@ PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-
 NAVIGATION_SERVER = "navigation"
 CODEMODE_MAX_OUTPUT_TOKENS = 100000
 # Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
-# Serena's 150k Unicode characters appear in both text and appended structuredContent.
-from .client_delivery import PRODUCT_TEXT_BYTES as OUTPUT_GUARD_BYTES
-ADAPTER_SETTINGS = {"semanticSearch": False, "allowInstall": False, "allowScriptToolSave": False, "autoAuth": False,
-                    "sampling": False, "elicitation": False, "requestTimeoutMs": 300000,
-                    "outputGuard": {"maxBytes": 1024 * 1024, "maxLines": 1024 * 1024 + 1}}
-# The warm-host shim accepts one connection. "keep-alive" also connects at extension load and again for the
-# session, so the second connection fails; "lazy-keep-alive" connects once at session start and stays connected.
-# Tools are declared directly instead of through `mcp`.
-ADAPTER_SERVER = {"lifecycle": "lazy-keep-alive", "directTools": True}
+# Keep the approved Serena allowance (originally sized for text + structuredContent in adapter 7).
+from .client_delivery import (PRODUCT_TEXT_BYTES as OUTPUT_GUARD_BYTES, DEFAULT_TEXT_BYTES,
+                              CLAUDE_RESULT_META, CLAUDE_PRODUCT_CHARS)
+ADAPTER_SETTINGS = {"autoEnableCodemode": False, "maxOutputBytes": DEFAULT_TEXT_BYTES}
+ADAPTER_SERVER = {"timeout": 300}
+RESOURCE_TOOLS = ("list_mcp_resources", "list_mcp_resource_templates", "read_mcp_resource")
 
 
 def adapter_settings(arm: str) -> dict:
-    maximum = OUTPUT_GUARD_BYTES.get(arm, ADAPTER_SETTINGS["outputGuard"]["maxBytes"])
-    return {**ADAPTER_SETTINGS, "outputGuard": {"maxBytes": maximum, "maxLines": maximum + 1}}
+    require(arm in OUTPUT_GUARD_BYTES, "unknown product output guard")
+    return {**ADAPTER_SETTINGS, "maxOutputBytes": OUTPUT_GUARD_BYTES[arm]}
 
 
 def navigation_tool_names(name: str) -> set[str]:
-    # Deferred adapter tools use the same server/relay as direct aliases.
-    return {navigation_tool_name(name), f"mcp__{NAVIGATION_SERVER}__{name}"}
+    return {navigation_tool_name(name)}
 
 
 def navigation_tool_name(name: str) -> str:
-    """pi-mcp-adapter 7.0.0 formatToolName with the default "server" prefix."""
-    sanitized, prefix = name.replace(".", "_"), NAVIGATION_SERVER + "_"
-    return sanitized if sanitized.startswith(prefix) and len(sanitized) > len(prefix) else prefix + sanitized
+    # The pinned inventories use only plain MCP names; fail rather than guess sanitized/hash aliases.
+    import re
+    require(re.fullmatch(r"[A-Za-z0-9_-]+", name) is not None, "unsupported MCP tool name")
+    return f"mcp__{NAVIGATION_SERVER}__{name}"
 
 
 def server_instructions_prompt(instructions: str) -> str:
@@ -161,26 +158,22 @@ def capabilities() -> dict:
         write_models(agent, "openai-codex")
         env = environment(agent_dir=agent, tmp=root, provider="openai-codex", token="model-free-dummy")
         probes = {}
-        adapter_config = root / "mcp-adapter.json"
-        write_json(adapter_config, {"settings": ADAPTER_SETTINGS, "mcpServers": {}})
+        write_json(agent / "mcp.json", {**ADAPTER_SETTINGS, "mcpServers": {}})
         for name, args in (("help", [*PRIVATE_FLAGS, "--help"]),
                            ("models", [*PRIVATE_FLAGS, "-e", tools["bridge_extension"], "--list-models"]),
-                           ("mcp_adapter_help", [*PRIVATE_FLAGS, "-e", tools["mcp_adapter_extension"],
-                                                 "--mcp-config", str(adapter_config), "--help"]),
+                           ("mcp_adapter_help", [*PRIVATE_FLAGS, "-e", tools["mcp_adapter_extension"], "--help"]),
                            ("private_auth_reference", ["auth", "check", "--provider", "openai-codex"])):
             result = subprocess.run([tools["node"], tools["pi_cli"], *args], cwd=root,
-                                    env={**env, "PI_MCP_CONFIG_MODE": "exclusive"} if name == "mcp_adapter_help" else env,
-                                    capture_output=True, text=True, timeout=60)
+                                    env=env, capture_output=True, text=True, timeout=60)
             require(result.returncode == 0, f"model-free pi probe 실패: {name}")
-            # The temporary config path differs per call; the recorded argv must stay comparable.
-            recorded = ["<temporary>/mcp-adapter.json" if arg == str(adapter_config) else arg for arg in args]
-            probes[name] = {"args": recorded, "exit_code": result.returncode, "output": result.stdout + result.stderr}
+            require("Failed to load extension" not in result.stderr, "pi extension load 실패")
+            probes[name] = {"args": args, "exit_code": result.returncode, "output": result.stdout + result.stderr}
         help_text = probes["help"]["output"]
         models = {tuple(line.split()[:2]) for line in probes["models"]["output"].splitlines()}
         require({("openai-codex", "gpt-6.1-sol"), ("openai-codex", "gpt-6-astra"),
                  ("claude-bridge", "claude-opus-5-5")} <= models, "pinned pi 모델 목록 누락")
         require(probes["private_auth_reference"]["output"].strip() == "ready", "private pi auth reference 오류")
-        require("--mcp-config" in probes["mcp_adapter_help"]["output"], "pi-mcp-adapter 로드 실패")
+        require("--no-mcp" in probes["mcp_adapter_help"]["output"], "pi MCP option 누락")
     flags = ["--no-tools", "--no-mcp", "--no-extensions", "--no-approve", "--offline", "--session-dir", "--thinking"]
     require(all(flag in help_text for flag in flags), "pi 실행 옵션 누락")
     return {"backend": BACKEND, "version": tools["versions"]["pi"], "versions": tools["versions"],
@@ -189,8 +182,10 @@ def capabilities() -> dict:
             "auth": "runtime only; operator token/Claude login not exercised during preparation",
             "model_free_probes": probes, "model_invocations": 0,
             "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi bash default; codemode default output 100000 tokens unless script specifies",
-                         "mcp_client": f"pi-mcp-adapter {tools['versions']['mcp_adapter']} defaults except {sorted(ADAPTER_SETTINGS)}",
-                         "mcp_output_guard": {"default": ADAPTER_SETTINGS["outputGuard"], "per_arm_bytes": OUTPUT_GUARD_BYTES}}}
+                         "mcp_client": f"@buyong/pi-mcp-adapter {tools['versions']['mcp_adapter']}; private mcp.json; explicit exposure/timeout/output guard",
+                         "mcp_output_guard": {"default": DEFAULT_TEXT_BYTES, "per_arm_bytes": OUTPUT_GUARD_BYTES},
+                         "claude_result_chars": {"missing_product_meta": CLAUDE_PRODUCT_CHARS, "codemode": CLAUDE_PRODUCT_CHARS,
+                                                 "native_bash": "bridge default (52224)"}}}
 
 
 def configuration(source: Path, rg_binary: Path) -> dict:
@@ -320,7 +315,8 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
            local_endpoint: str | None = None, local_home: Path | None = None) -> tuple[list[str], Path, dict]:
     from .tool_artifacts import pi_toolchain
     tools = pi_toolchain()
-    require(tools["versions"]["mcp_adapter"] == "7.0.0", "pi-mcp-adapter 7.0.0 lock required")
+    require(Path(tools["mcp_adapter_extension"]).name == "pi-mcp-adapter"
+            and Path(tools["mcp_adapter_extension"]).parent.name == "@buyong", "scoped MCP adapter lock required")
     folder = folder.resolve()
     native = spec.get("native_agent")
     workspace = Path(native["source"]) if native else private_root(folder) / "work"
@@ -352,12 +348,17 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     instructions = None
     if relay_settings:
         require(server is not None, "pi MCP requires warm-host attachment")
-        adapter_config = agent / "mcp-adapter.json"
-        write_json(adapter_config, {"settings": adapter_settings(relay_settings["arm"]), "mcpServers": {NAVIGATION_SERVER: {
-            **{k: server[k] for k in ("command", "args", "env")}, **ADAPTER_SERVER}}}, exclusive=True)
+        require(not (workspace / ".pi/mcp.json").exists(), "project MCP config forbidden")
+        adapter_config = agent / "mcp.json"
+        server_config = {**{k: server[k] for k in ("command", "args", "env")}, **ADAPTER_SERVER,
+                         "exposure": mode, "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}
+        write_json(adapter_config, {**adapter_settings(relay_settings["arm"]),
+                                   "mcpServers": {NAVIGATION_SERVER: server_config}}, exclusive=True)
         product_tools = [navigation_tool_name(name) for name in relay_settings["enabled_tools"]]
+        resource_tools = list(RESOURCE_TOOLS) if "resources" in server.get("capabilities", {}) else []
         require(len(set(product_tools)) == len(product_tools), "navigation 도구 이름 충돌")
-        args += ["-e", tools["mcp_adapter_extension"], "--mcp-config", str(adapter_config), "--tools", ",".join([*product_tools, *(["codemode"] if mode == "codemode" else [])])]
+        args += ["-e", tools["mcp_adapter_extension"], "--tools",
+                 ",".join([*product_tools, *resource_tools, *(["codemode"] if mode == "codemode" else [])])]
         instructions = server.get("instructions") or ""
         require(isinstance(instructions, str), "server instructions 형식 오류")
         if instructions.strip():
@@ -368,10 +369,17 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         from . import claude_settings
         claude_settings.verify(spec.get("claude_settings"), workspace, home=local_home)
         require(spec.get("requested_model") == requested_model(provider, spec["model"]), "Claude requested model condition changed")
-        # Bridge 0.13.1 reads this file independently of pi's -na project policy.
+        # The bridge reads this file independently of pi's -na project policy.
         require(not (workspace / ".pi/claude-bridge.json").exists(), "project bridge config would override the pinned binary")
         write_json(agent / "claude-bridge.json", {"provider": {"pathToClaudeCodeExecutable": tools["claude_code_binary"]}}, exclusive=True)
-        args += ["-e", tools["bridge_extension"]]
+        metadata = {name: {CLAUDE_RESULT_META: CLAUDE_PRODUCT_CHARS}
+                    for name in (resource_tools if relay_settings else [])}
+        if mode == "codemode":
+            metadata["codemode"] = {CLAUDE_RESULT_META: CLAUDE_PRODUCT_CHARS}
+        meta_extension = agent / "delivery-meta.mjs"
+        meta_extension.write_text("export default pi => pi.events.on('tool-meta', request => {\n"
+                                  "  if (typeof request?.reply === 'function') request.reply(" + json.dumps(metadata) + ");\n});\n")
+        args += ["-e", str(meta_extension), "-e", tools["bridge_extension"]]
     if not relay_settings:
         args += ["--no-mcp", "--tools", "bash,codemode" if mode == "codemode" else "bash"] if native else ["--no-mcp", "--no-tools"]
     # A loopback-only test launch must never touch operator credentials.
@@ -382,24 +390,31 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         token = operator_token(provider) if provider == "openai-codex" else None
     env = environment(agent_dir=agent, tmp=tmp, provider=provider, token=token,
                       local_endpoint=local_endpoint if provider == "claude-bridge" else None, local_home=local_home)
-    if relay_settings:
-        env["PI_MCP_CONFIG_MODE"] = "exclusive"  # Only --mcp-config; no user, project, host or plugin MCP sources.
-        # With no cached metadata, a cold MCP_DIRECT_TOOLS selection makes session start wait for the connection, so
-        # the first model request already declares the tools.
-        env["MCP_DIRECT_TOOLS"] = NAVIGATION_SERVER
     validate_models(agent, provider, local_endpoint=model_endpoint)
     write_json(folder / "pi-policy.json", {"toolchain": tools, "provider": provider, "flags": PRIVATE_FLAGS,
         "requested_model": requested_model(provider, spec["model"]), "measurement_mode": mode,
         "codemode_models": False if mode == "codemode" else None,
         "codemode_default_max_output_tokens": CODEMODE_MAX_OUTPUT_TOKENS if mode == "codemode" else None,
-        "mcp_client": ({"extension": "pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"], "config_mode": "exclusive",
-                        "settings": adapter_settings(relay_settings["arm"]), "server": ADAPTER_SERVER, "tools": product_tools,
+        "claude_result_meta": {"product": "preserve native _meta; fill absent anthropic/maxResultSizeChars with 500000",
+                               "codemode": CLAUDE_PRODUCT_CHARS if mode == "codemode" else None,
+                               "codemode_reason": "shared 100000-token script output budget; scripts can combine several product results",
+                               "resources": CLAUDE_PRODUCT_CHARS if relay_settings else None,
+                               "native_bash": "bridge default (52224)"} if provider == "claude-bridge" else None,
+        "mcp_client": ({"extension": "@buyong/pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"],
+                        "config_mode": "private PI_CODING_AGENT_DIR/mcp.json, project config rejected",
+                        "settings": adapter_settings(relay_settings["arm"]), "server": {**ADAPTER_SERVER, "exposure": mode,
+                            "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}, "tools": product_tools,
+                        "resource_tools": resource_tools, "model_api_features": "none in adapter; codemode models:false",
+                        "setting_reasons": {"exposure": "slot measurement mode", "maxOutputBytes": "client >= product cap, including resources",
+                                            "timeout": "existing per-RPC 300 seconds; no solver limit", "autoEnableCodemode": "harness selects slot mode"},
                         "server_instructions_sha256": digest(instructions) if instructions else None,
                         "server_instructions": "appended to the system prompt" if instructions and instructions.strip() else "none provided"}
                        if relay_settings else None),
         "claude_settings": spec.get("claude_settings"),
-        "defaults": capabilities()["defaults"], "auth": "memory-only bearer env" if token else "Claude Code existing login, real HOME",
-        "claude_residue": "only exact workspace project slug removed; ~/.claude.json project entries may remain"}, exclusive=True)
+        "defaults": capabilities()["defaults"],
+        "auth": ("loopback dummy credentials, private Claude HOME" if local_home else
+                 "memory-only bearer env" if token else "Claude Code existing login, real HOME"),
+        "claude_residue": "only exact workspace project slug removed; ~/.claude.json, backups and plugin store may remain"}, exclusive=True)
     return args, workspace, env
 
 

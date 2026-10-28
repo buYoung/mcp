@@ -776,29 +776,20 @@ CLAUDE_PROXY_HOSTS = frozenset({"api.anthropic.com", "claude.ai", "platform.clau
 CLAUDE_PROXY_PORT = 19550
 
 
-def claude_baseline_profile(value: dict, folder: Path, *, local_endpoint=None, local_home=None) -> dict:
-    from .claude_client import executable
-    from .pi_client import private_root, local_endpoint_url
-    cli = Path(executable()).resolve()
-    home = (local_home or private_root(folder) / "home").resolve()
+def claude_baseline_profile(value: dict, folder: Path) -> dict:
+    cli = Path(shutil.which("claude") or "claude").resolve()
+    home = (folder / "cli-home").resolve()
     env = private_environment(home, home / "tmp")
-    env.update(CLAUDE_CODE_TMPDIR=env["TMPDIR"])
-    port = CLAUDE_PROXY_PORT
-    if local_endpoint is not None:
-        local_endpoint_url(local_endpoint)
-        env["ANTHROPIC_BASE_URL"] = f"http://127.0.0.1:{port}"
-    else:
-        env.update(HTTP_PROXY=f"http://127.0.0.1:{port}", HTTPS_PROXY=f"http://127.0.0.1:{port}", NO_PROXY="")
-    reads = [Path(value["source"]), Path(value["rg_binary"]).parent, cli.parent, home, private_root(folder) / "bin",
+    env.update(CLAUDE_CONFIG_DIR=str(home / "claude"), CLAUDE_CODE_TMPDIR=env["TMPDIR"],
+               HTTP_PROXY=f"http://127.0.0.1:{CLAUDE_PROXY_PORT}", HTTPS_PROXY=f"http://127.0.0.1:{CLAUDE_PROXY_PORT}",
+               NO_PROXY="")
+    reads = [Path(value["source"]), Path(value["rg_binary"]).parent, cli.parent, home,
              folder / "claude-settings.json", folder / "mcp-config.json"]
     # Native CLI installs may be a node script rather than the standalone binary.
     node = shutil.which("node")
     if node:
         reads.extend(runtime_roots({"installation": str(cli.parent), "launch": [node]}))
-    from .cli_shell import socket_path
-    text = _profile_text(reads, [home], port=port, unix_roots=[home, socket_path(folder)])
-    text += "(deny lsopen)\n(deny appleevent-send)\n(deny mach-lookup)\n"
-    text += '(deny process-info* (target others))\n(deny sysctl-read (sysctl-name-prefix "kern.proc"))\n'
+    text = _profile_text(reads, [home], port=CLAUDE_PROXY_PORT, unix_roots=[home])
     text += "".join(f"(deny file-read-data (subpath {json.dumps(str(Path(value['source']) / name))}))\n"
                     for name in sorted(METADATA))
     path = folder / "claude-outer.sb"
@@ -806,9 +797,7 @@ def claude_baseline_profile(value: dict, folder: Path, *, local_endpoint=None, l
     path.chmod(0o600)
     return {"profile_path": str(path.resolve()), "profile_sha256": file_digest(path), "env": env,
             "allowed": {"read": [str(p.resolve()) for p in reads], "write": [str(home)],
-                        "proxy_hosts": sorted(CLAUDE_PROXY_HOSTS), "inner_sandbox": False}, "port": port,
-            "local_provider": local_endpoint is not None, "local_endpoint": local_endpoint,
-            "cli_executable": str(cli)}
+                        "proxy_hosts": sorted(CLAUDE_PROXY_HOSTS), "inner_sandbox": False}, "port": CLAUDE_PROXY_PORT}
 
 
 def claude_baseline_command(command: list[str], profile: dict, folder: Path) -> list[str]:
@@ -821,27 +810,7 @@ def claude_baseline_command(command: list[str], profile: dict, folder: Path) -> 
     return [sys.executable, "-c", bootstrap, str(config.resolve()), *command]
 
 
-def proxy_peer_pid(peer: tuple[str, int], local: tuple[str, int]) -> int | None:
-    """Resolve the accepted TCP socket's owner outside Seatbelt; never trust an HTTP PID/header."""
-    try:
-        result = subprocess.run(["/usr/sbin/lsof", "-nP", "-a", f"-iTCP@{peer[0]}:{peer[1]}",
-                                 "-sTCP:ESTABLISHED", "-Fpn"], capture_output=True, text=True, timeout=5,
-                                env={"PATH": "/usr/bin:/bin", "LANG": "C"})
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if result.returncode != 0:
-        return None
-    expected = f"n{peer[0]}:{peer[1]}->{local[0]}:{local[1]}"
-    owners, pid = set(), None
-    for line in result.stdout.splitlines():
-        if line.startswith("p"):
-            pid = int(line[1:]) if line[1:].isdigit() else None
-        elif line == expected and pid is not None:
-            owners.add(pid)
-    return next(iter(owners)) if len(owners) == 1 else None
-
-
-def _serve_proxy(port: int, log: Path, cli_pid: int, local_endpoint: str | None = None) -> None:
+def _serve_proxy(port: int, log: Path) -> None:
     import select
     import socket
     import socketserver
@@ -850,38 +819,8 @@ def _serve_proxy(port: int, log: Path, cli_pid: int, local_endpoint: str | None 
     lock = threading.Lock()
 
     class Handler(socketserver.StreamRequestHandler):
-        def tunnel(self, target: tuple[str, int], *, connect=False):
-            try:
-                with socket.create_connection(target, timeout=20) as upstream:
-                    if connect:
-                        self.connection.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
-                    while True:
-                        readable, _, _ = select.select([self.connection, upstream], [], [], 300)
-                        if not readable:
-                            return
-                        for stream in readable:
-                            data = stream.recv(65536)
-                            if not data:
-                                return
-                            (upstream if stream is self.connection else self.connection).sendall(data)
-            except OSError:
-                return
-
         def handle(self):
             self.connection.settimeout(20)
-            owner = proxy_peer_pid(self.client_address, self.connection.getsockname())
-            if owner != cli_pid or cli_pid <= 0:
-                with lock:
-                    append_jsonl(log, {"peer_pid": owner, "cli_pid": cli_pid, "permitted": False, "reason": "not_cli_socket_owner"})
-                self.connection.sendall(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n")
-                return
-            if local_endpoint is not None:
-                from .pi_client import local_endpoint_url
-                target = urllib.parse.urlsplit(local_endpoint_url(local_endpoint))
-                with lock:
-                    append_jsonl(log, {"peer_pid": owner, "cli_pid": cli_pid, "permitted": True, "local_provider": True})
-                self.tunnel((target.hostname, target.port))
-                return
             line = self.rfile.readline(8193)
             parts = line.decode("ascii", errors="replace").strip().split()
             host = ""
@@ -898,12 +837,25 @@ def _serve_proxy(port: int, log: Path, cli_pid: int, local_endpoint: str | None 
                     break
             permitted = permitted and total <= 16384
             with lock:
-                append_jsonl(log, {"peer_pid": owner, "cli_pid": cli_pid, "host": host, "permitted": permitted,
-                                   "method": parts[0] if parts else None})
+                append_jsonl(log, {"host": host, "permitted": permitted, "method": parts[0] if parts else None})
             if not permitted:
                 self.wfile.write(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n")
                 return
-            self.tunnel((host, 443), connect=True)
+            try:
+                with socket.create_connection((host, 443), timeout=20) as upstream:
+                    self.wfile.write(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+                    self.wfile.flush()
+                    while True:
+                        readable, _, _ = select.select([self.connection, upstream], [], [], 300)
+                        if not readable:
+                            return
+                        for stream in readable:
+                            data = stream.recv(65536)
+                            if not data:
+                                return
+                            (upstream if stream is self.connection else self.connection).sendall(data)
+            except OSError:
+                return
 
     class Server(socketserver.ThreadingTCPServer):
         # Sequential CLI probes reuse this leased port after CONNECT leaves TIME_WAIT.
@@ -920,52 +872,36 @@ def _claude_launch(config_path: Path, command: list[str]) -> int:
     import selectors
     config = read_json(config_path)
     profile = config["profile"]
-    # A gated exec preserves the child's PID and cannot connect before the proxy knows its owner.
     # The runner owns this process group. Proxy and sandboxed CLI inherit it; no detached child.
-    read_fd, write_fd = os.pipe()
-    gate = "import os,sys; fd=int(sys.argv[1]); ready=os.read(fd,1); os.close(fd); " \
-           "sys.exit(125) if ready != b'1' else os.execvpe(sys.argv[2],sys.argv[2:],os.environ)"
-    child = subprocess.Popen([sys.executable, "-c", gate, str(read_fd), *wrap(command, profile)],
-                             env={**os.environ, **profile["env"]}, pass_fds=(read_fd,))
-    os.close(read_fd)
-    cli_pid = child.pid if Path(command[0]).resolve() == Path(profile["cli_executable"]) else 0
-    proxy = None
-    def stop(signum, frame):
-        if child.poll() is None:
-            child.send_signal(signum)
-    signal.signal(signal.SIGTERM, stop)
-    signal.signal(signal.SIGINT, stop)
+    proxy = subprocess.Popen([sys.executable, "-m", "benchmark.isolation", "proxy", str(profile["port"]),
+                              config["proxy_log"]], stdout=subprocess.PIPE, cwd=Path(__file__).resolve().parent.parent)
     try:
-        proxy_env = {key: value for key, value in os.environ.items()
-                     if key not in {"CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "CODEMAP_BENCH_CLAUDE_TOKEN_FILE"}}
-        proxy = subprocess.Popen([sys.executable, "-m", "benchmark.isolation", "proxy", str(profile["port"]),
-                                  config["proxy_log"], str(cli_pid), profile.get("local_endpoint") or ""],
-                                 env=proxy_env, stdout=subprocess.PIPE, cwd=Path(__file__).resolve().parent.parent)
         with selectors.DefaultSelector() as selector:
             selector.register(proxy.stdout, selectors.EVENT_READ)
             if not selector.select(10) or proxy.stdout.readline() != b"ready\n":
                 print("Claude allowlist proxy 시작 실패", file=sys.stderr)
                 return 125  # Distinguish a boundary launcher failure from a denied command.
-        os.write(write_fd, b"1")
+        env = {**os.environ, **profile["env"]}
+        child = subprocess.Popen(wrap(command, profile), env=env)
+        def stop(signum, frame):
+            child.send_signal(signum)
+            proxy.terminate()
+        signal.signal(signal.SIGTERM, stop)
+        signal.signal(signal.SIGINT, stop)
         return child.wait()
     finally:
-        os.close(write_fd)
-        if child.poll() is None:
-            child.kill()
-        child.wait()
-        if proxy is not None:
-            proxy.terminate()
-            try:
-                proxy.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                proxy.kill()
-                proxy.wait()
-            proxy.stdout.close()
+        proxy.terminate()
+        try:
+            proxy.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proxy.kill()
+            proxy.wait()
+        proxy.stdout.close()
 
 
 if __name__ == "__main__":
     if sys.argv[1] == "proxy":
-        _serve_proxy(int(sys.argv[2]), Path(sys.argv[3]), int(sys.argv[4]), sys.argv[5] or None)
+        _serve_proxy(int(sys.argv[2]), Path(sys.argv[3]))
     elif sys.argv[1] == "claude-launch":
         sys.exit(_claude_launch(Path(sys.argv[2]), sys.argv[3:]))
     else:

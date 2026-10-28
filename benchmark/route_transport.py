@@ -19,6 +19,7 @@ from pathlib import Path
 
 from . import route_contract as routes
 from .tool_artifacts import clean_environment
+from .client_delivery import client_tool_metadata
 from .core import ContractError, append_jsonl, canonical, command, digest, file_digest, read_json, read_jsonl, require, write_json
 from .responses import text_result, tool_schema
 
@@ -369,14 +370,6 @@ def latch_cutoff(folder: Path, reason: str, observed: dict, *, start: float | No
     return cutoff
 
 
-def client_tool_metadata(tool: dict) -> dict:
-    """Preserve native MCP metadata; only fill an absent Claude delivery budget."""
-    meta = tool.get("_meta", {})
-    if "anthropic/maxResultSizeChars" in meta:
-        return tool
-    return {**tool, "_meta": {**meta, "anthropic/maxResultSizeChars": 500000}}
-
-
 class NativeRelay:
     def __init__(self, config: dict):
         self.config = config
@@ -597,7 +590,7 @@ def publish_delivery() -> dict:
         "client_identity": "forward the actual initialize clientInfo and capabilities",
         "client_limits": {"pi": agent,
                           "history_limit": None, "history_limit_reason": "Client default has not been measured with a live model.",
-                          "harness_override": None, "code_mode_budget": "disabled; direct MCP tools only"},
+                          "harness_override": "adapter maxOutputBytes >= product budget", "code_mode_budget": pi_client.CODEMODE_MAX_OUTPUT_TOKENS},
         "raw_relay_checks": {"status": "passed", "probe": "rg over a copied harness source file",
                              "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
                              "stdout_bytes": len(original.stdout), "stdout_lines": len(original.stdout.splitlines()),
@@ -606,11 +599,11 @@ def publish_delivery() -> dict:
                              "protocol_log": str(root / "protocol.jsonl"), "relay_log": str(root / "relay.jsonl"),
                              "protocol_sha256": file_digest(root / "protocol.jsonl"),
                              "relay_sha256": file_digest(root / "relay.jsonl"), "probe_source_sha256": file_digest(root / "sample.py")},
-        "pi_policy": {"flags": pi_client.PRIVATE_FLAGS, "mcp_client": "pi-mcp-adapter (exclusive --mcp-config, keep-alive, direct tools)",
-                      "product_tools": pi_client.navigation_tool_name("<tool>"), "defaults": agent["defaults"]},
+        "pi_policy": {"flags": pi_client.PRIVATE_FLAGS, "mcp_client": "@buyong/pi-mcp-adapter (private mcp.json, direct/codemode exposure)",
+                      "product_tools": "mcp__navigation__<tool>", "defaults": agent["defaults"]},
         "unobserved_stages": ["Real hosted provider history", "Native product startup probes are recorded in 04-indexes-pi.json"],
         "solver_runs": 0, "grader_runs": 0},
-        implementation=["benchmark/route_transport.py", "benchmark/runner.py", "benchmark/pi_client.py"], dependencies=["01-contract.json"])
+        implementation=["benchmark/route_transport.py", "benchmark/runner.py", "benchmark/pi_client.py", "benchmark/client_delivery.py", "benchmark/pi_lock.py"], dependencies=["01-contract.json"])
 
 
 def main():

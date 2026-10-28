@@ -40,16 +40,12 @@ def forbidden_words() -> tuple[str, ...]:
     return (*settings.IDENTIFYING_PATH_WORDS, *routes.QUESTION_IDS, "smoke", "grafana")
 
 
-def tool_snippet(tool: dict) -> str:
-    # Adapter 7.0.0 utils.truncateAtWord(description, 100); bridge forwards this exact bullet.
-    description = tool.get("description", "")
-    units = description.encode("utf-16-le")
-    if len(units) <= 200:
-        return description
-    prefix = units[:200].decode("utf-16-le", errors="surrogatepass")
-    space = prefix.rfind(" ")
-    space_units = len(prefix[:space].encode("utf-16-le", errors="surrogatepass")) // 2 if space >= 0 else -1
-    return (prefix[:space] if space_units > 60 else prefix) + "..."
+def server_summary(inventory: dict) -> str:
+    # @buyong/pi-mcp-adapter pi/prompt.ts: one server, first line, at most 250 UTF-16 units.
+    instructions = inventory.get("initialize", {}).get("instructions", "").strip()
+    first = instructions.split("\n", 1)[0].strip()
+    units = first.encode("utf-16-le")
+    return first if len(units) <= 500 else units[:498].decode("utf-16-le", errors="surrogatepass").rstrip() + "…"
 
 
 def product_text(inventory: dict) -> list[str]:
@@ -57,7 +53,6 @@ def product_text(inventory: dict) -> list[str]:
     values = [inventory.get("initialize", {}).get("instructions", "")]
     for tool in inventory.get("tools", []):
         values.extend(text for _, text in strings(tool))
-        values.append(tool_snippet(tool))
         values.extend(pi_client.navigation_tool_names(tool["name"]))
         values.append("mcp__custom-tools__" + pi_client.navigation_tool_name(tool["name"]))
     # Very short schema values (e.g. 'string') are not exemption spans.
@@ -121,9 +116,9 @@ def audit_system(value, inventory: dict) -> list[dict]:
     for location, original in strings(value):
         errors.extend(path_violations(original, location))
         text = original.replace(envelope, "[native instructions]") if envelope else original
-        for tool in inventory.get("tools", []):
-            bullet = f"- {pi_client.navigation_tool_name(tool['name'])}: {tool_snippet(tool).strip()}"
-            text = text.replace(bullet, "[native tool snippet]")
+        summary = server_summary(inventory)
+        if summary:
+            text = text.replace(f"- mcp__{pi_client.NAVIGATION_SERVER} (codemode): {summary}", "[native server summary]")
         for match in re.finditer(r"<tools>.*?</tools>", text, flags=re.DOTALL):
             errors += audit_text(match.group(), inventory=inventory, product_owned=True)
             text = text.replace(match.group(), "[tool declarations]")
@@ -193,7 +188,7 @@ def static_surfaces(folder: Path, source: str) -> dict:
     """Paths revealed only after truncation/errors must also pass before a model can run."""
     root = pi_client.private_root(folder)
     return {"paths": [source, str(root / "work"), str(root / "home"), str(root / "bin/rg"),
-                       str(root / "tmp/pi-mcp-output-000000/output-000000.txt"),
+                       str(root / "tmp/pi-mcp-0000000000000000.txt"),
                        str(root / "tmp/pi-codemode-000000.txt"), str(root / "tmp/pi-bash-000000.log")],
             "rejection_messages": model_error_messages()}
 
@@ -223,7 +218,7 @@ def audit_session(folder: Path, inventory: dict) -> dict:
 
 class CaptureProvider:
     """One loopback request, a fixed final response; no operator auth or hosted transport."""
-    def __init__(self, node: str, *, port: int = 0, inspect_codex_tools=False):
+    def __init__(self, node: str, *, port: int = 0):
         self.requests, self.errors = [], []
         owner = self
 
@@ -248,32 +243,23 @@ class CaptureProvider:
                         self.end_headers()
                         self.wfile.write(b'{"input_tokens":100}')
                         return
-                    require(self.path in {"/codex/responses", "/v1/responses", "/v1/messages", "/v1/messages?beta=true"}, "unexpected local endpoint")
+                    require(self.path in {"/codex/responses", "/v1/messages", "/v1/messages?beta=true"}, "unexpected local endpoint")
                     owner.requests.append(body)
-                    require(len(owner.requests) <= (2 if inspect_codex_tools else 1), "unexpected request in context audit")
+                    require(len(owner.requests) == 1, "unexpected second request in first-request audit")
                     self.send_response(200)
                     self.send_header("Content-Type", "text/event-stream")
                     self.end_headers()
                     def send(kind, **fields):
                         self.wfile.write(("event: " + kind + "\ndata: " + json.dumps({"type": kind, **fields}) + "\n\n").encode())
                         self.wfile.flush()
-                    if self.path in {"/codex/responses", "/v1/responses"}:
-                        response_id = "resp_local_" + str(len(owner.requests))
-                        send("response.created", response={"id": response_id, "status": "in_progress"})
-                        if inspect_codex_tools and len(owner.requests) == 1:
-                            item = {"type": "custom_tool_call", "id": "inspect_tools", "call_id": "inspect_tools",
-                                    "namespace": "functions", "name": "exec", "input": "text(ALL_TOOLS.map(({name}) => name))"}
-                            send("response.output_item.added", output_index=0, item=item)
-                            send("response.output_item.done", output_index=0, item={**item, "status": "completed"})
-                            send("response.completed", response={"id": response_id, "status": "completed", "model": body["model"], "output": [item],
-                                 "usage": {"input_tokens": 100, "output_tokens": 1, "total_tokens": 101}})
-                            return
-                        item = {"type": "message", "id": "msg_local", "role": "assistant", "phase": "final_answer", "content": []}
+                    if self.path == "/codex/responses":
+                        send("response.created", response={"id": "resp_local", "status": "in_progress"})
+                        item = {"type": "message", "id": "msg_local", "role": "assistant", "content": []}
                         send("response.output_item.added", output_index=0, item=item)
                         send("response.output_text.delta", output_index=0, content_index=0, delta="Done.")
                         item.update(status="completed", content=[{"type": "output_text", "text": "Done.", "annotations": []}])
                         send("response.output_item.done", output_index=0, item=item)
-                        send("response.completed", response={"id": response_id, "status": "completed", "model": body["model"], "output": [item],
+                        send("response.completed", response={"id": "resp_local", "status": "completed", "model": body["model"], "output": [item],
                              "usage": {"input_tokens": 100, "output_tokens": 1, "total_tokens": 101}})
                     else:
                         send("message_start", message={"id": "msg_local", "type": "message", "role": "assistant", "model": body["model"],
@@ -327,10 +313,13 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str) -> dict:
         if "read" in relay.get("auxiliaries", []):
             selected.append(READ_TOOL)
         replay_path = folder / "inventory.json"
+        from .client_delivery import client_tool_metadata
+        selected = [client_tool_metadata(tool) for tool in selected]
         write_json(replay_path, {"initialize": inventory["initialize"], "tools": selected})
         server = {"command": sys.executable, "args": ["-m", "benchmark.pi_audit", str(replay_path)],
                   "env": {"PYTHONPATH": str(settings.REPOSITORY), "PYTHONDONTWRITEBYTECODE": "1"},
-                  "instructions": inventory["initialize"].get("instructions", "")}
+                  "instructions": inventory["initialize"].get("instructions", ""),
+                  "capabilities": inventory["initialize"].get("capabilities", {})}
     provider = CaptureProvider(tool_artifacts.pi_toolchain()["node"])
     home = pi_client.private_root(folder) / "login" if spec["provider"] == "claude-bridge" else None
     spec = dict(spec)
@@ -358,7 +347,13 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str) -> dict:
         violations = audit_request(body, inventory)
         expected = ({"codemode"} if spec.get("measurement_mode") == "codemode" else
                     {pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]} if relay else {"bash"})
+        if relay and spec.get("measurement_mode") != "codemode" and "resources" in inventory["initialize"].get("capabilities", {}):
+            expected.update(pi_client.RESOURCE_TOOLS)
         declared = declared_tool_names(body)
+        instructions = inventory.get("initialize", {}).get("instructions", "")
+        system = body.get("instructions", body.get("system", ""))
+        if instructions.strip() and not any(instructions in text for _, text in strings(system)):
+            violations.append({"kind": "missing_full_server_instructions"})
         if declared != expected:
             violations.append({"kind": "unexpected_declared_tools", "expected": sorted(expected), "actual": sorted(declared)})
         surfaces = static_surfaces(folder, state["source"])

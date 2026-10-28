@@ -1,6 +1,6 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-외부 도구 6개와 풀이·채점 toolchain을 고정한 `grafana-comparison-targets-v1` **개정 8**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. `previous_lock_sha256`은 개정 7의 `de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8`이다. 이번 개정은 데이터셋·Grafana commit·검색 제품 버전을 바꾸지 않고 풀이를 private Codex CLI 0.164.0 / Claude Code 2.1.311로 바꾼다. GPT는 Codex 제품 기본 code_mode_only(exec/wait), Claude는 direct이며 각각 42슬롯이다. pi toolchain은 Astra 채점용으로 유지한다. 제품 출력 설정은 기본값이고 MCP client guard만 제품 상한 이상으로 맞춘다. Codex exec/wait의 별도 출력 예산은 제품 기본값(미지정 시 10000토큰)을 유지한다.
+2026-10-28 **개정 9**다. 외부 비교군 6개의 버전·소스는 개정 8과 같다. 풀이를 pi direct/codemode(모델당 84슬롯)로 되돌리고, 평가 제품을 codemap-search 0.14.0로 고정한다. `previous_lock_sha256`은 Git 이력에 보존된 개정 8을 가리킨다. 새 `@buyong/pi-mcp-adapter`와 결과 크기 수정 bridge의 npm 버전·integrity는 **게시 대기(null)**이며 prepare는 이전 설치물이나 scratch tarball로 우회할 수 없다. 제품 설정은 기본값이다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -13,11 +13,11 @@
 
 - CodeGraph는 사용자가 선택한 공식 `@colbymchenry/codegraph` Node 구현이다. zvec-grep은 `@zvec/zvec-grep` Node 구현이다. zvec 0.2.2에는 GitHub Release가 없으므로 release URL/ID/시각은 `null`이다. GitHub latest의 오래된 0.2.0 메타데이터를 빌려 쓰지 않는다.
 - Graphify는 공식 `Graphify-Labs/graphify`의 `graphifyy` Python 구현이다. `v1.0.0`은 2026-04-05의 과거 release이며 PyPI에는 없다. 현재 upstream latest와 PyPI가 일치하는 0.9.95를 선택했다.
-- 평가 제품 codemap-search는 작업 트리가 아니라 `codemap-v0.14.0` (`fc0a368d0`)의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.14.0**이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
+- 평가 제품 codemap-search는 작업 트리가 아니라 `codemap-v0.14.0` (`fc0a368d0b37da44c5e2bc9df3617ef75b4891cb`)의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.14.0**이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
 
 ## 데이터셋 연결
 
-총 7개 비교군은 같은 [Grafana 2문항 데이터셋](../grafana-routes-v4/README.md)을 사용한다. manifest SHA-256은 `0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4`이며 이번 개정에서는 데이터셋과 고정 커밋을 유지했다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
+총 7개 비교군은 같은 [Grafana 2문항 데이터셋](../grafana-routes-v4/README.md)을 사용한다. manifest SHA-256은 `0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4`이며 이번 개정에서 질문·정답·Grafana 커밋은 바꾸지 않았다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
 
 ## 설치 조건과 고정 파일
 
@@ -26,8 +26,7 @@
 | [targets.lock.json](targets.lock.json) | 저장소·태그·전체 커밋·Git tree, source archive URL·SHA-256·크기, source file blob, 데이터셋/평가 소스 연결. |
 | [provenance.json](provenance.json) | Phase A의 공식 API·태그·커밋·root blob·archive 검증 기록과 Graphify wheel 설치 조건. |
 | [graphifyy-0.9.95-py312-darwin-arm64.requirements.txt](graphifyy-0.9.95-py312-darwin-arm64.requirements.txt) | Python 3.12/macOS arm64에서 한 번 해석한 Graphify wheel 및 59개 runtime package의 hash lock. |
-| [pi-package.json](pi-package.json) / [pi-package-lock.json](pi-package-lock.json) | pi 1.4.0, bridge 0.13.1, SDK 0.3.310 (Claude Code 2.1.310), pi-mcp-adapter 7.0.0의 npm integrity lock(채점용 설치 재현 유지). |
-| [cli-package.json](cli-package.json) / [cli-package-lock.json](cli-package-lock.json) | Codex CLI 0.164.0·Claude Code 2.1.311 npm integrity lock. native binary SHA-256과 설치 tree hash는 targets.lock.json의 cli_toolchain에 기록. |
+| [pi-package.json](pi-package.json) / [pi-package-lock.json](pi-package-lock.json) | pi 1.4.0, SDK 0.3.311 (Claude Code 2.1.311)의 기반 npm integrity lock. 두 미게시 패키지는 targets.lock.json의 publications에서 대기하며 게시 후 전체 의존성을 다시 고정한다. |
 | [SHA256SUMS](SHA256SUMS) | 이 bundle의 모든 고정 파일 SHA-256. |
 
 Graphify upstream `uv.lock`은 루트 버전 0.9.84와 누락된 필수 PyYAML 때문에 0.9.95의 `uv sync --locked`가 실패한다. `--frozen`으로 오류를 숨기지 않고 공식 wheel을 위 requirements로 `uv pip sync --require-hashes --only-binary :all:` 설치한다. 준비 시 의존성을 다시 해석하지 않는다. wheel package 파일을 고정 tag source와 대조하고 Graphify·Serena 모두 `uv pip check`를 수행한다. 원본 `uv.lock`은 source provenance로 보존하며 실제 runtime lock과 구분한다.
@@ -49,4 +48,4 @@ shasum -a 256 -c SHA256SUMS
 
 pi toolchain은 macOS arm64에서 `settings.CACHE/pi-toolchain`에 `npm ci --ignore-scripts --no-audit --no-fund`로 설치한다. tools lock에 npm lock·manifest·전체 node_modules tree SHA-256을 기록하며 재사용 때 전체 파일/모드/symlink와 host Node hash를 검사한다. drift나 미완료 설치는 자동 재설치로 숨기지 않고 중단한다. operator pi 설치와 auth 파일은 설치 검증 대상이 아니다.
 
-Solver CLI는 `settings.CACHE/cli-toolchain`에 같은 npm ci flags로 설치하고 모든 재사용 시 package/lock/tree/binary hash를 확인한다. 시스템 PATH의 다른 CLI로 대체하지 않는다. code-mode의 모델 catalog는 수정하지 않는다. 도구별 Codex output_token_limit은 codemap의 codex-config 값 100000, 나머지 ceil(B/4)(Serena 312500, 그 외 262144)이며 전역 history도 같은 값을 쓴다. Claude token guard는 2×ceil(B/4)다. Claude relay는 native 메타를 보존하고 부재한 maxResultSizeChars만 500000으로 보충한다. 상세한 소스 근거·인증·경계·출력 관측은 상위 README를 따른다.
+게시 후 값 채우기는 `python3 -m benchmark.pi_lock pin` 한 명령으로 한다. 정확한 버전·integrity 인자와 해시 갱신·재준비 순서는 [README](../../README.md#npm-게시-후-고정)를 따른다. 하위/optional 의존성도 npm lock의 registry URL·정확한 버전·sha512 integrity가 있어야 하고, Agent SDK는 override로 고정한다. `file:`·Git·link 패키지는 운영 lock에서 거부한다.

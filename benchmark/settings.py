@@ -21,19 +21,17 @@ IDENTIFYING_PATH_WORDS = ("codemap", "codegraph", "zvec", "graphify", "codebase-
 def require_neutral_cache() -> None:
     found = [word for word in IDENTIFYING_PATH_WORDS if word in str(CACHE).lower()]
     require(not found, f"CODEMAP_BENCH_CACHE 경로가 제품·하네스를 드러냅니다({', '.join(found)}). 중립적인 경로를 쓰세요")
-    # Solver-visible cwd and skill roots live under CACHE; the context audit rejects any HOME string.
-    require(not CACHE.resolve().is_relative_to(Path.home().resolve()),
-            "CODEMAP_BENCH_CACHE가 HOME 아래에 있어 모델 문맥에 운영자 HOME이 드러납니다. HOME 밖 경로를 쓰세요")
 
 
 def execution_settings(solver_model: str | None = None) -> dict:
     from .route_contract import load_profile, solver_model as resolve_solver
+    from .pi_client import requested_model
     profile = load_profile()
     solver = resolve_solver(solver_model)
     return {"profile": profile["profile"], "preparation_only": True,
-            "model": solver["model"], "requested_model": solver["model"],
+            "model": solver["model"], "requested_model": requested_model(solver["provider"], solver["model"]),
             "reasoning_effort": solver["reasoning_effort"],
-            "solver_backend": solver["backend"], "measurement_mode": solver["measurement_mode"],
+            "solver_backend": solver["backend"], "provider": solver["provider"],
             "grader_backend": "pi",
             "grader_model": profile["grader"]["model"], "grader_reasoning_effort": profile["grader"]["reasoning_effort"],
             "seed": profile["seed"], "concurrency": profile["concurrency"], "limits": copy.deepcopy(profile["limits"]),

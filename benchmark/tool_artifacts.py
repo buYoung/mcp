@@ -129,8 +129,8 @@ def verify_artifact(artifact: dict, *, full=True) -> None:
 def pi_toolchain() -> dict:
     """Benchmark-owned npm install; every reuse verifies the complete pinned package tree."""
     import fcntl
-    require(file_digest(routes.TARGETS / "targets.lock.json") == routes.TARGET_LOCK_SHA256, "pi tools lock 변경")
-    pins = read_json(routes.TARGETS / "targets.lock.json")["pi_toolchain"]
+    from .pi_lock import require_publications
+    pins = require_publications()
     require(platform.system() == "Darwin" and platform.machine() == "arm64", "pi toolchain은 darwin-arm64 전용입니다")
     root = settings.CACHE / "pi-toolchain"
     root.mkdir(parents=True, exist_ok=True)
@@ -152,7 +152,7 @@ def pi_toolchain() -> dict:
             modules = installation / "node_modules"
             value = {"node": str(node), "pi_cli": str(modules / "@earendil-works/pi-coding-agent/dist/cli.js"),
                      "bridge_extension": str(modules / "@buyong/pi-claude-bridge/src/index.ts"),
-                     "mcp_adapter_extension": str(modules / "pi-mcp-adapter"),
+                     "mcp_adapter_extension": str(modules / "@buyong/pi-mcp-adapter"),
                      "claude_code_binary": str(modules / "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"),
                      "versions": {"node": command([str(node), "--version"]).strip(), **pins["versions"]},
                      "lock_sha256": pins["npm_lock_sha256"], "node_sha256": file_digest(node)}
@@ -174,43 +174,9 @@ def pi_toolchain() -> dict:
                 and digest(tree_files(installation / "node_modules")) == pins["node_modules_sha256"], "pi toolchain drift")
         expected = {"pi_cli": "@earendil-works/pi-coding-agent/dist/cli.js",
                     "bridge_extension": "@buyong/pi-claude-bridge/src/index.ts",
-                    "mcp_adapter_extension": "pi-mcp-adapter",
+                    "mcp_adapter_extension": "@buyong/pi-mcp-adapter",
                     "claude_code_binary": "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"}
         require(all(Path(value[key]) == installation / "node_modules" / path for key, path in expected.items()), "pi artifact 경로 변경")
-        return value
-
-
-def cli_toolchain() -> dict:
-    """Private stable solver CLIs; npm integrity, installed tree and native binaries are locked."""
-    import fcntl
-    require(file_digest(routes.TARGETS / "targets.lock.json") == routes.TARGET_LOCK_SHA256, "CLI tools lock 변경")
-    pins = read_json(routes.TARGETS / "targets.lock.json")["cli_toolchain"]
-    require(platform.system() == "Darwin" and platform.machine() == "arm64", "CLI toolchain은 darwin-arm64 전용입니다")
-    root = settings.CACHE / "cli-toolchain"
-    root.mkdir(parents=True, exist_ok=True)
-    with (root / "install.lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        installation = root / "installation"
-        receipt = root / "artifact.json"
-        if not receipt.exists():
-            require(not installation.exists(), "미완료 CLI install을 검토하고 보존한 뒤 다시 준비하세요")
-            installation.mkdir()
-            for name, key in (("package.json", "package_sha256"), ("package-lock.json", "npm_lock_sha256")):
-                source = routes.TARGETS / ("cli-" + name)
-                require(file_digest(source) == pins[key], "CLI npm pin 변경")
-                shutil.copyfile(source, installation / name)
-            run_logged([shutil.which("npm"), *pins["install_flags"]], installation, root / "install.log")
-            write_json(receipt, {"versions": pins["versions"], "lock_sha256": pins["npm_lock_sha256"]}, exclusive=True)
-        require(read_json(receipt) == {"versions": pins["versions"], "lock_sha256": pins["npm_lock_sha256"]}, "CLI receipt drift")
-        for name, key in (("package.json", "package_sha256"), ("package-lock.json", "npm_lock_sha256")):
-            require(file_digest(installation / name) == pins[key], "CLI npm lock drift")
-        require(digest(tree_files(installation / "node_modules")) == pins["node_modules_sha256"], "CLI installation drift")
-        value = {"versions": pins["versions"], "lock_sha256": pins["npm_lock_sha256"],
-                 "installation_sha256": pins["node_modules_sha256"]}
-        for backend, item in pins["executables"].items():
-            binary = installation / "node_modules" / item["relative_path"]
-            require(file_digest(binary) == item["sha256"], "CLI executable drift")
-            value[backend] = str(binary)
         return value
 
 
@@ -401,10 +367,10 @@ def publish_artifacts() -> dict:
     return routes.publish_handoff("03-artifacts.json", {
         "status": "verified", "host": {"system": platform.system(), "machine": platform.machine(),
                                           "platform": platform.platform()}, "artifacts": artifacts,
-        "pi_toolchain": pi_toolchain(), "cli_toolchain": cli_toolchain(),
+        "pi_toolchain": pi_toolchain(),
         "verification": {"artifact_hashes": "passed", "source_versions": "passed"},
         "limitations": ["No Grafana index or solver/grader inference was created by artifact preparation."]},
-        implementation=["benchmark/tool_artifacts.py", "benchmark/resources.py"], dependencies=["01-contract.json"])
+        implementation=["benchmark/tool_artifacts.py", "benchmark/pi_lock.py", "benchmark/resources.py"], dependencies=["01-contract.json"])
 
 
 def main() -> None:
