@@ -103,27 +103,31 @@
   ],
   "checks": {
     "bundle_hashes": "passed",
-    "planned_unique_keys": 84,
+    "planned_unique_keys": 126,
     "profiles": [
       "grafana-routes"
     ],
     "prompt_separation": "passed"
   },
-  "contract_hash": "177580c2a4518257689719486ec0d8b0cfc06a233abcc874f0eff39625da7bb8",
+  "contract_hash": "59d77295d10fb4f54134f918e91fe30ca29ec8819720a181849172bb594348fd",
   "contract_paths": {
-    "private_dataset": "benchmark/data/grafana-routes-v4/dataset.json",
+    "private_dataset": "benchmark/data/grafana-routes-v6/dataset.json",
     "profile": "benchmark/data/grafana-execution-v1.json",
-    "solver_questions": "benchmark/data/grafana-routes-v4/questions.json"
+    "solver_questions": "benchmark/data/grafana-routes-v6/questions.json"
   },
   "dependency_hashes": {},
   "fact_counts": {
-    "git-oauth-authorization": {
-      "core": 6,
-      "extended": 2
+    "alertmanager-config-autosync": {
+      "core": 7,
+      "extended": 5
     },
-    "plugin-http-route-bridge": {
-      "core": 6,
-      "extended": 0
+    "git-sync-job-dispatch": {
+      "core": 7,
+      "extended": 5
+    },
+    "scope-annotation-filter": {
+      "core": 7,
+      "extended": 5
     }
   },
   "grader": {
@@ -132,34 +136,34 @@
   },
   "grader_runs": 0,
   "implementation_hashes": {
-    "benchmark/data/grafana-execution-v1.json": "6eaeb3fedce3fdf910b224124133c9b5814c5c8fcb4950fba017af42a4395629",
+    "benchmark/data/grafana-execution-v1.json": "be30f56cb473d9ecda5c329a83b0e07f899d119366459f14a02ce2b1b0fc635f",
     "benchmark/execution.py": "bb2ff51e32892996d42601b1703c429b58bf7f34f68f913310ffee791a12db58",
-    "benchmark/route_contract.py": "bae0515d6e8e0b34099ace8151b27e81818c20b9bdfa978071c249e31c895f47",
-    "benchmark/runner.py": "aa7372baedd2aa8267b0a5f84f1a9746388b423acb33d008c45a53c98a1decca",
+    "benchmark/route_contract.py": "cb3006acc78b118f2634b8f364b8496a7f60275df58380124b17788bd7a00c64",
+    "benchmark/runner.py": "0d2fe9d870e88668035d2c7ca4bf9a22eb729d435f1d28bc9163b1b172fbec03",
     "benchmark/settings.py": "9ac88a2939b2bf68f33c51d72003c8a073a87cccf7b8012d04902002af90a84a"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "d8d7093d4861ebc56d30e21f602301cbed75462b53409af3399a9ac7dc205966",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "a8b7218a09e898f08a89f2a220750d24ae0bc69908134bfc7174a35b93151c6f",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "7d78dea95f8953efd3131a9862310a0fe26d41a46c7a6b3f37e4b4bacc01bb50",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "a2b50925a2bdeb62240b851b81ee3e0b2b01bb2002c7aa9486c98a4aac9a3ffc",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1b72008fa9a46b091607e4be84f35cfae29c5447e013ade7cb809538bedc4f42",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "3efdb0d381e24a4e58f94b1bc189998d570a86e51558a977a9c24a943299e87d",
-    "benchmark/data/grafana-routes-v4/README.md": "12f388531c80e2c89e914153502d1ded76fb8c7b0036de29980fb97c37a39068",
-    "benchmark/data/grafana-routes-v4/SHA256SUMS": "2bdb3721fc90f5d75d72eb9425997ee7923cf8cc3c8cbdb71c6f7c7f65882ffb",
-    "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
-    "benchmark/data/grafana-routes-v4/evidence.json": "ba67c4c0e10377c575d0dc90ad833a63e02cb09ecec09c6af9d4d2c4b6081dcb",
-    "benchmark/data/grafana-routes-v4/grading.json": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
-    "benchmark/data/grafana-routes-v4/manifest.json": "b292a2a3979c063d65d6df2c4ba86fef420604f0f617104d6d80399257fef8bf",
-    "benchmark/data/grafana-routes-v4/questions.json": "58539e12d3f8dfa97567e7b427c66ee77a3ec6773261bad8a92c68607ded0408"
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "8bb1e26da56a8418ce672f67b66ef0d25c9d2df3199770fe246d14a95a04450e",
+    "benchmark/data/grafana-routes-v6/README.md": "b8774e894030771203d9fcea039b5ab4190e991efa5f247447c1a6cd6617ddb4",
+    "benchmark/data/grafana-routes-v6/SHA256SUMS": "e0a1ca0452cdbe4a296be7151df3ea92ef50021f1d68bd7d32a5a93170e8a69b",
+    "benchmark/data/grafana-routes-v6/dataset.json": "3bf5120fdc316c34fc5228e84e74a209fdf4e8d06a6fcd909ad298865f488f19",
+    "benchmark/data/grafana-routes-v6/evidence.json": "18e0ba236f94607367a567b578f4ed5ad6b9432f1c39e8691a1491000a0cf799",
+    "benchmark/data/grafana-routes-v6/grading.json": "f097c3fadecc7d47ca811e07216de7a2c9c0a264872c87c27ef42d046d87c1c6",
+    "benchmark/data/grafana-routes-v6/manifest.json": "33fdd791be316fd3912ea5b1a401763357fab73b5ec6078b5cb6fce8d597a2ed",
+    "benchmark/data/grafana-routes-v6/questions.json": "424fc5fa68e943777d3d988cae15c949fda289904bba138ba5d93c5e0bc3783f"
   },
   "limitations": [
     "Full source validation belongs to index preparation.",
     "Exact model account availability has not been exercised."
   ],
   "limits": null,
-  "planned_solver_runs": 84,
+  "planned_solver_runs": 126,
   "policy_decisions": {
     "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
     "benchmark_execution": "브리프셋에 벤치마크 실행은 넣지말고",
@@ -217,7 +221,7 @@
       "direct",
       "codemode"
     ],
-    "name": "Grafana 2개 경로 · 7개 비교군 · 3회 반복 · 2모드 · 준비 전용",
+    "name": "Grafana 3개 경로 · 7개 비교군 · 3회 반복 · 2모드 · 준비 전용",
     "native_output_policy": {
       "automatic_pagination": false,
       "client_delivery": "record_observed_limits_and_unknowns_separately",
@@ -277,10 +281,11 @@
     }
   },
   "question_ids": [
-    "git-oauth-authorization",
-    "plugin-http-route-bridge"
+    "git-sync-job-dispatch",
+    "alertmanager-config-autosync",
+    "scope-annotation-filter"
   ],
-  "recorded_at": "2026-10-28T18:07:45.470611+00:00",
+  "recorded_at": "2026-10-29T14:34:34.713612+00:00",
   "repetitions": 3,
   "schema_version": 1,
   "solver": {

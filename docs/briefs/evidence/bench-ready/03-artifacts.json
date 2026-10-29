@@ -24937,9 +24937,9 @@
       }
     }
   },
-  "contract_hash": "177580c2a4518257689719486ec0d8b0cfc06a233abcc874f0eff39625da7bb8",
+  "contract_hash": "59d77295d10fb4f54134f918e91fe30ca29ec8819720a181849172bb594348fd",
   "dependency_hashes": {
-    "01-contract.json": "7919b14658f91f1acc21692850b63e386956d0d13619d674bbb397ee8cd517f1"
+    "01-contract.json": "88f59610f9545c84c5097315ba043f260977c3264c25cab86f0f53627ed7630b"
   },
   "host": {
     "machine": "arm64",
@@ -24949,31 +24949,31 @@
   "implementation_hashes": {
     "benchmark/claude_auth.py": "8cb54a824f3ba80d6da7ec921910416a31caa951e80d4eb61272968702d07d5b",
     "benchmark/pi_lock.py": "3085f6b6c79a437f58ffeb4873e7c149bb211f299e378f18095b39a4b238e2ce",
-    "benchmark/pi_probe.py": "6c2bc6d34b00c5e60bf87cbf709a8dfc75971d210f5288ff175af91be1a27e39",
+    "benchmark/pi_probe.py": "1cb9df2902abe1996620665242baa4930953c60e25c68b426d97057f864de070",
     "benchmark/resources.py": "ebff1103cd0f5e25abe4bd41d6e9ba05cdd3ef7e691a694629554c2db1bac8a0",
     "benchmark/tool_artifacts.py": "24bd0d95ff3f455f7d1991430c06f736ed4b92f32b17006c0d046fad4ab95401"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "d8d7093d4861ebc56d30e21f602301cbed75462b53409af3399a9ac7dc205966",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "a8b7218a09e898f08a89f2a220750d24ae0bc69908134bfc7174a35b93151c6f",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "7d78dea95f8953efd3131a9862310a0fe26d41a46c7a6b3f37e4b4bacc01bb50",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "a2b50925a2bdeb62240b851b81ee3e0b2b01bb2002c7aa9486c98a4aac9a3ffc",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1b72008fa9a46b091607e4be84f35cfae29c5447e013ade7cb809538bedc4f42",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "3efdb0d381e24a4e58f94b1bc189998d570a86e51558a977a9c24a943299e87d",
-    "benchmark/data/grafana-routes-v4/README.md": "12f388531c80e2c89e914153502d1ded76fb8c7b0036de29980fb97c37a39068",
-    "benchmark/data/grafana-routes-v4/SHA256SUMS": "2bdb3721fc90f5d75d72eb9425997ee7923cf8cc3c8cbdb71c6f7c7f65882ffb",
-    "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
-    "benchmark/data/grafana-routes-v4/evidence.json": "ba67c4c0e10377c575d0dc90ad833a63e02cb09ecec09c6af9d4d2c4b6081dcb",
-    "benchmark/data/grafana-routes-v4/grading.json": "e06f13661594d3cf3f8ea41efd482e1c23943b694cb3a8e9de22472b2e13f874",
-    "benchmark/data/grafana-routes-v4/manifest.json": "b292a2a3979c063d65d6df2c4ba86fef420604f0f617104d6d80399257fef8bf",
-    "benchmark/data/grafana-routes-v4/questions.json": "58539e12d3f8dfa97567e7b427c66ee77a3ec6773261bad8a92c68607ded0408"
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "8bb1e26da56a8418ce672f67b66ef0d25c9d2df3199770fe246d14a95a04450e",
+    "benchmark/data/grafana-routes-v6/README.md": "b8774e894030771203d9fcea039b5ab4190e991efa5f247447c1a6cd6617ddb4",
+    "benchmark/data/grafana-routes-v6/SHA256SUMS": "e0a1ca0452cdbe4a296be7151df3ea92ef50021f1d68bd7d32a5a93170e8a69b",
+    "benchmark/data/grafana-routes-v6/dataset.json": "3bf5120fdc316c34fc5228e84e74a209fdf4e8d06a6fcd909ad298865f488f19",
+    "benchmark/data/grafana-routes-v6/evidence.json": "18e0ba236f94607367a567b578f4ed5ad6b9432f1c39e8691a1491000a0cf799",
+    "benchmark/data/grafana-routes-v6/grading.json": "f097c3fadecc7d47ca811e07216de7a2c9c0a264872c87c27ef42d046d87c1c6",
+    "benchmark/data/grafana-routes-v6/manifest.json": "33fdd791be316fd3912ea5b1a401763357fab73b5ec6078b5cb6fce8d597a2ed",
+    "benchmark/data/grafana-routes-v6/questions.json": "424fc5fa68e943777d3d988cae15c949fda289904bba138ba5d93c5e0bc3783f"
   },
   "limitations": [
     "No Grafana index or solver/grader inference was created by artifact preparation."
   ],
   "pi_toolchain": {
-    "behavior_probe_sha256": "697591e7f6db4c4a3e3f0355e805b0dc22e896e0b097dadde13678a6818903cb",
+    "behavior_probe_sha256": "ac6baf3d22f741da3e9d01bb6c8377ccd3b8eb244dc68e6a8da0d6a2cbf15673",
     "bridge_child_env_api": "createClaudeBridgeExtension/getChildEnv-v1",
     "bridge_extension": "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
     "claude_code_binary": "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
@@ -24991,7 +24991,7 @@
       "pi": "1.4.0"
     }
   },
-  "recorded_at": "2026-10-28T18:08:04.299801+00:00",
+  "recorded_at": "2026-10-29T14:34:49.360609+00:00",
   "schema_version": 1,
   "status": "verified",
   "verification": {

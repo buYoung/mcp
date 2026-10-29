@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v6",
+  "revision": 1,
+  "status": "content_frozen",
+  "supersedes": "grafana-routes-v5",
+  "target_release": "1.0.0",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
+  },
+  "question_order": [
+    "git-sync-job-dispatch",
+    "alertmanager-config-autosync",
+    "scope-annotation-filter"
+  ],
+  "counts": {
+    "questions": 3,
+    "core_facts": 21,
+    "extended_facts": 15,
+    "source_files": 85,
+    "evidence_ranges": 198,
+    "non_scoring_notes": 9
+  },
+  "files": {
+    "README.md": {
+      "sha256": "b8774e894030771203d9fcea039b5ab4190e991efa5f247447c1a6cd6617ddb4",
+      "bytes": 2429
+    },
+    "dataset.json": {
+      "sha256": "3bf5120fdc316c34fc5228e84e74a209fdf4e8d06a6fcd909ad298865f488f19",
+      "bytes": 54968
+    },
+    "evidence.json": {
+      "sha256": "18e0ba236f94607367a567b578f4ed5ad6b9432f1c39e8691a1491000a0cf799",
+      "bytes": 212617
+    },
+    "grading.json": {
+      "sha256": "f097c3fadecc7d47ca811e07216de7a2c9c0a264872c87c27ef42d046d87c1c6",
+      "bytes": 7760
+    },
+    "questions.json": {
+      "sha256": "424fc5fa68e943777d3d988cae15c949fda289904bba138ba5d93c5e0bc3783f",
+      "bytes": 641
+    }
+  },
+  "approval": {
+    "request": "사용자 지시(2026-10-29): Q3 고정, 3M 통과 후보 중 Opus 선정 2개와 함께 rg·codemap 스모크로 비교.",
+    "discovery": "/Volumes/Samsung_990_PRO/codemap-bench-work/v6/question-discovery.md"
+  },
+  "provenance": {
+    "source_identity": "고정 COMMIT의 Git blob SHA-1와 원본 바이트 SHA-256 검증",
+    "content": {
+      "git-sync-job-dispatch": "/Volumes/Samsung_990_PRO/codemap-bench-work/v6/scout/judge-output.md Q3",
+      "alertmanager-config-autosync": "/Volumes/Samsung_990_PRO/codemap-bench-work/v6/scout/judge-r2-output.md 질문 1",
+      "scope-annotation-filter": "/Volumes/Samsung_990_PRO/codemap-bench-work/v6/scout/judge-r2-output.md 질문 2"
+    },
+    "training_cutoff": {
+      "cutoff_utc": "2026-07-01T00:00:00Z",
+      "method": "고정 COMMIT git blame --line-porcelain의 committer-time; 핵심 사실 근거의 고유 (파일,행), 빈 행·주석 포함.",
+      "questions": {
+        "git-sync-job-dispatch": {
+          "post_cutoff_lines": 409,
+          "total_lines": 493,
+          "percent": 82.96,
+          "g3_pass": true
+        },
+        "alertmanager-config-autosync": {
+          "post_cutoff_lines": 125,
+          "total_lines": 477,
+          "percent": 26.21,
+          "g3_pass": false
+        },
+        "scope-annotation-filter": {
+          "post_cutoff_lines": 15,
+          "total_lines": 289,
+          "percent": 5.19,
+          "g3_pass": false
+        }
+      }
+    },
+    "memory_measurement": {
+      "status": "미측정",
+      "model_requests": 0
+    },
+    "verification_boundary": "정적 로컬 등록/호출/타입 계약만 확인. 외부 SDK·Kubernetes 내부와 실제 배포는 미실행."
+  },
+  "evaluation_status": {
+    "status_as_of_build": {
+      "is_difficulty_empirically_validated": false,
+      "solver_runs": 0,
+      "grader_calibration_runs": 0,
+      "model_requests_by_builder": 0
+    }
+  },
+  "execution_contract": {
+    "binding_rule": "route_contract.DATASET_MANIFEST_SHA256 == SHA256(manifest.json)",
+    "planned_questions": 3,
+    "selection_stage": "smoke_candidates"
+  },
+  "preservation": "v4·v5 결과와 혼합하지 않는다. G3 미달 문항을 관문 통과로 표시하지 않는다."
+}

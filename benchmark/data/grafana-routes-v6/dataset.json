@@ -1,0 +1,1259 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v6",
+  "revision": 1,
+  "status": "content_frozen",
+  "supersedes": "grafana-routes-v5",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
+  },
+  "target_release": "1.0.0",
+  "evidence_file": "evidence.json",
+  "grading_file": "grading.json",
+  "solver_questions_file": "questions.json",
+  "question_order": [
+    "git-sync-job-dispatch",
+    "alertmanager-config-autosync",
+    "scope-annotation-filter"
+  ],
+  "is_difficulty_empirically_validated": false,
+  "questions": [
+    {
+      "id": "git-sync-job-dispatch",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "cross_language_binding": "화면 동기화 버튼의 생성 RTK 클라이언트가 repositories/{name}/jobs 하위 리소스로 POST하고, Go provisioning API의 jobs 커넥터가 같은 하위 리소스 경로로 받는다. 컨트롤러·웹훅 생산자는 Go 안에서 같은 Insert로 모인다.",
+      "scope": "Git 저장소 동기화(pull) 작업이 생성되어 실행 처리기에 도달하기까지의 경로다. 작업 생성 요청 → Job 리소스 저장 → 통합 저장소 KV 백엔드의 커밋 뒤 NATS watch 알림 → job informer의 큐 그룹 구독 → 드라이버 핸들러와 작업 큐 → claim과 처리기 선택을 포함한다. 생산자는 화면·컨트롤러·웹훅 중 어느 하나로 충족한다. 처리기 내부의 실제 Git 동기화 로직, 작업 진행 상태 표시, apiserver watch 파이프라인, 다른 리소스의 informer는 범위 밖이다.",
+      "facts": [
+        {
+          "id": "G1",
+          "level": "core",
+          "statement": "Git 저장소 동기화 작업은 버스 메시지가 아니라 Job 생성 요청으로 시작한다. 화면의 동기화 버튼은 생성된 RTK 클라이언트로 action pull job을 jobs 하위 리소스에 POST하고, jobs 커넥터가 JobQueue.Insert를 호출한다. 리포지토리 컨트롤러의 sync job 추가와 웹훅 push도 같은 Insert로 모인다.",
+          "required_links": [
+            "동기화 작업 생산자(화면 버튼·리포지토리 컨트롤러·웹훅 중 하나 이상) → JobQueue.Insert"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 화면 → POST jobs 하위 리소스 → jobs 커넥터 → Insert, 컨트롤러 addSyncJob → Insert, 웹훅 push → Insert 중 어느 하나를 인용하면 된다. 생산자 전부를 열거할 필요는 없다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G01",
+            "G02",
+            "G03",
+            "G04",
+            "G05",
+            "G06",
+            "G07",
+            "G08",
+            "G09",
+            "G10"
+          ]
+        },
+        {
+          "id": "G2",
+          "level": "core",
+          "statement": "Insert는 메모리 큐에 넣지 않고 생성된 typed client의 Jobs(ns).Create로 Job 리소스를 apiserver에 저장한다. 이름은 <repo>-sync 규칙으로 정해진다.",
+          "required_links": [
+            "JobQueue.Insert → typed client Create로 Job 리소스 저장"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: persistentstore.go의 Insert 안 Create 호출을 인용하면 된다. 이름 규칙은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G11",
+            "G12",
+            "G13"
+          ]
+        },
+        {
+          "id": "G3",
+          "level": "core",
+          "statement": "통합 저장소 KV 백엔드의 WriteEvent가 커밋한 뒤 publishWatchNotification이 us.watch.v1.{group}.{namespace}.{resource} 형식 subject로 변경 알림을 NATS에 발행한다. 발행기는 [nats] 설정과 DI로 KVBackendOptions.EventPublisher에 연결되며 KV 백엔드에만 적용된다.",
+          "required_links": [
+            "Job 리소스 쓰기 커밋 → watch 알림 발행 호출",
+            "resourcewatch subject 규칙 → NATS 발행"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: storage_backend.go의 publishWatchNotification 호출 또는 watch_publisher.go의 발행 함수를 인용하면 된다. 발행기 DI 조립 위치는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: subject.go의 Subject 함수 또는 같은 규칙의 subject 조립과 발행 호출을 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G14",
+            "G15",
+            "G16",
+            "G17",
+            "G18",
+            "G19",
+            "G20",
+            "G21",
+            "G22",
+            "G23"
+          ]
+        },
+        {
+          "id": "G4",
+          "level": "core",
+          "statement": "nats.Enabled가 참이면 job informer가 NATS 소스를 고르고, 발행과 같은 resourcewatch.Subject 규칙으로 만든 job 리소스 와일드카드 subject를 큐 그룹 provisioning-informer로 구독한다. 그래서 알림은 레플리카 하나에만 간다. 거짓이면 apiserver SharedInformer를 쓴다.",
+          "required_links": [
+            "발행 subject 규칙 → job informer의 구독 subject(같은 Subject 함수)",
+            "큐 그룹 provisioning-informer 구독 → 알림 수신"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: job.go의 Subject(jobGVR, \"\") 호출과 발행 쪽 Subject 사용을 대응시키면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: informer/informer.go의 큐 그룹 상수 또는 unified informer의 큐 구독 호출을 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G24",
+            "G25",
+            "G26",
+            "G27",
+            "G28"
+          ]
+        },
+        {
+          "id": "G5",
+          "level": "core",
+          "statement": "알림은 namespace/name만 가진 최소 Job 객체가 되어 informer의 OnAdd로 전달되고, AddEventHandler(driver.EventHandler())로 연결된 AddFunc가 ns/name 키를 workqueue에 넣는다.",
+          "required_links": [
+            "NATS 알림 → 최소 Job 객체로 informer 이벤트 핸들러 호출",
+            "드라이버 이벤트 핸들러 → workqueue 키 추가"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: unified informer의 알림 처리와 핸들러 호출 위치를 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: register.go 또는 jobqueue_operator.go의 AddEventHandler 등록, 또는 concurrent_driver.go의 EventHandler AddFunc를 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G29",
+            "G30",
+            "G31",
+            "G32",
+            "G33"
+          ]
+        },
+        {
+          "id": "G6",
+          "level": "core",
+          "statement": "드라이버 워커가 큐에서 키를 꺼내 Claim으로 claim 라벨 provisioning.grafana.app/claim을 API Update로 써서 작업을 확보하고, IsSupported로 Action이 pull인 작업을 맡는 SyncWorker를 골라 Process를 호출한다.",
+          "required_links": [
+            "큐 키 → claim 라벨 API Update로 작업 확보",
+            "확보한 Job → IsSupported로 pull 처리기(SyncWorker) 선택"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: persistentstore.go의 Claim 또는 concurrent_driver.go의 claim 호출을 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: driver.go의 처리기 선택 루프와 sync/worker.go의 IsSupported를 대응시키면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G34",
+            "G35",
+            "G36",
+            "G37",
+            "G38",
+            "G39",
+            "G40"
+          ]
+        },
+        {
+          "id": "G7",
+          "level": "core",
+          "statement": "메시지 버스는 본문 없는 변경 신호만 나르며 작업 인계는 API 저장과 claim으로 일어난다. 알림이 빠지거나 NATS가 꺼져도 informer의 주기 re-list가 같은 핸들러로 작업을 다시 넣는다.",
+          "required_links": [
+            "버스 알림 → 본문 없는 메타데이터 신호(작업 내용은 API 리소스로 전달)",
+            "주기 re-list → 같은 핸들러로 작업 재투입"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: watch_publisher.go의 메타데이터 전용 설명 또는 최소 객체 생성을 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: unified informer의 re-list 루프, 또는 NATS가 꺼졌을 때 apiserver informer로 대체하는 job.go 분기를 인용해도 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G41",
+            "G42",
+            "G43",
+            "G44",
+            "G45"
+          ]
+        },
+        {
+          "id": "GE1",
+          "level": "extended",
+          "statement": "job informer는 degraded start를 허용한다. 구독에 실패해도 re-list만으로 시작하고 백그라운드에서 다시 구독을 시도하며, 재연결 때도 re-list한다.",
+          "required_links": [
+            "구독 실패 → re-list만으로 시작하고 재구독 시도"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: NATS 없이도 큐가 멈추지 않는다는 점을 위 근거로 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G46",
+            "G47",
+            "G48",
+            "G49",
+            "G50"
+          ]
+        },
+        {
+          "id": "GE2",
+          "level": "extended",
+          "statement": "같은 informer·드라이버 조립이 apiserver post-start hook과 독립 job-queue operator 두 곳에 있다. operator는 자체 구독기를 쓴다.",
+          "required_links": [
+            "같은 job informer·드라이버 조립 → apiserver post-start hook과 job-queue operator 두 호스트"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 두 호스트 중 operator 쪽 조립을 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G51",
+            "G52",
+            "G31",
+            "G53"
+          ]
+        },
+        {
+          "id": "GE3",
+          "level": "extended",
+          "statement": "라이브 MODIFIED 알림(RV 없는 최소 객체)은 UpdateFunc가 무시하고, RV가 같은 re-list 재전달만 다시 큐에 넣는다. 그래서 claim이나 진행 상태 쓰기로 생긴 알림은 작업을 다시 넣지 않는다.",
+          "required_links": [
+            "라이브 MODIFIED 알림 → UpdateFunc에서 무시"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 갱신 알림은 큐에 다시 넣지 않는다는 점을 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G54"
+          ]
+        },
+        {
+          "id": "GE4",
+          "level": "extended",
+          "statement": "알림 발행은 best-effort다. 실패하면 로그와 지표만 남기고 쓰기는 실패하지 않는다.",
+          "required_links": [
+            "발행 실패 → 로그·지표만 남기고 쓰기는 성공"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 발행 실패가 쓰기를 막지 않는다는 점을 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G55",
+            "G56"
+          ]
+        },
+        {
+          "id": "GE5",
+          "level": "extended",
+          "statement": "claim 이후 실패하면 쿨다운에 들어가고, claim 자체가 실패하면 maxClaimAttempts(3)번까지 재시도한 뒤 큐에서 뺀다. 그 뒤에는 re-list가 다시 넣는다.",
+          "required_links": [
+            "claim 이후 실패 → 쿨다운, 또는 claim 실패 → 제한 횟수 재시도 후 큐 제거"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 쿨다운과 claim 재시도 중 하나를 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "G57",
+            "G58"
+          ]
+        }
+      ],
+      "limitations": [
+        "NATS와 KV 백엔드는 기본값이 꺼져 있다. 버스 경로는 그 설정이 켜진 배포의 정적 가능 경로이며 실제 실행을 관측하지 않았다.",
+        "migrate 작업도 <repo>-sync 이름과 SyncWorker를 내부에서 재사용하지만 IsSupported 기준으로는 pull만 동기화 처리기 대상이다."
+      ],
+      "wrong_claims": [
+        "NATS 메시지에 Job 본문이 실려 처리기에 직접 전달된다.",
+        "처리기는 NATS 구독 콜백 안에서 바로 실행되며 claim이나 API 저장이 관여하지 않는다.",
+        "NATS가 꺼지면 동기화 작업이 처리되지 않는다."
+      ],
+      "context_notes": [
+        {
+          "id": "G-distractors",
+          "is_required": false,
+          "related_fact_ids": [
+            "G3",
+            "G4"
+          ],
+          "statement": "같은 us.watch.v1 subject를 구독하는 apiserver watch용 natsNotifier, 같은 큐 그룹 이름을 쓰는 리포지토리·커넥션 informer, 큐 그룹이 다른 폴더 operator, 루트가 legacysql.watch.v1인 legacywatch, 구독 없이 re-list만 하는 historic job 소스는 이 경로가 아니다. 언급해도 감점하지 않으며 구분 설명은 필수가 아니다.",
+          "evidence_ids": [
+            "G59",
+            "G60",
+            "G61",
+            "G62",
+            "G63",
+            "G64",
+            "G65",
+            "G66"
+          ]
+        },
+        {
+          "id": "G-defaults",
+          "is_required": false,
+          "related_fact_ids": [
+            "G3",
+            "G4",
+            "G7"
+          ],
+          "statement": "NATS와 KV 백엔드는 둘 다 기본값이 꺼져 있다. 꺼져 있으면 apiserver informer가 같은 자리를 맡는다. 이 조건 값을 답변에 나열할 의무는 없다.",
+          "evidence_ids": [
+            "G67",
+            "G68"
+          ]
+        },
+        {
+          "id": "git-sync-job-dispatch-boundary",
+          "is_required": false,
+          "related_fact_ids": [
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6",
+            "G7",
+            "GE1",
+            "GE2",
+            "GE3",
+            "GE4",
+            "GE5"
+          ],
+          "statement": "Git 저장소 동기화(pull) 작업이 생성되어 실행 처리기에 도달하기까지의 경로다. 작업 생성 요청 → Job 리소스 저장 → 통합 저장소 KV 백엔드의 커밋 뒤 NATS watch 알림 → job informer의 큐 그룹 구독 → 드라이버 핸들러와 작업 큐 → claim과 처리기 선택을 포함한다. 생산자는 화면·컨트롤러·웹훅 중 어느 하나로 충족한다. 처리기 내부의 실제 Git 동기화 로직, 작업 진행 상태 표시, apiserver watch 파이프라인, 다른 리소스의 informer는 범위 밖이다. NATS와 KV 백엔드는 기본값이 꺼져 있다. 버스 경로는 그 설정이 켜진 배포의 정적 가능 경로이며 실제 실행을 관측하지 않았다. migrate 작업도 <repo>-sync 이름과 SyncWorker를 내부에서 재사용하지만 IsSupported 기준으로는 pull만 동기화 처리기 대상이다.",
+          "evidence_ids": [
+            "G01",
+            "G02",
+            "G03",
+            "G04",
+            "G05",
+            "G06",
+            "G07",
+            "G08",
+            "G09",
+            "G10",
+            "G11",
+            "G12",
+            "G13",
+            "G14",
+            "G15",
+            "G16",
+            "G17",
+            "G18",
+            "G19",
+            "G20",
+            "G21",
+            "G22",
+            "G23",
+            "G24",
+            "G25",
+            "G26",
+            "G27",
+            "G28",
+            "G29",
+            "G30",
+            "G31",
+            "G32",
+            "G33",
+            "G34",
+            "G35",
+            "G36",
+            "G37",
+            "G38",
+            "G39",
+            "G40",
+            "G41",
+            "G42",
+            "G43",
+            "G44",
+            "G45"
+          ]
+        }
+      ],
+      "prompt": "메시지 버스 패턴 중 Git 저장소 동기화 작업이 그 작업을 실행하는 처리기까지 전달되는 구간 다 확인해줘.",
+      "core_fact_count": 7,
+      "extended_fact_count": 5,
+      "difficulty_status": "structural_not_empirical",
+      "evidence_ids": [
+        "G01",
+        "G02",
+        "G03",
+        "G04",
+        "G05",
+        "G06",
+        "G07",
+        "G08",
+        "G09",
+        "G10",
+        "G11",
+        "G12",
+        "G13",
+        "G14",
+        "G15",
+        "G16",
+        "G17",
+        "G18",
+        "G19",
+        "G20",
+        "G21",
+        "G22",
+        "G23",
+        "G24",
+        "G25",
+        "G26",
+        "G27",
+        "G28",
+        "G29",
+        "G30",
+        "G31",
+        "G32",
+        "G33",
+        "G34",
+        "G35",
+        "G36",
+        "G37",
+        "G38",
+        "G39",
+        "G40",
+        "G41",
+        "G42",
+        "G43",
+        "G44",
+        "G45",
+        "G46",
+        "G47",
+        "G48",
+        "G49",
+        "G50",
+        "G51",
+        "G52",
+        "G53",
+        "G54",
+        "G55",
+        "G56",
+        "G57",
+        "G58",
+        "G59",
+        "G60",
+        "G61",
+        "G62",
+        "G63",
+        "G64",
+        "G65",
+        "G66",
+        "G67",
+        "G68"
+      ]
+    },
+    {
+      "id": "alertmanager-config-autosync",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "cross_language_binding": "설정 화면의 생성 RTK 클라이언트가 /apis/notifications.alerting.grafana.app/v0alpha1/.../configs/default를 읽고 spec을 patch하며, Go 워커가 같은 Config(v1beta1)를 읽고 status에 쓴다. TS는 Go가 쓴 조건 타입 문자열(ExternalAlertmanagerSynced 등)을 같은 리터럴로 해석한다.",
+      "scope": "외부 Alertmanager(Mimir/Cortex) 설정을 Grafana의 Alertmanager 설정으로 가져오는 자동 동기화 경로다. 설정 화면의 Config 조회·patch, Config 쓰기의 어드미션과 주입된 데이터소스 검사, MOA 폴링 선처리의 동기화 실행, UID 결정, 데이터소스 프록시 조회와 저장, status 기록과 화면 해석을 포함한다. 알림을 외부 Alertmanager로 보내는 sender 쪽 동기화, rules 앱의 외부 ruler 동기화, Config가 저장되는 통합 저장소 내부, 레거시 admin_config REST는 범위 밖이다.",
+      "facts": [
+        {
+          "id": "A1",
+          "level": "core",
+          "statement": "설정 화면은 플래그 alerting.syncExternalAlertmanager와 config 읽기 권한이 있을 때 생성된 k8s 클라이언트로 Config 싱글턴 default를 주기적으로 읽는다. 저장과 해제는 삭제가 아니라 /spec/externalAlertmanagerSync에 {datasourceUid} 또는 {}를 넣는 JSON-patch다.",
+          "required_links": [
+            "설정 화면 → 생성된 k8s 클라이언트로 Config 싱글턴 default 조회",
+            "저장·해제 → /spec/externalAlertmanagerSync JSON-patch"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: configApi.ts의 엔드포인트 정의 또는 useAutoSyncConfiguration의 조회 사용을 인용하면 된다. 폴링 주기와 권한 이름은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: patch 경로 문자열 또는 patch 호출부를 인용하면 된다. 해제 시 {} 처리는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A01",
+            "A02",
+            "A03",
+            "A04",
+            "A05",
+            "A06"
+          ]
+        },
+        {
+          "id": "A2",
+          "level": "core",
+          "statement": "어드미션 검증기는 v0alpha1과 v1beta1에 모두 붙고 이름이 default가 아니면 거부한다. UID가 비어 있지 않은 새 값일 때만 콜백을 부르며, 콜백은 pkg/registry가 SpecificConfig로 주입한다. 콜백은 플래그 → ini 설정 시 거부 → 타입 alertmanager → 구현 mimir/cortex 순으로 검사한다.",
+          "required_links": [
+            "Config 쓰기 → 앱 SDK 어드미션 검증기",
+            "검증기 → pkg/registry가 주입한 데이터소스 검사 콜백(ini 우선 거부 또는 mimir/cortex 제한)"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: app.go의 Validator 등록 또는 config_validator.go의 검증을 인용하면 된다. 두 버전에 모두 붙는다는 점은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: config.go의 콜백 필드와 register.go의 주입 함수를 대응시키면 된다. 검사 순서 전체 나열은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A07",
+            "A08",
+            "A09",
+            "A10",
+            "A11",
+            "A12",
+            "A13"
+          ]
+        },
+        {
+          "id": "A3",
+          "level": "core",
+          "statement": "동기화는 Config의 informer나 reconciler가 아니라 MultiOrgAlertmanager 폴링 루프(AlertmanagerConfigPollInterval)의 선처리 syncExternalAMConfigForOrgs가 org마다 FetchExtraConfig를 부르는 방식으로 실행된다. 동기화기는 ngalert.go에서 만들어 MOA에 주입한다.",
+          "required_links": [
+            "동기화 실행 주체 → Config 컨트롤러가 아니라 MOA 주기 폴링 선처리의 org별 FetchExtraConfig"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: multiorg_alertmanager.go의 폴링 루프와 선처리 호출, 또는 ngalert.go의 동기화기 생성·주입과 그 소비를 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A14",
+            "A15",
+            "A16",
+            "A17",
+            "A07"
+          ]
+        },
+        {
+          "id": "A4",
+          "level": "core",
+          "statement": "UID는 ini [unified_alerting] external_alertmanager_uid가 먼저다(origin ini). 없으면 서비스 신원과 지연 생성한 v1beta1 Config 클라이언트로 default를 읽는다(origin api). 서비스 신원에는 configs:get, configs:update, configs/status:update, alert.notifications.external:read 권한이 있다.",
+          "required_links": [
+            "ini external_alertmanager_uid → 우선 UID",
+            "ini가 없을 때 → 워커가 서비스 신원 k8s 클라이언트로 같은 Config default 조회"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: external_am_syncer.go의 UID 결정과 setting_unified_alerting.go의 키 읽기를 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: 지연 생성 Config 클라이언트의 조회 호출을 인용하면 된다. 서비스 신원 권한 목록 전체는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A18",
+            "A19",
+            "A20",
+            "A21"
+          ]
+        },
+        {
+          "id": "A5",
+          "level": "core",
+          "statement": "외부 설정은 k8s API가 아니라 데이터소스 프록시 HTTP로 받는다. 이 플러그인 라우트에는 alert.notifications.external:read가 필요하다. 응답 본문 해시로 중복을 거르고 Validate한 뒤, 서비스 신원과 no-op 인가로 SaveAndApplyExtraConfiguration을 불러 Alertmanager 설정 저장소에 넣는다.",
+          "required_links": [
+            "UID → 데이터소스 프록시 HTTP 경로로 외부 Alertmanager 설정 조회",
+            "조회한 설정 → SaveAndApplyExtraConfiguration으로 Alertmanager 설정 저장소에 저장"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: dsproxyclient/client.go의 URL 조립 또는 external_am_syncer.go의 조회 호출을 인용하면 된다. 플러그인 라우트 권한은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: multiorg_alertmanager.go의 저장 호출을 인용하면 된다. 해시 중복 제거와 Validate 세부는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A22",
+            "A23",
+            "A24",
+            "A25",
+            "A26",
+            "A27"
+          ]
+        },
+        {
+          "id": "A6",
+          "level": "core",
+          "statement": "워커는 결과를 조건 타입 ExternalAlertmanagerSynced와 status.externalAlertmanagerSync{datasourceUid,origin}으로 쓴다. 성공하면 MarkSaved, 저장에 실패하면 MarkFailed를 부르고, 플래그는 켜졌는데 UID가 없으면 NotConfigured를 쓰며 객체가 없을 때 Create로 싱글턴을 만든다.",
+          "required_links": [
+            "동기화 결과 → 워커가 Config.status 조건과 status.externalAlertmanagerSync에 기록"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: MarkSaved/MarkFailed 호출, NotConfigured 기록, 싱글턴 Create 시드 중 하나와 status 쓰기를 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A28",
+            "A29",
+            "A30",
+            "A31",
+            "A32",
+            "A33"
+          ]
+        },
+        {
+          "id": "A7",
+          "level": "core",
+          "statement": "화면은 Go와 같은 문자열(ExternalAlertmanagerSynced, MergeCommitted, NotConfigured)로 상태를 만든다. status UID가 spec UID와 다르면 pending으로 보고, origin이 ini이면 운영자 관리로 본다.",
+          "required_links": [
+            "Go 워커가 쓴 조건 타입 문자열 → TS가 같은 문자열 리터럴로 상태 해석"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: autoSync.ts의 문자열과 external_am_syncer.go의 조건 상수를 대응시키면 된다. pending·ini 처리 세부는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A34",
+            "A35",
+            "A36",
+            "A28"
+          ]
+        },
+        {
+          "id": "AE1",
+          "level": "extended",
+          "statement": "Config 인가는 읽기에 get/list/watch, 수정에 patch/update 권한을 요구한다. create는 서비스 신원만 할 수 있고 delete는 항상 거부하며, status 쓰기에는 configs/status:update가 필요하다.",
+          "required_links": [
+            "Config 인가 → 사람은 create할 수 없고 status 쓰기는 워커 전용"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: authorize.go의 동사별 분기를 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A37",
+            "A38"
+          ]
+        },
+        {
+          "id": "AE2",
+          "level": "extended",
+          "statement": "이미 managed route로 병합됐으면 동기화를 멈춘다. status는 True로 두고 reason만 MergeCommitted로 바꾸며, 화면은 이를 별도 상태로 표시한다.",
+          "required_links": [
+            "병합 완료 → status True와 reason MergeCommitted로 동기화 종료"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: True와 특정 reason의 조합이 종료 상태라는 점을 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A39",
+            "A40",
+            "A41",
+            "A42",
+            "A43"
+          ]
+        },
+        {
+          "id": "AE3",
+          "level": "extended",
+          "statement": "동기화가 설정돼 있으면 convert API의 Alertmanager 설정 import가 409로 막히고, 화면은 import 진입점을 비활성화한다.",
+          "required_links": [
+            "동기화 설정 → convert API import 409"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 서버 409 검사를 인용하면 된다. 화면 비활성화는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A44",
+            "A45",
+            "A46",
+            "A47",
+            "A48"
+          ]
+        },
+        {
+          "id": "AE4",
+          "level": "extended",
+          "statement": "서버가 managed_by를 auto-sync 또는 manual로 계산하고, TS는 이 값으로 동기화 관리 여부를 정하며 promote 때 spec을 {}로 비운다.",
+          "required_links": [
+            "서버 managed_by 계산 → 화면의 동기화 관리 분기"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 서버 계산값과 TS 소비 중 한 쌍을 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A49",
+            "A50",
+            "A51",
+            "A52",
+            "A53",
+            "A54"
+          ]
+        },
+        {
+          "id": "AE5",
+          "level": "extended",
+          "statement": "실패는 SyncReason으로 분류해 메트릭 라벨과 조건 reason에 같이 쓴다. Mimir의 평문 404는 가져올 설정 없음이고, 프록시가 만든 JSON 404는 실제 실패로 구분한다.",
+          "required_links": [
+            "동기화 실패 → 이유 분류 또는 두 종류 404 구분"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 이유 분류와 404 구분 중 하나를 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A55",
+            "A24",
+            "A56"
+          ]
+        }
+      ],
+      "limitations": [
+        "alerting.syncExternalAlertmanager 플래그는 기본값이 false다. 플래그가 켜진 배포의 정적 가능 경로이며 실제 동기화 실행을 관측하지 않았다.",
+        "Config는 통합 저장소에 저장되지만 그 저장소 내부(KV, watch)는 이 문항의 채점 범위가 아니다."
+      ],
+      "wrong_claims": [
+        "Config 리소스의 informer나 reconciler(k8s 컨트롤러)가 외부 Alertmanager 설정을 가져온다.",
+        "외부 Alertmanager 설정 본문은 k8s API를 통해 Config 리소스에 저장된다.",
+        "동기화기는 레거시 admin_config의 external_alertmanager_uid를 읽는다."
+      ],
+      "context_notes": [
+        {
+          "id": "A-distractors",
+          "is_required": false,
+          "related_fact_ids": [
+            "A3",
+            "A4"
+          ],
+          "statement": "rules 앱의 외부 ruler 동기화(같은 Config·status 패턴, 자체 ticker), 레거시 admin_config REST의 external_alertmanager_uid, 알림 발송 쪽 외부 Alertmanager 동기화(sender), ruler 쪽 409는 이 경로가 아니다. 언급해도 감점하지 않으며 구분 설명은 필수가 아니다.",
+          "evidence_ids": [
+            "A57",
+            "A58",
+            "A59",
+            "A60",
+            "A61"
+          ]
+        },
+        {
+          "id": "A-premise",
+          "is_required": false,
+          "related_fact_ids": [
+            "A3",
+            "A4",
+            "A7"
+          ],
+          "statement": "Kubernetes 방식 API는 Config 저장, 인가, 어드미션, status만 맡는다. 실행은 MOA 폴링, 데이터 이동은 데이터소스 프록시 HTTP, 저장은 Alertmanager 설정 저장소가 한다. 화면은 v0alpha1, 워커는 v1beta1을 쓰지만 같은 객체다. 코드 주석의 per-org admin_config UID 설명은 낡았다. 이 설명의 재현은 필수가 아니다.",
+          "evidence_ids": [
+            "A62",
+            "A63",
+            "A64",
+            "A65"
+          ]
+        },
+        {
+          "id": "alertmanager-config-autosync-boundary",
+          "is_required": false,
+          "related_fact_ids": [
+            "A1",
+            "A2",
+            "A3",
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "AE1",
+            "AE2",
+            "AE3",
+            "AE4",
+            "AE5"
+          ],
+          "statement": "외부 Alertmanager(Mimir/Cortex) 설정을 Grafana의 Alertmanager 설정으로 가져오는 자동 동기화 경로다. 설정 화면의 Config 조회·patch, Config 쓰기의 어드미션과 주입된 데이터소스 검사, MOA 폴링 선처리의 동기화 실행, UID 결정, 데이터소스 프록시 조회와 저장, status 기록과 화면 해석을 포함한다. 알림을 외부 Alertmanager로 보내는 sender 쪽 동기화, rules 앱의 외부 ruler 동기화, Config가 저장되는 통합 저장소 내부, 레거시 admin_config REST는 범위 밖이다. alerting.syncExternalAlertmanager 플래그는 기본값이 false다. 플래그가 켜진 배포의 정적 가능 경로이며 실제 동기화 실행을 관측하지 않았다. Config는 통합 저장소에 저장되지만 그 저장소 내부(KV, watch)는 이 문항의 채점 범위가 아니다.",
+          "evidence_ids": [
+            "A01",
+            "A02",
+            "A03",
+            "A04",
+            "A05",
+            "A06",
+            "A07",
+            "A08",
+            "A09",
+            "A10",
+            "A11",
+            "A12",
+            "A13",
+            "A14",
+            "A15",
+            "A16",
+            "A17",
+            "A18",
+            "A19",
+            "A20",
+            "A21",
+            "A22",
+            "A23",
+            "A24",
+            "A25",
+            "A26",
+            "A27",
+            "A28",
+            "A29",
+            "A30",
+            "A31",
+            "A32",
+            "A33",
+            "A34",
+            "A35",
+            "A36"
+          ]
+        }
+      ],
+      "prompt": "Kubernetes 방식 API 중 외부 Alertmanager 설정을 가져오는 자동 동기화와 연결되는 구간 다 확인해줘.",
+      "core_fact_count": 7,
+      "extended_fact_count": 5,
+      "difficulty_status": "structural_not_empirical",
+      "evidence_ids": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "A17",
+        "A18",
+        "A19",
+        "A20",
+        "A21",
+        "A22",
+        "A23",
+        "A24",
+        "A25",
+        "A26",
+        "A27",
+        "A28",
+        "A29",
+        "A30",
+        "A31",
+        "A32",
+        "A33",
+        "A34",
+        "A35",
+        "A36",
+        "A37",
+        "A38",
+        "A39",
+        "A40",
+        "A41",
+        "A42",
+        "A43",
+        "A44",
+        "A45",
+        "A46",
+        "A47",
+        "A48",
+        "A49",
+        "A50",
+        "A51",
+        "A52",
+        "A53",
+        "A54",
+        "A55",
+        "A56",
+        "A57",
+        "A58",
+        "A59",
+        "A60",
+        "A61",
+        "A62",
+        "A63",
+        "A64",
+        "A65"
+      ]
+    },
+    {
+      "id": "scope-annotation-filter",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "cross_language_binding": "TS k8s 주석 클라이언트가 /apis/annotation.grafana.app/v0alpha1/namespaces/{ns}/search에 반복 쿼리 키 scope를 보내고 생성·수정 바디에 spec.scopes를 담는다. Go annotation 앱의 search 커스텀 라우트 핸들러가 같은 scope 파라미터를 ListOptions.Scopes로 받는다.",
+      "scope": "대시보드에서 선택한 스코프가 주석 저장·조회에 반영되는 경로다. scopeFilters 토글과 ScopesContext/ScopesVariable, 데이터소스 조회·패널 컨텍스트 쓰기·주석 목록 패널의 세 진입점, annotationServer의 구현 선택, k8s 클라이언트의 전송 형식, annotation 앱 설치와 search 라우트, store_backend에 따른 저장소별 스코프 처리를 포함한다. request.scopes를 채우는 @grafana/scenes 내부, scope.grafana.app 스코프 서버 API, 대시보드 재로드·드릴다운의 스코프 사용, RBAC 권한 scope는 범위 밖이다.",
+      "facts": [
+        {
+          "id": "B1",
+          "level": "core",
+          "statement": "scopeFilters가 꺼지면 ScopesContext 값이 undefined이고 대시보드에 ScopesVariable도 생기지 않는다(공개 대시보드도 제외). 주석으로 넘어가는 것은 스코프 객체가 아니라 metadata.name 문자열 배열뿐이다.",
+          "required_links": [
+            "scopeFilters 토글 → ScopesContext 또는 대시보드 ScopesVariable 노출",
+            "선택 스코프 → 주석 쪽에는 이름 문자열 배열만 전달"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: ScopesContextProvider의 토글 분기 또는 variables.ts·transformSaveModelSchemaV2ToScene.ts의 ScopesVariable 추가를 인용하면 된다. 공개 대시보드 예외는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: datasource.ts 또는 setDashboardPanelContext.ts의 이름 추출 위치를 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B01",
+            "B02",
+            "B03",
+            "B04",
+            "B05",
+            "B06",
+            "B07"
+          ]
+        },
+        {
+          "id": "B2",
+          "level": "core",
+          "statement": "조회는 Grafana 데이터소스 getAnnotations가 request.scopes → params.scopes → annotationServer().query로 넘긴다. 수동 생성·수정은 getCurrentScopeNames → save/update(anno, names)로 넘긴다. 삭제에는 스코프가 없다.",
+          "required_links": [
+            "주석 조회 → Grafana 데이터소스가 request.scopes의 이름을 annotationServer().query에 전달",
+            "주석 생성·수정 → 패널 컨텍스트가 현재 스코프 이름을 save/update에 전달"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: datasource.ts의 getAnnotations 경로를 인용하면 된다. request.scopes를 채우는 @grafana/scenes 내부는 요구하지 않는다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: setDashboardPanelContext.ts의 getCurrentScopeNames와 save/update 호출을 인용하면 된다. 삭제에 스코프가 없다는 점은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B08",
+            "B09",
+            "B10",
+            "B11",
+            "B12",
+            "B13",
+            "B14"
+          ]
+        },
+        {
+          "id": "B3",
+          "level": "core",
+          "statement": "주석 목록 패널은 ScopesContext를 contextType으로 받아 stateObservable을 스코프 이름 키로 구독하고, 이름이 바뀔 때마다 annotationServer()를 거치지 않고 annotationK8sClient.search를 직접 부른다. 레거시 분기에서는 스코프를 보내지 않는다.",
+          "required_links": [
+            "주석 목록 패널 → ScopesContext 구독으로 스코프 이름 변화 시 k8s 주석 search 직접 호출"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: AnnoListPanel.tsx의 contextType·stateObservable 구독 또는 search 호출을 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B15",
+            "B16",
+            "B17"
+          ]
+        },
+        {
+          "id": "B4",
+          "level": "core",
+          "statement": "grafana.kubernetesAnnotationsClient 플래그와 annotation.grafana.app discovery가 모두 참일 때만 k8s 클라이언트를 쓴다. 아니면 레거시 /api/annotations로 가고 save·update는 scopes 인자를 버린다. 레거시 백엔드에는 스코프 필터가 없다.",
+          "required_links": [
+            "annotationServer() → 플래그와 annotation.grafana.app discovery로 k8s 클라이언트 선택",
+            "조건 불충족 → 레거시 /api/annotations에서 스코프 제거"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: api.ts의 선택 분기 또는 isAnnotationApiAvailable.ts의 discovery를 인용하면 된다. 두 조건 중 하나 이상을 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: 레거시 save/update가 scopes 인자를 쓰지 않는 위치 또는 레거시 백엔드에 스코프 필터가 없다는 설명으로 충족한다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B18",
+            "B19",
+            "B20",
+            "B21",
+            "B22",
+            "B23"
+          ]
+        },
+        {
+          "id": "B5",
+          "level": "core",
+          "statement": "조회는 /apis/annotation.grafana.app/v0alpha1/namespaces/{ns}/search에 반복 쿼리 키 scope로 보낸다. 생성은 spec.scopes, 수정은 merge-patch이며 스코프가 없으면 scopes: null을 보낸다.",
+          "required_links": [
+            "k8s 주석 클라이언트 → search 경로의 scope 쿼리 키 또는 생성·수정 바디 spec.scopes"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: index.ts의 search 쿼리 조립 또는 spec.scopes 바디 구성을 인용하면 된다. merge-patch의 null 처리는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B24",
+            "B25",
+            "B26",
+            "B27",
+            "B28",
+            "B29"
+          ]
+        },
+        {
+          "id": "B6",
+          "level": "core",
+          "statement": "annotation 앱은 [annotations.app_platform] enabled(기본 false)일 때만 설치된다. search는 앱 SDK 커스텀 라우트이고 핸들러는 registry가 SpecificConfig로 주입한다. 핸들러는 scope를 ListOptions.Scopes로, scopesMatchAny(기본 true)를 파싱해 store.List를 부른다.",
+          "required_links": [
+            "[annotations.app_platform] enabled → annotation 앱 설치",
+            "search 커스텀 라우트 핸들러 → scope 파라미터를 ListOptions.Scopes로 변환해 저장소 List 호출"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: apps.go의 설치 조건 또는 setting_annotations.go의 키 읽기를 인용하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: search_handler.go의 파싱과 register.go의 라우트 주입을 인용하면 된다. scopesMatchAny 기본값은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B30",
+            "B31",
+            "B32",
+            "B33",
+            "B34",
+            "B35",
+            "B36"
+          ]
+        },
+        {
+          "id": "B7",
+          "level": "core",
+          "statement": "저장소는 store_backend 문자열(기본 legacy-sql)로 고른다. memory, postgres, gRPC는 스코프를 저장하고 필터한다. legacy-sql 어댑터는 List의 ItemQuery에도, Create·Update의 fromK8sResource에도 스코프를 넣지 않아 저장과 조회 모두에서 스코프가 사라진다.",
+          "required_links": [
+            "store_backend 설정 문자열 → 주석 저장소 구현 선택",
+            "기본 legacy-sql 어댑터 → 스코프를 저장·조회에 전달하지 않음"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: register.go의 backend 선택 또는 setting_annotations.go의 기본값을 인용하면 된다. 백엔드별 SQL 연산자 세부는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: sql_adapter.go의 List ItemQuery 또는 fromK8sResource에서 스코프가 빠지는 위치를 인용하면 된다. 조회와 저장 중 하나만 인용해도 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B37",
+            "B38",
+            "B39",
+            "B40",
+            "B41",
+            "B42",
+            "B43"
+          ]
+        },
+        {
+          "id": "BE1",
+          "level": "extended",
+          "statement": "max_scope_count(기본 5)는 Config, 어댑터 필드, validateScopeCount로 이어진다. 생성은 validateAnnotation을 거치고 수정은 직접 검사하며, 넘으면 400이다.",
+          "required_links": [
+            "max_scope_count 설정 → validateScopeCount 검사"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 설정과 검증 함수의 연결을 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B44",
+            "B45",
+            "B46",
+            "B47",
+            "B48",
+            "B49",
+            "B50"
+          ]
+        },
+        {
+          "id": "BE2",
+          "level": "extended",
+          "statement": "k8s 조회에서도 알림 상태 주석은 레거시에서 type=alert로 따로 가져와 합치며, 이때 scopes와 scopesMatchAny를 지워 알림 주석에는 스코프 필터가 걸리지 않는다.",
+          "required_links": [
+            "알림 주석 레거시 병합 → 스코프 파라미터 제거"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 레거시 병합과 스코프 제거를 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B51",
+            "B52"
+          ]
+        },
+        {
+          "id": "BE3",
+          "level": "extended",
+          "statement": "CLI 플래그 기본값은 memory, ini 기본값은 legacy-sql이다. Grafana 본체의 기본 구성에서는 스코프 필터가 사실상 동작하지 않는다.",
+          "required_links": [
+            "기본 백엔드 → 스코프 무시"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 기본 백엔드가 스코프를 무시한다는 점을 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B53",
+            "B54",
+            "B38"
+          ]
+        },
+        {
+          "id": "BE4",
+          "level": "extended",
+          "statement": "scopesMatchAny 통로는 있지만 값을 채우는 비테스트 호출부가 없어 서버 기본값(any)만 쓰인다.",
+          "required_links": [
+            "scopesMatchAny 미설정 → 서버 기본 any 매칭"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 기본이 any 매칭이라는 점을 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B55",
+            "B56",
+            "B57"
+          ]
+        },
+        {
+          "id": "BE5",
+          "level": "extended",
+          "statement": "Graphite 이벤트 핸들러는 k8s 어댑터의 Create를 재사용하므로 같은 검증 경로를 탄다.",
+          "required_links": [
+            "Graphite 이벤트 핸들러 → k8s 어댑터 Create 재사용"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: Create 재사용을 보이면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "B58",
+            "B59"
+          ]
+        }
+      ],
+      "limitations": [
+        "request.scopes를 채우는 @grafana/scenes 내부는 고정 소스 밖이다. 데이터소스가 request.scopes를 받는 지점과 ScopesVariable이 다리라는 점까지만 채점한다.",
+        "프런트 플래그, discovery, 앱 설치 ini, 스코프를 지원하는 백엔드가 모두 맞아야 하는 조건부 경로이며 실제 실행을 관측하지 않았다."
+      ],
+      "wrong_claims": [
+        "주석 저장·조회가 scope.grafana.app 스코프 서버 API를 호출해 스코프를 검증한다.",
+        "scopeFilters를 켜면 레거시 /api/annotations도 스코프로 필터링한다.",
+        "기본 legacy-sql 백엔드도 스코프를 저장하고 필터한다."
+      ],
+      "context_notes": [
+        {
+          "id": "B-distractors",
+          "is_required": false,
+          "related_fact_ids": [
+            "B1",
+            "B2"
+          ],
+          "statement": "같은 getScopes → 이름 관용구를 쓰는 대시보드 재로드, 드릴다운 적용 조회, scope.grafana.app 스코프 서버 API(대시보드 바인딩·내비게이션), RBAC 권한 scope(dashboards:uid: 등)는 이 경로가 아니다. 언급해도 감점하지 않으며 구분 설명은 필수가 아니다.",
+          "evidence_ids": [
+            "B60",
+            "B61",
+            "B62",
+            "B63",
+            "B64"
+          ]
+        },
+        {
+          "id": "B-scenes-bridge",
+          "is_required": false,
+          "related_fact_ids": [
+            "B1",
+            "B2"
+          ],
+          "statement": "request.scopes는 @grafana/scenes가 ScopesVariable에서 채운다. 저장소 안의 보조 설명은 노트북 씬 주석이다. scenes 내부 인용은 요구하지 않는다.",
+          "evidence_ids": [
+            "B65"
+          ]
+        },
+        {
+          "id": "scope-annotation-filter-boundary",
+          "is_required": false,
+          "related_fact_ids": [
+            "B1",
+            "B2",
+            "B3",
+            "B4",
+            "B5",
+            "B6",
+            "B7",
+            "BE1",
+            "BE2",
+            "BE3",
+            "BE4",
+            "BE5"
+          ],
+          "statement": "대시보드에서 선택한 스코프가 주석 저장·조회에 반영되는 경로다. scopeFilters 토글과 ScopesContext/ScopesVariable, 데이터소스 조회·패널 컨텍스트 쓰기·주석 목록 패널의 세 진입점, annotationServer의 구현 선택, k8s 클라이언트의 전송 형식, annotation 앱 설치와 search 라우트, store_backend에 따른 저장소별 스코프 처리를 포함한다. request.scopes를 채우는 @grafana/scenes 내부, scope.grafana.app 스코프 서버 API, 대시보드 재로드·드릴다운의 스코프 사용, RBAC 권한 scope는 범위 밖이다. request.scopes를 채우는 @grafana/scenes 내부는 고정 소스 밖이다. 데이터소스가 request.scopes를 받는 지점과 ScopesVariable이 다리라는 점까지만 채점한다. 프런트 플래그, discovery, 앱 설치 ini, 스코프를 지원하는 백엔드가 모두 맞아야 하는 조건부 경로이며 실제 실행을 관측하지 않았다.",
+          "evidence_ids": [
+            "B01",
+            "B02",
+            "B03",
+            "B04",
+            "B05",
+            "B06",
+            "B07",
+            "B08",
+            "B09",
+            "B10",
+            "B11",
+            "B12",
+            "B13",
+            "B14",
+            "B15",
+            "B16",
+            "B17",
+            "B18",
+            "B19",
+            "B20",
+            "B21",
+            "B22",
+            "B23",
+            "B24",
+            "B25",
+            "B26",
+            "B27",
+            "B28",
+            "B29",
+            "B30",
+            "B31",
+            "B32",
+            "B33",
+            "B34",
+            "B35",
+            "B36",
+            "B37",
+            "B38",
+            "B39",
+            "B40",
+            "B41",
+            "B42",
+            "B43"
+          ]
+        }
+      ],
+      "prompt": "스코프 필터 중 대시보드 주석 저장·조회와 연결되는 구간 다 확인해줘.",
+      "core_fact_count": 7,
+      "extended_fact_count": 5,
+      "difficulty_status": "structural_not_empirical",
+      "evidence_ids": [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07",
+        "B08",
+        "B09",
+        "B10",
+        "B11",
+        "B12",
+        "B13",
+        "B14",
+        "B15",
+        "B16",
+        "B17",
+        "B18",
+        "B19",
+        "B20",
+        "B21",
+        "B22",
+        "B23",
+        "B24",
+        "B25",
+        "B26",
+        "B27",
+        "B28",
+        "B29",
+        "B30",
+        "B31",
+        "B32",
+        "B33",
+        "B34",
+        "B35",
+        "B36",
+        "B37",
+        "B38",
+        "B39",
+        "B40",
+        "B41",
+        "B42",
+        "B43",
+        "B44",
+        "B45",
+        "B46",
+        "B47",
+        "B48",
+        "B49",
+        "B50",
+        "B51",
+        "B52",
+        "B53",
+        "B54",
+        "B55",
+        "B56",
+        "B57",
+        "B58",
+        "B59",
+        "B60",
+        "B61",
+        "B62",
+        "B63",
+        "B64",
+        "B65"
+      ]
+    }
+  ]
+}
