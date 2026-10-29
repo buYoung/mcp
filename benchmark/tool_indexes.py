@@ -479,7 +479,7 @@ def verify_probe(state: dict, artifacts: dict) -> None:
 def probe_output_digest(state: dict) -> str:
     return digest({key: state.get(key) for key in (
         "status", "modes", "relay_settings", "native_agent", "native_inventory_sha256", "probe_log_sha256", "tool_condition",
-        "auxiliary_necessity", "probes", "cleanup", "reset", "prepared_index_ready", "warmup_policy", "isolation")})
+        "auxiliary_necessity", "probes", "bash_probe", "cleanup", "reset", "prepared_index_ready", "warmup_policy", "isolation")})
 
 
 def ready_path(ident: str, backend="pi") -> Path:
@@ -550,6 +550,14 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
                 "tool_condition": "assisted" if relay_settings["auxiliaries"] else "native_only",
                 "auxiliary_necessity": relay_settings["auxiliary_necessity"], "probes": extra["observations"],
                 "probe_log": str(probe / "warmup.jsonl")}
+            if backend == "pi":
+                from . import pi_client
+                metadata_root = (Path(state["modes"]["graph_path"]).parent if ident == "graphify"
+                                 else Path(state["source"]) / next(iter(SOURCE_METADATA[ident])))
+                observed["bash_probe"] = pi_client.probe(
+                    pi_client.configuration(Path(relay_settings["source"]), Path(relay_settings["rg_binary"])),
+                    probe / "bash-probe", [routes.DATA / "dataset.json", routes.EVIDENCE / "01-contract.json"],
+                    metadata_root=metadata_root)
         audit = isolation.audit_index_paths(ident, state, read_json(CORPUS))
     except Exception as exc:
         write_json(probe / "preparation-failure.json", {"error": str(exc)})
@@ -573,7 +581,8 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
                    cleanup=cleanup, restore=restored, reset=reset)
     receipt["timings"].update(restore_seconds=restore_seconds, cleanup_seconds=cleanup["cleanup_seconds"],
                               reset_seconds=reset["elapsed_seconds"])
-    receipt["evidence"] = [{"path": str(p), "sha256": file_digest(p)} for p in sorted(probe.iterdir())
+    receipt["evidence"] = [{"path": str(p), "sha256": file_digest(p)}
+                            for p in sorted([*probe.iterdir(), *(probe / "bash-probe").glob("*")])
                             if p.is_file() and not p.is_symlink()]
     observed["probe_log_sha256"] = file_digest(Path(observed["probe_log"]))
     result = {**state, **observed, "status": "ready", "cleanup": cleanup, "baseline": baseline, "reset": reset,

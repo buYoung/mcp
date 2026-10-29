@@ -753,13 +753,10 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         cancellations = pi_client.cancelled_before_admission(items, admissions, native=False,
                                                              enabled_tools=(relay_settings or {}).get("enabled_tools", []))
         bash_admissions = read_live_jsonl(folder / "bash-calls.jsonl")
-        bash_cancellations = pi_client.cancelled_before_admission(items, bash_admissions, native=True)
-        if cancellations["ambiguous"] or bash_cancellations["ambiguous"]:
+        bash_check = pi_client.bash_admission_check(items, bash_admissions)
+        if cancellations["ambiguous"] or bash_check["cancellations"]["ambiguous"]:
             condition_errors.append("Unmatched pre-admission cancellation evidence.")
-        from collections import Counter
-        cancelled_ids = {item["id"] for item in bash_cancellations["calls"]}
-        if Counter(item["input"].get("command") for item in items if item["name"] == "bash" and item["id"] not in cancelled_ids) != Counter(
-                row["command"] for row in bash_admissions):
+        if not bash_check["matched"]:
             condition_errors.append("pi bash wrapper/tool_execution_start command inventories differ.")
     conditions_valid = conditions_valid and not condition_errors
     eligibility = answer_eligibility(backend=backend, completed=completed, observed_monotonic=answer_finished_monotonic,

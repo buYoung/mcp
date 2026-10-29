@@ -216,6 +216,7 @@ def baseline_boundary(native: dict, folder: Path) -> dict:
     text = _profile_text([source, bin_dir, tmp, home], [tmp])
     # Basic shell/navigation utilities need no external Mach service lookup.
     text += "(deny lsopen)\n(deny appleevent-send)\n(deny mach-lookup)\n"
+    text += "(deny signal)\n(allow signal (target same-sandbox))\n"
     # Other processes' names and arguments (products, harness, other slots) are not exploration targets.
     # Seatbelt target "others" excludes same-group peers; deny all targets and allow self only.
     text += "(deny process-info*)\n(allow process-info* (target self))\n(deny sysctl-read (sysctl-name-prefix \"kern.proc\"))\n"
@@ -229,7 +230,7 @@ def baseline_boundary(native: dict, folder: Path) -> dict:
     env = {"PATH": str(bin_dir) + ":/usr/bin:/bin", "HOME": str(home), "TMPDIR": str(tmp), "LANG": "en_US.UTF-8"}
     return {"profile_path": str(profile), "profile_sha256": file_digest(profile), "env": env, "source": str(source),
             "allowed": {"read": [str(source), str(rg), str(tmp), str(home)], "write": [str(tmp)], "network": False,
-                        "process_info_others": False}}
+                        "process_info_others": False, "signal_outside_sandbox": False}}
 
 
 def shell_wrapper(native: dict, folder: Path) -> Path:
@@ -362,7 +363,11 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
         require(server is not None, "pi MCP requires warm-host attachment")
         require(not (workspace / ".pi/mcp.json").exists(), "project MCP config forbidden")
         adapter_config = agent / "mcp.json"
-        server_config = {**{k: server[k] for k in ("command", "args", "env")}, **ADAPTER_SERVER,
+        # python -m shim/replay must not import modules from the exploration source.
+        server_work = private_root(folder) / "work"
+        require(not server_work.is_symlink(), "pi MCP cwd symlink 금지")
+        server_work.mkdir(mode=0o700, exist_ok=True)
+        server_config = {**{k: server[k] for k in ("command", "args", "env")}, "cwd": str(server_work), **ADAPTER_SERVER,
                          "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}
         write_json(adapter_config, {**adapter_settings(relay_settings["arm"]),
                                    "mcpServers": {NAVIGATION_SERVER: server_config}}, exclusive=True)
@@ -411,10 +416,11 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
                                "native_bash": "bridge default (52224)"} if provider == "claude-bridge" else None,
         "mcp_client": ({"extension": "@buyong/pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"],
                         "config_mode": "private PI_CODING_AGENT_DIR/mcp.json, project config rejected",
-                        "settings": adapter_settings(relay_settings["arm"]), "server": {**ADAPTER_SERVER, "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}, "tools": product_tools,
+                        "settings": adapter_settings(relay_settings["arm"]), "server": {**ADAPTER_SERVER, "cwd": str(server_work), "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}, "tools": product_tools,
                         "resource_tools": resource_tools, "model_api_features": "none in adapter; codemode models:false",
                         "setting_reasons": {"exposure": "direct in both modes; pi mode only hides declarations but lists nested tools", "maxOutputBytes": "client >= product cap, including resources",
-                                            "timeout": "existing per-RPC 300 seconds; no solver limit", "autoEnableCodemode": "harness selects slot mode"},
+                                            "timeout": "existing per-RPC 300 seconds; no solver limit", "autoEnableCodemode": "harness selects slot mode",
+                                            "cwd": "shim and audit replay run in private work, not exploration source"},
                         "server_instructions_sha256": digest(instructions) if instructions else None,
                         "server_instructions": "appended to the system prompt" if instructions and instructions.strip() else "none provided"}
                        if relay_settings else None),
@@ -565,8 +571,8 @@ def cancelled_before_admission(items: list[dict], admissions: list[dict], *, nat
         if item.get("status") != "cancelled":
             continue
         if native and item["name"] == "bash":
-            admitted = sum(row.get("command") == item["input"].get("command") for row in admissions)
-            starts = sum(other["name"] == "bash" and other["input"].get("command") == item["input"].get("command") for other in items)
+            admitted = sum(row.get("command") == bash_command(item) for row in admissions)
+            starts = sum(other["name"] == "bash" and bash_command(other) == bash_command(item) for other in items)
         elif not native and item["name"] in aliases:
             admitted = sum(row.get("method") == "tools/call" and row.get("tool") == aliases[item["name"]]
                            and canonical(row.get("arguments")) == canonical(item["input"]) for row in admissions)
@@ -583,6 +589,44 @@ def cancelled_before_admission(items: list[dict], admissions: list[dict], *, nat
         calls.append({"id": item["id"], "parentToolCallId": item["parentToolCallId"], "name": item["name"], "arguments": item["input"],
                       "match": item["cancellation_match"], "dispatched": False, "budget_consumed": False})
     return {"calls": calls, "ambiguous": ambiguous}
+
+
+def bash_command(item: dict) -> object:
+    arguments = item.get("input")
+    return arguments.get("command") if isinstance(arguments, dict) else None
+
+
+def bash_admission_check(items: list[dict], admissions: list[dict]) -> dict:
+    """Pinned pi validation/truncated-message errors are host-only, not wrapper admissions."""
+    from collections import Counter
+    cancellations = cancelled_before_admission(items, admissions, native=True)
+    excluded = {item["id"] for item in cancellations["calls"]}
+    rejected = []
+    for item in items:
+        result = item.get("result") or {}
+        if (item["name"] != "bash" or not item.get("completed") or item.get("missing_start")
+                or not result.get("is_error") or "structuredContent" in result):
+            continue
+        content = result.get("content")
+        if not isinstance(content, list) or len(content) != 1 or content[0].get("type") != "text":
+            continue
+        text = content[0].get("text", "")
+        reason = None
+        if (text.startswith('Validation failed for tool "bash":\n') and "\n\nReceived arguments:\n" in text
+                or text.startswith('Invalid arguments for tool "bash": ')):
+            reason = "argument_validation"
+        elif text == ('Tool call "bash" was not executed: the response hit the output token limit, '
+                      'so its arguments may be truncated. Re-issue the tool call with complete arguments.'):
+            reason = "truncated_message"
+        if reason:
+            excluded.add(item["id"])
+            rejected.append({"id": item["id"], "parentToolCallId": item.get("parentToolCallId"), "name": "bash",
+                             "arguments": item["input"], "reason": reason, "dispatched": False})
+    # Invalid arguments can themselves be arrays/objects; never use them as Counter keys directly.
+    expected = Counter(canonical(bash_command(item)) for item in items if item["name"] == "bash" and item["id"] not in excluded)
+    actual = Counter(canonical(row["command"]) for row in admissions)
+    return {"matched": expected == actual, "cancellations": cancellations, "host_rejected_calls": rejected,
+            "excluded_ids": excluded}
 
 
 def observe_tool_event(items: dict, event: dict) -> None:
@@ -752,7 +796,7 @@ def usage(events: list[dict], *, terminal_complete: bool, evidence: str) -> dict
     return state.usage(terminal_complete=terminal_complete, evidence=evidence)
 
 
-def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
+def probe(value: dict, folder: Path, denied_paths: list[Path], *, metadata_root: Path | None = None) -> dict:
     """No model/auth requests: execute canaries through the actual shell wrapper."""
     from .isolation import canary_files, hidden_references, kern_procargs_command, process_environment_observation
     from .settings import CACHE, RUNS
@@ -763,7 +807,7 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     process_table = ("perl -e '$m=pack(\"i4\",1,14,0,0);$l=pack(\"Q\",0);"
                      "exit((syscall(202,$m,3,0,$l,0,0)==0 && unpack(\"Q\",$l)>0) ? 0 : 1)'")
     boundaries = []
-    with canary_files(Path(value["source"]), folder / "canaries") as (_, targets):
+    with canary_files(Path(value["source"]), folder / "canaries", metadata_root=metadata_root) as (_, targets):
         cases = [("source", "cat README.md", True), ("rg", "rg --version", True),
                  ("pi_tmp", 'cat "$TMPDIR/truncated-output.txt"', True),
                  ("network", "curl --noproxy '*' --max-time 2 http://127.0.0.1:19849", False),
@@ -774,6 +818,9 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
                  ("process_list", "ps -ax", False),
                  ("process_table", process_table, False),
                  ("process_environment", shlex.join(kern_procargs_command(os.getpid())), False),
+                 ("signal_outside_sandbox", f"kill -0 {os.getpid()}", False),
+                 ("signal_child", "sleep 5 & child=$!; kill $child; wait $child; test $? -eq 143", True),
+                 ("pipeline_sigpipe", "yes | head -n 1", True),
                  ("private_paths", 'case "$TMPDIR $HOME $PATH" in *route-preparation*|*campaigns*|*codemap*|*bench*) exit 1;; esac', True),
                  ("coreutils", "set -e -o pipefail; bash --version; cat README.md | head -n 1 | grep . | sed -n 1p | awk \'{print}\' | wc -l; ls .; find . -maxdepth 1 -type f", True)]
         cases.extend((name, "cat " + shlex.quote(str(path)), False) for name, path in targets.items())

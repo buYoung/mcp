@@ -234,7 +234,8 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
 def normalize_pi_bash_calls(folder: Path, *, arm: str) -> tuple[list[dict], bool, list[dict]]:
     """Both baseline and product fallback use wrapper IDs, never an invented repeated-command join."""
     import re
-    from .pi_client import cancelled_before_admission, tool_items
+    from .pi_client import bash_admission_check, bash_command, tool_items
+    from .core import canonical
     from .runner import read_live_jsonl, read_jsonl_prefix
     runtime = read_json(folder / "runtime.json")
     items = [item for item in tool_items(read_live_jsonl(folder / "events.jsonl")) if item["name"] == "bash"]
@@ -243,14 +244,14 @@ def normalize_pi_bash_calls(folder: Path, *, arm: str) -> tuple[list[dict], bool
     finishes, _ = read_jsonl_prefix(folder / "bash-results.jsonl")
     finish_counts = collections.Counter(row["id"] for row in finishes)
     by_id = {row["id"]: row for row in finishes if finish_counts[row["id"]] == 1}
-    cancellations = cancelled_before_admission(items, admissions, native=True)
-    before_admission = {item["id"] for item in cancellations["calls"]}
+    check = bash_admission_check(items, admissions)
+    cancellations = check["cancellations"]
     by_command = collections.defaultdict(list)
     for item in items:
-        if item["id"] not in before_admission:
-            by_command[item["input"].get("command")].append(item)
-    counts = collections.Counter(row["command"] for row in admissions)
-    matched = counts == collections.Counter({command: len(values) for command, values in by_command.items()})
+        if item["id"] not in check["excluded_ids"]:
+            by_command[canonical(bash_command(item))].append(item)
+    counts = collections.Counter(canonical(row["command"]) for row in admissions)
+    matched = check["matched"]
     if not matched:
         violations.append({"reason": "wrapper admission/tool_execution_start command inventory mismatch"})
     complete = (collected_call_logs(folder, runtime, ("events.jsonl",)) and matched and not cancellations["ambiguous"]
@@ -259,8 +260,9 @@ def normalize_pi_bash_calls(folder: Path, *, arm: str) -> tuple[list[dict], bool
     calls = []
     for row in admissions:
         finish = by_id.get(row["id"])
-        candidates = by_command[row["command"]]
-        item = candidates[0] if len(candidates) == counts[row["command"]] == 1 else None
+        key = canonical(row["command"])
+        candidates = by_command[key]
+        item = candidates[0] if len(candidates) == counts[key] == 1 else None
         result = item.get("result") if item else None
         text = "\n".join(block.get("text", "") for block in (result or {}).get("content", []) if block.get("type") == "text") if result else None
         killed = bool(not finish and item and (item.get("status") == "cancelled" or
@@ -380,7 +382,7 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
 
 
 def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool) -> dict:
-    from .pi_client import assistant_messages, cancelled_before_admission, tool_items, RESOURCE_TOOLS
+    from .pi_client import assistant_messages, bash_admission_check, cancelled_before_admission, tool_items, RESOURCE_TOOLS
     from .runner import read_jsonl_prefix
     events, collection = read_jsonl_prefix(folder / "events.jsonl")
     per_turn, model_calls = [], []
@@ -426,7 +428,8 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
     admissions = [row for row in read_jsonl_prefix(folder / "relay.jsonl")[0] if row.get("event") == "attempt"]
     items = tool_items(events)
     cancellations = cancelled_before_admission(items, admissions, native=False, enabled_tools=enabled)
-    bash_cancellations = cancelled_before_admission(items, read_jsonl_prefix(folder / "bash-calls.jsonl")[0], native=True)
+    bash_check = bash_admission_check(items, read_jsonl_prefix(folder / "bash-calls.jsonl")[0])
+    bash_cancellations = bash_check["cancellations"]
     for key in ("calls", "ambiguous"):
         cancellations[key].extend(bash_cancellations[key])
     return {"turns": len(per_turn) if events else None, "turns_complete": collection["complete"] and
@@ -436,6 +439,8 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
             "direct_calls_outside_script": direct_calls if events and policy.get("measurement_mode") == "codemode" else None,
             "cancelled_before_admission": len(cancellations["calls"]) if events else None,
             "cancelled_before_admission_calls": cancellations["calls"],
+            "bash_rejected_before_admission": len(bash_check["host_rejected_calls"]) if events else None,
+            "bash_rejected_before_admission_calls": bash_check["host_rejected_calls"],
             "ambiguous_cancellation_ids": cancellations["ambiguous"],
             "call_distribution_basis": "pi tool_execution_start: direct/nested attempts excluding script envelopes; not authoritative admission",
             "event_metrics_complete": events_complete, "call_metrics_complete": call_log_complete,
@@ -481,10 +486,16 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
     exploration_calls = [c for c in calls if not c.get("discovery")]
     bash_calls = (sum(c["tool"] == "bash" for c in exploration_calls)
                   if runtime.get("backend") == "pi" and (folder / "bash-calls.jsonl").exists() else None)
+    observations = pi_observations(folder, calls, call_log_complete=complete) if runtime.get("backend") == "pi" else None
+    # Command-text observation, not syscall tracing: count once even if both spill prefixes occur.
+    client_full_output_reads = (sum(c["tool"] == "bash" and c.get("dispatched", False)
+                                   and any(prefix in c["command"] for prefix in ("pi-mcp-", "pi-bash-"))
+                                   for c in exploration_calls) if bash_calls is not None else None)
     return {**entry, **execution, "error": error, "calls": calls, "host_calls": host_calls, "usage": usage, "timing": timing,
-            "bash_calls": bash_calls,
+            "bash_calls": bash_calls, "client_full_output_reads": client_full_output_reads,
+            "bash_rejected_before_admission": (observations or {}).get("bash_rejected_before_admission"),
             "bash_call_ratio": bash_calls / len(exploration_calls) if bash_calls is not None and complete and exploration_calls else None,
-            "observations": pi_observations(folder, calls, call_log_complete=complete) if runtime.get("backend") == "pi" else None,
+            "observations": observations,
             "source_snapshot": access["source"],
             "artifacts": {name: str(folder / name) for name in ("execution.json", "runtime.json", "events.jsonl", "rollout.jsonl",
                            "relay.jsonl", "native-agent.json", "relay-settings.json", "delivery.json", "stderr.log", "command.json",
@@ -551,6 +562,8 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                             "tool_call_counts": row.get("tool_call_counts") if row else None,
                             "bash_calls": row.get("bash_calls") if row else None,
                             "bash_call_ratio": row.get("bash_call_ratio") if row else None,
+                            "client_full_output_reads": row.get("client_full_output_reads") if row else None,
+                            "bash_rejected_before_admission": row.get("bash_rejected_before_admission") if row else None,
                             **{key: row.get(key) if row else None for key in (
                                 "conditions_valid", "error", "failure_reason", "condition_errors", "boundary_violations",
                                 "call_log_complete", "host_calls", "artifact", "artifacts", "shutdown", "token_measurement", "native_calls",
@@ -627,16 +640,17 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     lines += ["", "미실행·미관측 값은 0점으로 치환하지 않습니다. 핵심과 확장, true/false/indeterminate/미채점을 별도 기록합니다.",
               f"문항·비교군·모드마다 {routes.REPETITIONS}회 반복이며 통계적 유의성을 주장하지 않습니다.",
               "제품 탐색 호출 0회인 답변은 제품 검색 기여의 근거가 아닙니다. 미관측 호출을 0회로 해석하지 않습니다."]
-    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | bash 호출 | bash 비율 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | script 밖 직접 호출 | admission 전 취소 | adapter 절단 | nested adapter 절단 | script 절단 | bash content 절단 | nested bash structuredContent 절단 | include_seen=true | Claude 저장 결과(count/bytes) |",
-              "|---|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
+    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | bash 호출 | bash 비율 | client_full_output_reads | bash 실행 전 거절 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | script 밖 직접 호출 | admission 전 취소 | adapter 절단 | nested adapter 절단 | script 절단 | bash content 절단 | nested bash structuredContent 절단 | include_seen=true | Claude 저장 결과(count/bytes) |",
+              "|---|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
     for row in result_rows:
         observed = row.get("observations") or {}
-        lines.append("| " + " | ".join(cell(v) for v in (row["id"], row["bash_calls"], row["bash_call_ratio"], *[observed.get(key) for key in (
+        lines.append("| " + " | ".join(cell(v) for v in (row["id"], row["bash_calls"], row["bash_call_ratio"], row["client_full_output_reads"], row["bash_rejected_before_admission"], *[observed.get(key) for key in (
             "turns", "tool_calls_per_turn", "model_seconds", "tool_seconds", "observed_tool_seconds", "tool_seconds_missing_calls",
             "direct_calls_outside_script", "cancelled_before_admission", "adapter_output_guard_truncated", "adapter_nested_content_truncated", "codemode_output_truncated",
             "bash_content_truncated", "bash_nested_structured_content_truncated", "include_seen_true_calls")],
             row.get("claude_persisted_tool_results"))) + " |")
     lines += ["", "bash 호출과 비율은 거절을 포함한 wrapper admission 수 / 전체 탐색 admission 수입니다. discovery와 codemode 스크립트 래퍼는 분모에서 제외하고 스크립트 안 하위 호출을 셉니다. 호출 로그 불완전 또는 탐색 0회면 비율은 null입니다.",
+              "client_full_output_reads는 실행 허용된 bash command에 pi-mcp- 또는 pi-bash-가 보이는 호출 수입니다(호출당 1회). 실제 read 보장이 아니며 변수·스크립트로 숨긴 접근은 검출하지 못합니다. bash 실행 전 거절은 pi 인자 검증/잘린 메시지 오류로 끝난 host-only 시도이며 admission 수에 넣지 않습니다.",
               "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",
               "direct bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(pi 기본값, 스크립트의 `// @options` 우선)의 절단은 별도로 셉니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
