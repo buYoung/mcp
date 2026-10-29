@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v5",
+  "revision": 1,
+  "status": "content_frozen",
+  "supersedes": "grafana-routes-v4",
+  "previous_manifest_sha256": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
+  "revision_history": [
+    {
+      "revision": 1,
+      "reason": "감독자 승인 사전 스모크 후보 3개: 일반 통과 2개와 G3 예외 1개"
+    }
+  ],
+  "approval": {
+    "direction": "/Volumes/Samsung_990_PRO/codemap-bench-work/v5/task-dataset-v5.md",
+    "request": "감독자 승인: 사전 스모크용 3문항. G6는 최종 2문항 선정 때 적용. user-browser-unified-index는 G3 예외(46.92%), TS→Go 다양성 확보 목적.",
+    "scope": "사전 스모크 패키지 생성·정적 검증. 실제 sync·기억 측정·모델/제품 실행 미승인."
+  },
+  "target_release": "1.0.0",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
+  },
+  "question_order": [
+    "app-resource-admission",
+    "app-legacy-storage",
+    "user-browser-unified-index"
+  ],
+  "counts": {
+    "questions": 3,
+    "core_facts": 15,
+    "extended_facts": 0,
+    "source_files": 22,
+    "source_files_with_excerpts": 22,
+    "evidence_ranges": 41,
+    "non_scoring_notes": 3
+  },
+  "files": {
+    "README.md": {
+      "sha256": "f3dda6515bffecfa3b3d8d611149ab811b010320a848f90a100df22df760754d",
+      "bytes": 3755
+    },
+    "dataset.json": {
+      "sha256": "5f1bef7a6b0db23d004ea39683cafa7b00cac8ff9b02c620d2fe07836c196fcd",
+      "bytes": 26588
+    },
+    "evidence.json": {
+      "sha256": "25b7477d2401d170dabba56449cb1be163f2fee4c9bfe2a0d3023060d2c2ddc5",
+      "bytes": 48710
+    },
+    "grading.json": {
+      "sha256": "de3f698397264f7aac67f5f0556cf1e1020c39364dd83e6bbee09642a149ed3e",
+      "bytes": 7746
+    },
+    "questions.json": {
+      "sha256": "cb4f44e9c0d7937ded107163d448b850ea39eb60e1e52f3b71bd0835ccc25c22",
+      "bytes": 559
+    }
+  },
+  "provenance": {
+    "source_identity": "고정 COMMIT의 Git blob SHA-1와 원본 바이트 SHA-256 검증",
+    "selection": "/Volumes/Samsung_990_PRO/codemap-bench-work/v5/report-candidates.md",
+    "selection_results_sha256": "d7466fb0aa498896f9750607f66ac04fc02171f5e737ad393dc437750746b437",
+    "g1_threshold": 60,
+    "g1_rule": "내용·경로 노출은 진단값. 단어별 내용∪경로 결과의 단어1개/2개 AND 파일 수≤60이며 핵심파일≥30%이면 탈락.",
+    "g1": {
+      "app-resource-admission": {
+        "g1_pass": true,
+        "content_percent": 100.0,
+        "path_percent": 100.0,
+        "core_files": [
+          "apps/shorturl/pkg/app/app.go",
+          "apps/shorturl/pkg/app/validate.go",
+          "pkg/apiserver/appsdk/admission.go",
+          "pkg/apiserver/appsdk/installer.go",
+          "pkg/apiserver/appsdk/storage.go",
+          "pkg/apiserver/appsdk/strategy.go",
+          "pkg/services/apiserver/appinstaller/installer.go"
+        ],
+        "excluded_cited_files": [],
+        "entry_violation_count": 0
+      },
+      "app-legacy-storage": {
+        "g1_pass": true,
+        "content_percent": 100.0,
+        "path_percent": 85.71428571428571,
+        "core_files": [
+          "pkg/apiserver/appsdk/installer.go",
+          "pkg/apiserver/appsdk/storage.go",
+          "pkg/registry/apps/shorturl/legacy_storage.go",
+          "pkg/registry/apps/shorturl/register.go",
+          "pkg/services/apiserver/appinstaller/server.go",
+          "pkg/services/shorturls/shorturlimpl/shorturl.go",
+          "pkg/storage/legacysql/dualwrite/storage_service.go"
+        ],
+        "excluded_cited_files": [],
+        "entry_violation_count": 0
+      },
+      "user-browser-unified-index": {
+        "g1_pass": true,
+        "content_percent": 100.0,
+        "path_percent": 70.0,
+        "core_files": [
+          "pkg/api/api.go",
+          "pkg/api/org_users.go",
+          "pkg/registry/apis/iam/register.go",
+          "pkg/registry/apis/iam/user/search.go",
+          "pkg/registry/apis/iam/user/unified_search.go",
+          "pkg/services/user/userimpl/user.go",
+          "pkg/services/user/userk8s/user.go",
+          "pkg/storage/legacysql/dualwrite/selector.go",
+          "pkg/storage/unified/resource/search.go",
+          "public/app/features/users/state/actions.ts"
+        ],
+        "excluded_cited_files": [],
+        "entry_violation_count": 0
+      }
+    },
+    "training_cutoff": {
+      "source_commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb",
+      "cutoff_utc": "2026-07-01T00:00:00Z",
+      "method": "고정 COMMIT git blame --line-porcelain의 committer-time; 최종 core 근거의 고유 (파일,행), 빈 행·주석 포함. 기존 측정 재사용.",
+      "source_record_sha256": {
+        "candidates-frozen.json": "d7ef31f77329772486f8875150cec37b990cbf74a98eae9f393abb5533bbafd1",
+        "g1-results.json": "b606b44517ad7627350ce4321579d6df5e1c1742b76b8a0a1f25173c6751bfe0",
+        "g1-revised-results.json": "39c60707fa73184afc86f3d9359319bc59bc3a2ba31a152db735d98cb5f5f5ea",
+        "g3-results.json": "9c870e448ce748f93293ee292461d6ec2cd83b35488976c95cb5684d3e60bc56",
+        "recent-candidates-frozen.json": "69e253649a74361dcf9da0b6840e76619b64df495aa20505326b2bbba7dde199",
+        "recent-g1-results.json": "8176e7dee5e92a5c41d8e0b5bbf0b217798bdb170b6dc69325c53dba970a978d",
+        "recent-g3-results.json": "8bfd55624a5ca281d69d215b8bf172cae4de940688bb552696e6eeff9a4b2cac",
+        "final-eight-frozen.json": "61c74a49d414d233dc0c1b683dcc824c33b12cf704234e4bf5cd63d2be60e169",
+        "final-eight-g1-results.json": "c6d2a508bb1b14b30f2bcfdc7465bd8755579759e7c667dee87bbb7a18a63711",
+        "final-eight-g3-results.json": "c21e8701cec5f33b203acb23d153d073b32b721bba9640609c22715ccbccbfed",
+        "v4-calibration-frozen.json": "3b654a698c833a1fb94f44bb463e8bed82c74daafb2dc44c884c8dd593b9e26c",
+        "source-files.nul": "72f2fc0877ef8197b13868546e226941b8877c77b96fc63780dbdcf8b15bd6e8"
+      },
+      "questions": {
+        "app-resource-admission": {
+          "id": "app-resource-admission",
+          "post_cutoff_lines": 139,
+          "total_lines": 212,
+          "percent": 65.56603773584905,
+          "g3_pass": true,
+          "exception": false,
+          "exception_reason": null
+        },
+        "app-legacy-storage": {
+          "id": "app-legacy-storage",
+          "post_cutoff_lines": 99,
+          "total_lines": 180,
+          "percent": 55.0,
+          "g3_pass": true,
+          "exception": false,
+          "exception_reason": null
+        },
+        "user-browser-unified-index": {
+          "id": "user-browser-unified-index",
+          "post_cutoff_lines": 99,
+          "total_lines": 211,
+          "percent": 46.91943127962085,
+          "g3_pass": false,
+          "exception": true,
+          "exception_reason": "G3 예외(46.92%), TS→Go 다양성 확보 목적"
+        }
+      },
+      "memory_measurement": {
+        "status": "미측정(사용자 승인 대기)",
+        "model_requests": 0
+      },
+      "g6": "사전 스모크 단계 유예. 최종 2문항은 TS→Go 1개 + Go 1개로 선정.",
+      "caveats": [
+        "커밋 날짜는 학습 데이터 미포함의 증명이 아니다.",
+        "정적 코드 연결 검토이며 런타임 경로·실제 탐색 난도는 미측정이다."
+      ]
+    },
+    "memory_measurement": {
+      "status": "미측정(사용자 승인 대기)",
+      "model_requests": 0
+    },
+    "independent_review": {
+      "status": "pending"
+    },
+    "verification_boundary": "정적 로컬 등록/호출/타입 계약만 확인. 외부 SDK/Kubernetes 내부와 실제 배포는 미실행."
+  },
+  "evaluation_status": {
+    "status_as_of_build": {
+      "source_review": "author_completed",
+      "independent_content_review": "pending",
+      "is_difficulty_empirically_validated": false,
+      "solver_runs": 0,
+      "grader_calibration_runs": 0,
+      "model_requests_by_builder": 0
+    }
+  },
+  "execution_contract": {
+    "status": "not_frozen",
+    "binding_rule": "route_contract.DATASET_MANIFEST_SHA256 == SHA256(manifest.json)",
+    "status_as_of_build": {
+      "dataset_manifest_binding": "not_bound_by_this_build",
+      "execution_authorized": false,
+      "solver_runs": 0,
+      "grader_runs": 0,
+      "runtime_scenarios_executed": 0
+    },
+    "planned_questions": 3,
+    "selection_stage": "pre_smoke_candidates",
+    "g6": "사전 스모크 단계 유예. 최종 2문항은 TS→Go 1개 + Go 1개로 선정."
+  },
+  "preservation": "v4 결과와 혼합하지 않는다. 관문 예외·유예를 최종 관문 통과로 재표시하지 않는다."
+}

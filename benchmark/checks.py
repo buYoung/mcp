@@ -887,7 +887,7 @@ class BenchChecks(unittest.TestCase):
 
     def test_pi_campaign_rejects_direct_cli_solver_overrides(self):
         from . import route_contract as routes
-        self.assertEqual(len(routes.schedule()), 84)
+        self.assertEqual(len(routes.schedule()), len(routes.QUESTION_IDS) * len(routes.ARM_IDS) * routes.REPETITIONS * len(routes.MEASUREMENT_MODES))
         self.assertEqual(routes.MEASUREMENT_MODES, ("direct", "codemode"))
         with patch.object(runner, "_execute_agent", side_effect=AssertionError("must reject before spawn")):
             for backend in ("codex", "claude_code"):

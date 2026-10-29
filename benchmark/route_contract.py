@@ -10,13 +10,13 @@ from .core import digest, file_digest, read_json, require, write_json
 
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
-DATASET_MANIFEST_SHA256 = "b292a2a3979c063d65d6df2c4ba86fef420604f0f617104d6d80399257fef8bf"
-TARGET_LOCK_SHA256 = "3efdb0d381e24a4e58f94b1bc189998d570a86e51558a977a9c24a943299e87d"
-QUESTION_IDS = ("git-oauth-authorization", "plugin-http-route-bridge")
+DATASET_MANIFEST_SHA256 = "d5a57f727098a094b8b03b46d9739a633041a8e8e91990d5ddc41e8d3dcaaef7"
+TARGET_LOCK_SHA256 = "de7081fa1309ed9dd7b32f02584acb9f5a32662edf5aa96c4acaebe9a02df0b9"
+QUESTION_IDS = ("app-resource-admission", "app-legacy-storage", "user-browser-unified-index")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")
 ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
-DATA = settings.ROOT / "data/grafana-routes-v4"
+DATA = settings.ROOT / "data/grafana-routes-v5"
 TARGETS = settings.ROOT / "data/grafana-comparison-targets-v1"
 PROFILE_PATH = settings.ROOT / "data/grafana-execution-v1.json"
 EVIDENCE = settings.REPOSITORY / "docs/briefs/evidence/bench-ready"

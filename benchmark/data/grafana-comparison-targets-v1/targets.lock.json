@@ -8,9 +8,9 @@
   "scope": "외부 비교 도구 6개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
   "selection_policy": "2026-10-24 공식 GitHub release/tag와 npm/PyPI stable 배포를 대조했다. zvec-grep 0.2.2는 npm/tag 배포이며 GitHub Release는 없어 관련 필드를 null로 둔다. Graphify v1.0.0은 2026-04-05의 과거 release이고 PyPI에는 없으므로 현재 upstream latest/PyPI의 0.9.95를 선택한다. 준비 중 latest를 다시 해석하지 않는다.",
   "dataset": {
-    "id": "grafana-routes-v4",
-    "manifest_path": "../grafana-routes-v4/manifest.json",
-    "manifest_sha256": "b292a2a3979c063d65d6df2c4ba86fef420604f0f617104d6d80399257fef8bf",
+    "id": "grafana-routes-v5",
+    "manifest_path": "../grafana-routes-v5/manifest.json",
+    "manifest_sha256": "d5a57f727098a094b8b03b46d9739a633041a8e8e91990d5ddc41e8d3dcaaef7",
     "source": {
       "repository": "grafana/grafana",
       "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
@@ -398,8 +398,8 @@
       "repository": "buYoung/pi-packages"
     },
     "behavior_probe": {
-      "path": "/Volumes/Samsung_990_PRO/wsv4/b2ad0f1cb98d4b00/behavior-probe/result.json",
-      "sha256": "697591e7f6db4c4a3e3f0355e805b0dc22e896e0b097dadde13678a6818903cb",
+      "path": "/Volumes/Samsung_990_PRO/wsv4/a226ad3acf561e66/behavior-probe/result.json",
+      "sha256": "ac6baf3d22f741da3e9d01bb6c8377ccd3b8eb244dc68e6a8da0d6a2cbf15673",
       "node_modules_sha256": "2c3d39f1fb7309d70853e017ecda0176aaeef40903af22b1b3d39a17415db8b2"
     }
   }

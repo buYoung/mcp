@@ -135,7 +135,7 @@ class CUIChecks(unittest.TestCase):
             cui.wait("실행을 승인합니까?")
             self.assertIn("풀이 제한 없음".encode(), cui.transcript)
             self.assertIn("채점 제한 300초".encode(), cui.transcript)
-            self.assertIn("84회 예정".encode(), cui.transcript)
+            self.assertIn(f"{len(routes.schedule())}회 예정".encode(), cui.transcript)
             self.assertIn("측정 모드: direct, codemode".encode(), cui.transcript)
             self.assertIn("풀이 실행기: pi".encode(), cui.transcript)
             self.assertNotIn("탐색 80회".encode(), cui.transcript)

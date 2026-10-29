@@ -524,7 +524,7 @@ def quality_counts(judgments: list[dict], questions: list[dict]) -> dict:
         require(len(facts) <= expected, "계획보다 많은 fact 판정")
         counts[level] = {"planned_facts": expected, "graded_facts": len(facts), "dimensions": dimensions,
                          "fact_weighted_fulfilled_rate": sum(f["state"] == "fulfilled" for f in facts) / expected
-                         if len(facts) == expected and all(f["state"] != "indeterminate" for f in facts) else None}
+                         if expected and len(facts) == expected and all(f["state"] != "indeterminate" for f in facts) else None}
     states = [j["core_complete"] for j in judgments]
     counts["core_complete"] = {"true": sum(v is True for v in states), "false": sum(v is False for v in states),
                                 "indeterminate": sum(v == "indeterminate" for v in states), "ungraded": len(questions) - len(states),

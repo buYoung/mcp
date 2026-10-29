@@ -1,0 +1,17 @@
+{
+  "dataset_id": "grafana-routes-v5",
+  "questions": [
+    {
+      "id": "app-resource-admission",
+      "prompt": "앱 자원 생성 구조 중 입력 검증기와 연결되는 구간 다 확인해줘."
+    },
+    {
+      "id": "app-legacy-storage",
+      "prompt": "앱 자원 조회 구조 중 호환 저장 계층과 연결되는 구간 다 확인해줘."
+    },
+    {
+      "id": "user-browser-unified-index",
+      "prompt": "통합 색인 조회 구조 중 브라우저의 사용자 검색 요청과 연결되는 구간 다 확인해줘."
+    }
+  ]
+}
