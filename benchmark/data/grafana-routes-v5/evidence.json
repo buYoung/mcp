@@ -100,6 +100,24 @@
       "bytes": 11953,
       "lines": 276
     },
+    "pkg/services/apiserver/service.go": {
+      "git_blob_sha1": "37104133efe0170b404aae04cd6332b0a33727f4",
+      "sha256": "ac9eb4ae5b725f00f88bc5e3621e9ff63675048746752a1f85342cb4c4d099d8",
+      "bytes": 28949,
+      "lines": 793
+    },
+    "pkg/services/searchusers/searchusers.go": {
+      "git_blob_sha1": "3c34a400d16ff377190ee1a5c869eb0faf9e4e62",
+      "sha256": "66b0bbdd4b39151ffc05127a8217e089023ffe16569e3432855bbe630d270962",
+      "bytes": 3723,
+      "lines": 135
+    },
+    "pkg/services/shorturls/models.go": {
+      "git_blob_sha1": "8adddfe3e209491e4d0ec77fd9ed103cece8d659",
+      "sha256": "19e3200af918ff531c77325ac3fd7d3b4f4268b453b2ebe3c8454a8aab5d2791",
+      "bytes": 2628,
+      "lines": 78
+    },
     "pkg/services/shorturls/shorturlimpl/shorturl.go": {
       "git_blob_sha1": "dd088b3ab28d1256c3edabcfe856a84a692fbf07",
       "sha256": "9cb404d0355593be1af9c14922406b62412191c06ca3907ec09a059c2236fb8c",
@@ -117,6 +135,12 @@
       "sha256": "403f083a70a35d393e5fe15ef6e511e0f7713d0c07fe957e46fc9c212d9b5526",
       "bytes": 32397,
       "lines": 1075
+    },
+    "pkg/storage/legacysql/dualwrite/dualwriter.go": {
+      "git_blob_sha1": "65d9b1359f86e7867a086dcf0d55569cd615e5ad",
+      "sha256": "63a78e16aea76c968590ca96e5f9672f95dafcd05bdc5037c7f648dab3ed0d5f",
+      "bytes": 25442,
+      "lines": 634
     },
     "pkg/storage/legacysql/dualwrite/selector.go": {
       "git_blob_sha1": "f903efdf1e9537f0c25c11b699f61d7b1ee495b9",
@@ -136,6 +160,24 @@
       "bytes": 124049,
       "lines": 3446
     },
+    "public/app/core/components/Select/UserPicker.tsx": {
+      "git_blob_sha1": "bc3ebd37cc59ed1b9f82466fae16cd54b62cc2e1",
+      "sha256": "8fd0c8ee2eaa6204a0f45f39cc8d43661fead59447573e7e3c14b880707b270b",
+      "bytes": 1935,
+      "lines": 68
+    },
+    "public/app/features/admin/UserListAdminPage.tsx": {
+      "git_blob_sha1": "ec8314f5fdfb55b5e17e4e46eb679d6a77b62d6c",
+      "sha256": "1e56b92df95a3bcacafa3e7ff33cb1d20ff0f3e2625c603b973ab67c9f1a7664",
+      "bytes": 4151,
+      "lines": 126
+    },
+    "public/app/features/admin/state/actions.ts": {
+      "git_blob_sha1": "dca5364e49a5c83871f8bb8ee0b65373ec73ddbc",
+      "sha256": "e7df27bf832876b308633f79fca0a5d48bb5ffb3851785bdaeccd9f23fbb5453",
+      "bytes": 12875,
+      "lines": 415
+    },
     "public/app/features/users/state/actions.ts": {
       "git_blob_sha1": "be0fd63d4d019070d941a5f823241c8d8ab436f9",
       "sha256": "72c7eee15a6ea1d72fc3f25d5c11dc6ad4eaa8e19213cf2db6d0571464e58352",
@@ -152,6 +194,15 @@
       "source_sha256": "9acf5ac54e5017fbb8e5327fffefee9a2e996f8c1d9a3354f5f9780479b902ee",
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/shorturl/pkg/app/app.go#L62-L73",
       "text": "\t\t\t\tKind: shorturlv1beta1.ShortURLKind(),\n\t\t\t\tValidator: &simple.Validator{\n\t\t\t\t\tValidateFunc: func(ctx context.Context, req *app.AdmissionRequest) error {\n\t\t\t\t\t\t// Cast the incoming object to ShortURL for validation\n\t\t\t\t\t\tshortURL, ok := req.Object.(*shorturlv1beta1.ShortURL)\n\t\t\t\t\t\tif !ok {\n\t\t\t\t\t\t\treturn fmt.Errorf(\"expected ShortURL object, got %T\", req.Object)\n\t\t\t\t\t\t}\n\n\t\t\t\t\t\treturn validateRelativePath(shortURL.Spec.Path)\n\t\t\t\t\t},\n\t\t\t\t},"
+    },
+    "A12": {
+      "path": "apps/shorturl/pkg/app/app.go",
+      "start_line": 129,
+      "end_line": 139,
+      "excerpt_sha256": "2281e80cf5b9094062ce0108af98f3b5a362c8447d4a1c2a4d5032fbf03f94ef",
+      "source_sha256": "9acf5ac54e5017fbb8e5327fffefee9a2e996f8c1d9a3354f5f9780479b902ee",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/apps/shorturl/pkg/app/app.go#L129-L139",
+      "text": "\ta, err := simple.NewApp(simpleConfig)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\terr = a.ValidateManifest(cfg.ManifestData)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\treturn a, nil"
     },
     "A09": {
       "path": "apps/shorturl/pkg/app/validate.go",
@@ -170,6 +221,42 @@
       "source_sha256": "9b18898c01711895fef928c8a0e67aa0a651b460eb52cb852936fc337d67e87c",
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/api.go#L337-L337",
       "text": "\t\t\torgRoute.Get(\"/users/search\", requestmeta.SetOwner(requestmeta.TeamAuth), authorize(ac.EvalPermission(ac.ActionOrgUsersRead)), routing.Wrap(hs.SearchOrgUsersWithPaging))"
+    },
+    "U26": {
+      "path": "pkg/api/api.go",
+      "start_line": 289,
+      "end_line": 289,
+      "excerpt_sha256": "76e6aff024f6637dd2a98682977a1f87807ab0c0aa5537590e4cf95c352f4177",
+      "source_sha256": "9b18898c01711895fef928c8a0e67aa0a651b460eb52cb852936fc337d67e87c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/api.go#L289-L289",
+      "text": "\tr.Group(\"/api\", func(apiRoute routing.RouteRegister) {"
+    },
+    "U27": {
+      "path": "pkg/api/api.go",
+      "start_line": 332,
+      "end_line": 332,
+      "excerpt_sha256": "baef55b60ff1b20ffb95e73a2b3b9f37c894c5df5a486805766b93ee25acacad",
+      "source_sha256": "9b18898c01711895fef928c8a0e67aa0a651b460eb52cb852936fc337d67e87c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/api.go#L332-L332",
+      "text": "\t\tapiRoute.Group(\"/org\", func(orgRoute routing.RouteRegister) {"
+    },
+    "U30": {
+      "path": "pkg/api/api.go",
+      "start_line": 312,
+      "end_line": 315,
+      "excerpt_sha256": "2b85e0f497e49c09a3c97fd9a6339b48f32fe98083f05ee6f58e2115fd95baaa",
+      "source_sha256": "9b18898c01711895fef928c8a0e67aa0a651b460eb52cb852936fc337d67e87c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/api.go#L312-L315",
+      "text": "\t\tapiRoute.Group(\"/users\", func(usersRoute routing.RouteRegister) {\n\t\t\tuserIDScope := ac.Scope(\"global.users\", \"id\", ac.Parameter(\":id\"))\n\t\t\tusersRoute.Get(\"/\", authorize(ac.EvalPermission(ac.ActionUsersRead)), routing.Wrap(hs.searchUsersService.SearchUsers))\n\t\t\tusersRoute.Get(\"/search\", authorize(ac.EvalPermission(ac.ActionUsersRead)), routing.Wrap(hs.searchUsersService.SearchUsersWithPaging))"
+    },
+    "U35": {
+      "path": "pkg/api/api.go",
+      "start_line": 367,
+      "end_line": 367,
+      "excerpt_sha256": "02c197f3cb3f1552a414bbdd10f002a3838e8af2acc449e1556e67e5b6267611",
+      "source_sha256": "9b18898c01711895fef928c8a0e67aa0a651b460eb52cb852936fc337d67e87c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/api.go#L367-L367",
+      "text": "\t\t\torgRoute.Get(\"/users/lookup\", authorize(lookupEvaluator()), routing.Wrap(hs.GetOrgUsersForCurrentOrgLookup))"
     },
     "U03": {
       "path": "pkg/api/org_users.go",
@@ -206,6 +293,33 @@
       "source_sha256": "a99e53b16f495d07a0efd2f120e54c331293d3acaf2f34a02d81be0db8fc222b",
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/org_users.go#L468-L478",
       "text": "func (hs *HTTPServer) searchOrgUsersPageUsingK8s(c *contextmodel.ReqContext, query *org.SearchOrgUsersQuery, externallySynced func(authModule string) bool) (*org.SearchOrgUsersQueryResult, error) {\n\tsearchResult, err := hs.userService.Search(c.Req.Context(), &user.SearchUsersQuery{\n\t\tSignedInUser:         query.User,\n\t\tOrgID:                query.OrgID,\n\t\tQuery:                query.Query,\n\t\tPage:                 query.Page,\n\t\tLimit:                query.Limit,\n\t\tSortOpts:             query.SortOpts,\n\t\tIncludeAccessControl: c.QueryBool(\"accesscontrol\"),\n\t})\n\tif err != nil {"
+    },
+    "U36": {
+      "path": "pkg/api/org_users.go",
+      "start_line": 160,
+      "end_line": 170,
+      "excerpt_sha256": "2038e4af49f821b0b1d9942f51e980a346e0d8aa14db8b4eeb287ffee25e05ac",
+      "source_sha256": "a99e53b16f495d07a0efd2f120e54c331293d3acaf2f34a02d81be0db8fc222b",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/org_users.go#L160-L170",
+      "text": "func (hs *HTTPServer) GetOrgUsersForCurrentOrgLookup(c *contextmodel.ReqContext) response.Response {\n\tctx := c.Req.Context()\n\t// Single-org with users in unified storage: the legacy org_user/user join is\n\t// empty, so read the shared users via the k8s-redirected user search instead.\n\tif hs.Cfg.RBAC.SingleOrganization && ofClient.Boolean(ctx, featuremgmt.FlagKubernetesUsersRedirect, false, openfeature.TransactionContext(ctx)) {\n\t\tresult, err := hs.searchOrgUsersForLookupUsingK8s(c)\n\t\tif err != nil {\n\t\t\treturn response.Error(http.StatusInternalServerError, \"Failed to get users for current organization\", err)\n\t\t}\n\t\treturn response.JSON(http.StatusOK, result)\n\t}"
+    },
+    "U37": {
+      "path": "pkg/api/org_users.go",
+      "start_line": 397,
+      "end_line": 406,
+      "excerpt_sha256": "0495d93974e3b6d5cdff659734238e725184e71b1ff18e7b0f0c8bb7be4c6930",
+      "source_sha256": "a99e53b16f495d07a0efd2f120e54c331293d3acaf2f34a02d81be0db8fc222b",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/org_users.go#L397-L406",
+      "text": "\tquery := &user.SearchUsersQuery{\n\t\tSignedInUser: c.SignedInUser,\n\t\tOrgID:        c.GetOrgID(),\n\t\tQuery:        c.Query(\"query\"),\n\t\tLimit:        searchLimit,\n\t\tPage:         1,\n\t}\n\tresult := make([]*dtos.UserLookupDTO, 0)\n\tfor ; ; query.Page++ {\n\t\tsearchResult, err := hs.userService.Search(ctx, query)"
+    },
+    "U38": {
+      "path": "pkg/api/org_users.go",
+      "start_line": 376,
+      "end_line": 376,
+      "excerpt_sha256": "80bfe98781bb0b304c9d7f9d8219bd8921e0d269c6a45ec6b7282854a79f6f69",
+      "source_sha256": "a99e53b16f495d07a0efd2f120e54c331293d3acaf2f34a02d81be0db8fc222b",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/api/org_users.go#L376-L376",
+      "text": "func (hs *HTTPServer) searchOrgUsersForLookupUsingK8s(c *contextmodel.ReqContext) ([]*dtos.UserLookupDTO, error) {"
     },
     "A03": {
       "path": "pkg/apiserver/appsdk/admission.go",
@@ -306,6 +420,24 @@
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/iam/register.go#L1110-L1113",
       "text": "\tsearchRoutes := make([]*builder.APIRoutes, 0, 4)\n\tif enableUserApi && b.userSearchHandler != nil {\n\t\tsearchRoutes = append(searchRoutes, b.userSearchHandler.GetAPIRoutes(defs))\n\t}"
     },
+    "U40": {
+      "path": "pkg/registry/apis/iam/register.go",
+      "start_line": 1105,
+      "end_line": 1113,
+      "excerpt_sha256": "83f444cb539759106e0b09c8fad5c40a3ffd3285eef27674b34ddcad0efe1d38",
+      "source_sha256": "87cd91e677761715b55e6bde27bd942223c2930f3b4431ba9778525bd05641cd",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/iam/register.go#L1105-L1113",
+      "text": "\tenableUserApi := b.isSingleOrgSetup() && b.features.UsersAPI\n\tenableResourcePermissionsApi := b.features.ResourcePermissionsAPI\n\tenableUserPermissionsApi := b.features.UserPermissionsAPI\n\tenableSsoSettingsApi := b.features.SSOSettingsAPI\n\n\tsearchRoutes := make([]*builder.APIRoutes, 0, 4)\n\tif enableUserApi && b.userSearchHandler != nil {\n\t\tsearchRoutes = append(searchRoutes, b.userSearchHandler.GetAPIRoutes(defs))\n\t}"
+    },
+    "U41": {
+      "path": "pkg/registry/apis/iam/register.go",
+      "start_line": 1391,
+      "end_line": 1393,
+      "excerpt_sha256": "554ed86fb49d2d6663897301710b51bf86c3f8d1d7571a39dd46be70363c631d",
+      "source_sha256": "87cd91e677761715b55e6bde27bd942223c2930f3b4431ba9778525bd05641cd",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/iam/register.go#L1391-L1393",
+      "text": "func (b *IdentityAccessManagementAPIBuilder) isSingleOrgSetup() bool {\n\treturn b.apiConfig.SingleOrganization\n}"
+    },
     "U14": {
       "path": "pkg/registry/apis/iam/user/search.go",
       "start_line": 69,
@@ -362,12 +494,21 @@
     },
     "U21": {
       "path": "pkg/registry/apis/iam/user/unified_search.go",
-      "start_line": 103,
+      "start_line": 102,
       "end_line": 107,
-      "excerpt_sha256": "97cfffc735ff6a842df1f75c7274a9a753bf1554b2fb70136b9fd3a79109c846",
+      "excerpt_sha256": "c3d27962314243c77ad03fba410f7364bef29efd1d83106372a2a44a2a29ada3",
       "source_sha256": "f67ab2c04b8cd5112de23ec557f5007746106622563833cff68f5cf19d302b2b",
-      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/iam/user/unified_search.go#L103-L107",
-      "text": "\tif err := resource.StatusErrorFromResponse(resp.GetError(), err); err != nil {\n\t\treturn nil, err\n\t}\n\treturn parseResults(resp)\n}"
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apis/iam/user/unified_search.go#L102-L107",
+      "text": "\tresp, err := c.client.Search(ctx, req)\n\tif err := resource.StatusErrorFromResponse(resp.GetError(), err); err != nil {\n\t\treturn nil, err\n\t}\n\treturn parseResults(resp)\n}"
+    },
+    "A13": {
+      "path": "pkg/registry/apps/shorturl/legacy_storage.go",
+      "start_line": 109,
+      "end_line": 113,
+      "excerpt_sha256": "8f3184868a060a7d113deeeb1df4f76b0af0a59e2d030d4ee9380619410bf25e",
+      "source_sha256": "46e7ddac79a76a87fb4fc0674948b161c5a6f14d9799fb9d29f9d7cc4ae52624",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apps/shorturl/legacy_storage.go#L109-L113",
+      "text": "\tif createValidation != nil {\n\t\tif err := createValidation(ctx, obj.DeepCopyObject()); err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t}"
     },
     "L06": {
       "path": "pkg/registry/apps/shorturl/legacy_storage.go",
@@ -377,6 +518,15 @@
       "source_sha256": "46e7ddac79a76a87fb4fc0674948b161c5a6f14d9799fb9d29f9d7cc4ae52624",
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apps/shorturl/legacy_storage.go#L80-L99",
       "text": "}\n\nfunc (s *legacyStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {\n\trequester, err := identity.GetRequester(ctx)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\tdto, err := s.service.GetShortURLByUID(ctx, requester, name)\n\tif err != nil || dto == nil {\n\t\tif errors.Is(err, shorturls.ErrShortURLNotFound) || err == nil {\n\t\t\terr = k8serrors.NewNotFound(shorturl.ShortURLKind().GroupVersionResource().GroupResource(), name)\n\t\t}\n\t\treturn nil, err\n\t}\n\n\treturn convertToK8sResource(dto, s.namespacer), nil\n}\n\nfunc (s *legacyStorage) Create(ctx context.Context,"
+    },
+    "A11": {
+      "path": "pkg/registry/apps/shorturl/register.go",
+      "start_line": 48,
+      "end_line": 55,
+      "excerpt_sha256": "88744c676c933dc9fa232907d17651b738d7e4c4e45b17deb3040bc8bd43c97f",
+      "source_sha256": "86a9cd8d5c181068c17e79b7260b698594b70b3860d956fa776c0e487a25a272",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/registry/apps/shorturl/register.go#L48-L55",
+      "text": "\tprovider := simple.NewAppProvider(apis.LocalManifest(), specificConfig, shorturlapp.New)\n\n\tappCfg := app.Config{\n\t\tKubeConfig:     restclient.Config{}, // this will be overridden by the installer's InitializeApp method\n\t\tManifestData:   *apis.LocalManifest().ManifestData,\n\t\tSpecificConfig: specificConfig,\n\t}\n\ti, err := appsdkapiserver.NewDefaultAppInstaller(provider, appCfg, &apis.GoTypeAssociator{})"
     },
     "L05": {
       "path": "pkg/registry/apps/shorturl/register.go",
@@ -405,6 +555,60 @@
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/apiserver/appinstaller/server.go#L105-L142",
       "text": "func (s *serverWrapper) configureStoragePath(\n\tapiGroupInfo *genericapiserver.APIGroupInfo,\n\tv string,\n\tstoragePath string,\n\trestStorage genericrest.Storage,\n\tservedForResource map[string][]schema.GroupVersion,\n) error {\n\tlog := logging.FromContext(s.ctx)\n\tlegacyProvider, dualWriteSupported := s.installer.(LegacyStorageProvider)\n\tgr := schema.GroupResource{\n\t\tGroup:    s.installer.ManifestData().Group,\n\t\tResource: resourceFromStoragePath(storagePath),\n\t}\n\tstorage := s.configureStorage(gr, dualWriteSupported, restStorage)\n\tif dualWriteSupported {\n\t\tif unifiedStorage, ok := storage.(grafanarest.Storage); ok {\n\t\t\tlog.Debug(\"Configuring dual writer for storage\", \"resource\", gr.String(), \"version\", v, \"storagePath\", storagePath)\n\t\t\tkey := gr.String()\n\t\t\tif resourceConfig, ok := s.storageOpts.UnifiedStorageConfig[key]; ok {\n\t\t\t\ts.builderMetrics.RecordDualWriterTargetMode(gr.Resource, gr.Group, resourceConfig.DualWriterMode)\n\t\t\t}\n\t\t\tlegacyStorage := legacyProvider.GetLegacyStorage(gr.WithVersion(v))\n\t\t\t// unified must never serve an apiVersion the scheme never registered; with no\n\t\t\t// legacy fallback there is nothing safe to serve, so refuse to install.\n\t\t\tif err := s.dualWriteService.ValidateServedVersions(s.ctx, gr, servedForResource[gr.Resource]); err != nil {\n\t\t\t\tif legacyStorage == nil {\n\t\t\t\t\treturn fmt.Errorf(\"cannot serve %q from unified storage: %w\", gr.String(), err)\n\t\t\t\t}\n\t\t\t\tlog.Warn(\"serving legacy storage\", \"resource\", gr.String(), \"error\", err)\n\t\t\t\tstorage = legacyStorage\n\t\t\t} else if legacyStorage == nil {\n\t\t\t\tlog.Debug(\"Skipping dual writer; no legacy storage\", \"resource\", gr.String(), \"version\", v, \"storagePath\", storagePath)\n\t\t\t} else {\n\t\t\t\tstorage, err = s.dualWriteService.NewStorage(gr, legacyStorage, unifiedStorage)\n\t\t\t\tif err != nil {\n\t\t\t\t\treturn err\n\t\t\t\t}\n\t\t\t}"
     },
+    "A10": {
+      "path": "pkg/services/apiserver/service.go",
+      "start_line": 493,
+      "end_line": 496,
+      "excerpt_sha256": "fe62e28722ca94afef326be675fce106d67ab9781b11eaf944c26b770d251004",
+      "source_sha256": "ac9eb4ae5b725f00f88bc5e3621e9ff63675048746752a1f85342cb4c4d099d8",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/apiserver/service.go#L493-L496",
+      "text": "\tserverConfig.AdmissionControl, err = appinstaller.RegisterAdmission(\n\t\tserverConfig.AdmissionControl,\n\t\ts.appInstallers,\n\t)"
+    },
+    "U31": {
+      "path": "pkg/services/searchusers/searchusers.go",
+      "start_line": 65,
+      "end_line": 71,
+      "excerpt_sha256": "802c001a6ff55997344e70779318546ebfc48e19c8b1b0518de584eea73cea97",
+      "source_sha256": "66b0bbdd4b39151ffc05127a8217e089023ffe16569e3432855bbe630d270962",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/searchusers/searchusers.go#L65-L71",
+      "text": "func (s *OSSService) SearchUsersWithPaging(c *contextmodel.ReqContext) response.Response {\n\tresult, err := s.SearchUser(c)\n\tif err != nil {\n\t\treturn response.ErrOrFallback(http.StatusInternalServerError, \"Failed to fetch users\", err)\n\t}\n\n\treturn response.JSON(http.StatusOK, result)"
+    },
+    "U32": {
+      "path": "pkg/services/searchusers/searchusers.go",
+      "start_line": 74,
+      "end_line": 75,
+      "excerpt_sha256": "1e1dd229da284455b592084b1ffbcd4282e4b9fca541df19a1e4187903a21df8",
+      "source_sha256": "66b0bbdd4b39151ffc05127a8217e089023ffe16569e3432855bbe630d270962",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/searchusers/searchusers.go#L74-L75",
+      "text": "func (s *OSSService) SearchUser(c *contextmodel.ReqContext) (*user.SearchUserQueryResult, error) {\n\tperPage := c.QueryInt(\"perpage\")"
+    },
+    "U33": {
+      "path": "pkg/services/searchusers/searchusers.go",
+      "start_line": 95,
+      "end_line": 104,
+      "excerpt_sha256": "f22bc28658a48f4d198a98addf394eb741853b4687a8986208e0782fee701705",
+      "source_sha256": "66b0bbdd4b39151ffc05127a8217e089023ffe16569e3432855bbe630d270962",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/searchusers/searchusers.go#L95-L104",
+      "text": "\tquery := &user.SearchUsersQuery{\n\t\t// added SignedInUser to the query, as to only list the users that the user has permission to read\n\t\tSignedInUser: c.SignedInUser,\n\t\tQuery:        searchQuery,\n\t\tFilters:      filters,\n\t\tPage:         page,\n\t\tLimit:        perPage,\n\t\tSortOpts:     sortOpts,\n\t}\n\tres, err := s.userService.Search(c.Req.Context(), query)"
+    },
+    "A15": {
+      "path": "pkg/services/shorturls/models.go",
+      "start_line": 31,
+      "end_line": 40,
+      "excerpt_sha256": "391c56daf01fee134e7cc6dc37cc86d27369a22f306b2b3c9f48f3e5c583523b",
+      "source_sha256": "19e3200af918ff531c77325ac3fd7d3b4f4268b453b2ebe3c8454a8aab5d2791",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/shorturls/models.go#L31-L40",
+      "text": "// ValidateRelativePath checks that a short URL path is a safe relative path\n// that will not redirect to an external domain. It returns an appropriate error\n// if the path is invalid, or nil if the path is safe.\n// IMPORTANT: This logic is duplicated in apps/shorturl/pkg/app/app.go — keep both in sync.\nfunc ValidateRelativePath(rawPath string) error {\n\tp := strings.TrimSpace(rawPath)\n\n\t// Reject path traversal (forward and backslash variants)\n\tif strings.Contains(p, \"../\") || strings.Contains(p, `..\\`) {\n\t\treturn ErrShortURLInvalidPath.Errorf(\"path cannot contain '../': %s\", p)"
+    },
+    "A14": {
+      "path": "pkg/services/shorturls/shorturlimpl/shorturl.go",
+      "start_line": 41,
+      "end_line": 46,
+      "excerpt_sha256": "83e9dfd31a5a2723237c91636d066a838d7482ccff9242754905c6dbb717f32e",
+      "source_sha256": "9cb404d0355593be1af9c14922406b62412191c06ca3907ec09a059c2236fb8c",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/shorturls/shorturlimpl/shorturl.go#L41-L46",
+      "text": "func (s ShortURLService) CreateShortURL(ctx context.Context, user identity.Requester, cmd *dtos.CreateShortURLCmd) (*shorturls.ShortUrl, error) {\n\trelPath := strings.TrimSpace(cmd.Path)\n\n\tif err := shorturls.ValidateRelativePath(relPath); err != nil {\n\t\treturn nil, err\n\t}"
+    },
     "L07": {
       "path": "pkg/services/shorturls/shorturlimpl/shorturl.go",
       "start_line": 29,
@@ -422,6 +626,15 @@
       "source_sha256": "a11941bf8cc43f42aa1a70df232a75cfbd0c229d7a77db8a3d2f8200e62070ca",
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/user/userimpl/user.go#L212-L218",
       "text": "func (s *Service) Search(ctx context.Context, cmd *user.SearchUsersQuery) (*user.SearchUserQueryResult, error) {\n\tif s.isKubernetesUserServiceEnabled(ctx) && !s.shouldFallbackToLegacy(ctx) {\n\t\treturn s.k8sService.Search(s.k8sCtxWithIdentity(ctx), cmd)\n\t}\n\n\treturn s.legacyService.Search(ctx, cmd)\n}"
+    },
+    "U39": {
+      "path": "pkg/services/user/userimpl/user.go",
+      "start_line": 276,
+      "end_line": 282,
+      "excerpt_sha256": "e77b80d290f5397e1914ed8380550a5bae34ea5eb2b1ef72c794a99240997110",
+      "source_sha256": "a11941bf8cc43f42aa1a70df232a75cfbd0c229d7a77db8a3d2f8200e62070ca",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/user/userimpl/user.go#L276-L282",
+      "text": "func (s *Service) isKubernetesUserServiceEnabled(ctx context.Context) bool {\n\tif s.openFeatureClient == nil {\n\t\treturn false\n\t}\n\n\treturn s.openFeatureClient.Boolean(ctx, featuremgmt.FlagKubernetesUsersRedirect, false, openfeature.TransactionContext(ctx))\n}"
     },
     "U08": {
       "path": "pkg/services/user/userk8s/user.go",
@@ -449,6 +662,15 @@
       "source_sha256": "403f083a70a35d393e5fe15ef6e511e0f7713d0c07fe957e46fc9c212d9b5526",
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/services/user/userk8s/user.go#L781-L795",
       "text": "\treq := restClient.Get().\n\t\tAbsPath(\"apis\", iamv0alpha1.APIGroup, iamv0alpha1.APIVersion, \"namespaces\", namespace, \"searchUsers\").\n\t\tParam(\"limit\", strconv.Itoa(limit)).\n\t\tParam(\"page\", strconv.Itoa(page))\n\tif cmd.Query != \"\" {\n\t\treq = req.Param(\"query\", cmd.Query)\n\t}\n\tif cmd.IncludeAccessControl {\n\t\treq = req.Param(\"accesscontrol\", \"true\")\n\t}\n\tfor _, sortParam := range legacysort.ConvertToSortParams(cmd.SortOpts, iamuser.UserSortFieldMapping()) {\n\t\treq = req.Param(\"sort\", sortParam)\n\t}\n\n\traw, err := req.DoRaw(ctx)"
+    },
+    "L08": {
+      "path": "pkg/storage/legacysql/dualwrite/dualwriter.go",
+      "start_line": 61,
+      "end_line": 99,
+      "excerpt_sha256": "f8b82261a5eb53182f138eacbb9c07a5eeddf810958bc23e249a7741447c9c3c",
+      "source_sha256": "63a78e16aea76c968590ca96e5f9672f95dafcd05bdc5037c7f648dab3ed0d5f",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/storage/legacysql/dualwrite/dualwriter.go#L61-L99",
+      "text": "func (d *dualWriter) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {\n\treadUnified, errorIsOK := d.getMode(ctx)\n\tctx, span := tracer.Start(ctx, \"dualwrite.dualWriter.Get\",\n\t\ttrace.WithAttributes(\n\t\t\tattribute.Bool(\"errorIsOK\", errorIsOK),\n\t\t\tattribute.Bool(\"readUnified\", readUnified)))\n\tdefer span.End()\n\n\tlog := logging.FromContext(ctx).With(\"method\", \"Get\", \"name\", name, \"resource\", d.gr.String())\n\t// If we read from unified, we can just do that and return.\n\tif readUnified {\n\t\treturn d.unified.Get(ctx, name, options)\n\t}\n\t// If legacy is still our main store, lets first read from it.\n\tlegacyGet, err := d.legacy.Get(ctx, name, options)\n\tif err != nil {\n\t\tlog.Error(\"failed to GET object from legacy storage\", \"err\", err)\n\t\treturn nil, err\n\t}\n\t// Once we have successfully read from legacy, we can check if we want to fail on a unified read.\n\t// If we allow the unified read to fail, we can do it in the background.\n\tif errorIsOK {\n\t\tgo func(ctxBg context.Context, cancel context.CancelFunc) {\n\t\t\tdefer cancel()\n\t\t\tif _, err := d.unified.Get(ctxBg, name, options); err != nil {\n\t\t\t\tlog.Error(\"failed background GET to unified\", \"err\", err)\n\t\t\t\td.metrics.backgroundErrors.WithLabelValues(d.gr.String(), \"GET\").Inc()\n\t\t\t}\n\t\t}(context.WithTimeout(context.WithoutCancel(ctx), backgroundReqTimeout))\n\t\treturn legacyGet, nil\n\t}\n\t// If it's not okay to fail, we have to check it in the foreground.\n\t_, unifiedErr := d.unified.Get(ctx, name, options)\n\tif unifiedErr != nil && !apierrors.IsNotFound(unifiedErr) {\n\t\tlog.Error(\"failed to GET object from unified storage\", \"err\", unifiedErr)\n\t\treturn nil, unifiedErr\n\t}\n\treturn legacyGet, nil\n}"
     },
     "U18": {
       "path": "pkg/storage/legacysql/dualwrite/selector.go",
@@ -503,6 +725,33 @@
       "source_sha256": "4d93b48064168d821aad2258195d70b184f6fb0b35b2beec254a80eb2d5d529f",
       "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/pkg/storage/unified/resource/search.go#L1085-L1086",
       "text": "\treturn idx.Search(ctx, s.access, req, indexes, stats)\n}"
+    },
+    "U34": {
+      "path": "public/app/core/components/Select/UserPicker.tsx",
+      "start_line": 23,
+      "end_line": 31,
+      "excerpt_sha256": "1f9bdd9b680de411b13859e34af67ce0357f249dab2c0668ff9ec24756e6d2ef",
+      "source_sha256": "8fd0c8ee2eaa6204a0f45f39cc8d43661fead59447573e7e3c14b880707b270b",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/core/components/Select/UserPicker.tsx#L23-L31",
+      "text": "        async (query?: string) => {\n          setIsLoading(true);\n\n          if (isNil(query)) {\n            query = '';\n          }\n\n          return getBackendSrv()\n            .get(`/api/org/users/lookup?query=${query}&limit=100`)"
+    },
+    "U28": {
+      "path": "public/app/features/admin/UserListAdminPage.tsx",
+      "start_line": 70,
+      "end_line": 72,
+      "excerpt_sha256": "2c1a702758571f0150df78c9c1cb5feb3e92ceb52ead7dc1ce471c8952a65285",
+      "source_sha256": "1e56b92df95a3bcacafa3e7ff33cb1d20ff0f3e2625c603b973ab67c9f1a7664",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/admin/UserListAdminPage.tsx#L70-L72",
+      "text": "  useEffect(() => {\n    fetchUsers();\n  }, [fetchUsers]);"
+    },
+    "U29": {
+      "path": "public/app/features/admin/state/actions.ts",
+      "start_line": 291,
+      "end_line": 299,
+      "excerpt_sha256": "108c4e1f6fd5794daf53a0b86289b921042142758320d42401490f30ff417f4f",
+      "source_sha256": "e7df27bf832876b308633f79fca0a5d48bb5ffb3851785bdaeccd9f23fbb5453",
+      "url": "https://github.com/grafana/grafana/blob/c0a598f5a49abf2014f67e806075d8ad267c9efb/public/app/features/admin/state/actions.ts#L291-L299",
+      "text": "export function fetchUsers(): ThunkResult<void> {\n  return async (dispatch, getState) => {\n    try {\n      const { perPage, page, query, filters, sort } = getState().userListAdmin;\n      let url = `/api/users/search?perpage=${perPage}&page=${page}&query=${query}&${getFilters(filters)}`;\n      if (sort) {\n        url += `&sort=${sort}`;\n      }\n      const result = await getBackendSrv().get(url);"
     },
     "U01": {
       "path": "public/app/features/users/state/actions.ts",

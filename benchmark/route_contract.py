@@ -10,8 +10,8 @@ from .core import digest, file_digest, read_json, require, write_json
 
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
-DATASET_MANIFEST_SHA256 = "d5a57f727098a094b8b03b46d9739a633041a8e8e91990d5ddc41e8d3dcaaef7"
-TARGET_LOCK_SHA256 = "de7081fa1309ed9dd7b32f02584acb9f5a32662edf5aa96c4acaebe9a02df0b9"
+DATASET_MANIFEST_SHA256 = "8e5d46b2113b62c2c70405f7c4a2a02b288a355e6a659b7942cb83ee6d0b95e9"
+TARGET_LOCK_SHA256 = "0a8627e0e3df9d2c135a1789dc685063aad8f06798ba601a9df97ea886d30957"
 QUESTION_IDS = ("app-resource-admission", "app-legacy-storage", "user-browser-unified-index")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")

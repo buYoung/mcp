@@ -1,20 +1,26 @@
 {
   "schema_version": 1,
   "dataset_id": "grafana-routes-v5",
-  "revision": 1,
+  "revision": 2,
   "status": "content_frozen",
   "supersedes": "grafana-routes-v4",
-  "previous_manifest_sha256": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
+  "previous_manifest_sha256": "d5a57f727098a094b8b03b46d9739a633041a8e8e91990d5ddc41e8d3dcaaef7",
   "revision_history": [
     {
       "revision": 1,
-      "reason": "감독자 승인 사전 스모크 후보 3개: 일반 통과 2개와 G3 예외 1개"
+      "manifest_sha256": "d5a57f727098a094b8b03b46d9739a633041a8e8e91990d5ddc41e8d3dcaaef7",
+      "snapshot": "dataset-v5/snapshots/r1/",
+      "reason": "최초 사전 스모크 3후보. 독립 검토 결과 BLOCK."
+    },
+    {
+      "revision": 2,
+      "reason": "검토 수정안 전체 반영, G1/G3 재측정, legacy 신규 G3 예외 승인. 일반 통과 1개와 G3 예외 2개."
     }
   ],
   "approval": {
     "direction": "/Volumes/Samsung_990_PRO/codemap-bench-work/v5/task-dataset-v5.md",
-    "request": "감독자 승인: 사전 스모크용 3문항. G6는 최종 2문항 선정 때 적용. user-browser-unified-index는 G3 예외(46.92%), TS→Go 다양성 확보 목적.",
-    "scope": "사전 스모크 패키지 생성·정적 검증. 실제 sync·기억 측정·모델/제품 실행 미승인."
+    "request": "감독자 승인 r2: 독립 검토 수정안 전체 반영. admission 일반 통과; legacy G3 예외(25.00%), 사전 스모크 비교 자료용, 최종 선정 대상은 기억 측정 통과 시에만. user G3 예외 유지(수정 후38.89%, 최초46.92%). 최종 우선 후보는 admission(Go)+user(TS→Go). G6 사전 스모크 유예.",
+    "scope": "사전 스모크 r2 패키지 수정·정적 검증. 이 작업자의 실제 sync·기억 측정·모델/제품 실행은 금지."
   },
   "target_release": "1.0.0",
   "source": {
@@ -30,52 +36,52 @@
     "questions": 3,
     "core_facts": 15,
     "extended_facts": 0,
-    "source_files": 22,
-    "source_files_with_excerpts": 22,
-    "evidence_ranges": 41,
-    "non_scoring_notes": 3
+    "source_files": 29,
+    "source_files_with_excerpts": 29,
+    "evidence_ranges": 64,
+    "non_scoring_notes": 7
   },
   "files": {
     "README.md": {
-      "sha256": "f3dda6515bffecfa3b3d8d611149ab811b010320a848f90a100df22df760754d",
-      "bytes": 3755
+      "sha256": "9ae78492f6470f6f13dd25bfaa3f317a90d88380917157ee1349dbf233a0e1a3",
+      "bytes": 5076
     },
     "dataset.json": {
-      "sha256": "5f1bef7a6b0db23d004ea39683cafa7b00cac8ff9b02c620d2fe07836c196fcd",
-      "bytes": 26588
+      "sha256": "2131709a441c177518dc05a214eb1dd370787b8707967b680e2b7734a57cda2b",
+      "bytes": 33554
     },
     "evidence.json": {
-      "sha256": "25b7477d2401d170dabba56449cb1be163f2fee4c9bfe2a0d3023060d2c2ddc5",
-      "bytes": 48710
+      "sha256": "004604934f4c7c08013151f12da4894219418faac37385991ca6b13910930b94",
+      "bytes": 68727
     },
     "grading.json": {
       "sha256": "de3f698397264f7aac67f5f0556cf1e1020c39364dd83e6bbee09642a149ed3e",
       "bytes": 7746
     },
     "questions.json": {
-      "sha256": "cb4f44e9c0d7937ded107163d448b850ea39eb60e1e52f3b71bd0835ccc25c22",
-      "bytes": 559
+      "sha256": "cf6d7fad48d95e894090ae81e2dbbab590f7e5b64666e95e94f563b5edd18208",
+      "bytes": 562
     }
   },
   "provenance": {
     "source_identity": "고정 COMMIT의 Git blob SHA-1와 원본 바이트 SHA-256 검증",
     "selection": "/Volumes/Samsung_990_PRO/codemap-bench-work/v5/report-candidates.md",
-    "selection_results_sha256": "d7466fb0aa498896f9750607f66ac04fc02171f5e737ad393dc437750746b437",
+    "selection_results_sha256": "325573156c839f4509d7e748f7509168ad5832879dbd0566fdf968f47531f39a",
     "g1_threshold": 60,
     "g1_rule": "내용·경로 노출은 진단값. 단어별 내용∪경로 결과의 단어1개/2개 AND 파일 수≤60이며 핵심파일≥30%이면 탈락.",
     "g1": {
       "app-resource-admission": {
         "g1_pass": true,
         "content_percent": 100.0,
-        "path_percent": 100.0,
+        "path_percent": 85.71428571428571,
         "core_files": [
           "apps/shorturl/pkg/app/app.go",
           "apps/shorturl/pkg/app/validate.go",
           "pkg/apiserver/appsdk/admission.go",
           "pkg/apiserver/appsdk/installer.go",
-          "pkg/apiserver/appsdk/storage.go",
-          "pkg/apiserver/appsdk/strategy.go",
-          "pkg/services/apiserver/appinstaller/installer.go"
+          "pkg/registry/apps/shorturl/register.go",
+          "pkg/services/apiserver/appinstaller/installer.go",
+          "pkg/services/apiserver/service.go"
         ],
         "excluded_cited_files": [],
         "entry_violation_count": 0
@@ -83,14 +89,13 @@
       "app-legacy-storage": {
         "g1_pass": true,
         "content_percent": 100.0,
-        "path_percent": 85.71428571428571,
+        "path_percent": 83.33333333333333,
         "core_files": [
-          "pkg/apiserver/appsdk/installer.go",
-          "pkg/apiserver/appsdk/storage.go",
           "pkg/registry/apps/shorturl/legacy_storage.go",
           "pkg/registry/apps/shorturl/register.go",
           "pkg/services/apiserver/appinstaller/server.go",
           "pkg/services/shorturls/shorturlimpl/shorturl.go",
+          "pkg/storage/legacysql/dualwrite/dualwriter.go",
           "pkg/storage/legacysql/dualwrite/storage_service.go"
         ],
         "excluded_cited_files": [],
@@ -99,17 +104,21 @@
       "user-browser-unified-index": {
         "g1_pass": true,
         "content_percent": 100.0,
-        "path_percent": 70.0,
+        "path_percent": 71.42857142857143,
         "core_files": [
           "pkg/api/api.go",
           "pkg/api/org_users.go",
           "pkg/registry/apis/iam/register.go",
           "pkg/registry/apis/iam/user/search.go",
           "pkg/registry/apis/iam/user/unified_search.go",
+          "pkg/services/searchusers/searchusers.go",
           "pkg/services/user/userimpl/user.go",
           "pkg/services/user/userk8s/user.go",
           "pkg/storage/legacysql/dualwrite/selector.go",
           "pkg/storage/unified/resource/search.go",
+          "public/app/core/components/Select/UserPicker.tsx",
+          "public/app/features/admin/UserListAdminPage.tsx",
+          "public/app/features/admin/state/actions.ts",
           "public/app/features/users/state/actions.ts"
         ],
         "excluded_cited_files": [],
@@ -132,37 +141,50 @@
         "final-eight-g1-results.json": "c6d2a508bb1b14b30f2bcfdc7465bd8755579759e7c667dee87bbb7a18a63711",
         "final-eight-g3-results.json": "c21e8701cec5f33b203acb23d153d073b32b721bba9640609c22715ccbccbfed",
         "v4-calibration-frozen.json": "3b654a698c833a1fb94f44bb463e8bed82c74daafb2dc44c884c8dd593b9e26c",
-        "source-files.nul": "72f2fc0877ef8197b13868546e226941b8877c77b96fc63780dbdcf8b15bd6e8"
+        "source-files.nul": "72f2fc0877ef8197b13868546e226941b8877c77b96fc63780dbdcf8b15bd6e8",
+        "review-r2-all-frozen.json": "edae797fababe8204070f0f76bf654d8dd7b7318e6f4cde772f7b48acb75d7af",
+        "review-r2-core-frozen.json": "f8a40d500e88be231f9d9ff0b76a3c5c30cb13ff896ad2f725dd64e272c448ec",
+        "review-r2-g1-results.json": "5fd9cf8e131178d7154956fc6f1a245be73fd41fd04cfe3cf21ee6409c6b8bce",
+        "review-r2-g3-results.json": "323fceabd17e1d5a9ae05b022a166d3170ea525634381d631e73687babd91e3e",
+        "independent-review-r1.md": "0bac2882cd51cccfbde681beaf05b047160f4e441cb0f27ce1ea06619c8cf701"
       },
       "questions": {
         "app-resource-admission": {
           "id": "app-resource-admission",
-          "post_cutoff_lines": 139,
-          "total_lines": 212,
-          "percent": 65.56603773584905,
+          "post_cutoff_lines": 108,
+          "total_lines": 200,
+          "percent": 54.0,
           "g3_pass": true,
           "exception": false,
           "exception_reason": null
         },
         "app-legacy-storage": {
           "id": "app-legacy-storage",
-          "post_cutoff_lines": 99,
-          "total_lines": 180,
-          "percent": 55.0,
-          "g3_pass": true,
-          "exception": false,
-          "exception_reason": null
+          "post_cutoff_lines": 40,
+          "total_lines": 160,
+          "percent": 25.0,
+          "g3_pass": false,
+          "exception": true,
+          "exception_reason": "G3 예외(25.00%), 사전 스모크 비교 자료용, 최종 선정 대상은 기억 측정 통과 시에만"
         },
         "user-browser-unified-index": {
           "id": "user-browser-unified-index",
-          "post_cutoff_lines": 99,
-          "total_lines": 211,
-          "percent": 46.91943127962085,
+          "post_cutoff_lines": 112,
+          "total_lines": 288,
+          "percent": 38.888888888888886,
           "g3_pass": false,
           "exception": true,
-          "exception_reason": "G3 예외(46.92%), TS→Go 다양성 확보 목적"
+          "exception_reason": "G3 예외 유지(수정 후 38.89%, 최초 승인 46.92%), TS→Go 다양성 확보 목적"
         }
       },
+      "evidence_boundary": "context_notes 전용 발췌는 G1/G3 핵심 분모에서 제외한다. core fact의 대체 정답 근거는 포함한다.",
+      "independent_review": {
+        "source": "/Users/buyong/.pi/agent/sessions/--Users-buyong-workspace-private-buyong-mcp--/subagent-artifacts/4f766400-869d-4ebd-b9e8-3be9c2b7bff6_reviewer_output.md",
+        "sha256": "0bac2882cd51cccfbde681beaf05b047160f4e441cb0f27ce1ea06619c8cf701",
+        "result": "BLOCK 후 수정 반영, 재검토 대기",
+        "revision": 2
+      },
+      "final_selection": "우선 후보는 app-resource-admission(Go)과 user-browser-unified-index(TS→Go). app-legacy-storage는 기억 측정 통과 시에만 최종 선정 대상.",
       "memory_measurement": {
         "status": "미측정(사용자 승인 대기)",
         "model_requests": 0
@@ -178,14 +200,18 @@
       "model_requests": 0
     },
     "independent_review": {
-      "status": "pending"
+      "source": "/Users/buyong/.pi/agent/sessions/--Users-buyong-workspace-private-buyong-mcp--/subagent-artifacts/4f766400-869d-4ebd-b9e8-3be9c2b7bff6_reviewer_output.md",
+      "sha256": "0bac2882cd51cccfbde681beaf05b047160f4e441cb0f27ce1ea06619c8cf701",
+      "result": "BLOCK 후 수정 반영, 재검토 대기",
+      "revision": 2,
+      "status": "revision_1_blocked_revision_2_rereview_pending"
     },
     "verification_boundary": "정적 로컬 등록/호출/타입 계약만 확인. 외부 SDK/Kubernetes 내부와 실제 배포는 미실행."
   },
   "evaluation_status": {
     "status_as_of_build": {
       "source_review": "author_completed",
-      "independent_content_review": "pending",
+      "independent_content_review": "revision_1_blocked_revision_2_rereview_pending",
       "is_difficulty_empirically_validated": false,
       "solver_runs": 0,
       "grader_calibration_runs": 0,
@@ -204,7 +230,8 @@
     },
     "planned_questions": 3,
     "selection_stage": "pre_smoke_candidates",
-    "g6": "사전 스모크 단계 유예. 최종 2문항은 TS→Go 1개 + Go 1개로 선정."
+    "g6": "사전 스모크 단계 유예. 최종 2문항은 TS→Go 1개 + Go 1개로 선정.",
+    "final_selection": "우선 후보는 app-resource-admission(Go)과 user-browser-unified-index(TS→Go). app-legacy-storage는 기억 측정 통과 시에만 최종 선정 대상."
   },
   "preservation": "v4 결과와 혼합하지 않는다. 관문 예외·유예를 최종 관문 통과로 재표시하지 않는다."
 }
