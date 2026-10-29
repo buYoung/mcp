@@ -219,8 +219,11 @@ def baseline_boundary(native: dict, folder: Path) -> dict:
     # Other processes' names and arguments (products, harness, other slots) are not exploration targets.
     # Seatbelt target "others" excludes same-group peers; deny all targets and allow self only.
     text += "(deny process-info*)\n(allow process-info* (target self))\n(deny sysctl-read (sysctl-name-prefix \"kern.proc\"))\n"
-    for name in sorted(METADATA | {".pi", ".claude"}):
-        text += f"(deny file-read-data file-write* (subpath {json.dumps(str(source / name))}))\n"
+    import re
+    # Products can create state below nested projects after the profile is written.
+    metadata = "|".join(re.escape(name) for name in sorted(METADATA | {".pi", ".claude"}))
+    pattern = "^" + re.escape(str(source)) + "/(.*/)?(" + metadata + ")(/|$)"
+    text += f"(deny file-read-data file-write* (regex {json.dumps(pattern)}))\n"
     profile = folder / "pi-bash.sb"
     profile.write_text(text)
     env = {"PATH": str(bin_dir) + ":/usr/bin:/bin", "HOME": str(home), "TMPDIR": str(tmp), "LANG": "en_US.UTF-8"}
@@ -318,7 +321,8 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
             and Path(tools["mcp_adapter_extension"]).parent.name == "@buyong", "scoped MCP adapter lock required")
     folder = folder.resolve()
     native = spec.get("native_agent")
-    workspace = Path(native["source"]) if native else private_root(folder) / "work"
+    # The product is already running in its own warm host; pi only starts the absolute-path stdio shim.
+    workspace = Path((native or relay_settings)["source"]) if native or relay_settings else private_root(folder) / "work"
     require(not workspace.is_symlink(), "pi cwd symlink 금지")
     workspace.mkdir(parents=True, exist_ok=True, mode=0o700)
     require(not native or native.get("backend") == BACKEND and not relay_settings, "pi 기준군 설정 오류")
@@ -328,7 +332,8 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
         path.mkdir(parents=True, exist_ok=True, mode=0o700)
         path.chmod(0o700)
     provider = spec["provider"]
-    settings = {"shellPath": str(shell_wrapper(native, folder))} if native else {}
+    bash = native or (configuration(Path(relay_settings["source"]), Path(relay_settings["rg_binary"])) if relay_settings else None)
+    settings = {"shellPath": str(shell_wrapper(bash, folder))} if bash else {}
     mode = spec.get("measurement_mode", "direct")
     require(mode in {"direct", "codemode"}, "unknown measurement mode")
     if mode == "codemode":
@@ -365,7 +370,7 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
         resource_tools = list(RESOURCE_TOOLS) if "resources" in server.get("capabilities", {}) else []
         require(len(set(product_tools)) == len(product_tools), "navigation 도구 이름 충돌")
         args += ["-e", tools["mcp_adapter_extension"], "--tools",
-                 ",".join([*product_tools, *resource_tools, *(["codemode"] if mode == "codemode" else [])])]
+                 ",".join([*product_tools, *resource_tools, "bash", *(["codemode"] if mode == "codemode" else [])])]
         instructions = server.get("instructions") or ""
         require(isinstance(instructions, str), "server instructions 형식 오류")
         if instructions.strip():

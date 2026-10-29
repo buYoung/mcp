@@ -377,7 +377,7 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
     home = claude_auth.home_path(folder) if credential else None
     spec = dict(spec)
     if home:
-        workspace = Path(spec["native_agent"]["source"]) if spec.get("native_agent") else pi_client.private_root(folder) / "work"
+        workspace = Path(state["source"])
         spec["claude_settings"] = claude_settings.snapshot(workspace, home=home)
     process = None
     cwd = env = channel = None
@@ -421,7 +421,7 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
         if env_canary and any(value for process in env_canary.values() for value in process.values()):
             violations.append({"kind": "MCP child credential environment leak"})
         expected = ({"codemode"} if spec.get("measurement_mode") == "codemode" else
-                    {pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]} if relay else {"bash"})
+                    {"bash", *[pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]]} if relay else {"bash"})
         if relay and spec.get("measurement_mode") != "codemode" and "resources" in inventory["initialize"].get("capabilities", {}):
             expected.update(pi_client.RESOURCE_TOOLS)
         declared = declared_tool_names(body)
@@ -435,7 +435,7 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
             full_body = {"tools": list(full_tools.values())}
         nested = None
         if spec.get("measurement_mode") == "codemode":
-            allowed = {pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]} if relay else {"bash"}
+            allowed = {"bash", *[pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]]} if relay else {"bash"}
             if relay and "resources" in inventory["initialize"].get("capabilities", {}):
                 allowed.update(pi_client.RESOURCE_TOOLS)
             nested = audit_codemode_catalog(full_body, allowed, product=bool(relay))
@@ -477,6 +477,8 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
         if process is not None:
             from .runner import cleanup_solver
             cleanup = cleanup_solver(process, lambda: None)
+            cleanup["shell_groups"] = pi_client.cleanup_shells(folder, lambda: None)
+            cleanup["complete"] = cleanup["complete"] and cleanup["shell_groups"]["complete"]
             write_json(folder / "capture-cleanup.json", cleanup)
             require(cleanup["complete"], "local capture process cleanup incomplete")
         if cwd is not None:

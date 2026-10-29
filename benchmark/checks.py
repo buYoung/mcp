@@ -132,10 +132,16 @@ class BenchChecks(unittest.TestCase):
                   "grader": {"model": "fixture", "reasoning_effort": "high"}}
         observed = {**rows[0], "model": "fixture", "backend": "pi", "status": "completed",
                     "observations": {"direct_calls_outside_script": 1, "cancelled_before_admission": 1},
+                    "bash_calls": 2, "bash_call_ratio": 0.5,
                     "claude_persisted_tool_results": {"count": 1, "bytes": 85592}}
         report = route_metrics.report(self.root, {"models": models}, [observed], {})
         self.assertEqual(report["rows"][0]["claude_persisted_tool_results"], {"count": 1, "bytes": 85592})
         self.assertEqual(report["rows"][0]["observations"]["cancelled_before_admission"], 1)
+        self.assertEqual(report["rows"][0]["bash_calls"], 2)
+        self.assertEqual(report["rows"][0]["bash_call_ratio"], 0.5)
+        self.assertIsNone(report["rows"][1]["bash_calls"])
+        self.assertIsNone(report["rows"][1]["bash_call_ratio"])
+        self.assertIn("| bash 호출 | bash 비율 |", (self.root / "report/results.md").read_text())
         self.assertIn('"bytes": 85592', (self.root / "report/results.md").read_text())
 
     def test_schedule_workers_serializes_arms_and_rounds(self):
@@ -541,15 +547,21 @@ class BenchChecks(unittest.TestCase):
                  "bridge_extension": str(modules / "@buyong/pi-claude-bridge/src/index.ts"),
                  "claude_code_binary": str(modules / "@anthropic-ai/claude-agent-sdk-darwin-arm64/claude"),
                  "versions": {"mcp_adapter": "0.1.0", "bridge": "fixture"}, "bridge_child_env_api": claude_auth.CHILD_ENV_CONTRACT}
-        relay = {"arm": "graphify", "enabled_tools": ["graph_stats"]}
+        rg = self.bin / "rg"
+        rg.write_text("#!/bin/sh\nexit 0\n")
+        rg.chmod(0o700)
         server = {"command": "python3", "args": [], "env": {}, "instructions": "Native instructions.\nSecond line.",
                   "capabilities": {"resources": {}}}
         (self.root / "neutral").mkdir()
         with patch.object(settings, "CACHE", self.root / "neutral"), patch.object(tool_artifacts, "pi_toolchain", return_value=tools), \
                 patch.object(pi_client, "capabilities", return_value={"defaults": {}}), \
                 patch.object(claude_settings, "verify"), patch.object(pi_client, "operator_token", side_effect=AssertionError("no auth")):
-            for mode in ("direct", "codemode"):
-                folder = self.root / mode
+            from .route_contract import ARM_IDS
+            for arm, mode in ((arm, mode) for arm in ARM_IDS[:-1] for mode in ("direct", "codemode")):
+                source = self.root / arm / "source"
+                source.mkdir(parents=True, exist_ok=True)
+                relay = {"arm": arm, "source": str(source), "rg_binary": str(rg), "enabled_tools": ["graph_stats"]}
+                folder = self.root / arm / mode
                 folder.mkdir()
                 spec = settings.execution_settings("claude-opus-5-5")
                 spec["measurement_mode"] = mode
@@ -559,22 +571,178 @@ class BenchChecks(unittest.TestCase):
                 self.assertNotIn("fake-oauth-only", json.dumps(env))
                 self.assertNotIn("CLAUDE_CODE_OAUTH_TOKEN", env)
                 config = read_json(folder / "pi-agent/mcp.json")
-                self.assertEqual(config["maxOutputBytes"], 1048576)
-                self.assertEqual(config["mcpServers"]["navigation"]["maxOutputBytes"], 1048576)
+                self.assertEqual(cwd, source)
+                self.assertEqual(config["maxOutputBytes"], pi_client.OUTPUT_GUARD_BYTES[arm])
+                self.assertEqual(config["mcpServers"]["navigation"]["maxOutputBytes"], pi_client.OUTPUT_GUARD_BYTES[arm])
+                boundary = read_json(folder / "pi-bash.json")["profile"]
+                self.assertEqual(boundary["source"], str(source))
+                self.assertEqual(Path(boundary["env"]["PATH"].split(":")[0], "rg").read_bytes(), rg.read_bytes())
                 self.assertEqual(config["mcpServers"]["navigation"]["exposure"], "direct")
                 self.assertFalse(config["autoEnableCodemode"])
                 self.assertNotIn("--mcp-config", argv)
                 self.assertNotIn("MCP_DIRECT_TOOLS", env)
                 self.assertEqual(set(argv[argv.index("--tools") + 1].split(",")),
-                    {"mcp__navigation__graph_stats", *pi_client.RESOURCE_TOOLS, *(["codemode"] if mode == "codemode" else [])})
+                    {"mcp__navigation__graph_stats", *pi_client.RESOURCE_TOOLS, "bash", *(["codemode"] if mode == "codemode" else [])})
                 self.assertEqual((folder / "pi-agent/server-instructions.md").read_text(),
                                  pi_client.server_instructions_prompt(server["instructions"]))
                 metadata = (folder / "pi-agent/delivery-meta.mjs").read_text()
                 self.assertIn('"read_mcp_resource": {"anthropic/maxResultSizeChars": 500000}', metadata)
                 self.assertNotIn('"codemode"', metadata)
                 self.assertNotIn('"bash"', metadata)
-                self.assertEqual(read_json(folder / "pi-agent/settings.json").get("codemode"),
-                                 {"mode": "only"} if mode == "codemode" else None)
+                pi_settings = read_json(folder / "pi-agent/settings.json")
+                self.assertEqual(pi_settings["shellPath"], str(folder / "pi-shell"))
+                self.assertEqual(pi_settings.get("codemode"), {"mode": "only"} if mode == "codemode" else None)
+
+    def test_solver_prompt_prefers_navigation_with_bash_fallback_and_keeps_rg_wording(self):
+        from . import route_contract as routes
+        source = self.root / "source"
+        for arm in routes.ARM_IDS:
+            prompt = routes.solver_prompt(routes.QUESTION_IDS[0], source, arm)
+            self.assertNotIn("간결히", prompt)
+            self.assertIn("질문에서 요구한 내용과 조건을 설명하라.", prompt)
+            self.assertIn(f"탐색 소스 루트: {source.resolve()}", prompt)
+            if arm == "rg":
+                self.assertIn("기본 코딩 에이전트 도구로 제공된 소스를 탐색한다. 사용할 명령과 탐색 방법은 스스로 선택한다.", prompt)
+                self.assertNotIn("navigation MCP", prompt)
+            else:
+                self.assertIn("코드 탐색에는 navigation MCP에 노출된 도구를 최대한 사용한다. 그 도구로 할 수 없는 작업에만 bash를 사용한다.", prompt)
+
+    def test_pi_bash_boundary_denies_nested_metadata_and_late_state(self):
+        import shlex
+        from . import isolation, pi_client
+        source, folder = self.root / "source.with (regex)+", self.root / "slot"
+        source.mkdir()
+        folder.mkdir()
+        (source / "README.md").write_text("visible source\n")
+        rg = self.bin / "rg"
+        rg.write_text("#!/bin/sh\nprintf 'pinned-rg\\n'\n")
+        rg.chmod(0o700)
+        (self.root / "neutral").mkdir()
+        with patch.object(settings, "CACHE", self.root / "neutral"):
+            wrapper = pi_client.shell_wrapper(pi_client.configuration(source, rg), folder)
+        # Create metadata after the profile, including a file rather than a directory.
+        denied = []
+        for prefix in (Path("."), Path("pkg/deeper")):
+            for name in sorted(isolation.METADATA | {".pi", ".claude"}):
+                path = source / prefix / name
+                if prefix == Path("."):
+                    path /= "state.txt"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("private state\n")
+                denied.append(str(path.relative_to(source)))
+        outside = self.root / "other-source.txt"
+        outside.write_text("outside\n")
+        def shell(command):
+            return subprocess.run([str(wrapper), "-c", command], cwd=self.root, capture_output=True, text=True, timeout=10)
+        visible = shell("pwd; cat README.md; rg --version")
+        self.assertEqual(visible.returncode, 0, visible.stderr)
+        self.assertEqual(visible.stdout.splitlines(), [str(source), "visible source", "pinned-rg"])
+        for path in [*denied, str(outside)]:
+            with self.subTest(path=path):
+                result = shell("cat " + shlex.quote(path))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("private state", result.stdout)
+        # A non-metadata basename remains readable; matching is component-exact.
+        (source / "pkg/graphify-output.txt").write_text("ordinary source\n")
+        self.assertEqual(shell("cat pkg/graphify-output.txt").stdout, "ordinary source\n")
+        self.assertNotEqual(shell("echo changed > README.md").returncode, 0)
+        write_json(folder / "stop.json", {"reason": "interrupted"})
+        self.assertEqual(shell("pwd").returncode, 81)
+        calls, results = read_jsonl(folder / "bash-calls.jsonl"), read_jsonl(folder / "bash-results.jsonl")
+        self.assertFalse(calls[-1]["dispatched"])
+        self.assertEqual(len(calls) - 1, len(results))
+
+    def test_route_metrics_product_bash_admissions_include_codemode_subcalls(self):
+        from . import route_metrics
+        for mode in ("direct", "codemode"):
+            folder = self.root / mode
+            folder.mkdir()
+            write_json(folder / "runtime.json", {"backend": "pi", "record_collection_complete": True,
+                       "shutdown": {"relay_cleanup": {"complete": True}}})
+            write_json(folder / "pi-policy.json", {"measurement_mode": mode})
+            write_json(folder / "relay-settings.json", {"arm": "codemap-search", "source": str(self.root), "enabled_tools": ["read"]})
+            events = [{"type": "turn_start"}]
+            if mode == "codemode":
+                events.append({"type": "tool_execution_start", "toolCallId": "script", "toolName": "codemode", "args": {"code": "fixture"}})
+            for ident, name, args in (("product", "mcp__navigation__read", {"file_path": "README.md"}),
+                                      ("b1", "bash", {"command": "pwd"}), ("b2", "bash", {"command": "cat .codemap/config"})):
+                parent = {"parentToolCallId": "script"} if mode == "codemode" else {}
+                events.extend([{"type": "tool_execution_start", "toolCallId": ident, "toolName": name, "args": args, **parent},
+                               {"type": "tool_execution_end", "toolCallId": ident, "toolName": name, "isError": ident == "b2",
+                                "result": {"content": [{"type": "text", "text": "observed"}]}, **parent}])
+            if mode == "codemode":
+                events.append({"type": "tool_execution_end", "toolCallId": "script", "toolName": "codemode", "result": {}})
+            events.extend([{"type": "turn_end"}, {"type": "agent_settled"}])
+            relay = [{"event": "request", "id": "p1", "arm": "codemap-search", "tool": "read", "arguments": {"file_path": "README.md"},
+                      "started_monotonic": 1},
+                     {"event": "result", "id": "p1", "raw_result": {}, "relay_result": {}, "finished_monotonic": 2}]
+            admissions = [{"id": i, "tool": "bash", "command": command, "dispatched": True}
+                          for i, command in enumerate(("pwd", "cat .codemap/config"), 1)]
+            finishes = [{"id": i, "started_monotonic": 1, "finished_monotonic": 2} for i in (1, 2)]
+            for name, rows in (("events.jsonl", events), ("relay.jsonl", relay), ("bash-calls.jsonl", admissions), ("bash-results.jsonl", finishes)):
+                (folder / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
+            with patch.object(runner, "recorded_usage", return_value={}):
+                result = route_metrics.finish_execution(folder, {}, {"conditions_valid": True})
+            self.assertTrue(result["call_log_complete"])
+            self.assertEqual(result["boundary_violations"], [])
+            self.assertEqual(result["bash_calls"], 2)
+            self.assertEqual(result["bash_call_ratio"], 2 / 3)
+            self.assertEqual(result["host_calls"], 4 if mode == "codemode" else 3)
+            self.assertEqual(result["exploration_attempts"]["total"], 3)
+            self.assertEqual(result["tool_call_counts"]["auxiliary:bash"], 2)
+            self.assertEqual(result["observations"]["tool_seconds"], 3)
+            self.assertTrue(all(call["arm"] == "codemap-search" for call in result["calls"]))
+            admissions[0]["command"] = "unmatched"
+            (folder / "bash-calls.jsonl").write_text("".join(json.dumps(row) + "\n" for row in admissions))
+            with patch.object(runner, "recorded_usage", return_value={}):
+                invalid = route_metrics.finish_execution(folder, {}, {"conditions_valid": True})
+            self.assertFalse(invalid["call_log_complete"])
+            self.assertFalse(invalid["conditions_valid"])
+            self.assertIsNone(invalid["bash_call_ratio"])
+            self.assertIn("inventory mismatch", invalid["boundary_violations"][0]["reason"])
+
+    def test_route_metrics_bash_zero_rejected_discovery_and_cancelled_admissions(self):
+        from . import route_metrics
+        write_json(self.root / "runtime.json", {"backend": "pi", "record_collection_complete": True,
+                   "shutdown": {"relay_cleanup": {"complete": True}}})
+        write_json(self.root / "pi-policy.json", {"measurement_mode": "codemode", "mcp_client": {"resource_tools": ["list_mcp_resources"]}})
+        write_json(self.root / "relay-settings.json", {"arm": "graphify", "source": str(self.root), "enabled_tools": []})
+        for name in ("relay.jsonl", "bash-calls.jsonl", "bash-results.jsonl"):
+            (self.root / name).write_text("")
+        (self.root / "events.jsonl").write_text(json.dumps({"type": "agent_settled"}) + "\n")
+        with patch.object(runner, "recorded_usage", return_value={}):
+            empty = route_metrics.finish_execution(self.root, {}, {"conditions_valid": True})
+        self.assertTrue(empty["call_log_complete"])
+        self.assertEqual(empty["bash_calls"], 0)
+        self.assertIsNone(empty["bash_call_ratio"])
+        events = [{"type": "tool_execution_start", "toolCallId": "script", "toolName": "codemode", "args": {"code": "fixture"}},
+                  {"type": "tool_execution_start", "toolCallId": "b", "parentToolCallId": "script", "toolName": "bash", "args": {"command": "pwd"}},
+                  {"type": "tool_execution_end", "toolCallId": "b", "parentToolCallId": "script", "toolName": "bash", "isError": True, "result": {}},
+                  {"type": "tool_execution_start", "toolCallId": "script/2", "parentToolCallId": "script", "toolName": "bash", "args": {"command": "sleep 3"}},
+                  {"type": "tool_execution_end", "toolCallId": "script", "toolName": "codemode", "result": {"details": {"calls": [
+                      {"id": "script/?", "name": "bash", "args": '{"command":"sleep 3"}', "status": "cancelled"}]}}},
+                  {"type": "tool_execution_start", "toolCallId": "d", "toolName": "list_mcp_resources", "args": {}},
+                  {"type": "tool_execution_end", "toolCallId": "d", "toolName": "list_mcp_resources", "result": {}},
+                  {"type": "agent_settled"}]
+        relay = [{"event": "request", "id": "d1", "arm": "graphify", "tool": "resources/list", "arguments": {}, "discovery": True,
+                  "started_monotonic": 1}, {"event": "result", "id": "d1", "raw_result": {}, "relay_result": {}, "finished_monotonic": 2}]
+        for name, rows in (("events.jsonl", events), ("relay.jsonl", relay),
+                           ("bash-calls.jsonl", [{"id": 1, "tool": "bash", "command": "pwd", "dispatched": False}])):
+            (self.root / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
+        with patch.object(runner, "recorded_usage", return_value={}):
+            result = route_metrics.finish_execution(self.root, {}, {"conditions_valid": True})
+        self.assertTrue(result["call_log_complete"])
+        self.assertEqual(result["boundary_violations"], [])
+        self.assertEqual((result["bash_calls"], result["bash_call_ratio"]), (1, 1))
+        self.assertEqual(result["exploration_attempts"], {"total": 1, "dispatched": 0, "rejected": 1, "errored": 0})
+        self.assertEqual(result["observations"]["cancelled_before_admission"], 1)
+        self.assertEqual(result["client_discovery_calls"], {"resources/list": 1})
+        (self.root / "bash-calls.jsonl").unlink()
+        with patch.object(runner, "recorded_usage", return_value={}):
+            missing = route_metrics.finish_execution(self.root, {}, {"conditions_valid": True})
+        self.assertFalse(missing["call_log_complete"])
+        self.assertIsNone(missing["bash_calls"])
+        self.assertIsNone(missing["bash_call_ratio"])
 
     def test_pi_campaign_rejects_direct_cli_solver_overrides(self):
         from . import route_contract as routes

@@ -17,7 +17,7 @@
 
 ## 데이터셋 연결
 
-총 7개 비교군은 같은 [Grafana 2문항 데이터셋](../grafana-routes-v4/README.md)을 사용한다. manifest SHA-256은 `292c14c388436548cc5dfe5fd8c0e048240d0b9df001edc49e4c8a985a063ac4`이며 이번 개정은 데이터셋 README와 그 결합 hash만 갱신했으며 질문·정답·Grafana 커밋은 그대로다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
+총 7개 비교군은 같은 [Grafana 2문항 데이터셋](../grafana-routes-v4/README.md)을 사용한다. manifest SHA-256은 `292c14c388436548cc5dfe5fd8c0e048240d0b9df001edc49e4c8a985a063ac4`이며 이번 개정은 데이터셋 README와 그 결합 hash만 갱신했으며 질문·정답·Grafana 커밋은 그대로다. rg는 검색 제품 MCP 없이 pi bash를 사용하는 기준군의 실행 파일 핀이며, 제품 비교군 6개에도 두 모드 모두 같은 bash를 보조로 제공한다. 제품군은 MCP 도구를 최대한 사용하고 그 도구로 할 수 없는 작업에만 bash를 사용한다. direct는 제품·resource 도구와 bash를, codemode는 같은 도구들을 스크립트 안에서 제공한다.
 
 ## 설치 조건과 고정 파일
 

@@ -103,7 +103,8 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
             inventory_path = root / (arm + ".json")
             write_json(inventory_path, inventory)
             state = {"source": str(source), "native_inventory": str(inventory_path), "native_inventory_sha256": file_digest(inventory_path),
-                     "relay_settings": {"arm": arm, "enabled_tools": [t["name"] for t in inventory_tools], "auxiliaries": []} if arm != "rg" else None}
+                     "relay_settings": {"arm": arm, "source": str(source), "rg_binary": str(native_fixture),
+                                        "enabled_tools": [t["name"] for t in inventory_tools], "auxiliaries": []} if arm != "rg" else None}
             for mode in ("direct", "codemode"):
                 spec = settings.execution_settings("claude-opus-5-5")
                 spec["measurement_mode"] = mode
@@ -116,8 +117,8 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
                                           bash_env_probe=env_probe)
                 require(result["passed"], "installed pi first-request/codemode audit failed")
                 actual = bridge_tools(folder)
-                # pi tools (rg bash, codemode) keep the bridge default; product tools keep or fill their own budget.
-                expected = {name: 52224 if name == "codemode" or arm == "rg" else 100000 if arm == "codemap-search" else 500000
+                # pi bash/codemode keep the bridge default in every arm; product budgets are unchanged.
+                expected = {name: 52224 if name in {"bash", "codemode"} else 100000 if arm == "codemap-search" else 500000
                             for name in actual}
                 require(actual and all(t.get("_meta", {}).get("anthropic/maxResultSizeChars") == expected[name] for name, t in actual.items()),
                         "installed bridge result-size metadata mismatch")

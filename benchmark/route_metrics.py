@@ -17,7 +17,10 @@ FIELD_PROVENANCE = {
     "relay_loss": {"unit": "boolean", "origin": "raw/relay canonical result equality"},
     "client_delivery": {"unit": "state", "origin": "wrapper ID plus exact JSON/text match or observed prefix", "missing": "unknown"},
     "source_lines": {"unit": "source locations or null", "origin": "recognized source-bearing client output only", "missing": "null, never inferred from filenames"},
-    "tool_calls": {"unit": "calls", "origin": "arm, tool name, auxiliary flag in relay request"},
+    "tool_calls": {"unit": "calls", "origin": "arm, tool name, auxiliary flag in relay request or bash wrapper admission"},
+    "bash_calls": {"unit": "calls", "origin": "bash wrapper admissions, including rejected attempts and codemode subcalls"},
+    "bash_call_ratio": {"unit": "fraction", "origin": "bash admissions / all exploration admissions, excluding discovery and script envelopes",
+                        "missing": "null if no exploration calls or call logs incomplete"},
     "tokens": {"unit": "model tokens", "origin": "response-identified provider usage records", "missing": "null with reason"},
     "elapsed_seconds": {"unit": "seconds", "origin": "total execution clock including collection/cleanup; excludes preparation"},
     "timing": {"unit": "seconds", "origin": "runtime started/model-exited/elapsed timestamps", "missing": "null with reason",
@@ -215,18 +218,28 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
 
 
 def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
-    """The wrapper owns admission IDs; repeated commands have no invented event-ID join."""
+    from .pi_client import tool_items
+    from .runner import read_live_jsonl
+    items = tool_items(read_live_jsonl(folder / "events.jsonl"))
+    mode = read_json(folder / "pi-policy.json").get("measurement_mode", "direct")
+    violations = [{"name": item["name"], "reason": "unapproved pi capability"} for item in items
+                  if item["name"] not in ({"bash", "codemode"} if mode == "codemode" else {"bash"})]
+    calls, complete, bash_violations = normalize_pi_bash_calls(folder, arm="rg")
+    if write_delivery:
+        write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "complete_result_deliveries": None,
+            "source": "events.jsonl", "backend": "pi", "missing_reason": "Complete subsequent provider input is not observed."})
+    return calls, complete, len(items), violations + bash_violations
+
+
+def normalize_pi_bash_calls(folder: Path, *, arm: str) -> tuple[list[dict], bool, list[dict]]:
+    """Both baseline and product fallback use wrapper IDs, never an invented repeated-command join."""
     import re
     from .pi_client import cancelled_before_admission, tool_items
     from .runner import read_live_jsonl, read_jsonl_prefix
     runtime = read_json(folder / "runtime.json")
-    items = tool_items(read_live_jsonl(folder / "events.jsonl"))
+    items = [item for item in tool_items(read_live_jsonl(folder / "events.jsonl")) if item["name"] == "bash"]
     admissions = read_live_jsonl(folder / "bash-calls.jsonl")
-    mode = read_json(folder / "pi-policy.json").get("measurement_mode", "direct")
-    violations = [{"name": item["name"], "reason": "unapproved pi capability"} for item in items
-                  if item["name"] not in ({"bash", "codemode"} if mode == "codemode" else {"bash"})]
-    host_calls = len(items)
-    items = [item for item in items if item["name"] == "bash"]
+    violations = []
     finishes, _ = read_jsonl_prefix(folder / "bash-results.jsonl")
     finish_counts = collections.Counter(row["id"] for row in finishes)
     by_id = {row["id"]: row for row in finishes if finish_counts[row["id"]] == 1}
@@ -252,7 +265,7 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
         text = "\n".join(block.get("text", "") for block in (result or {}).get("content", []) if block.get("type") == "text") if result else None
         killed = bool(not finish and item and (item.get("status") == "cancelled" or
                       result and result.get("is_error") and re.search(r"(?:^|\n)Command (?:aborted|timed out after [0-9.]+ seconds)$", text or "")))
-        calls.append({**row, "arm": "rg", "arguments": {"command": row["command"]}, "is_auxiliary": False,
+        calls.append({**row, "arm": arm, "arguments": {"command": row["command"]}, "is_auxiliary": arm != "rg",
             "status": "rejected" if not row["dispatched"] else "killed" if killed else "unknown" if result is None else "error" if result.get("is_error") else "success",
             "completed": bool(item and item["completed"]), "native_item": item,
             "raw_result": None, "relay_result": None, "raw_json_bytes": None, "relay_json_bytes": None,
@@ -262,10 +275,7 @@ def normalize_pi_native_calls(folder: Path, *, write_delivery=True) -> tuple[lis
             "native_output_bytes": len(text.encode()) if text is not None else None,
             "client_delivery": {"status": "client_stream_observed" if text is not None else "unknown", "complete": None,
                 "reason": "Unique command matched; provider input unobserved." if item else "Repeated/unmatched command; no invented wrapper/event ID association."}})
-    if write_delivery:
-        write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "complete_result_deliveries": None,
-            "source": "events.jsonl", "backend": "pi", "missing_reason": "Complete subsequent provider input is not observed."})
-    return calls, complete, host_calls, violations
+    return calls, complete, violations
 
 
 def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
@@ -285,6 +295,7 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
     allowed = set(NATIVE_TOOLS) if native else {"ToolSearch", *[client_tool_name(name) for name in configured["enabled_tools"]]}
     if is_pi:
         allowed.discard("ToolSearch")
+        allowed.add("bash")
         policy = read_json(folder / "pi-policy.json")
         allowed.update((policy.get("mcp_client") or {}).get("resource_tools", []))
         if policy.get("measurement_mode") == "codemode":
@@ -356,6 +367,11 @@ def normalize_claude_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                           "delivered_lines": None,
                           "duration_seconds": (terminal or result)["finished_monotonic"] - request["started_monotonic"]
                           if request.get("dispatched") and (terminal or result or {}).get("finished_monotonic") is not None else None})
+    if is_pi and not native:
+        bash_calls, bash_complete, bash_violations = normalize_pi_bash_calls(folder, arm=configured["arm"])
+        calls.extend(bash_calls)
+        complete = complete and bash_complete
+        violations.extend(bash_violations)
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": None, "client_stream_text_bytes": stream_bytes,
             "missing_reason": "Agent JSON events do not expose the complete subsequent provider input.",
@@ -402,16 +418,17 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
     known = [v for v in durations if type(v) in (int, float) and v >= 0]
     dispatched = [c for c in calls if c.get("dispatched") and not c.get("discovery")]
     tool_durations = [c["duration_seconds"] for c in dispatched if c.get("duration_seconds") is not None]
-    native = (folder / "native-agent.json").exists()
     timing_complete = True
-    if native:
+    if (folder / "bash-results.jsonl").exists():
         finishes, finish_state = read_jsonl_prefix(folder / "bash-results.jsonl")
-        timing_complete = finish_state["complete"] and {row["id"] for row in finishes} <= {c["id"] for c in dispatched}
+        timing_complete = finish_state["complete"] and {row["id"] for row in finishes} <= {c["id"] for c in dispatched if c["tool"] == "bash"}
     enabled = read_json(folder / "relay-settings.json")["enabled_tools"] if (folder / "relay-settings.json").exists() else []
-    admissions = read_jsonl_prefix(folder / ("bash-calls.jsonl" if native else "relay.jsonl"))[0]
-    if not native:
-        admissions = [row for row in admissions if row.get("event") == "attempt"]
-    cancellations = cancelled_before_admission(tool_items(events), admissions, native=native, enabled_tools=enabled)
+    admissions = [row for row in read_jsonl_prefix(folder / "relay.jsonl")[0] if row.get("event") == "attempt"]
+    items = tool_items(events)
+    cancellations = cancelled_before_admission(items, admissions, native=False, enabled_tools=enabled)
+    bash_cancellations = cancelled_before_admission(items, read_jsonl_prefix(folder / "bash-calls.jsonl")[0], native=True)
+    for key in ("calls", "ambiguous"):
+        cancellations[key].extend(bash_cancellations[key])
     return {"turns": len(per_turn) if events else None, "turns_complete": collection["complete"] and
                 sum(e.get("type") == "turn_end" for e in events) == len(per_turn),
             "tool_calls_per_turn": per_turn, "tool_calls_per_turn_histogram": dict(collections.Counter(map(str, per_turn))),
@@ -436,7 +453,8 @@ def pi_observations(folder: Path, calls: list[dict], *, call_log_complete: bool)
             "bash_nested_structured_content_truncated": bash_nested_structured_truncations if events else None,
             "include_seen_true_calls": sum(c.get("arm") == "codemap-search" and c.get("arguments", {}).get("include_seen") is True
                                             for c in calls if not c.get("discovery")),
-            "evidence": [str(folder / "events.jsonl"), str(folder / ("bash-results.jsonl" if (folder / "native-agent.json").exists() else "relay.jsonl"))]}
+            "evidence": [str(folder / name) for name in ("events.jsonl", "relay.jsonl", "bash-calls.jsonl", "bash-results.jsonl")
+                         if (folder / name).exists()]}
 
 
 def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
@@ -444,7 +462,7 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
     runtime = read_json(folder / "runtime.json")
     from .runner import read_jsonl_prefix, recorded_usage
     usage = recorded_usage(folder)
-    collection = {name: read_jsonl_prefix(folder / name)[1] for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl")
+    collection = {name: read_jsonl_prefix(folder / name)[1] for name in ("events.jsonl", "rollout.jsonl", "relay.jsonl", "bash-calls.jsonl", "bash-results.jsonl")
                   if (folder / name).exists() or name == "events.jsonl" or name == "rollout.jsonl" and runtime.get("backend") == "codex"}
     access = read_json(folder / ("native-agent.json" if (folder / "native-agent.json").exists() else "relay-settings.json"))
     error = execution.get("error") or runtime.get("launch_error")
@@ -460,7 +478,12 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
               "missing_reason": None if lifetime is not None and total is not None else "No complete process clock was observed.",
               "collection_after_cutoff": execution.get("shutdown", {}).get("cleanup_elapsed_seconds"),
               "collection_scope": "may overlap model process lifetime; not an additive duration"}
+    exploration_calls = [c for c in calls if not c.get("discovery")]
+    bash_calls = (sum(c["tool"] == "bash" for c in exploration_calls)
+                  if runtime.get("backend") == "pi" and (folder / "bash-calls.jsonl").exists() else None)
     return {**entry, **execution, "error": error, "calls": calls, "host_calls": host_calls, "usage": usage, "timing": timing,
+            "bash_calls": bash_calls,
+            "bash_call_ratio": bash_calls / len(exploration_calls) if bash_calls is not None and complete and exploration_calls else None,
             "observations": pi_observations(folder, calls, call_log_complete=complete) if runtime.get("backend") == "pi" else None,
             "source_snapshot": access["source"],
             "artifacts": {name: str(folder / name) for name in ("execution.json", "runtime.json", "events.jsonl", "rollout.jsonl",
@@ -526,6 +549,8 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
                             "observations": row.get("observations") if row else None,
                             "usage": row.get("usage") if row else None,
                             "tool_call_counts": row.get("tool_call_counts") if row else None,
+                            "bash_calls": row.get("bash_calls") if row else None,
+                            "bash_call_ratio": row.get("bash_call_ratio") if row else None,
                             **{key: row.get(key) if row else None for key in (
                                 "conditions_valid", "error", "failure_reason", "condition_errors", "boundary_violations",
                                 "call_log_complete", "host_calls", "artifact", "artifacts", "shutdown", "token_measurement", "native_calls",
@@ -586,7 +611,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
         lines += ["| 도구 | 도구 구성 | 예정 | 관측 | 핵심 완전 충족 | 미채점 |", "|---|---|---:|---:|---:|---:|"]
         for arm, value in arms.items():
             complete = value["quality"]["core_complete"]
-            condition = {"assisted": "필수 보조 도구 포함", "native_only": "자체 도구", "native_agent_baseline": "기본 에이전트 · 추가 MCP 없음"}.get(value["tool_condition"], "미연결")
+            condition = {"assisted": "제품·필수 보조 도구 + bash", "native_only": "제품 도구 + bash", "native_agent_baseline": "기본 에이전트 · 추가 MCP 없음"}.get(value["tool_condition"], "미연결")
             label = "기본 에이전트 (rg 사용 가능)" if arm == "rg" else arm
             lines.append(f"| {label} | {condition} | {value['planned']} | {value['observed']} | {complete['true'] if value['observed'] else '미실행'} | {complete['ungraded']} |")
     lines += ["", "| 문항·비교군 | 실행 상태 | launch | 채점/검토 | 조건 유효 | 호출 로그 완결 | 토큰 집계 | retry/실패 attempt | 오류·실패 사유 | 근거 |",
@@ -602,16 +627,17 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     lines += ["", "미실행·미관측 값은 0점으로 치환하지 않습니다. 핵심과 확장, true/false/indeterminate/미채점을 별도 기록합니다.",
               f"문항·비교군·모드마다 {routes.REPETITIONS}회 반복이며 통계적 유의성을 주장하지 않습니다.",
               "제품 탐색 호출 0회인 답변은 제품 검색 기여의 근거가 아닙니다. 미관측 호출을 0회로 해석하지 않습니다."]
-    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | script 밖 직접 호출 | admission 전 취소 | adapter 절단 | script 절단 | bash content 절단 | nested bash structuredContent 절단 | include_seen=true | Claude 저장 결과(count/bytes) |",
-              "|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
+    lines += ["", "## 슬롯 관측 지표", "", "| 슬롯 | bash 호출 | bash 비율 | 턴 | 턴당 탐색 호출 | 모델 초 | 도구 초(합) | 도구 초(관측분) | 시간 누락 호출 | script 밖 직접 호출 | admission 전 취소 | adapter 절단 | nested adapter 절단 | script 절단 | bash content 절단 | nested bash structuredContent 절단 | include_seen=true | Claude 저장 결과(count/bytes) |",
+              "|---|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
     for row in result_rows:
         observed = row.get("observations") or {}
-        lines.append("| " + " | ".join(cell(v) for v in (row["id"], *[observed.get(key) for key in (
+        lines.append("| " + " | ".join(cell(v) for v in (row["id"], row["bash_calls"], row["bash_call_ratio"], *[observed.get(key) for key in (
             "turns", "tool_calls_per_turn", "model_seconds", "tool_seconds", "observed_tool_seconds", "tool_seconds_missing_calls",
             "direct_calls_outside_script", "cancelled_before_admission", "adapter_output_guard_truncated", "adapter_nested_content_truncated", "codemode_output_truncated",
             "bash_content_truncated", "bash_nested_structured_content_truncated", "include_seen_true_calls")],
             row.get("claude_persisted_tool_results"))) + " |")
-    lines += ["", "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",
+    lines += ["", "bash 호출과 비율은 거절을 포함한 wrapper admission 수 / 전체 탐색 admission 수입니다. discovery와 codemode 스크립트 래퍼는 분모에서 제외하고 스크립트 안 하위 호출을 셉니다. 호출 로그 불완전 또는 탐색 0회면 비율은 null입니다.",
+              "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",
               "direct bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(pi 기본값, 스크립트의 `// @options` 우선)의 절단은 별도로 셉니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")
     return result
