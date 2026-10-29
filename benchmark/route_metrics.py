@@ -487,9 +487,9 @@ def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
     bash_calls = (sum(c["tool"] == "bash" for c in exploration_calls)
                   if runtime.get("backend") == "pi" and (folder / "bash-calls.jsonl").exists() else None)
     observations = pi_observations(folder, calls, call_log_complete=complete) if runtime.get("backend") == "pi" else None
-    # Command-text observation, not syscall tracing: count once even if both spill prefixes occur.
+    # Command-text observation, not syscall tracing: count once even if several spill prefixes occur.
     client_full_output_reads = (sum(c["tool"] == "bash" and c.get("dispatched", False)
-                                   and any(prefix in c["command"] for prefix in ("pi-mcp-", "pi-bash-"))
+                                   and any(prefix in c["command"] for prefix in ("pi-mcp-", "pi-bash-", "pi-codemode-"))
                                    for c in exploration_calls) if bash_calls is not None else None)
     return {**entry, **execution, "error": error, "calls": calls, "host_calls": host_calls, "usage": usage, "timing": timing,
             "bash_calls": bash_calls, "client_full_output_reads": client_full_output_reads,
@@ -650,7 +650,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
             "bash_content_truncated", "bash_nested_structured_content_truncated", "include_seen_true_calls")],
             row.get("claude_persisted_tool_results"))) + " |")
     lines += ["", "bash 호출과 비율은 거절을 포함한 wrapper admission 수 / 전체 탐색 admission 수입니다. discovery와 codemode 스크립트 래퍼는 분모에서 제외하고 스크립트 안 하위 호출을 셉니다. 호출 로그 불완전 또는 탐색 0회면 비율은 null입니다.",
-              "client_full_output_reads는 실행 허용된 bash command에 pi-mcp- 또는 pi-bash-가 보이는 호출 수입니다(호출당 1회). 실제 read 보장이 아니며 변수·스크립트로 숨긴 접근은 검출하지 못합니다. bash 실행 전 거절은 pi 인자 검증/잘린 메시지 오류로 끝난 host-only 시도이며 admission 수에 넣지 않습니다.",
+              "client_full_output_reads는 실행 허용된 bash command에 pi-mcp-, pi-bash-, pi-codemode- 중 하나가 보이는 호출 수입니다(호출당 1회). 실제 read 보장이 아니며 변수·스크립트로 숨긴 접근은 검출하지 못합니다. bash 실행 전 거절은 pi 인자·timeout 검증/잘린 메시지 오류로 끝난 host-only 시도이며 admission 수에 넣지 않습니다.",
               "모델 시간은 assistant durationMs 합, 도구 시간은 dispatch된 relay/wrapper 구간 합입니다. 병렬 구간이 겹치므로 wall time과 더하지 않습니다.",
               "direct bash content(50 KiB/2,000줄)와 nested bash structuredContent(1 MiB), script 출력(pi 기본값, 스크립트의 `// @options` 우선)의 절단은 별도로 셉니다."]
     (root / "report/results.md").write_text("\n".join(lines) + "\n")

@@ -552,7 +552,9 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
                 "probe_log": str(probe / "warmup.jsonl")}
             if backend == "pi":
                 from . import pi_client
+                # Same state locations as the product boundary canaries.
                 metadata_root = (Path(state["modes"]["graph_path"]).parent if ident == "graphify"
+                                 else Path(state["home"]) if ident == "codebase-memory-mcp"
                                  else Path(state["source"]) / next(iter(SOURCE_METADATA[ident])))
                 observed["bash_probe"] = pi_client.probe(
                     pi_client.configuration(Path(relay_settings["source"]), Path(relay_settings["rg_binary"])),

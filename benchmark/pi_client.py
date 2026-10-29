@@ -612,8 +612,11 @@ def bash_admission_check(items: list[dict], admissions: list[dict]) -> dict:
             continue
         text = content[0].get("text", "")
         reason = None
+        # Pinned bash also rejects a schema-valid timeout before spawning.
         if (text.startswith('Validation failed for tool "bash":\n') and "\n\nReceived arguments:\n" in text
-                or text.startswith('Invalid arguments for tool "bash": ')):
+                or text.startswith('Invalid arguments for tool "bash": ')
+                or text in ("Invalid timeout: must be a finite number of seconds",
+                            "Invalid timeout: maximum is 2147483.647 seconds")):
             reason = "argument_validation"
         elif text == ('Tool call "bash" was not executed: the response hit the output token limit, '
                       'so its arguments may be truncated. Re-issue the tool call with complete arguments.'):

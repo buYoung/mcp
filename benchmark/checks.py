@@ -763,6 +763,8 @@ class BenchChecks(unittest.TestCase):
         rejected = [({"timeout": "bad"}, 'Validation failed for tool "bash":\n  - command: Expected string\n\nReceived arguments:\n{}'),
                     ({"command": []}, 'Validation failed for tool "bash":\n  - command: Expected string\n\nReceived arguments:\n{}'),
                     ({"command": "pwd"}, 'Invalid arguments for tool "bash": incomplete JSON'),
+                    ({"command": "pwd", "timeout": 0}, "Invalid timeout: must be a finite number of seconds"),
+                    ({"command": "pwd", "timeout": 1e7}, "Invalid timeout: maximum is 2147483.647 seconds"),
                     ({"command": "pwd"}, 'Tool call "bash" was not executed: the response hit the output token limit, '
                      'so its arguments may be truncated. Re-issue the tool call with complete arguments.')]
         for arm in ("rg", "codemap-search"):
@@ -820,7 +822,7 @@ class BenchChecks(unittest.TestCase):
         events, admissions = [], []
         for i, command in enumerate(('cat /tmp/pi-mcp-123.txt', 'sed -n 1p "$TMPDIR"/pi-bash-*.log',
                                       'cat "$TMPDIR"/pi-mcp-* "$TMPDIR"/pi-bash-*', 'cat "$hidden"',
-                                      'cat /tmp/pi-mcp-rejected.txt')):
+                                      'cat /tmp/pi-mcp-rejected.txt', 'head "$TMPDIR"/pi-codemode-1.txt')):
             events += [{"type": "tool_execution_start", "toolCallId": str(i), "toolName": "bash", "args": {"command": command},
                         "parentToolCallId": "script"},
                        {"type": "tool_execution_end", "toolCallId": str(i), "toolName": "bash", "result": {}}]
@@ -831,8 +833,8 @@ class BenchChecks(unittest.TestCase):
         with patch.object(runner, "recorded_usage", return_value={}):
             result = route_metrics.finish_execution(self.root, {}, {"conditions_valid": True})
         self.assertTrue(result["call_log_complete"])
-        self.assertEqual(result["client_full_output_reads"], 3)
-        self.assertEqual(result["bash_calls"], 5)
+        self.assertEqual(result["client_full_output_reads"], 4)
+        self.assertEqual(result["bash_calls"], 6)
         (self.root / "bash-calls.jsonl").unlink()
         with patch.object(runner, "recorded_usage", return_value={}):
             self.assertIsNone(route_metrics.finish_execution(self.root, {}, {})["client_full_output_reads"])
@@ -851,8 +853,9 @@ class BenchChecks(unittest.TestCase):
             source, home = root / "source", root / "home"
             source.mkdir(parents=True); home.mkdir()
             (source / "README.md").write_text("source\n")
-            metadata = home / "graphify-out" if arm == "graphify" else source / next(iter(tool_indexes.SOURCE_METADATA[arm]))
-            metadata.mkdir()
+            metadata = (home / "graphify-out" if arm == "graphify" else home if arm == "codebase-memory-mcp"
+                        else source / next(iter(tool_indexes.SOURCE_METADATA[arm])))
+            metadata.mkdir(exist_ok=True)
             state = {"id": arm, "source": str(source), "home": str(home), "artifact_sha256": digest({}),
                      "modes": {"graph_path": str(metadata / "graph.json")}, "source_sha256": digest({})}
             relay = {"source": str(source), "rg_binary": str(rg), "auxiliaries": [], "auxiliary_necessity": []}
