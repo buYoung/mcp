@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved
+
+- Search results share repeated deferred-body notes and callee headers after result selection, preserving source ranges and output budgets. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
+- `initial_instructions` returns the scope inventory without collecting or displaying statistics. Explicit `overview` calls still provide statistics when enabled. Static prompt-text change: 0 / 0 / 0 characters; the statistics block is removed from the initial result.
+
+### Fixed
+
+- Exact `event_key` searches with no hits explain the lookup scope and how to try ranked search, without silently falling back to it. Prompt-text change: −3 / 0 / 0 characters.
+- `grep` file and count modes accept `view=source` and `view=source_grouped` as presentation-only options, while still rejecting content-only controls. Prompt-text change: 0 / 0 / 0 characters.
+
 ## [0.14.2] - 2026-10-29
 
 ### Added
