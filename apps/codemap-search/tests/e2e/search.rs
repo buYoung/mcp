@@ -825,6 +825,48 @@ async fn test_path_matched_data_file_lists_matching_keys_and_counts_the_rest() {
 }
 
 #[tokio::test]
+async fn test_search_note_folding_preserves_source_and_ranked_paths() {
+    let sources: Vec<(String, String)> = (0..8).map(|index| {
+        let steps = (0..60).map(|step| format!("  const step{step} = entries.length + {step};\n")).collect::<String>();
+        (format!("src/ledger{index}.ts"), format!("import {{finish}} from './helper';\nexport function reconcileLedger{index}(entries: number[]): number {{\n{steps}  return finish(entries.length);\n}}\n"))
+    }).collect();
+    let mut files = sources.iter().map(|(path, source)| (path.as_str(), source.as_str())).collect::<Vec<_>>();
+    files.push(("src/helper.ts", "export function finish(value: number): number { return value; }\n"));
+    files.push((".codemap/config.toml", "[update]\nconfig_auto_update=false\n[search]\nresult_threshold=6\n[output.client]\npi_max_bytes=16000\n"));
+    let temp = create_mock_repo(&files).unwrap();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path()).await.unwrap();
+    let args = serde_json::json!({"query":"reconcile ledger","caller_context":true,"include_seen":true});
+    let response = client.send_tool_until("search", args.clone(), |text| {
+        text.contains("[D1]") && text.contains("calls [C1]") && (0..8).all(|index| text.contains(&format!("src/ledger{index}.ts")))
+    }).await.unwrap();
+    let output = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(output.len() <= 16000, "{output}");
+    assert_eq!(output.matches("[D1] Body deferred").count(), 1, "{output}");
+    assert!(output.matches("_Body deferred [D1]; read ").count() >= 2, "{output}");
+    assert!(output.contains("## Other matches"), "{output}");
+    assert!(output.contains("calls [C1]"), "{output}");
+    let read = output.lines().find_map(|line| line.strip_prefix("_Body deferred [D1]; read ").and_then(|line| line.strip_suffix("._"))).unwrap();
+    let (path, coordinates) = read.rsplit_once(" offset ").unwrap();
+    let (offset, limit) = coordinates.split_once(" limit ").unwrap();
+    let offset = offset.parse::<usize>().unwrap();
+    let limit = limit.parse::<usize>().unwrap();
+    let source = &sources.iter().find(|(candidate, _)| candidate == path).unwrap().1;
+    assert_eq!(offset, 2);
+    assert_eq!(offset + limit - 1, source.lines().count());
+    let restored = client.send_request("tools/call", serde_json::json!({"name":"read","arguments":{"file_path":path,"offset":offset,"limit":limit,"include_seen":true}})).await.unwrap();
+    assert!(restored["result"]["content"][0]["text"].as_str().unwrap().contains("return finish(entries.length)"), "{restored}");
+    let repeated = client.send_request("tools/call", serde_json::json!({"name":"search","arguments":args})).await.unwrap();
+    let repeated = repeated["result"]["content"][0]["text"].as_str().unwrap();
+    let paths = |text: &str| text.lines().filter(|line| line.starts_with("## ") || line.starts_with("- src/ledger")).map(str::to_string).collect::<Vec<_>>();
+    assert_eq!(paths(output), paths(repeated));
+    // include_seen restores source-history suppression, not delivery-budget deferral.
+    assert!(repeated.contains(&format!("_Body deferred [D1]; read {read}._")), "{repeated}");
+    let restored_again = client.send_request("tools/call", serde_json::json!({"name":"read","arguments":{"file_path":path,"offset":offset,"limit":limit,"include_seen":true}})).await.unwrap();
+    assert!(restored_again["result"]["content"][0]["text"].as_str().unwrap().contains("return finish(entries.length)"), "{restored_again}");
+    println!("MCP note folding: bytes={}, deferred_reads={}, all_ranked_paths=8, restored_offset={offset}, restored_limit={limit}, repeated_read_restored=true", output.len(), output.matches("_Body deferred [D1]; read ").count());
+}
+
+#[tokio::test]
 async fn test_search_bodies_keep_to_a_third_of_the_client_delivery_limit() {
     // Four matching bodies fit under the client limit together but exceed a third of it.
     let sources: Vec<(String, String)> = (0..4)
