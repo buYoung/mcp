@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 
+- Initial guidance now asks agents to verify both ends and the transfer or registration for requested cross-file behavior, state unverified links, and stop once the requested facts are established. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / +155 characters.
 - Search results share repeated deferred-body notes and callee headers after result selection, preserving source ranges and output budgets. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - `initial_instructions` returns the scope inventory without collecting or displaying statistics. Explicit `overview` calls still provide statistics when enabled. Static prompt-text change: 0 / 0 / 0 characters; the statistics block is removed from the initial result.
 
