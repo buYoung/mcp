@@ -407,7 +407,7 @@ Unrecognized names/formats, encoded values and values assembled through calls ca
 
 ### Output and call relationships
 
-Repository-root and monorepo project-root `overview` output includes indexed-file language statistics by default; set `[output.overview].is_stats_enabled = false` to omit the section. For example, `overview(path="apps/api")` counts only that selectable project's indexed physical files. Other folders and file views omit statistics. Missing or changed sources are reported as unavailable; collection beyond 256 uncached files or 64 MiB per request is reported as pending, and subsequent requests reuse completed counts.
+Repository-root and monorepo project-root `overview` output includes indexed-file language statistics by default; set `[output.overview].is_stats_enabled = false` to omit the section. These statistics are collected only by `overview`; on monorepos, `initial_instructions` shows the scope inventory without collecting statistics. For example, `overview(path="apps/api")` counts only that selectable project's indexed physical files. Other folders and file views omit statistics. Missing or changed sources are reported as unavailable; collection beyond 256 uncached files or 64 MiB per request is reported as pending, and subsequent requests reuse completed counts.
 
 `search` shows detailed top matches followed by a compact list. Its size settings limit output; they do not change which files are excluded. General queries rank generated files and translation resources lower, while exact paths, symbols, resource keys, or quoted text can target those files directly.
 

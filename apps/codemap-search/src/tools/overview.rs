@@ -129,18 +129,19 @@ pub fn run(ctx: &ToolContext) -> Result<String, (i64, String)> {
     Ok(prepare(ctx)?.render())
 }
 
-pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, String)> {
-    // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
-    // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
-    // back to the ROOT overview, wasting agent turns. Earlier aliases win.
-    // An empty or "." path means the repo root overview, not a folder
-    // named "" — normalize so it renders the root view (Child 03).
-    let raw_path = ["path", "file_path", "file", "query"]
-        .iter()
-        .find_map(|key| ctx.arguments.get(*key).and_then(|v| v.as_str()))
-        .filter(|p| !p.is_empty() && *p != ".");
-    let format = ctx.arguments.get("format").and_then(|v| v.as_str());
+/// Render the root inventory for the argument-free initial-instructions context.
+pub(crate) fn root_inventory(ctx: &ToolContext) -> Result<String, (i64, String)> {
+    Ok(prepare_with_statistics(ctx, false)?.render())
+}
 
+pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, String)> {
+    prepare_with_statistics(ctx, true)
+}
+
+fn prepare_with_statistics(
+    ctx: &ToolContext,
+    include_statistics: bool,
+) -> Result<PreparedOverview, (i64, String)> {
     let cwd = std::env::current_dir()
         .map_err(|e| (-32603, format!("Error getting current dir: {}", e)))?;
 
@@ -148,6 +149,34 @@ pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, Strin
     // cannot make an empty pre-index snapshot lose its warm-up notice.
     let is_warming = ctx.engine.is_warming();
     let published = ctx.engine.published_snapshot();
+    prepare_snapshot(
+        ctx.arguments,
+        &cwd,
+        &published,
+        is_warming,
+        ctx.engine.is_dead(),
+        include_statistics,
+    )
+}
+
+fn prepare_snapshot(
+    arguments: &serde_json::Value,
+    cwd: &std::path::Path,
+    published: &std::sync::Arc<crate::index::PublishedIndexSnapshot>,
+    is_warming: bool,
+    is_dead: bool,
+    include_statistics: bool,
+) -> Result<PreparedOverview, (i64, String)> {
+    // Accept the same path aliases as `read` ('file_path'/'file'/'query'):
+    // an unknown param (e.g. `{"query": "file.cpp"}`) used to silently fall
+    // back to the ROOT overview, wasting agent turns. Earlier aliases win.
+    // An empty or "." path means the repo root overview, not a folder
+    // named "" — normalize so it renders the root view (Child 03).
+    let raw_path = ["path", "file_path", "file", "query"]
+        .iter()
+        .find_map(|key| arguments.get(*key).and_then(|v| v.as_str()))
+        .filter(|p| !p.is_empty() && *p != ".");
+    let format = arguments.get("format").and_then(|v| v.as_str());
     let catalog = published.workspace_catalog();
     let snapshot = published.codemap();
     let extracted_files: &[crate::parser::ExtractedFile] = &snapshot;
@@ -174,11 +203,11 @@ pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, Strin
         None => None,
     };
 
-    let stats_scope = if crate::config::get().is_overview_stats_enabled {
+    let stats_scope = if include_statistics && crate::config::get().is_overview_stats_enabled {
         match resolved_path.as_deref() {
             None => Some(stats::StatsScope::Root),
             Some(target_path) if target_path.is_dir() => {
-                let relative_path = crate::workspace::workspace_relative_key(target_path, &cwd);
+                let relative_path = crate::workspace::workspace_relative_key(target_path, cwd);
                 if relative_path.is_empty() {
                     Some(stats::StatsScope::Root)
                 } else if catalog.is_workspace_root(&relative_path) {
@@ -196,8 +225,8 @@ pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, Strin
     // Nothing to show yet because the initial index is still building (or
     // the indexer thread died before it finished): say so rather than
     // render an empty codemap.
-    if extracted_files.is_empty() && (is_warming || ctx.engine.is_dead()) {
-        let text = if ctx.engine.is_dead() {
+    if extracted_files.is_empty() && (is_warming || is_dead) {
+        let text = if is_dead {
             "Background indexer stopped before the codemap was built; restart the server. Use find/grep/read for live results."
         } else {
             "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
@@ -211,7 +240,7 @@ pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, Strin
     }
 
     let scope = resolved_path.as_ref().and_then(|target| {
-        let relative = crate::workspace::workspace_relative_key(target, &cwd);
+        let relative = crate::workspace::workspace_relative_key(target, cwd);
         (!relative.is_empty()).then_some((relative, target.is_file()))
     });
     let root_text = if let Some(p) = path.filter(|_| scope.is_some()) {
@@ -219,7 +248,7 @@ pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, Strin
             .as_ref()
             .ok_or_else(|| (-32603, format!("Failed to process path '{}'", p)))?;
         if target_path.is_file() {
-            let rel_path_str = crate::workspace::workspace_relative_key(target_path, &cwd);
+            let rel_path_str = crate::workspace::workspace_relative_key(target_path, cwd);
             if !extracted_files.iter().any(|f| f.file_path == rel_path_str) {
                 // On disk but absent from the codemap: skipped, not
                 // broken — non-source extension, over the size cap, or
@@ -268,13 +297,13 @@ pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, Strin
     let mut stats_text = String::new();
     if let Some(stats_scope) = stats_scope {
         let workspace = cwd.to_string_lossy().into_owned();
-        let snapshot_id = std::sync::Arc::as_ptr(&published).addr();
+        let snapshot_id = std::sync::Arc::as_ptr(published).addr();
         stats_text.push_str("\n\n");
         stats_text.push_str(&stats::render(
-            &cwd,
+            cwd,
             &workspace,
             snapshot_id,
-            &published,
+            published,
             extracted_files,
             stats_scope,
         ));
@@ -286,4 +315,198 @@ pub(crate) fn prepare(ctx: &ToolContext) -> Result<PreparedOverview, (i64, Strin
         root_text,
         stats: stats_text,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::index::PublishedIndexSnapshot;
+    use crate::parser::{CodeExtractor, TreeSitterExtractor};
+    use stats::observation::{self, Counts};
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    fn statistics_fixture() -> (tempfile::TempDir, Arc<PublishedIndexSnapshot>) {
+        let directory = tempfile::tempdir().unwrap();
+        let extractor = TreeSitterExtractor::new();
+        let mut files = Vec::new();
+        let mut mtimes = HashMap::new();
+        for index in 0..257 {
+            let scope = if index % 2 == 0 {
+                "apps/api"
+            } else {
+                "packages/shared"
+            };
+            let path = format!("{scope}/file_{index:03}.rs");
+            let absolute = directory.path().join(&path);
+            std::fs::create_dir_all(absolute.parent().unwrap()).unwrap();
+            let source = format!("// fixture\npub fn item_{index}() {{}}\n");
+            std::fs::write(&absolute, &source).unwrap();
+            let mtime = std::fs::metadata(&absolute)
+                .unwrap()
+                .modified()
+                .unwrap()
+                .duration_since(std::time::SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64;
+            mtimes.insert(path.clone(), mtime);
+            files.push((extractor.extract(&source, &path).unwrap(), Vec::new()));
+        }
+        let published =
+            PublishedIndexSnapshot::from_files_and_edges(files).with_source_mtimes(mtimes);
+        (directory, Arc::new(published))
+    }
+
+    #[test]
+    fn test_initial_root_inventory_does_not_collect_statistics() {
+        let _guard = observation::guard();
+        let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+        let (directory, published) = statistics_fixture();
+        let arguments = serde_json::json!({});
+        let render = |include_statistics| {
+            prepare_snapshot(
+                &arguments,
+                directory.path(),
+                &published,
+                false,
+                false,
+                include_statistics,
+            )
+            .unwrap()
+            .render()
+        };
+        let empty = Counts {
+            render_calls: 0,
+            file_reads: 0,
+            cache_entries: 0,
+        };
+        assert_eq!(observation::counts(), empty);
+        let initial = render(false);
+        assert!(initial.contains("- **Total Files**: 257"), "{initial}");
+        assert!(initial.contains("- **Total Symbols**: 257"), "{initial}");
+        assert!(!initial.contains("## Indexed Statistics"), "{initial}");
+        assert_eq!(
+            observation::counts(),
+            empty,
+            "initial must not collect or cache statistics"
+        );
+
+        let overview = render(true);
+        assert_eq!(
+            overview
+                .split_once("\n\n## Indexed Statistics\n\n")
+                .unwrap()
+                .0,
+            initial,
+            "initial retains exactly the explicit root inventory"
+        );
+        let collected = Counts {
+            render_calls: 1,
+            file_reads: 256,
+            cache_entries: 256,
+        };
+        assert_eq!(
+            observation::counts(),
+            collected,
+            "explicit overview is the positive IO control"
+        );
+        assert_eq!(render(false), initial);
+        assert_eq!(
+            observation::counts(),
+            collected,
+            "initial also leaves a populated cache unchanged"
+        );
+
+        let _disabled = crate::config::pin_test_config(crate::config::ResolvedConfig {
+            is_overview_stats_enabled: false,
+            ..crate::config::ResolvedConfig::default()
+        });
+        assert_eq!(render(true), initial);
+        assert_eq!(
+            observation::counts(),
+            collected,
+            "explicit overview still honors the config gate"
+        );
+    }
+
+    #[test]
+    fn test_overview_statistics_budget_is_not_warmed_by_initial() {
+        let _guard = observation::guard();
+        let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+        let (directory, published) = statistics_fixture();
+        let arguments = serde_json::json!({});
+        let render = |include_statistics| {
+            prepare_snapshot(
+                &arguments,
+                directory.path(),
+                &published,
+                false,
+                false,
+                include_statistics,
+            )
+            .unwrap()
+            .render()
+        };
+        let initial = render(false);
+        assert_eq!(render(false), initial);
+        assert_eq!(
+            observation::counts(),
+            Counts {
+                render_calls: 0,
+                file_reads: 0,
+                cache_entries: 0
+            }
+        );
+
+        let first = render(true);
+        assert!(
+            first.contains("Coverage: 257 indexed, 256 counted, 0 unavailable."),
+            "{first}"
+        );
+        assert!(
+            first.contains("1 files pending within the request budget"),
+            "{first}"
+        );
+        assert_eq!(
+            observation::counts(),
+            Counts {
+                render_calls: 1,
+                file_reads: 256,
+                cache_entries: 256
+            }
+        );
+        assert_eq!(render(false), initial);
+        assert_eq!(
+            observation::counts(),
+            Counts {
+                render_calls: 1,
+                file_reads: 256,
+                cache_entries: 256
+            }
+        );
+
+        let second = render(true);
+        assert!(
+            second.contains("Coverage: 257 indexed, 257 counted, 0 unavailable."),
+            "{second}"
+        );
+        assert!(second.contains("Collection: complete."), "{second}");
+        assert_eq!(
+            observation::counts(),
+            Counts {
+                render_calls: 2,
+                file_reads: 257,
+                cache_entries: 257
+            }
+        );
+        assert_eq!(render(true), second);
+        assert_eq!(
+            observation::counts(),
+            Counts {
+                render_calls: 3,
+                file_reads: 257,
+                cache_entries: 257
+            }
+        );
+    }
 }

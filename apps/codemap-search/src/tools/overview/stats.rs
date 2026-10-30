@@ -81,6 +81,50 @@ struct CacheKey {
 
 static CACHE: OnceLock<Mutex<HashMap<CacheKey, FileStats>>> = OnceLock::new();
 
+#[cfg(test)]
+pub(super) mod observation {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Mutex, MutexGuard};
+
+    static SERIAL: Mutex<()> = Mutex::new(());
+    static RENDER_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static FILE_READS: AtomicUsize = AtomicUsize::new(0);
+
+    #[derive(Debug, PartialEq, Eq)]
+    pub struct Counts {
+        pub render_calls: usize,
+        pub file_reads: usize,
+        pub cache_entries: usize,
+    }
+
+    // Every test observing the process-wide statistics cache holds this guard.
+    pub fn guard() -> MutexGuard<'static, ()> {
+        let guard = SERIAL
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        super::lock_cache().clear();
+        RENDER_CALLS.store(0, Ordering::Relaxed);
+        FILE_READS.store(0, Ordering::Relaxed);
+        guard
+    }
+
+    pub fn counts() -> Counts {
+        Counts {
+            render_calls: RENDER_CALLS.load(Ordering::Relaxed),
+            file_reads: FILE_READS.load(Ordering::Relaxed),
+            cache_entries: super::lock_cache().len(),
+        }
+    }
+
+    pub(super) fn record_render() {
+        RENDER_CALLS.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(super) fn record_file_read() {
+        FILE_READS.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
 fn cache() -> &'static Mutex<HashMap<CacheKey, FileStats>> {
     CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
@@ -207,6 +251,8 @@ fn count_file(
     budget.remaining_bytes -= before.len();
     // Limit the read itself so a file growing after metadata cannot allocate past the cap.
     let mut bytes = Vec::new();
+    #[cfg(test)]
+    observation::record_file_read();
     std::fs::File::open(&path)
         .map_err(|_| "read error")?
         .take(before.len().saturating_add(1))
@@ -246,6 +292,8 @@ pub(crate) fn render(
     files: &[ExtractedFile],
     scope: StatsScope,
 ) -> String {
+    #[cfg(test)]
+    observation::record_render();
     let selected: Vec<&ExtractedFile> = selected_files(files, &scope);
     let mut languages: BTreeMap<&'static str, LanguageStats> = BTreeMap::new();
     let mut unavailable: BTreeMap<&'static str, usize> = BTreeMap::new();

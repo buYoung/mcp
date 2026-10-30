@@ -2,6 +2,128 @@ use crate::e2e::helpers::{create_mock_repo, McpClient};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 
 #[tokio::test]
+async fn test_initial_instructions_keeps_scope_inventory_without_statistics() {
+    use crate::e2e::helpers::{response_text, with_in_process_server};
+    use codemap_search::index::{
+        spawn_dormant_indexer, EngineSupervisor, TantivySearchEngine, WatcherStatus,
+    };
+    use serde_json::json;
+    use std::sync::{atomic::Ordering, Arc};
+
+    for is_monorepo in [false, true] {
+        for stats_enabled in [false, true] {
+            let config = format!(
+                "[output.overview]\nis_stats_enabled = {stats_enabled}\n\
+                 [index.refresh]\nwatch = false\nindexer_auto_restart = false\n"
+            );
+            let mut files = vec![(".codemap/config.toml", config.as_str())];
+            if is_monorepo {
+                files.extend([
+                    ("apps/api/src/lib.rs", "pub fn api() {}\n"),
+                    ("packages/shared/src/lib.rs", "pub fn shared() {}\n"),
+                ]);
+            } else {
+                files.push(("src/lib.rs", "pub fn standalone() {}\n"));
+            }
+            let temp = create_mock_repo(&files).unwrap();
+            with_in_process_server(temp.path(), None, |mut client| async move {
+                let initial = client
+                    .call(
+                        "tools/call",
+                        json!({ "name": "initial_instructions", "arguments": {} }),
+                    )
+                    .await
+                    .unwrap();
+                assert!(initial["error"].is_null(), "{initial}");
+                let initial_text = response_text(&initial);
+                assert!(!initial_text.contains("## Indexed Statistics"), "{initial_text}");
+
+                let overview = client
+                    .call(
+                        "tools/call",
+                        json!({ "name": "overview", "arguments": {} }),
+                    )
+                    .await
+                    .unwrap();
+                assert!(overview["error"].is_null(), "{overview}");
+                let overview_text = response_text(&overview);
+                let statistics = overview_text.split_once("\n\n## Indexed Statistics\n\n");
+                assert_eq!(statistics.is_some(), stats_enabled, "{overview_text}");
+                let inventory = statistics.map_or(overview_text, |(inventory, _)| inventory);
+                if is_monorepo {
+                    for expected in [
+                        "- **Total Files**: 2",
+                        "- **Total Symbols**: 2",
+                        "- apps/api (1 files, 1 symbols) — languages:",
+                        "- packages/shared (1 files, 1 symbols) — languages:",
+                    ] {
+                        assert!(inventory.contains(expected), "{inventory}");
+                    }
+                    assert_eq!(
+                        initial_text,
+                        codemap_search::tools::instructions_with_root_overview(inventory)
+                    );
+                } else {
+                    assert_eq!(initial_text, codemap_search::tools::instructions());
+                }
+
+                for is_dead in [false, true] {
+                    let index_dir = tempfile::tempdir().unwrap();
+                    let engine =
+                        TantivySearchEngine::new(index_dir.path().to_str().unwrap()).unwrap();
+                    // Hold the writer lock so lifecycle refreshes cannot publish a snapshot.
+                    // The existing status flag selects the dead notice without a new hook.
+                    let _writer = engine
+                        .index
+                        .writer::<tantivy::TantivyDocument>(50_000_000)
+                        .unwrap();
+                    let searcher = engine.searcher_handle();
+                    let indexer = spawn_dormant_indexer(engine);
+                    let status = Arc::clone(&indexer.status);
+                    status.thread_died.store(is_dead, Ordering::Release);
+                    let supervisor = EngineSupervisor::new(
+                        searcher,
+                        None,
+                        None,
+                        indexer,
+                        Arc::new(WatcherStatus::default()),
+                    );
+                    let mut server = codemap_search::mcp::McpServer::new(supervisor);
+                    let request = format!(
+                        "{}\n",
+                        json!({
+                            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                            "params": { "name": "initial_instructions", "arguments": {} }
+                        })
+                    );
+                    let mut output = Vec::new();
+                    server
+                        .run_with_io(request.as_bytes(), &mut output)
+                        .await
+                        .unwrap();
+                    let response: serde_json::Value = serde_json::from_slice(&output).unwrap();
+                    assert!(response["error"].is_null(), "{response}");
+                    assert!(!status.initial_index_done.load(Ordering::Acquire));
+                    let expected = if is_monorepo {
+                        let notice = if is_dead {
+                            "Background indexer stopped before the codemap was built; restart the server. Use find/grep/read for live results."
+                        } else {
+                            "Codemap is warming up (initial background indexing in progress). Retry shortly, or use find/grep/read for live results."
+                        };
+                        codemap_search::tools::instructions_with_root_overview(notice)
+                    } else {
+                        codemap_search::tools::instructions()
+                    };
+                    assert_eq!(response_text(&response), expected);
+                    assert!(!response_text(&response).contains("## Indexed Statistics"));
+                }
+            })
+            .await;
+        }
+    }
+}
+
+#[tokio::test]
 async fn test_mcp_initialize() {
     let temp = create_mock_repo(&[]).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();

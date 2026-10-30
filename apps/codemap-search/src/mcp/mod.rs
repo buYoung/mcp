@@ -732,7 +732,7 @@ impl McpServer {
                                 arguments: &no_arguments,
                                 active_workspace_scope: self.active_workspace_scope.as_deref(),
                             };
-                            let root_overview = crate::tools::overview::run(&ctx)?;
+                            let root_overview = crate::tools::overview::root_inventory(&ctx)?;
                             crate::tools::instructions_with_root_overview(&root_overview)
                         } else {
                             crate::tools::instructions()
