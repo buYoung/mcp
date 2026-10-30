@@ -88,8 +88,19 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
                 .await
                 .unwrap(),
         );
-        assert!(out.contains("No eligible event endpoints"), "{out}");
+        for statement in [
+            "No eligible event endpoints for this exact key in the inspected map; this is not proof that a route is absent.",
+            "This event-key lookup did not run ranked search for query.",
+            "Event extraction covers Rust/JavaScript/TypeScript and matched configured API rules, not arbitrary methods or transports.",
+            "Input/extraction coverage counts below are snapshot-wide, not counts for this key or scope.",
+            "Next: grep a known source identifier, or omit event_key to run ranked search.",
+        ] {
+            assert_eq!(out.matches(statement).count(), 1, "{key}: {out}");
+        }
+        assert!(!out.contains("## 1. "), "{out}");
     }
+    assert!(!saved.contains("This event-key lookup"), "{saved}");
+    assert!(!saved.contains("No eligible event endpoints"), "{saved}");
     for (key, expected) in [
         ("opaque", "unresolved publisher"),
         ("local", "unresolved publisher"),
@@ -127,10 +138,13 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
             && ranked.contains("handler definition: handleSaved — src/events.ts:5"),
         "{ranked}"
     );
+    assert!(!ranked.contains("This event-key lookup"), "{ranked}");
+    assert!(!ranked.contains("No eligible event endpoints"), "{ranked}");
     let hidden=text(client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"save users","caller_context":false,"include_events":false}})).await.unwrap());
     assert!(!hidden.contains("Event relationships"), "{hidden}");
     for arguments in [
         serde_json::json!({"query":"saved","event_key":""}),
+        serde_json::json!({"query":"saved","event_key":"x".repeat(257)}),
         serde_json::json!({"query":"saved","include_events":"yes"}),
     ] {
         let response = client
@@ -141,6 +155,77 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
             .await
             .unwrap();
         assert_eq!(response["result"]["isError"], true, "{response}");
+    }
+}
+
+#[tokio::test]
+async fn test_exact_event_key_zero_result_preserves_search_contract() {
+    for (path, source) in [
+        (
+            "src/route.go",
+            "package route\nfunc routeDispatch() { println(\"missing\") }\n",
+        ),
+        (
+            "src/route.ts",
+            "const bus = { emit(key: string) {} };\nexport function routeDispatch() { bus.emit('missing'); }\n",
+        ),
+        (
+            "src/route.ts",
+            "import {EventEmitter} from 'node:events';\nconst bus = new EventEmitter();\nexport function routeDispatch() { bus.emit('present'); }\n",
+        ),
+    ] {
+        let temp = create_mock_repo(&[
+            (path, source),
+            (
+                ".codemap/config.toml",
+                "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\n",
+            ),
+        ])
+        .unwrap();
+        let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+            .await
+            .unwrap();
+        let response = client
+            .send_tool_until(
+                "search",
+                serde_json::json!({
+                    "query":"routeDispatch",
+                    "event_key":"missing",
+                    "caller_context":false
+                }),
+                |out| out.contains("No eligible event endpoints"),
+            )
+            .await
+            .unwrap();
+        let exact = response["result"]["content"][0]["text"].as_str().unwrap();
+        for statement in [
+            "No eligible event endpoints for this exact key in the inspected map; this is not proof that a route is absent.",
+            "This event-key lookup did not run ranked search for query.",
+            "Event extraction covers Rust/JavaScript/TypeScript and matched configured API rules, not arbitrary methods or transports.",
+            "Input/extraction coverage counts below are snapshot-wide, not counts for this key or scope.",
+            "Next: grep a known source identifier, or omit event_key to run ranked search.",
+        ] {
+            assert_eq!(exact.matches(statement).count(), 1, "{path}: {exact}");
+        }
+        assert!(!exact.contains("## 1. "), "{exact}");
+        assert!(!exact.contains("routeDispatch"), "{exact}");
+        assert!(!exact.contains("publisher:"), "{exact}");
+
+        let response = client
+            .send_request(
+                "tools/call",
+                serde_json::json!({"name":"search","arguments":{
+                    "query":"routeDispatch",
+                    "caller_context":false
+                }}),
+            )
+            .await
+            .unwrap();
+        let ranked = response["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(ranked.contains(&format!("## 1. {path}")), "{ranked}");
+        assert!(ranked.contains("routeDispatch"), "{ranked}");
+        assert!(!ranked.contains("This event-key lookup"), "{ranked}");
+        assert!(!ranked.contains("No eligible event endpoints"), "{ranked}");
     }
 }
 

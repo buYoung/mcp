@@ -399,7 +399,7 @@ pub fn list_tools() -> Value {
         "query": { "type": "string" },
         "include_seen": include_seen_schema.clone(),
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
-        "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
+        "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes), not ranked search; query is required. Zero endpoints does not prove no route. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
         "caller_context": { "type": "boolean", "description": "Depth-one callers/callees for detail snippets; defaults to caller_context_default. False also skips callsite implementation lookup, but retains declaration/implementation and static collection links." },
         "language_hint": { "type": "string", "description": "Query language for cross-language ranking, e.g. 'typescript' or 'rust'; omitted means language-agnostic." },

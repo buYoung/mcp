@@ -632,8 +632,18 @@ impl EventIndex {
             }
             rendered_endpoints += 1;
         }
-        if total == 0 {
-            append("\n[No eligible event endpoints in this bounded indexed scope. Unknown/unconfigured API receivers are not joined by method spelling.]\n");
+        if total == 0
+            && !append(concat!(
+                "\nNo eligible event endpoints for this exact key in the inspected map; this is not proof that a route is absent.\n",
+                "This event-key lookup did not run ranked search for query. Event extraction covers Rust/JavaScript/TypeScript and matched configured API rules, not arbitrary methods or transports.\n",
+                "Input/extraction coverage counts below are snapshot-wide, not counts for this key or scope.\n",
+                "Next: grep a known source identifier, or omit event_key to run ranked search.\n",
+            ))
+        {
+            return "[Event output budget unavailable; narrow the source request.]\n"
+                .chars()
+                .take(cap)
+                .collect();
         }
         let query_omissions = candidate_omissions
             + indices.len().saturating_sub(super::CANDIDATES_PER_QUERY)

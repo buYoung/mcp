@@ -322,6 +322,114 @@ fn test_event_endpoint_and_input_caps_report_omissions() {
 }
 
 #[test]
+fn test_exact_event_key_zero_append_failure_at_512_bytes() {
+    let _config = crate::config::pin_test_config(enabled());
+    // The workspace exclusion walker resolves visibility relative to the process cwd.
+    let root = tempfile::Builder::new()
+        .prefix("event-zero-")
+        .tempdir_in(std::env::current_dir().unwrap())
+        .unwrap();
+    let source = "import {EventEmitter} from 'node:events'; const bus = new EventEmitter(); bus.emit('missing');";
+    std::fs::create_dir(root.path().join("node_modules")).unwrap();
+    std::fs::write(root.path().join("node_modules/events.ts"), source).unwrap();
+    for (index, coverage) in [
+        (
+            build(&[(
+                "src/unconfigured.ts",
+                "const bus = { emit(key: string) {} }; bus.emit('missing');",
+            )]),
+            None,
+        ),
+        (
+            build(&[("src/stale.ts", source)]),
+            Some("1 stale/unverified endpoints hidden"),
+        ),
+        (
+            build(&[("node_modules/events.ts", source)]),
+            // ProofBudget marks walker-hidden sources non-current before event filtering.
+            Some("1 stale/unverified endpoints hidden"),
+        ),
+    ] {
+        let full = index.for_key("missing", None, 8000, root.path());
+        assert!(full.contains("this is not proof that a route is absent"), "{full}");
+        assert!(full.contains("This event-key lookup did not run ranked search for query."), "{full}");
+        assert!(full.contains("matched configured API rules"), "{full}");
+        assert!(full.contains("snapshot-wide, not counts for this key or scope"), "{full}");
+        assert!(full.contains("Next: grep a known source identifier, or omit event_key"), "{full}");
+        if let Some(coverage) = coverage {
+            assert!(full.contains(coverage), "{full}");
+        }
+        let output = index.for_key("missing", None, 512, root.path());
+        assert_eq!(
+            output,
+            "[Event output budget unavailable; narrow the source request.]\n",
+            "a rejected zero-hit append must not return a header-only success"
+        );
+        assert!(output.len() <= 512);
+    }
+}
+
+#[test]
+fn test_exact_event_key_zero_guidance_and_counters_exceed_cap() {
+    let _config = crate::config::pin_test_config(enabled());
+    let mut inputs = EventInputs::default();
+    inputs.insert("src/unavailable.ts".into(), None);
+    let index = EventIndex::build(&[], inputs);
+    let root = tempfile::tempdir().unwrap();
+    let full = index.for_key("missing", None, 8000, root.path());
+    for statement in [
+        "No eligible event endpoints for this exact key in the inspected map; this is not proof that a route is absent.",
+        "This event-key lookup did not run ranked search for query.",
+        "Event extraction covers Rust/JavaScript/TypeScript and matched configured API rules, not arbitrary methods or transports.",
+        "Input/extraction coverage counts below are snapshot-wide, not counts for this key or scope.",
+        "Next: grep a known source identifier, or omit event_key to run ranked search.",
+    ] {
+        assert_eq!(full.matches(statement).count(), 1, "{full}");
+    }
+
+    // Pin the advertised languages to the private extraction gate without exposing it.
+    let gate = include_str!("extract.rs")
+        .split("fn language(")
+        .nth(1)
+        .unwrap()
+        .split("\nfn arguments(")
+        .next()
+        .unwrap();
+    let mut extracted_languages: Vec<_> = gate
+        .split("Some(\"")
+        .skip(1)
+        .map(|arm| arm.split('"').next().unwrap())
+        .collect();
+    extracted_languages.sort_unstable();
+    let mut advertised_languages: Vec<_> = full
+        .split("Event extraction covers ")
+        .nth(1)
+        .unwrap()
+        .split(" and ")
+        .next()
+        .unwrap()
+        .split('/')
+        .map(str::to_ascii_lowercase)
+        .collect();
+    advertised_languages.sort_unstable();
+    assert_eq!(advertised_languages, extracted_languages);
+
+    let coverage_start = full.find("\n[Event coverage:").unwrap();
+    assert!(full.contains("1 unavailable/capped source inputs"), "{full}");
+    let cap = full.len() - 1;
+    assert!(cap >= 512);
+    assert!(coverage_start <= cap, "guidance alone must fit: {full}");
+    assert!(full.len() > cap, "guidance plus counters must exceed the cap");
+    let output = index.for_key("missing", None, cap, root.path());
+    assert_eq!(
+        output,
+        "[Event output budget unavailable; narrow the source request.]\n",
+        "guidance and coverage must not be silently dropped: {output}"
+    );
+    assert!(output.len() <= cap);
+}
+
+#[test]
 fn test_imported_target_proof_and_var_hoisting_do_not_reuse_outer_bus() {
     let _config = crate::config::pin_test_config(enabled());
     let index=build(&[
