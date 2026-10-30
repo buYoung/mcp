@@ -702,8 +702,18 @@ async fn test_live_views_preserve_source_and_unresolved_totals() {
             "list"
         );
     }
+    let accepted = client
+        .send_request(
+            "tools/call",
+            call(
+                "grep",
+                serde_json::json!({"pattern":"target","output_mode":"count","view":"source"}),
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(!is_error(&accepted), "{accepted}");
     for args in [
-        serde_json::json!({"pattern":"target","output_mode":"count","view":"source"}),
         serde_json::json!({"pattern":"target","output_mode":"files_with_matches","expand":"callable"}),
         serde_json::json!({"pattern":"target","view":"invalid"}),
     ] {
@@ -1713,6 +1723,71 @@ async fn test_grep_content_mode_line_format() {
             && !out.contains("src/core.rs:1:"),
         "file heading and pathless `line:text` expected: {out:?}"
     );
+}
+
+#[tokio::test]
+async fn test_grep_file_modes_ignore_source_presentation() {
+    let temp = sample_repo();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let mut failures = Vec::new();
+    for mode in ["files_with_matches", "count"] {
+        let args = serde_json::json!({
+            "pattern": "TODO",
+            "output_mode": mode,
+            "expand": "none"
+        });
+        let baseline = client
+            .send_request("tools/call", call("grep", args.clone()))
+            .await
+            .unwrap();
+        assert!(!is_error(&baseline), "{mode}: {baseline}");
+        let baseline = text(&baseline);
+        assert!(baseline.contains("src/util.rs"), "{mode}: {baseline}");
+        for view in ["full", "source", "source_grouped"] {
+            let mut variant = args.clone();
+            variant["view"] = view.into();
+            let response = client
+                .send_request("tools/call", call("grep", variant))
+                .await
+                .unwrap();
+            // Collect every combination so a red run reports both modes and views.
+            if is_error(&response) || text(&response) != baseline {
+                failures.push(format!(
+                    "{mode}, view={view}: expected {baseline:?}, got {response}"
+                ));
+            }
+        }
+        for (key, value) in [
+            ("view", serde_json::json!("definitions")),
+            ("view", serde_json::json!("relations")),
+            ("view", serde_json::json!("invalid")),
+            ("view", serde_json::json!(true)),
+            ("unresolved", serde_json::json!("count")),
+            ("unresolved", serde_json::json!(true)),
+            ("debug", serde_json::json!(true)),
+            ("debug", serde_json::json!("true")),
+            ("expand", serde_json::json!("callable")),
+            ("expand", serde_json::json!(true)),
+            ("include_events", serde_json::json!(true)),
+            ("include_events", serde_json::json!("true")),
+        ] {
+            for view in ["full", "source", "source_grouped"] {
+                let mut variant = args.clone();
+                variant["view"] = view.into();
+                variant[key] = value.clone();
+                let response = client
+                    .send_request("tools/call", call("grep", variant))
+                    .await
+                    .unwrap();
+                if !is_error(&response) {
+                    failures.push(format!(
+                        "{mode}, view={view}, {key}={value}: expected rejection, got {response}"
+                    ));
+                }
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 #[tokio::test]

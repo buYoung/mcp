@@ -516,7 +516,7 @@ pub fn list_tools() -> Value {
                                 "path": { "type": "string", "description": search_path_description },
                                 "glob": { "type": "string", "description": format!("File filter using {glob_syntax} Slashed patterns are relative to path. Separate patterns with whitespace/commas outside braces. Aliases: include/file_pattern.") },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
-                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default content uses 42:match/43-context rows; view=source adds file prefixes. files_with_matches returns paths; count returns per-file counts. These latter modes skip context and reject non-default view/unresolved/debug, expand=callable or explicit include_events=true." },
+                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "content (default): 42:match/43-context rows; view=source adds paths. files_with_matches: paths; count: per-file counts. File/count modes ignore full/source/source_grouped view; other views, unresolved=count, debug=true, expand=callable or include_events=true are errors." },
                                 "-i": { "type": "boolean", "description": "Case-insensitive (default false)." },
                                 "-n": { "type": "boolean", "description": "Show line numbers in content mode (default true)." },
                                 "-A": { "type": "integer", "description": "Context lines after each match." },
