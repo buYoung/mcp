@@ -1,8 +1,8 @@
 {
   "arms": [
     {
-      "commit": "9b29f397edb7a43f8f2ff0982492a09f7f50d4e5",
-      "git_ref": "codemap-v0.14.2",
+      "commit": "cf2b9fafcfc1bda0907c1278aa25295776077a8e",
+      "git_ref": "trial-output-tuning-b",
       "id": "codemap-search",
       "name": "codemap-search",
       "path": "apps/codemap-search",
@@ -109,7 +109,7 @@
     ],
     "prompt_separation": "passed"
   },
-  "contract_hash": "59d77295d10fb4f54134f918e91fe30ca29ec8819720a181849172bb594348fd",
+  "contract_hash": "af87cd89fc1bc421faeaf2d1ce33189281ae853d47a226f72b1fcb31f214931d",
   "contract_paths": {
     "private_dataset": "benchmark/data/grafana-routes-v6/dataset.json",
     "profile": "benchmark/data/grafana-execution-v1.json",
@@ -138,18 +138,18 @@
   "implementation_hashes": {
     "benchmark/data/grafana-execution-v1.json": "be30f56cb473d9ecda5c329a83b0e07f899d119366459f14a02ce2b1b0fc635f",
     "benchmark/execution.py": "bb2ff51e32892996d42601b1703c429b58bf7f34f68f913310ffee791a12db58",
-    "benchmark/route_contract.py": "cb3006acc78b118f2634b8f364b8496a7f60275df58380124b17788bd7a00c64",
+    "benchmark/route_contract.py": "bcfc2c29a61344320f9590dd35eaf5a24709ad4382b6431b1d194fea7295067f",
     "benchmark/runner.py": "0d2fe9d870e88668035d2c7ca4bf9a22eb729d435f1d28bc9163b1b172fbec03",
     "benchmark/settings.py": "9ac88a2939b2bf68f33c51d72003c8a073a87cccf7b8012d04902002af90a84a"
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "7d78dea95f8953efd3131a9862310a0fe26d41a46c7a6b3f37e4b4bacc01bb50",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "a2b50925a2bdeb62240b851b81ee3e0b2b01bb2002c7aa9486c98a4aac9a3ffc",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "c6abfeafbcd669dbf027972d0d335e9ddc886f25bbdac6781d16a6d399394fde",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1b72008fa9a46b091607e4be84f35cfae29c5447e013ade7cb809538bedc4f42",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "8bb1e26da56a8418ce672f67b66ef0d25c9d2df3199770fe246d14a95a04450e",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "9b439b8100fa28cd0070ecf4ff368840afe9ab41a453908d144e71d93127ca42",
     "benchmark/data/grafana-routes-v6/README.md": "b8774e894030771203d9fcea039b5ab4190e991efa5f247447c1a6cd6617ddb4",
     "benchmark/data/grafana-routes-v6/SHA256SUMS": "e0a1ca0452cdbe4a296be7151df3ea92ef50021f1d68bd7d32a5a93170e8a69b",
     "benchmark/data/grafana-routes-v6/dataset.json": "3bf5120fdc316c34fc5228e84e74a209fdf4e8d06a6fcd909ad298865f488f19",
@@ -285,7 +285,7 @@
     "alertmanager-config-autosync",
     "scope-annotation-filter"
   ],
-  "recorded_at": "2026-10-29T14:34:34.713612+00:00",
+  "recorded_at": "2026-10-31T01:19:37.630885+00:00",
   "repetitions": 3,
   "schema_version": 1,
   "solver": {
