@@ -59,7 +59,7 @@ All five switches default to `false` under `[index.language_support]`:
 | `is_interface_support_enabled` | `.proto`, `.graphql`, `.gql` |
 | `is_build_support_enabled` | `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl` |
 
-When disabled, these files are absent from indexing, search, overview, codemap, and file-change refreshes. Live `find`/`grep`/`read` and direct CLI `parse` remain available. Changing a switch requests a full index refresh after config reload; source files need no edit.
+When disabled, these files are absent from indexing, search, codemap, and file-change refreshes. Live `find`/`grep`/`read` and direct CLI `parse` remain available. Changing a switch requests a full index refresh after config reload; source files need no edit.
 
 | Format | Extracted structure | Limits |
 |---|---|---|
