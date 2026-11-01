@@ -20,8 +20,8 @@
     "id": "codemap-search",
     "target_release": "1.0.0",
     "version": "0.14.2",
-    "git_ref": "trial-output-tuning-b",
-    "commit": "cf2b9fafcfc1bda0907c1278aa25295776077a8e",
+    "git_ref": "trial-accuracy-stage1-a1",
+    "commit": "be1c78c1547c215dc46f85e593f8c8657971343c",
     "source_and_binary_pin_status": "release_source_frozen_binary_at_preparation"
   },
   "required_comparison_ids": [
