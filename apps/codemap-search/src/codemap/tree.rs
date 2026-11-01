@@ -59,7 +59,7 @@ fn render_inline_child(children: &ChildMap, child: &DirectorySummary) -> String 
             .collect::<Vec<_>>();
         if leaf_children.len() > INLINE_CHILD_LIMIT {
             leaves.push(format!(
-                "+{} more; use `overview {}`",
+                "+{} more; use `find path={} pattern=*`",
                 leaf_children.len() - INLINE_CHILD_LIMIT,
                 child.path
             ));
@@ -159,7 +159,7 @@ pub(crate) fn write_directory_tree(
                     .collect::<Vec<_>>();
                 if kids.len() > INLINE_CHILD_LIMIT {
                     inlined.push(format!(
-                        "+{} more; use `overview {}` or `find`",
+                        "+{} more; use `find path={} pattern=*`",
                         kids.len() - INLINE_CHILD_LIMIT,
                         dir.path
                     ));
@@ -181,7 +181,7 @@ pub(crate) fn write_directory_tree(
     if total > limit {
         writeln!(
             f,
-            "_… {} more directory groups not shown; narrow with `overview <dir>`._",
+            "_… {} more directory groups not shown; narrow with `find path=<dir> pattern=*`._",
             total - limit
         )?;
     }

@@ -4,4 +4,4 @@ Content mode returns matching named callable bodies by default. Use expand=none 
 
 At most eight returned files receive indexed context within one shared budget. Source truncation, stale context and unresolved call targets remain explicit.
 
-When file/line evidence is sufficient, use it directly; no overview or reread is required.
+When file/line evidence is sufficient, use it directly; no reread is required.

@@ -11,12 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial guidance now asks agents to search or grep the requested concepts repo-wide before narrowing, verify the ends, transfer or registration and conditions of requested links in source, and follow missing links before stopping or state the blocker and gap. The repo-wide discovery sentence moves from the monorepo-only guidance into the shared guidance. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / +178 characters, or +72 in monorepo workspaces.
 - Search lists files outside the ranked results when one of their docstrings or string literals states a quoted query phrase or two adjacent query words, under `Exact phrase matches outside the ranking`. These rows use only tail rows and output bytes the ranked results leave unused, so ranked files, relations and source excerpts are unchanged. Single identifiers and queries with search syntax add none. Prompt-text change: 0 / 0 / 0 characters.
 - Search results share repeated deferred-body notes and callee headers after result selection, preserving source ranges and output budgets. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
-- `initial_instructions` returns the scope inventory without collecting or displaying statistics. Explicit `overview` calls still provide statistics when enabled. Static prompt-text change: 0 / 0 / 0 characters; the statistics block is removed from the initial result.
+- `initial_instructions` returns the scope inventory without collecting or displaying statistics. Static prompt-text change: 0 / 0 / 0 characters; the statistics block is removed from the initial result.
+- Server instructions and the `search`, `grep` and `read` descriptions now ask agents to keep a located note for each finding, read the enclosing logic when a snippet does not establish the behaviour, and check every requested part before answering. Prompt-text change (tool descriptions / server instructions / initial instructions): +985 / +41 / 0 characters.
+
+### Removed
+
+- **Breaking:** The `overview` tool is removed. Use `find` for directory listings, `read` with `view=definitions` for a file's declaration outline, and `initial_instructions` for the monorepo scope inventory. `search` no longer keeps a scope chosen by an earlier call; pass `workspace_scope` on every call that should stay in one scope. Config schema v33 removes `[output.overview]`, `tool_output.is_overview_stats_enabled` and `output.jev.overview_filter_enabled`, and drops `"overview"` from `output.jev.scope`. If automatic config updates are off, `"overview"` in `output.jev.scope` is ignored and the other listed tools stay selected. Prompt-text change: −1,374 (the `overview` description and parameters −1,336, `search` −26, `grep` −12) / +27 / −53 characters, or −64 in monorepo workspaces.
 
 ### Fixed
 
 - Exact `event_key` searches with no hits explain the lookup scope and how to try ranked search, without silently falling back to it. Prompt-text change: −3 / 0 / 0 characters.
 - `grep` file and count modes accept `view=source` and `view=source_grouped` as presentation-only options, while still rejecting content-only controls. Prompt-text change: 0 / 0 / 0 characters.
+- `read` with `view=definitions` no longer reports indexed Sass files as an unsupported format. Prompt-text change: 0 / 0 / 0 characters.
 
 ## [0.14.2] - 2026-10-29
 

@@ -1,8 +1,7 @@
 use crate::tools::ToolContext;
 
 pub(crate) fn should_use(ctx: &ToolContext) -> bool {
-    ctx.active_workspace_scope.is_some()
-        || crate::tools::get_arg(ctx.arguments, "workspace_scope").is_some()
+    crate::tools::get_arg(ctx.arguments, "workspace_scope").is_some()
         || crate::tools::get_arg(ctx.arguments, "scope").is_some()
 }
 
@@ -30,7 +29,7 @@ pub(super) fn requested_workspace_scope(
         {
             Err((
                 -32602,
-                "Ambiguous workspace scope. Use the canonical path shown by root overview."
+                "Ambiguous workspace scope. Use the canonical path listed by initial_instructions."
                     .to_string(),
             ))
         }
@@ -40,11 +39,11 @@ pub(super) fn requested_workspace_scope(
                 (
                     -32602,
                     format!(
-                        "Unknown workspace_scope '{raw_scope}'. Run root overview to list workspace scopes, or pass workspace_scope=\"all\" for a repo-wide search."
+                        "Unknown workspace_scope '{raw_scope}'. Call initial_instructions to list workspace scopes, or pass workspace_scope=\"all\" for a repo-wide search."
                     ),
                 )
             }),
-        None => Ok(ctx.active_workspace_scope.map(ToString::to_string)),
+        None => Ok(None),
     }
 }
 

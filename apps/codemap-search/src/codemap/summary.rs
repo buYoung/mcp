@@ -16,11 +16,11 @@ pub struct ExtractedFileSummary<'a> {
     pub(crate) outline: Option<super::outline::DeclarationOutline>,
 }
 
-/// One directory node in the root overview: its path plus the number of source
+/// One directory node in the root view: its path plus the number of source
 /// files and significant symbols anywhere beneath it (recursive aggregate). The
 /// root view shows this skeleton instead of a per-file dump so a large repo stays
 /// cheap to orient in — the agent reads the tree, spots the relevant subtree by
-/// its counts, then drills with `overview <dir>`.
+/// its counts, then drills with `find`.
 #[derive(Debug, Clone)]
 pub struct DirectorySummary {
     pub path: String,

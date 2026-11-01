@@ -36,7 +36,7 @@ const ROOT_FILE_SUMMARY_LIMIT: usize = 60;
 /// Max symbol names shown per kind inside a compact root file row.
 const ROOT_SYMBOLS_PER_KIND_LIMIT: usize = 4;
 /// Max file links in llms-txt root output. The full file set remains discoverable through
-/// folder overview and find; llms-txt is a first-call orientation surface, not an index dump.
+/// folder views and find; llms-txt is a first-call orientation surface, not an index dump.
 const LLMS_TXT_FILE_LIMIT: usize = 200;
 
 fn grouped_symbol_summary(file: &ExtractedFileSummary<'_>) -> Option<String> {
@@ -102,7 +102,7 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
         if !self.directories.is_empty() {
             writeln!(
                 f,
-                "## Directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `overview <dir>`)"
+                "## Directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `find path=<dir> pattern=*`)"
             )?;
             write_directory_tree(f, &self.directories, "", ROOT_DIRECTORY_LIMIT)?;
             writeln!(f)?;
@@ -127,7 +127,7 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
             if self.files.len() > ROOT_FILE_SUMMARY_LIMIT {
                 writeln!(
                     f,
-                    "- _Showing files 1-{} of {}; continue with `overview <dir>` for the relevant subtree or `find` for exact file enumeration._",
+                    "- _Showing files 1-{} of {}; continue with `find` for exact file enumeration._",
                     ROOT_FILE_SUMMARY_LIMIT,
                     self.files.len()
                 )?;
@@ -137,7 +137,7 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
 
         writeln!(
             f,
-            "_Tip: `overview <dir>` lists a folder's files; `search <keyword>` jumps straight to code by name._"
+            "_Tip: `find path=<dir> pattern=*` lists a folder's files; `search <keyword>` jumps straight to code by name._"
         )?;
         Ok(())
     }
@@ -175,7 +175,7 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
         if has_subdirs {
             writeln!(
                 f,
-                "## Sub-directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `overview <dir>`)"
+                "## Sub-directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `find path=<dir> pattern=*`)"
             )?;
             write_directory_tree(
                 f,
@@ -196,7 +196,7 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
                 )?;
                 // Significant symbols only, names/kinds without line ranges: the folder
                 // view orients within a known folder but is not a locator — exact
-                // positions come from search/grep (overview must not substitute for search).
+                // positions come from search/grep (a folder view must not substitute for search).
                 if let Some(outline) = &file.outline {
                     write!(f, "{outline}")?;
                 } else {
@@ -416,7 +416,7 @@ impl CodemapGenerator {
         if files.len() > LLMS_TXT_FILE_LIMIT {
             let _ = writeln!(
                 view,
-                "- _{} more files not shown; continue with `overview <dir>` or `find`._",
+                "- _{} more files not shown; continue with `find path=<dir> pattern=*`._",
                 files.len() - LLMS_TXT_FILE_LIMIT
             );
         }
@@ -718,7 +718,7 @@ mod tests {
         assert!(formatted.contains("## Symbols"));
         // File view is a trimmed outline: name, kind, line range only.
         assert!(formatted.contains("- check (fn) [L5-10]"));
-        // Verbose details (flags, docstrings, literals) belong to read/grep, not overview.
+        // Verbose details (flags, docstrings, literals) belong to read/grep, not codemap views.
         assert!(!formatted.contains("Docstring"));
         assert!(!formatted.contains("Flags:"));
         assert!(!formatted.contains("## Literals"));

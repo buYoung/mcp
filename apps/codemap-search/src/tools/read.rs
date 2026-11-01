@@ -100,10 +100,8 @@ const UNSUPPORTED_EXTENSIONS: &[&str] = &[
     "sketch",
 ];
 
-/// Whether `read` refuses this path by extension (see [`UNSUPPORTED_EXTENSIONS`]). Shared
-/// with `overview` so its "not in the codemap" error can say whether `read` is a viable
-/// fallback instead of pointing at a tool that would also refuse the file.
-pub fn is_unsupported_extension(path: &std::path::Path) -> bool {
+/// Whether `read` refuses this path by extension (see [`UNSUPPORTED_EXTENSIONS`]).
+fn is_unsupported_extension(path: &std::path::Path) -> bool {
     path.extension()
         .and_then(|s| s.to_str())
         .is_some_and(|ext| UNSUPPORTED_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()))

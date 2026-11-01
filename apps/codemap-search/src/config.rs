@@ -134,7 +134,7 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
 /// This version belongs to repository config only; global files are not schema-synced.
-const CONFIG_VERSION: u32 = 32;
+const CONFIG_VERSION: u32 = 33;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -175,7 +175,6 @@ pub struct RelatedTermsConfig {
 pub struct ResolvedConfig {
     /// Optional common response cap; explicit per-tool caps take precedence within a layer.
     pub output_byte_cap: Option<usize>,
-    pub overview_output_byte_cap: Option<usize>,
     pub grep_response_byte_cap: Option<usize>,
     pub grep_output_byte_cap: usize,
     pub client_output: ClientOutputConfig,
@@ -219,7 +218,7 @@ pub struct ResolvedConfig {
     /// on find/grep is a broader override that bypasses every ignore source.
     pub use_git_exclude: bool,
     /// Debounce window (milliseconds) for background index/codemap refreshes triggered by
-    /// `search`/`overview` (default 5000). Within this window repeated calls enqueue at most
+    /// `search` (default 5000). Within this window repeated calls enqueue at most
     /// one background refresh; each call still answers immediately from the committed
     /// snapshot. `read`/`find`/`grep` always read live disk, so any brief search staleness
     /// is corrected by the follow-up read/grep.
@@ -229,7 +228,7 @@ pub struct ResolvedConfig {
     /// Output-size only — safe to tune.
     pub search_overview_file_limit: usize,
     /// Filesystem watcher toggle (default true). When the watcher runs and is healthy,
-    /// changes refresh the index autonomously and `search`/`overview` never trigger a
+    /// changes refresh the index autonomously and `search` never triggers a
     /// tree walk; when false (or the watcher fails), the request-triggered lazy refresh
     /// (`index_staleness_ms`) is the fallback.
     pub watch: bool,
@@ -238,7 +237,7 @@ pub struct ResolvedConfig {
     /// joins the same window so a half-written tree mid-checkout is not walked twice.
     pub watch_debounce_ms: u64,
     /// Automatic indexer recovery (default true). When the background indexer thread
-    /// dies, the next `search`/`overview` rebuilds the engine, respawns the indexer, and
+    /// dies, the next `search` rebuilds the engine, respawns the indexer, and
     /// re-attaches the watcher — bounded by a per-process attempt cap (see
     /// `mcp::MAX_INDEXER_RESTART_ATTEMPTS`) so a deterministic crash cannot respawn-loop.
     /// Set false to keep the frozen-results behavior until the server restarts.
@@ -264,8 +263,6 @@ pub struct ResolvedConfig {
     /// `grep` content-mode column cap (default 0, unlimited). A matched line wider
     /// than a positive cap is replaced with `[Omitted long matching line]`.
     pub grep_max_columns: usize,
-    /// Whether repository/project root overviews append indexed-file language statistics.
-    pub is_overview_stats_enabled: bool,
     /// `read` and callable-expanded `grep` output ceiling in bytes (default 5 MiB).
     /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
     /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
@@ -346,7 +343,6 @@ impl Default for ResolvedConfig {
     fn default() -> Self {
         Self {
             output_byte_cap: None,
-            overview_output_byte_cap: None,
             grep_response_byte_cap: None,
             grep_output_byte_cap: 5 * 1024 * 1024,
             client_output: ClientOutputConfig {
@@ -395,7 +391,6 @@ impl Default for ResolvedConfig {
             is_build_support_enabled: false,
             filesystem_permissions: FilesystemPermissions::default(),
             grep_max_columns: 0,
-            is_overview_stats_enabled: true,
             read_output_byte_cap: 5 * 1024 * 1024,
             is_read_outside_callers_enabled: true,
             search_detail_snippet_max_lines: 500,
@@ -426,7 +421,6 @@ impl Default for ResolvedConfig {
 #[derive(Default, PartialEq)]
 struct ConfigLayer {
     output_byte_cap: Option<usize>,
-    overview_output_byte_cap: Option<usize>,
     grep_output_byte_cap: Option<usize>,
     client_output: ClientOutputConfig,
     is_redact_enabled: Option<bool>,
@@ -458,7 +452,6 @@ struct ConfigLayer {
     is_build_support_enabled: Option<bool>,
     filesystem_permissions: FilesystemPermissionsLayer,
     grep_max_columns: Option<usize>,
-    is_overview_stats_enabled: Option<bool>,
     read_output_byte_cap: Option<usize>,
     is_read_outside_callers_enabled: Option<bool>,
     search_detail_snippet_max_lines: Option<usize>,
@@ -681,7 +674,6 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
             "grep_max_columns"
                 | "read_output_byte_cap"
                 | "is_redact_enabled"
-                | "is_overview_stats_enabled"
         ),
         "exclude" => exclude::TEST_KEYS.contains(&key) || exclude::WORKSPACE_KEYS.contains(&key),
         "index.exclude" => exclude::WORKSPACE_KEYS.contains(&key),
@@ -741,9 +733,6 @@ fn assign_config_key(
         }
         "output_byte_cap" => {
             layer.output_byte_cap = as_positive_byte_size(value, key_display, path)
-        }
-        "overview_output_byte_cap" => {
-            layer.overview_output_byte_cap = as_positive_byte_size(value, key_display, path)
         }
         "grep_output_byte_cap" => {
             layer.grep_output_byte_cap = as_positive_byte_size(value, key_display, path)
@@ -824,9 +813,6 @@ fn assign_config_key(
         }
         "is_build_support_enabled" => {
             layer.is_build_support_enabled = as_bool(value, key_display, path)
-        }
-        "is_overview_stats_enabled" => {
-            layer.is_overview_stats_enabled = as_bool(value, key_display, path)
         }
         "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
         "read_output_byte_cap" => {
@@ -909,11 +895,6 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         .expect("directory patterns were validated during config normalization");
     ResolvedConfig {
         output_byte_cap: repo.output_byte_cap.or(global.output_byte_cap),
-        overview_output_byte_cap: repo
-            .overview_output_byte_cap
-            .or(repo.output_byte_cap)
-            .or(global.overview_output_byte_cap)
-            .or(global.output_byte_cap),
         grep_response_byte_cap: repo
             .grep_output_byte_cap
             .or(repo.output_byte_cap)
@@ -1051,10 +1032,6 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .grep_max_columns
             .or(global.grep_max_columns)
             .unwrap_or(defaults.grep_max_columns),
-        is_overview_stats_enabled: repo
-            .is_overview_stats_enabled
-            .or(global.is_overview_stats_enabled)
-            .unwrap_or(defaults.is_overview_stats_enabled),
         read_output_byte_cap: repo
             .read_output_byte_cap
             .or(repo.output_byte_cap)
@@ -1541,8 +1518,8 @@ const MIGRATIONS: &[Migration] = &[
         version: 32,
         key: "mode",
         placement: KeyPlacement::Subtable("index"),
-        english_block: "# When the MCP server indexes this workspace. \"auto\" starts on the first search, overview, read or grep,\n# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.\n# Other folders, such as one holding several repositories, are not indexed; search and overview say why.\n# \"on\" indexes at server start without these checks; \"off\" never indexes. Restart the server after changing it.\n# Commented so that a global setting applies.\n# mode = \"auto\"",
-        korean_block: "# MCP 서버가 이 작업공간을 색인하는 시점입니다. \"auto\"는 첫 search, overview, read, grep 호출 때 시작하며,\n# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.\n# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.\n# \"on\"은 이 확인 없이 서버 시작 때 색인하고, \"off\"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.\n# 전역 설정이 적용되도록 주석으로 둡니다.\n# mode = \"auto\"",
+        english_block: "# When the MCP server indexes this workspace. \"auto\" starts on the first search, read or grep,\n# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.\n# Other folders, such as one holding several repositories, are not indexed; search says why.\n# \"on\" indexes at server start without these checks; \"off\" never indexes. Restart the server after changing it.\n# Commented so that a global setting applies.\n# mode = \"auto\"",
+        korean_block: "# MCP 서버가 이 작업공간을 색인하는 시점입니다. \"auto\"는 첫 search, read, grep 호출 때 시작하며,\n# 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.\n# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search가 이유를 알려 줍니다.\n# \"on\"은 이 확인 없이 서버 시작 때 색인하고, \"off\"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.\n# 전역 설정이 적용되도록 주석으로 둡니다.\n# mode = \"auto\"",
     },
     Migration {
         version: 31,
@@ -1564,15 +1541,6 @@ const MIGRATIONS: &[Migration] = &[
         placement: KeyPlacement::AfterSubtable("analysis"),
         english_block: JEV_MIGRATION_BLOCK_EN,
         korean_block: JEV_MIGRATION_BLOCK_KO,
-    },
-    Migration {
-        version: 17,
-        key: "is_overview_stats_enabled",
-        placement: KeyPlacement::Subtable("tool_output"),
-        english_block: "# Repository and monorepo project root overviews include indexed-file language statistics. Set false to omit them.
-# is_overview_stats_enabled = true",
-        korean_block: "# 저장소 및 모노레포 프로젝트 루트 overview에 색인 파일 언어 통계를 포함합니다. false이면 생략합니다.
-# is_overview_stats_enabled = true",
     },
     Migration {
         version: 16,
@@ -1669,8 +1637,8 @@ const MIGRATIONS: &[Migration] = &[
         version: 4,
         key: "is_document_support_enabled",
         placement: KeyPlacement::TopLevel,
-        english_block: "# Include Markdown documents (`.md`, `.mdx`) in index-backed discovery.\n# false excludes them from search/overview/codemap; direct read/parse/find/grep remain available.\n# [language_support]\n# is_document_support_enabled = false",
-        korean_block: "# Markdown 문서(`.md`, `.mdx`)를 색인 기반 탐색에 포함합니다.\n# false이면 search/overview/codemap에서 제외하지만 직접 read/parse/find/grep은 유지됩니다.\n# [language_support]\n# is_document_support_enabled = false",
+        english_block: "# Include Markdown documents (`.md`, `.mdx`) in index-backed discovery.\n# false excludes them from search/codemap; direct read/parse/find/grep remain available.\n# [language_support]\n# is_document_support_enabled = false",
+        korean_block: "# Markdown 문서(`.md`, `.mdx`)를 색인 기반 탐색에 포함합니다.\n# false이면 search/codemap에서 제외하지만 직접 read/parse/find/grep은 유지됩니다.\n# [language_support]\n# is_document_support_enabled = false",
     },
     // Insert in reverse display order because every subtable migration is placed immediately
     // after the same header. The resulting config reads shell → infrastructure → interface → build.
@@ -1738,13 +1706,6 @@ const MIGRATIONS: &[Migration] = &[
         korean_block: "# 자동 심볼·호출 관계에 테스트 영역을 포함합니다. 직접 read/grep한 원문은 유지됩니다.\n# should_include_test_code = false",
     },
     // Subtable migrations land right after the header, so list them in reverse display order.
-    Migration {
-        version: 27,
-        key: "overview_filter_enabled",
-        placement: KeyPlacement::Subtable("analysis.jev"),
-        english_block: "# Filter non-root overview declarations (default: same as search_filter_enabled). Root maps stay local.\n# overview_filter_enabled = false",
-        korean_block: "# 루트 외 overview 선언을 판단합니다(기본: search_filter_enabled 값). 루트 지도는 로컬로 유지합니다.\n# overview_filter_enabled = false",
-    },
     Migration {
         version: 26,
         key: "grep_filter_enabled",
@@ -1950,6 +1911,18 @@ fn migrate_existing(path: &Path, existing: &str) {
             Err(error) => {
                 warn(&format!(
                     "config layout migration skipped for {}: {error}",
+                    path.display()
+                ));
+                return;
+            }
+        };
+    }
+    if file_version < 33 {
+        updated = match layout::remove_overview_settings(&updated) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!(
+                    "config overview-setting removal skipped for {}: {error}",
                     path.display()
                 ));
                 return;

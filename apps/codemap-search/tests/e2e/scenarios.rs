@@ -159,13 +159,13 @@ async fn test_realworld_ai_agent_simulation() {
         .unwrap();
     assert!(init_res.get("result").is_some());
 
-    // 2. Listing root codemap
+    // 2. Listing the root directory
     let root_res = client
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "" }
+                "name": "find",
+                "arguments": { "pattern": "*", "entry_type": "all", "max_depth": 1 }
             }),
         )
         .await
@@ -173,7 +173,7 @@ async fn test_realworld_ai_agent_simulation() {
     assert!(root_res["result"]["content"][0]["text"]
         .as_str()
         .unwrap()
-        .contains("- src ("));
+        .contains("src/"));
 
     // 3. Search for a symbol
     let search_res = client
@@ -196,8 +196,8 @@ async fn test_realworld_ai_agent_simulation() {
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "src/core/mod.rs" }
+                "name": "read",
+                "arguments": { "file_path": "src/core/mod.rs", "view": "definitions", "include_seen": true }
             }),
         )
         .await

@@ -46,16 +46,16 @@ pub struct EngineSupervisor {
     // once ALL senders are gone. The opposite order deadlocks on shutdown.
     watcher: Option<WatcherHandle>,
     // Background indexer: fire-and-forget refresh trigger, warming/error status, and the
-    // current codemap snapshot consumed by `overview`.
+    // current codemap snapshot consumed by search and the root scope inventory.
     indexer: IndexerHandle,
     // Watcher health flag: while healthy, the watcher keeps the index current and the
     // request-triggered refresh below is suppressed entirely. Stays unhealthy forever
     // when `watch = false` or the watch failed to start, which preserves the lazy path.
     watcher_status: Arc<WatcherStatus>,
     // Instant of the last refresh trigger. Within `config::index_staleness_ms` we skip
-    // re-triggering so a burst of search/overview calls enqueues at most one refresh; the
+    // re-triggering so a burst of search calls enqueues at most one refresh; the
     // indexer's own mtime diff keeps each pass incremental. A single field now suffices
-    // because search and overview share one background refresh.
+    // because every snapshot reader shares one background refresh.
     last_refresh_trigger: Option<Instant>,
     // Automatic indexer restarts performed so far (see `ensure_alive`).
     indexer_restart_attempts: u32,
@@ -207,7 +207,7 @@ impl EngineSupervisor {
 
     /// Enqueue a background index refresh unless one was already triggered within the
     /// staleness window. Fire-and-forget — never blocks the request on indexing. Shared by
-    /// search and overview, which both serve the indexer's published snapshot.
+    /// search and the monorepo initial_instructions, which both serve the indexer's published snapshot.
     ///
     /// While the filesystem watcher is healthy this is a no-op: the watcher already keeps
     /// the index current, so suppressing the request-triggered full walk here is what

@@ -394,7 +394,7 @@ fn added_tree_sitter_formats_emit_structural_symbols_and_dependencies() {
 }
 
 #[test]
-fn broad_tree_sitter_grammar_coverage_keeps_overview_symbols_complete() {
+fn broad_tree_sitter_grammar_coverage_keeps_declaration_symbols_complete() {
     for (path, source, expected) in [
         (
             "config.json",

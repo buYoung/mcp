@@ -953,7 +953,7 @@ async fn test_tools_list_includes_read_find_grep() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    for expected in ["overview", "search", "read", "find", "grep"] {
+    for expected in ["search", "read", "find", "grep"] {
         assert!(
             names.contains(&expected),
             "tools/list missing '{expected}': {names:?}"
@@ -1208,7 +1208,7 @@ async fn test_read_basic_arrow_format() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     // Alias equality compares a stable symbol snapshot as well as the live source.
     client
-        .send_request("tools/call", call("overview", serde_json::json!({})))
+        .send_request("tools/call", call("search", serde_json::json!({"query": "core"})))
         .await
         .unwrap();
     let resp = client
@@ -1264,7 +1264,7 @@ async fn test_read_offset_and_limit() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     // Alias equality compares a stable symbol snapshot as well as the live source.
     client
-        .send_request("tools/call", call("overview", serde_json::json!({})))
+        .send_request("tools/call", call("search", serde_json::json!({"query": "core"})))
         .await
         .unwrap();
     let resp = client
@@ -1459,17 +1459,6 @@ async fn test_non_utf8_source_explains_index_exclusion_without_hiding_read() {
         "{out}"
     );
     assert!(!out.contains("No indexed declaration or callable"), "{out}");
-    let overview = client
-        .send_request(
-            "tools/call",
-            call("overview", serde_json::json!({"path":"legacy.rs"})),
-        )
-        .await
-        .unwrap();
-    assert!(
-        overview.to_string().contains("Not indexed: invalid UTF-8"),
-        "{overview}"
-    );
     assert_eq!(std::fs::read(temp.path().join("legacy.rs")).unwrap(), bytes);
 }
 
@@ -1957,6 +1946,10 @@ async fn test_grep_path_param_escape_is_rejected() {
     );
 }
 
+fn definitions_of_probe() -> serde_json::Value {
+    serde_json::json!({"file_path": "probe.c", "view": "definitions", "include_seen": true})
+}
+
 #[tokio::test]
 #[ignore = "Requires an installed Clang preprocessor"]
 async fn test_macro_expansion_reaches_search_read_and_refreshes_header_changes() {
@@ -1973,13 +1966,13 @@ async fn test_macro_expansion_reaches_search_read_and_refreshes_header_changes()
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
-    let overview = client
-        .send_tool_until("overview", serde_json::json!({"path": "probe.c"}), |out| {
-            out.contains("chosen_v1 (fn)")
+    let definitions = client
+        .send_tool_until("read", definitions_of_probe(), |out| {
+            out.contains("chosen_v1 [function")
         })
         .await
         .unwrap();
-    assert!(text(&overview).contains("Macro expansion:"), "{overview}");
+    assert!(text(&definitions).contains("Macro expansion:"), "{definitions}");
     let read = client
         .send_request(
             "tools/call",
@@ -2015,27 +2008,26 @@ async fn test_macro_expansion_reaches_search_read_and_refreshes_header_changes()
         "#define DECLARE(name) int name##_v2(void) { return 8; }\n",
     )
     .unwrap();
-    let changed = client
-        .send_tool_until("overview", serde_json::json!({"path": "probe.c"}), |out| {
-            out.contains("chosen_v2 (fn)") && !out.contains("chosen_v1 (fn)")
+    client
+        .send_tool_until("read", definitions_of_probe(), |out| {
+            out.contains("chosen_v2 [function") && !out.contains("chosen_v1 [function")
         })
         .await
         .unwrap();
-    assert!(text(&changed).contains("[L2-2]"), "{changed}");
     std::fs::write(
         temp.path().join(".codemap/config.toml"),
         config.replace("is_enabled = true", "is_enabled = false"),
     )
     .unwrap();
     let disabled = client
-        .send_tool_until("overview", serde_json::json!({"path": "probe.c"}), |out| {
-            out.contains("ordinary (fn)")
+        .send_tool_until("read", definitions_of_probe(), |out| {
+            out.contains("ordinary [function")
                 && !out.contains("Macro expansion:")
-                && !out.contains("chosen_v2 (fn)")
+                && !out.contains("chosen_v2 [function")
         })
         .await
         .unwrap();
-    assert!(!text(&disabled).contains("chosen_v2 (fn)"));
+    assert!(!text(&disabled).contains("chosen_v2 [function"));
     assert_eq!(
         std::fs::read_to_string(temp.path().join("probe.c")).unwrap(),
         source

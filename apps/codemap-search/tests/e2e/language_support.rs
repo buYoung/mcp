@@ -181,12 +181,6 @@ async fn test_optional_language_groups_toggle_index_discovery_but_keep_direct_ac
         assert_contains_no_optional_files(response_text(&disabled_search));
     }
 
-    let disabled_overview = client
-        .send_request("tools/call", tool_call("overview", json!({})))
-        .await
-        .unwrap();
-    assert_contains_no_optional_files(response_text(&disabled_overview));
-
     let find = client
         .send_request(
             "tools/call",
@@ -235,12 +229,6 @@ async fn test_optional_language_groups_toggle_index_discovery_but_keep_direct_ac
         assert_contains_group_files(response_text(&enabled_search), path_prefix);
     }
 
-    let enabled_overview = client
-        .send_request("tools/call", tool_call("overview", json!({})))
-        .await
-        .unwrap();
-    assert_contains_all_optional_files(response_text(&enabled_overview));
-
     for (query, path_prefix) in SEARCH_GROUPS {
         let enabled_cli_search = cli_stdout(&["search", query], temp.path());
         assert_contains_group_files(&enabled_cli_search, path_prefix);
@@ -261,11 +249,6 @@ async fn test_optional_language_groups_toggle_index_discovery_but_keep_direct_ac
         assert_contains_no_optional_files(response_text(&disabled_again));
     }
 
-    let disabled_overview_again = client
-        .send_request("tools/call", tool_call("overview", json!({})))
-        .await
-        .unwrap();
-    assert_contains_no_optional_files(response_text(&disabled_overview_again));
 }
 
 #[tokio::test]

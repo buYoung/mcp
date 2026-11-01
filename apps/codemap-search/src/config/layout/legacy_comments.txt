@@ -496,3 +496,25 @@
 # TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
 # 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 환경 변수를 사용합니다.
 # 사용할 Jev 모델 버전입니다(기본 jev-1.13.0). jev-latest 같은 별칭은 쓸 수 없습니다.
+# Root overview maps remain local. If Jev is unavailable, ordinary output is retained.
+# Test code still appears in search/overview declarations and read/grep source when false.
+# When the MCP server indexes this workspace. "auto" starts on the first search, overview, read or grep,
+# Other folders, such as one holding several repositories, are not indexed; search and overview say why.
+# Update the index automatically when files change. If false, search/overview refresh it when called.
+# Restart indexing on the next search/overview if it stops (a limited number of times).
+# If false, search/overview results stop updating until the server restarts.
+# Show per-language file statistics when overview opens the repository root or a subproject root.
+# Repository and monorepo project root overviews include indexed-file language statistics. Set false to omit them.
+# Filter non-root overview declarations (default: same as search_filter_enabled). Root maps stay local.
+# false excludes them from search/overview/codemap; direct read/parse/find/grep remain available.
+# 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
+# false여도 search/overview의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search/overview를 호출할 때 갱신합니다.
+# 색인 작업이 멈추면 다음 search/overview 때 다시 시작합니다(횟수 제한 있음).
+# false이면 서버를 재시작할 때까지 search/overview 결과가 갱신되지 않습니다.
+# overview로 저장소 루트나 하위 프로젝트 루트를 볼 때 언어별 파일 통계를 함께 보여 줍니다.
+# 저장소 및 모노레포 프로젝트 루트 overview에 색인 파일 언어 통계를 포함합니다. false이면 생략합니다.
+# 루트 외 overview 선언을 판단합니다(기본: search_filter_enabled 값). 루트 지도는 로컬로 유지합니다.
+# false이면 search/overview/codemap에서 제외하지만 직접 read/parse/find/grep은 유지됩니다.

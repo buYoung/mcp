@@ -1277,7 +1277,7 @@ pub(crate) fn prepare_detail(
                         .saturating_sub(snippet_starts.len() + listed + unlisted_keys);
                     if remaining > 0 {
                         text.push_str(&format!(
-                        "- _… {remaining} more symbols not shown; use overview/read to inspect._\n"
+                        "- _… {remaining} more symbols not shown; use read to inspect._\n"
                     ));
                     }
                 } else {
@@ -1311,7 +1311,7 @@ pub(crate) fn prepare_detail(
                     }
                     if skipped_for_cap > 0 {
                         text.push_str(&format!(
-                        "- _… {skipped_for_cap} more symbols not shown; use overview/read to inspect._\n"
+                        "- _… {skipped_for_cap} more symbols not shown; use read to inspect._\n"
                     ));
                     }
                 }

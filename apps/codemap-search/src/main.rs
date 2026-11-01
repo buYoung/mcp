@@ -171,7 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
 
             // Shared walker: EXCLUDED_DIRS + .gitignore/.codemapignore (Child 04), so the
-            // CLI codemap matches the MCP overview and never traverses node_modules/.git.
+            // CLI codemap matches the MCP root inventory and never traverses node_modules/.git.
             for entry in codemap_search::workspace::build_walker(&cwd, false)
                 .build()
                 .filter_map(|e| e.ok())

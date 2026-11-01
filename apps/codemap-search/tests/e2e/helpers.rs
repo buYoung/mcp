@@ -244,7 +244,7 @@ impl Drop for McpClient {
     }
 }
 
-/// read/grep use a different notice from search/overview during initial indexing.
+/// read/grep use a different notice from search during initial indexing.
 /// Persistent index failures still return unchanged after the bounded retry window.
 fn response_is_waiting_for_index(params: &Value, response: &Value) -> bool {
     let text = response_text(response);
@@ -253,9 +253,6 @@ fn response_is_waiting_for_index(params: &Value, response: &Value) -> bool {
             && text.lines().any(|line| {
                 line == "[Symbol index unavailable or stale; live results remain available below.]"
             }))
-        || (params["name"] == "overview"
-            && response["result"]["isError"] == true
-            && text.contains("is not in the codemap"))
 }
 
 fn restore_source_on_retry(params: &mut Value) {

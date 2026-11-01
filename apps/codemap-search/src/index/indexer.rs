@@ -2,7 +2,7 @@
 //! indexing: it owns a read-only [`crate::index::SearcherHandle`] and a fire-and-forget
 //! [`IndexerHandle`], while a dedicated OS thread owns the [`TantivySearchEngine`] (the
 //! single tantivy writer) and refreshes the index on request. Commits become visible to
-//! the server's reader clone via the reader's reload policy, so search/overview serve the
+//! the server's reader clone via the reader's reload policy, so search serves the
 //! latest committed snapshot without any lock on the hot path.
 //!
 //! A plain `std::thread` + capacity-1 `std::sync::mpsc::sync_channel` is deliberate: the
@@ -75,7 +75,7 @@ impl IndexCommand {
 /// Shared, lock-light status the server reads to annotate responses.
 #[derive(Default)]
 pub struct IndexerStatus {
-    /// Set once an initial generation is successfully published. Until then search/overview
+    /// Set once an initial generation is successfully published. Until then search
     /// may return empty/partial results and say so.
     pub initial_index_done: AtomicBool,
     /// Last background refresh error, if any, so a failing refresh surfaces as a note
@@ -93,7 +93,7 @@ pub struct IndexerStatus {
     pub thread_died: AtomicBool,
 }
 
-/// Immutable codemap snapshot published by the indexer and read by `overview`. Swapped as
+/// Immutable codemap snapshot published by the indexer and read by the root scope inventory. Swapped as
 /// a whole `Arc`, so readers never observe a partially-updated tree.
 pub type CodemapSnapshot = Arc<Vec<ExtractedFile>>;
 
