@@ -33,15 +33,15 @@
 
 공통 안내에 같은 의미가 남아 있더라도 도구별 설명에서 문구를 제거하거나 위치를 바꾸면 실제 행동이 유지되는지 검증한다. 여러 규칙을 묶어 복원한 실험은 그 묶음의 효과를 평가한 것이다. 개별 문장의 효과나 다른 모델·과제로의 일반화는 별도 근거 없이 단정하지 않는다.
 
-현재 구현은 설명을 압축한 구성에 네 가지 도구별 판단 규칙을 함께 둔다. 유지보수할 때는 다음 역할 분담을 유지한다.
+현재 구현은 설명을 압축한 구성에 세 가지 도구별 판단 규칙을 함께 둔다. 유지보수할 때는 다음 역할 분담을 유지한다.
 
-- **서버·공통 안내:** `server.md`에는 도구 소개, 최초 안내 호출, 도구 선택 가이드, 병렬 도구 호출 안내를 두고, 근거 재사용·종료 조건·출력 해석·권한 설명은 `initial_instructions` 호출 결과인 `initial_instructions.result.md`에 모은다. 병렬 도구 호출 안내는 같은 문단을 일부러 두 번 둔다. pi와 gpt-6.1-terra로 시험했을 때 이 문단을 한 번 둔 경우보다 두 번 둔 경우에 독립 호출을 한 응답에 함께 보내는 비율이 높았으므로, 중복으로 보고 하나를 지우지 않는다.
-- **모노레포 안내:** 공통 `initial_instructions.result.md` 뒤에 `initial_instructions.result.monorepo.md`의 범위 선택 안내를 덧붙인다. `initial_instructions`, `overview`, `search`의 설명은 각각 하나의 Markdown 파일을 사용한다. 이전의 `initial_instructions.monorepo.md`, `overview.monorepo.md`, `search.monorepo.md`는 통합된 파일이다.
-- **도구·인자 설명:** 도구 설명에는 선택 조건과 필요한 출력 설명을, 입력 스키마에는 인자 계약을 둔다. `tools/mod.rs`의 공통 설명 변수는 소스 중복을 줄이지만, 각 도구의 최종 스키마에는 해당 설명이 각각 포함된다. 네 가지 판단 규칙은 각 도구 설명에서도 유지한다.
+- **서버·공통 안내:** `server.md`에는 도구 소개와 도구별 용도, 최초 안내 호출, 도구 선택 가이드, 독립 조회를 함께 보내는 소스 우선 탐색 순서, 근거 기록·연결 확인·답변 정리 안내를 두고, 근거 재사용·종료 조건·출력 해석·권한 설명은 `initial_instructions` 호출 결과인 `initial_instructions.result.md`에 모은다. 근거 기록 안내는 찾은 사실과 위치를 기록하고, 요청한 연결마다 양쪽 끝·전달되거나 일치하는 값·연결이나 활성화 조건을 기록하며, 답하기 전에 요청한 부분별로 정리하게 한다. 이전에 두 번 두던 병렬 호출 문단은 소스 우선 탐색 문단 하나로 바꿨다. 이 구성은 GPT 6.1 Sol로 Grafana 세 문항을 3회씩 두 번 실행해 핵심 사실 평균 19.33/21과 19.0/21을 확인했다(rg 18.67/21). 다른 모델·과제로의 일반화는 별도 근거가 필요하다.
+- **모노레포 안내:** 공통 `initial_instructions.result.md` 뒤에 `initial_instructions.result.monorepo.md`의 범위 선택 안내를 덧붙인다. `initial_instructions`와 `search`의 설명은 각각 하나의 Markdown 파일을 사용한다. 이전의 `initial_instructions.monorepo.md`, `search.monorepo.md`는 통합된 파일이다. `overview` 도구와 그 설명은 제거됐다.
+- **도구·인자 설명:** 도구 설명에는 선택 조건과 필요한 출력 설명을, 입력 스키마에는 인자 계약을 둔다. `tools/mod.rs`의 공통 설명 변수는 소스 중복을 줄이지만, 각 도구의 최종 스키마에는 해당 설명이 각각 포함된다. 세 가지 판단 규칙은 각 도구 설명에서도 유지한다.
 
 이 구성의 Rust 변경은 안내문 조립과 출력 문구에 대응한다. 변경 범위를 확인할 때 설명 문자열과 검색·색인·잠금·설정 로직을 구분한다.
 
-## 3. 유지해야 할 네 가지 도구별 규칙
+## 3. 유지해야 할 세 가지 도구별 규칙
 
 아래는 이 저장소의 도구별 판단 지침이다. 공통 안내와 의미가 일부 겹치는 것은 의도된 배치다. 문구나 위치를 바꾸려면 최종 MCP 응답과 호출 행동을 함께 비교한다.
 
@@ -50,20 +50,20 @@
 [grep.evidence.md](../src/tools/instructions/tools/grep.evidence.md)
 
 ```text
-When file/line evidence is sufficient, use it directly; no overview or reread is required.
+When file/line evidence is sufficient, use it directly; no reread is required.
 ```
 
-파일·행 근거가 이미 충분할 때 `overview`나 같은 근거의 재독으로 이어지는 것을 막는다.
+파일·행 근거가 이미 충분할 때 같은 근거의 재독으로 이어지는 것을 막는다.
 
-### search: 현재 결과로 답하고 부족한 구간만 읽기
+### search: 순위 결과로 위치를 고르고 연결을 소스로 확인
 
 [search.md](../src/tools/instructions/tools/search.md)
 
 ```text
-Answer from sufficient source evidence. Read only missing ranges; do not insert overview or reread already visible evidence. Partial output, ambiguity and list-only rows are not complete source evidence.
+Use ranked results to choose source locations, not to decide that all relevant code has been found. Once useful names or literals appear, use grep to enumerate references and read enough enclosing source to resolve unclear behavior. In monorepos, set workspace_scope explicitly on every scoped call; use 'all' for discovery across areas. Check every requested part, not just the claims already selected for the answer. Cite source at both ends of each connection and the link between them. Partial, ambiguous or list-only output leaves evidence missing; report unresolved parts explicitly.
 ```
 
-충분한 검색 결과는 직접 사용하되, 부분 출력·모호한 결과·목록만 있는 결과를 완전한 근거로 오인하지 않는다. 호출 감소를 위해 필요한 후속 읽기까지 금지하는 문구로 바꾸지 않는다.
+순위 결과는 읽을 위치를 고르는 데 쓰고, 관련 코드를 모두 찾았다는 판단에는 쓰지 않는다. 쓸 만한 이름이나 리터럴이 나오면 grep으로 참조를 열거하고, 불명확한 동작은 감싸는 소스를 읽는다. 부분·모호·목록 출력은 근거가 빠진 상태로 보고, 풀지 못한 부분을 밝힌다. 호출 감소를 위해 필요한 후속 읽기까지 금지하는 문구로 바꾸지 않는다.
 
 ### read: 필요한 근거만 읽고 분석 알림과 소스를 구분
 
@@ -75,34 +75,24 @@ Read only evidence still needed; a partial analysis notice is not a request to r
 
 관계 분석이 부분적이라는 알림만으로 이미 전달된 소스를 다시 읽지 않는다. 실제 소스가 잘려 전달되지 않았다면 필요한 구간을 다시 읽는 것은 유효한 복구다.
 
-### overview: 필요한 위치를 알면 바로 읽기
-
-[overview.md](../src/tools/instructions/tools/overview.md)
-
-```text
-If grep/search already supplied the needed file and line, use read directly.
-```
-
-유효한 파일·행 위치가 있는데 범위 확인을 위한 중간 `overview`를 삽입하지 않는다. 필요한 위치가 아직 없는 경우까지 `overview`를 금지하는 규칙은 아니다.
-
 ## 4. 문구를 수정할 때 확인할 연결 경로
 
 | 소스 | 최종 소비 위치 | 유지할 내용 |
 |---|---|---|
-| [server.md](../src/tools/instructions/server.md) | MCP `initialize.instructions`. `{shell_commands}` 자리에 실행 OS의 `server.<windows\|macos\|linux>.md`를 넣음 | 도구 소개, search 사용 조건, 최초 안내 호출, 도구 선택 가이드(셸 명령 대신 쓸 도구), 병렬 도구 호출 안내(같은 문단 두 번). `server.md`는 `format!` 문자열이라 중괄호는 `{{`, `}}`로 씁니다 |
+| [server.md](../src/tools/instructions/server.md) | MCP `initialize.instructions`. `{shell_commands}` 자리에 실행 OS의 `server.<windows\|macos\|linux>.md`를 넣음 | 도구 소개와 도구별 용도, 최초 안내 호출, 도구 선택 가이드(셸 명령 대신 쓸 도구), 소스 우선 탐색 순서, 근거 기록·연결 확인·답변 정리 안내. `server.md`는 `format!` 문자열이라 중괄호는 `{{`, `}}`로 씁니다 |
 | [initial_instructions.result.md](../src/tools/instructions/tools/initial_instructions.result.md) | `tools/call initial_instructions`의 결과(도구 설명인 `initial_instructions.md`와 별개) | 공통 흐름, 근거 사용, 종료 조건, 출력 해석 |
-| [initial_instructions.result.monorepo.md](../src/tools/instructions/tools/initial_instructions.result.monorepo.md) | 모노레포의 `initial_instructions` 결과 확장 | 범위 선택과 이미 제공한 루트 개요의 재사용 |
+| [initial_instructions.result.monorepo.md](../src/tools/instructions/tools/initial_instructions.result.monorepo.md) | 모노레포의 `initial_instructions` 결과 확장 | 범위 선택과 이미 제공한 범위 목록의 재사용 |
 | [tools 디렉터리](../src/tools/instructions/tools) | `tools/list`의 각 `description`. 해당 도구의 Jev 단계가 켜지면 `<도구>.jev.md`만 사용. `initial_instructions`는 항상 같은 설명과 빈 입력 스키마를 사용하고, 켜진 필터를 쓰기 전의 작업 등록 안내는 `register_task.md`에 두며, 이 도구는 Jev가 켜졌을 때만 목록에 나옴. `<도구>.result*.md`는 설명이 아니라 호출 결과 | 도구 선택·추가 호출 판단·도구별 출력 설명 |
 | [tools/mod.rs](../src/tools/mod.rs)의 `list_tools` | 실제 도구 설명과 입력 스키마 | 문구 조합, 동적 권한 안내, 인자 계약 |
 | [codemap/monorepo.rs](../src/codemap/monorepo.rs)의 `WorkspaceCatalog` 출력 | 모노레포 범위 목록 | 범위·언어 목록을 유지하고, 중복 `Next Step` 안내는 모노레포 공통 안내에 통합 |
 | [tools/grep.rs](../src/tools/grep.rs)의 `empty_result_hint` | grep 결과가 없을 때의 안내 | 활성 필터·정규식 안내와 재시도 전 패턴 또는 필터 조정 조건 |
 | [mcp/mod.rs](../src/mcp/mod.rs) | JSON-RPC 응답 | 위 내용이 클라이언트에 전달되는 경로 |
 
-`read.evidence.md`와 `grep.evidence.md`는 `list_tools`에서 **동적 파일 접근 권한 안내 뒤에** 붙는다. `search`와 `overview`의 규칙은 각 설명 파일에 포함돼 있다. 문구뿐 아니라 이 조합 순서도 검증 대상이다.
+`read.evidence.md`와 `grep.evidence.md`는 `list_tools`에서 **동적 파일 접근 권한 안내 뒤에** 붙는다. `search`의 규칙은 설명 파일에 포함돼 있다. 문구뿐 아니라 이 조합 순서도 검증 대상이다.
 
 Markdown 파일만 읽고 반영을 판정하지 않는다. `include_str!` 연결과 조합 순서를 확인하고, 빌드된 서버의 응답에서 문구를 확인한다. 인자 이름·필수 여부·기본값·허용값, 읽기 전용 주석, 모노레포 범위, 권한 및 출력 제한은 프롬프트 압축과 구분해 보존한다.
 
-모노레포의 `initial_instructions`는 공통 안내와 모노레포 안내 뒤에 실제 루트 개요를 붙인다. 안내 문자 수를 비교할 때는 고정 문구와 저장소별 범위·통계 출력을 구분하고, 동적 권한과 모노레포 조건도 기록한다.
+모노레포의 `initial_instructions`는 공통 안내와 모노레포 안내 뒤에 실제 범위 목록을 붙인다. 안내 문자 수를 비교할 때는 고정 문구와 저장소별 범위 출력을 구분하고, 동적 권한과 모노레포 조건도 기록한다.
 
 ## 5. 재발하면 확인할 순서
 
@@ -111,13 +101,13 @@ Markdown 파일만 읽고 반영을 판정하지 않는다. `include_str!` 연�
 1. **기준안을 고정한다.** 같은 작업의 압축 직전 안내를 기준으로 삼는다. 다른 모델, 코드, 설정, 캐시 상태의 과거 번호와 바로 비교하지 않는다.
 2. **호출 증가를 분해한다.** 총 MCP 호출에서 도구별 증감을 계산한다. `read`는 세션별 첫 파일 읽기와 같은 파일의 추가 구간 읽기로 나눈다. 전자는 “이전에 전혀 보지 못한 내용”과 같지 않다.
 3. **모델이 실제로 받은 근거를 확인한다.** 서버 원문과 바깥 도구 출력의 잘림을 구분한다. 두 번째 호출 전에 첫 결과의 필요한 부분이 전달됐는지 확인한다.
-4. **변경한 문구와 후속 행동을 연결한다.** 어떤 도구 결과 뒤에 불필요한 `overview`, 범위 확대, 재독, 잘못된 재시도가 생겼는지 세션 행과 인수로 기록한다.
+4. **변경한 문구와 후속 행동을 연결한다.** 어떤 도구 결과 뒤에 불필요한 범위 확대, 재독, 잘못된 재시도가 생겼는지 세션 행과 인수로 기록한다.
 5. **확인한 규칙만 복원한 후보를 만든다.** 전체 설명을 원복하기 전에, 영향을 받은 도구의 판단 조건을 짧게 복원한다. 이때 캐시·색인·출력 한도 코드를 함께 바꾸지 않는다.
 6. **응답 반영과 행동을 각각 검증한다.** 최종 MCP 설명이 후보와 일치하는지 먼저 확인하고, 그다음 동일 조건의 하네스로 호출 수·시간·답변 범위를 비교한다.
 
 | 관측한 현상 | 먼저 확인할 근거 | 조치 또는 분기 |
 |---|---|---|
-| 필요한 파일·행을 얻은 뒤 `overview` 증가 | 이전 출력에 유효한 위치가 실제로 있었는가 | 있었다면 도구별 직접 읽기 조건을 복원한다. 없었다면 필요한 범위 탐색으로 분류한다. |
+| 필요한 파일·행을 얻은 뒤 find·search 같은 중간 탐색 증가 | 이전 출력에 유효한 위치가 실제로 있었는가 | 있었다면 도구별 직접 읽기 조건을 복원한다. 없었다면 필요한 범위 탐색으로 분류한다. |
 | `read` 증가 | 앞선 출력의 파일·행·내용, 첫 파일 읽기와 추가 구간 비중 | 이미 충분한 근거가 있었다면 근거 재사용·종료 조건을 복원한다. 새 근거가 필요했다면 단순 중복으로 삭제하지 않는다. |
 | 같은 요청 재호출 | 첫 결과가 바깥 출력에서 잘렸거나 전달에 실패했는가 | 미전달 결과의 복구는 필요한 호출로 분류한다. 전달된 결과를 불필요하게 재조회한 경우에만 억제 규칙을 검토한다. |
 | 무결과·오류 뒤 재시도 증가 | 패턴·필터·인수 오류와 무결과 안내의 변경 | 잘못된 인수 선택을 유도한 설명이나 복구 안내를 좁혀 교정한다. 동일 요청의 무조건 반복으로 해결하지 않는다. |
