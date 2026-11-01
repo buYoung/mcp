@@ -1,9 +1,9 @@
 {
   "aggregation_rules": "Separate modes, fixed question x repetition macro denominators, separate core/extended facts; no cross-mode quality aggregation.",
-  "contract_hash": "af87cd89fc1bc421faeaf2d1ce33189281ae853d47a226f72b1fcb31f214931d",
+  "contract_hash": "e8e20776d257e0957b31e0f3346d59569c2321a7ac9379ea8fbebd81d8cd2c83",
   "dependency_hashes": {
-    "02-delivery.json": "3f8f2a79ccb1c576971dc2947b8de831ed494f1ce135e9d235824f8aca8dd0a6",
-    "05-grading.json": "ded413e30eee00fa7beda7aeaaf509b1b4cea61e6d358a4c212245752e3384f4"
+    "02-delivery.json": "65a16ad8eb97e03d7f787bd08139d7e5cce79d472a3cb3ceee1b6a1e95a9347e",
+    "05-grading.json": "44af3229c2511e553d2907640c5fb47057ec3a02e9b8ad83b2dccce3f96d87b4"
   },
   "field_provenance": {
     "bash_call_ratio": {
@@ -89,12 +89,12 @@
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "7d78dea95f8953efd3131a9862310a0fe26d41a46c7a6b3f37e4b4bacc01bb50",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "c6abfeafbcd669dbf027972d0d335e9ddc886f25bbdac6781d16a6d399394fde",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "27ff841ce70e33dc79295f78935df66dba259d964121ce96841f74884c35b88f",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1b72008fa9a46b091607e4be84f35cfae29c5447e013ade7cb809538bedc4f42",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "9b439b8100fa28cd0070ecf4ff368840afe9ab41a453908d144e71d93127ca42",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "d9c19c7fc1e65d4637582f5cb7547814acf5661662648895716a4b1981cf66c7",
     "benchmark/data/grafana-routes-v6/README.md": "b8774e894030771203d9fcea039b5ab4190e991efa5f247447c1a6cd6617ddb4",
     "benchmark/data/grafana-routes-v6/SHA256SUMS": "e0a1ca0452cdbe4a296be7151df3ea92ef50021f1d68bd7d32a5a93170e8a69b",
     "benchmark/data/grafana-routes-v6/dataset.json": "3bf5120fdc316c34fc5228e84e74a209fdf4e8d06a6fcd909ad298865f488f19",
@@ -192,10 +192,10 @@
     "planned_unique_slots": 126,
     "relay_loss": false
   },
-  "recorded_at": "2026-10-31T01:24:03.649146+00:00",
+  "recorded_at": "2026-11-01T04:47:35.509411+00:00",
   "result_schema": {
     "attempts_per_slot": 1,
-    "preview": "/Volumes/Samsung_990_PRO/wst6b/route-preparation/report-contract/report/summary.json",
+    "preview": "/Volumes/Samsung_990_PRO/wst6a1/route-preparation/report-contract/report/summary.json",
     "preview_sha256": "4a0c0035fd6602b28c6bbd1d49b9b65e484e5350ec6508f6167328221ef8c2a7",
     "slot_keys": [
       "alertmanager-config-autosync-codegraph-direct-1",

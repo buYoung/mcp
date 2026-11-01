@@ -69,7 +69,7 @@
             "-na",
             "--offline",
             "-e",
-            "/Volumes/Samsung_990_PRO/wst6b/pi-toolchain/installation/node_modules/@buyong/pi-mcp-adapter",
+            "/Volumes/Samsung_990_PRO/wst6a1/pi-toolchain/installation/node_modules/@buyong/pi-mcp-adapter",
             "--help"
           ],
           "exit_code": 0,
@@ -87,7 +87,7 @@
             "-na",
             "--offline",
             "-e",
-            "/Volumes/Samsung_990_PRO/wst6b/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
+            "/Volumes/Samsung_990_PRO/wst6a1/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
             "--list-models"
           ],
           "exit_code": 0,
@@ -116,7 +116,7 @@
         "--session-dir",
         "--thinking"
       ],
-      "toolchain_sha256": "9c94bf82e810a82cd3e246457b2beee780dab83ef86e9c5af9e5e168adb360d0",
+      "toolchain_sha256": "d6d9ca6f262b8b140a32070604b72d409cce15d12f403dd2f923c995bb38fffc",
       "version": "1.4.0",
       "versions": {
         "agent_sdk": "0.3.311",
@@ -128,9 +128,9 @@
       }
     }
   },
-  "contract_hash": "af87cd89fc1bc421faeaf2d1ce33189281ae853d47a226f72b1fcb31f214931d",
+  "contract_hash": "e8e20776d257e0957b31e0f3346d59569c2321a7ac9379ea8fbebd81d8cd2c83",
   "dependency_hashes": {
-    "01-contract.json": "4578617ac012c650f684e4f2757e6ee4f8c7337525e239a6f5cf5e1fc0e4aac8"
+    "01-contract.json": "49f7483f0ecfde898a59301e8fc50a9158e1300699da2fa04f4c8dd2bbad9b93"
   },
   "grader_runs": 0,
   "implementation_hashes": {
@@ -142,12 +142,12 @@
   },
   "input_hashes": {
     "benchmark/data/grafana-comparison-targets-v1/README.md": "7d78dea95f8953efd3131a9862310a0fe26d41a46c7a6b3f37e4b4bacc01bb50",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "c6abfeafbcd669dbf027972d0d335e9ddc886f25bbdac6781d16a6d399394fde",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "27ff841ce70e33dc79295f78935df66dba259d964121ce96841f74884c35b88f",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "a2d7d8a814f02a55b1451a7ce94ba048825396259b2e5ee29476b2e873ba322a",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "1b72008fa9a46b091607e4be84f35cfae29c5447e013ade7cb809538bedc4f42",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "9b439b8100fa28cd0070ecf4ff368840afe9ab41a453908d144e71d93127ca42",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "d9c19c7fc1e65d4637582f5cb7547814acf5661662648895716a4b1981cf66c7",
     "benchmark/data/grafana-routes-v6/README.md": "b8774e894030771203d9fcea039b5ab4190e991efa5f247447c1a6cd6617ddb4",
     "benchmark/data/grafana-routes-v6/SHA256SUMS": "e0a1ca0452cdbe4a296be7151df3ea92ef50021f1d68bd7d32a5a93170e8a69b",
     "benchmark/data/grafana-routes-v6/dataset.json": "3bf5120fdc316c34fc5228e84e74a209fdf4e8d06a6fcd909ad298865f488f19",
@@ -209,11 +209,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 34428,
+          "pgid": 84493,
           "stopped": true
         }
       ],
-      "pid": 34428,
+      "pid": 84493,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -271,16 +271,16 @@
     ],
     "probe": "rg over a copied harness source file",
     "probe_source_sha256": "3cb1999ed8a70520ee4f7572e7cb1b83d41e2b9f21c682ee0b8e4b41799dd862",
-    "protocol_log": "/Volumes/Samsung_990_PRO/wst6b/route-preparation/delivery-probe/1793409592989725000/protocol.jsonl",
+    "protocol_log": "/Volumes/Samsung_990_PRO/wst6a1/route-preparation/delivery-probe/1793508214522533000/protocol.jsonl",
     "protocol_sha256": "8975692a94b571dc7a9b5efc81aec21ce0c6241d3659d65eb5e0c3c8bf440c6f",
-    "relay_log": "/Volumes/Samsung_990_PRO/wst6b/route-preparation/delivery-probe/1793409592989725000/relay.jsonl",
-    "relay_sha256": "8e3313b631a0a2d465268985db1078dfdd9ba91d6e61587e853bf4262106a830",
+    "relay_log": "/Volumes/Samsung_990_PRO/wst6a1/route-preparation/delivery-probe/1793508214522533000/relay.jsonl",
+    "relay_sha256": "6895567967a9819b7577061bc044f2e24d3d8a7a6b66caeb07a8319d8e1cb0b2",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
     "stdout_bytes": 89111,
     "stdout_lines": 1398
   },
-  "recorded_at": "2026-10-31T01:19:59.606782+00:00",
+  "recorded_at": "2026-11-01T04:43:40.581725+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",
