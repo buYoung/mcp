@@ -28,6 +28,13 @@ const INDEXER_RETRY_DELAY_MS: u64 = 1_000;
 const INDEXER_MAX_RETRY_DELAY_MS: u64 = 30_000;
 static NEXT_PUBLICATION_ID: AtomicU64 = AtomicU64::new(1);
 
+/// Ranked results, unranked phrase matches and the snapshot of one index generation.
+pub(crate) type SearchWithPhrases = (
+    Vec<super::SearchResult>,
+    Vec<super::PhraseMatch>,
+    Arc<PublishedIndexSnapshot>,
+);
+
 /// A bounded latest-generation feed; subscribing does not request an index refresh.
 #[derive(Clone)]
 pub(crate) struct SnapshotSource {
@@ -435,6 +442,30 @@ impl IndexerHandle {
         let results =
             searcher.search_with_context_in_scope(query, limit, context, workspace_scope)?;
         Ok((results, self.snapshot.lock().unwrap().clone()))
+    }
+
+    /// The same ranked search, plus up to `phrase_rows(&results)` unranked phrase matches read
+    /// from the same generation. A recall failure keeps the ranked results without matches.
+    pub(crate) fn search_with_phrase_recall_in_scope(
+        &self,
+        searcher: &super::SearcherHandle,
+        query: &str,
+        limit: usize,
+        context: &super::SearchQueryContext,
+        workspace_scope: Option<&str>,
+        phrase_rows: impl FnOnce(&[super::SearchResult]) -> usize,
+    ) -> Result<SearchWithPhrases, String> {
+        let _generation_guard = self.generation_gate.read().unwrap();
+        let results =
+            searcher.search_with_context_in_scope(query, limit, context, workspace_scope)?;
+        let max_matches = phrase_rows(&results);
+        let phrases = searcher
+            .recall_unranked_phrases(query, workspace_scope, &results, max_matches, limit)
+            .unwrap_or_else(|error| {
+                tracing::debug!(%error, "phrase recall skipped");
+                Vec::new()
+            });
+        Ok((results, phrases, self.snapshot.lock().unwrap().clone()))
     }
 
     /// True until the initial background generation is successfully published.

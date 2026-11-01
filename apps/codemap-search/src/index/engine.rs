@@ -182,7 +182,7 @@ const INDEXED_ROOTS_FILE: &str = "indexed-roots.json";
 /// Per-literal cap on INDEXED characters (the full value stays in `extracted_json` for
 /// the detail view): a long SQL/template/fixture string would bloat the term dictionary
 /// without adding lookup value beyond its leading words.
-const INDEXED_LITERAL_MAX_CHARS: usize = 256;
+pub(super) const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 
 /// Current extraction-format version. Bump whenever the `ExtractedFile` JSON shape changes
 /// in a way that requires re-extracting on-disk source (not just a serde-compatible add).

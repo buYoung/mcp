@@ -127,6 +127,41 @@ fn tail_omission_note(omitted_count: usize) -> String {
     format!("{omitted_count} files omitted; narrow the query.\n")
 }
 
+/// Files outside the ranked results that state a query phrase in one docstring or literal.
+/// Rows use only tail rows and bytes the finished output left unused, so ranked evidence,
+/// relations and source spans stay exactly as planned.
+fn append_phrase_matches(
+    text: &mut String,
+    matches: &[crate::index::PhraseMatch],
+    free_rows: usize,
+    byte_cap: usize,
+) {
+    const HEADING: &str = "\n## Exact phrase matches outside the ranking\n";
+    let mut rows = String::new();
+    for phrase_match in matches.iter().take(free_rows) {
+        let anchor = match &phrase_match.anchor {
+            crate::index::PhraseAnchor::Docstring {
+                symbol,
+                start_line,
+                end_line,
+            } => format!("docstring of {symbol} [L{start_line}-{end_line}]"),
+            crate::index::PhraseAnchor::Literal { line } => format!("string literal [L{line}]"),
+        };
+        let row = format!(
+            "- {} ({} lines) — {anchor}\n",
+            phrase_match.file_path, phrase_match.total_lines
+        );
+        if text.len() + HEADING.len() + rows.len() + row.len() > byte_cap {
+            break;
+        }
+        rows.push_str(&row);
+    }
+    if !rows.is_empty() {
+        text.push_str(HEADING);
+        text.push_str(&rows);
+    }
+}
+
 fn compact_symbol_names(symbols: &[crate::parser::ExtractedSymbol], limit: usize) -> String {
     let mut names: Vec<&str> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
     names.sort_unstable();
@@ -676,6 +711,7 @@ pub(crate) struct DetailState {
     has_refresh_error: bool,
     search_started: std::time::Instant,
     candidates_elapsed: std::time::Duration,
+    phrase_matches: Vec<crate::index::PhraseMatch>,
     /// Masked copy of the search arguments the filter stage names in its shared state.
     search_arguments: serde_json::Value,
 }
@@ -690,7 +726,7 @@ pub(crate) fn run_inner_with_metadata(
     workspace_scope: Option<&str>,
     search_limit: usize,
 ) -> Result<SearchOutput, (i64, String)> {
-    match prepare_detail(ctx, workspace_scope, search_limit)? {
+    match prepare_detail(ctx, workspace_scope, search_limit, true)? {
         Prepared::Done(output) => Ok(output),
         Prepared::Detail(state) => Ok(finish_detail(*state, None, None).0),
     }
@@ -710,7 +746,7 @@ pub(crate) async fn run_inner_with_filter(
     policy: &jev::FilterPolicy,
 ) -> Result<(SearchOutput, Option<jev::FilterResult>), (i64, String)> {
     let selection_started = tokio::time::Instant::now();
-    let state = match prepare_detail(ctx, workspace_scope, search_limit)? {
+    let state = match prepare_detail(ctx, workspace_scope, search_limit, false)? {
         Prepared::Done(output) => return Ok((output, None)),
         Prepared::Detail(state) => state,
     };
@@ -800,11 +836,13 @@ fn masked_search_arguments(
 
 /// Plan ranking, readiness notices, source blocks and metadata under the configured budget.
 /// Large result bodies are assembled once, after any Jev selection. The budget is the
-/// same whether or not a filter follows.
+/// same whether or not a filter follows. `should_recall_phrases` also reads unranked phrase
+/// matches for the tail rows the ranked results leave unused.
 pub(crate) fn prepare_detail(
     ctx: &ToolContext,
     workspace_scope: Option<&str>,
     search_limit: usize,
+    should_recall_phrases: bool,
 ) -> Result<Prepared, (i64, String)> {
     let search_started = std::time::Instant::now();
     let query = ctx
@@ -872,25 +910,35 @@ pub(crate) fn prepare_detail(
     // initial pass finishes after we read an empty snapshot, checking again while
     // rendering would lose the warm-up notice and incorrectly report a ready no-match.
     let is_warming = ctx.engine.is_warming();
-    let (mut results, published_snapshot) = ctx
+    // Result-branch threshold: at or below it, return file details;
+    // above it, return a codemap overview. Config-driven (Child 05),
+    // default 5.
+    let result_branch_threshold = crate::config::get().result_threshold;
+    let tail_file_limit = crate::config::get().search_overview_file_limit;
+    let (mut results, mut phrase_matches, published_snapshot) = ctx
         .engine
-        .search_with_context_and_snapshot_in_scope(
+        .search_with_phrase_recall_in_scope(
             query,
             search_limit,
             &search_context,
             workspace_scope,
+            |results| {
+                if should_recall_phrases {
+                    tail_file_limit
+                        .saturating_sub(results.len().saturating_sub(result_branch_threshold))
+                } else {
+                    0
+                }
+            },
         )
         .map_err(|e| (-32603, format!("Search error: {}", e)))?;
     let candidates_elapsed = search_started.elapsed();
     if let Some(scope) = workspace_scope {
         results.retain(|result| monorepo::result_is_under_scope(result, scope));
         results.truncate(DEFAULT_SEARCH_LIMIT);
+        phrase_matches
+            .retain(|phrase_match| monorepo::path_is_under_scope(&phrase_match.file_path, scope));
     }
-
-    // Result-branch threshold: at or below it, return file details;
-    // above it, return a codemap overview. Config-driven (Child 05),
-    // default 5.
-    let result_branch_threshold = crate::config::get().result_threshold;
 
     let mut text = String::new();
     // While the initial background index builds, results can be empty or
@@ -1328,6 +1376,7 @@ pub(crate) fn prepare_detail(
         search_started,
         candidates_elapsed,
         search_arguments,
+        phrase_matches,
     })))
 }
 
@@ -1357,6 +1406,7 @@ fn finish_detail(
         search_started,
         candidates_elapsed,
         search_arguments: _,
+        phrase_matches,
     } = state;
     let workspace_scope = workspace_scope.as_deref();
     // The title ends the prepared prefix, after any warming/stale/scope notices.
@@ -1548,7 +1598,11 @@ fn finish_detail(
     } else {
         Vec::new()
     };
-    let output = SelectedSearchOutput {
+    // Tail rows the ranked tail left unused; none once the tail itself is clipped.
+    let free_tail_rows = crate::config::get()
+        .search_overview_file_limit
+        .saturating_sub(remaining_results.len());
+    let mut output = SelectedSearchOutput {
         primary: text,
         note_definition_offset,
         files: grouped_files,
@@ -1557,6 +1611,9 @@ fn finish_detail(
         call_candidate_text,
     }
     .serialize(true);
+    if !is_partial && !is_warming && !is_dead && !has_refresh_error {
+        append_phrase_matches(&mut output.text, &phrase_matches, free_tail_rows, byte_cap);
+    }
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
         output_ms = search_started

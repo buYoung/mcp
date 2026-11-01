@@ -297,6 +297,26 @@ impl EngineSupervisor {
         )
     }
 
+    /// [`Self::search_with_context_and_snapshot_in_scope`] plus unranked phrase matches read
+    /// under the same generation gate; `phrase_rows` sizes them from the ranked results.
+    pub(crate) fn search_with_phrase_recall_in_scope(
+        &self,
+        query: &str,
+        limit: usize,
+        context: &SearchQueryContext,
+        workspace_scope: Option<&str>,
+        phrase_rows: impl FnOnce(&[SearchResult]) -> usize,
+    ) -> Result<super::SearchWithPhrases, String> {
+        self.indexer.search_with_phrase_recall_in_scope(
+            &self.searcher,
+            query,
+            limit,
+            context,
+            workspace_scope,
+            phrase_rows,
+        )
+    }
+
     /// The current immutable index generation. Relation rendering reads this alongside its
     /// declaration evidence, so refreshes cannot mix codemap and edge generations.
     pub fn published_snapshot(&self) -> Arc<super::PublishedIndexSnapshot> {

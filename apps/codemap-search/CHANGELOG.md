@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 
-- Initial guidance now asks agents to verify both ends and the transfer or registration for requested cross-file behavior, state unverified links, and stop once the requested facts are established. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / +155 characters.
+- Initial guidance now asks agents to search or grep the requested concepts repo-wide before narrowing, verify the ends, transfer or registration and conditions of requested links in source, and follow missing links before stopping or state the blocker and gap. The repo-wide discovery sentence moves from the monorepo-only guidance into the shared guidance. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / +178 characters, or +72 in monorepo workspaces.
+- Search lists files outside the ranked results when one of their docstrings or string literals states a quoted query phrase or two adjacent query words, under `Exact phrase matches outside the ranking`. These rows use only tail rows and output bytes the ranked results leave unused, so ranked files, relations and source excerpts are unchanged. Single identifiers and queries with search syntax add none. Prompt-text change: 0 / 0 / 0 characters.
 - Search results share repeated deferred-body notes and callee headers after result selection, preserving source ranges and output budgets. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - `initial_instructions` returns the scope inventory without collecting or displaying statistics. Explicit `overview` calls still provide statistics when enabled. Static prompt-text change: 0 / 0 / 0 characters; the statistics block is removed from the initial result.
 

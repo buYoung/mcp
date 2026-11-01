@@ -585,7 +585,7 @@ mod tests {
     #[test]
     fn test_initial_guidance_distinguishes_locations_from_cross_file_evidence() {
         let old_sentence = "Stop when the requested facts are established.";
-        let new_sentence = "For requested cross-file behavior, verify both ends and the transfer or registration in source; a handler name is not a complete path. State unverified links. Stop once requested facts are established.";
+        let new_sentence = "For unscoped discovery, search/grep requested concepts repo-wide, then narrow. Verify requested links' ends, transfer/registration and conditions in source. Follow missing links before stopping, or state the blocker and gap.";
         let original_common = r#"Use returned source evidence directly; read only missing ranges. A known file or line needs no intermediate overview. Stop when the requested facts are established. Partial, ambiguous or list-only results are incomplete evidence, and missing indexed declarations do not prove absent source. Analysis notices do not require rereading visible code. Follow explicit truncation or recovery notices; oversized bodies need smaller read windows.
 
 Within an MCP connection, search/read/grep omit unchanged source already delivered or repeated in the same response. Find returns its complete current result on every call. New source stays. One <--removed duplicated--> marker replaces repeats. Set include_seen=true to restore the current result, including after context loss. This rule is independent of Jev.
@@ -597,13 +597,13 @@ For source-only text discovery, prefer grep view=source_grouped with expand=none
 Relationships obey scope, exclusions, freshness and shared output budgets. Source/model/candidate and precise/unresolved labels distinguish evidence; static calls, callback passing and event registration do not prove runtime execution or delivery order. Source routes distinguish callback candidates, argument transfer and data consumers without classifying events.
 
 read/find/grep state their current filesystem permission: workspace confines paths to this workspace; allowed_roots also permits the listed external roots; anywhere permits any reachable path. [REDACTED] or asterisks represent hidden values, not source or replacement code. Matching uses original data; masking cannot detect every secret format."#;
-        let expected_monorepo = "The root overview below already provides selectable scopes; do not request it again unless it reports a warming or stopped indexer. Scopes include both conventional workspaces and top-level source roots. Check language counts rather than inferring ownership from names. Confirm scope before broad changes; an explicit whole-repository request already supplies that choice. For location discovery without a chosen scope, search repo-wide first, then narrow to the implementation.";
+        let expected_monorepo = "The root overview below already provides selectable scopes; do not request it again unless it reports a warming or stopped indexer. Scopes include both conventional workspaces and top-level source roots. Check language counts rather than inferring ownership from names. Confirm scope before broad changes; an explicit whole-repository request already supplies that choice.";
         let common = include_str!("instructions/tools/initial_instructions.result.md").trim_end();
         let monorepo =
             include_str!("instructions/tools/initial_instructions.result.monorepo.md").trim_end();
 
         assert_eq!(old_sentence.chars().count(), 46);
-        assert_eq!(new_sentence.chars().count(), 201);
+        assert_eq!(new_sentence.chars().count(), 224);
         assert_eq!(original_common.chars().count(), 2_225);
         assert_eq!(
             common.replace(new_sentence, old_sentence),
@@ -611,17 +611,20 @@ read/find/grep state their current filesystem permission: workspace confines pat
             "all guidance outside the stop sentence must remain unchanged"
         );
         assert_eq!(monorepo, expected_monorepo);
+        assert_eq!(monorepo.chars().count(), 372);
         assert!(common.contains(new_sentence), "missing cross-file stop rule");
         assert_eq!(common.matches(new_sentence).count(), 1);
         assert!(!common.contains(old_sentence));
-        assert_eq!(common.chars().count(), original_common.chars().count() + 155);
-        assert_eq!(common.chars().count(), 2_380);
+        assert_eq!(common.chars().count(), original_common.chars().count() + 178);
+        assert_eq!(common.chars().count(), 2_403);
 
         let expected = if crate::codemap::looks_like_monorepo_workspace() {
             format!("{common}\n\n{expected_monorepo}")
         } else {
             common.to_string()
         };
+        // Repo-wide discovery is stated once, in the common guidance, for every workspace.
+        assert_eq!(expected.matches("repo-wide").count(), 1);
         assert_eq!(
             super::instructions(),
             super::with_related_terms_guidance(expected)
