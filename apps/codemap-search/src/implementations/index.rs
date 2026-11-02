@@ -62,7 +62,7 @@ pub(crate) struct DirectTarget<'a> {
 /// Coordinates refer to the same published symbol generation. Source text is not duplicated.
 #[derive(Clone, Debug)]
 pub(crate) struct ImplementationIndex {
-    pub(super) files: Arc<Vec<ExtractedFile>>,
+    pub(super) files: Arc<Vec<Arc<ExtractedFile>>>,
     pub(super) types: Vec<TypeNode>,
     pub(super) methods: Vec<MethodNode>,
     pub(super) parents: Vec<Vec<Parent>>,
@@ -83,13 +83,16 @@ pub(crate) struct ImplementationIndex {
 }
 
 impl ImplementationIndex {
-    pub(crate) fn build(files: Arc<Vec<ExtractedFile>>, sources: &HashMap<String, String>) -> Self {
+    pub(crate) fn build(
+        files: Arc<Vec<Arc<ExtractedFile>>>,
+        sources: &HashMap<String, String>,
+    ) -> Self {
         Self::build_at(files, sources, &std::env::current_dir().unwrap_or_default())
     }
 
     /// Builds for a workspace at `root`, where module settings such as tsconfig files live.
     pub(crate) fn build_at(
-        files: Arc<Vec<ExtractedFile>>,
+        files: Arc<Vec<Arc<ExtractedFile>>>,
         sources: &HashMap<String, String>,
         root: &std::path::Path,
     ) -> Self {

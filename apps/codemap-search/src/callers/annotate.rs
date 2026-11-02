@@ -79,7 +79,7 @@ impl NavigationMetrics {
     }
 }
 
-fn navigation_snapshot_bytes(snapshot: &[ExtractedFile]) -> usize {
+fn navigation_snapshot_bytes(snapshot: &[std::sync::Arc<ExtractedFile>]) -> usize {
     snapshot
         .iter()
         .filter_map(|file| file.navigation.as_ref())
@@ -88,7 +88,7 @@ fn navigation_snapshot_bytes(snapshot: &[ExtractedFile]) -> usize {
         .sum()
 }
 
-fn navigation_callsite_count(snapshot: &[ExtractedFile]) -> usize {
+fn navigation_callsite_count(snapshot: &[std::sync::Arc<ExtractedFile>]) -> usize {
     snapshot
         .iter()
         .filter_map(|file| file.navigation.as_ref())
@@ -96,7 +96,7 @@ fn navigation_callsite_count(snapshot: &[ExtractedFile]) -> usize {
         .sum()
 }
 
-fn navigation_receiver_callsite_count(snapshot: &[ExtractedFile]) -> usize {
+fn navigation_receiver_callsite_count(snapshot: &[std::sync::Arc<ExtractedFile>]) -> usize {
     snapshot
         .iter()
         .filter_map(|file| file.navigation.as_ref())
@@ -177,7 +177,7 @@ fn has_non_function_local_shadow(
 fn resolve_navigation_call<'a>(
     call: &CallSite,
     call_file: &'a ExtractedFile,
-    snapshot: &'a [ExtractedFile],
+    snapshot: &'a [std::sync::Arc<ExtractedFile>],
     index: &'a SymbolIndex<'a>,
     navigation_index: &NavigationIndex,
     is_member: bool,
@@ -259,7 +259,7 @@ struct ConfirmedCallers {
 fn precise_navigation_callers(
     target: &ExtractedSymbol,
     target_file_path: &str,
-    snapshot: &[ExtractedFile],
+    snapshot: &[std::sync::Arc<ExtractedFile>],
     index: &SymbolIndex<'_>,
     navigation_index: &NavigationIndex,
     call_lookup: Option<&super::CallLookup>,
@@ -330,9 +330,9 @@ fn precise_navigation_callers(
                     false,
                 )
                 .into_iter()
-                .map(|position| &snapshot[position]),
+                .map(|position| &*snapshot[position]),
         ),
-        None => Box::new(snapshot.iter()),
+        None => Box::new(snapshot.iter().map(|file| &**file)),
     };
     for call_file in candidates.filter(|file| file.navigation.is_some()) {
         let navigation = call_file.navigation.as_ref().unwrap();
@@ -508,7 +508,7 @@ fn render_symbol_annotation(
     sym: &ExtractedSymbol,
     file_path: &str,
     scan: &ScanResult,
-    snapshot: &[ExtractedFile],
+    snapshot: &[std::sync::Arc<ExtractedFile>],
     index: &SymbolIndex<'_>,
     navigation_index: &NavigationIndex,
     call_lookup: Option<&super::CallLookup>,
@@ -1074,7 +1074,7 @@ impl DetailAnnotations {
 /// Returns `None` on any setup/scan failure so the caller degrades to the un-annotated view.
 pub fn annotate_results(
     requests: &[AnnotationRequest<'_>],
-    snapshot: &[ExtractedFile],
+    snapshot: &[std::sync::Arc<ExtractedFile>],
     cfg: &CallerConfig,
     available_bytes: usize,
     root: &Path,
@@ -1093,7 +1093,7 @@ pub fn annotate_results(
 /// `implementations` must be built from `snapshot`; it proves typed member calls.
 pub(crate) fn annotate_results_with_state(
     requests: &[AnnotationRequest<'_>],
-    snapshot: &[ExtractedFile],
+    snapshot: &[std::sync::Arc<ExtractedFile>],
     cfg: &CallerConfig,
     available_bytes: usize,
     root: &Path,
@@ -1124,7 +1124,7 @@ pub(crate) fn annotate_results_with_state(
 
 pub(crate) fn annotate_live_results(
     requests: &[AnnotationRequest<'_>],
-    snapshot: &[ExtractedFile],
+    snapshot: &[std::sync::Arc<ExtractedFile>],
     cfg: &CallerConfig,
     available_bytes: usize,
     root: &Path,
@@ -1166,7 +1166,7 @@ pub(crate) struct LiveCallerLimits<'a> {
 /// unrendered annotations so every requested caller list is kept.
 pub(crate) fn annotate_live_callers(
     requests: &[AnnotationRequest<'_>],
-    snapshot: &[ExtractedFile],
+    snapshot: &[std::sync::Arc<ExtractedFile>],
     cfg: &CallerConfig,
     root: &Path,
     resolver: &super::resolution::SourceResolver<'_>,
@@ -1203,7 +1203,7 @@ struct AnnotationPresentation<'a, 'source> {
 
 fn annotate_with_presentation(
     requests: &[AnnotationRequest<'_>],
-    snapshot: &[ExtractedFile],
+    snapshot: &[std::sync::Arc<ExtractedFile>],
     cfg: &CallerConfig,
     available_bytes: usize,
     root: &Path,
@@ -1277,7 +1277,7 @@ fn annotate_with_presentation(
     let files_by_path: HashMap<&str, &ExtractedFile> = match &limits {
         Some(_) => snapshot
             .iter()
-            .map(|file| (file.file_path.as_str(), file))
+            .map(|file| (file.file_path.as_str(), &**file))
             .collect(),
         None => HashMap::new(),
     };
@@ -1411,6 +1411,7 @@ mod tests {
         let files: Vec<_> = inputs
             .iter()
             .map(|(path, source)| TreeSitterExtractor::new().extract(source, path).unwrap())
+            .map(std::sync::Arc::new)
             .collect();
         assert_eq!(
             files
@@ -1450,14 +1451,14 @@ mod tests {
     use crate::callers::fixtures::{cfg, file, has_note, note, render_in_order, sym};
     use std::path::PathBuf;
 
-    fn parsed_file(root: &Path, path: &str) -> ExtractedFile {
+    fn parsed_file(root: &Path, path: &str) -> std::sync::Arc<ExtractedFile> {
         use crate::parser::CodeExtractor;
         let source = std::fs::read_to_string(root.join(path)).unwrap();
         let mut file = crate::parser::TreeSitterExtractor::new()
             .extract(&source, path)
             .unwrap();
         file.symbols.retain(|symbol| symbol.kind == "fn");
-        file
+        std::sync::Arc::new(file)
     }
 
     fn repeated_caller_annotations() -> DetailAnnotations {

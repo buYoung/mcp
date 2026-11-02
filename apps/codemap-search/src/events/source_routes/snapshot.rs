@@ -76,7 +76,7 @@ fn locations(relation: &Relation) -> Vec<&Location> {
 
 impl Snapshot {
     pub fn build(
-        files: &[ExtractedFile],
+        files: &[std::sync::Arc<ExtractedFile>],
         sources: &HashMap<String, String>,
         root: &Path,
         max_endpoints: usize,
@@ -86,6 +86,14 @@ impl Snapshot {
         if !crate::config::get().event_navigation.is_enabled {
             return Self::default();
         }
+        // Rendering reads indexed declarations only to decide Rust cfg activation, so the cache
+        // key and the rendering both take the Rust files alone: edits elsewhere reuse the cache.
+        let files: Vec<_> = files
+            .iter()
+            .filter(|file| file.file_path.ends_with(".rs"))
+            .cloned()
+            .collect();
+        let files = files.as_slice();
         let filter = crate::callers::test_code::TestCodeFilter::from_config(root);
         let mut inputs = BTreeMap::new();
         for (path, data) in sources {
@@ -146,7 +154,7 @@ impl Snapshot {
     }
     fn from_analysis(
         analysis: Analysis,
-        files: &[ExtractedFile],
+        files: &[std::sync::Arc<ExtractedFile>],
         sources: &HashMap<String, String>,
         root: &Path,
         max_endpoints: usize,

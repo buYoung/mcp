@@ -62,7 +62,9 @@ fn selectable_scope_summaries(directories: &[DirectorySummary]) -> Vec<&Director
     scopes
 }
 
-fn file_summaries(files: &[crate::parser::ExtractedFile]) -> Vec<ExtractedFileSummary<'_>> {
+fn file_summaries(
+    files: &[std::sync::Arc<crate::parser::ExtractedFile>],
+) -> Vec<ExtractedFileSummary<'_>> {
     let mut files_summary: Vec<ExtractedFileSummary<'_>> = files
         .iter()
         .map(|file| ExtractedFileSummary {
@@ -124,7 +126,7 @@ pub(crate) struct WorkspaceCatalog {
 }
 
 impl WorkspaceCatalog {
-    pub(crate) fn new(files: &[crate::parser::ExtractedFile]) -> Self {
+    pub(crate) fn new(files: &[std::sync::Arc<crate::parser::ExtractedFile>]) -> Self {
         let summaries = file_summaries(files);
         let directories = build_directory_summaries(&summaries);
         let scopes: Vec<_> = selectable_scope_summaries(&directories)
@@ -257,21 +259,21 @@ impl WorkspaceCatalog {
 }
 
 pub fn is_ambiguous_workspace_scope_input(
-    files: &[crate::parser::ExtractedFile],
+    files: &[std::sync::Arc<crate::parser::ExtractedFile>],
     input: &str,
 ) -> bool {
     WorkspaceCatalog::new(files).is_ambiguous(input)
 }
 
 pub fn resolve_workspace_path_input(
-    files: &[crate::parser::ExtractedFile],
+    files: &[std::sync::Arc<crate::parser::ExtractedFile>],
     input: &str,
 ) -> Option<String> {
     WorkspaceCatalog::new(files).resolve_path(input)
 }
 
 pub fn workspace_scope_for_input(
-    files: &[crate::parser::ExtractedFile],
+    files: &[std::sync::Arc<crate::parser::ExtractedFile>],
     input: &str,
 ) -> Option<String> {
     WorkspaceCatalog::new(files).scope_for_input(input)
@@ -311,6 +313,8 @@ impl std::fmt::Display for WorkspaceCatalog {
     }
 }
 
-pub fn generate_root_view(files: &[crate::parser::ExtractedFile]) -> Option<String> {
+pub fn generate_root_view(
+    files: &[std::sync::Arc<crate::parser::ExtractedFile>],
+) -> Option<String> {
     WorkspaceCatalog::new(files).root_view()
 }

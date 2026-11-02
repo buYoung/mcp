@@ -86,7 +86,7 @@ pub(crate) struct CallLookup {
 }
 
 impl CallLookup {
-    pub(crate) fn build(snapshot: &[ExtractedFile]) -> Self {
+    pub(crate) fn build(snapshot: &[std::sync::Arc<ExtractedFile>]) -> Self {
         let mut lookup = Self::default();
         for (position, file) in snapshot.iter().enumerate() {
             if file.navigation.is_none() || !super::resolution::supports(&file.file_path) {
@@ -160,7 +160,7 @@ pub(super) enum SourceHintResolution {
 }
 
 pub(super) fn build_symbol_index<'a>(
-    snapshot: &'a [ExtractedFile],
+    snapshot: &'a [std::sync::Arc<ExtractedFile>],
     test_filter: Option<&'a super::test_code::TestCodeFilter>,
 ) -> SymbolIndex<'a> {
     let mut by_name: HashMap<&str, SymbolDefinitions<'_>> = HashMap::new();
@@ -197,7 +197,9 @@ pub(super) fn build_symbol_index<'a>(
     }
 }
 
-pub(super) fn build_navigation_index(snapshot: &[ExtractedFile]) -> NavigationIndex {
+pub(super) fn build_navigation_index(
+    snapshot: &[std::sync::Arc<ExtractedFile>],
+) -> NavigationIndex {
     let mut calls_by_name: HashMap<String, Vec<CallSiteAddress>> = HashMap::new();
     let mut files_by_path = HashMap::new();
     for (file_index, file) in snapshot.iter().enumerate() {
@@ -343,7 +345,7 @@ pub(super) fn lookup_source_hint_candidates<'a>(
     name: &str,
     importing_file: &str,
     source: &str,
-    snapshot: &'a [ExtractedFile],
+    snapshot: &'a [std::sync::Arc<ExtractedFile>],
     navigation_index: &NavigationIndex,
 ) -> Result<Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>, SourceHintResolution> {
     let candidates = source_candidate_paths(importing_file, source)?;
@@ -362,7 +364,7 @@ pub(super) fn lookup_source_hint_candidates<'a>(
         .symbols
         .iter()
         .filter(|sym| sym.name == name && is_callable_symbol(sym) && sym.flags.is_exported)
-        .map(|sym| (file, sym))
+        .map(|sym| (&**file, sym))
         .collect())
 }
 

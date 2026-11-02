@@ -73,7 +73,7 @@ fn append_support(entity: &mut FilterEntity, excerpt: context::SupportingContext
 }
 
 struct EvidenceFiles<'a> {
-    indexed: &'a [ExtractedFile],
+    indexed: &'a [std::sync::Arc<ExtractedFile>],
     captured: &'a [CapturedFile],
 }
 

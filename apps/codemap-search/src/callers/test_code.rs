@@ -42,7 +42,7 @@ impl Default for RegionCache {
 }
 
 impl RegionCache {
-    fn retain_snapshot(&mut self, root: &Path, snapshot: &[ExtractedFile]) {
+    fn retain_snapshot(&mut self, root: &Path, snapshot: &[std::sync::Arc<ExtractedFile>]) {
         let paths: HashSet<_> = snapshot
             .iter()
             .map(|file| root.join(&file.file_path))
@@ -455,7 +455,7 @@ impl TestCodeFilter {
         is_in_test_region(&self.regions(file_path), range)
     }
 
-    pub(crate) fn retain_snapshot_cache(&self, snapshot: &[ExtractedFile]) {
+    pub(crate) fn retain_snapshot_cache(&self, snapshot: &[std::sync::Arc<ExtractedFile>]) {
         if let Ok(mut cache) = CACHE
             .get_or_init(|| Mutex::new(RegionCache::default()))
             .lock()
@@ -466,10 +466,10 @@ impl TestCodeFilter {
 
     pub(crate) fn filter_snapshot<'a>(
         &self,
-        snapshot: &'a [ExtractedFile],
+        snapshot: &'a [std::sync::Arc<ExtractedFile>],
         should_include_file: impl Fn(&ExtractedFile) -> bool,
-    ) -> Cow<'a, [ExtractedFile]> {
-        if self.should_include && snapshot.iter().all(&should_include_file) {
+    ) -> Cow<'a, [std::sync::Arc<ExtractedFile>]> {
+        if self.should_include && snapshot.iter().all(|file| should_include_file(file)) {
             return Cow::Borrowed(snapshot);
         }
         self.retain_snapshot_cache(snapshot);
@@ -494,7 +494,7 @@ impl TestCodeFilter {
                         .imports
                         .retain(|site| !is_in_test_region(&regions, &site.range));
                 }
-                ExtractedFile {
+                std::sync::Arc::new(ExtractedFile {
                     file_path: file.file_path.clone(),
                     total_lines: file.total_lines,
                     symbols: file
@@ -507,7 +507,7 @@ impl TestCodeFilter {
                     docstrings: Vec::new(),
                     member_names: Vec::new(),
                     navigation,
-                }
+                })
             })
             .collect();
         Cow::Owned(filtered)
@@ -700,14 +700,16 @@ mod tests {
     fn large_snapshot_keeps_test_regions_between_reads_and_drops_removed_files() {
         let root = Path::new("validation-repository");
         let mut snapshot: Vec<_> = (0..1025)
-            .map(|index| ExtractedFile {
-                file_path: format!("source-{index}.ps1"),
-                total_lines: 1,
-                symbols: Vec::new(),
-                literals: Vec::new(),
-                docstrings: Vec::new(),
-                member_names: Vec::new(),
-                navigation: None,
+            .map(|index| {
+                Arc::new(ExtractedFile {
+                    file_path: format!("source-{index}.ps1"),
+                    total_lines: 1,
+                    symbols: Vec::new(),
+                    literals: Vec::new(),
+                    docstrings: Vec::new(),
+                    member_names: Vec::new(),
+                    navigation: None,
+                })
             })
             .collect();
         let mut cache = RegionCache::default();
@@ -733,7 +735,7 @@ mod tests {
 
         let removed = snapshot.pop().unwrap();
         cache.retain_snapshot(root, &snapshot);
-        assert!(!cache.entries.contains_key(&root.join(removed.file_path)));
+        assert!(!cache.entries.contains_key(&root.join(&removed.file_path)));
         for index in 0..1026 {
             cache.insert(root.join(format!("live-{index}.ps1")), entry());
         }

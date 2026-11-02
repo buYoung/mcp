@@ -43,7 +43,7 @@ struct Source {
 }
 
 pub(crate) struct SourceResolver<'a> {
-    files: &'a [ExtractedFile],
+    files: &'a [std::sync::Arc<ExtractedFile>],
     files_by_path: HashMap<&'a str, &'a ExtractedFile>,
     root: &'a Path,
     names: HashMap<&'a str, Vec<Target<'a>>>,
@@ -252,7 +252,7 @@ fn unique<'a>(targets: Vec<Target<'a>>) -> Option<Target<'a>> {
 }
 
 impl<'a> SourceResolver<'a> {
-    pub(crate) fn new(files: &'a [ExtractedFile], root: &'a Path) -> Self {
+    pub(crate) fn new(files: &'a [std::sync::Arc<ExtractedFile>], root: &'a Path) -> Self {
         let mut names: HashMap<_, Vec<_>> = HashMap::new();
         for file in files
             .iter()
@@ -271,7 +271,7 @@ impl<'a> SourceResolver<'a> {
             files_by_path: files
                 .iter()
                 .filter(|file| supports(&file.file_path))
-                .map(|file| (file.file_path.as_str(), file))
+                .map(|file| (file.file_path.as_str(), &**file))
                 .collect(),
             root,
             names,
@@ -305,7 +305,7 @@ impl<'a> SourceResolver<'a> {
     }
 
     pub(crate) fn from_stored_sources(
-        files: &'a [ExtractedFile],
+        files: &'a [std::sync::Arc<ExtractedFile>],
         root: &'a Path,
         sources: &'a HashMap<String, String>,
     ) -> Self {
@@ -1546,7 +1546,7 @@ impl Binding {
 mod tests {
     use super::*;
 
-    fn project(files: &[(&str, &str)]) -> (tempfile::TempDir, Vec<ExtractedFile>) {
+    fn project(files: &[(&str, &str)]) -> (tempfile::TempDir, Vec<std::sync::Arc<ExtractedFile>>) {
         let root = tempfile::tempdir().unwrap();
         let extractor = crate::parser::TreeSitterExtractor::new();
         let mut snapshot = Vec::new();
@@ -1555,7 +1555,9 @@ mod tests {
             std::fs::create_dir_all(full.parent().unwrap()).unwrap();
             std::fs::write(full, source).unwrap();
             if supports(path) {
-                snapshot.push(extractor.extract(source, path).unwrap());
+                snapshot.push(std::sync::Arc::new(
+                    extractor.extract(source, path).unwrap(),
+                ));
             }
         }
         (root, snapshot)
@@ -1572,7 +1574,7 @@ mod tests {
         let (mut indexed, _) = extractor.extract_for_index(indexed_text, path).unwrap();
         // Marks the indexed copy, so the test sees which extraction resolution used.
         indexed.total_lines = 99;
-        let files = vec![indexed];
+        let files = vec![std::sync::Arc::new(indexed)];
         let unchanged = SourceResolver::new(&files, root.path());
         assert_eq!(unchanged.source(path).unwrap().extracted.total_lines, 99);
         let edited_text = "export function first() {}\nexport function second() {}\n";

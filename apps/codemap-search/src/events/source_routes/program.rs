@@ -818,7 +818,7 @@ impl Program {
             let fields = source.nodes[body]
                 .fields
                 .get("type")
-                .cloned()
+                .map(<[_]>::to_vec)
                 .unwrap_or_default();
             self.tuple_fields.insert(
                 owner.into(),

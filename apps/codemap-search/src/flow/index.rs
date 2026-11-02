@@ -78,7 +78,7 @@ pub(crate) struct FlowIndex {
     #[cfg(test)]
     cache: Arc<Mutex<Cache>>,
     #[cfg(test)]
-    pub(super) codemap: Arc<Vec<ExtractedFile>>,
+    pub(super) codemap: Arc<Vec<Arc<ExtractedFile>>>,
     #[cfg(test)]
     pub(super) sources: Arc<HashMap<String, String>>,
     #[cfg(test)]
@@ -94,7 +94,7 @@ impl std::fmt::Debug for FlowIndex {
 
 impl FlowIndex {
     pub(crate) fn build(
-        codemap: Arc<Vec<ExtractedFile>>,
+        codemap: Arc<Vec<Arc<ExtractedFile>>>,
         inputs: BTreeMap<String, FlowFile>,
         sources: Arc<HashMap<String, String>>,
     ) -> Self {
@@ -110,14 +110,14 @@ impl FlowIndex {
         )
     }
     pub(crate) fn indexed(
-        codemap: Arc<Vec<ExtractedFile>>,
+        codemap: Arc<Vec<Arc<ExtractedFile>>>,
         store: IndexedFlowStore,
         sources: Arc<HashMap<String, String>>,
     ) -> Self {
         Self::new(codemap, Store::Indexed(store), sources)
     }
     fn new(
-        codemap: Arc<Vec<ExtractedFile>>,
+        codemap: Arc<Vec<Arc<ExtractedFile>>>,
         store: Store,
         sources: Arc<HashMap<String, String>>,
     ) -> Self {

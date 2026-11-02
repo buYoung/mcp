@@ -87,12 +87,12 @@ impl EventIndex {
         Arc::clone(&self.sources)
     }
 
-    pub fn build(files: &[ExtractedFile], inputs: EventInputs) -> Self {
+    pub fn build(files: &[std::sync::Arc<ExtractedFile>], inputs: EventInputs) -> Self {
         Self::build_with_cache(files, inputs, None)
     }
 
     pub(crate) fn build_with_cache(
-        files: &[ExtractedFile],
+        files: &[std::sync::Arc<ExtractedFile>],
         mut inputs: EventInputs,
         cache_directory: Option<&Path>,
     ) -> Self {

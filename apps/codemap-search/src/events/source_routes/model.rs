@@ -286,10 +286,25 @@ pub(crate) struct Summary {
     pub returns: Vec<Value>,
     pub calls: Vec<UnresolvedCall>,
 }
+impl Summary {
+    /// Whether every field matches, including each fact's `via`, which fact equality ignores.
+    pub fn is_identical(&self, other: &Self) -> bool {
+        self.receiver == other.receiver
+            && self.parameters == other.parameters
+            && self.returns == other.returns
+            && self.calls == other.calls
+            && self.facts.len() == other.facts.len()
+            && self
+                .facts
+                .iter()
+                .zip(&other.facts)
+                .all(|(left, right)| left == right && left.via == right.via)
+    }
+}
 
 /// Preserved operands permit later source resolution; the record alone is never
 /// an edge. A partial return does not erase an unresolved call's other effects.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub(crate) struct UnresolvedCall {
     pub result: Value,
     pub callee: Value,

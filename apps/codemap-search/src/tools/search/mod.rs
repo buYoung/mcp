@@ -1166,7 +1166,8 @@ pub(crate) fn prepare_detail(
                 detail_files_rendered,
                 snapshot_files
                     .iter()
-                    .find(|file| file.file_path == res.file_path),
+                    .find(|file| file.file_path == res.file_path)
+                    .map(|file| &**file),
                 projected_len,
                 file_byte_cap,
             );

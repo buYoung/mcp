@@ -173,7 +173,7 @@ pub(super) struct ScanOptions<'a> {
     /// Indexed files the filesystem watcher keeps current, with their lookup by recorded call
     /// names. They are scanned in place of a workspace walk, and one whose recorded calls hold
     /// none of the scanned names is skipped before its metadata is read.
-    pub(super) indexed_walk: Option<(&'a [ExtractedFile], &'a super::CallLookup)>,
+    pub(super) indexed_walk: Option<(&'a [std::sync::Arc<ExtractedFile>], &'a super::CallLookup)>,
 }
 
 /// Whether `display` is an indexed file that has not changed since extraction and records no

@@ -330,9 +330,11 @@ mod tests {
             .iter()
             .map(|(path, source)| (path.to_string(), source.to_string()))
             .collect();
-        let files = std::sync::Arc::new(vec![TreeSitterExtractor::new()
-            .extract(entries[0].1, entries[0].0)
-            .unwrap()]);
+        let files = std::sync::Arc::new(vec![std::sync::Arc::new(
+            TreeSitterExtractor::new()
+                .extract(entries[0].1, entries[0].0)
+                .unwrap(),
+        )]);
         let index = crate::implementations::ImplementationIndex::build(
             std::sync::Arc::clone(&files),
             &sources,

@@ -57,7 +57,10 @@ pub(super) fn build(
             contexts[i] = format!("[{path}: {reason}]\n");
             continue;
         }
-        let indexed = source_files.iter().find(|file| &file.file_path == path);
+        let indexed = source_files
+            .iter()
+            .find(|file| &file.file_path == path)
+            .map(|file| &**file);
         if let Some(notice) =
             diagnostics::unavailable(indexed, anchors[0], &root, snapshot.flows().digest(path))
         {

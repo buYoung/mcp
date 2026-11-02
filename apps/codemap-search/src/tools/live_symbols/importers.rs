@@ -321,7 +321,7 @@ fn is_top_level(file: &ExtractedFile, symbol: &ExtractedSymbol) -> bool {
 /// declaration under that bare name.
 fn add_importer(
     declaration: &mut Declaration<'_>,
-    files: &[ExtractedFile],
+    files: &[std::sync::Arc<ExtractedFile>],
     index: usize,
     reach: ImportReach,
     import: Option<&ImportEntry>,
@@ -448,7 +448,7 @@ fn module_ending(source: &str) -> (&str, &str) {
 
 /// Use lines of importing files, found in their current source within the trailer's time.
 struct Uses<'a> {
-    files: &'a [ExtractedFile],
+    files: &'a [std::sync::Arc<ExtractedFile>],
     root: &'a Path,
     deadline: Instant,
     /// Patterns wanted from each importing file, across the declarations.
@@ -463,7 +463,7 @@ struct Uses<'a> {
 
 impl<'a> Uses<'a> {
     fn new(
-        files: &'a [ExtractedFile],
+        files: &'a [std::sync::Arc<ExtractedFile>],
         root: &'a Path,
         deadline: Instant,
         declarations: &[Declaration<'_>],
@@ -614,7 +614,7 @@ type ShownImporters = (Vec<(usize, Vec<usize>)>, usize);
 /// file imports any of them, and a notice instead when the lookup stopped at its time limit
 /// before finding any.
 fn trailer_text(
-    files: &[ExtractedFile],
+    files: &[std::sync::Arc<ExtractedFile>],
     file: &ExtractedFile,
     declarations: &[Declaration<'_>],
     shown: &[ShownImporters],
@@ -656,7 +656,7 @@ fn omission_line(count: usize) -> String {
 /// `- registry L12: a/user.ts: Store.load L40, L52; b/api.ts: L3; +4 more files`, where the
 /// file itself is named by its file name at line 1.
 fn declaration_line(
-    files: &[ExtractedFile],
+    files: &[std::sync::Arc<ExtractedFile>],
     file: &ExtractedFile,
     declaration: &Declaration<'_>,
     importers: &[(usize, Vec<usize>)],

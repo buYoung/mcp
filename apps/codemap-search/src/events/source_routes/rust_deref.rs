@@ -52,7 +52,7 @@ impl Interpreter<'_, '_> {
         else {
             return receiver;
         };
-        let Some(original) = summary.receiver else {
+        let Some(original) = summary.receiver.clone() else {
             return receiver;
         };
         let target = summary.returns[0].substitute(&BTreeMap::from([(original, receiver.clone())]));
