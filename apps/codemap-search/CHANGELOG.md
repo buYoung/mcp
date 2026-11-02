@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `read view=source` adds a trailer, `[Other files importing this window's declarations (static analysis, approximate)]`, that lists the other files importing the window's exported values, classes and constants, with the functions or lines that use them. The caller trailer finds functions by name, but these declarations reach their users through imports. Each supported programming language follows its own import rule: script modules with their re-exports and renamed exports, Python modules, Go packages, Rust paths, JVM packages, C# and PHP namespaces, Swift modules, Dart libraries, Ruby and PowerShell relative loads, Lua modules, C and C++ includes, assembly `.include`, shell `source`, Nix `import` and Starlark `load`. Files in the same package, namespace or module count when they use the name. A default import, and a Vue, Svelte or Astro component import, is listed under the imported file's name at its first line. Files in nearer directories come first; each trailer stays within 1,536 bytes and 100 ms, and repeated reads fold it like the caller trailer. Setting `output.read.is_outside_callers_enabled = false` turns it off as well. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
+
 ### Improved
 
 - Initial guidance now asks agents to search or grep the requested concepts repo-wide before narrowing, verify the ends, transfer or registration and conditions of requested links in source, and follow missing links before stopping or state the blocker and gap. The repo-wide discovery sentence moves from the monorepo-only guidance into the shared guidance. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / +178 characters, or +72 in monorepo workspaces.
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A script import of a `.vue`, `.svelte` or `.astro` file now resolves to that component file, so caller resolution follows calls into the named exports of its script. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - A TypeScript type-only import specifier, `import { type Name }`, now records `Name` as the imported declaration instead of a binding called `type`, so caller resolution follows it. Indexes rebuild once. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - The caller trailer of `read view=source` no longer stops at its time limit on most reads of large workspaces. While the filesystem watcher keeps the index current, the lookup reads only indexed files whose recorded calls or imports use a looked-up name instead of walking the workspace, and caller resolution reuses the indexed extraction of a file whose content still matches the index instead of parsing it again. The listed callers are the same; they now appear in path and line order. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - Exact `event_key` searches with no hits explain the lookup scope and how to try ranked search, without silently falling back to it. Prompt-text change: −3 / 0 / 0 characters.

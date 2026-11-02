@@ -800,32 +800,32 @@ async fn test_read_lists_importers_of_window_values_folded_and_configurable() {
     let settings = "[update]\nconfig_auto_update=false\n";
     let temp = create_mock_repo(&[
         (
-            "src/client.ts",
-            "export const client = {\n  search() { return 1; },\n};\nexport type Item = { id: string };\nexport function helper() {}\n",
+            "src/registry.ts",
+            "export const registry = {\n  lookup() { return 1; },\n};\nexport type Item = { id: string };\nexport function helper() {}\n",
         ),
         (
-            "src/panel.ts",
-            "import { client, Item } from './client';\nexport function load(item: Item) {\n  return client.search();\n}\n",
+            "src/report.ts",
+            "import { registry, Item } from './registry';\nexport function render(item: Item) {\n  return registry.lookup();\n}\n",
         ),
-        ("src/index.ts", "export * from './client';\n"),
+        ("src/index.ts", "export * from './registry';\n"),
         (
             "src/view.ts",
-            "import * as api from './index';\nfunction show() {\n  api.client.search();\n}\n",
+            "import * as api from './index';\nfunction show() {\n  api.registry.lookup();\n}\n",
         ),
         (
             "src/only.ts",
-            "import { client } from './client';\nexport const value = client;\n",
+            "import { registry } from './registry';\n",
         ),
         (
-            "src/client.test.ts",
-            "import { client } from './client';\ntest('search', () => client.search());\n",
+            "src/registry.test.ts",
+            "import { registry } from './registry';\ntest('lookup', () => registry.lookup());\n",
         ),
         (".codemap/config.toml", settings),
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let header = "\n[Other files importing this window's declarations";
-    let args = serde_json::json!({"file_path":"src/client.ts","offset":1,"limit":5,"view":"source"});
+    let args = serde_json::json!({"file_path":"src/registry.ts","offset":1,"limit":5,"view":"source"});
     let first = client
         .send_tool_until(
             "read",
@@ -840,7 +840,7 @@ async fn test_read_lists_importers_of_window_values_folded_and_configurable() {
     // the function, whose callers the caller trailer covers, are not.
     assert!(
         trailer.ends_with(
-            "\n- client L1: src/only.ts: L1; src/panel.ts: load L3; src/view.ts: show L3"
+            "\n- registry L1: src/only.ts: L1; src/report.ts: render L3; src/view.ts: show L3"
         ),
         "{first}"
     );
@@ -866,6 +866,104 @@ async fn test_read_lists_importers_of_window_values_folded_and_configurable() {
         .await
         .unwrap();
     assert!(!text(&off).contains(header), "{off}");
+}
+
+#[tokio::test]
+async fn test_read_lists_importers_in_every_supported_language() {
+    let settings = format!(
+        "[update]\nconfig_auto_update=false\n{}",
+        crate::e2e::helpers::OPTIONAL_LANGUAGE_SUPPORT_CONFIG
+    );
+    // Each target declares values that another file imports, includes, sources, loads or shares
+    // a package with; the expected line names that file and where it uses the value.
+    let cases: &[(&str, &str, &str)] = &[
+        ("ts/registry.ts", "export const registry = new Map<string, number>();\nexport class Store {}\n", "- registry L1: ts/user.ts: count L4; ts/view.tsx: View L3\n- Store L2: ts/user.ts: count L3"),
+        ("ts/view.tsx", "import { registry } from './registry';\nexport function View() {\n  return <Shell value={registry} />;\n}\n", ""),
+        ("ts/index.ts", "export { registry as shared } from './registry';\n", ""),
+        ("ts/user.ts", "import { shared } from './index';\nimport { type Store } from './registry';\nexport function count(store: Store) {\n  return shared.size;\n}\n", ""),
+        ("ts/defaults.ts", "export default { ready: true };\n", "- defaults.ts L1: ts/app.ts: L2"),
+        ("ts/app.ts", "import settings from './defaults';\nexport const ready = settings.ready;\n", ""),
+        ("js/config.js", "export const options = { level: 1 };\n", "- options L1: js/use.js: level L3"),
+        ("js/use.js", "import { options } from './config.js';\nexport function level() {\n  return options.level;\n}\n", ""),
+        ("pkg/__init__.py", "", ""),
+        ("pkg/limits.py", "LIMIT = 3\nclass Window:\n    pass\n", "- LIMIT L1: pkg/use_named.py: check L3\n- Window L2: pkg/use_module.py: width L3"),
+        ("pkg/use_named.py", "from pkg.limits import LIMIT\ndef check(value):\n    return value < LIMIT\n", ""),
+        ("pkg/use_module.py", "from pkg import limits\ndef width():\n    return limits.Window()\n", ""),
+        ("go.mod", "module example.local/app\n", ""),
+        ("config/config.go", "package config\n\nvar Default = Options{}\n\ntype Options struct{}\n", "- Default L3: config/load.go: Load L4; cmd/main.go: main L6\n- Options L5: config/load.go: Load L3"),
+        ("config/load.go", "package config\n\nfunc Load() Options {\n\treturn Default\n}\n", ""),
+        ("cmd/main.go", "package main\n\nimport \"example.local/app/config\"\n\nfunc main() {\n\t_ = config.Default\n}\n", ""),
+        ("rust/Cargo.toml", "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n", ""),
+        ("rust/src/lib.rs", "pub mod limits;\npub mod user;\n", ""),
+        ("rust/src/limits.rs", "pub const LIMIT: u8 = 3;\npub struct Window;\n", "- LIMIT L1: rust/src/user.rs: check L4\n- Window L2: rust/src/user.rs: make L6, L7"),
+        ("rust/src/user.rs", "use crate::limits::LIMIT;\nuse crate::limits;\npub fn check(value: u8) -> bool {\n    value < LIMIT\n}\npub fn make() -> limits::Window {\n    limits::Window\n}\n", ""),
+        ("java/app/core/Registry.java", "package app.core;\npublic class Registry {}\n", "- Registry L2: java/app/core/Cache.java: L3; java/app/web/Handler.java: L4"),
+        ("java/app/core/Cache.java", "package app.core;\nclass Cache {\n  Registry owner;\n}\n", ""),
+        ("java/app/web/Handler.java", "package app.web;\nimport app.core.Registry;\npublic class Handler {\n  Registry registry = new Registry();\n}\n", ""),
+        ("kotlin/app/kcore/Settings.kt", "package app.kcore\nobject Settings\n", "- Settings L2: kotlin/app/web/Use.kt: current L3"),
+        ("kotlin/app/web/Use.kt", "package app.web\nimport app.kcore.Settings\nfun current() = Settings\n", ""),
+        ("scala/app/score/Settings.scala", "package app.score\nobject Settings\n", "- Settings L2: scala/app/web/Use.scala: Use.current L4"),
+        ("scala/app/web/Use.scala", "package app.web\nimport app.score.Settings\nobject Use {\n  def current = Settings\n}\n", ""),
+        ("groovy/app/gcore/Settings.groovy", "package app.gcore\nclass Settings {}\n", "- Settings L2: groovy/app/web/Use.groovy: Use.current L4"),
+        ("groovy/app/web/Use.groovy", "package app.web\nimport app.gcore.Settings\nclass Use {\n  def current() { new Settings() }\n}\n", ""),
+        ("cs/Core/Settings.cs", "namespace App.Core {\n  public class Settings {}\n}\n", "- Settings L2: cs/Web/Use.cs: Use.Current L4"),
+        ("cs/Web/Use.cs", "using App.Core;\nnamespace App.Web {\n  public class Use {\n    public Settings Current() { return new Settings(); }\n  }\n}\n", ""),
+        ("php/Core/Settings.php", "<?php\nnamespace App\\Core;\nclass Settings {}\n", "- Settings L3: php/Web/Use.php: current L5"),
+        ("php/Web/Use.php", "<?php\nnamespace App\\Web;\nuse App\\Core\\Settings;\nfunction current() {\n  return new Settings();\n}\n", ""),
+        ("swift/Sources/Core/Settings.swift", "public class Settings {}\n", "- Settings L1: swift/Sources/App/Use.swift: current L2, L3"),
+        ("swift/Sources/App/Use.swift", "import Core\nfunc current() -> Settings {\n  return Settings()\n}\n", ""),
+        ("dart/lib/settings.dart", "class Settings {}\n", "- Settings L1: dart/lib/use.dart: current L2"),
+        ("dart/lib/use.dart", "import 'settings.dart';\nSettings current() => Settings();\n", ""),
+        ("ruby/lib/settings.rb", "class Settings\nend\n", "- Settings L1: ruby/app.rb: current L3"),
+        ("ruby/app.rb", "require_relative 'lib/settings'\ndef current\n  Settings.new\nend\n", ""),
+        ("lua/settings.lua", "local M = {}\nM.level = 1\nreturn M\n", "- settings.lua L1: lua/use.lua: level L3"),
+        ("lua/use.lua", "local settings = require(\"settings\")\nlocal function level()\n  return settings.level\nend\n", ""),
+        ("ps/lib.ps1", "class Settings {}\n", "- Settings L1: ps/main.ps1: Get-Level L3"),
+        ("ps/main.ps1", ". \"$PSScriptRoot/lib.ps1\"\nfunction Get-Level {\n  return [Settings]::new()\n}\n", ""),
+        ("c/config.h", "struct settings { int level; };\n#define MAX_LEVEL 4\n", "- settings L1: c/main.c: main L3\n- MAX_LEVEL L2: c/main.c: main L3"),
+        ("c/main.c", "#include \"config.h\"\nint main(void) {\n  struct settings s = { MAX_LEVEL };\n  return s.level;\n}\n", ""),
+        ("cpp/settings.hpp", "namespace app { class Settings {}; }\n", "- Settings L1: cpp/main.cpp: main L3"),
+        ("cpp/main.cpp", "#include \"settings.hpp\"\nint main() {\n  app::Settings s;\n  return 0;\n}\n", ""),
+        ("asm/defs.s", ".macro SAVE\n.endm\n", "- SAVE L1: asm/main.s: L2"),
+        ("asm/main.s", ".include \"defs.s\"\nSAVE\n", ""),
+        ("sh/lib.sh", "DEFAULT_LEVEL=3\nlog_info() { echo \"$1\"; }\n", "- DEFAULT_LEVEL L1: sh/main.sh: L2\n- log_info L2: sh/main.sh: L2"),
+        ("sh/main.sh", "source ./lib.sh\nlog_info \"$DEFAULT_LEVEL\"\n", ""),
+        ("zsh/lib.zsh", "log_info() { print \"$1\"; }\n", "- log_info L1: zsh/main.zsh: L2"),
+        ("zsh/main.zsh", "source ./lib.zsh\nlog_info done\n", ""),
+        ("nix/lib.nix", "{ level = 3; }\n", "- lib.nix L1: nix/default.nix: L1"),
+        ("nix/default.nix", "let lib = import ./lib.nix; in lib.level\n", ""),
+        ("bzl/defs.bzl", "def app_rule(name):\n    pass\n", "- app_rule L1: bzl/BUILD.bazel: L2"),
+        ("bzl/BUILD.bazel", "load(\"//bzl:defs.bzl\", \"app_rule\")\napp_rule(name = \"app\")\n", ""),
+        ("vue/Widget.vue", "<script setup lang=\"ts\">\nconst level = 1\n</script>\n<template><p>{{ level }}</p></template>\n", "- Widget.vue L1: vue/App.vue: L2"),
+        ("vue/App.vue", "<script setup lang=\"ts\">\nimport Widget from './Widget.vue'\n</script>\n<template><Widget /></template>\n", ""),
+        ("svelte/Widget.svelte", "<script>\n  export let level = 1;\n</script>\n<p>{level}</p>\n", "- Widget.svelte L1: svelte/App.svelte: L2"),
+        ("svelte/App.svelte", "<script>\n  import Widget from './Widget.svelte';\n</script>\n<Widget level={2} />\n", ""),
+        ("astro/Card.astro", "---\nconst title = 'x';\n---\n<h1>{title}</h1>\n", "- Card.astro L1: astro/Page.astro: L2"),
+        ("astro/Page.astro", "---\nimport Card from './Card.astro';\n---\n<Card />\n", ""),
+    ];
+    let mut files: Vec<(&str, &str)> = cases.iter().map(|(path, source, _)| (*path, *source)).collect();
+    files.push((".codemap/config.toml", &settings));
+    let temp = create_mock_repo(&files).unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let header = "\n[Other files importing this window's declarations";
+    let mut failures = Vec::new();
+    for (path, _, expected) in cases.iter().filter(|(_, _, expected)| !expected.is_empty()) {
+        let args = serde_json::json!({"file_path": path, "offset": 1, "limit": 20, "view": "source"});
+        let out = client
+            .send_tool_until("read", call("read", args)["arguments"].clone(), |out| {
+                out.contains(header)
+            })
+            .await;
+        let out = out.map(|out| text(&out)).unwrap_or_else(|error| error);
+        let trailer = out.find(header).map_or("(no trailer)", |at| &out[at + 1..]);
+        if !expected
+            .lines()
+            .all(|expected| trailer.lines().any(|line| line == expected))
+        {
+            failures.push(format!("{path}: expected {expected:?} in\n{trailer}"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
 }
 
 #[tokio::test]

@@ -13,6 +13,7 @@ use crate::parser::{CallSite, CodeRange, ExtractedFile, ExtractedSymbol, ImportK
 use super::source::SourceSyntax;
 
 mod local;
+pub(crate) use local::{may_reach_unnamed, ImportReach};
 mod rust_cfg;
 mod rust_files;
 use rust_cfg::Condition;
