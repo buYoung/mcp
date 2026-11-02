@@ -11,9 +11,9 @@ pub mod find;
 pub mod grep;
 pub(crate) mod live_options;
 pub(crate) mod live_symbols;
-pub mod overview;
 pub(crate) mod path_suggestions;
 pub mod read;
+pub(crate) mod root_inventory;
 pub mod search;
 pub(crate) mod synonyms;
 pub mod task;
@@ -22,7 +22,7 @@ use crate::index::EngineSupervisor;
 use serde_json::Value;
 use std::path::Path;
 
-/// Borrowed request context for the snapshot-backed tools (`search`/`overview`). The MCP
+/// Borrowed request context for the snapshot-backed `search` tool. The MCP
 /// dispatch arm runs the `EngineSupervisor` lifecycle (`ensure_alive`/`trigger_refresh`)
 /// itself, then hands the tool body an immutable engine borrow plus the parsed arguments;
 /// the tool reads the committed snapshot through `engine` and never needs `&mut`. The
@@ -30,7 +30,6 @@ use std::path::Path;
 pub struct ToolContext<'a> {
     pub engine: &'a EngineSupervisor,
     pub arguments: &'a Value,
-    pub active_workspace_scope: Option<&'a str>,
 }
 
 // --- Shared gitignore-style glob matching (find + grep) --------------------------------
@@ -280,10 +279,10 @@ pub(crate) fn reject_body_task_query(arguments: &Value) -> Result<(), (i64, Stri
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
-/// overview rendered from the current index snapshot. The caller owns lifecycle handling and
-/// invokes this only for monorepos, preserving the non-monorepo response unchanged.
-pub fn instructions_with_root_overview(root_overview: &str) -> String {
-    format!("{}\n\n{}", instructions(), root_overview)
+/// scope inventory rendered from the current index snapshot. The caller owns lifecycle handling
+/// and invokes this only for monorepos, preserving the non-monorepo response unchanged.
+pub fn instructions_with_root_inventory(root_inventory: &str) -> String {
+    format!("{}\n\n{}", instructions(), root_inventory)
 }
 
 pub(super) fn grep_regex_guidance() -> &'static str {
@@ -319,7 +318,7 @@ fn filesystem_tool_description(
 /// The MCP `tools/list` result: tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
 /// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`.
-/// Read/grep/overview use `<name>.jev.md` when their Jev stage is enabled. Task registration
+/// Read/grep use `<name>.jev.md` when their Jev stage is enabled. Task registration
 /// has its own tool; `initial_instructions` has no arguments.
 /// Live filesystem tools append their currently configured permission policy. Tool descriptions
 /// own selection and tool-specific output details; property descriptions own argument contracts.
@@ -384,12 +383,6 @@ pub fn list_tools() -> Value {
         )
     };
     let search_description = include_str!("instructions/tools/search.md").trim_end();
-    let overview_description = if jev.is_enabled_for("overview") {
-        include_str!("instructions/tools/overview.jev.md")
-    } else {
-        include_str!("instructions/tools/overview.md")
-    }
-    .trim_end();
     // Read-only stays true: neither stage writes anywhere. The open-world hint follows the
     // effective enable flag of this request, because an enabled stage may contact the
     // external provider even when no key is present at this moment.
@@ -411,7 +404,7 @@ pub fn list_tools() -> Value {
                 "workspace_scope".to_string(),
                 serde_json::json!({
                     "type": "string",
-                    "description": "Override the active overview scope with a listed path or unique basename; subdirectories stay narrow and files select their parent. Omit to retain the active scope; 'all'/'전체' searches repo-wide. Never widens automatically. Alias: scope."
+                    "description": "Limit the search to a scope listed by initial_instructions, by path or unique basename; subdirectories stay narrow and files select their parent. Omit or use 'all'/'전체' for repo-wide search. Never widens automatically. Alias: scope."
                 }),
             );
         }
@@ -421,24 +414,12 @@ pub fn list_tools() -> Value {
                     {
                         "name": "initial_instructions",
                         "description": include_str!("instructions/tools/initial_instructions.md").trim_end(),
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                        "inputSchema": { "type": "object", "properties": {}, "required": [], "additionalProperties": false }
-                    },
-                    {
-                        "name": "overview",
-                        "description": overview_description,
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.is_enabled_for("overview") },
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
-                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
-                            }
-                        }
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "inputSchema": { "type": "object", "properties": {}, "required": [], "additionalProperties": false }
                     },
                     {
                         "name": "search",
@@ -585,7 +566,12 @@ mod tests {
     #[test]
     fn test_initial_guidance_distinguishes_locations_from_cross_file_evidence() {
         let old_sentence = "Stop when the requested facts are established.";
-        let new_sentence = "For requested cross-file behavior, verify both ends and the transfer or registration in source; a handler name is not a complete path. State unverified links. Stop once requested facts are established.";
+        let new_sentence = "For unscoped discovery, search/grep requested concepts repo-wide, then narrow. Verify requested links' ends, transfer/registration and conditions in source. Follow missing links before stopping, or state the blocker and gap.";
+        // The overview tool is removed, so the sentence pointing away from it goes too.
+        let overview_sentence = " A known file or line needs no intermediate overview.";
+        // Read trailers now find callers and importers, so following them depends on the question.
+        let old_trailer_sentence = "A read view=source may end with callers from outside the window for the functions it shows; follow them to find what reaches a function (entry points).";
+        let new_trailer_sentence = "A read view=source may end with callers from outside the window for the functions it shows and with other files importing its declarations; these are static uses, so follow the ones the question needs to find what reaches or uses that code.";
         let original_common = r#"Use returned source evidence directly; read only missing ranges. A known file or line needs no intermediate overview. Stop when the requested facts are established. Partial, ambiguous or list-only results are incomplete evidence, and missing indexed declarations do not prove absent source. Analysis notices do not require rereading visible code. Follow explicit truncation or recovery notices; oversized bodies need smaller read windows.
 
 Within an MCP connection, search/read/grep omit unchanged source already delivered or repeated in the same response. Find returns its complete current result on every call. New source stays. One <--removed duplicated--> marker replaces repeats. Set include_seen=true to restore the current result, including after context loss. This rule is independent of Jev.
@@ -597,31 +583,43 @@ For source-only text discovery, prefer grep view=source_grouped with expand=none
 Relationships obey scope, exclusions, freshness and shared output budgets. Source/model/candidate and precise/unresolved labels distinguish evidence; static calls, callback passing and event registration do not prove runtime execution or delivery order. Source routes distinguish callback candidates, argument transfer and data consumers without classifying events.
 
 read/find/grep state their current filesystem permission: workspace confines paths to this workspace; allowed_roots also permits the listed external roots; anywhere permits any reachable path. [REDACTED] or asterisks represent hidden values, not source or replacement code. Matching uses original data; masking cannot detect every secret format."#;
-        let expected_monorepo = "The root overview below already provides selectable scopes; do not request it again unless it reports a warming or stopped indexer. Scopes include both conventional workspaces and top-level source roots. Check language counts rather than inferring ownership from names. Confirm scope before broad changes; an explicit whole-repository request already supplies that choice. For location discovery without a chosen scope, search repo-wide first, then narrow to the implementation.";
+        let expected_monorepo = "The scope inventory below lists selectable scopes; call initial_instructions again only if it reports a warming indexer. Scopes include both conventional workspaces and top-level source roots. Check language counts rather than inferring ownership from names. Confirm scope before broad changes; an explicit whole-repository request already supplies that choice.";
         let common = include_str!("instructions/tools/initial_instructions.result.md").trim_end();
         let monorepo =
             include_str!("instructions/tools/initial_instructions.result.monorepo.md").trim_end();
 
         assert_eq!(old_sentence.chars().count(), 46);
-        assert_eq!(new_sentence.chars().count(), 201);
+        assert_eq!(new_sentence.chars().count(), 224);
         assert_eq!(original_common.chars().count(), 2_225);
+        assert_eq!(overview_sentence.chars().count(), 53);
+        assert_eq!(old_trailer_sentence.chars().count(), 151);
+        assert_eq!(new_trailer_sentence.chars().count(), 240);
         assert_eq!(
-            common.replace(new_sentence, old_sentence),
-            original_common,
-            "all guidance outside the stop sentence must remain unchanged"
+            common
+                .replace(new_sentence, old_sentence)
+                .replace(new_trailer_sentence, old_trailer_sentence),
+            original_common.replace(overview_sentence, ""),
+            "all guidance outside the stop, overview and read trailer sentences must remain unchanged"
         );
+        assert_eq!(common.matches(new_trailer_sentence).count(), 1);
         assert_eq!(monorepo, expected_monorepo);
+        assert_eq!(monorepo.chars().count(), 361);
         assert!(common.contains(new_sentence), "missing cross-file stop rule");
         assert_eq!(common.matches(new_sentence).count(), 1);
         assert!(!common.contains(old_sentence));
-        assert_eq!(common.chars().count(), original_common.chars().count() + 155);
-        assert_eq!(common.chars().count(), 2_380);
+        assert_eq!(
+            common.chars().count(),
+            original_common.chars().count() + 178 - 53 + 89
+        );
+        assert_eq!(common.chars().count(), 2_439);
 
         let expected = if crate::codemap::looks_like_monorepo_workspace() {
             format!("{common}\n\n{expected_monorepo}")
         } else {
             common.to_string()
         };
+        // Repo-wide discovery is stated once, in the common guidance, for every workspace.
+        assert_eq!(expected.matches("repo-wide").count(), 1);
         assert_eq!(
             super::instructions(),
             super::with_related_terms_guidance(expected)

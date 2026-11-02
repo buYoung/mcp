@@ -60,18 +60,6 @@ settings![
         ""
     ),
     (
-        "output.overview",
-        "is_stats_enabled",
-        "is_overview_stats_enabled",
-        "tool_output"
-    ),
-    (
-        "output.overview",
-        "max_bytes",
-        "overview_output_byte_cap",
-        ""
-    ),
-    (
         "output.search",
         "detail_file_limit",
         "result_threshold",
@@ -540,7 +528,6 @@ fn order_tables(table: &mut Table, path: &str, next: &mut isize) {
         ],
         "output" => &[
             "client",
-            "overview",
             "search",
             "read",
             "grep",
@@ -654,7 +641,7 @@ pub(super) fn migrate_jev_filters(
         ("enabled", "enabled = false"),
         (
             "scope",
-            "scope = [\"overview\", \"search\", \"read\", \"grep\"]",
+            "scope = [\"search\", \"read\", \"grep\"]",
         ),
     ] {
         if !table.contains_key(key) && !super::file_mentions_key(&table.to_string(), key) {
@@ -662,6 +649,44 @@ pub(super) fn migrate_jev_filters(
         }
     }
     Ok(generated::refresh(&document.to_string()))
+}
+
+/// v33 drops the settings of the removed `overview` tool: `[output.overview]`, the flat pre-v29
+/// statistics switch, Jev's `overview` scope entry and its legacy switch. Like other retired
+/// entries, their comments move to the parent section, where the comment refresh drops
+/// recognized generated prose and keeps user notes.
+pub(super) fn remove_overview_settings(contents: &str) -> Result<String, String> {
+    let mut document: DocumentMut = contents
+        .parse()
+        .map_err(|error: toml_edit::TomlError| error.to_string())?;
+    for (section, key, target) in [
+        ("output", "overview", "output"),
+        ("tool_output", "is_overview_stats_enabled", "output"),
+        ("output.jev", "overview_filter_enabled", "output.jev"),
+    ] {
+        if section_at(&document, section).is_none() {
+            continue;
+        }
+        let Some((key, item)) = table_at_mut(document.as_table_mut(), section)?.remove_entry(key)
+        else {
+            continue;
+        };
+        if let Some(entries) = item.as_table_like() {
+            for (name, _) in entries.iter() {
+                if let Some((inner_key, inner_item)) = entries.get_key_value(name) {
+                    comments::move_section(&mut document, inner_key, inner_item, target)?;
+                }
+            }
+        }
+        comments::move_section(&mut document, &key, &item, target)?;
+    }
+    if section_at(&document, "output.jev").is_some() {
+        let table = table_at_mut(document.as_table_mut(), "output.jev")?;
+        if let Some(scope) = table.get_mut("scope").and_then(Item::as_array_mut) {
+            scope.retain(|value| value.as_str() != Some("overview"));
+        }
+    }
+    Ok(document.to_string())
 }
 
 /// Files already past the v29 layout pass still carry the generated prose of their release;
@@ -741,7 +766,6 @@ pub(super) fn migrate(contents: &str, path: &Path) -> Result<String, String> {
     for section in [
         "output",
         "output.client",
-        "output.overview",
         "output.search",
         "output.read",
         "output.grep",

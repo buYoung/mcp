@@ -241,23 +241,6 @@ fn load(
     file: &ExtractedFile,
     exclusions: &crate::callers::test_code::TestCodeFilter,
 ) -> Option<CapturedFile> {
-    load_source(file, exclusions, false)
-}
-
-/// Overview declarations belong to the committed snapshot. Reject a changed buffer
-/// before pairing its bodies with the already rendered declaration rows.
-pub(super) fn load_indexed(
-    file: &ExtractedFile,
-    exclusions: &crate::callers::test_code::TestCodeFilter,
-) -> Option<CapturedFile> {
-    load_source(file, exclusions, true)
-}
-
-fn load_source(
-    file: &ExtractedFile,
-    exclusions: &crate::callers::test_code::TestCodeFilter,
-    should_verify_digest: bool,
-) -> Option<CapturedFile> {
     let path = crate::workspace::resolve_for_filesystem_tool(
         &file.file_path,
         crate::workspace::FilesystemTool::Read,
@@ -271,17 +254,6 @@ fn load_source(
         return None;
     }
     let mut source = crate::workspace::read_source_for_parse(&path)?.into_bytes();
-    if should_verify_digest
-        && file
-            .navigation
-            .as_ref()?
-            .implementations
-            .as_ref()?
-            .source_digest
-            != crate::implementations::digest(&source)
-    {
-        return None;
-    }
     exclusions.mask_source(&file.file_path, &mut source);
     CapturedFile::new(&file.file_path, &String::from_utf8(source).ok()?)
 }

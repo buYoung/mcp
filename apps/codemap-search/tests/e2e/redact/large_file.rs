@@ -124,7 +124,12 @@ async fn test_redact_ten_secrets_in_ten_thousand_line_file() {
 
     let mut client = McpClient::spawn(repo.path()).await.unwrap();
     let started = Instant::now();
-    let ready = call(&mut client, "overview", json!({"path":FILE_PATH})).await;
+    let ready = call(
+        &mut client,
+        "read",
+        json!({"file_path":FILE_PATH, "offset":1, "limit":1}),
+    )
+    .await;
     assert!(text(&ready).contains("loadLargeFixture"));
     eprintln!(
         "large redaction fixture: index warm-up={}ms",

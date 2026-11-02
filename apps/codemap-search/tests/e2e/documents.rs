@@ -127,18 +127,6 @@ async fn test_document_support_runtime_toggle_converges_index_while_live_tools_r
         .unwrap();
     assert!(response_text(&direct_read).contains("Document Feature"));
 
-    let disabled_overview = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "overview",
-                "arguments": {}
-            }),
-        )
-        .await
-        .unwrap();
-    assert!(!response_text(&disabled_overview).contains("guide.md"));
-
     fs::write(temp.path().join(".codemap/config.toml"), config(true)).unwrap();
     let enabled_search = client
         .send_tool_until(
@@ -154,20 +142,20 @@ async fn test_document_support_runtime_toggle_converges_index_while_live_tools_r
         assert!(!enabled_text.contains(excluded), "{enabled_text}");
     }
 
-    let overview = client
+    let definitions = client
         .send_request(
             "tools/call",
             serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "docs/guide.md" }
+                "name": "read",
+                "arguments": { "file_path": "docs/guide.md", "view": "definitions", "include_seen": true }
             }),
         )
         .await
         .unwrap();
-    let overview_text = response_text(&overview);
+    let definitions_text = response_text(&definitions);
     assert!(
-        overview_text.contains("Document Feature"),
-        "{overview_text}"
+        definitions_text.contains("Document Feature"),
+        "{definitions_text}"
     );
 
     tokio::time::sleep(Duration::from_millis(1200)).await;

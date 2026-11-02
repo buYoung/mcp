@@ -1,5 +1,5 @@
-//! `[output.jev]`: optional decision-model selection for search/read/grep and non-root
-//! overview, through TypeSafe Jev or an OpenRouter decision model (`model` selects which).
+//! `[output.jev]`: optional decision-model selection for search/read/grep, through TypeSafe
+//! Jev or an OpenRouter decision model (`model` selects which).
 //! `enabled` is the master switch; `scope` selects eligible output tools. Off by default.
 //! Register the full task once through `register_task`; enabled stages automatically
 //! use it for eligible calls. The API key comes from the separate `auth.toml` file
@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
 
-pub(super) const TOOLS: [&str; 4] = ["overview", "search", "read", "grep"];
+pub(super) const TOOLS: [&str; 3] = ["search", "read", "grep"];
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JevConfig {
@@ -116,9 +116,13 @@ fn as_scope(value: &toml::Value, path: &Path) -> Option<Vec<String>> {
     };
     let mut scope = Vec::new();
     for value in values {
+        // The removed overview tool selects nothing; unmigrated files keep their other tools.
+        if value.as_str() == Some("overview") {
+            continue;
+        }
         let Some(tool) = value.as_str().filter(|tool| TOOLS.contains(tool)) else {
             super::warn(&format!(
-                "config 'output.jev.scope' accepts only overview, search, read and grep: {} — ignored",
+                "config 'output.jev.scope' accepts only search, read and grep: {} — ignored",
                 path.display()
             ));
             return None;

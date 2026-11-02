@@ -213,6 +213,13 @@ pub(crate) trait LanguageSpec: Sync {
     /// `export { ... }` specifiers; ASM `.globl`/`.global` directives). Default: no-op.
     fn collect_exported_names(&self, _root: Node, _source: &[u8], _out: &mut HashSet<String>) {}
 
+    /// Exports that rename a declaration or binding (TS/JS `export { name as alias }`, with or
+    /// without `from`): the alias as the local name, the original as the imported name.
+    /// Default: none.
+    fn renamed_exports(&self, _root: Node, _source: &[u8]) -> Vec<crate::parser::ImportEntry> {
+        Vec::new()
+    }
+
     /// Refine a single-capture symbol kind that depends on the node itself (Go `type_spec`,
     /// Kotlin `class`/`interface`). `capture_name` is the query capture; `kind` is the
     /// already-resolved static kind. Default: return `kind` unchanged.
@@ -805,6 +812,31 @@ pub(crate) fn has_annotation(node: Node, target: &str, source: &[u8]) -> bool {
     false
 }
 
+/// The text of a declaration's own `modifiers` child, or empty without one. Shared by the
+/// Groovy and Scala specs.
+pub(crate) fn modifiers_text<'source>(node: Node, source: &'source [u8]) -> &'source str {
+    let mut cursor = node.walk();
+    let modifiers = node
+        .children(&mut cursor)
+        .find(|child| child.kind() == "modifiers");
+    modifiers
+        .and_then(|modifiers| modifiers.utf8_text(source).ok())
+        .unwrap_or_default()
+}
+
+/// The literal rest of a sourced script path after its computed leading part, as `lib/x.sh` in
+/// `$(dirname "$0")/lib/x.sh` or `..\x.ps1` in `$PSScriptRoot\..\x.ps1`; the whole path when
+/// no part is computed. `None` when its last part is computed too, as in `$dir/$name.sh`.
+pub(crate) fn literal_path_tail(path: &str) -> Option<&str> {
+    if !path.contains(['$', '`']) {
+        return Some(path);
+    }
+    let computed = path.rfind(['$', ')', '}', '`'])?;
+    let separator = computed + path[computed..].find(['/', '\\'])?;
+    let tail = path[separator + 1..].trim_matches(['"', '\'']);
+    (!tail.is_empty()).then_some(tail)
+}
+
 /// Recursively: does `node`'s subtree contain a `marker_annotation` / `annotation` whose
 /// simple name equals `target`? Compares the simple name so `@org.junit.Test` matches and
 /// `@TestFactory` does not. Shared by Java and Kotlin specs.
@@ -879,6 +911,23 @@ pub(crate) fn generic_find_owner<S: LanguageSpec + ?Sized>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sourced_paths_keep_the_literal_rest_after_a_computed_leading_part() {
+        let cases = [
+            ("./lib.sh", Some("./lib.sh")),
+            ("$(dirname \"$0\")/lib.sh", Some("lib.sh")),
+            ("$ROOT/$LIBDIR/core/common.bash", Some("core/common.bash")),
+            ("${0:A:h}/lib.zsh", Some("lib.zsh")),
+            ("$DIR\"/lib.sh", Some("lib.sh")),
+            ("$PSScriptRoot\\..\\src\\lib.ps1", Some("..\\src\\lib.ps1")),
+            ("$dir/$name.sh", None),
+            ("$module", None),
+        ];
+        for (path, expected) in cases {
+            assert_eq!(literal_path_tail(path), expected, "{path}");
+        }
+    }
 
     #[test]
     fn fifth_priority_language_hints_and_extensions_are_registered() {

@@ -94,8 +94,8 @@ pi install npm:@buyong/pi-mcp-adapter
 
 ## 첫 연결 확인
 
-1. 클라이언트에서 `initial_instructions({})`를 한 번 호출합니다. Jev 설정과 관계없이 인자를 받지 않으며 탐색 안내와 루트 개요를 반환합니다. 모노레포에서는 선택 가능한 범위와 언어를 표시합니다.
-2. 표시된 경로가 원하는 저장소인지 확인합니다. 색인 준비 중 안내가 나오면 완료 후 `overview`를 다시 호출합니다.
+1. 클라이언트에서 `initial_instructions({})`를 한 번 호출합니다. Jev 설정과 관계없이 인자를 받지 않으며 탐색 안내를 반환합니다. 모노레포에서는 선택 가능한 범위와 언어도 표시합니다.
+2. 표시된 경로가 원하는 저장소인지 확인합니다. 색인 준비 중 안내가 나오면 완료 후 다시 호출합니다.
 3. 알고 있는 소스 파일을 `find`로 찾습니다. `read`나 `search`의 활성화된 [Jev 필터](#선택적-jev-판단-단계)를 쓰기 전에는 아래 계약에 맞춰 `register_task`를 한 번 호출합니다. 그다음 파일을 `read`로 읽고, 색인이 완료된 뒤 알려진 심볼을 `search`로 검색해 같은 파일이 나오는지 확인합니다.
 
 바이너리를 찾지 못하면 클라이언트의 `PATH`를, 다른 저장소가 나오면 작업 디렉터리를 확인하세요. 시작·설정 오류는 stderr 로그에 표시하며 stdout은 MCP JSON-RPC 전용입니다.
@@ -119,11 +119,10 @@ MCP 초기화 시 또는 설정 변경을 다시 읽은 뒤 다음 요청에서 
 |---|---|---|
 | `initial_instructions` | 등록한 작업을 바꾸지 않고 탐색 안내 반환 | 없음; `{}`로 호출 |
 | `register_task` | 켜진 Jev 필터를 쓰기 전에 작업 등록. Jev가 켜졌을 때만 목록에 나옴 | `task_query`, `questions`(필수), `match` |
-| `overview` | 저장소·폴더·파일 구조 확인; 저장소 루트와 모노레포 프로젝트 루트는 기본적으로 색인 파일 언어 통계 포함 | `path`, `format` |
 | `search` | 순위가 매겨진 심볼과 발췌로 구현 찾기 | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | glob 또는 basename 정규식으로 파일·폴더 찾기, 최근 수정 순 | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | 실제 파일을 정규식으로 검색 | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
-| `read` | 줄 번호와 함께 여러 원문 범위 읽기 | `file_path`, `offset`, `limit` 또는 `ranges` |
+| `read` | 줄 번호와 함께 여러 원문 범위 읽기, `view=definitions`로 파일의 선언 목록 보기 | `file_path`, `offset`, `limit` 또는 `ranges`; `view` |
 | `analyze` | 인덱스 용량 또는 기록된 읽기 동작을 압축 JSON으로 분석 | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 | `synonyms` (선택형) | 로컬 뜻 사전에서 분야·주제별 대체 이름 조회 | `terms`: 선별한 검색 의미 단위 또는 한 개념을 이루는 기술 용어 1–16개 |
 
@@ -135,13 +134,13 @@ MCP 초기화 시 또는 설정 변경을 다시 읽은 뒤 다음 요청에서 
 
 MCP 도구 `search`·`read`·`grep`은 공통 불리언 옵션 `include_seen`을 제공하며 기본값은 `false`입니다. 이미 전달한 변경 없는 소스와 같은 응답 안의 반복 소스를 생략합니다. 새 원문은 유지하고 응답마다(`read ranges`에서는 각 범위마다) `<--removed duplicated-->` 안내를 한 번만 남깁니다. `include_seen=true`는 이 중복 제거만 우회하며 Jev·마스킹·출력 상한은 그대로 적용합니다. `find`는 중복 제거에서 제외하며 매번 현재 결과를 반환합니다. 전달 이력은 연결별로 관리하고 초기화·작업 등록·설정 변경 시 지웁니다. 파일이 바뀌면 새 원문을 반환하며 Jev가 꺼져 있어도 중복 제거는 적용됩니다.
 
-저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. 프로젝트 루트는 해당 프로젝트의 색인 파일만 집계합니다. `[output.overview].is_stats_enabled = false`이면 해당 섹션을 생략합니다. 집계 불가·대기 파일이 있으면 부분 결과로 표시합니다.
-
 동작이나 구현 위치를 찾을 때는 `search`, 정확한 식별자·주석·방금 수정한 내용에는 `grep`을 사용합니다. `grep.pattern`은 정규식이므로 코드의 특수문자를 그대로 찾으려면 이스케이프해야 합니다. JSON 문자열 이스케이프는 별도입니다. `grep` 기본 출력은 줄 번호가 있는 `content`이고, `files_with_matches`와 `count`는 경로 또는 개수를 반환합니다. `read`는 `path`/`file`/`query`, 1부터 시작하는 양끝 포함 `start_line`/`end_line` 또는 `start`/`end` 별칭과 camel/kebab 변형도 받습니다.
 
 알려진 여러 범위는 `{"ranges":[{"file_path":"src/main.rs","offset":10,"limit":20},{"file_path":"src/lib.rs","offset":40,"limit":15}],"view":"source"}`처럼 `ranges`로 한 번에 읽습니다. 최상위 `file_path`(별칭 포함) 대신 1~20개 항목을 넣습니다. 각 항목은 같은 경로·범위 별칭을 받으며 최상위 `view`, `expand`, `include_seen` 등 공통 옵션이 모든 항목에 적용됩니다. 경로·요청 범위 제목과 함께 입력 순서대로 반환하고 항목 오류 뒤에도 계속합니다. 합산 결과는 read·클라이언트 바이트 한도를 지키며, 넘치면 항목 전체를 미루고 처음 생략한 범위를 안내합니다. [요청별 출력 제어](./docs/configuration.ko.md#readgrep-요청별-출력-제어)를 참고하세요.
 
-모노레포에서 `overview`로 선택한 폴더는 이후 `search`의 범위가 됩니다. 파일은 부모 폴더를 선택합니다. 명시적 `workspace_scope`가 우선하며 `all`/`전체`는 저장소 전체입니다. 구현 위치를 모르면 읽기 전용 전체 검색으로 시작해 실제 경로를 확인한 뒤 좁힙니다. 선택된 범위는 임의로 확대하지 않습니다. 상위 결과는 상세 발췌, 나머지는 제한된 목록으로 표시합니다. 출력이 잘리면 질의를 좁히거나 안내된 줄 범위를 읽으세요.
+모노레포에서는 `initial_instructions`가 선택 가능한 범위를 보여 줍니다. 그중 하나를 `workspace_scope`로 넘기면 그 `search` 호출은 해당 범위 안에서만 찾습니다. 파일은 부모 폴더를 선택하며, 생략하거나 `all`/`전체`를 넘기면 저장소 전체를 찾습니다. 구현 위치를 모르면 읽기 전용 전체 검색으로 시작해 실제 경로를 확인한 뒤 좁힙니다. 선택된 범위는 임의로 확대하지 않습니다. 상위 결과는 상세 발췌, 나머지는 제한된 목록으로 표시합니다. 출력이 잘리면 질의를 좁히거나 안내된 줄 범위를 읽으세요.
+
+일반 `search` 질의는 순위 결과 밖의 파일도 `## Exact phrase matches outside the ranking` 아래에 보여 줄 수 있습니다. 파일의 docstring이나 색인된 문자열 리터럴 하나에 질의의 따옴표 구절이나 인접한 두 단어가 그대로 있으면 표시합니다. 예: `- src/events/publisher.rs (82 lines) — docstring of EventPublisher [L23-26]`. 적은 파일에만 있는 구절부터 찾고, 구절마다 파일을 최대 하나 더하며, 같은 파일은 한 번만 표시합니다. 너무 많은 파일에 있는 구절은 건너뜁니다. 이 행은 순위 결과가 남긴 파일 행(`output.search.overview_file_limit`)과 출력 바이트(`output.search.max_bytes`)만 쓰므로 순위 파일, 관계, 소스 발췌는 바뀌지 않습니다. 선택한 `workspace_scope` 밖의 파일은 표시하지 않습니다. 식별자 하나만 찾는 질의, Boolean 연산자나 필드 필터 같은 검색 문법을 쓴 질의, Jev 필터가 켜진 검색, 부분 출력, 준비 중이거나 쓸 수 없거나 갱신에 실패한 색인에서는 행을 추가하지 않습니다. 행은 구절이 글자 그대로 일치한다는 뜻이므로, 질문에 맞는지는 파일을 읽고 판단하세요.
 
 MCP `read`·`grep`은 원문과 함께 해당 범위를 감싸는 선언과 호출 관계를 표시합니다. 호출 대상이 정해지면 정의 파일과 줄 번호를 붙입니다. 같은 파일의 상수 참조에는 정의 위치와 초기값 미리보기를 표시하고, 이름이 모호하면 생략합니다. 색인 정보는 최근 편집을 아직 반영하지 않았을 수 있습니다.
 
@@ -178,11 +177,11 @@ MCP는 시작 시 존재하는 설정 디렉터리를 감시해 약 1000ms 후 �
 
 ## 선택적 Jev 판단 단계
 
-Jev는 search·read·grep의 완전한 함수 본문을 등록한 작업 질문으로 판단하며 기본으로 꺼져 있습니다. `output.jev.enabled=true`로 켜고 `scope`로 적용 도구를 선택합니다(기본 `["overview", "search", "read", "grep"]`). `enabled=false`이면 모든 필터를 끄고, `scope=[]`이면 아무 도구에도 적용하지 않습니다. API 키는 `.codemap/auth.toml`의 `[jev].api_key`에 저장합니다. 전역 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)도 지원하며, 저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수 순서로 읽습니다. 인증 파일은 색인과 기본 find/grep에서 제외합니다. `openai/gpt-6-luna-decisions` 같은 OpenRouter decision 모델을 쓰려면 `output.jev.model`에 지정하고 OpenRouter 키를 `[openrouter].api_key`(대체값 `OPENROUTER_API_KEY`)에 저장합니다. 이 키는 OpenRouter Decisions API로만 보내며, decision을 지원하지 않는 모델은 OpenRouter가 거부합니다. 기본 모델은 `jev-1.14.0`입니다. [OpenRouter decision 모델](./docs/configuration.ko.md#openrouter-decision-모델)을 참고하세요.
+Jev는 search·read·grep의 완전한 함수 본문을 등록한 작업 질문으로 판단하며 기본으로 꺼져 있습니다. `output.jev.enabled=true`로 켜고 `scope`로 적용 도구를 선택합니다(기본 `["search", "read", "grep"]`). `enabled=false`이면 모든 필터를 끄고, `scope=[]`이면 아무 도구에도 적용하지 않습니다. API 키는 `.codemap/auth.toml`의 `[jev].api_key`에 저장합니다. 전역 `$CODEMAP_HOME/auth.toml`(미지정 시 `~/.codemap/auth.toml`)도 지원하며, 저장소 auth → 전역 auth → 고정된 `TYPESAFE_API_KEY` 환경 변수 순서로 읽습니다. 인증 파일은 색인과 기본 find/grep에서 제외합니다. `openai/gpt-6-luna-decisions` 같은 OpenRouter decision 모델을 쓰려면 `output.jev.model`에 지정하고 OpenRouter 키를 `[openrouter].api_key`(대체값 `OPENROUTER_API_KEY`)에 저장합니다. 이 키는 OpenRouter Decisions API로만 보내며, decision을 지원하지 않는 모델은 OpenRouter가 거부합니다. 기본 모델은 `jev-1.14.0`입니다. [OpenRouter decision 모델](./docs/configuration.ko.md#openrouter-decision-모델)을 참고하세요.
 
 주 에이전트는 켜진 필터를 쓰기 전에 작업의 대상·방향·범위를 보존한 `task_query`와 집중된 예/아니오 질문 목록 `questions`를 `register_task`에 한 번 등록합니다. 질문마다 `question`, `when_true`, `when_false`를 넣습니다. ID는 서버가 생성하며 `match`는 `all`(기본) 또는 `any`로 지정합니다. 작업이 바뀌면 다시 등록하며, 검색어가 작업 질문을 대체하지 않습니다. 텍스트만 등록하면 인수 오류를 반환합니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다.
 
-켜진 search·read·grep 필터는 마스킹한 목적·질문·함수 근거를 선택한 제공자(TypeSafe 또는 OpenRouter)에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. 루트 외 overview는 같은 기준으로 선언 목록을 걸러내며, 판정용 본문은 응답과 중복 제거 이력에 넣지 않습니다. `initial_instructions`·루트 overview·find는 로컬 도구로 유지하며 작업 등록이 필요하지 않습니다. Jev 생략 없이 read로 복구하려면 `output.jev.scope`에서 `"read"`를 빼거나 `output.jev.enabled=false`로 끕니다. `include_seen=true`는 공통 중복 제거만 우회합니다. 제공자 실패 시 일반 선택 결과를 유지하며, 독립적인 MCP 중복 전달 규칙은 그대로 적용됩니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
+켜진 search·read·grep 필터는 마스킹한 목적·질문·함수 근거를 선택한 제공자(TypeSafe 또는 OpenRouter)에 전송하고 개별 판단을 코드에서 조합합니다. 불확실한 근거는 유지하고 생략한 본문에는 원래 소스 위치를 남깁니다. `initial_instructions`와 find는 로컬 도구로 유지하며 작업 등록이 필요하지 않습니다. Jev 생략 없이 read로 복구하려면 `output.jev.scope`에서 `"read"`를 빼거나 `output.jev.enabled=false`로 끕니다. `include_seen=true`는 공통 중복 제거만 우회합니다. 제공자 실패 시 일반 선택 결과를 유지하며, 독립적인 MCP 중복 전달 규칙은 그대로 적용됩니다. 등록 예시·한도·불확실성·진단은 [Jev 참조](./docs/configuration.ko.md#선택적-jev-판단-단계)를 참고하세요.
 
 ## 지원 언어와 형식
 
@@ -266,7 +265,7 @@ MCP `analyze` 도구도 현재 작업공간에 같은 분석을 제공합니다.
 
 ## 색인·진단·제한
 
-MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 기본값 `[index] mode = "auto"`에서는 첫 `search`, `overview`, `read`, `grep` 호출 때 색인을 시작하며, 색인 대상 파일이 50,000개 이하인 저장소 안에서만 색인합니다. 저장소 여러 개를 담은 폴더 같은 그 밖의 폴더에서는 `search`·`overview`가 색인하지 않는 이유를 알려 줍니다. 그래도 색인하려면 `mode = "on"`을 설정하세요([색인 시작 시점](./docs/configuration.ko.md#색인-시작-시점) 참고). 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신하며, ignore 파일이 숨기는 경로는 건너뜁니다. Git HEAD 변경, ignore 파일 변경, 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`·`overview`가 `index.refresh.index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
+MCP 서버는 기본적으로 `.codemap/index`에 색인을 생성하거나 기존 색인을 읽습니다. 기본값 `[index] mode = "auto"`에서는 첫 `search`, `read`, `grep` 호출 때 색인을 시작하며, 색인 대상 파일이 50,000개 이하인 저장소 안에서만 색인합니다. 저장소 여러 개를 담은 폴더 같은 그 밖의 폴더에서는 `search`가 색인하지 않는 이유를 알려 줍니다. 그래도 색인하려면 `mode = "on"`을 설정하세요([색인 시작 시점](./docs/configuration.ko.md#색인-시작-시점) 참고). 정상적인 파일 감시자는 편집 이벤트를 기본 500ms 동안 모아 해당 경로만 갱신하며, ignore 파일이 숨기는 경로는 건너뜁니다. Git HEAD 변경, ignore 파일 변경, 큰 변경 묶음은 전체 탐색으로 처리합니다. 감시가 꺼져 있거나 사용할 수 없으면 `search`가 `index.refresh.index_staleness_ms`에 따른 요청 기반 갱신을 사용합니다. `read`, `find`, `grep`은 디스크를 직접 읽습니다.
 
 - `index.max_file_bytes` 기본값인 1 MiB보다 큰 파일은 색인·코드맵에서 건너뜁니다.
 - `.txt`, 잠금 파일, source map, 압축·번들 파일에는 별도 파일 제외 규칙이 있습니다. `find`·`grep`의 `include_ignored`로 우회할 수 있고, 직접 `read`·`parse`도 가능합니다.

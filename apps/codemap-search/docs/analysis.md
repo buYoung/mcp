@@ -70,7 +70,7 @@ Totals cover all matching files, not just the displayed page. An activity path f
 - **`Response`** measures final masked content text or error messages, including declarations, relations, headings and omission notes, but excluding JSON framing.
 - **Processing time** covers server request handling, excluding SQLite recording and client/network time.
 
-`find`, `overview`, `analyze` and internal indexing reads are not recorded. Client-side truncation and actual model consumption are not observable. Do not equate returned bytes with model tokens or assume every returned line was consumed.
+`find`, `analyze` and internal indexing reads are not recorded. Client-side truncation and actual model consumption are not observable. Do not equate returned bytes with model tokens or assume every returned line was consumed.
 
 ## Recording, retention and failures
 

@@ -206,13 +206,12 @@ pub struct FilterInput {
     pub supporting_sources: HashMap<usize, String>,
 }
 
-/// Body output is indivisible; overview rows can be selected independently of their
-/// enclosing declaration. This distinction changes rendering safety, not relevance.
+/// Body output is indivisible: an omission removes a whole body, never part of one. The unit
+/// is part of each request so the provider sees what an omission removes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectionUnit {
     Body,
-    Declaration,
 }
 
 fn symbol_key(symbol: &BlockSymbol) -> (String, usize, usize) {
@@ -511,14 +510,11 @@ impl FilterInput {
     /// Retention known before inference. A judgment cannot shrink these bodies.
     fn deterministic_retention(&self, index: usize) -> Option<RetentionReason> {
         let entity = &self.entities[index];
-        if self.selection_unit == SelectionUnit::Body && !entity.is_callable {
+        if !entity.is_callable {
             return Some(RetentionReason::NotCallable);
         }
         if entity.evidence != EvidenceStatus::Complete {
             return Some(RetentionReason::IncompleteEvidence(entity.evidence));
-        }
-        if self.selection_unit == SelectionUnit::Declaration {
-            return None;
         }
         if omission_note(entity).len() >= entity.body_bytes {
             return Some(RetentionReason::TooSmallToOmit);
@@ -546,9 +542,7 @@ impl FilterInput {
             .iter()
             .enumerate()
             .filter(|(index, entity)| {
-                (entity.is_judgeable()
-                    || (self.selection_unit == SelectionUnit::Declaration
-                        && entity.evidence == EvidenceStatus::Complete))
+                entity.is_judgeable()
                     && (self.deterministic_retention(*index).is_none()
                     // A small/covered function may still decide whether a neighboring
                     // shrinkable body supplies direct support. Do not skip that judgment.
@@ -576,9 +570,7 @@ impl FilterInput {
         {
             if !entity.is_callable {
                 summary.non_callable += 1;
-                if self.selection_unit == SelectionUnit::Body {
-                    continue;
-                }
+                continue;
             }
             match entity.evidence {
                 EvidenceStatus::Complete => summary.complete += 1,
@@ -761,8 +753,7 @@ pub fn apply_policy(
             }
             let entity = &input.entities[index];
             let nested = entity.parent.filter(|parent| {
-                input.selection_unit == SelectionUnit::Body
-                    && reasons[*parent].is_some()
+                reasons[*parent].is_some()
                     && input.entities[*parent]
                         .displayed
                         .is_some_and(|(first, last)| {

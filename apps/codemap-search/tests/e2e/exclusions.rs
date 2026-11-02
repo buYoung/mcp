@@ -3,7 +3,7 @@ use predicates::prelude::PredicateBooleanExt;
 use serde_json::{json, Value};
 use std::fs;
 
-const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 32";
+const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 33";
 
 fn result_text(response: &Value) -> &str {
     response["result"]["content"][0]["text"].as_str().unwrap()
@@ -37,7 +37,6 @@ async fn test_auth_files_are_excluded_by_default_but_explicit_access_is_preserve
             "grep",
             json!({"pattern": "api_key", "output_mode": "files_with_matches"}),
         ),
-        ("overview", json!({})),
         (
             "search",
             json!({"query": "api_key", "workspace_scope": "all"}),
@@ -348,8 +347,6 @@ async fn test_exclusions_manual_reload_reconciles_index_without_source_edits() {
     );
     let bypass = call(&mut client, "grep", json!({"pattern": "exclusion_probe", "include_ignored": true, "output_mode": "files_with_matches"})).await;
     assert!(result_text(&bypass).contains("hidden.rs"));
-    let overview = call(&mut client, "overview", json!({"path": "apps/web/build"})).await;
-    assert!(!result_text(&overview).contains("hidden.rs"));
     run_cli(&["codemap", "--path", "apps/web/build"], repo.path())
         .success()
         .stdout(predicates::str::contains("hidden.rs").not());

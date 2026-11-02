@@ -385,6 +385,165 @@ rules=[
     );
 }
 
+/// One language's declarations for the phrase-recall fixtures: a doc-commented declaration and
+/// a declaration holding one string literal, plus the docstring and literal phrases it plants.
+struct PhraseLanguage {
+    extension: &'static str,
+    header: &'static str,
+    docstring_phrase: [&'static str; 2],
+    literal_phrase: [&'static str; 2],
+    documented: fn(&str, &str) -> String,
+    literal: fn(&str, &str) -> String,
+}
+
+const PHRASE_LANGUAGES: [PhraseLanguage; 5] = [
+    PhraseLanguage {
+        extension: "rs",
+        header: "",
+        docstring_phrase: ["lease", "renewal"],
+        literal_phrase: ["buffer", "rotation"],
+        documented: |doc, name| format!("/// {doc}\npub fn {name}() {{}}\n"),
+        literal: |name, value| format!("pub const {name}: &str = \"{value}\";\n"),
+    },
+    PhraseLanguage {
+        extension: "ts",
+        header: "",
+        docstring_phrase: ["palette", "lookup"],
+        literal_phrase: ["request", "envelope"],
+        documented: |doc, name| format!("/** {doc} */\nexport function {name}(): void {{}}\n"),
+        literal: |name, value| format!("export const {name} = \"{value}\";\n"),
+    },
+    PhraseLanguage {
+        extension: "py",
+        header: "",
+        docstring_phrase: ["cache", "eviction"],
+        literal_phrase: ["batch", "checkpoint"],
+        documented: |doc, name| format!("def {name}():\n    \"\"\"{doc}\"\"\"\n    return None\n\n"),
+        literal: |name, value| format!("{name} = \"{value}\"\n"),
+    },
+    PhraseLanguage {
+        extension: "go",
+        header: "package fixture\n\n",
+        docstring_phrase: ["quota", "refresh"],
+        literal_phrase: ["cursor", "rewind"],
+        documented: |doc, name| format!("// {doc}\nfunc {name}() {{}}\n\n"),
+        literal: |name, value| format!("const {name} = \"{value}\"\n"),
+    },
+    PhraseLanguage {
+        extension: "java",
+        header: "",
+        docstring_phrase: ["retry", "window"],
+        literal_phrase: ["schema", "migration"],
+        documented: |doc, name| format!("/** {doc} */\nclass {name} {{}}\n"),
+        literal: |name, value| {
+            format!("class {name} {{\n    static final String STATE = \"{value}\";\n}}\n")
+        },
+    },
+];
+
+/// A two-workspace repository: 110 noise files whose symbols and docstrings carry every query
+/// word, but never as a planted phrase, outrank the planted records and fill the ranked pool.
+fn phrase_recall_repo(language: &PhraseLanguage, search_config: &str) -> tempfile::TempDir {
+    let [a, b] = language.docstring_phrase;
+    let [c, d] = language.literal_phrase;
+    let file = |body: String| format!("{}{body}", language.header);
+    let doc = language.documented;
+    let mut files: Vec<(String, String)> = (0..110)
+        .map(|index| {
+            let note = format!("Worker pool notes: {b} then {a}, also {d} then {c}.");
+            (
+                format!("apps/noise/n{index}.{}", language.extension),
+                file(doc(&note, &format!("worker_{a}_{b}_{c}_{d}_{index}"))),
+            )
+        })
+        .collect();
+    let ext = language.extension;
+    files.extend([
+        (format!("apps/planted/doc.{ext}"), file(doc(&format!("Coordinates the {a} {b} schedule."), "coordinate"))),
+        (format!("apps/planted/literal.{ext}"), file((language.literal)("state_note", &format!("{c} {d} pending")))),
+        (format!("apps/planted/split.{ext}"), file(doc(&format!("Tracks the {a}."), "track_hold") + &doc(&format!("{d} happens later."), "track_later"))),
+        (format!("apps/planted/repeat.{ext}"), file(doc("Shared worker notes index.", "shared_index"))),
+        (format!("apps/planted/common.{ext}"), file(doc("Shared worker pool limits.", "pool_limits"))),
+        (".codemap/config.toml".into(), format!("[update]\nconfig_auto_update=false\n[search]\n{search_config}")),
+    ]);
+    let borrowed: Vec<_> = files.iter().map(|(path, content)| (path.as_str(), content.as_str())).collect();
+    create_mock_repo(&borrowed).unwrap()
+}
+
+const PHRASE_HEADING: &str = "\n## Exact phrase matches outside the ranking\n";
+
+async fn phrase_search(client: &mut crate::e2e::helpers::McpClient, arguments: serde_json::Value) -> String {
+    // An empty ranked result is a valid ready answer (a qualified name with no indexed match).
+    let is_ready = |text: &str| !text.contains("warming up") && (text.contains("# codemap-search") || text.starts_with("No indexed matches"));
+    let response = client.send_tool_until("search", arguments.clone(), is_ready).await.unwrap();
+    let output = response["result"]["content"][0]["text"].as_str().unwrap().to_string();
+    assert!(is_ready(&output) && response["result"]["isError"] != true, "{arguments}: ready search results expected: {output}");
+    output
+}
+
+#[tokio::test]
+async fn test_search_recalls_buried_indexed_phrases_without_displacing_ranked_results() {
+    for language in &PHRASE_LANGUAGES {
+        let [a, b] = language.docstring_phrase;
+        let [c, d] = language.literal_phrase;
+        let ext = language.extension;
+        let temp = phrase_recall_repo(language, "");
+        let mut client = crate::e2e::helpers::McpClient::spawn(temp.path()).await.unwrap();
+        let positives = [
+            (format!("worker {a} {b}"), format!("- apps/planted/doc.{ext} ("), "docstring of coordinate [L"),
+            (format!("worker \"{a} {b}\""), format!("- apps/planted/doc.{ext} ("), "docstring of coordinate [L"),
+            (format!("worker {c} {d}"), format!("- apps/planted/literal.{ext} ("), "string literal [L"),
+            (format!("worker \"{c} {d}\""), format!("- apps/planted/literal.{ext} ("), "string literal [L"),
+        ];
+        for (query, row, anchor) in positives {
+            let output = phrase_search(&mut client, serde_json::json!({"query": query, "workspace_scope": "all", "caller_context": false})).await;
+            let (ranked, recalled) = output.split_once(PHRASE_HEADING).unwrap_or_else(|| panic!("{ext} {query}: {output}"));
+            // The ranked pool stays full of noise: 24 detail files and the 76-file tail.
+            assert!(ranked.contains("## Other matches — 76 more files"), "{ext} {query}: {ranked}");
+            assert!(!ranked.contains("apps/planted/doc.") && !ranked.contains("apps/planted/literal."), "{ext} {query}: {ranked}");
+            let rows: Vec<&str> = recalled.lines().collect();
+            assert!(rows.len() <= 4, "{ext} {query}: only the 4 unused tail rows: {recalled}");
+            assert!(rows.iter().any(|line| line.starts_with(&row) && line.contains(anchor)), "{ext} {query}: {recalled}");
+            assert!(!recalled.contains("apps/planted/split.") && !recalled.contains("apps/planted/repeat."), "{ext} {query}: {recalled}");
+        }
+        let negatives = [
+            // A phrase split across two records is never joined.
+            format!("worker {a} {d}"),
+            // Reversed, interrupted, repeated and cross-quote pairs are not query phrases.
+            format!("worker {b} {a}"),
+            format!("worker {a} pending {b}"),
+            format!("{a} worker {a} notes"),
+            format!("\"worker {a}\" \"{b} clock\""),
+            format!("worker \"{a} {b} clock\""),
+            // Single identifiers and search syntax keep their existing meaning only.
+            "coordinate".to_string(),
+            "planted.coordinate".to_string(),
+            format!("worker AND {a} {b}"),
+            format!("docstring:{a} {b}"),
+            format!("worker -{a} {b}"),
+            format!("worker \"{a} {b}"),
+            format!("worker \\\"{a} {b}\\\""),
+            // A phrase in more files than the candidate pool adds nothing.
+            "worker pool".to_string(),
+        ];
+        for query in negatives {
+            let output = phrase_search(&mut client, serde_json::json!({"query": query, "workspace_scope": "all", "caller_context": false})).await;
+            assert!(!output.contains(PHRASE_HEADING), "{ext} {query}: {output}");
+        }
+        // An explicit scope never admits a phrase match from outside it.
+        let output = phrase_search(&mut client, serde_json::json!({"query": format!("worker {a} {b}"), "workspace_scope": "apps/noise", "caller_context": false})).await;
+        assert!(!output.contains(PHRASE_HEADING) && !output.contains("apps/planted/"), "{ext}: {output}");
+        drop(client);
+        // Without unused tail rows or output bytes, the ranked output is all there is.
+        for config in ["result_threshold=2\n", "search_detail_byte_cap=12000\n"] {
+            let temp = phrase_recall_repo(language, config);
+            let mut client = crate::e2e::helpers::McpClient::spawn(temp.path()).await.unwrap();
+            let output = phrase_search(&mut client, serde_json::json!({"query": format!("worker {a} {b}"), "workspace_scope": "all", "caller_context": false})).await;
+            assert!(!output.contains(PHRASE_HEADING) && !output.contains("apps/planted/doc."), "{ext} {config}: {output}");
+        }
+    }
+}
+
 #[test]
 fn test_explicit_filename_is_recalled_after_common_symbols_fill_the_primary_pool() {
     let mut fixtures: Vec<(String, String)> = (0..40)

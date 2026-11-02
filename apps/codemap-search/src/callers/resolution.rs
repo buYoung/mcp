@@ -13,6 +13,7 @@ use crate::parser::{CallSite, CodeRange, ExtractedFile, ExtractedSymbol, ImportK
 use super::source::SourceSyntax;
 
 mod local;
+pub(crate) use local::{may_reach_unnamed, ImportReach};
 mod rust_cfg;
 mod rust_files;
 use rust_cfg::Condition;
@@ -396,12 +397,20 @@ impl<'a> SourceResolver<'a> {
             return source.clone();
         }
         let source = self.read_source(file).and_then(|text| {
+            let digest = crate::implementations::digest(text.as_bytes());
             let mut bytes = text.into_bytes();
             self.test_filter.mask_source(file, &mut bytes);
             let text = String::from_utf8(bytes).ok()?;
-            let extracted = crate::parser::TreeSitterExtractor::new()
-                .extract_for_resolution(&text, file)
-                .ok()?;
+            let is_unmasked = crate::implementations::digest(text.as_bytes()) == digest;
+            let extracted = match self
+                .indexed_extraction(file, &digest)
+                .filter(|_| is_unmasked)
+            {
+                Some(extracted) => extracted,
+                None => crate::parser::TreeSitterExtractor::new()
+                    .extract_for_resolution(&text, file)
+                    .ok()?,
+            };
             SourceSyntax::parse(file, text.as_bytes()).map(|syntax| {
                 Rc::new(Source {
                     text,
@@ -414,6 +423,40 @@ impl<'a> SourceResolver<'a> {
             .borrow_mut()
             .insert(file.to_string(), source.clone());
         source
+    }
+
+    /// The indexed extraction of `file` when the index read the same source, `digest`, as
+    /// extracting it again for resolution would: no parse is needed. Files the index expanded
+    /// or preprocessed differ from their source and are extracted again.
+    fn indexed_extraction(&self, file: &str, digest: &str) -> Option<ExtractedFile> {
+        if self.stored_sources.is_some() {
+            return None;
+        }
+        let indexed = self.files_by_path.get(file)?;
+        let navigation = indexed.navigation.as_ref()?;
+        if navigation.macro_expansion.is_some()
+            || navigation.implementations.as_ref()?.source_digest != digest
+        {
+            return None;
+        }
+        Some(ExtractedFile {
+            file_path: indexed.file_path.clone(),
+            total_lines: indexed.total_lines,
+            symbols: indexed.symbols.clone(),
+            literals: indexed.literals.clone(),
+            docstrings: indexed.docstrings.clone(),
+            member_names: indexed.member_names.clone(),
+            navigation: Some(crate::parser::NavigationFile {
+                implementations: None,
+                macro_expansion: None,
+                calls: navigation.calls.clone(),
+                references: navigation.references.clone(),
+                local_bindings: navigation.local_bindings.clone(),
+                imports: navigation.imports.clone(),
+                renamed_exports: navigation.renamed_exports.clone(),
+                key_sites: Vec::new(),
+            }),
+        })
     }
 
     fn file(&self, path: &Path) -> Option<&'a ExtractedFile> {
@@ -1516,6 +1559,29 @@ mod tests {
             }
         }
         (root, snapshot)
+    }
+
+    #[test]
+    fn unchanged_indexed_files_reuse_their_extraction_and_edited_files_extract_again() {
+        let root = tempfile::tempdir().unwrap();
+        let path = "src/module.ts";
+        let indexed_text = "export function first() {}\n";
+        std::fs::create_dir_all(root.path().join("src")).unwrap();
+        std::fs::write(root.path().join(path), indexed_text).unwrap();
+        let extractor = crate::parser::TreeSitterExtractor::new();
+        let (mut indexed, _) = extractor.extract_for_index(indexed_text, path).unwrap();
+        // Marks the indexed copy, so the test sees which extraction resolution used.
+        indexed.total_lines = 99;
+        let files = vec![indexed];
+        let unchanged = SourceResolver::new(&files, root.path());
+        assert_eq!(unchanged.source(path).unwrap().extracted.total_lines, 99);
+        let edited_text = "export function first() {}\nexport function second() {}\n";
+        std::fs::write(root.path().join(path), edited_text).unwrap();
+        let edited = SourceResolver::new(&files, root.path());
+        assert_eq!(
+            edited.source(path).unwrap().extracted,
+            extractor.extract_for_resolution(edited_text, path).unwrap()
+        );
     }
 
     fn call<'a>(file: &'a ExtractedFile, name: &str) -> &'a CallSite {

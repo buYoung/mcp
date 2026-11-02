@@ -373,7 +373,7 @@ fn key_line(files: &[ExtractedFile], path: &str, key: &KeyUse) -> String {
 }
 
 /// `Owner.name` of the innermost function containing `line`, or empty at top level.
-fn enclosing_label(file: &ExtractedFile, line: usize) -> String {
+pub(super) fn enclosing_label(file: &ExtractedFile, line: usize) -> String {
     file.symbols
         .iter()
         .filter(|symbol| {

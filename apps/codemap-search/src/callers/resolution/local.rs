@@ -6,11 +6,13 @@ use super::*;
 
 mod cpp_members;
 mod dispatched_calls;
+mod import_reach;
 mod module_functions;
 mod reexports;
 mod script_modules;
 mod typed_fields;
 
+pub(crate) use import_reach::{may_reach_unnamed, ImportReach};
 pub(super) use module_functions::ModuleLookups;
 use module_functions::{is_top_level, only_binding};
 pub(super) use reexports::ExportLookup;

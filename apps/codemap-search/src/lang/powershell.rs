@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use tree_sitter::{Language, Node, Query};
 
-use super::{generic_find_owner, path_indicates_test, LanguageSpec};
+use super::{generic_find_owner, literal_path_tail, path_indicates_test, LanguageSpec};
 use crate::parser::{CallSite, CodeRange, ImportEntry, ImportKind};
 
 const QUERY_STR: &str = concat!(
@@ -57,7 +57,7 @@ fn literal_arguments(text: &str) -> Vec<String> {
         }
         if index < bytes.len() {
             let value = &text[start..index];
-            if !value.contains('$') {
+            if literal_path_tail(value).is_some() {
                 values.push(value.to_string());
             }
         }
@@ -82,7 +82,9 @@ fn command_import(text: &str) -> Option<String> {
                 .split_whitespace()
                 .nth(1)
                 .filter(|value| {
-                    !value.starts_with('$') && !value.starts_with('(') && !value.starts_with('-')
+                    literal_path_tail(value).is_some()
+                        && !value.starts_with('(')
+                        && !value.starts_with('-')
                 })
                 .map(str::to_string)
         });
@@ -92,7 +94,7 @@ fn command_import(text: &str) -> Option<String> {
             trimmed
                 .split_whitespace()
                 .nth(1)
-                .filter(|value| !value.starts_with('$') && !value.starts_with('('))
+                .filter(|value| literal_path_tail(value).is_some() && !value.starts_with('('))
                 .map(str::to_string)
         });
     }

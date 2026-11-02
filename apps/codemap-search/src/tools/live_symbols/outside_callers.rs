@@ -118,6 +118,8 @@ pub(super) fn trailer(
         &root,
         &resolver,
         &indexed_mtime,
+        engine.keeps_index_current(),
+        snapshot.call_lookup(),
         started,
     )?;
     trailer_text(path, (start, end), &targets, &annotations, byte_cap)
@@ -152,13 +154,17 @@ fn index_state_reason(engine: &EngineSupervisor) -> Option<&'static str> {
     }
 }
 
-/// Callers of the requested functions, looked up until [`TRAILER_TIME_BUDGET`] after `started`.
+/// Callers of the requested functions, looked up until [`TRAILER_TIME_BUDGET`] after `started`;
+/// `is_index_current` reads the indexed files instead of walking the workspace.
+#[allow(clippy::too_many_arguments)]
 fn lookup_callers(
     requests: &[AnnotationRequest<'_>],
     files: &[ExtractedFile],
     root: &Path,
     resolver: &crate::callers::resolution::SourceResolver<'_>,
     indexed_mtime: &dyn Fn(&str) -> Option<u64>,
+    is_index_current: bool,
+    call_lookup: &crate::callers::CallLookup,
     started: Instant,
 ) -> Option<DetailAnnotations> {
     crate::callers::annotate_live_callers(
@@ -169,6 +175,8 @@ fn lookup_callers(
         resolver,
         LiveCallerLimits {
             indexed_mtime,
+            is_index_current,
+            call_lookup,
             deadline: started + TRAILER_TIME_BUDGET,
         },
     )
@@ -218,8 +226,14 @@ fn trailer_text(
         if sites.is_empty() {
             continue;
         }
-        // Other files first; the stable sort keeps discovery order within each group.
-        sites.sort_by_key(|(site, _)| site.path == path);
+        // Other files first, then by path and line, whatever order the lookup found them in.
+        sites.sort_by(|(left, _), (right, _)| {
+            (left.path == path, &left.path, left.line).cmp(&(
+                right.path == path,
+                &right.path,
+                right.line,
+            ))
+        });
         let groups = group_by_caller(&sites);
         let shown: Vec<_> = groups
             .iter()
@@ -344,6 +358,7 @@ mod tests {
         }];
         let resolver = crate::callers::resolution::SourceResolver::new(&files, temp.path());
         let no_stamp = |_: &str| -> Option<u64> { None };
+        let call_lookup = crate::callers::CallLookup::build(&files);
         let lookup = |started| {
             lookup_callers(
                 &requests,
@@ -351,6 +366,8 @@ mod tests {
                 temp.path(),
                 &resolver,
                 &no_stamp,
+                false,
+                &call_lookup,
                 started,
             )
             .unwrap()

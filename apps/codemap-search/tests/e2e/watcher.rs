@@ -2,7 +2,7 @@
 //!
 //! Isolation technique: `index_staleness_ms` is set to one hour, so after the very first
 //! request at most one request-triggered refresh could ever fire (and with a healthy
-//! watcher even that is suppressed). Any post-edit change that shows up in search/overview
+//! watcher even that is suppressed). Any post-edit change that shows up in search
 //! results therefore got there through the watcher, not through the request fallback.
 //! The `watch = false` test inverts this: a tiny staleness window and a disabled watcher
 //! must reproduce the pre-watcher request-triggered behavior exactly.
@@ -429,7 +429,7 @@ async fn test_watcher_autonomous_modify_refresh() {
 
     let_seeded_refresh_settle().await;
 
-    // Edit WITHOUT any further search/overview involvement in refreshing: the one-hour
+    // Edit WITHOUT any further search involvement in refreshing: the one-hour
     // staleness window means only the watcher can pick this up.
     fs::write(
         temp.path().join("src/lib.rs"),

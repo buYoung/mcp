@@ -2,7 +2,7 @@
 //! indexing: it owns a read-only [`crate::index::SearcherHandle`] and a fire-and-forget
 //! [`IndexerHandle`], while a dedicated OS thread owns the [`TantivySearchEngine`] (the
 //! single tantivy writer) and refreshes the index on request. Commits become visible to
-//! the server's reader clone via the reader's reload policy, so search/overview serve the
+//! the server's reader clone via the reader's reload policy, so search serves the
 //! latest committed snapshot without any lock on the hot path.
 //!
 //! A plain `std::thread` + capacity-1 `std::sync::mpsc::sync_channel` is deliberate: the
@@ -27,6 +27,13 @@ const INDEXER_RETRY_DELAY_MS: u64 = 1_000;
 /// Ceiling of the doubling retry delay while passes keep failing.
 const INDEXER_MAX_RETRY_DELAY_MS: u64 = 30_000;
 static NEXT_PUBLICATION_ID: AtomicU64 = AtomicU64::new(1);
+
+/// Ranked results, unranked phrase matches and the snapshot of one index generation.
+pub(crate) type SearchWithPhrases = (
+    Vec<super::SearchResult>,
+    Vec<super::PhraseMatch>,
+    Arc<PublishedIndexSnapshot>,
+);
 
 /// A bounded latest-generation feed; subscribing does not request an index refresh.
 #[derive(Clone)]
@@ -68,7 +75,7 @@ impl IndexCommand {
 /// Shared, lock-light status the server reads to annotate responses.
 #[derive(Default)]
 pub struct IndexerStatus {
-    /// Set once an initial generation is successfully published. Until then search/overview
+    /// Set once an initial generation is successfully published. Until then search
     /// may return empty/partial results and say so.
     pub initial_index_done: AtomicBool,
     /// Last background refresh error, if any, so a failing refresh surfaces as a note
@@ -86,7 +93,7 @@ pub struct IndexerStatus {
     pub thread_died: AtomicBool,
 }
 
-/// Immutable codemap snapshot published by the indexer and read by `overview`. Swapped as
+/// Immutable codemap snapshot published by the indexer and read by the root scope inventory. Swapped as
 /// a whole `Arc`, so readers never observe a partially-updated tree.
 pub type CodemapSnapshot = Arc<Vec<ExtractedFile>>;
 
@@ -108,6 +115,8 @@ pub struct PublishedIndexSnapshot {
     records_by_collection: HashMap<(String, String), Vec<usize>>,
     type_declaration_ranges_by_path: HashMap<(String, String), Vec<CodeRange>>,
     type_declaration_counts: HashMap<String, usize>,
+    /// Files by recorded call and import names, built on the first live caller lookup.
+    call_lookup: std::sync::OnceLock<crate::callers::CallLookup>,
 }
 
 #[derive(Debug, Clone)]
@@ -253,7 +262,13 @@ impl PublishedIndexSnapshot {
             records_by_collection,
             type_declaration_ranges_by_path,
             type_declaration_counts,
+            call_lookup: std::sync::OnceLock::new(),
         }
+    }
+
+    pub(crate) fn call_lookup(&self) -> &crate::callers::CallLookup {
+        self.call_lookup
+            .get_or_init(|| crate::callers::CallLookup::build(&self.codemap))
     }
 
     pub(crate) fn events(&self) -> &crate::events::EventIndex {
@@ -435,6 +450,30 @@ impl IndexerHandle {
         let results =
             searcher.search_with_context_in_scope(query, limit, context, workspace_scope)?;
         Ok((results, self.snapshot.lock().unwrap().clone()))
+    }
+
+    /// The same ranked search, plus up to `phrase_rows(&results)` unranked phrase matches read
+    /// from the same generation. A recall failure keeps the ranked results without matches.
+    pub(crate) fn search_with_phrase_recall_in_scope(
+        &self,
+        searcher: &super::SearcherHandle,
+        query: &str,
+        limit: usize,
+        context: &super::SearchQueryContext,
+        workspace_scope: Option<&str>,
+        phrase_rows: impl FnOnce(&[super::SearchResult]) -> usize,
+    ) -> Result<SearchWithPhrases, String> {
+        let _generation_guard = self.generation_gate.read().unwrap();
+        let results =
+            searcher.search_with_context_in_scope(query, limit, context, workspace_scope)?;
+        let max_matches = phrase_rows(&results);
+        let phrases = searcher
+            .recall_unranked_phrases(query, workspace_scope, &results, max_matches, limit)
+            .unwrap_or_else(|error| {
+                tracing::debug!(%error, "phrase recall skipped");
+                Vec::new()
+            });
+        Ok((results, phrases, self.snapshot.lock().unwrap().clone()))
     }
 
     /// True until the initial background generation is successfully published.

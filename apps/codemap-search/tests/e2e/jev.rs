@@ -91,8 +91,6 @@ pub fn banner(name: &str) -> String {
 }
 ";
 
-const BOTH_STAGES: &str =
-    "[output.jev]\nenabled = true\nscope = ['overview', 'search', 'read', 'grep']\n";
 const FILTER_ONLY: &str = "[output.jev]\nenabled = true\nscope = ['search', 'read', 'grep']\n";
 
 async fn with_in_process_server<F, Fut>(
@@ -119,7 +117,7 @@ fn search_arguments(query: &str) -> Value {
 
 /// One judge for both stages: files under `qualifying_prefix` qualify with a clear margin,
 /// files under `tied_prefix` return equal useful/unhelpful mass, everything else is
-/// unhelpful; bodies are judged unrelated by declaration name. Overview never requests roles.
+/// unhelpful; bodies are judged unrelated by declaration name.
 fn stage_judge(
     qualifying_prefix: &'static str,
     tied_prefix: &'static str,
@@ -144,7 +142,7 @@ fn stage_judge(
                         }
                     }
                     QuestionKind::Choice { .. } => {
-                        panic!("overview must not infer roles from names")
+                        panic!("Jev must not infer roles from names")
                     }
                     QuestionKind::Noul { .. } => {
                         let name = question.instructions()["candidate"]["name"]
@@ -300,17 +298,6 @@ async fn test_jev_disabled_stages_ignore_intent_and_an_injected_evaluator() {
         );
         assert!(!response_text(&plain).contains("Jev"));
 
-        let overview = client
-            .call_tool_until("overview", json!({ "task_query": TASK }), |text| {
-                text.contains("src/budget.ts") && !text.contains("warming up")
-            })
-            .await
-            .unwrap();
-        assert!(
-            !response_text(&overview).contains("Jev"),
-            "{}",
-            response_text(&overview)
-        );
         assert_eq!(
             judge.request_count(),
             0,
@@ -455,7 +442,7 @@ async fn test_jev_configured_deadline_wins_over_the_runtime_default_through_mcp(
     // 1.5 s leaves room for the synchronous preparation (ranking and rendering in a debug
     // build) so the request is actually dispatched; the transport then outlasts the deadline.
     let temp = create_mock_repo(&[
-        (".codemap/config.toml", "[analysis.jev]\noverview_enabled = true\nsearch_filter_enabled = true\ntimeout_ms = 1500\n"),
+        (".codemap/config.toml", "[analysis.jev]\nsearch_filter_enabled = true\ntimeout_ms = 1500\n"),
         ("src/budget.ts", BUDGET_TS),
     ])
     .unwrap();
@@ -496,21 +483,6 @@ async fn test_jev_configured_deadline_wins_over_the_runtime_default_through_mcp(
                 "the 1.5 s deadline is enforced, not the 45 s runtime default"
             );
             assert_eq!(posts.post_count(), 1, "one attempt, no retry");
-
-            let plain = client.plain_call("overview", json!({})).await.unwrap();
-            let response = client
-                .call(
-                    "tools/call",
-                    json!({ "name": "overview", "arguments": { "task_query": TASK } }),
-                )
-                .await
-                .unwrap();
-            assert_eq!(
-                response_text(&response),
-                response_text(&plain),
-                "the base overview is unchanged on fallback"
-            );
-            assert_eq!(posts.post_count(), 1, "overview never evaluates");
         },
     )
     .await;
@@ -728,7 +700,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
 #[tokio::test]
 async fn test_jev_korean_intent_reaches_search_verbatim() {
     let temp = create_mock_repo(&[
-        (".codemap/config.toml", BOTH_STAGES),
+        (".codemap/config.toml", FILTER_ONLY),
         ("src/budget.ts", BUDGET_TS),
     ])
     .unwrap();
@@ -736,15 +708,6 @@ async fn test_jev_korean_intent_reaches_search_verbatim() {
     let judge = Arc::clone(&evaluator);
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         client.register_task(TASK_KO).await;
-        let response = client
-            .call_tool_until("overview", json!({}), |text| text.contains("src/budget.ts"))
-            .await
-            .unwrap();
-        let text = response_text(&response);
-        assert!(
-            !text.contains("Recommended files"),
-            "{text}"
-        );
         let response = client
             .call_tool_until("search", search_arguments("keepMe dropMe"), |text| {
                 text.contains("_omitted body:")
@@ -768,7 +731,7 @@ async fn test_jev_korean_intent_reaches_search_verbatim() {
         eprintln!("JEV_TASK_TRACE {}", json!({"state":requests[0].state,
             "questions":requests[0].questions.iter().map(|(id,wire)|json!({"id":id.as_str(),"wire":wire})).collect::<Vec<_>>(),
             "output":text}));
-        assert_eq!(requests.len(), 1, "only search Noul; overview stays local");
+        assert_eq!(requests.len(), 1, "only search Noul");
         assert!(
             requests
                 .iter()
