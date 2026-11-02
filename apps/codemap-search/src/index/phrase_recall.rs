@@ -68,7 +68,7 @@ fn holds_phrase(tokens: &[(usize, String)], unit: &[String]) -> bool {
 fn has_whole_word_quotes(query: &str) -> bool {
     let chars: Vec<char> = query.chars().collect();
     let quotes: Vec<usize> = (0..chars.len()).filter(|&at| chars[at] == '"').collect();
-    quotes.len() % 2 == 0
+    quotes.len().is_multiple_of(2)
         && quotes.iter().enumerate().all(|(order, &at)| {
             let neighbor = if order % 2 == 0 {
                 at.checked_sub(1).map(|before| chars[before])

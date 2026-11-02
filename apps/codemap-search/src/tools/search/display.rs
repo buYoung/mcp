@@ -236,6 +236,22 @@ pub(super) fn plan_note_folding(
     edits
 }
 
+/// Masking and duplicate folding run after rendering and may lengthen short spans; this
+/// reserve keeps a fitted search clear of the final `output.client` check.
+const POST_RENDER_RESERVE_BYTES: usize = 512;
+
+/// Resolved `output.client` limits, including built-in defaults, bound this presentation guard.
+/// The Codex estimate is not a tokenizer or a guarantee for an arbitrarily large multi-tool cell.
+pub(super) fn delivery_byte_cap(server_cap: usize) -> usize {
+    crate::config::get()
+        .client_output
+        .delivery_byte_cap()
+        .map_or(server_cap, |client_cap| {
+            let reserve_bytes = POST_RENDER_RESERVE_BYTES.min(client_cap / 8);
+            server_cap.min(client_cap - reserve_bytes)
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -302,20 +318,4 @@ mod tests {
             apply(plan_note_folding(&text, &[], &headers, &[64; 6], None))
         );
     }
-}
-
-/// Masking and duplicate folding run after rendering and may lengthen short spans; this
-/// reserve keeps a fitted search clear of the final `output.client` check.
-const POST_RENDER_RESERVE_BYTES: usize = 512;
-
-/// Resolved `output.client` limits, including built-in defaults, bound this presentation guard.
-/// The Codex estimate is not a tokenizer or a guarantee for an arbitrarily large multi-tool cell.
-pub(super) fn delivery_byte_cap(server_cap: usize) -> usize {
-    crate::config::get()
-        .client_output
-        .delivery_byte_cap()
-        .map_or(server_cap, |client_cap| {
-            let reserve_bytes = POST_RENDER_RESERVE_BYTES.min(client_cap / 8);
-            server_cap.min(client_cap - reserve_bytes)
-        })
 }

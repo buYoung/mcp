@@ -353,7 +353,8 @@ impl<'a> SourceResolver<'a> {
     fn starlark_file(&self, importer: &str, label: &str) -> Option<&'a ExtractedFile> {
         let path = if let Some(rest) = label.strip_prefix("//") {
             rest.replacen(':', "/", 1)
-        } else if let Some(file) = label.strip_prefix(':') {
+        } else {
+            let file = label.strip_prefix(':')?;
             match Path::new(importer)
                 .parent()
                 .and_then(|directory| directory.to_str())
@@ -361,8 +362,6 @@ impl<'a> SourceResolver<'a> {
                 Some(directory) if !directory.is_empty() => format!("{directory}/{file}"),
                 _ => file.to_string(),
             }
-        } else {
-            return None;
         };
         self.indexed_file(&path)
     }

@@ -493,11 +493,7 @@ impl<'a> Uses<'a> {
 
     /// The shown importers of `declaration`, nearest to `path` first, with the lines using
     /// it, and how many further files import it.
-    fn shown(
-        &mut self,
-        path: &str,
-        declaration: &Declaration<'_>,
-    ) -> (Vec<(usize, Vec<usize>)>, usize) {
+    fn shown(&mut self, path: &str, declaration: &Declaration<'_>) -> ShownImporters {
         let mut importers: Vec<&Importer> = declaration.importers.iter().collect();
         importers.sort_by_key(|importer| {
             let other = self.files[importer.file].file_path.as_str();
@@ -610,6 +606,10 @@ impl<'a> Uses<'a> {
     }
 }
 
+/// One declaration's shown importing files, each with the lines using the declaration, and
+/// how many further files import it.
+type ShownImporters = (Vec<(usize, Vec<usize>)>, usize);
+
 /// The trailer listing each declaration's importers, within `byte_cap`; `None` when no other
 /// file imports any of them, and a notice instead when the lookup stopped at its time limit
 /// before finding any.
@@ -617,7 +617,7 @@ fn trailer_text(
     files: &[ExtractedFile],
     file: &ExtractedFile,
     declarations: &[Declaration<'_>],
-    shown: &[(Vec<(usize, Vec<usize>)>, usize)],
+    shown: &[ShownImporters],
     is_partial: bool,
     byte_cap: usize,
 ) -> Option<String> {
