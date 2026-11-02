@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
 use super::{LanguageSpec, NameDecision};
+use crate::parser::{CodeRange, ImportEntry, ImportKind};
 
 const TS_QUERY_STR: &str = concat!(
     include_str!("../../queries/typescript/symbols.scm"),
@@ -131,6 +132,60 @@ pub(super) fn collect_ecmascript_exported_names(
     }
 }
 
+/// Renamed specifiers of top-level export clauses, `export { name as alias }` with or without
+/// `from`. Defaults are left to default imports.
+pub(super) fn ecmascript_renamed_exports(root: Node, source: &[u8]) -> Vec<ImportEntry> {
+    let mut entries = Vec::new();
+    let mut statements = root.walk();
+    for statement in root
+        .named_children(&mut statements)
+        .filter(|node| node.kind() == "export_statement")
+    {
+        let module = statement
+            .child_by_field_name("source")
+            .and_then(|node| node.utf8_text(source).ok())
+            .map(|specifier| specifier.trim_matches(['"', '\'', '`']).to_string());
+        let mut children = statement.walk();
+        let Some(clause) = statement
+            .named_children(&mut children)
+            .find(|node| node.kind() == "export_clause")
+        else {
+            continue;
+        };
+        let mut specifiers = clause.walk();
+        for specifier in clause
+            .named_children(&mut specifiers)
+            .filter(|node| node.kind() == "export_specifier")
+        {
+            let field = |name| {
+                specifier
+                    .child_by_field_name(name)
+                    .and_then(|node| node.utf8_text(source).ok())
+            };
+            let (Some(original), Some(alias)) = (field("name"), field("alias")) else {
+                continue;
+            };
+            if original == alias || original == "default" || alias == "default" {
+                continue;
+            }
+            let (start, end) = (specifier.start_position(), specifier.end_position());
+            entries.push(ImportEntry {
+                local_name: alias.to_string(),
+                imported_name: Some(original.to_string()),
+                source: module.clone(),
+                kind: ImportKind::Named,
+                range: CodeRange {
+                    start_line: start.row + 1,
+                    start_col: start.column + 1,
+                    end_line: end.row + 1,
+                    end_col: end.column + 1,
+                },
+            });
+        }
+    }
+    entries
+}
+
 /// True only for variables declared directly in a file or TypeScript namespace/module.
 /// Block- and function-local declarations remain navigation bindings instead of polluting
 /// the repository-wide symbol field.
@@ -212,6 +267,10 @@ impl LanguageSpec for TypeScriptSpec {
 
     fn collect_exported_names(&self, root: Node, source: &[u8], out: &mut HashSet<String>) {
         collect_ecmascript_exported_names(root, source, out);
+    }
+
+    fn renamed_exports(&self, root: Node, source: &[u8]) -> Vec<ImportEntry> {
+        ecmascript_renamed_exports(root, source)
     }
 
     fn name_for_capture(

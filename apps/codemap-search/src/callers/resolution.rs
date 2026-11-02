@@ -452,6 +452,7 @@ impl<'a> SourceResolver<'a> {
                 references: navigation.references.clone(),
                 local_bindings: navigation.local_bindings.clone(),
                 imports: navigation.imports.clone(),
+                renamed_exports: navigation.renamed_exports.clone(),
                 key_sites: Vec::new(),
             }),
         })

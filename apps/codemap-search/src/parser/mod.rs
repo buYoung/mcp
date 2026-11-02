@@ -934,8 +934,13 @@ fn push_named_imports(
         if trimmed.is_empty() {
             continue;
         }
-        let mut pieces = trimmed.split_whitespace();
-        let imported = pieces.next().unwrap_or("").trim();
+        let mut pieces = trimmed.split_whitespace().peekable();
+        let mut imported = pieces.next().unwrap_or("").trim();
+        // A TypeScript type-only specifier, `{ type Foo }`, names `Foo`; `{ type }` and
+        // `{ type as alias }` import a binding called `type`.
+        if imported == "type" && pieces.peek().is_some_and(|next| *next != "as") {
+            imported = pieces.next().unwrap_or(imported);
+        }
         if imported.is_empty() {
             continue;
         }
@@ -2283,6 +2288,9 @@ impl TreeSitterExtractor {
         // specifiers; ASM `.globl`/`.global` directives). No-op for languages without one.
         let mut exported_names = std::collections::HashSet::new();
         spec.collect_exported_names(tree.root_node(), source, &mut exported_names);
+        if navigation_enabled {
+            navigation.renamed_exports = spec.renamed_exports(tree.root_node(), source);
+        }
 
         let mut query_cursor = QueryCursor::new();
         let mut matches = query_cursor.matches(query, tree.root_node(), source);
@@ -2777,6 +2785,9 @@ fn merge_composite_part(
         }
         for import in source.imports {
             push_unique(&mut target.imports, import);
+        }
+        for export in source.renamed_exports {
+            push_unique(&mut target.renamed_exports, export);
         }
     }
     for definition in part_auxiliary.definition_body {
@@ -3471,6 +3482,68 @@ class Calculator:
             .calls
             .iter()
             .any(|call| call.name == "commentCall"));
+    }
+
+    #[test]
+    fn test_ts_type_only_import_specifiers_name_the_imported_declaration() {
+        let content = "import { type Item, type Row as Line, type, type as kind, value } from './m';\n";
+        let file = TreeSitterExtractor::new().extract(content, "m.ts").unwrap();
+        let imports: Vec<_> = file
+            .navigation
+            .expect("typescript navigation should run")
+            .imports
+            .into_iter()
+            .map(|entry| (entry.local_name, entry.imported_name.unwrap_or_default()))
+            .collect();
+        let pairs: Vec<_> = imports
+            .iter()
+            .map(|(local, imported)| (local.as_str(), imported.as_str()))
+            .collect();
+        assert_eq!(
+            pairs,
+            [
+                ("Item", "Item"),
+                ("Line", "Row"),
+                ("type", "type"),
+                ("kind", "type"),
+                ("value", "value")
+            ]
+        );
+    }
+
+    #[test]
+    fn test_ecmascript_renamed_exports_record_alias_and_original() {
+        let content = "import { inner } from './inner';\nexport { inner as outer };\nexport { first as second, third } from './m';\nexport { default as Main } from './main';\nconst local = 1;\nexport { local };\n";
+        for path in ["m.ts", "m.js"] {
+            let file = TreeSitterExtractor::new().extract(content, path).unwrap();
+            let exports: Vec<_> = file
+                .navigation
+                .expect("script navigation should run")
+                .renamed_exports
+                .into_iter()
+                .map(|entry| {
+                    (
+                        entry.local_name,
+                        entry.imported_name.unwrap_or_default(),
+                        entry.source,
+                        entry.range.start_line,
+                    )
+                })
+                .collect();
+            assert_eq!(
+                exports,
+                [
+                    ("outer".to_string(), "inner".to_string(), None, 2),
+                    (
+                        "second".to_string(),
+                        "first".to_string(),
+                        Some("./m".to_string()),
+                        3
+                    ),
+                ],
+                "{path}"
+            );
+        }
     }
 
     #[test]

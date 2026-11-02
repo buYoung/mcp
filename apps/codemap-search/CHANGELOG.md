@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A TypeScript type-only import specifier, `import { type Name }`, now records `Name` as the imported declaration instead of a binding called `type`, so caller resolution follows it. Indexes rebuild once. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - The caller trailer of `read view=source` no longer stops at its time limit on most reads of large workspaces. While the filesystem watcher keeps the index current, the lookup reads only indexed files whose recorded calls or imports use a looked-up name instead of walking the workspace, and caller resolution reuses the indexed extraction of a file whose content still matches the index instead of parsing it again. The listed callers are the same; they now appear in path and line order. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - Exact `event_key` searches with no hits explain the lookup scope and how to try ranked search, without silently falling back to it. Prompt-text change: −3 / 0 / 0 characters.
 - `grep` file and count modes accept `view=source` and `view=source_grouped` as presentation-only options, while still rejecting content-only controls. Prompt-text change: 0 / 0 / 0 characters.

@@ -213,6 +213,13 @@ pub(crate) trait LanguageSpec: Sync {
     /// `export { ... }` specifiers; ASM `.globl`/`.global` directives). Default: no-op.
     fn collect_exported_names(&self, _root: Node, _source: &[u8], _out: &mut HashSet<String>) {}
 
+    /// Exports that rename a declaration or binding (TS/JS `export { name as alias }`, with or
+    /// without `from`): the alias as the local name, the original as the imported name.
+    /// Default: none.
+    fn renamed_exports(&self, _root: Node, _source: &[u8]) -> Vec<crate::parser::ImportEntry> {
+        Vec::new()
+    }
+
     /// Refine a single-capture symbol kind that depends on the node itself (Go `type_spec`,
     /// Kotlin `class`/`interface`). `capture_name` is the query capture; `kind` is the
     /// already-resolved static kind. Default: return `kind` unchanged.
