@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 
 use tree_sitter::{Language, Node, Query};
 
+use super::modifiers_text;
 use super::{generic_find_owner, has_annotation, path_indicates_test, LanguageSpec, NameDecision};
 use crate::parser::{CodeRange, ImportEntry, ImportKind};
 
@@ -161,7 +162,9 @@ impl LanguageSpec for ScalaSpec {
         source: &[u8],
         _exported_names: &HashSet<String>,
     ) -> bool {
-        let text = node.utf8_text(source).unwrap_or_default();
+        // Only the declaration's own modifiers decide; private members of a body, or a private
+        // constructor, do not hide the declaration.
+        let text = modifiers_text(node, source);
         !text
             .split(|character: char| character.is_whitespace() || character == '[')
             .any(|token| matches!(token, "private" | "protected"))

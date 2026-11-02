@@ -101,10 +101,14 @@ impl<'a> SourceResolver<'a> {
                 } else {
                     &["ps1", "psm1"]
                 };
-                self.relative_imports(&importer.file_path, std::slice::from_ref(import), extensions)
-                    .iter()
-                    .any(|file| is_target(file))
-                    .then_some(ImportReach::Bare)
+                let is_sourced = language == "powershell"
+                    && self.included_file(&importer.file_path, source?).is_some_and(is_target);
+                (is_sourced
+                    || self
+                        .relative_imports(&importer.file_path, std::slice::from_ref(import), extensions)
+                        .iter()
+                        .any(|file| is_target(file)))
+                .then_some(ImportReach::Bare)
             }
             ("c" | "cpp" | "asm" | "bash" | "zsh", Some(_)) => self
                 .included_file(&importer.file_path, source?)
@@ -266,8 +270,10 @@ impl<'a> SourceResolver<'a> {
     }
 
     /// The indexed file a header include, sourced script, Nix `import` or `.include` path
-    /// names: beside the including file, or the one indexed file ending with that path.
+    /// names: beside the including file, or the one indexed file ending with that path. A
+    /// computed leading part, as a script's own directory, leaves its literal rest to name it.
     fn included_file(&self, importer: &str, include: &str) -> Option<&'a ExtractedFile> {
+        let include = crate::lang::literal_path_tail(include)?.replace('\\', "/");
         let include = include.trim_start_matches("./");
         if let Some(beside) = relative_path(importer, include).and_then(|path| self.indexed_file(&path)) {
             return Some(beside);

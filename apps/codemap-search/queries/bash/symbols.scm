@@ -1,5 +1,5 @@
 (function_definition
-  name: (_) @symbol.fn)
+  name: (_) @symbol.name) @symbol.fn
 
 (variable_assignment
   name: (_) @symbol.variable)

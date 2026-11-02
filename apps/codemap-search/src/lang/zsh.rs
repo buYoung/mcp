@@ -3,7 +3,7 @@
 use super::format_support::{
     clean, descendants, import, is_recoverable, named_children, nearest_ancestor, text,
 };
-use super::{LanguageSpec, NameDecision};
+use super::{literal_path_tail, LanguageSpec, NameDecision};
 use crate::parser::ImportEntry;
 use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
@@ -15,7 +15,9 @@ fn query() -> &'static Query {
             .expect("Failed to compile Zsh query")
     })
 }
-fn static_source<'tree>(command: Node<'tree>, source: &[u8]) -> Option<Node<'tree>> {
+/// The path a `source` or `.` command reads, when at most a leading part of it is computed, as
+/// in `"$(dirname "$0")/lib.sh"`: the literal rest still names the file.
+fn sourced_path<'tree>(command: Node<'tree>, source: &[u8]) -> Option<Node<'tree>> {
     let children = named_children(command);
     let name = children.iter().find(|node| node.kind() == "command_name")?;
     if !matches!(text(*name, source).as_str(), "source" | ".") {
@@ -23,7 +25,7 @@ fn static_source<'tree>(command: Node<'tree>, source: &[u8]) -> Option<Node<'tre
     }
     let path = children
         .iter()
-        .find(|node| matches!(node.kind(), "word" | "string"))
+        .find(|node| matches!(node.kind(), "word" | "string" | "concatenation"))
         .copied()?;
     let is_dynamic = [
         "simple_expansion",
@@ -33,7 +35,7 @@ fn static_source<'tree>(command: Node<'tree>, source: &[u8]) -> Option<Node<'tre
     ]
     .iter()
     .any(|kind| !descendants(path, kind).is_empty());
-    (!is_dynamic).then_some(path)
+    (!is_dynamic || literal_path_tail(&clean(path, source)).is_some()).then_some(path)
 }
 pub(crate) struct ZshSpec;
 impl LanguageSpec for ZshSpec {
@@ -81,7 +83,7 @@ impl LanguageSpec for ZshSpec {
         is_recoverable(nearest_ancestor(
             node,
             &["function_definition", "variable_assignment", "command"],
-        )) && (capture != "nav.import" || static_source(node, source).is_some())
+        )) && (capture != "nav.import" || sourced_path(node, source).is_some())
     }
     fn import_entries_for_capture(
         &self,
@@ -89,7 +91,7 @@ impl LanguageSpec for ZshSpec {
         source: &[u8],
     ) -> Option<Vec<ImportEntry>> {
         Some(
-            static_source(node, source)
+            sourced_path(node, source)
                 .map(|path| import(path, source))
                 .into_iter()
                 .collect(),
