@@ -184,6 +184,16 @@ const INDEXED_ROOTS_FILE: &str = "indexed-roots.json";
 /// without adding lookup value beyond its leading words.
 pub(super) const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 
+/// Share of deleted documents above which a segment is rewritten. tantivy's default never
+/// merges for deletions alone, so files reindexed in place would keep their old copies.
+const DELETED_RATIO_BEFORE_MERGE: f32 = 0.1;
+
+fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
+    let mut policy = tantivy::indexer::LogMergePolicy::default();
+    policy.set_del_docs_ratio_before_merge(DELETED_RATIO_BEFORE_MERGE);
+    Box::new(policy)
+}
+
 /// Current extraction-format version. Bump whenever the `ExtractedFile` JSON shape changes
 /// in a way that requires re-extracting on-disk source (not just a serde-compatible add).
 /// `v2` introduced `ExtractedSymbol.owner`: the field is serde-default-compatible (old docs
@@ -966,6 +976,7 @@ impl TantivySearchEngine {
             // Another writer may have registered files after the list was read and before the
             // lock was taken. With the lock held the list stays put, so one more open settles it.
             if attempts == 3 || std::fs::read(&managed_path).ok() == managed_before {
+                writer.set_merge_policy(merge_policy());
                 break (write_index, writer);
             }
         };
@@ -1127,6 +1138,12 @@ impl TantivySearchEngine {
         writer.commit().map_err(|e| e.to_string())?;
         // Still the writer, so no other process is creating segment files.
         super::segment_files::remove_orphans(&write_index, Path::new(&self.index_path));
+        // Dropping a writer cancels the merges its commit started, which would leave their
+        // output unreferenced and the deleted documents in place. The commit already landed,
+        // so a failed merge only postpones the cleanup to a later pass.
+        if let Err(error) = writer.wait_merging_threads() {
+            tracing::warn!("index segment merge did not finish: {error}");
+        }
         if should_reload_reader {
             self.reader.reload().map_err(|error| error.to_string())?;
         }

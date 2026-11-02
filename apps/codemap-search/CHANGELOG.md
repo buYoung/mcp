@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Index passes now let the segment merges they start finish before releasing the index writer, and rewrite segments in which more than 10% of the documents are deleted. Before, each pass cancelled its merges, so reindexed files kept their old copies and indexes kept growing (one index had 43 segments with 31% of its documents deleted). After editing and restoring 200 files three times, a scratch buyong-mcp index now stays at one segment and 42 MB, where it had 5 segments, 49 MB and 199 deleted documents. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - TypeScript and JavaScript files now record another module's default or namespace they pass on, `export { default as Name } from` and `export * as name from`, beside their renamed exports. Indexes rebuild once. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - Assembly files now record the preprocessor's `#include` and NASM's `%include` as imports, as they did `.include`. Indexes rebuild once. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
 - Bash function declarations now span their bodies, as Zsh ones do, so declaration ranges and the enclosing-function labels of trailers cover the whole function. Indexes rebuild once. Prompt-text change (tool descriptions / server instructions / initial instructions): 0 / 0 / 0 characters.
