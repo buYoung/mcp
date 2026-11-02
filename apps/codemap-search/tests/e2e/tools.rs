@@ -796,6 +796,79 @@ async fn test_read_outside_callers_are_capped_folded_and_configurable() {
 }
 
 #[tokio::test]
+async fn test_read_lists_importers_of_window_values_folded_and_configurable() {
+    let settings = "[update]\nconfig_auto_update=false\n";
+    let temp = create_mock_repo(&[
+        (
+            "src/client.ts",
+            "export const client = {\n  search() { return 1; },\n};\nexport type Item = { id: string };\nexport function helper() {}\n",
+        ),
+        (
+            "src/panel.ts",
+            "import { client, Item } from './client';\nexport function load(item: Item) {\n  return client.search();\n}\n",
+        ),
+        ("src/index.ts", "export * from './client';\n"),
+        (
+            "src/view.ts",
+            "import * as api from './index';\nfunction show() {\n  api.client.search();\n}\n",
+        ),
+        (
+            "src/only.ts",
+            "import { client } from './client';\nexport const value = client;\n",
+        ),
+        (
+            "src/client.test.ts",
+            "import { client } from './client';\ntest('search', () => client.search());\n",
+        ),
+        (".codemap/config.toml", settings),
+    ])
+    .unwrap();
+    let mut client = McpClient::spawn(temp.path()).await.unwrap();
+    let header = "\n[Other files importing this window's declarations";
+    let args = serde_json::json!({"file_path":"src/client.ts","offset":1,"limit":5,"view":"source"});
+    let first = client
+        .send_tool_until(
+            "read",
+            call("read", args.clone())["arguments"].clone(),
+            |out| out.contains(header),
+        )
+        .await
+        .unwrap();
+    let first = text(&first);
+    let trailer = &first[first.find(header).expect(&first) + 1..];
+    // Named, import-only and namespace-through-re-export uses are listed; tests, the type and
+    // the function, whose callers the caller trailer covers, are not.
+    assert!(
+        trailer.ends_with(
+            "\n- client L1: src/only.ts: L1; src/panel.ts: load L3; src/view.ts: show L3"
+        ),
+        "{first}"
+    );
+    assert_eq!(trailer.matches("\n- ").count(), 1, "{first}");
+    // A repeated read in the same session folds the delivered trailer.
+    let mut repeat = args.clone();
+    repeat["include_seen"] = false.into();
+    let folded = client
+        .send_request("tools/call", call("read", repeat))
+        .await
+        .unwrap();
+    assert!(!text(&folded).contains(header), "{folded}");
+    // Turning outside callers off drops the importer trailer as well.
+    std::fs::write(
+        temp.path().join(".codemap/config.toml"),
+        format!("{settings}[output.read]\nis_outside_callers_enabled = false\n"),
+    )
+    .unwrap();
+    let off = client
+        .send_tool_until("read", call("read", args)["arguments"].clone(), |out| {
+            !out.contains(header)
+        })
+        .await
+        .unwrap();
+    assert!(!text(&off).contains(header), "{off}");
+}
+
+#[tokio::test]
 async fn test_live_callable_expansion_deduplicates_and_uses_live_boundaries() {
     let source = "#[allow(dead_code)]\nfn first() {\n    let marker = 1;\n    let marker_two = 2;\n}\nfn neighbor() { do_not_include(); }\nfn last() {\n    let marker = 3;\n}\n";
     let temp = create_mock_repo(&[("src/lib.rs",source),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n")]).unwrap();
