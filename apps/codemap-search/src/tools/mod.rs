@@ -569,6 +569,9 @@ mod tests {
         let new_sentence = "For unscoped discovery, search/grep requested concepts repo-wide, then narrow. Verify requested links' ends, transfer/registration and conditions in source. Follow missing links before stopping, or state the blocker and gap.";
         // The overview tool is removed, so the sentence pointing away from it goes too.
         let overview_sentence = " A known file or line needs no intermediate overview.";
+        // Read trailers now find callers and importers, so following them depends on the question.
+        let old_trailer_sentence = "A read view=source may end with callers from outside the window for the functions it shows; follow them to find what reaches a function (entry points).";
+        let new_trailer_sentence = "A read view=source may end with callers from outside the window for the functions it shows and with other files importing its declarations; these are static uses, so follow the ones the question needs to find what reaches or uses that code.";
         let original_common = r#"Use returned source evidence directly; read only missing ranges. A known file or line needs no intermediate overview. Stop when the requested facts are established. Partial, ambiguous or list-only results are incomplete evidence, and missing indexed declarations do not prove absent source. Analysis notices do not require rereading visible code. Follow explicit truncation or recovery notices; oversized bodies need smaller read windows.
 
 Within an MCP connection, search/read/grep omit unchanged source already delivered or repeated in the same response. Find returns its complete current result on every call. New source stays. One <--removed duplicated--> marker replaces repeats. Set include_seen=true to restore the current result, including after context loss. This rule is independent of Jev.
@@ -589,18 +592,26 @@ read/find/grep state their current filesystem permission: workspace confines pat
         assert_eq!(new_sentence.chars().count(), 224);
         assert_eq!(original_common.chars().count(), 2_225);
         assert_eq!(overview_sentence.chars().count(), 53);
+        assert_eq!(old_trailer_sentence.chars().count(), 151);
+        assert_eq!(new_trailer_sentence.chars().count(), 240);
         assert_eq!(
-            common.replace(new_sentence, old_sentence),
+            common
+                .replace(new_sentence, old_sentence)
+                .replace(new_trailer_sentence, old_trailer_sentence),
             original_common.replace(overview_sentence, ""),
-            "all guidance outside the stop and overview sentences must remain unchanged"
+            "all guidance outside the stop, overview and read trailer sentences must remain unchanged"
         );
+        assert_eq!(common.matches(new_trailer_sentence).count(), 1);
         assert_eq!(monorepo, expected_monorepo);
         assert_eq!(monorepo.chars().count(), 361);
         assert!(common.contains(new_sentence), "missing cross-file stop rule");
         assert_eq!(common.matches(new_sentence).count(), 1);
         assert!(!common.contains(old_sentence));
-        assert_eq!(common.chars().count(), original_common.chars().count() + 178 - 53);
-        assert_eq!(common.chars().count(), 2_350);
+        assert_eq!(
+            common.chars().count(),
+            original_common.chars().count() + 178 - 53 + 89
+        );
+        assert_eq!(common.chars().count(), 2_439);
 
         let expected = if crate::codemap::looks_like_monorepo_workspace() {
             format!("{common}\n\n{expected_monorepo}")
