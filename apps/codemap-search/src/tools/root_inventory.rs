@@ -23,7 +23,10 @@ pub(crate) fn render(engine: &EngineSupervisor) -> String {
         }
         .to_string();
     }
-    published.workspace_catalog().root_view().unwrap_or_else(|| {
-        crate::codemap::CodemapGenerator::generate_root_view(&snapshot).to_markdown()
-    })
+    published
+        .workspace_catalog()
+        .root_view()
+        .unwrap_or_else(|| {
+            crate::codemap::CodemapGenerator::generate_root_view(&snapshot).to_markdown()
+        })
 }

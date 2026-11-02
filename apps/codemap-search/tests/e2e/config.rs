@@ -467,8 +467,7 @@ export function dropMe(input: string): string {
         assert!(!kept.contains("analysis.jev"), "{kept}");
         assert!(!kept.contains("api_key_env"), "{kept}");
         let expected: toml::Value =
-            toml::from_str("enabled = true\nscope = ['search', 'read', 'grep']")
-                .unwrap();
+            toml::from_str("enabled = true\nscope = ['search', 'read', 'grep']").unwrap();
         assert_eq!(
             toml::from_str::<toml::Value>(&kept).unwrap()["output"]["jev"],
             expected,

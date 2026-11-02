@@ -639,10 +639,7 @@ pub(super) fn migrate_jev_filters(
     }
     for (key, assignment) in [
         ("enabled", "enabled = false"),
-        (
-            "scope",
-            "scope = [\"search\", \"read\", \"grep\"]",
-        ),
+        ("scope", "scope = [\"search\", \"read\", \"grep\"]"),
     ] {
         if !table.contains_key(key) && !super::file_mentions_key(&table.to_string(), key) {
             append_example(table, assignment);

@@ -1392,7 +1392,10 @@ async fn test_read_basic_arrow_format() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     // Alias equality compares a stable symbol snapshot as well as the live source.
     client
-        .send_request("tools/call", call("search", serde_json::json!({"query": "core"})))
+        .send_request(
+            "tools/call",
+            call("search", serde_json::json!({"query": "core"})),
+        )
         .await
         .unwrap();
     let resp = client
@@ -1448,7 +1451,10 @@ async fn test_read_offset_and_limit() {
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     // Alias equality compares a stable symbol snapshot as well as the live source.
     client
-        .send_request("tools/call", call("search", serde_json::json!({"query": "core"})))
+        .send_request(
+            "tools/call",
+            call("search", serde_json::json!({"query": "core"})),
+        )
         .await
         .unwrap();
     let resp = client
@@ -2156,7 +2162,10 @@ async fn test_macro_expansion_reaches_search_read_and_refreshes_header_changes()
         })
         .await
         .unwrap();
-    assert!(text(&definitions).contains("Macro expansion:"), "{definitions}");
+    assert!(
+        text(&definitions).contains("Macro expansion:"),
+        "{definitions}"
+    );
     let read = client
         .send_request(
             "tools/call",

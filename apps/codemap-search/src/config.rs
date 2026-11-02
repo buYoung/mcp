@@ -671,9 +671,7 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
         ),
         "tool_output" => matches!(
             key,
-            "grep_max_columns"
-                | "read_output_byte_cap"
-                | "is_redact_enabled"
+            "grep_max_columns" | "read_output_byte_cap" | "is_redact_enabled"
         ),
         "exclude" => exclude::TEST_KEYS.contains(&key) || exclude::WORKSPACE_KEYS.contains(&key),
         "index.exclude" => exclude::WORKSPACE_KEYS.contains(&key),

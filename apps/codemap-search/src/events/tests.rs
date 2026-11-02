@@ -351,18 +351,29 @@ fn test_exact_event_key_zero_append_failure_at_512_bytes() {
         ),
     ] {
         let full = index.for_key("missing", None, 8000, root.path());
-        assert!(full.contains("this is not proof that a route is absent"), "{full}");
-        assert!(full.contains("This event-key lookup did not run ranked search for query."), "{full}");
+        assert!(
+            full.contains("this is not proof that a route is absent"),
+            "{full}"
+        );
+        assert!(
+            full.contains("This event-key lookup did not run ranked search for query."),
+            "{full}"
+        );
         assert!(full.contains("matched configured API rules"), "{full}");
-        assert!(full.contains("snapshot-wide, not counts for this key or scope"), "{full}");
-        assert!(full.contains("Next: grep a known source identifier, or omit event_key"), "{full}");
+        assert!(
+            full.contains("snapshot-wide, not counts for this key or scope"),
+            "{full}"
+        );
+        assert!(
+            full.contains("Next: grep a known source identifier, or omit event_key"),
+            "{full}"
+        );
         if let Some(coverage) = coverage {
             assert!(full.contains(coverage), "{full}");
         }
         let output = index.for_key("missing", None, 512, root.path());
         assert_eq!(
-            output,
-            "[Event output budget unavailable; narrow the source request.]\n",
+            output, "[Event output budget unavailable; narrow the source request.]\n",
             "a rejected zero-hit append must not return a header-only success"
         );
         assert!(output.len() <= 512);
@@ -415,15 +426,20 @@ fn test_exact_event_key_zero_guidance_and_counters_exceed_cap() {
     assert_eq!(advertised_languages, extracted_languages);
 
     let coverage_start = full.find("\n[Event coverage:").unwrap();
-    assert!(full.contains("1 unavailable/capped source inputs"), "{full}");
+    assert!(
+        full.contains("1 unavailable/capped source inputs"),
+        "{full}"
+    );
     let cap = full.len() - 1;
     assert!(cap >= 512);
     assert!(coverage_start <= cap, "guidance alone must fit: {full}");
-    assert!(full.len() > cap, "guidance plus counters must exceed the cap");
+    assert!(
+        full.len() > cap,
+        "guidance plus counters must exceed the cap"
+    );
     let output = index.for_key("missing", None, cap, root.path());
     assert_eq!(
-        output,
-        "[Event output budget unavailable; narrow the source request.]\n",
+        output, "[Event output budget unavailable; narrow the source request.]\n",
         "guidance and coverage must not be silently dropped: {output}"
     );
     assert!(output.len() <= cap);

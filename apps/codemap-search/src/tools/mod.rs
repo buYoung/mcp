@@ -604,7 +604,10 @@ read/find/grep state their current filesystem permission: workspace confines pat
         assert_eq!(common.matches(new_trailer_sentence).count(), 1);
         assert_eq!(monorepo, expected_monorepo);
         assert_eq!(monorepo.chars().count(), 361);
-        assert!(common.contains(new_sentence), "missing cross-file stop rule");
+        assert!(
+            common.contains(new_sentence),
+            "missing cross-file stop rule"
+        );
         assert_eq!(common.matches(new_sentence).count(), 1);
         assert!(!common.contains(old_sentence));
         assert_eq!(

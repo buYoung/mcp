@@ -389,27 +389,42 @@ impl FileOutput {
         if self.first_source_byte.is_none_or(|first| first >= limit) {
             return Vec::new();
         }
-        let Some(span) = &self.source_span else { return Vec::new(); };
+        let Some(span) = &self.source_span else {
+            return Vec::new();
+        };
         let mut offset = span.start;
         let mut ranges = Vec::new();
         for block in &self.blocks {
             let start = offset;
             offset += block.rendered_len();
             let end = offset.min(limit);
-            if !block.is_note && start < end { ranges.push(start..end); }
+            if !block.is_note && start < end {
+                ranges.push(start..end);
+            }
         }
-        debug_assert_eq!(ranges.iter().map(|range| range.len()).sum::<usize>(), self.delivered_source_bytes(limit));
+        debug_assert_eq!(
+            ranges.iter().map(|range| range.len()).sum::<usize>(),
+            self.delivered_source_bytes(limit)
+        );
         ranges
     }
 
-    pub(super) fn selected_deferred_notes(&self, limit: usize, file: usize) -> Vec<super::display::DeferredNote> {
-        let Some(span) = &self.source_span else { return Vec::new(); };
+    pub(super) fn selected_deferred_notes(
+        &self,
+        limit: usize,
+        file: usize,
+    ) -> Vec<super::display::DeferredNote> {
+        let Some(span) = &self.source_span else {
+            return Vec::new();
+        };
         let mut offset = span.start;
         let mut notes = Vec::new();
         for (index, block) in self.blocks.iter().enumerate() {
             let start = offset;
             offset += block.rendered_len();
-            if offset > limit { break; }
+            if offset > limit {
+                break;
+            }
             if let Some(read) = self.deferred_reads.get(&index) {
                 if block.is_note && block.text == read.note(&self.path) {
                     notes.push(super::display::DeferredNote {
@@ -423,13 +438,21 @@ impl FileOutput {
         notes
     }
 
-    pub(super) fn selected_callee_headers(&self, limit: usize, file: usize) -> Vec<super::display::CalleeHeader> {
+    pub(super) fn selected_callee_headers(
+        &self,
+        limit: usize,
+        file: usize,
+    ) -> Vec<super::display::CalleeHeader> {
         let mut headers = Vec::new();
         for section in &self.sections {
             let start = section.insertion - section.text.len();
             for (_, range) in &section.annotations {
                 if start + range.end <= limit {
-                    headers.extend(super::display::callee_headers(&section.text[range.clone()], start + range.start, file));
+                    headers.extend(super::display::callee_headers(
+                        &section.text[range.clone()],
+                        start + range.start,
+                        file,
+                    ));
                 }
             }
         }
@@ -468,13 +491,25 @@ impl FileOutput {
             .collect::<Vec<_>>();
         let mut deferred_reads = BTreeMap::new();
         let replaced = self.retain_blocks(|index, block| {
-            if *primary_bytes <= budget_bytes || block.is_note || is_protected(index) { return None; }
+            if *primary_bytes <= budget_bytes || block.is_note || is_protected(index) {
+                return None;
+            }
             block.symbol.as_ref()?;
             let (first, last) = block.displayed?;
-            if protected_ranges.iter().any(|(start, end)| first <= *start && *end <= last) { return None; }
-            let deferred_read = DeferredRead { offset: first, limit: last - first + 1 };
+            if protected_ranges
+                .iter()
+                .any(|(start, end)| first <= *start && *end <= last)
+            {
+                return None;
+            }
+            let deferred_read = DeferredRead {
+                offset: first,
+                limit: last - first + 1,
+            };
             let note = deferred_read.note(&path);
-            if note.len().saturating_add(512) > block.rendered_len() { return None; }
+            if note.len().saturating_add(512) > block.rendered_len() {
+                return None;
+            }
             *primary_bytes -= block.rendered_len() - note.len();
             deferred_reads.insert(index, deferred_read);
             Some(note)
@@ -850,32 +885,88 @@ mod tests {
         let mut primary = "# codemap-search\n".to_string();
         for first in [1, 11, 21] {
             assert!(file.push_block(SourceBlock {
-                text: "source bytes\n".repeat(80), prefix: String::new(), suffix: String::new(),
+                text: "source bytes\n".repeat(80),
+                prefix: String::new(),
+                suffix: String::new(),
                 source_offset: Some(0),
-                symbol: Some(BlockSymbol { name: format!("f{first}"), kind: "fn".into(), owner: None, start_line: first, end_line: first + 8 }),
-                displayed: Some((first, first + 8)), is_clipped: false, is_note: false,
+                symbol: Some(BlockSymbol {
+                    name: format!("f{first}"),
+                    kind: "fn".into(),
+                    owner: None,
+                    start_line: first,
+                    end_line: first + 8
+                }),
+                displayed: Some((first, first + 8)),
+                is_clipped: false,
+                is_note: false,
             }));
         }
         let mut budget = file.primary_bytes(false);
         assert_eq!(file.defer_bodies(&mut budget, 0, |_| false), 3);
         file.write_primary(&mut primary, false);
         let notes = file.selected_deferred_notes(primary.len(), 0);
-        assert_eq!(notes.iter().map(|note| note.read.as_str()).collect::<Vec<_>>(), [
-            "경로/worker.rs offset 1 limit 9", "경로/worker.rs offset 11 limit 9", "경로/worker.rs offset 21 limit 9",
-        ]);
+        assert_eq!(
+            notes
+                .iter()
+                .map(|note| note.read.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "경로/worker.rs offset 1 limit 9",
+                "경로/worker.rs offset 11 limit 9",
+                "경로/worker.rs offset 21 limit 9",
+            ]
+        );
         assert!(file.selected_source_ranges(primary.len()).is_empty());
         let definition_offset = Some("# codemap-search\n".len());
-        let edits = super::super::display::plan_note_folding(&primary, &notes, &[], &[0], definition_offset);
+        let edits = super::super::display::plan_note_folding(
+            &primary,
+            &notes,
+            &[],
+            &[0],
+            definition_offset,
+        );
         let mut folded = primary.clone();
-        for edit in edits.into_iter().rev() { folded.replace_range(edit.range, &edit.text); }
+        for edit in edits.into_iter().rev() {
+            folded.replace_range(edit.range, &edit.text);
+        }
         assert!(folded.len() < primary.len());
         assert_eq!(folded.matches("[D1] Body deferred").count(), 1);
-        for note in &notes { assert!(folded.contains(&format!("_Body deferred [D1]; read {}._", note.read))); }
+        for note in &notes {
+            assert!(folded.contains(&format!("_Body deferred [D1]; read {}._", note.read)));
+        }
         // A clipped note is never folded, nor can a missing title leave undefined labels.
-        assert_eq!(file.selected_deferred_notes(notes[2].range.end - 1, 0).len(), 2);
-        assert!(super::super::display::plan_note_folding(&primary, &notes[..1], &[], &[0], definition_offset).is_empty());
-        assert!(super::super::display::plan_note_folding(&primary, &notes[..2], &[], &[0], definition_offset).is_empty(), "two references do not repay this definition's bytes");
-        assert!(super::super::display::plan_note_folding(&primary.replacen("# codemap-search", "# missing title", 1), &notes, &[], &[0], definition_offset).is_empty());
+        assert_eq!(
+            file.selected_deferred_notes(notes[2].range.end - 1, 0)
+                .len(),
+            2
+        );
+        assert!(super::super::display::plan_note_folding(
+            &primary,
+            &notes[..1],
+            &[],
+            &[0],
+            definition_offset
+        )
+        .is_empty());
+        assert!(
+            super::super::display::plan_note_folding(
+                &primary,
+                &notes[..2],
+                &[],
+                &[0],
+                definition_offset
+            )
+            .is_empty(),
+            "two references do not repay this definition's bytes"
+        );
+        assert!(super::super::display::plan_note_folding(
+            &primary.replacen("# codemap-search", "# missing title", 1),
+            &notes,
+            &[],
+            &[0],
+            definition_offset
+        )
+        .is_empty());
     }
 
     #[test]
@@ -921,7 +1012,11 @@ mod tests {
             let mut file = FileOutput::new(path, file_number + 1, None, 0, 16 * 1024);
             // Two sections in the first file split its share; the last file receives
             // all bytes that earlier sections could not use, not a fixed initial share.
-            for line in if file_number == 0 { vec![2, 20] } else { vec![2] } {
+            for line in if file_number == 0 {
+                vec![2, 20]
+            } else {
+                vec![2]
+            } {
                 file.sections.push(Section {
                     root: None,
                     heading: format!("\n### line {line}\n\n"),

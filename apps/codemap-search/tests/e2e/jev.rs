@@ -442,7 +442,10 @@ async fn test_jev_configured_deadline_wins_over_the_runtime_default_through_mcp(
     // 1.5 s leaves room for the synchronous preparation (ranking and rendering in a debug
     // build) so the request is actually dispatched; the transport then outlasts the deadline.
     let temp = create_mock_repo(&[
-        (".codemap/config.toml", "[analysis.jev]\nsearch_filter_enabled = true\ntimeout_ms = 1500\n"),
+        (
+            ".codemap/config.toml",
+            "[analysis.jev]\nsearch_filter_enabled = true\ntimeout_ms = 1500\n",
+        ),
         ("src/budget.ts", BUDGET_TS),
     ])
     .unwrap();

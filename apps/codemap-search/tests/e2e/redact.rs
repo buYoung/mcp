@@ -81,7 +81,12 @@ async fn test_redact_masks_all_mcp_views_and_preserves_matching_and_disk() {
     let source = "pub const PASSWORD: &str = \"correct-horse-credential\";\npub const API_KEY: &str = \"sk-proj-abcdefghijklmnopqrstuv0123456789\";\npub const SAFE: &str = \"visible-message\";\npub fn authenticate() -> &'static str { PASSWORD }\n";
     let repo = create_mock_repo(&[("src/lib.rs", source)]).unwrap();
     let mut client = McpClient::spawn(repo.path()).await.unwrap();
-    call(&mut client, "read", json!({"file_path":"src/lib.rs","view":"definitions"})).await;
+    call(
+        &mut client,
+        "read",
+        json!({"file_path":"src/lib.rs","view":"definitions"}),
+    )
+    .await;
     for view in ["full", "source", "definitions", "relations"] {
         let response = call(
             &mut client,

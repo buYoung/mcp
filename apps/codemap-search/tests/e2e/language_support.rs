@@ -248,7 +248,6 @@ async fn test_optional_language_groups_toggle_index_discovery_but_keep_direct_ac
             .unwrap();
         assert_contains_no_optional_files(response_text(&disabled_again));
     }
-
 }
 
 #[tokio::test]
