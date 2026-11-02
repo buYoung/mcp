@@ -3,7 +3,7 @@
 //! reach their users through imports, includes, packages and namespaces, which the index
 //! records. Source rows above the trailer stay unchanged.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -28,6 +28,9 @@ const TRAILER_BYTE_CAP: usize = 1536;
 const TRAILER_TIME_BUDGET: Duration = Duration::from_millis(100);
 const PARTIAL_LINE: &str =
     "\n- import lookup stopped at its time limit; more importing files may exist (grep the name)";
+/// Said instead of the trailer when the lookup stopped before finding any importing file, so
+/// the stop does not read as "no other file imports these".
+const TIME_LIMIT_LINE: &str = "[Importing files unavailable: the lookup reached its time limit before finding any; more may exist (grep the name).]";
 pub(crate) const HEADER: &str =
     "[Other files importing this window's declarations (static analysis, approximate)]";
 
@@ -186,7 +189,7 @@ pub(super) fn trailer(
     candidates.retain(|(index, ..)| !filter.is_file_excluded(&files[*index].file_path));
     let peers = resolver.package_peers(file);
     if candidates.is_empty() && peers.is_empty() {
-        return None;
+        return is_partial.then(|| TIME_LIMIT_LINE.to_string());
     }
     // Imports naming a declaration resolve first: one check each, and the likeliest users.
     candidates.sort_by_key(|(_, _, _, is_unnamed)| *is_unnamed);
@@ -233,13 +236,15 @@ pub(super) fn trailer(
     trailer_text(&files, file, &declarations, &shown, is_partial, byte_cap)
 }
 
-/// Exported top-level values overlapping lines `start..=end`. Functions are left to the caller
-/// trailer where it runs, except assembly labels and macros, which included files use by name
-/// rather than by calls; type-only declarations run nothing their importers could reach.
+/// Exported top-level values overlapping lines `start..=end`, each name once: importers reach
+/// a name, not one of its assignments. Functions are left to the caller trailer where it runs,
+/// except assembly labels and macros, which included files use by name rather than by calls;
+/// type-only declarations run nothing their importers could reach.
 fn window_declarations(file: &ExtractedFile, start: usize, end: usize) -> Vec<Declaration<'_>> {
     let spec = crate::lang::spec_for_path(Path::new(&file.file_path));
     let language = spec.map(|spec| spec.language_name()).unwrap_or_default();
     let lists_functions = language == "asm" || spec.is_some_and(|spec| !spec.caller_scan_enabled());
+    let mut names = HashSet::new();
     file.symbols
         .iter()
         .filter(|symbol| {
@@ -251,6 +256,7 @@ fn window_declarations(file: &ExtractedFile, start: usize, end: usize) -> Vec<De
                 && start <= symbol.range.end_line_inclusive()
                 && is_top_level(file, symbol)
         })
+        .filter(|symbol| names.insert(symbol.name.as_str()))
         .take(DECLARATION_LIMIT)
         .map(|symbol| Declaration {
             symbol: Some(symbol),
@@ -260,14 +266,16 @@ fn window_declarations(file: &ExtractedFile, start: usize, end: usize) -> Vec<De
 }
 
 /// Whether other files can import `symbol` by its name: an exported, plainly named
-/// declaration. Files that include a header or source a script see every top-level name, and
-/// a Starlark `load` every name without a leading underscore.
+/// declaration, where shell names may hold hyphens. Files that include a header or source a
+/// script see every top-level name, and a Starlark `load` every name without a leading
+/// underscore.
 fn is_importable(language: &str, symbol: &ExtractedSymbol) -> bool {
+    let is_shell = matches!(language, "bash" | "zsh");
     let is_plain_name = !symbol.name.is_empty()
         && symbol
             .name
             .chars()
-            .all(|c| c.is_alphanumeric() || c == '_' || c == '$');
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '$' || (c == '-' && is_shell));
     let is_visible = match language {
         "c" | "cpp" | "asm" | "bash" | "zsh" => true,
         "starlark" => !symbol.name.starts_with('_'),
@@ -302,10 +310,9 @@ fn add_importer(
         .map(|symbol| symbol.name.as_str())
         .unwrap_or_default();
     if reach == ImportReach::Bare
-        && files[index]
-            .symbols
-            .iter()
-            .any(|symbol| symbol.name == name && symbol.owner.is_none())
+        && files[index].symbols.iter().any(|symbol| {
+            symbol.name == name && symbol.owner.is_none() && is_top_level(&files[index], symbol)
+        })
     {
         return;
     }
@@ -510,6 +517,7 @@ impl<'a> Uses<'a> {
                 .map(|import| (import.range.start_line, import.range.end_line_inclusive()))
                 .collect();
             let lines = crate::callers::code_use_lines(&file.file_path, &source, &patterns);
+            let source_lines: Vec<&str> = source.lines().collect();
             patterns
                 .into_iter()
                 .zip(lines)
@@ -517,6 +525,7 @@ impl<'a> Uses<'a> {
                     let lines = lines
                         .into_iter()
                         .filter(|line| !imports.iter().any(|(start, end)| start <= line && line <= end))
+                        .filter(|line| !is_shadowed(file, &source_lines, &pattern, *line))
                         .collect();
                     (pattern, lines)
                 })
@@ -574,7 +583,8 @@ impl<'a> Uses<'a> {
 }
 
 /// The trailer listing each declaration's importers, within `byte_cap`; `None` when no other
-/// file imports any of them.
+/// file imports any of them, and a notice instead when the lookup stopped at its time limit
+/// before finding any.
 fn trailer_text(
     files: &[ExtractedFile],
     file: &ExtractedFile,
@@ -599,7 +609,8 @@ fn trailer_text(
         text.push_str(&line);
     }
     if text.len() == HEADER.len() {
-        return None;
+        // A lookup cut short before it found anyone must not read as "no importing files".
+        return (is_partial && omitted == 0).then(|| TIME_LIMIT_LINE.to_string());
     }
     if omitted > 0 {
         text.push_str(&omission_line(omitted));
@@ -681,9 +692,228 @@ fn file_places(file: &ExtractedFile, lines: &[usize]) -> String {
     text
 }
 
+/// Whether a function enclosing `line` binds `name` itself, so that the name there is not the
+/// imported one: it declares a local of that name, or, by its language's own rules, assigns or
+/// takes a parameter of that name (Python, PowerShell) or declares it `local` (the shells, whose
+/// functions otherwise assign the shell's variables).
+fn is_shadowed(file: &ExtractedFile, lines: &[&str], name: &str, line: usize) -> bool {
+    let language = crate::lang::spec_for_path(Path::new(&file.file_path))
+        .map(|spec| spec.language_name())
+        .unwrap_or_default();
+    let within = |outer: &ExtractedSymbol, start: usize, end: usize| {
+        outer.range.start_line <= start && end <= outer.range.end_line_inclusive()
+    };
+    file.symbols
+        .iter()
+        .filter(|function| callable(function) && within(function, line, line))
+        .any(|function| {
+            let declares = !matches!(language, "bash" | "zsh")
+                && file.symbols.iter().any(|symbol| {
+                    symbol.name == name
+                        && !std::ptr::eq(symbol, function)
+                        && within(function, symbol.range.start_line, symbol.range.end_line_inclusive())
+                });
+            let body = lines
+                .get(function.range.start_line.saturating_sub(1)..function.range.end_line_inclusive())
+                .unwrap_or_default();
+            declares || binds_locally(language, body, name)
+        })
+}
+
+/// Whether a function's lines bind `name` as its own variable by its language's syntax.
+fn binds_locally(language: &str, lines: &[&str], name: &str) -> bool {
+    match language {
+        "python" => {
+            python_parameters(lines).iter().any(|parameter| parameter == name)
+                || lines.iter().any(|line| assigns(line, name, false))
+        }
+        "powershell" => {
+            powershell_parameters(lines).any(|line| has_word(line, name, true))
+                || lines.iter().any(|line| assigns(line, name, true))
+        }
+        "bash" | "zsh" => lines.iter().any(|line| {
+            let line = line.trim_start();
+            ["local", "declare", "typeset"].iter().any(|keyword| {
+                line.strip_prefix(keyword).is_some_and(|rest| {
+                    rest.starts_with([' ', '\t'])
+                        && rest
+                            .split(|c: char| c.is_whitespace() || c == '=')
+                            .any(|word| word == name)
+                })
+            })
+        }),
+        _ => false,
+    }
+}
+
+/// The parameter names of a Python function header, after any decorators: each name in its
+/// parameter list before its type or default, without `*` or `**`.
+fn python_parameters(lines: &[&str]) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut depth = 0;
+    let mut parameter = String::new();
+    let header = lines.iter().skip_while(|line| {
+        let line = line.trim_start();
+        !(line.starts_with("def ") || line.starts_with("async def "))
+    });
+    for c in header.flat_map(|line| line.chars().chain(['\n'])) {
+        match c {
+            ')' | ']' | '}' | ',' if depth == 1 => {
+                names.push(python_parameter_name(&parameter).to_string());
+                parameter.clear();
+                if c != ',' {
+                    break;
+                }
+                continue;
+            }
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth -= 1,
+            _ => {}
+        }
+        if depth >= 1 && !(depth == 1 && c == '(') {
+            parameter.push(c);
+        }
+    }
+    names.retain(|name| !name.is_empty());
+    names
+}
+
+/// `name` of a Python parameter written `*name: int = 0`.
+fn python_parameter_name(parameter: &str) -> &str {
+    let parameter = parameter.trim().trim_start_matches('*');
+    parameter
+        .split([':', '='])
+        .next()
+        .unwrap_or_default()
+        .trim()
+}
+
+/// The lines declaring a PowerShell function's parameters: its header and a leading
+/// `param (...)` block.
+fn powershell_parameters<'a>(lines: &'a [&'a str]) -> impl Iterator<Item = &'a str> + 'a {
+    let mut depth = 0i32;
+    let mut in_block = false;
+    let mut done = false;
+    lines.iter().enumerate().filter_map(move |(index, line)| {
+        if done {
+            return None;
+        }
+        if index > 0 && !in_block {
+            let trimmed = line.trim_start();
+            in_block = trimmed.len() >= 5 && trimmed[..5].eq_ignore_ascii_case("param");
+            if !in_block {
+                // Only a leading `param` block declares parameters; other lines are the body.
+                done = !(trimmed.is_empty() || trimmed.starts_with(['{', '#', '[']));
+                return None;
+            }
+        }
+        if in_block {
+            depth += line.matches('(').count() as i32 - line.matches(')').count() as i32;
+            done = depth <= 0 && line.contains(')');
+        }
+        Some(*line)
+    })
+}
+
+/// Whether `line` assigns `name`, possibly after a type constraint: `name = ...`, `name += ...`.
+fn assigns(line: &str, name: &str, ignore_case: bool) -> bool {
+    let mut line = line.trim_start();
+    while let Some(rest) = line.strip_prefix('[') {
+        line = rest.split_once(']').map_or("", |(_, rest)| rest).trim_start();
+    }
+    let Some(head) = line.get(..name.len()) else {
+        return false;
+    };
+    let is_name = if ignore_case {
+        head.eq_ignore_ascii_case(name)
+    } else {
+        head == name
+    };
+    let rest = line[name.len()..].trim_start();
+    is_name
+        && ["=", "+=", "-=", "*=", "/=", "%=", "|=", "&=", ":="]
+            .iter()
+            .any(|operator| rest.starts_with(operator) && !rest[operator.len()..].starts_with('='))
+}
+
+/// Whether `line` spells `name` as a whole word.
+fn has_word(line: &str, name: &str, ignore_case: bool) -> bool {
+    let (line, name) = if ignore_case {
+        (line.to_ascii_lowercase(), name.to_ascii_lowercase())
+    } else {
+        (line.to_string(), name.to_string())
+    };
+    let is_name_char = |c: char| c.is_alphanumeric() || c == '_';
+    line.match_indices(name.as_str()).any(|(at, _)| {
+        !line[..at].chars().next_back().is_some_and(is_name_char)
+            && !line[at + name.len()..].chars().next().is_some_and(is_name_char)
+    })
+}
+
 /// How many leading directories two paths share.
 fn shared_directories(left: &str, right: &str) -> usize {
     let left = Path::new(left).parent().into_iter().flat_map(Path::components);
     let right = Path::new(right).parent().into_iter().flat_map(Path::components);
     left.zip(right).take_while(|(left, right)| left == right).count()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn functions_binding_a_name_themselves_shadow_it() {
+        let python = [
+            "@route(\"/x\", methods=[\"GET\"])",
+            "def handle(limit: Dict[str, int] = None,",
+            "           *rest, **options) -> Result:",
+            "    return LIMIT",
+        ];
+        assert_eq!(python_parameters(&python), ["limit", "rest", "options"]);
+        assert!(binds_locally("python", &python, "limit"));
+        assert!(!binds_locally("python", &python, "Dict"));
+        assert!(!binds_locally("python", &python, "LIMIT"));
+        assert!(binds_locally("python", &["def own():", "    LIMIT = 5"], "LIMIT"));
+        assert!(!binds_locally("python", &["def own():", "    LIMIT == 5"], "LIMIT"));
+        let powershell = [
+            "function Get-Level {",
+            "  param (",
+            "    [Settings] $Base",
+            "  )",
+            "  [int]$level = 1",
+            "  return $Path",
+            "}",
+        ];
+        assert!(binds_locally("powershell", &powershell, "$base"));
+        assert!(binds_locally("powershell", &powershell, "$Level"));
+        assert!(!binds_locally("powershell", &powershell, "$Path"));
+        assert!(binds_locally("bash", &["show() {", "  local LEVEL=1"], "LEVEL"));
+        assert!(!binds_locally("bash", &["show() {", "  LEVEL=1"], "LEVEL"));
+    }
+
+    #[test]
+    fn a_lookup_stopped_before_finding_importers_says_so() {
+        let file = ExtractedFile {
+            file_path: "src/settings.ts".into(),
+            total_lines: 1,
+            symbols: Vec::new(),
+            literals: Vec::new(),
+            docstrings: Vec::new(),
+            member_names: Vec::new(),
+            navigation: None,
+        };
+        let declarations = [Declaration {
+            symbol: None,
+            importers: Vec::new(),
+        }];
+        let shown = [(Vec::new(), 0)];
+        assert_eq!(
+            trailer_text(&[], &file, &declarations, &shown, true, TRAILER_BYTE_CAP).as_deref(),
+            Some(TIME_LIMIT_LINE)
+        );
+        assert_eq!(
+            trailer_text(&[], &file, &declarations, &shown, false, TRAILER_BYTE_CAP),
+            None
+        );
+    }
 }

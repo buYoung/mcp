@@ -177,10 +177,15 @@ impl SourceSyntax {
 /// the match must lie outside comments and strings; a shell `$NAME` or an assembly `$NAME`
 /// operand uses `NAME`. Text the grammar cannot parse is matched by spelling alone.
 pub(crate) fn code_use_lines(file_path: &str, source: &str, patterns: &[String]) -> Vec<Vec<usize>> {
-    let is_sigil = crate::lang::spec_for_path(Path::new(file_path)).is_some_and(|spec| {
-        matches!(spec.language_name(), "bash" | "zsh" | "powershell" | "asm")
-    });
-    let is_name_char = |c: char| c.is_alphanumeric() || c == '_' || (c == '$' && !is_sigil);
+    let language = crate::lang::spec_for_path(Path::new(file_path))
+        .map(|spec| spec.language_name())
+        .unwrap_or_default();
+    let is_sigil = matches!(language, "bash" | "zsh" | "powershell" | "asm");
+    // Shell words, function names among them, may contain hyphens.
+    let is_shell = matches!(language, "bash" | "zsh");
+    let is_name_char = |c: char| {
+        c.is_alphanumeric() || c == '_' || (c == '$' && !is_sigil) || (c == '-' && is_shell)
+    };
     let mut found: Vec<Vec<usize>> = vec![Vec::new(); patterns.len()];
     let mut syntax: Option<Option<SourceSyntax>> = None;
     let mut line_start = 0;
