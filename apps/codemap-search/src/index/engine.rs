@@ -236,7 +236,7 @@ pub(super) const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v39 persists upper-snake-case constant names by line for the read trailer of shared keys.
 // v40 names the declaration of TypeScript `{ type Name }` import specifiers and persists
 // TypeScript/JavaScript exports that rename a declaration, for the read trailer of importers.
-const EXTRACTION_FORMAT_VERSION: &str = "v41-sourced-paths";
+const EXTRACTION_FORMAT_VERSION: &str = "v42-passed-on-exports";
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -1797,7 +1797,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v41-sourced-paths");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v42-passed-on-exports");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

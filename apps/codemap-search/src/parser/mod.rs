@@ -3514,7 +3514,7 @@ class Calculator:
 
     #[test]
     fn test_ecmascript_renamed_exports_record_alias_and_original() {
-        let content = "import { inner } from './inner';\nexport { inner as outer };\nexport { first as second, third } from './m';\nexport { default as Main } from './main';\nconst local = 1;\nexport { local };\n";
+        let content = "import { inner } from './inner';\nexport { inner as outer };\nexport { first as second, third } from './m';\nexport { default as Main } from './main';\nconst local = 1;\nexport { local };\nexport * as tools from './helper';\nexport * from './all';\n";
         for path in ["m.ts", "m.js"] {
             let file = TreeSitterExtractor::new().extract(content, path).unwrap();
             let exports: Vec<_> = file
@@ -3540,6 +3540,18 @@ class Calculator:
                         "first".to_string(),
                         Some("./m".to_string()),
                         3
+                    ),
+                    (
+                        "Main".to_string(),
+                        "default".to_string(),
+                        Some("./main".to_string()),
+                        4
+                    ),
+                    (
+                        "tools".to_string(),
+                        String::new(),
+                        Some("./helper".to_string()),
+                        7
                     ),
                 ],
                 "{path}"

@@ -133,7 +133,9 @@ pub(super) fn collect_ecmascript_exported_names(
 }
 
 /// Renamed specifiers of top-level export clauses, `export { name as alias }` with or without
-/// `from`. Defaults are left to default imports.
+/// `from`; another module's default passed on as `export { default as alias } from`; and
+/// another module's namespace passed on as `export * as alias from`, recorded as a namespace
+/// entry without an imported name.
 pub(super) fn ecmascript_renamed_exports(root: Node, source: &[u8]) -> Vec<ImportEntry> {
     let mut entries = Vec::new();
     let mut statements = root.walk();
@@ -145,11 +147,40 @@ pub(super) fn ecmascript_renamed_exports(root: Node, source: &[u8]) -> Vec<Impor
             .child_by_field_name("source")
             .and_then(|node| node.utf8_text(source).ok())
             .map(|specifier| specifier.trim_matches(['"', '\'', '`']).to_string());
+        let range = |node: Node| {
+            let (start, end) = (node.start_position(), node.end_position());
+            CodeRange {
+                start_line: start.row + 1,
+                start_col: start.column + 1,
+                end_line: end.row + 1,
+                end_col: end.column + 1,
+            }
+        };
         let mut children = statement.walk();
-        let Some(clause) = statement
-            .named_children(&mut children)
-            .find(|node| node.kind() == "export_clause")
-        else {
+        let children: Vec<Node> = statement.named_children(&mut children).collect();
+        if let Some(namespace) = children
+            .iter()
+            .find(|node| node.kind() == "namespace_export")
+            .filter(|_| module.is_some())
+        {
+            let mut names = namespace.walk();
+            let alias = namespace
+                .named_children(&mut names)
+                .last()
+                .and_then(|node| node.utf8_text(source).ok())
+                .map(|alias| alias.trim_matches(['"', '\'']));
+            if let Some(alias) = alias {
+                entries.push(ImportEntry {
+                    local_name: alias.to_string(),
+                    imported_name: None,
+                    source: module.clone(),
+                    kind: ImportKind::Namespace,
+                    range: range(*namespace),
+                });
+            }
+            continue;
+        }
+        let Some(clause) = children.iter().find(|node| node.kind() == "export_clause") else {
             continue;
         };
         let mut specifiers = clause.walk();
@@ -165,21 +196,17 @@ pub(super) fn ecmascript_renamed_exports(root: Node, source: &[u8]) -> Vec<Impor
             let (Some(original), Some(alias)) = (field("name"), field("alias")) else {
                 continue;
             };
-            if original == alias || original == "default" || alias == "default" {
+            // A local `default` is no binding; only another module's default can pass on.
+            let is_local_default = original == "default" && module.is_none();
+            if original == alias || alias == "default" || is_local_default {
                 continue;
             }
-            let (start, end) = (specifier.start_position(), specifier.end_position());
             entries.push(ImportEntry {
                 local_name: alias.to_string(),
                 imported_name: Some(original.to_string()),
                 source: module.clone(),
                 kind: ImportKind::Named,
-                range: CodeRange {
-                    start_line: start.row + 1,
-                    start_col: start.column + 1,
-                    end_line: end.row + 1,
-                    end_col: end.column + 1,
-                },
+                range: range(specifier),
             });
         }
     }

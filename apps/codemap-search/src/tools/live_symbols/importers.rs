@@ -113,8 +113,12 @@ pub(super) fn trailer(
         .enumerate()
         .filter_map(|(index, declaration)| Some((declaration.symbol?.name.as_str(), index)))
         .collect();
+    let whole_file = declarations
+        .iter()
+        .position(|declaration| declaration.symbol.is_none());
     let mut candidates = Vec::new();
-    // Exports elsewhere that rename a declaration: their importers use the alias.
+    // Exports elsewhere that rename a declaration, or pass this file's default or namespace on:
+    // their importers use the alias. `None` stands for every declaration, through a namespace.
     let mut renames = Vec::new();
     for (index, other) in files.iter().enumerate() {
         if index % 64 == 0 && Instant::now() >= deadline {
@@ -149,28 +153,37 @@ pub(super) fn trailer(
             }
         }
         for export in &navigation.renamed_exports {
-            if let Some(&declaration) = export
-                .imported_name
-                .as_deref()
-                .and_then(|name| by_name.get(name))
-            {
-                renames.push((index, export.local_name.as_str(), declaration));
+            let declaration = match export.imported_name.as_deref() {
+                None if export.kind == ImportKind::Namespace => Some(None),
+                Some("default") => whole_file.map(Some),
+                Some(name) => by_name.get(name).map(|&declaration| Some(declaration)),
+                None => None,
+            };
+            if let Some(declaration) = declaration {
+                renames.push((index, export, declaration));
             }
         }
     }
     renames.retain(|(index, ..)| !filter.is_file_excluded(&files[*index].file_path));
     let resolver = SourceResolver::new(&files, &root);
-    let mut aliases: HashMap<&str, usize> = HashMap::new();
-    for (index, alias, declaration) in renames {
-        let name = declarations[declaration]
-            .symbol
-            .map(|symbol| symbol.name.as_str());
-        if resolver
-            .export_origins(&files[index].file_path, alias)
-            .iter()
-            .any(|origin| origin.file.file_path == path && Some(origin.name.as_str()) == name)
-        {
-            aliases.insert(alias, declaration);
+    let mut aliases: HashMap<&str, Option<usize>> = HashMap::new();
+    for (index, export, declaration) in renames {
+        let barrel = files[index].file_path.as_str();
+        let symbol = declaration.and_then(|declaration| declarations[declaration].symbol);
+        let is_verified = match symbol {
+            Some(symbol) => resolver
+                .export_origins(barrel, &export.local_name)
+                .iter()
+                .any(|origin| origin.file.file_path == path && origin.name == symbol.name),
+            // A passed-on default or namespace names this file as its module.
+            None => export
+                .source
+                .as_deref()
+                .and_then(|source| resolver.script_module(barrel, source))
+                .is_some_and(|module| module.file_path == path),
+        };
+        if is_verified {
+            aliases.insert(export.local_name.as_str(), declaration);
         }
     }
     if !aliases.is_empty() {
@@ -188,7 +201,7 @@ pub(super) fn trailer(
                     .as_deref()
                     .and_then(|name| aliases.get(name));
                 if let (ImportKind::Named, Some(&declaration)) = (&import.kind, alias) {
-                    candidates.push((index, import, Some(declaration), false));
+                    candidates.push((index, import, declaration, declaration.is_none()));
                 }
             }
         }

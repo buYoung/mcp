@@ -8,7 +8,7 @@ codemap-search의 주요 변경 사항을 이 파일에 기록합니다.
 
 ### 추가
 
-- `read view=source`에 `[Other files importing this window's declarations (static analysis, approximate)]` 트레일러를 추가했습니다. 읽은 범위에서 내보낸 값·클래스·상수를 import하는 다른 파일과, 그 파일에서 이를 쓰는 함수나 행을 보여 줍니다. 호출자 트레일러는 함수를 이름으로 찾지만, 이런 선언은 import를 거쳐 쓰이기 때문입니다. 지원하는 프로그래밍 언어마다 그 언어의 import 규칙을 따릅니다. 스크립트 모듈과 그 재내보내기·이름을 바꾼 내보내기, Python 모듈, Go 패키지, Rust 경로, JVM 패키지, C#·PHP 네임스페이스, Swift 모듈, Dart 라이브러리, Ruby·PowerShell의 상대 경로 로드, Lua 모듈, C·C++ include, 어셈블리 `.include`·`#include`·`%include`, 셸 `source`, Nix `import`, Starlark `load`를 따라갑니다. 같은 패키지·네임스페이스·모듈의 파일은 그 이름을 쓸 때 포함합니다. 기본 import와 Vue·Svelte·Astro 컴포넌트 import는 import한 파일의 이름으로 첫 행에 보여 줍니다. 가까운 디렉터리의 파일을 먼저 보여 주고, 트레일러는 1,536바이트와 100ms 안에서 만들며, 반복해서 읽으면 호출자 트레일러처럼 접습니다. 찾기가 import하는 파일을 하나도 찾기 전에 시간 한도에 닿으면 아무것도 보여 주지 않는 대신 그 사실을 알립니다. 같은 이름은 몇 번 대입되든 한 번만 보여 주며, 같은 이름을 스스로 묶는 함수(지역 선언, Python·PowerShell의 대입이나 매개변수, 셸의 `local`) 안에서 쓴 곳은 세지 않습니다. Zsh 위젯 함수처럼 하이픈이 든 셸 이름도 보여 줍니다. `output.read.is_outside_callers_enabled = false`로 설정하면 이 트레일러도 꺼집니다. 프롬프트 글자 수 변화(도구 설명 / 서버 안내 / 초기 안내): 0 / 0 / 0자.
+- `read view=source`에 `[Other files importing this window's declarations (static analysis, approximate)]` 트레일러를 추가했습니다. 읽은 범위에서 내보낸 값·클래스·상수를 import하는 다른 파일과, 그 파일에서 이를 쓰는 함수나 행을 보여 줍니다. 호출자 트레일러는 함수를 이름으로 찾지만, 이런 선언은 import를 거쳐 쓰이기 때문입니다. 지원하는 프로그래밍 언어마다 그 언어의 import 규칙을 따릅니다. 스크립트 모듈과 그 재내보내기·이름을 바꾼 내보내기·넘겨 내보내는 기본값과 네임스페이스(`export { default as Name } from`, `export * as name from`), Python 모듈, Go 패키지, Rust 경로, JVM 패키지, C#·PHP 네임스페이스, Swift 모듈, Dart 라이브러리, Ruby·PowerShell의 상대 경로 로드, Lua 모듈, C·C++ include, 어셈블리 `.include`·`#include`·`%include`, 셸 `source`, Nix `import`, Starlark `load`를 따라갑니다. 같은 패키지·네임스페이스·모듈의 파일은 그 이름을 쓸 때 포함합니다. 기본 import와 Vue·Svelte·Astro 컴포넌트 import는 import한 파일의 이름으로 첫 행에 보여 줍니다. 가까운 디렉터리의 파일을 먼저 보여 주고, 트레일러는 1,536바이트와 100ms 안에서 만들며, 반복해서 읽으면 호출자 트레일러처럼 접습니다. 찾기가 import하는 파일을 하나도 찾기 전에 시간 한도에 닿으면 아무것도 보여 주지 않는 대신 그 사실을 알립니다. 같은 이름은 몇 번 대입되든 한 번만 보여 주며, 같은 이름을 스스로 묶는 함수(지역 선언, Python·PowerShell의 대입이나 매개변수, 셸의 `local`) 안에서 쓴 곳은 세지 않습니다. Zsh 위젯 함수처럼 하이픈이 든 셸 이름도 보여 줍니다. `output.read.is_outside_callers_enabled = false`로 설정하면 이 트레일러도 꺼집니다. 프롬프트 글자 수 변화(도구 설명 / 서버 안내 / 초기 안내): 0 / 0 / 0자.
 
 ### 개선
 
@@ -24,6 +24,7 @@ codemap-search의 주요 변경 사항을 이 파일에 기록합니다.
 
 ### 수정
 
+- TypeScript·JavaScript 파일이 이름을 바꾼 내보내기와 함께, 다른 모듈의 기본값이나 네임스페이스를 넘겨 내보내는 `export { default as Name } from`과 `export * as name from`도 기록합니다. 업데이트 후 기존 색인을 한 번 다시 만듭니다. 프롬프트 글자 수 변화(도구 설명 / 서버 안내 / 초기 안내): 0 / 0 / 0자.
 - 어셈블리 파일이 `.include`처럼 전처리기의 `#include`와 NASM의 `%include`도 import로 기록합니다. 업데이트 후 기존 색인을 한 번 다시 만듭니다. 프롬프트 글자 수 변화(도구 설명 / 서버 안내 / 초기 안내): 0 / 0 / 0자.
 - Bash 함수 선언이 Zsh처럼 본문 전체를 범위로 가져, 선언 범위와 트레일러의 둘러싼 함수 표시가 함수 전체를 덮습니다. 업데이트 후 기존 색인을 한 번 다시 만듭니다. 프롬프트 글자 수 변화(도구 설명 / 서버 안내 / 초기 안내): 0 / 0 / 0자.
 - Groovy·Scala의 클래스·객체·값은 그 선언 자체의 수식어가 private이나 protected로 만들 때만 내보내지 않은 것으로 봅니다. 본문 안의 private 멤버나 Scala의 private 생성자가 있어도 선언 목록에 `not exported`로 표시되거나 import 트레일러에서 빠지지 않습니다. 업데이트 후 기존 색인을 한 번 다시 만듭니다. 프롬프트 글자 수 변화(도구 설명 / 서버 안내 / 초기 안내): 0 / 0 / 0자.

@@ -46,10 +46,34 @@ impl<'a> SourceResolver<'a> {
         match (language, declaration) {
             ("typescript" | "javascript" | "vue" | "astro" | "svelte", declaration) => {
                 let module = self.script_module(&importer.file_path, source?)?;
+                // The module another one passes on as `imported`, by `export * as imported from`
+                // or `export { default as imported } from`.
+                let passed_on = |is_namespace: bool| {
+                    module
+                        .navigation
+                        .iter()
+                        .flat_map(|navigation| &navigation.renamed_exports)
+                        .filter(|export| export.local_name == imported)
+                        .filter(|export| {
+                            if is_namespace {
+                                export.kind == ImportKind::Namespace
+                            } else {
+                                export.imported_name.as_deref() == Some("default")
+                            }
+                        })
+                        .find_map(|export| {
+                            self.script_module(&module.file_path, export.source.as_deref()?)
+                        })
+                };
                 match (&import.kind, declaration) {
-                    (ImportKind::Named, Some(declaration)) if imported != "default" => self
-                        .exports(module, imported, target, &declaration.name)
-                        .then(|| ImportReach::Bound(local())),
+                    (ImportKind::Named, Some(declaration)) if imported != "default" => {
+                        if self.exports(module, imported, target, &declaration.name) {
+                            return Some(ImportReach::Bound(local()));
+                        }
+                        let namespace = passed_on(true)?;
+                        self.exports(namespace, &declaration.name, target, &declaration.name)
+                            .then(|| ImportReach::Qualified(format!("{}.", import.local_name)))
+                    }
                     (ImportKind::Namespace, Some(declaration)) => self
                         .exports(module, &declaration.name, target, &declaration.name)
                         .then(|| ImportReach::Qualified(format!("{}.", import.local_name))),
@@ -58,6 +82,9 @@ impl<'a> SourceResolver<'a> {
                     {
                         is_target(module).then(|| ImportReach::Bound(local()))
                     }
+                    (ImportKind::Named, None) => passed_on(false)
+                        .is_some_and(is_target)
+                        .then(|| ImportReach::Bound(local())),
                     _ => None,
                 }
             }
