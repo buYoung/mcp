@@ -3486,7 +3486,8 @@ class Calculator:
 
     #[test]
     fn test_ts_type_only_import_specifiers_name_the_imported_declaration() {
-        let content = "import { type Item, type Row as Line, type, type as kind, value } from './m';\n";
+        let content =
+            "import { type Item, type Row as Line, type, type as kind, value } from './m';\n";
         let file = TreeSitterExtractor::new().extract(content, "m.ts").unwrap();
         let imports: Vec<_> = file
             .navigation

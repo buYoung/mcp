@@ -133,7 +133,13 @@ impl CallLookup {
             )
             .flatten()
             .copied()
-            .chain(with_unrecorded.then_some(&self.unrecorded).into_iter().flatten().copied())
+            .chain(
+                with_unrecorded
+                    .then_some(&self.unrecorded)
+                    .into_iter()
+                    .flatten()
+                    .copied(),
+            )
             .collect();
         positions.sort_unstable();
         positions.dedup();

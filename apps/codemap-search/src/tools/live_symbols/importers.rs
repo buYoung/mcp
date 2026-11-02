@@ -134,8 +134,7 @@ pub(super) fn trailer(
                 .as_deref()
                 .filter(|_| import.kind == ImportKind::Named)
                 .and_then(|name| by_name.get(name).copied());
-            let may_name =
-                hints.may_name(import) || namespace_uses_any(navigation, import, &names);
+            let may_name = hints.may_name(import) || namespace_uses_any(navigation, import, &names);
             if named.is_none() && !may_name {
                 continue;
             }
@@ -163,7 +162,9 @@ pub(super) fn trailer(
     let resolver = SourceResolver::new(&files, &root);
     let mut aliases: HashMap<&str, usize> = HashMap::new();
     for (index, alias, declaration) in renames {
-        let name = declarations[declaration].symbol.map(|symbol| symbol.name.as_str());
+        let name = declarations[declaration]
+            .symbol
+            .map(|symbol| symbol.name.as_str());
         if resolver
             .export_origins(&files[index].file_path, alias)
             .iter()
@@ -177,8 +178,15 @@ pub(super) fn trailer(
             if index == position {
                 continue;
             }
-            for import in other.navigation.iter().flat_map(|navigation| &navigation.imports) {
-                let alias = import.imported_name.as_deref().and_then(|name| aliases.get(name));
+            for import in other
+                .navigation
+                .iter()
+                .flat_map(|navigation| &navigation.imports)
+            {
+                let alias = import
+                    .imported_name
+                    .as_deref()
+                    .and_then(|name| aliases.get(name));
                 if let (ImportKind::Named, Some(&declaration)) = (&import.kind, alias) {
                     candidates.push((index, import, Some(declaration), false));
                 }
@@ -448,7 +456,10 @@ impl<'a> Uses<'a> {
         declarations: &[Declaration<'_>],
     ) -> Self {
         let mut wanted: HashMap<usize, Vec<String>> = HashMap::new();
-        for importer in declarations.iter().flat_map(|declaration| &declaration.importers) {
+        for importer in declarations
+            .iter()
+            .flat_map(|declaration| &declaration.importers)
+        {
             let patterns = wanted.entry(importer.file).or_default();
             for pattern in &importer.patterns {
                 if !pattern.is_empty() && !patterns.contains(pattern) {
@@ -524,7 +535,11 @@ impl<'a> Uses<'a> {
                 .map(|(pattern, lines)| {
                     let lines = lines
                         .into_iter()
-                        .filter(|line| !imports.iter().any(|(start, end)| start <= line && line <= end))
+                        .filter(|line| {
+                            !imports
+                                .iter()
+                                .any(|(start, end)| start <= line && line <= end)
+                        })
                         .filter(|line| !is_shadowed(file, &source_lines, &pattern, *line))
                         .collect();
                     (pattern, lines)
@@ -687,7 +702,10 @@ fn file_places(file: &ExtractedFile, lines: &[usize]) -> String {
         .collect();
     let mut text = format!("{}: {}", file.file_path, shown.join(", "));
     if places.len() > PLACES_PER_FILE {
-        text.push_str(&format!(", +{} more places", places.len() - PLACES_PER_FILE));
+        text.push_str(&format!(
+            ", +{} more places",
+            places.len() - PLACES_PER_FILE
+        ));
     }
     text
 }
@@ -711,10 +729,17 @@ fn is_shadowed(file: &ExtractedFile, lines: &[&str], name: &str, line: usize) ->
                 && file.symbols.iter().any(|symbol| {
                     symbol.name == name
                         && !std::ptr::eq(symbol, function)
-                        && within(function, symbol.range.start_line, symbol.range.end_line_inclusive())
+                        && within(
+                            function,
+                            symbol.range.start_line,
+                            symbol.range.end_line_inclusive(),
+                        )
                 });
             let body = lines
-                .get(function.range.start_line.saturating_sub(1)..function.range.end_line_inclusive())
+                .get(
+                    function.range.start_line.saturating_sub(1)
+                        ..function.range.end_line_inclusive(),
+                )
                 .unwrap_or_default();
             declares || binds_locally(language, body, name)
         })
@@ -724,7 +749,9 @@ fn is_shadowed(file: &ExtractedFile, lines: &[&str], name: &str, line: usize) ->
 fn binds_locally(language: &str, lines: &[&str], name: &str) -> bool {
     match language {
         "python" => {
-            python_parameters(lines).iter().any(|parameter| parameter == name)
+            python_parameters(lines)
+                .iter()
+                .any(|parameter| parameter == name)
                 || lines.iter().any(|line| assigns(line, name, false))
         }
         "powershell" => {
@@ -819,7 +846,10 @@ fn powershell_parameters<'a>(lines: &'a [&'a str]) -> impl Iterator<Item = &'a s
 fn assigns(line: &str, name: &str, ignore_case: bool) -> bool {
     let mut line = line.trim_start();
     while let Some(rest) = line.strip_prefix('[') {
-        line = rest.split_once(']').map_or("", |(_, rest)| rest).trim_start();
+        line = rest
+            .split_once(']')
+            .map_or("", |(_, rest)| rest)
+            .trim_start();
     }
     let Some(head) = line.get(..name.len()) else {
         return false;
@@ -846,15 +876,26 @@ fn has_word(line: &str, name: &str, ignore_case: bool) -> bool {
     let is_name_char = |c: char| c.is_alphanumeric() || c == '_';
     line.match_indices(name.as_str()).any(|(at, _)| {
         !line[..at].chars().next_back().is_some_and(is_name_char)
-            && !line[at + name.len()..].chars().next().is_some_and(is_name_char)
+            && !line[at + name.len()..]
+                .chars()
+                .next()
+                .is_some_and(is_name_char)
     })
 }
 
 /// How many leading directories two paths share.
 fn shared_directories(left: &str, right: &str) -> usize {
-    let left = Path::new(left).parent().into_iter().flat_map(Path::components);
-    let right = Path::new(right).parent().into_iter().flat_map(Path::components);
-    left.zip(right).take_while(|(left, right)| left == right).count()
+    let left = Path::new(left)
+        .parent()
+        .into_iter()
+        .flat_map(Path::components);
+    let right = Path::new(right)
+        .parent()
+        .into_iter()
+        .flat_map(Path::components);
+    left.zip(right)
+        .take_while(|(left, right)| left == right)
+        .count()
 }
 
 #[cfg(test)]
@@ -873,8 +914,16 @@ mod tests {
         assert!(binds_locally("python", &python, "limit"));
         assert!(!binds_locally("python", &python, "Dict"));
         assert!(!binds_locally("python", &python, "LIMIT"));
-        assert!(binds_locally("python", &["def own():", "    LIMIT = 5"], "LIMIT"));
-        assert!(!binds_locally("python", &["def own():", "    LIMIT == 5"], "LIMIT"));
+        assert!(binds_locally(
+            "python",
+            &["def own():", "    LIMIT = 5"],
+            "LIMIT"
+        ));
+        assert!(!binds_locally(
+            "python",
+            &["def own():", "    LIMIT == 5"],
+            "LIMIT"
+        ));
         let powershell = [
             "function Get-Level {",
             "  param (",
@@ -887,7 +936,11 @@ mod tests {
         assert!(binds_locally("powershell", &powershell, "$base"));
         assert!(binds_locally("powershell", &powershell, "$Level"));
         assert!(!binds_locally("powershell", &powershell, "$Path"));
-        assert!(binds_locally("bash", &["show() {", "  local LEVEL=1"], "LEVEL"));
+        assert!(binds_locally(
+            "bash",
+            &["show() {", "  local LEVEL=1"],
+            "LEVEL"
+        ));
         assert!(!binds_locally("bash", &["show() {", "  LEVEL=1"], "LEVEL"));
     }
 

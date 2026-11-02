@@ -344,8 +344,7 @@ fn precise_navigation_callers(
             .map(|import| import.local_name.as_str())
             .collect();
         let relevant = |call: &&CallSite| {
-            relevant_names.contains(call.name.as_str())
-                || imported_as.contains(&call.name.as_str())
+            relevant_names.contains(call.name.as_str()) || imported_as.contains(&call.name.as_str())
         };
         if !navigation.calls.iter().any(|call| relevant(&call)) {
             continue;

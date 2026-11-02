@@ -825,7 +825,8 @@ async fn test_read_lists_importers_of_window_values_folded_and_configurable() {
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let header = "\n[Other files importing this window's declarations";
-    let args = serde_json::json!({"file_path":"src/registry.ts","offset":1,"limit":5,"view":"source"});
+    let args =
+        serde_json::json!({"file_path":"src/registry.ts","offset":1,"limit":5,"view":"source"});
     let first = client
         .send_tool_until(
             "read",
@@ -945,14 +946,18 @@ async fn test_read_lists_importers_in_every_supported_language() {
         ("astro/Card.astro", "---\nconst title = 'x';\n---\n<h1>{title}</h1>\n", "- Card.astro L1: astro/Page.astro: L2"),
         ("astro/Page.astro", "---\nimport Card from './Card.astro';\n---\n<Card />\n", ""),
     ];
-    let mut files: Vec<(&str, &str)> = cases.iter().map(|(path, source, _)| (*path, *source)).collect();
+    let mut files: Vec<(&str, &str)> = cases
+        .iter()
+        .map(|(path, source, _)| (*path, *source))
+        .collect();
     files.push((".codemap/config.toml", &settings));
     let temp = create_mock_repo(&files).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let header = "\n[Other files importing this window's declarations";
     let mut failures = Vec::new();
     for (path, _, expected) in cases.iter().filter(|(_, _, expected)| !expected.is_empty()) {
-        let args = serde_json::json!({"file_path": path, "offset": 1, "limit": 20, "view": "source"});
+        let args =
+            serde_json::json!({"file_path": path, "offset": 1, "limit": 20, "view": "source"});
         let out = client
             .send_tool_until("read", call("read", args)["arguments"].clone(), |out| {
                 out.contains(header)

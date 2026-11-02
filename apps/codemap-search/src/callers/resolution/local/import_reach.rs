@@ -76,7 +76,8 @@ impl<'a> SourceResolver<'a> {
                         .then(|| ImportReach::Qualified(format!("{}.", import.local_name)))
                 }
                 ImportKind::Default => {
-                    let module = self.python_module(&importer.file_path, source.unwrap_or(imported))?;
+                    let module =
+                        self.python_module(&importer.file_path, source.unwrap_or(imported))?;
                     is_target(module)
                         .then(|| ImportReach::Qualified(format!("{}.", import.local_name)))
                 }
@@ -102,10 +103,16 @@ impl<'a> SourceResolver<'a> {
                     &["ps1", "psm1"]
                 };
                 let is_sourced = language == "powershell"
-                    && self.included_file(&importer.file_path, source?).is_some_and(is_target);
+                    && self
+                        .included_file(&importer.file_path, source?)
+                        .is_some_and(is_target);
                 (is_sourced
                     || self
-                        .relative_imports(&importer.file_path, std::slice::from_ref(import), extensions)
+                        .relative_imports(
+                            &importer.file_path,
+                            std::slice::from_ref(import),
+                            extensions,
+                        )
                         .iter()
                         .any(|file| is_target(file)))
                 .then_some(ImportReach::Bare)
@@ -164,9 +171,13 @@ impl<'a> SourceResolver<'a> {
                 if source == format!("{package}.{}", declaration.name) {
                     Some(ImportReach::Bound(local()))
                 } else {
-                    [package.clone(), format!("{package}._"), format!("{package}.*")]
-                        .contains(&source.to_string())
-                        .then_some(ImportReach::Bare)
+                    [
+                        package.clone(),
+                        format!("{package}._"),
+                        format!("{package}.*"),
+                    ]
+                    .contains(&source.to_string())
+                    .then_some(ImportReach::Bare)
                 }
             }
             ("csharp", Some(declaration)) => {
@@ -192,9 +203,10 @@ impl<'a> SourceResolver<'a> {
                 };
                 let source = source?;
                 let reaches = |path: &str| {
-                    self.lookup_at_root(importer, path, kind, 0).is_some_and(|found| {
-                        is_target(found.file) && found.symbol.range == declaration.range
-                    })
+                    self.lookup_at_root(importer, path, kind, 0)
+                        .is_some_and(|found| {
+                            is_target(found.file) && found.symbol.range == declaration.range
+                        })
                 };
                 let member = format!("{source}::{}", declaration.name);
                 if import.kind == ImportKind::Glob {
@@ -202,7 +214,8 @@ impl<'a> SourceResolver<'a> {
                 } else if imported == declaration.name && reaches(source) {
                     Some(ImportReach::Bound(local()))
                 } else {
-                    reaches(&member).then(|| ImportReach::Qualified(format!("{}::", import.local_name)))
+                    reaches(&member)
+                        .then(|| ImportReach::Qualified(format!("{}::", import.local_name)))
                 }
             }
             _ => None,
@@ -275,7 +288,9 @@ impl<'a> SourceResolver<'a> {
     fn included_file(&self, importer: &str, include: &str) -> Option<&'a ExtractedFile> {
         let include = crate::lang::literal_path_tail(include)?.replace('\\', "/");
         let include = include.trim_start_matches("./");
-        if let Some(beside) = relative_path(importer, include).and_then(|path| self.indexed_file(&path)) {
+        if let Some(beside) =
+            relative_path(importer, include).and_then(|path| self.indexed_file(&path))
+        {
             return Some(beside);
         }
         let lookups = self.module_lookups();
@@ -312,7 +327,10 @@ impl<'a> SourceResolver<'a> {
         let path = if let Some(rest) = label.strip_prefix("//") {
             rest.replacen(':', "/", 1)
         } else if let Some(file) = label.strip_prefix(':') {
-            match Path::new(importer).parent().and_then(|directory| directory.to_str()) {
+            match Path::new(importer)
+                .parent()
+                .and_then(|directory| directory.to_str())
+            {
                 Some(directory) if !directory.is_empty() => format!("{directory}/{file}"),
                 _ => file.to_string(),
             }

@@ -176,7 +176,11 @@ impl SourceSyntax {
 /// inside a longer identifier, a plain name must not follow `.` as another value's member, and
 /// the match must lie outside comments and strings; a shell `$NAME` or an assembly `$NAME`
 /// operand uses `NAME`. Text the grammar cannot parse is matched by spelling alone.
-pub(crate) fn code_use_lines(file_path: &str, source: &str, patterns: &[String]) -> Vec<Vec<usize>> {
+pub(crate) fn code_use_lines(
+    file_path: &str,
+    source: &str,
+    patterns: &[String],
+) -> Vec<Vec<usize>> {
     let language = crate::lang::spec_for_path(Path::new(file_path))
         .map(|spec| spec.language_name())
         .unwrap_or_default();
