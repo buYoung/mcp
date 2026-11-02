@@ -262,10 +262,13 @@ fn precise_navigation_callers(
     snapshot: &[ExtractedFile],
     index: &SymbolIndex<'_>,
     navigation_index: &NavigationIndex,
+    call_lookup: Option<&super::CallLookup>,
     cfg: &CallerConfig,
     runtime_state: AnnotationRuntimeState,
     root: &Path,
     resolver: &super::resolution::SourceResolver<'_>,
+    deadline: Option<Instant>,
+    is_cut_short: &mut bool,
 ) -> Option<ConfirmedCallers> {
     if (!cfg.navigation_context_default && !super::resolution::supports(target_file_path))
         || runtime_state.suppresses_navigation()
@@ -316,14 +319,33 @@ fn precise_navigation_callers(
             }
         }
     }
-    for call_file in snapshot.iter().filter(|file| file.navigation.is_some()) {
+    // The lookup narrows the walk to files calling a relevant name or importing the target; the
+    // per-file check below still decides, so both walks find the same callers in the same order.
+    let candidates: Box<dyn Iterator<Item = &ExtractedFile>> = match call_lookup {
+        Some(lookup) => Box::new(
+            lookup
+                .files(
+                    relevant_names.iter().copied(),
+                    [target.name.as_str()],
+                    false,
+                )
+                .into_iter()
+                .map(|position| &snapshot[position]),
+        ),
+        None => Box::new(snapshot.iter()),
+    };
+    for call_file in candidates.filter(|file| file.navigation.is_some()) {
         let navigation = call_file.navigation.as_ref().unwrap();
+        // Local names this file imports the target under, found once per file.
+        let imported_as: Vec<&str> = navigation
+            .imports
+            .iter()
+            .filter(|import| import.imported_name.as_deref() == Some(&target.name))
+            .map(|import| import.local_name.as_str())
+            .collect();
         let relevant = |call: &&CallSite| {
             relevant_names.contains(call.name.as_str())
-                || navigation.imports.iter().any(|import| {
-                    import.local_name == call.name
-                        && import.imported_name.as_deref() == Some(&target.name)
-                })
+                || imported_as.contains(&call.name.as_str())
         };
         if !navigation.calls.iter().any(|call| relevant(&call)) {
             continue;
@@ -338,6 +360,14 @@ fn precise_navigation_callers(
         for call in navigation.calls.iter().filter(relevant) {
             if !index.includes(&call_file.file_path, &call.range) {
                 continue;
+            }
+            // Callers proven before the deadline are kept; the caller learns the list stopped.
+            if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                *is_cut_short = true;
+                return Some(ConfirmedCallers {
+                    entries: caller_entries,
+                    is_partial: false,
+                });
             }
             inspected += 1;
             if inspected > cfg.navigation_callsite_budget {
@@ -482,6 +512,7 @@ fn render_symbol_annotation(
     snapshot: &[ExtractedFile],
     index: &SymbolIndex<'_>,
     navigation_index: &NavigationIndex,
+    call_lookup: Option<&super::CallLookup>,
     cfg: &CallerConfig,
     byte_budget: usize,
     root: &Path,
@@ -524,10 +555,13 @@ fn render_symbol_annotation(
         snapshot,
         index,
         navigation_index,
+        call_lookup,
         cfg,
         runtime_state,
         root,
         resolver,
+        deadline,
+        is_cut_short,
     ) {
         let caller_entries = confirmed.entries;
         if confirmed.is_partial {
@@ -1116,11 +1150,15 @@ pub(crate) fn annotate_live_results(
 }
 
 /// What a caller-only annotation may rely on: the snapshot's modification stamps, which tell
-/// unchanged indexed files whose recorded calls the scan can trust, and a deadline after which
-/// it stops and reports partial results.
+/// unchanged indexed files whose recorded calls the scan can trust, whether the watcher keeps
+/// the whole snapshot current, and a deadline after which it stops and reports partial results.
 pub(crate) struct LiveCallerLimits<'a> {
     /// The nanosecond modification stamp of each indexed file at extraction.
     pub(crate) indexed_mtime: &'a dyn Fn(&str) -> Option<u64>,
+    /// The scan reads the indexed files instead of walking the workspace.
+    pub(crate) is_index_current: bool,
+    /// The snapshot's files by recorded call and import names.
+    pub(crate) call_lookup: &'a super::CallLookup,
     pub(crate) deadline: Instant,
 }
 
@@ -1250,7 +1288,12 @@ fn annotate_with_presentation(
             mtime: limits.indexed_mtime,
         }),
         deadline: limits.as_ref().map(|limits| limits.deadline),
+        indexed_walk: limits
+            .as_ref()
+            .filter(|limits| limits.is_index_current)
+            .map(|limits| (snapshot, limits.call_lookup)),
     };
+    let call_lookup = limits.as_ref().map(|limits| limits.call_lookup);
     let scan = scan_workspace(&names, cfg, root, &index, &scan_options)?;
     let deadline = scan_options.deadline;
     let mut is_partial = scan.is_past_deadline;
@@ -1287,6 +1330,7 @@ fn annotate_with_presentation(
                 snapshot,
                 &index,
                 &navigation_index,
+                call_lookup,
                 cfg,
                 budget,
                 root,

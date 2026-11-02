@@ -337,6 +337,12 @@ impl EngineSupervisor {
         self.indexer.is_dead()
     }
 
+    /// Whether the filesystem watcher keeps the published index current, so a request may
+    /// read the indexed files instead of walking the workspace (see [`Self::trigger_refresh`]).
+    pub(crate) fn keeps_index_current(&self) -> bool {
+        self.watcher_status.is_healthy() && !self.indexer.is_dead()
+    }
+
     /// True until the initial background indexing pass completes.
     pub fn is_warming(&self) -> bool {
         self.indexer.is_warming()

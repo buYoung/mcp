@@ -115,6 +115,8 @@ pub struct PublishedIndexSnapshot {
     records_by_collection: HashMap<(String, String), Vec<usize>>,
     type_declaration_ranges_by_path: HashMap<(String, String), Vec<CodeRange>>,
     type_declaration_counts: HashMap<String, usize>,
+    /// Files by recorded call and import names, built on the first live caller lookup.
+    call_lookup: std::sync::OnceLock<crate::callers::CallLookup>,
 }
 
 #[derive(Debug, Clone)]
@@ -260,7 +262,13 @@ impl PublishedIndexSnapshot {
             records_by_collection,
             type_declaration_ranges_by_path,
             type_declaration_counts,
+            call_lookup: std::sync::OnceLock::new(),
         }
+    }
+
+    pub(crate) fn call_lookup(&self) -> &crate::callers::CallLookup {
+        self.call_lookup
+            .get_or_init(|| crate::callers::CallLookup::build(&self.codemap))
     }
 
     pub(crate) fn events(&self) -> &crate::events::EventIndex {

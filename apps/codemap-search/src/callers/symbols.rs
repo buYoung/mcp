@@ -73,6 +73,74 @@ pub(super) struct CallSiteAddress {
     pub(super) call_index: usize,
 }
 
+/// Indexed files by the names their recorded calls and imports use. Built once per published
+/// generation, so a live caller lookup visits only the files that can hold a caller.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct CallLookup {
+    /// Snapshot positions, ascending, of the files whose recorded calls use each name.
+    files_by_call: HashMap<Box<str>, Vec<usize>>,
+    /// Snapshot positions, ascending, of the files importing each declared name.
+    files_by_import: HashMap<Box<str>, Vec<usize>>,
+    /// Files without recorded calls, or outside source resolution, which a scan reads by text.
+    unrecorded: Vec<usize>,
+}
+
+impl CallLookup {
+    pub(crate) fn build(snapshot: &[ExtractedFile]) -> Self {
+        let mut lookup = Self::default();
+        for (position, file) in snapshot.iter().enumerate() {
+            if file.navigation.is_none() || !super::resolution::supports(&file.file_path) {
+                lookup.unrecorded.push(position);
+            }
+            let Some(navigation) = &file.navigation else {
+                continue;
+            };
+            let add = |map: &mut HashMap<Box<str>, Vec<usize>>, name: &str| {
+                let positions = map.entry(name.into()).or_default();
+                if positions.last() != Some(&position) {
+                    positions.push(position);
+                }
+            };
+            for call in &navigation.calls {
+                add(&mut lookup.files_by_call, &call.name);
+            }
+            for name in navigation
+                .imports
+                .iter()
+                .filter_map(|import| import.imported_name.as_deref())
+            {
+                add(&mut lookup.files_by_import, name);
+            }
+        }
+        lookup
+    }
+
+    /// Ascending snapshot positions of the files whose recorded calls use one of `calls` or that
+    /// import one of `imports`, plus, with `with_unrecorded`, the files read by text.
+    pub(super) fn files<'n>(
+        &self,
+        calls: impl IntoIterator<Item = &'n str>,
+        imports: impl IntoIterator<Item = &'n str>,
+        with_unrecorded: bool,
+    ) -> Vec<usize> {
+        let mut positions: Vec<usize> = calls
+            .into_iter()
+            .filter_map(|name| self.files_by_call.get(name))
+            .chain(
+                imports
+                    .into_iter()
+                    .filter_map(|name| self.files_by_import.get(name)),
+            )
+            .flatten()
+            .copied()
+            .chain(with_unrecorded.then_some(&self.unrecorded).into_iter().flatten().copied())
+            .collect();
+        positions.sort_unstable();
+        positions.dedup();
+        positions
+    }
+}
+
 #[derive(Default)]
 pub(super) struct NavigationIndex {
     pub(super) calls_by_name: HashMap<String, Vec<CallSiteAddress>>,
