@@ -85,6 +85,7 @@ pub(super) fn collect(root: &Path, index_path: &Path, options: &Options) -> anyh
         .reload_policy(ReloadPolicy::Manual)
         .try_into()?;
     let searcher = reader.searcher();
+    let content_mtimes = crate::index::content_mtimes::ContentMtimes::load(index_path);
     let mut database = Connection::open_in_memory()?;
     database.execute_batch(
         "CREATE TABLE index_files (
@@ -104,6 +105,7 @@ pub(super) fn collect(root: &Path, index_path: &Path, options: &Options) -> anyh
         let mut insert_kind =
             transaction.prepare("INSERT INTO symbol_counts VALUES (?1, ?2, ?3, ?4, ?5)")?;
         for (segment_ordinal, segment) in searcher.segment_readers().iter().enumerate() {
+            let content_hashes = segment.fast_fields().column_opt::<u64>("content_hash")?;
             for document_id in segment.doc_ids_alive() {
                 let document = searcher
                     .doc::<TantivyDocument>(DocAddress::new(segment_ordinal as u32, document_id))?;
@@ -130,9 +132,14 @@ pub(super) fn collect(root: &Path, index_path: &Path, options: &Options) -> anyh
                     .context("Stored document is missing extracted_json")?;
                 let extracted: ExtractedFile =
                     serde_json::from_str(json).context("Decoding stored extraction metadata")?;
+                // A file found unchanged at a later mtime is current at that mtime.
+                let content_hash = content_hashes
+                    .as_ref()
+                    .and_then(|column| column.first(document_id));
                 let indexed_mtime_ns = document
                     .get_first(mtime_field)
-                    .and_then(|value| value.as_u64());
+                    .and_then(|value| value.as_u64())
+                    .map(|mtime| content_mtimes.mtime(path, content_hash).unwrap_or(mtime));
                 let (size_bytes, state) =
                     source_metadata(root, &extracted.file_path, indexed_mtime_ns, options.is_mcp);
                 let mut kinds = BTreeMap::<&str, (i64, i64, i64, i64)>::new();

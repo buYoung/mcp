@@ -315,6 +315,8 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 
 When `auto` mode does not index, for example in a folder that holds several repositories, `search` returns `Index unavailable:` with the reason. The reason names up to three repositories found one or two levels down. `read`, `grep` and `find` keep returning live results, without indexed declarations or callers. Outside a repository the server creates no `.codemap/` directory: no config is scaffolded, and its empty placeholder index lives in a temporary directory that is removed when the server exits. The file limit is checked on the first index-backed call, so a repository above it still gets `.codemap/` at startup. To index such a workspace, set `mode = "on"` in `.codemap/config.toml` or the global config and restart the server.
 
+A git worktree without an index starts from the index of another worktree of the same repository when one has the current format; the one updated most recently is copied, and it is left unchanged. The first pass then re-extracts only the files whose content differs, plus native files, whose recorded macro-expansion inputs name the other worktree's files, before anything from the index is shown. A worktree that already has an index, even one in another format, is never copied into.
+
 ### Indexing and file exclusions
 
 The user home directory itself cannot be an MCP workspace or an explicit `index`/`benchmark` target; a project beneath it is valid. If neither `HOME` nor `USERPROFILE` is available, the server warns and continues.
@@ -502,6 +504,8 @@ powershell = ["Describe", "Context", "It"]
 With `watch = true`, file changes refresh the index in the background. `index.refresh.watch_debounce_ms` combines nearby changes into one refresh. Changes in paths hidden by `.gitignore`, `.ignore` or `.codemapignore` are dropped like excluded directories, and a change to one of those files triggers a full walk. When file watching is off or unavailable, `search` requests background refreshes at intervals controlled by `index.refresh.index_staleness_ms` and return the last available results immediately.
 
 With `indexer_auto_restart = true`, the next `search` attempts recovery if background indexing stops. Recovery attempts are capped per server run. With it disabled, results remain frozen until restart. Live `read`/`find`/`grep` remains available in either case.
+
+When a file's modification time changes but its content does not, as after a checkout that rewrites identical files, the index keeps the file's document and records the new time in `content-mtimes.json` in the index folder. Later passes and server starts then do not read the file again.
 
 ## Example `config.toml`
 

@@ -9,8 +9,10 @@
 //! the watcher/indexer ranking/engine internals are not addressed by their submodule paths.
 
 pub mod admission;
+pub(crate) mod content_mtimes;
 mod engine;
 mod indexer;
+mod neighbor;
 mod path_role;
 mod phrase_recall;
 pub(crate) use phrase_recall::{PhraseAnchor, PhraseMatch};
