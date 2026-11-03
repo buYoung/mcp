@@ -412,7 +412,7 @@ impl<'a> SourceResolver<'a> {
         let mut found: Vec<&'a ExtractedFile> = Vec::new();
         for path in bases.iter().flat_map(|base| module_candidates(base)) {
             if let Some(file) = self
-                .file(&crate::workspace::canonicalize_path_lenient(&path))
+                .linked_file(&path)
                 .filter(|file| !is_declaration_file(&file.file_path))
             {
                 if !found.iter().any(|known| std::ptr::eq(*known, file)) {
@@ -464,7 +464,7 @@ impl<'a> SourceResolver<'a> {
     fn single_module(&self, bases: &[PathBuf]) -> Option<&'a ExtractedFile> {
         let mut found: Vec<&'a ExtractedFile> = Vec::new();
         for path in bases.iter().flat_map(|base| module_candidates(base)) {
-            if let Some(file) = self.file(&crate::workspace::canonicalize_path_lenient(&path)) {
+            if let Some(file) = self.linked_file(&path) {
                 if !found.iter().any(|known| std::ptr::eq(*known, file)) {
                     found.push(file);
                 }

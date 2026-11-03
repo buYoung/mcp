@@ -360,8 +360,8 @@ impl Interpreter<'_, '_> {
             let operator = node
                 .tokens
                 .iter()
-                .find(|op| matches!(op.as_str(), "===" | "!==" | "==" | "!=" | "||" | "??" | "+"))
-                .cloned()
+                .find(|op| matches!(*op, "===" | "!==" | "==" | "!=" | "||" | "??" | "+"))
+                .map(str::to_string)
                 .unwrap_or_default();
             if matches!(operator.as_str(), "===" | "!==" | "==" | "!=")
                 && values.len() == 2

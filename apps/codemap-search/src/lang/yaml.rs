@@ -18,14 +18,12 @@ fn query() -> &'static Query {
 
 fn qualified_key(pair: Node<'_>, source: &[u8]) -> String {
     let mut keys = Vec::new();
-    let mut current = Some(pair);
-    while let Some(candidate) = current {
+    for candidate in std::iter::once(pair).chain(crate::parser::ancestors(pair)) {
         if matches!(candidate.kind(), "block_mapping_pair" | "flow_pair") {
             if let Some(key) = candidate.child_by_field_name("key") {
                 keys.push(clean(first_named(key).unwrap_or(key), source));
             }
         }
-        current = candidate.parent();
     }
     keys.reverse();
     keys.join(".")

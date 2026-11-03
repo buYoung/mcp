@@ -51,7 +51,7 @@ pub(super) fn trailer(
     if engine.is_warming() || engine.is_dead() || engine.last_error().is_some() {
         return None;
     }
-    let root = std::env::current_dir().ok()?;
+    let root = crate::workspace::root_dir().ok()?;
     let path = anchor.file_path.as_str();
     let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
     if filter.is_file_excluded(path) {
@@ -254,7 +254,7 @@ fn is_key_literal(text: &str) -> bool {
 }
 
 fn trailer_text(
-    files: &[ExtractedFile],
+    files: &[std::sync::Arc<ExtractedFile>],
     path: &str,
     keys: Vec<KeyUse>,
     is_partial: bool,
@@ -302,7 +302,7 @@ fn omission_line(count: usize) -> String {
 }
 
 /// `- 'key': other/file.ts: fn L12, L14, Owner.method L30; this file: L80, +2 more places`
-fn key_line(files: &[ExtractedFile], path: &str, key: &KeyUse) -> String {
+fn key_line(files: &[std::sync::Arc<ExtractedFile>], path: &str, key: &KeyUse) -> String {
     // (file index, place label) -> lines, other files first, then by path and first line.
     let mut places: Vec<((usize, String), Vec<usize>)> = Vec::new();
     let mut sites = key.sites.clone();

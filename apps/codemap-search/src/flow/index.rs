@@ -31,13 +31,10 @@ pub(super) struct Location {
     pub name: String,
 }
 
+/// The flow digests of an index generation. The index stores no flow summaries.
 #[derive(Clone)]
 pub(crate) struct IndexedFlowStore {
-    #[cfg(test)]
-    pub searcher: tantivy::Searcher,
-    #[cfg(test)]
-    pub field: tantivy::schema::Field,
-    pub documents: BTreeMap<String, (tantivy::DocAddress, String)>,
+    pub documents: BTreeMap<String, String>,
 }
 #[derive(Clone)]
 enum Store {
@@ -78,7 +75,7 @@ pub(crate) struct FlowIndex {
     #[cfg(test)]
     cache: Arc<Mutex<Cache>>,
     #[cfg(test)]
-    pub(super) codemap: Arc<Vec<ExtractedFile>>,
+    pub(super) codemap: Arc<Vec<Arc<ExtractedFile>>>,
     #[cfg(test)]
     pub(super) sources: Arc<HashMap<String, String>>,
     #[cfg(test)]
@@ -94,7 +91,7 @@ impl std::fmt::Debug for FlowIndex {
 
 impl FlowIndex {
     pub(crate) fn build(
-        codemap: Arc<Vec<ExtractedFile>>,
+        codemap: Arc<Vec<Arc<ExtractedFile>>>,
         inputs: BTreeMap<String, FlowFile>,
         sources: Arc<HashMap<String, String>>,
     ) -> Self {
@@ -110,14 +107,14 @@ impl FlowIndex {
         )
     }
     pub(crate) fn indexed(
-        codemap: Arc<Vec<ExtractedFile>>,
+        codemap: Arc<Vec<Arc<ExtractedFile>>>,
         store: IndexedFlowStore,
         sources: Arc<HashMap<String, String>>,
     ) -> Self {
         Self::new(codemap, Store::Indexed(store), sources)
     }
     fn new(
-        codemap: Arc<Vec<ExtractedFile>>,
+        codemap: Arc<Vec<Arc<ExtractedFile>>>,
         store: Store,
         sources: Arc<HashMap<String, String>>,
     ) -> Self {
@@ -151,7 +148,7 @@ impl FlowIndex {
     pub(crate) fn digest(&self, path: &str) -> Option<&str> {
         match &self.store {
             Store::Memory(files) => files.get(path).map(|file| file.digest.as_str()),
-            Store::Indexed(store) => store.documents.get(path).map(|(_, digest)| digest.as_str()),
+            Store::Indexed(store) => store.documents.get(path).map(String::as_str),
         }
     }
     #[cfg(test)]
@@ -167,21 +164,7 @@ impl FlowIndex {
         }
         let file = match &self.store {
             Store::Memory(files) => Arc::clone(files.get(path)?),
-            Store::Indexed(store) => {
-                use tantivy::schema::Value;
-                #[derive(serde::Deserialize)]
-                #[serde(rename_all = "camelCase")]
-                struct Stored {
-                    flow_file: Option<FlowFile>,
-                }
-                let (address, _) = store.documents.get(path)?;
-                let document = store
-                    .searcher
-                    .doc::<tantivy::TantivyDocument>(*address)
-                    .ok()?;
-                let json = document.get_first(store.field)?.as_str()?;
-                Arc::new(serde_json::from_str::<Stored>(json).ok()?.flow_file?)
-            }
+            Store::Indexed(_) => return None,
         };
         let mut users: HashMap<BindingKey, Vec<FunctionKey>> = HashMap::new();
         let mut cost = 0;

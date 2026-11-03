@@ -85,50 +85,38 @@ pub(super) fn collect_ecmascript_exported_names(
     source: &[u8],
     exported_names: &mut HashSet<String>,
 ) {
-    let kind = node.kind();
-    if kind == "export_specifier" {
-        if let Some(name_node) = node.child_by_field_name("name") {
-            if let Ok(name_str) = name_node.utf8_text(source) {
+    let mut cursor = node.walk();
+    let mut pending = vec![node];
+    while let Some(node) = pending.pop() {
+        let children: Vec<Node> = node.children(&mut cursor).collect();
+        let kind = node.kind();
+        if kind == "export_specifier" {
+            if let Some(name_node) = node.child_by_field_name("name") {
+                if let Ok(name_str) = name_node.utf8_text(source) {
+                    exported_names.insert(name_str.to_string());
+                }
+            } else if let Some(name_str) = children
+                .iter()
+                .filter(|child| child.kind() == "identifier")
+                .find_map(|child| child.utf8_text(source).ok())
+            {
                 exported_names.insert(name_str.to_string());
             }
-        } else {
-            for i in 0..node.child_count() {
-                let child = node.child(i as u32).unwrap();
-                if child.kind() == "identifier" {
+            continue;
+        }
+        if kind == "export_statement" {
+            let mut has_default = false;
+            for child in &children {
+                if child.kind() == "default" {
+                    has_default = true;
+                } else if has_default && child.kind() == "identifier" {
                     if let Ok(name_str) = child.utf8_text(source) {
                         exported_names.insert(name_str.to_string());
-                        break;
                     }
                 }
             }
         }
-    } else if kind == "export_statement" {
-        let mut has_default = false;
-        for i in 0..node.child_count() {
-            let child = node.child(i as u32).unwrap();
-            if child.kind() == "default" {
-                has_default = true;
-            } else if has_default && child.kind() == "identifier" {
-                if let Ok(name_str) = child.utf8_text(source) {
-                    exported_names.insert(name_str.to_string());
-                }
-            }
-        }
-        for i in 0..node.child_count() {
-            collect_ecmascript_exported_names(
-                node.child(i as u32).unwrap(),
-                source,
-                exported_names,
-            );
-        }
-    } else {
-        for i in 0..node.child_count() {
-            collect_ecmascript_exported_names(
-                node.child(i as u32).unwrap(),
-                source,
-                exported_names,
-            );
-        }
+        pending.extend(children.into_iter().rev());
     }
 }
 
@@ -217,8 +205,8 @@ pub(super) fn ecmascript_renamed_exports(root: Node, source: &[u8]) -> Vec<Impor
 /// Block- and function-local declarations remain navigation bindings instead of polluting
 /// the repository-wide symbol field.
 pub(super) fn is_ecmascript_module_variable(node: Node) -> bool {
-    let mut ancestor = node.parent();
-    while let Some(current) = ancestor {
+    let mut ancestors = crate::parser::ancestors(node).peekable();
+    while let Some(current) = ancestors.next() {
         match current.kind() {
             "program" => return true,
             "lexical_declaration"
@@ -230,7 +218,7 @@ pub(super) fn is_ecmascript_module_variable(node: Node) -> bool {
             | "namespace"
             | "expression_statement" => {}
             "statement_block" => {
-                let is_module_body = current.parent().is_some_and(|parent| {
+                let is_module_body = ancestors.peek().is_some_and(|parent| {
                     matches!(parent.kind(), "internal_module" | "module" | "namespace")
                 });
                 if !is_module_body {
@@ -239,7 +227,6 @@ pub(super) fn is_ecmascript_module_variable(node: Node) -> bool {
             }
             _ => return false,
         }
-        ancestor = current.parent();
     }
     false
 }

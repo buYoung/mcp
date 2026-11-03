@@ -125,7 +125,7 @@ fn add_line_numbers(lines: &[&str], start_line: usize) -> String {
 /// (`filePath`, `file-path`) resolves to its canonical parameter instead of being dropped — an
 /// exact spelling still wins over a normalized variant. The error message names every accepted
 /// spelling so a wrong-param call self-corrects.
-fn resolve_file_path_arg(args: &Value) -> Result<&str, (i64, String)> {
+pub(crate) fn resolve_file_path_arg(args: &Value) -> Result<&str, (i64, String)> {
     for key in ["file_path", "path", "file", "query"] {
         if let Some(value) = get_arg(args, key).and_then(|v| v.as_str()) {
             return Ok(value);
@@ -349,9 +349,14 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         Vec::new()
     } else {
         let cwd = current_dir()?;
-        let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
-        let display_path = resolved
-            .strip_prefix(&cwd_canonical)
+        // Paths in another root's index show absolute.
+        let display_base = crate::config::get()
+            .workspace_root
+            .is_none()
+            .then(|| cwd.canonicalize().unwrap_or(cwd));
+        let display_path = display_base
+            .as_ref()
+            .and_then(|base| resolved.strip_prefix(base).ok())
             .unwrap_or(&resolved)
             .to_string_lossy()
             .replace('\\', "/");

@@ -1,5 +1,7 @@
+mod ancestors;
 mod bounded;
 pub(crate) mod composite;
+pub(crate) use ancestors::ancestors;
 mod key_sites;
 pub(crate) use bounded::parse_source;
 mod markdown;
@@ -388,16 +390,14 @@ fn normalized_collection_owner_type(text: &str) -> Option<String> {
 }
 
 fn first_descendant_kind<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>> {
+    let mut cursor = node.walk();
     let mut pending = vec![node];
     while let Some(node) = pending.pop() {
         if kinds.contains(&node.kind()) {
             return Some(node);
         }
-        pending.extend(
-            (0..node.child_count())
-                .rev()
-                .filter_map(|index| node.child(index as u32)),
-        );
+        let children: Vec<_> = node.children(&mut cursor).collect();
+        pending.extend(children.into_iter().rev());
     }
     None
 }
@@ -720,14 +720,7 @@ fn callable_scope_id(node: Node) -> Option<usize> {
 }
 
 fn scope_id_for_node(node: Node) -> Option<usize> {
-    let mut current = node.parent();
-    while let Some(ancestor) = current {
-        if let Some(scope) = callable_scope_id(ancestor) {
-            return Some(scope);
-        }
-        current = ancestor.parent();
-    }
-    None
+    ancestors(node).find_map(callable_scope_id)
 }
 
 fn reference_scope_index(tree: &Tree) -> HashMap<usize, Option<usize>> {
@@ -1349,17 +1342,13 @@ fn import_entries_from_node(node: Node, source: &[u8]) -> Vec<ImportEntry> {
     import_entries_from_text(&text, range)
 }
 
-fn enclosing_typescript_class(mut node: Node) -> Option<Node> {
-    while let Some(parent) = node.parent() {
-        if matches!(
+fn enclosing_typescript_class(node: Node) -> Option<Node> {
+    ancestors(node).find(|parent| {
+        matches!(
             parent.kind(),
             "class_declaration" | "abstract_class_declaration"
-        ) {
-            return Some(parent);
-        }
-        node = parent;
-    }
-    None
+        )
+    })
 }
 
 fn typescript_class_name(class_node: Node, source: &[u8]) -> Option<String> {
@@ -1472,13 +1461,13 @@ fn typescript_collection_owner_type(
 }
 
 fn typescript_source_context(
-    mut node: Node,
+    node: Node,
     source: &[u8],
 ) -> (Option<String>, Option<String>, Option<CodeRange>) {
     let mut source_owner = None;
     let mut source_symbol = None;
     let mut source_owner_range = None;
-    while let Some(parent) = node.parent() {
+    for parent in ancestors(node) {
         if source_symbol.is_none()
             && matches!(parent.kind(), "method_definition" | "function_declaration")
         {
@@ -1498,14 +1487,13 @@ fn typescript_source_context(
         if source_owner.is_some() && source_symbol.is_some() {
             break;
         }
-        node = parent;
     }
     (source_owner, source_symbol, source_owner_range)
 }
 
-fn enclosing_callable(mut node: Node) -> Option<Node> {
-    while let Some(parent) = node.parent() {
-        if matches!(
+fn enclosing_callable(node: Node) -> Option<Node> {
+    ancestors(node).find(|parent| {
+        matches!(
             parent.kind(),
             "function_declaration"
                 | "function_definition"
@@ -1515,12 +1503,8 @@ fn enclosing_callable(mut node: Node) -> Option<Node> {
                 | "function_item"
                 | "class_method_definition"
                 | "function_statement"
-        ) {
-            return Some(parent);
-        }
-        node = parent;
-    }
-    None
+        )
+    })
 }
 
 fn callable_name(node: Node, source: &[u8]) -> Option<String> {
@@ -1545,14 +1529,10 @@ fn static_collection_source_context(
     };
     let source_owner = spec.find_owner(callable, ext, source);
     let source_owner_range = source_owner.as_ref().and_then(|owner| {
-        let mut node = site_node;
-        while let Some(parent) = node.parent() {
-            if node_declares_type(parent, owner, source) {
-                return Some(range_for_node(parent));
-            }
-            node = parent;
-        }
-        types.unique_range(owner)
+        ancestors(site_node)
+            .find(|parent| node_declares_type(*parent, owner, source))
+            .map(range_for_node)
+            .or_else(|| types.unique_range(owner))
     });
     (
         source_owner,
@@ -1562,9 +1542,10 @@ fn static_collection_source_context(
 }
 
 fn named_children(node: Node) -> impl DoubleEndedIterator<Item = Node> {
-    (0..node.child_count())
-        .filter_map(move |index| node.child(index as u32))
-        .filter(|child| child.is_named())
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .collect::<Vec<_>>()
+        .into_iter()
 }
 
 fn unwrap_collection_expression(mut node: Node) -> Node {
@@ -1754,19 +1735,10 @@ fn type_field_type(
         }
         // Preserve the original traversal's pruning of nested declarations after
         // entering a matching outer type.
-        if owner_range.is_none() {
-            let mut ancestor = owner.parent();
-            let mut is_nested_match = false;
-            while let Some(node) = ancestor {
-                if node_declares_type(node, owner_type, source) {
-                    is_nested_match = true;
-                    break;
-                }
-                ancestor = node.parent();
-            }
-            if is_nested_match {
-                continue;
-            }
+        if owner_range.is_none()
+            && ancestors(*owner).any(|node| node_declares_type(node, owner_type, source))
+        {
+            continue;
         }
         let mut pending = vec![*owner];
         while let Some(node) = pending.pop() {

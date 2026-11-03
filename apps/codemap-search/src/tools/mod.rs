@@ -404,7 +404,7 @@ pub fn list_tools() -> Value {
                 "workspace_scope".to_string(),
                 serde_json::json!({
                     "type": "string",
-                    "description": "Limit the search to a scope listed by initial_instructions, by path or unique basename; subdirectories stay narrow and files select their parent. Omit or use 'all'/'전체' for repo-wide search. Never widens automatically. Alias: scope."
+                    "description": "Limit the search to a scope listed by initial_instructions, by path or unique basename; subdirectories stay narrow and files select their parent. A folder outside the start folder or in a linked worktree searches its own repository's index, created on first use. Omit or use 'all'/'전체' for repo-wide search. Never widens automatically. Alias: scope."
                 }),
             );
         }

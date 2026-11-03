@@ -754,30 +754,13 @@ pub(crate) fn path_indicates_test(file_path: &str) -> bool {
 /// this so a local `val`/`var` isn't reported as exported. Unknown kinds in `fn_kinds`
 /// simply never match, so over-listing is safe.
 pub(crate) fn is_inside_function(node: Node, fn_kinds: &[&str]) -> bool {
-    let mut ancestor = node.parent();
-    while let Some(current) = ancestor {
-        if fn_kinds.contains(&current.kind()) {
-            return true;
-        }
-        ancestor = current.parent();
-    }
-    false
+    crate::parser::ancestors(node).any(|current| fn_kinds.contains(&current.kind()))
 }
 
 fn has_ancestor_export(node: Node) -> bool {
-    let mut curr = node.parent();
-    for _ in 0..3 {
-        if let Some(n) = curr {
-            let k = n.kind();
-            if k == "export_statement" {
-                return true;
-            }
-            curr = n.parent();
-        } else {
-            break;
-        }
-    }
-    false
+    crate::parser::ancestors(node)
+        .take(3)
+        .any(|n| n.kind() == "export_statement")
 }
 
 pub(crate) fn find_name(node: Node, source: &[u8]) -> Option<String> {
@@ -874,8 +857,7 @@ pub(crate) fn generic_find_owner<S: LanguageSpec + ?Sized>(
     let type_container_kinds = spec.owner_type_container_kinds(ext);
     let passthrough_kinds = spec.owner_passthrough_kinds(ext);
 
-    let mut ancestor = node.parent();
-    while let Some(current) = ancestor {
+    for current in crate::parser::ancestors(node) {
         let kind = current.kind();
 
         // Crossed a function/closure/lambda scope or an anonymous-type body before reaching
@@ -897,7 +879,6 @@ pub(crate) fn generic_find_owner<S: LanguageSpec + ?Sized>(
 
         // Module/namespace/companion-object/body containers are transparent — keep walking.
         if passthrough_kinds.contains(&kind) {
-            ancestor = current.parent();
             continue;
         }
 

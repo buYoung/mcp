@@ -2742,6 +2742,7 @@ dependencies = [
  "unwrap-infallible",
  "uuid",
  "winapi",
+ "zstd",
 ]
 
 [[package]]

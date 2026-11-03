@@ -15,7 +15,7 @@ pub(super) struct Extraction {
 }
 
 struct Context<'a> {
-    files: &'a [ExtractedFile],
+    files: &'a [std::sync::Arc<ExtractedFile>],
     sources: &'a HashMap<String, String>,
     js: JsGraph<'a>,
     rust: SourceResolver<'a>,
@@ -116,7 +116,7 @@ fn conditions(mut node: Node<'_>, source: &str) -> (Vec<String>, bool) {
 
 impl<'a> Context<'a> {
     fn new(
-        files: &'a [ExtractedFile],
+        files: &'a [std::sync::Arc<ExtractedFile>],
         sources: &'a HashMap<String, String>,
         root: &'a Path,
     ) -> Self {
@@ -620,7 +620,7 @@ impl<'a> Context<'a> {
 }
 
 pub(super) fn extract(
-    files: &[ExtractedFile],
+    files: &[std::sync::Arc<ExtractedFile>],
     sources: &HashMap<String, String>,
     root: &Path,
 ) -> Extraction {

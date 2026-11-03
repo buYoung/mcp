@@ -293,11 +293,13 @@ pub struct CodemapGenerator;
 
 impl CodemapGenerator {
     /// Root level: Overview of files and top-level definitions
-    pub fn generate_root_view<'a>(files: &'a [crate::parser::ExtractedFile]) -> RootCodemap<'a> {
+    pub fn generate_root_view<'a>(
+        files: &'a [std::sync::Arc<crate::parser::ExtractedFile>],
+    ) -> RootCodemap<'a> {
         let total_files = files.len();
 
         let mut files_summary: Vec<ExtractedFileSummary<'a>> =
-            files.iter().map(summarize_file).collect();
+            files.iter().map(|file| summarize_file(file)).collect();
         files_summary.sort_by(|a, b| a.file_path.cmp(&b.file_path));
         // Root counts significant symbols after per-file summarization, not the
         // raw extracted total; the later row caps only limit what is printed.
@@ -317,7 +319,7 @@ impl CodemapGenerator {
     /// `folder_path`, plus the files that live directly in that folder (with their
     /// symbols) — the files-with-symbols payload is what this view adds over the root.
     pub fn generate_folder_view<'a>(
-        files: &'a [crate::parser::ExtractedFile],
+        files: &'a [std::sync::Arc<crate::parser::ExtractedFile>],
         folder_path: &str,
     ) -> FolderCodemap<'a> {
         let normalized_folder = normalize_path(folder_path).into_owned();
@@ -396,12 +398,15 @@ impl CodemapGenerator {
     }
 
     /// LLMS.txt format view
-    pub fn generate_llms_txt_view(files: &[crate::parser::ExtractedFile]) -> String {
+    pub fn generate_llms_txt_view(
+        files: &[std::sync::Arc<crate::parser::ExtractedFile>],
+    ) -> String {
         use std::fmt::Write;
         let mut view = String::new();
         let _ = writeln!(view, "# llms.txt");
         let _ = writeln!(view);
-        let mut sorted_files: Vec<&crate::parser::ExtractedFile> = files.iter().collect();
+        let mut sorted_files: Vec<&crate::parser::ExtractedFile> =
+            files.iter().map(|file| &**file).collect();
         sorted_files.sort_by(|a, b| a.file_path.cmp(&b.file_path));
         let shown = sorted_files.len().min(LLMS_TXT_FILE_LIMIT);
         let _ = writeln!(
@@ -429,7 +434,7 @@ mod tests {
     use super::*;
     use crate::parser::{CodeRange, ExtractedFile, ExtractedSymbol, SymbolFlags};
 
-    fn make_mock_file(path: &str, symbol_names: &[(&str, &str)]) -> ExtractedFile {
+    fn make_mock_file(path: &str, symbol_names: &[(&str, &str)]) -> std::sync::Arc<ExtractedFile> {
         let symbols = symbol_names
             .iter()
             .map(|(name, kind)| ExtractedSymbol {
@@ -453,7 +458,7 @@ mod tests {
             })
             .collect();
 
-        ExtractedFile {
+        std::sync::Arc::new(ExtractedFile {
             file_path: path.to_string(),
             total_lines: 0,
             symbols,
@@ -461,7 +466,7 @@ mod tests {
             docstrings: vec![],
             member_names: vec![],
             navigation: None,
-        }
+        })
     }
 
     #[test]

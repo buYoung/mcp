@@ -642,6 +642,8 @@ impl SearcherHandle {
         workspace_scope: Option<&str>,
     ) -> Result<Vec<SearchResult>, String> {
         let search_started = std::time::Instant::now();
+        let stored_scope = self.path_display.stored_scope(workspace_scope);
+        let workspace_scope = stored_scope.as_deref();
         if query_str.len() > 10000 {
             return Err("Query too long".to_string());
         }
@@ -1035,6 +1037,11 @@ impl SearcherHandle {
             results = results.len(),
             "search candidate timings"
         );
+        for result in &mut results {
+            result.file_path = self
+                .path_display
+                .display(std::mem::take(&mut result.file_path));
+        }
 
         Ok(results)
     }

@@ -275,8 +275,8 @@ impl Interpreter<'_, '_> {
                 let operator = self.source.nodes[id]
                     .tokens
                     .iter()
-                    .find(|t| matches!(t.as_str(), "+=" | "-="))
-                    .cloned();
+                    .find(|t| matches!(*t, "+=" | "-="))
+                    .map(str::to_string);
                 let is_event = target.kind == "slot"
                     && self.analyzer.program.events.contains(&(
                         self.analyzer.owner(target.base(), self.source_index),

@@ -105,7 +105,7 @@ impl<'a> SourceResolver<'a> {
                                 && (is_imported
                                     || same_source_root(&file.file_path, &candidate.file_path))
                         })
-                        .map(|candidate| (candidate, name.to_string()))
+                        .map(|candidate| (&**candidate, name.to_string()))
                         .collect();
                     (files, None)
                 }
@@ -179,7 +179,7 @@ impl<'a> SourceResolver<'a> {
                             candidate.file_path.ends_with(".swift")
                                 && swift_module(&candidate.file_path) == module
                         })
-                        .map(|candidate| (candidate, call.name.clone()))
+                        .map(|candidate| (&**candidate, call.name.clone()))
                         .collect();
                     (files, None)
                 }
@@ -255,6 +255,7 @@ impl<'a> SourceResolver<'a> {
         self.files
             .iter()
             .filter(|file| libraries.matches(path, uri, &file.file_path))
+            .map(|file| &**file)
             .collect()
     }
 
@@ -303,6 +304,7 @@ impl<'a> SourceResolver<'a> {
                             })
                     })
                 })
+                .map(|file| &**file)
                 .collect()
         };
         let [only] = matches.as_slice() else {

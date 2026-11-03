@@ -210,6 +210,9 @@ pub struct ResolvedConfig {
     pub excluded_directories: Vec<String>,
     pub(crate) directory_exclusions: DirectoryExclusions,
     pub(crate) index_root: PathBuf,
+    /// The workspace root these settings were loaded for when it is not the start folder; its
+    /// index and walks are resolved against it. `None` for the start folder.
+    pub(crate) workspace_root: Option<PathBuf>,
     /// Whether the walkers honor **`.git/info/exclude`** specifically (default true). This
     /// is a dedicated toggle for that one source only — `.gitignore`, the global gitignore,
     /// and `.codemapignore` are unaffected and stay honored. Set false to let
@@ -365,6 +368,7 @@ impl Default for ResolvedConfig {
             index_mode: IndexMode::Auto,
             index_auto_max_files: 50_000,
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
+            workspace_root: None,
             result_threshold: 24,
             max_file_size: crate::workspace::MAX_INDEXED_FILE_BYTES,
             excluded_directories: crate::workspace::EXCLUDED_DIRS
@@ -980,6 +984,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
         excluded_directories,
         directory_exclusions,
         index_root: defaults.index_root,
+        workspace_root: None,
         use_git_exclude: repo
             .use_git_exclude
             .or(global.use_git_exclude)
@@ -1193,6 +1198,9 @@ pub fn get() -> Arc<ResolvedConfig> {
     if let Some(config) = REQUEST_CONFIG.with(|slot| slot.borrow().clone()) {
         return config;
     }
+    if let Some(config) = THREAD_ROOT.with(|slot| slot.borrow().as_ref().map(RootConfig::current)) {
+        return config;
+    }
     match config_lock().read() {
         Ok(config) => Arc::clone(&config),
         Err(poisoned) => {
@@ -1204,6 +1212,78 @@ pub fn get() -> Arc<ResolvedConfig> {
 
 thread_local! {
     static REQUEST_CONFIG: std::cell::RefCell<Option<Arc<ResolvedConfig>>> = const { std::cell::RefCell::new(None) };
+    static THREAD_ROOT: std::cell::RefCell<Option<RootConfig>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Settings of a workspace root other than the start folder, loaded from that root's own files
+/// as a server started there loads them, except that the session's filesystem permissions stay
+/// in force. The threads working for that root share them.
+#[derive(Clone)]
+pub(crate) struct RootConfig {
+    root: PathBuf,
+    permissions: FilesystemPermissions,
+    current: Arc<RwLock<Arc<ResolvedConfig>>>,
+}
+
+impl RootConfig {
+    /// `root` must be canonical.
+    pub(crate) fn load(root: &Path, permissions: FilesystemPermissions) -> Self {
+        let config = Self {
+            root: root.to_path_buf(),
+            permissions,
+            current: Arc::new(RwLock::new(Arc::new(ResolvedConfig::default()))),
+        };
+        config.reload();
+        config
+    }
+
+    pub(crate) fn root(&self) -> &Path {
+        &self.root
+    }
+
+    pub(crate) fn current(&self) -> Arc<ResolvedConfig> {
+        match self.current.read() {
+            Ok(config) => Arc::clone(&config),
+            Err(poisoned) => Arc::clone(&poisoned.into_inner()),
+        }
+    }
+
+    /// Re-reads the root's settings files; its index path becomes absolute.
+    fn reload(&self) {
+        let mut resolved = load(&self.root, &global_dir());
+        resolved.index_path = resolved.index_root.display().to_string();
+        resolved.filesystem_permissions = self.permissions.clone();
+        resolved.workspace_root = Some(self.root.clone());
+        match self.current.write() {
+            Ok(mut config) => *config = Arc::new(resolved),
+            Err(poisoned) => *poisoned.into_inner() = Arc::new(resolved),
+        }
+    }
+
+    /// Uses these settings on this thread wherever no request pins its own, until the scope
+    /// ends. Threads spawned for the root's index bind them too.
+    pub(crate) fn bind(&self) -> RootConfigScope {
+        RootConfigScope {
+            previous: THREAD_ROOT.with(|slot| slot.replace(Some(self.clone()))),
+            same_thread: std::marker::PhantomData,
+        }
+    }
+}
+
+pub(crate) struct RootConfigScope {
+    previous: Option<RootConfig>,
+    same_thread: std::marker::PhantomData<std::rc::Rc<()>>,
+}
+
+impl Drop for RootConfigScope {
+    fn drop(&mut self) {
+        THREAD_ROOT.with(|slot| slot.replace(self.previous.take()));
+    }
+}
+
+/// The other-root settings bound to this thread, for the threads it spawns to bind.
+pub(crate) fn thread_root_config() -> Option<RootConfig> {
+    THREAD_ROOT.with(|slot| slot.borrow().clone())
 }
 
 /// A synchronous MCP request uses one config generation across all consumers.
@@ -1214,7 +1294,12 @@ pub(crate) struct RequestConfigScope {
 }
 
 pub(crate) fn pin_request() -> RequestConfigScope {
-    let config = get();
+    pin(get())
+}
+
+/// Uses `config` on this thread until the scope ends: a worker thread pins the generation of
+/// the thread it works for.
+pub(crate) fn pin(config: Arc<ResolvedConfig>) -> RequestConfigScope {
     RequestConfigScope {
         previous: REQUEST_CONFIG.with(|slot| slot.replace(Some(config))),
         same_thread: std::marker::PhantomData,
@@ -1223,10 +1308,7 @@ pub(crate) fn pin_request() -> RequestConfigScope {
 
 #[cfg(test)]
 pub(crate) fn pin_test_config(config: ResolvedConfig) -> RequestConfigScope {
-    RequestConfigScope {
-        previous: REQUEST_CONFIG.with(|slot| slot.replace(Some(Arc::new(config)))),
-        same_thread: std::marker::PhantomData,
-    }
+    pin(Arc::new(config))
 }
 
 impl Drop for RequestConfigScope {
@@ -1327,9 +1409,11 @@ pub fn spawn_config_watcher(
     }
 
     let debounce = Duration::from_millis(CONFIG_WATCH_DEBOUNCE_MS);
+    let root_config = thread_root_config();
     let join_handle = match std::thread::Builder::new()
         .name("codemap-config-watcher".to_string())
         .spawn(move || {
+            let _root = root_config.as_ref().map(RootConfig::bind);
             run_config_watch_loop(
                 event_receiver,
                 repo_root,
@@ -1394,7 +1478,10 @@ fn run_config_watch_loop(
 
         if should_reload {
             let previous = get();
-            reload_from_paths(&repo_root, &global);
+            match thread_root_config() {
+                Some(root) => root.reload(),
+                None => reload_from_paths(&repo_root, &global),
+            }
             tracing::debug!(excluded_directories = ?get().excluded_directories, "reloaded config");
             request_refresh_if_index_scope_changed(&previous, &get(), &index_command_sender);
         }

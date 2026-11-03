@@ -429,8 +429,7 @@ impl Interpreter<'_, '_> {
         let operator = node
             .tokens
             .iter()
-            .find(|op| matches!(op.as_str(), "+=" | "-=" | "<<" | "||="))
-            .map(String::as_str)
+            .find(|op| matches!(*op, "+=" | "-=" | "<<" | "||="))
             .unwrap_or("=");
         if self.source.language == "php" {
             if let Some(reference) = self.references.get(&name).cloned() {

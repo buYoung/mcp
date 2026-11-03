@@ -43,7 +43,7 @@ pub(super) fn trailer(
         return None;
     };
     let (start, end) = anchor.start_line.zip(anchor.end_line)?;
-    let root = std::env::current_dir().ok()?;
+    let root = crate::workspace::root_dir().ok()?;
     let path = anchor.file_path.as_str();
     let source_path = root.join(path);
     // Files the index never parses for declarations have no callers to report.
@@ -63,7 +63,10 @@ pub(super) fn trailer(
     }
     let snapshot = engine.published_snapshot();
     let source_files = snapshot.codemap();
-    let indexed = source_files.iter().find(|file| file.file_path == path);
+    let indexed = source_files
+        .iter()
+        .find(|file| file.file_path == path)
+        .map(|file| &**file);
     // Stale or unindexed files would attribute callers to the wrong lines.
     if let Some(reason) =
         super::diagnostics::unavailable_reason(indexed, &source_path, snapshot.flows().digest(path))
@@ -159,7 +162,7 @@ fn index_state_reason(engine: &EngineSupervisor) -> Option<&'static str> {
 #[allow(clippy::too_many_arguments)]
 fn lookup_callers(
     requests: &[AnnotationRequest<'_>],
-    files: &[ExtractedFile],
+    files: &[std::sync::Arc<ExtractedFile>],
     root: &Path,
     resolver: &crate::callers::resolution::SourceResolver<'_>,
     indexed_mtime: &dyn Fn(&str) -> Option<u64>,
@@ -345,7 +348,9 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         std::fs::create_dir(temp.path().join("src")).unwrap();
         std::fs::write(temp.path().join(path), source).unwrap();
-        let files = [TreeSitterExtractor::new().extract(source, path).unwrap()];
+        let files = [std::sync::Arc::new(
+            TreeSitterExtractor::new().extract(source, path).unwrap(),
+        )];
         let functions: Vec<_> = files[0]
             .symbols
             .iter()

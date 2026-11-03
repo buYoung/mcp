@@ -34,22 +34,22 @@ impl Eligibility<'_> {
         } else {
             let path = self.root.join(&location.path);
             let is_fresh = self.fresh.len() < 1024
-                && crate::workspace::walk_root_is_visible(&path, true)
                 && self
                     .index
                     .proof_digests
                     .get(&location.path)
                     .is_some_and(|expected| {
-                        std::fs::metadata(&path).is_ok_and(|metadata| {
-                            let size = metadata.len();
-                            if size > 8 * 1024 * 1024
-                                || self.bytes.saturating_add(size as usize) > 64 * 1024 * 1024
-                            {
-                                return false;
-                            }
-                            self.bytes += size as usize;
-                            std::fs::read(&path).is_ok_and(|bytes| digest(&bytes) == *expected)
-                        })
+                        crate::workspace::walk_root_is_visible(&path, true)
+                            && std::fs::metadata(&path).is_ok_and(|metadata| {
+                                let size = metadata.len();
+                                if size > 8 * 1024 * 1024
+                                    || self.bytes.saturating_add(size as usize) > 64 * 1024 * 1024
+                                {
+                                    return false;
+                                }
+                                self.bytes += size as usize;
+                                std::fs::read(&path).is_ok_and(|bytes| digest(&bytes) == *expected)
+                            })
                     });
             self.fresh.insert(location.path.clone(), is_fresh);
             is_fresh

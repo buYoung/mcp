@@ -5,9 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use tantivy::collector::DocSetCollector;
 use tantivy::directory::{Directory, INDEX_WRITER_LOCK};
-use tantivy::query::AllQuery;
 use tantivy::schema::*;
 use tantivy::{Index, IndexReader, IndexSettings, ReloadPolicy, TantivyDocument, Term};
 
@@ -23,11 +21,67 @@ struct StoredExtractedFileRef<'a> {
     #[serde(skip_serializing_if = "static_collection_edges_are_empty")]
     static_collection_edges: &'a [StaticCollectionEdge],
     #[serde(skip_serializing_if = "Option::is_none")]
-    event_input: Option<&'a crate::events::EventInput>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    flow_file: Option<&'a crate::flow::FlowFile>,
+    event_input: Option<StoredEventSource>,
     #[serde(skip_serializing_if = "Option::is_none")]
     flow_digest: Option<&'a str>,
+}
+
+/// The stored form of an event input. The source text is not stored: publication reads the
+/// file and uses it only while its digest still matches the text that was indexed.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoredEventSource {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    source_length: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    source_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    unavailable_reason: Option<String>,
+}
+
+impl StoredEventSource {
+    fn new(input: &crate::events::EventInput) -> Self {
+        Self {
+            source_length: input.source.as_ref().map(String::len),
+            source_digest: input
+                .source
+                .as_deref()
+                .map(|source| crate::implementations::digest(source.as_bytes())),
+            unavailable_reason: input.unavailable_reason.clone(),
+        }
+    }
+
+    /// The indexed source of `path` under `root`, or `None` once the file no longer holds it.
+    fn read(&self, root: &Path, path: &str) -> Option<String> {
+        let digest = self.source_digest.as_deref()?;
+        std::fs::read_to_string(root.join(path))
+            .ok()
+            .filter(|source| crate::implementations::digest(source.as_bytes()) == digest)
+    }
+}
+
+/// The first eight bytes of the BLAKE3 hash, kept in fast fields to identify a file's content
+/// or a stored payload without reading the document store.
+fn short_hash(bytes: &[u8]) -> u64 {
+    let hash = blake3::hash(bytes);
+    u64::from_le_bytes(hash.as_bytes()[..8].try_into().expect("eight hash bytes"))
+}
+
+/// An indexed file's modification stamp and the hash of the content it was extracted from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct IndexedStamp {
+    mtime: u64,
+    content_hash: Option<u64>,
+}
+
+impl IndexedStamp {
+    /// Whether `disk_path` still holds the indexed content although its modification time
+    /// changed, as after a touch or a checkout that rewrote identical content.
+    fn matches_content(&self, disk_path: &Path) -> bool {
+        self.content_hash.is_some_and(|hash| {
+            std::fs::read(disk_path).is_ok_and(|bytes| short_hash(&bytes) == hash)
+        })
+    }
 }
 
 /// The recorded macro-expansion inputs of a stored document, decoded without the rest of it.
@@ -67,9 +121,188 @@ struct StoredExtractedFile {
     #[serde(default)]
     static_collection_edges: Vec<StaticCollectionEdge>,
     #[serde(default)]
-    event_input: Option<crate::events::EventInput>,
+    event_input: Option<StoredEventSource>,
     #[serde(default)]
     flow_digest: Option<String>,
+}
+
+/// One stored document as decoded for a published generation. Generations share it while the
+/// document's payload and mtime are unchanged, so a publication decodes only changed documents.
+pub(super) struct PublishedEntry {
+    payload: Option<u64>,
+    mtime: Option<u64>,
+    content_hash: Option<u64>,
+    file: std::sync::Arc<ExtractedFile>,
+    /// The stored event input. The source text itself lives in the published event index.
+    event_input: Option<StoredEventSource>,
+    flow_digest: Option<String>,
+}
+
+impl PublishedEntry {
+    fn new(
+        stamps: DocumentStamps,
+        extracted: ExtractedFile,
+        event_input: Option<StoredEventSource>,
+        flow_digest: Option<String>,
+    ) -> Self {
+        Self {
+            payload: stamps.payload,
+            mtime: stamps.mtime,
+            content_hash: stamps.content_hash,
+            file: std::sync::Arc::new(extracted),
+            event_input,
+            flow_digest,
+        }
+    }
+
+    fn is_current(&self, payload: Option<u64>, mtime: Option<u64>) -> bool {
+        payload.is_some() && self.payload == payload && self.mtime == mtime
+    }
+}
+
+/// A stored document decoded by the first state read, held for the first publication so it is
+/// not decoded twice. Its event source is not held: publication reads only the sources that fit
+/// the snapshot budget.
+pub(super) struct DecodedEntry {
+    entry: PublishedEntry,
+    static_collection_edges: Vec<StaticCollectionEdge>,
+}
+
+impl DecodedEntry {
+    fn decoded(
+        stamps: DocumentStamps,
+        mut stored: StoredExtractedFile,
+        display: &PathDisplay,
+    ) -> Self {
+        stored.extracted.file_path =
+            display.display(std::mem::take(&mut stored.extracted.file_path));
+        let entry = PublishedEntry::new(
+            stamps,
+            stored.extracted,
+            stored.event_input,
+            stored.flow_digest,
+        );
+        Self {
+            entry,
+            static_collection_edges: stored.static_collection_edges,
+        }
+    }
+
+    fn publish(self) -> (std::sync::Arc<PublishedEntry>, Vec<StaticCollectionEdge>) {
+        (
+            std::sync::Arc::new(self.entry),
+            self.static_collection_edges,
+        )
+    }
+}
+
+/// Decoded entries per segment, indexed by document id. Segments are immutable, so a live
+/// document at a recorded location is the document that was decoded there.
+type EntriesBySegment<T> = HashMap<tantivy::index::SegmentId, Vec<Option<T>>>;
+
+/// How an index's stored paths appear to requests: unchanged for the start folder, and
+/// absolute for another root, whose index keeps paths relative to that root as a server
+/// started there does.
+#[derive(Clone, Default)]
+pub(crate) struct PathDisplay(Option<std::sync::Arc<str>>);
+
+impl PathDisplay {
+    /// The display of an index opened under the settings in force.
+    fn for_root() -> Self {
+        Self(
+            crate::config::get()
+                .workspace_root
+                .as_ref()
+                .map(|root| format!("{}/", root.display()).into()),
+        )
+    }
+
+    pub(crate) fn display(&self, path: String) -> String {
+        match &self.0 {
+            Some(prefix) => format!("{prefix}{path}"),
+            None => path,
+        }
+    }
+
+    pub(crate) fn stored<'p>(&self, path: &'p str) -> &'p str {
+        match &self.0 {
+            Some(prefix) => path.strip_prefix(&**prefix).unwrap_or(path),
+            None => path,
+        }
+    }
+
+    /// A requested scope as stored paths name it; the root itself is no narrowing.
+    pub(crate) fn stored_scope(&self, scope: Option<&str>) -> Option<String> {
+        let scope = scope?;
+        match &self.0 {
+            Some(prefix) if prefix.strip_suffix('/') == Some(scope) => None,
+            _ => Some(self.stored(scope).to_string()),
+        }
+    }
+}
+
+/// A document's payload hash, recorded mtime and content hash, read from fast fields.
+#[derive(Clone, Copy)]
+struct DocumentStamps {
+    payload: Option<u64>,
+    mtime: Option<u64>,
+    content_hash: Option<u64>,
+}
+
+/// A segment's fast-field columns, which identify its documents without reading the store.
+struct DocumentColumns {
+    path: Option<tantivy::columnar::StrColumn>,
+    mtime: Option<tantivy::columnar::Column<u64>>,
+    content_hash: Option<tantivy::columnar::Column<u64>>,
+    payload_hash: Option<tantivy::columnar::Column<u64>>,
+}
+
+impl DocumentColumns {
+    fn open(segment: &tantivy::SegmentReader) -> Result<Self, String> {
+        let fields = segment.fast_fields();
+        let error =
+            |error: tantivy::TantivyError| format!("indexed document columns open failed: {error}");
+        Ok(Self {
+            path: fields.str("file_path").map_err(error)?,
+            mtime: fields.column_opt("mtime").map_err(error)?,
+            content_hash: fields.column_opt("content_hash").map_err(error)?,
+            payload_hash: fields.column_opt("payload_hash").map_err(error)?,
+        })
+    }
+
+    fn path(&self, doc_id: tantivy::DocId) -> Option<String> {
+        let column = self.path.as_ref()?;
+        let ord = column.term_ords(doc_id).next()?;
+        let mut path = String::new();
+        column.ord_to_str(ord, &mut path).ok()?.then_some(path)
+    }
+
+    fn mtime(&self, doc_id: tantivy::DocId) -> Option<u64> {
+        self.mtime.as_ref()?.first(doc_id)
+    }
+
+    fn content_hash(&self, doc_id: tantivy::DocId) -> Option<u64> {
+        self.content_hash.as_ref()?.first(doc_id)
+    }
+
+    fn payload_hash(&self, doc_id: tantivy::DocId) -> Option<u64> {
+        self.payload_hash.as_ref()?.first(doc_id)
+    }
+
+    fn stamps(&self, doc_id: tantivy::DocId) -> DocumentStamps {
+        DocumentStamps {
+            payload: self.payload_hash(doc_id),
+            mtime: self.mtime(doc_id),
+            content_hash: self.content_hash(doc_id),
+        }
+    }
+}
+
+/// The entries of one published generation.
+pub(super) struct PublishedEntries {
+    generation: u64,
+    by_path: HashMap<String, std::sync::Arc<PublishedEntry>>,
+    by_segment: EntriesBySegment<std::sync::Arc<PublishedEntry>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -137,6 +370,7 @@ pub struct SearcherHandle {
     pub(super) reference_field: Field,
     pub(super) format_text_field: Field,
     pub(super) extracted_json_field: Field,
+    pub(super) path_display: PathDisplay,
 }
 
 pub struct TantivySearchEngine {
@@ -156,22 +390,38 @@ pub struct TantivySearchEngine {
     pub format_text_field: Field,
     pub extracted_json_field: Field,
     pub mtime_field: Field,
+    content_hash_field: Field,
+    payload_hash_field: Field,
 
     // In-memory snapshot of the on-disk path→mtime map. Lazily populated once from the
     // index (one `AllQuery`) and then maintained incrementally, so a long-lived engine
     // (MCP mode) no longer runs an `AllQuery` over the whole index before every search
     // (Child 04). Reflects only what is actually committed to the index.
-    indexed_mtimes_cache: Option<HashMap<String, u64>>,
+    indexed_mtimes_cache: Option<HashMap<String, IndexedStamp>>,
     // Recorded macro-expansion inputs (the file, its headers, build settings) per native file,
     // loaded and maintained with `indexed_mtimes_cache`, so a full refresh reprocesses only
     // the native files whose inputs changed.
     macro_inputs_cache: Option<HashMap<String, RecordedExpansion>>,
+    // Current mtimes of indexed files whose content still matched their documents, loaded and
+    // maintained with `indexed_mtimes_cache`.
+    content_mtimes: super::content_mtimes::ContentMtimes,
     pub(super) is_waiting_for_writer: bool,
     // Full-refresh inputs, retained across reopen so dependency/config refreshes never
     // widen a caller's explicit file or directory selection to the process cwd.
     indexed_roots: Vec<String>,
     macro_config_stamp: Option<String>,
     event_config_stamp: Option<String>,
+    // Entries of the last published generation, reused by the next publication for documents
+    // that are unchanged.
+    published_entries: Option<PublishedEntries>,
+    // Entries of the generation being published, kept once the caller confirms publication.
+    next_published_entries: Option<PublishedEntries>,
+    // Whether this engine publishes generations. Only the background indexer does, so other
+    // users (the CLI) do not decode or hold entries.
+    is_publishing: bool,
+    // Documents decoded by the first read of the stored state, for the first publication.
+    loaded_entries: EntriesBySegment<DecodedEntry>,
+    path_display: PathDisplay,
 }
 
 /// Filename of the sidecar that stamps the extraction-format version of the stored
@@ -183,6 +433,16 @@ const INDEXED_ROOTS_FILE: &str = "indexed-roots.json";
 /// the detail view): a long SQL/template/fixture string would bloat the term dictionary
 /// without adding lookup value beyond its leading words.
 pub(super) const INDEXED_LITERAL_MAX_CHARS: usize = 256;
+
+/// Share of deleted documents above which a segment is rewritten. tantivy's default never
+/// merges for deletions alone, so files reindexed in place would keep their old copies.
+const DELETED_RATIO_BEFORE_MERGE: f32 = 0.1;
+
+fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
+    let mut policy = tantivy::indexer::LogMergePolicy::default();
+    policy.set_del_docs_ratio_before_merge(DELETED_RATIO_BEFORE_MERGE);
+    Box::new(policy)
+}
 
 /// Current extraction-format version. Bump whenever the `ExtractedFile` JSON shape changes
 /// in a way that requires re-extracting on-disk source (not just a serde-compatible add).
@@ -236,7 +496,26 @@ pub(super) const INDEXED_LITERAL_MAX_CHARS: usize = 256;
 // v39 persists upper-snake-case constant names by line for the read trailer of shared keys.
 // v40 names the declaration of TypeScript `{ type Name }` import specifiers and persists
 // TypeScript/JavaScript exports that rename a declaration, for the read trailer of importers.
-const EXTRACTION_FORMAT_VERSION: &str = "v42-passed-on-exports";
+// v43 compresses stored payloads with zstd, stores event source digests instead of their text,
+// drops stored flow summaries and unread stored fields, and adds fast fields for paths, mtimes
+// and content and payload hashes.
+const EXTRACTION_FORMAT_VERSION: &str = "v43-compact-store";
+
+/// Whether the index at `index` carries the current extraction format stamp.
+pub(super) fn has_current_format(index: &Path) -> bool {
+    std::fs::read_to_string(index.join(EXTRACTION_FORMAT_FILE))
+        .is_ok_and(|version| version.trim() == EXTRACTION_FORMAT_VERSION)
+}
+
+/// Stored payloads are JSON, which zstd keeps at about half of lz4's compressed size.
+fn index_settings() -> IndexSettings {
+    IndexSettings {
+        docstore_compression: tantivy::store::Compressor::Zstd(
+            tantivy::store::ZstdCompressor::default(),
+        ),
+        ..IndexSettings::default()
+    }
+}
 
 /// Serializes the destructive format-upgrade branch across MCP server processes. The owner PID
 /// lets a later process reclaim a lock left by a crash, while live owners are never replaced.
@@ -388,10 +667,13 @@ impl Drop for FormatUpgradeLock {
 impl TantivySearchEngine {
     pub fn new(index_path: &str) -> Result<Self, String> {
         let mut schema_builder = Schema::builder();
-        let file_path_field = schema_builder.add_text_field("file_path", STRING | STORED);
+        // Paths, mtimes and hashes are also fast fields, so refresh decisions and publication
+        // identify documents without reading the store.
+        let file_path_field = schema_builder.add_text_field("file_path", STRING | STORED | FAST);
         let file_path_parts_field = schema_builder.add_text_field("file_path_parts", TEXT);
-        let symbol_field = schema_builder.add_text_field("symbol", TEXT | STORED);
-        let docstring_field = schema_builder.add_text_field("docstring", TEXT | STORED);
+        // Symbol names and docstrings are read from `extracted_json`; these fields only search.
+        let symbol_field = schema_builder.add_text_field("symbol", TEXT);
+        let docstring_field = schema_builder.add_text_field("docstring", TEXT);
         // String literals ARE indexed (low boost): config defaults ("8000") and error
         // messages live only in literals, and agents search those words. The full values
         // stay in `extracted_json` for the detail view; `grep` remains the exact-match
@@ -402,10 +684,21 @@ impl TantivySearchEngine {
         // Raw data/markup text is searchable at a deliberately lower boost and is not stored.
         let format_text_field = schema_builder.add_text_field("format_text", TEXT);
         let extracted_json_field = schema_builder.add_text_field("extracted_json", STORED);
-        let mtime_field = schema_builder.add_u64_field("mtime", STORED);
+        let mtime_field = schema_builder.add_u64_field("mtime", STORED | FAST);
+        let content_hash_field = schema_builder.add_u64_field("content_hash", FAST);
+        let payload_hash_field = schema_builder.add_u64_field("payload_hash", FAST);
         let schema = schema_builder.build();
 
         let path = Path::new(index_path);
+        // A worktree's first index starts from another worktree's index of the repository.
+        if !path.join("meta.json").exists() {
+            if let Ok(root) = crate::workspace::root_dir() {
+                let absolute = root.join(path);
+                if let Some(source) = super::neighbor::copy_into(&absolute, &root) {
+                    tracing::info!("index started from {}", source.display());
+                }
+            }
+        }
         if !path.exists() {
             std::fs::create_dir_all(path).map_err(|e| e.to_string())?;
         }
@@ -441,6 +734,14 @@ impl TantivySearchEngine {
         // in place: two server processes spawning concurrently on the same repo would
         // otherwise BOTH take the wipe path and delete each other's just-created files.
         let needs_wipe = version_mismatch && path.join("meta.json").exists();
+        // Another root's index belongs to the servers started there: it is never wiped here.
+        let may_rebuild = crate::config::get().workspace_root.is_none();
+        if needs_wipe && !may_rebuild {
+            return Err(format!(
+                "Index unavailable: the index at {} has another extraction format",
+                path.display()
+            ));
+        }
 
         // Try to open or create the index directory. Rebuild from scratch if metadata is
         // corrupted OR a populated index has an outdated extraction format — both take the
@@ -451,7 +752,11 @@ impl TantivySearchEngine {
             tantivy::directory::MmapDirectory::open(path)
                 .map_err(|e| e.to_string())
                 .and_then(|dir| {
-                    Index::open_or_create(dir, schema.clone()).map_err(|e| e.to_string())
+                    Index::builder()
+                        .schema(schema.clone())
+                        .settings(index_settings())
+                        .open_or_create(dir)
+                        .map_err(|e| e.to_string())
                 })
         };
         let opened = if needs_wipe {
@@ -464,6 +769,12 @@ impl TantivySearchEngine {
         };
         let index = match opened {
             Ok(idx) => idx,
+            Err(error) if !may_rebuild => {
+                return Err(format!(
+                    "Index unavailable: the index at {} could not be opened: {error}",
+                    path.display()
+                ));
+            }
             Err(_) => {
                 if path.exists() {
                     std::fs::remove_dir_all(path).map_err(|error| error.to_string())?;
@@ -471,7 +782,7 @@ impl TantivySearchEngine {
                 std::fs::create_dir_all(path).map_err(|e| e.to_string())?;
                 let directory =
                     tantivy::directory::MmapDirectory::open(path).map_err(|e| e.to_string())?;
-                Index::create(directory, schema.clone(), IndexSettings::default())
+                Index::create(directory, schema.clone(), index_settings())
                     .map_err(|e| e.to_string())?
             }
         };
@@ -512,9 +823,17 @@ impl TantivySearchEngine {
             format_text_field,
             extracted_json_field,
             mtime_field,
+            content_hash_field,
+            payload_hash_field,
             indexed_mtimes_cache: None,
             macro_inputs_cache: None,
+            content_mtimes: Default::default(),
             is_waiting_for_writer: false,
+            published_entries: None,
+            next_published_entries: None,
+            is_publishing: false,
+            loaded_entries: HashMap::new(),
+            path_display: PathDisplay::for_root(),
             indexed_roots: std::fs::read(path.join(INDEXED_ROOTS_FILE))
                 .ok()
                 .and_then(|data| serde_json::from_slice(&data).ok())
@@ -540,15 +859,39 @@ impl TantivySearchEngine {
         Index::open(directory).map_err(|error| error.to_string())
     }
 
-    /// The committed path→mtime map and the recorded macro-expansion inputs of native files,
-    /// read in one pass over the stored documents.
+    /// The committed path→stamp map and the recorded macro-expansion inputs of native files,
+    /// read from the fast fields; only native files' stored documents are read.
     #[allow(clippy::type_complexity)]
     fn read_indexed_state(
         &self,
-    ) -> Result<(HashMap<String, u64>, HashMap<String, RecordedExpansion>), String> {
+    ) -> Result<
+        (
+            HashMap<String, IndexedStamp>,
+            HashMap<String, RecordedExpansion>,
+        ),
+        String,
+    > {
+        self.read_stored_state(false)
+            .map(|(stamps, macro_inputs, _)| (stamps, macro_inputs))
+    }
+
+    /// [`Self::read_indexed_state`], and with `should_load_entries` every document decoded by
+    /// the same pass for the first publication.
+    #[allow(clippy::type_complexity)]
+    fn read_stored_state(
+        &self,
+        should_load_entries: bool,
+    ) -> Result<
+        (
+            HashMap<String, IndexedStamp>,
+            HashMap<String, RecordedExpansion>,
+            EntriesBySegment<DecodedEntry>,
+        ),
+        String,
+    > {
         // A competing writer may have committed since this process last published.
         // Read its mtimes without advancing the request reader ahead of the codemap.
-        let reader = self
+        let reader: IndexReader = self
             .index
             .reader_builder()
             .reload_policy(ReloadPolicy::Manual)
@@ -557,50 +900,147 @@ impl TantivySearchEngine {
         let searcher = reader.searcher();
         let mut map = HashMap::new();
         let mut macro_inputs = HashMap::new();
+        let mut loaded = HashMap::new();
 
-        // DocSetCollector enumerates every matching doc with no limit, so the mtime map is
-        // never silently truncated on large repos (which would corrupt delete detection).
-        let doc_addresses = searcher
-            .search(&AllQuery, &DocSetCollector)
-            .map_err(|error| format!("indexed mtime query failed: {error}"))?;
-        for doc_address in doc_addresses {
-            let doc = searcher
-                .doc::<TantivyDocument>(doc_address)
-                .map_err(|error| format!("indexed mtime document read failed: {error}"))?;
-            let path_val = doc.get_first(self.file_path_field);
-            let mtime_val = doc.get_first(self.mtime_field);
-            if let (Some(p_val), Some(m_val)) = (path_val, mtime_val) {
-                let path = p_val.as_str().unwrap_or("").to_string();
-                let mtime = m_val.as_u64().unwrap_or(0);
-                if !path.is_empty() {
-                    if super::preprocess::is_eligible(Path::new(&path)) {
-                        let inputs = doc
-                            .get_first(self.extracted_json_field)
-                            .and_then(|value| value.as_str())
-                            .and_then(|json| serde_json::from_str::<StoredMacroInputs>(json).ok())
-                            .and_then(|stored| stored.navigation?.macro_expansion);
-                        if let Some(stored) = inputs {
-                            macro_inputs.insert(
-                                path.clone(),
-                                RecordedExpansion {
-                                    inputs: stored.inputs,
-                                    is_expanded: stored.active_lines.is_some(),
-                                },
-                            );
+        // Every live document with no limit, so the mtime map is never silently truncated on
+        // large repos (which would corrupt delete detection).
+        for segment in searcher.segment_readers() {
+            let columns = DocumentColumns::open(segment)?;
+            let mut store = None;
+            let mut segment_entries = Vec::new();
+            if should_load_entries {
+                segment_entries.resize_with(segment.max_doc() as usize, || None);
+            }
+            for doc_id in 0..segment.max_doc() {
+                if segment.is_deleted(doc_id) {
+                    continue;
+                }
+                let path = columns.path(doc_id).filter(|path| !path.is_empty());
+                let is_native = path
+                    .as_deref()
+                    .is_some_and(|path| super::preprocess::is_eligible(Path::new(path)));
+                let doc =
+                    if should_load_entries || is_native {
+                        let store = match &mut store {
+                            Some(store) => store,
+                            None => store.insert(segment.get_store_reader(1).map_err(|error| {
+                                format!("indexed mtime document read failed: {error}")
+                            })?),
+                        };
+                        Some(store.get::<TantivyDocument>(doc_id).map_err(|error| {
+                            format!("indexed mtime document read failed: {error}")
+                        })?)
+                    } else {
+                        None
+                    };
+                let json = doc
+                    .as_ref()
+                    .and_then(|doc| doc.get_first(self.extracted_json_field))
+                    .and_then(|value| value.as_str());
+                let stored = json
+                    .filter(|_| should_load_entries)
+                    .and_then(|json| serde_json::from_str::<StoredExtractedFile>(json).ok());
+                let mtime = columns.mtime(doc_id);
+                if let (Some(path), Some(mtime)) = (path, mtime) {
+                    if is_native {
+                        let inputs =
+                            match &stored {
+                                Some(stored) => stored.extracted.macro_expansion().map(|info| {
+                                    RecordedExpansion {
+                                        inputs: info.inputs.clone(),
+                                        is_expanded: info.is_expanded(),
+                                    }
+                                }),
+                                None => json
+                                    .and_then(|json| {
+                                        serde_json::from_str::<StoredMacroInputs>(json).ok()
+                                    })
+                                    .and_then(|stored| stored.navigation?.macro_expansion)
+                                    .map(|stored| RecordedExpansion {
+                                        inputs: stored.inputs,
+                                        is_expanded: stored.active_lines.is_some(),
+                                    }),
+                            };
+                        if let Some(inputs) = inputs {
+                            macro_inputs.insert(path.clone(), inputs);
                         }
                     }
-                    map.insert(path, mtime);
+                    let content_hash = columns.content_hash(doc_id);
+                    map.insert(
+                        path,
+                        IndexedStamp {
+                            mtime,
+                            content_hash,
+                        },
+                    );
+                }
+                if let Some(stored) = stored {
+                    segment_entries[doc_id as usize] = Some(DecodedEntry::decoded(
+                        columns.stamps(doc_id),
+                        stored,
+                        &self.path_display,
+                    ));
+                }
+            }
+            if should_load_entries {
+                loaded.insert(segment.segment_id(), segment_entries);
+            }
+        }
+        Ok((map, macro_inputs, loaded))
+    }
+
+    /// Record the new modification times of files whose content still matched the index, so
+    /// later passes compare against them without hashing the files again.
+    fn record_touched(&mut self, touched: Vec<(String, u64)>) {
+        if touched.is_empty() {
+            return;
+        }
+        if let Some(cache) = self.indexed_mtimes_cache.as_mut() {
+            for (path, mtime) in touched {
+                if let Some(stamp) = cache.get_mut(&path) {
+                    stamp.mtime = mtime;
+                    if let Some(content_hash) = stamp.content_hash {
+                        self.content_mtimes.record(path, content_hash, mtime);
+                    }
                 }
             }
         }
-        Ok((map, macro_inputs))
+        self.save_content_mtimes();
+    }
+
+    fn save_content_mtimes(&self) {
+        if let Err(error) = self.content_mtimes.save(Path::new(&self.index_path)) {
+            tracing::debug!("content mtimes not saved: {error}");
+        }
     }
 
     fn ensure_indexed_state(&mut self) -> Result<(), String> {
         if self.indexed_mtimes_cache.is_none() {
-            let (mtimes, macro_inputs) = self.read_indexed_state()?;
+            // Before the first publication, decode the documents while reading them anyway.
+            let (mut mtimes, macro_inputs, loaded) =
+                if self.is_publishing && self.published_entries.is_none() {
+                    self.read_stored_state(true)?
+                } else {
+                    let (mtimes, macro_inputs) = self.read_indexed_state()?;
+                    (mtimes, macro_inputs, HashMap::new())
+                };
+            // A document whose file was found unchanged at a later mtime is current at it.
+            let mut content_mtimes =
+                super::content_mtimes::ContentMtimes::load(Path::new(&self.index_path));
+            content_mtimes.retain(|path, content_hash| {
+                mtimes
+                    .get(path)
+                    .is_some_and(|stamp| stamp.content_hash == Some(content_hash))
+            });
+            for (path, stamp) in &mut mtimes {
+                if let Some(mtime) = content_mtimes.mtime(path, stamp.content_hash) {
+                    stamp.mtime = mtime;
+                }
+            }
+            self.content_mtimes = content_mtimes;
             self.indexed_mtimes_cache = Some(mtimes);
             self.macro_inputs_cache = Some(macro_inputs);
+            self.loaded_entries = loaded;
             // Import the competing writer's extraction settings along with its mtimes,
             // so a lock retry does not unnecessarily reparse the entire repository.
             self.event_config_stamp = std::fs::read_to_string(
@@ -669,7 +1109,7 @@ fn tokenize_path(file_path: &str) -> String {
 }
 
 /// Whether an event path would be reached by the shared ignore-aware walk
-/// ([`crate::workspace::build_walker`]) descending from the workspace root. The full walk
+/// ([`crate::workspace::build_index_walker`]) descending from the workspace root. The full walk
 /// honors directory-only ignore rules (e.g. a `.gitignore` line `generated/`) by never
 /// descending into the ignored directory, so a single depth-1 check of the immediate
 /// parent is NOT enough — it would be rooted *inside* the ignored subtree and the
@@ -678,7 +1118,7 @@ fn tokenize_path(file_path: &str) -> String {
 /// parent, exactly as the full walk would descend. Cost is one `readdir` per path depth.
 fn is_path_visible_to_walk(path: &Path) -> bool {
     let target = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-    let root = match std::env::current_dir() {
+    let root = match crate::workspace::root_dir() {
         Ok(cwd) => cwd.canonicalize().unwrap_or(cwd),
         Err(_) => return true,
     };
@@ -689,7 +1129,7 @@ fn is_path_visible_to_walk(path: &Path) -> bool {
     let mut current = root;
     for component in rel.components() {
         let next = current.join(component);
-        let is_visible = crate::workspace::build_walker(&current, false)
+        let is_visible = crate::workspace::build_index_walker(&current)
             .max_depth(Some(1))
             .build()
             .filter_map(|e| e.ok())
@@ -707,6 +1147,58 @@ fn is_path_visible_to_walk(path: &Path) -> bool {
         current = next;
     }
     true
+}
+
+/// Files a refresh reads and extracts together before adding them to the writer in order.
+const EXTRACTION_BATCH_FILES: usize = 512;
+
+/// A file's text and its extraction, or the error that kept it from being read.
+type FileExtraction = std::io::Result<(
+    String,
+    Result<(ExtractedFile, crate::parser::IndexAuxiliary), String>,
+)>;
+
+/// `files` with their extractions, in the order given. Each batch is read and extracted on up
+/// to `threads` threads, so the order of documents in the writer does not depend on timing.
+fn extract_in_order<'a>(
+    extractor: &'a crate::parser::TreeSitterExtractor,
+    files: Vec<(String, PathBuf, u64)>,
+    threads: usize,
+) -> impl Iterator<Item = ((String, PathBuf, u64), FileExtraction)> + 'a {
+    let mut files = files.into_iter();
+    let mut extracted = std::collections::VecDeque::new();
+    std::iter::from_fn(move || {
+        if extracted.is_empty() {
+            let batch: Vec<_> = files.by_ref().take(EXTRACTION_BATCH_FILES).collect();
+            let extractions = extract_batch(extractor, &batch, threads);
+            extracted.extend(batch.into_iter().zip(extractions));
+        }
+        extracted.pop_front()
+    })
+}
+
+fn extract_batch(
+    extractor: &crate::parser::TreeSitterExtractor,
+    files: &[(String, PathBuf, u64)],
+    threads: usize,
+) -> Vec<FileExtraction> {
+    crate::parallel::map_in_order(
+        files,
+        threads,
+        || (),
+        |(), (rel_path, disk_path, _)| {
+            std::fs::read_to_string(disk_path).map(|content| {
+                let extraction = extractor.extract_for_index(&content, rel_path);
+                (content, extraction)
+            })
+        },
+    )
+}
+
+/// The directory indexed relative paths are resolved against: the canonical process cwd.
+fn indexed_root() -> PathBuf {
+    let cwd = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
+    cwd.canonicalize().unwrap_or(cwd)
 }
 
 /// Gather the index entry for a single file: enforce the source-extension allowlist
@@ -757,14 +1249,18 @@ impl TantivySearchEngine {
         should_reload_reader: bool,
     ) -> Result<bool, String> {
         let mut files_to_process = Vec::new();
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let cwd = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
         // JSON and related formats are source inputs now, so a caller that indexes a parent of
         // the Tantivy directory must not feed Tantivy's own metadata back into the index.
         let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
+        // Another root's index records its walk inputs relative to that root, as a server
+        // started there does; the process works in the start folder.
+        let workspace_root = crate::config::get().workspace_root.clone();
 
         for path_str in paths {
-            let path = Path::new(path_str);
+            let resolved = workspace_root.as_ref().map(|root| root.join(path_str));
+            let path = resolved.as_deref().unwrap_or(Path::new(path_str));
             if path.is_file() {
                 if !is_under_index_root(path, &index_root, &abs_cwd) {
                     if let Some(entry) = collect_index_entry(path, &abs_cwd) {
@@ -775,7 +1271,7 @@ impl TantivySearchEngine {
                 // Shared walker: honors EXCLUDED_DIRS + .gitignore/.codemapignore so
                 // node_modules/target/… never enter the BM25 index (Child 04), matching
                 // find/grep. include_ignored=false keeps ignored paths out of the index.
-                for entry in crate::workspace::build_walker(path, false)
+                for entry in crate::workspace::build_index_walker(path)
                     .build()
                     .filter_map(|e| e.ok())
                 {
@@ -854,15 +1350,40 @@ impl TantivySearchEngine {
         }
 
         let files_to_process_len = files_to_process.len();
+        // Files whose modification time changed are compared by content on all processor cores.
+        let retimed: Vec<&(String, PathBuf, u64)> = files_to_process
+            .iter()
+            .filter(|(rel_path, _, mtime)| {
+                indexed_mtimes.get(rel_path).is_some_and(|indexed| {
+                    indexed.mtime != *mtime && indexed.content_hash.is_some()
+                })
+            })
+            .collect();
+        let matches = crate::parallel::map_in_order(
+            &retimed,
+            crate::parallel::threads(),
+            || (),
+            |(), (rel_path, disk_path, _)| indexed_mtimes[rel_path].matches_content(disk_path),
+        );
+        let same_content: HashSet<String> = retimed
+            .into_iter()
+            .zip(matches)
+            .filter(|(_, matches)| *matches)
+            .map(|((rel_path, ..), _)| rel_path.clone())
+            .collect();
         let mut to_index = Vec::new();
+        let mut touched = Vec::new();
         for (rel_path, disk_path, mtime) in files_to_process {
             match indexed_mtimes.get(&rel_path) {
-                Some(&indexed_mtime)
-                    if indexed_mtime == mtime
-                        && !(should_refresh_event_files && crate::events::eligible(&rel_path))
-                        && !needs_macro_refresh(&rel_path, &disk_path) =>
+                Some(indexed)
+                    if !(should_refresh_event_files && crate::events::eligible(&rel_path))
+                        && !needs_macro_refresh(&rel_path, &disk_path)
+                        && (indexed.mtime == mtime || same_content.contains(&rel_path)) =>
                 {
-                    // Skip indexing: mtime hasn't changed
+                    // Skip indexing: the content has not changed since extraction.
+                    if indexed.mtime != mtime {
+                        touched.push((rel_path, mtime));
+                    }
                 }
                 _ => {
                     to_index.push((rel_path, disk_path, mtime));
@@ -871,11 +1392,13 @@ impl TantivySearchEngine {
         }
 
         tracing::debug!(
-            "index_files: files_to_process={}, to_index={}, to_delete={}",
+            "index_files: files_to_process={}, to_index={}, to_delete={}, touched={}",
             files_to_process_len,
             to_index.len(),
-            to_delete.len()
+            to_delete.len(),
+            touched.len()
         );
+        self.record_touched(touched);
 
         let changed = self.apply_index_updates(to_index, to_delete, should_reload_reader)?;
         // A settings change must also discard previously expanded declarations when disabled.
@@ -941,7 +1464,7 @@ impl TantivySearchEngine {
         }
 
         let extractor = crate::parser::TreeSitterExtractor::new();
-        let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let root = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
         let mut macro_expander =
             super::MacroExpander::new(&root, crate::config::get().macro_expansion.clone());
         let managed_path = Path::new(&self.index_path).join(".managed.json");
@@ -966,6 +1489,7 @@ impl TantivySearchEngine {
             // Another writer may have registered files after the list was read and before the
             // lock was taken. With the lock held the list stays put, so one more open settles it.
             if attempts == 3 || std::fs::read(&managed_path).ok() == managed_before {
+                writer.set_merge_policy(merge_policy());
                 break (write_index, writer);
             }
         };
@@ -977,12 +1501,14 @@ impl TantivySearchEngine {
 
         // Track only the docs that actually get added so the cache mirrors the index:
         // a file that fails to read/parse stays out of the cache and is retried next call.
-        let mut committed_updates: Vec<(String, u64)> = Vec::new();
+        let mut committed_updates: Vec<(String, IndexedStamp)> = Vec::new();
         let mut committed_macro_inputs: Vec<(String, Option<RecordedExpansion>)> = Vec::new();
         let mut encoding_excluded_paths = Vec::new();
-        for (rel_path, disk_path, mtime) in to_index {
-            let content = match std::fs::read_to_string(&disk_path) {
-                Ok(c) => c,
+        let threads = crate::parallel::threads();
+        for ((rel_path, disk_path, mtime), read) in extract_in_order(&extractor, to_index, threads)
+        {
+            let (content, extraction) = match read {
+                Ok(read) => read,
                 Err(e) => {
                     if e.kind() == std::io::ErrorKind::InvalidData {
                         // A formerly valid file must disappear from both search and
@@ -1000,18 +1526,17 @@ impl TantivySearchEngine {
                     continue;
                 }
             };
-            let (mut extracted, mut auxiliary) =
-                match extractor.extract_for_index(&content, &rel_path) {
-                    Ok(extracted_parts) => extracted_parts,
-                    Err(e) => {
-                        eprintln!(
-                            "Warning: Failed to parse file {}: {}",
-                            disk_path.display(),
-                            e
-                        );
-                        continue;
-                    }
-                };
+            let (mut extracted, mut auxiliary) = match extraction {
+                Ok(extracted_parts) => extracted_parts,
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Failed to parse file {}: {}",
+                        disk_path.display(),
+                        e
+                    );
+                    continue;
+                }
+            };
 
             if let Some(expanded_auxiliary) =
                 macro_expander.expand_for_index(&disk_path, &content, &mut extracted)
@@ -1036,8 +1561,7 @@ impl TantivySearchEngine {
             let stored_extracted = StoredExtractedFileRef {
                 extracted: &extracted,
                 static_collection_edges: &auxiliary.static_collection_edges,
-                event_input: auxiliary.event_input.as_ref(),
-                flow_file: auxiliary.flow_file.as_ref(),
+                event_input: auxiliary.event_input.as_ref().map(StoredEventSource::new),
                 flow_digest: auxiliary
                     .flow_file
                     .as_ref()
@@ -1056,6 +1580,9 @@ impl TantivySearchEngine {
             };
             doc.add_text(self.extracted_json_field, &json_str);
             doc.add_u64(self.mtime_field, mtime);
+            let content_hash = short_hash(content.as_bytes());
+            doc.add_u64(self.content_hash_field, content_hash);
+            doc.add_u64(self.payload_hash_field, short_hash(json_str.as_bytes()));
 
             for sym in &extracted.symbols {
                 doc.add_text(self.symbol_field, &sym.name);
@@ -1111,7 +1638,14 @@ impl TantivySearchEngine {
             match writer.add_document(doc) {
                 Ok(_) => {
                     committed_macro_inputs.push((rel_path.clone(), macro_inputs));
-                    committed_updates.push((rel_path, mtime));
+                    let content_hash = Some(content_hash);
+                    committed_updates.push((
+                        rel_path,
+                        IndexedStamp {
+                            mtime,
+                            content_hash,
+                        },
+                    ));
                 }
                 Err(e) => {
                     eprintln!(
@@ -1127,6 +1661,12 @@ impl TantivySearchEngine {
         writer.commit().map_err(|e| e.to_string())?;
         // Still the writer, so no other process is creating segment files.
         super::segment_files::remove_orphans(&write_index, Path::new(&self.index_path));
+        // Dropping a writer cancels the merges its commit started, which would leave their
+        // output unreferenced and the deleted documents in place. The commit already landed,
+        // so a failed merge only postpones the cleanup to a later pass.
+        if let Err(error) = writer.wait_merging_threads() {
+            tracing::warn!("index segment merge did not finish: {error}");
+        }
         if should_reload_reader {
             self.reader.reload().map_err(|error| error.to_string())?;
         }
@@ -1134,12 +1674,23 @@ impl TantivySearchEngine {
         // paths and record the freshly-indexed mtimes. Failed commits/reloads never add
         // uncommitted files; writer contention discards the cache so a retry can import
         // the other process's committed state.
+        let mut has_rewritten_record = false;
+        for path in to_delete
+            .iter()
+            .chain(&encoding_excluded_paths)
+            .chain(committed_updates.iter().map(|(path, _)| path))
+        {
+            has_rewritten_record |= self.content_mtimes.remove(path);
+        }
+        if has_rewritten_record {
+            self.save_content_mtimes();
+        }
         if let Some(cache) = self.indexed_mtimes_cache.as_mut() {
             for path in to_delete.iter().chain(&encoding_excluded_paths) {
                 cache.remove(path);
             }
-            for (rel_path, mtime) in committed_updates {
-                cache.insert(rel_path, mtime);
+            for (rel_path, stamp) in committed_updates {
+                cache.insert(rel_path, stamp);
             }
         }
         if let Some(cache) = self.macro_inputs_cache.as_mut() {
@@ -1188,7 +1739,7 @@ impl TantivySearchEngine {
         if self.event_config_stamp.as_deref() != Some(&crate::events::config_stamp()) {
             return self.refresh_indexed_roots(should_reload_reader);
         }
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let cwd = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
         let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
 
@@ -1205,6 +1756,7 @@ impl TantivySearchEngine {
 
         let mut to_index: Vec<(String, PathBuf, u64)> = Vec::new();
         let mut to_delete: Vec<String> = Vec::new();
+        let mut touched = Vec::new();
 
         for path in paths {
             // A repository-local custom index can contain supported files such as Tantivy's
@@ -1226,7 +1778,7 @@ impl TantivySearchEngine {
                         to_delete.push(raw_key);
                     }
                 }
-                // The full walk honors .gitignore/.codemapignore via build_walker; a single
+                // The full walk honors .gitignore/.codemapignore via build_index_walker; a single
                 // event path bypasses the walk, so check visibility explicitly — otherwise
                 // the watcher would index ignored files the next full walk then deletes
                 // (flip-flopping index contents).
@@ -1238,7 +1790,13 @@ impl TantivySearchEngine {
                 }
                 match collect_index_entry(path, &abs_cwd) {
                     Some((rel_path, disk_path, mtime)) => match indexed_mtimes.get(&rel_path) {
-                        Some(&indexed_mtime) if indexed_mtime == mtime => {}
+                        Some(indexed)
+                            if indexed.mtime == mtime || indexed.matches_content(&disk_path) =>
+                        {
+                            if indexed.mtime != mtime {
+                                touched.push((rel_path, mtime));
+                            }
+                        }
                         _ => to_index.push((rel_path, disk_path, mtime)),
                     },
                     None => {
@@ -1266,7 +1824,7 @@ impl TantivySearchEngine {
                 // set difference here is scoped to the subtree the walk fully covered, so
                 // it is NOT the full-walk-only delete logic the doc comment above forbids.
                 let mut subtree_disk_paths = std::collections::HashSet::new();
-                for entry in crate::workspace::build_walker(path, false)
+                for entry in crate::workspace::build_index_walker(path)
                     .build()
                     .filter_map(|e| e.ok())
                 {
@@ -1283,7 +1841,14 @@ impl TantivySearchEngine {
                         {
                             subtree_disk_paths.insert(rel_path.clone());
                             match indexed_mtimes.get(&rel_path) {
-                                Some(&indexed_mtime) if indexed_mtime == mtime => {}
+                                Some(indexed)
+                                    if indexed.mtime == mtime
+                                        || indexed.matches_content(&disk_path) =>
+                                {
+                                    if indexed.mtime != mtime {
+                                        touched.push((rel_path, mtime));
+                                    }
+                                }
                                 _ => to_index.push((rel_path, disk_path, mtime)),
                             }
                         }
@@ -1322,11 +1887,13 @@ impl TantivySearchEngine {
         to_delete.dedup();
 
         tracing::debug!(
-            "refresh_paths: event_paths={}, to_index={}, to_delete={}",
+            "refresh_paths: event_paths={}, to_index={}, to_delete={}, touched={}",
             paths.len(),
             to_index.len(),
-            to_delete.len()
+            to_delete.len(),
+            touched.len()
         );
+        self.record_touched(touched);
 
         self.apply_index_updates(to_index, to_delete, should_reload_reader)
     }
@@ -1352,6 +1919,7 @@ impl TantivySearchEngine {
             reference_field: self.reference_field,
             format_text_field: self.format_text_field,
             extracted_json_field: self.extracted_json_field,
+            path_display: self.path_display.clone(),
         }
     }
 
@@ -1365,71 +1933,270 @@ impl TantivySearchEngine {
             .search_with_context(query, limit, context)
     }
 
+    /// Mark this engine as the one that publishes generations, so its first state read decodes
+    /// the documents for the first publication and later publications reuse entries.
+    pub(crate) fn start_publishing(&mut self) {
+        self.is_publishing = true;
+    }
+
+    /// Record that the generation from the last [`Self::load_next_published_snapshot`] is
+    /// published as `generation`, so the next publication reuses its entries.
+    pub(crate) fn finish_publication(&mut self, generation: u64) {
+        if let Some(mut entries) = self.next_published_entries.take() {
+            entries.generation = generation;
+            self.published_entries = Some(entries);
+        }
+    }
+
     /// Rebuild all in-memory derived data from stored docs in one pass. This is called only by
     /// the background indexer when publishing a successful generation; search never scans
     /// Tantivy documents or deserializes stored JSON on its hot path.
     pub fn load_published_snapshot(
         &self,
     ) -> Result<super::indexer::PublishedIndexSnapshot, String> {
+        self.build_published_snapshot(None, HashMap::new())
+            .map(|(snapshot, _)| snapshot)
+    }
+
+    /// [`Self::load_published_snapshot`] after `previous`, the generation this engine published
+    /// last. Documents unchanged since `previous`, or decoded by its first state read, are not
+    /// decoded again, and the new generation shares unchanged files with `previous`.
+    pub(crate) fn load_next_published_snapshot(
+        &mut self,
+        previous: &super::indexer::PublishedIndexSnapshot,
+    ) -> Result<super::indexer::PublishedIndexSnapshot, String> {
+        let loaded = std::mem::take(&mut self.loaded_entries);
+        let published = self
+            .published_entries
+            .as_ref()
+            .filter(|entries| entries.generation == previous.generation())
+            .map(|entries| (previous, entries));
+        let (snapshot, entries) = self.build_published_snapshot(published, loaded)?;
+        self.next_published_entries = Some(entries);
+        Ok(snapshot)
+    }
+
+    fn build_published_snapshot(
+        &self,
+        previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
+        mut loaded: EntriesBySegment<DecodedEntry>,
+    ) -> Result<(super::indexer::PublishedIndexSnapshot, PublishedEntries), String> {
         // This temporary reader sees the just-committed generation without advancing the
         // shared request reader. If reconstruction fails, callers keep the prior BM25 and
         // relation generation together.
-        let snapshot_reader = self
+        let snapshot_reader: IndexReader = self
             .index
             .reader_builder()
             .reload_policy(ReloadPolicy::Manual)
             .try_into()
             .map_err(|error| format!("published snapshot reader open failed: {error}"))?;
         let searcher = snapshot_reader.searcher();
-        let mut files_and_edges = Vec::new();
-        let mut source_mtimes = HashMap::new();
-        let mut event_inputs = crate::events::EventInputs::default();
-        let mut flow_documents = std::collections::BTreeMap::new();
-        // DocSetCollector enumerates every doc (no limit), so the codemap snapshot stays
-        // complete on large repos.
-        let doc_addresses = searcher
-            .search(&AllQuery, &DocSetCollector)
-            .map_err(|error| format!("published snapshot query failed: {error}"))?;
-        for doc_address in doc_addresses {
-            let doc = searcher
-                .doc::<TantivyDocument>(doc_address)
-                .map_err(|error| format!("published snapshot document read failed: {error}"))?;
-            let json = doc
-                .get_first(self.extracted_json_field)
-                .and_then(|value| value.as_str())
-                .ok_or_else(|| {
-                    "published snapshot document is missing extracted_json".to_string()
-                })?;
-            let stored = serde_json::from_str::<StoredExtractedFile>(json)
-                .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
-            if let Some(mtime) = doc
-                .get_first(self.mtime_field)
-                .and_then(|value| value.as_u64())
-            {
-                source_mtimes.insert(stored.extracted.file_path.clone(), mtime);
+        let mut entries = Vec::new();
+        let mut by_segment = HashMap::new();
+        // Every live document, segment by segment, so the codemap snapshot stays complete on
+        // large repos. Only documents without a decoded entry are read from the store.
+        for segment in searcher.segment_readers() {
+            let segment_id = segment.segment_id();
+            let reusable =
+                previous.and_then(|(_, published)| published.by_segment.get(&segment_id));
+            let mut loaded = loaded.remove(&segment_id);
+            let mut located = vec![None; segment.max_doc() as usize];
+            let mut documents = Vec::new();
+            let mut unread = Vec::new();
+            for doc_id in 0..segment.max_doc() {
+                if segment.is_deleted(doc_id) {
+                    continue;
+                }
+                let reused = reusable
+                    .and_then(|entries| entries.get(doc_id as usize)?.clone())
+                    .zip(previous);
+                let loaded = loaded
+                    .as_mut()
+                    .and_then(|entries| entries.get_mut(doc_id as usize)?.take());
+                let document = if let Some((entry, (previous, _))) = reused {
+                    let edges = previous.static_collection_edges(&entry.file.file_path);
+                    Some((entry, edges, true))
+                } else if let Some(loaded) = loaded {
+                    let (entry, edges) = loaded.publish();
+                    Some((entry, edges, false))
+                } else {
+                    unread.push(doc_id);
+                    None
+                };
+                documents.push((doc_id, document));
             }
-            event_inputs.insert(stored.extracted.file_path.clone(), stored.event_input);
-            if let Some(digest) = stored.flow_digest {
-                flow_documents.insert(stored.extracted.file_path.clone(), (doc_address, digest));
+            let mut read = read_published_entries(
+                self.extracted_json_field,
+                segment,
+                &unread,
+                previous,
+                &self.path_display,
+                crate::parallel::threads(),
+            )?
+            .into_iter();
+            for (doc_id, document) in documents {
+                let Some((entry, edges, is_unchanged)) = document.or_else(|| read.next()) else {
+                    continue;
+                };
+                located[doc_id as usize] = Some(std::sync::Arc::clone(&entry));
+                entries.push((entry, edges, is_unchanged));
             }
-            files_and_edges.push((stored.extracted, stored.static_collection_edges));
+            by_segment.insert(segment_id, located);
         }
-        Ok(
-            super::indexer::PublishedIndexSnapshot::from_files_and_edges_with_flow(
-                files_and_edges,
-                event_inputs,
-                Some(crate::flow::IndexedFlowStore {
-                    #[cfg(test)]
-                    searcher,
-                    #[cfg(test)]
-                    field: self.extracted_json_field,
-                    documents: flow_documents,
-                }),
-                Some(Path::new(&self.index_path)),
-            )
-            .with_source_mtimes(source_mtimes),
+        drop(loaded);
+        // Event sources fill their budget in path order. An unchanged document's source comes
+        // from `previous` when it was within budget there; other sources are read from disk
+        // and used only while they still hold the indexed text.
+        entries.sort_by(|(left, ..), (right, ..)| left.file.file_path.cmp(&right.file.file_path));
+        let previous_sources = previous.map(|(previous, _)| previous.events().indexed_sources());
+        let root = indexed_root();
+        let mut event_inputs = crate::events::EventInputs::default();
+        for (entry, _, is_unchanged) in &entries {
+            let path = &entry.file.file_path;
+            let input = entry.event_input.as_ref();
+            let sized = input.map(|input| (input.source_length, input.unavailable_reason.clone()));
+            event_inputs.insert_sized(path.clone(), sized, || {
+                is_unchanged
+                    .then(|| previous_sources?.get(path).cloned())
+                    .flatten()
+                    .or_else(|| input?.read(&root, path))
+            });
+        }
+        let mut source_mtimes = HashMap::new();
+        let mut flow_documents = std::collections::BTreeMap::new();
+        let mut files_and_edges = Vec::with_capacity(entries.len());
+        let mut by_path = HashMap::with_capacity(entries.len());
+        for (entry, edges, _) in entries {
+            let path = &entry.file.file_path;
+            if let Some(mtime) = entry.mtime {
+                let current = self
+                    .content_mtimes
+                    .mtime(self.path_display.stored(path), entry.content_hash);
+                source_mtimes.insert(path.clone(), current.unwrap_or(mtime));
+            }
+            if let Some(digest) = &entry.flow_digest {
+                flow_documents.insert(path.clone(), digest.clone());
+            }
+            files_and_edges.push((std::sync::Arc::clone(&entry.file), edges));
+            by_path.insert(path.clone(), entry);
+        }
+        let snapshot = super::indexer::PublishedIndexSnapshot::from_files_and_edges_with_flow(
+            files_and_edges,
+            event_inputs,
+            Some(crate::flow::IndexedFlowStore {
+                documents: flow_documents,
+            }),
+            Some(Path::new(&self.index_path)),
         )
+        .with_source_mtimes(source_mtimes);
+        let entries = PublishedEntries {
+            generation: 0,
+            by_path,
+            by_segment,
+        };
+        Ok((snapshot, entries))
     }
+}
+
+/// A document read for publication: its entry, its static collection edges and whether it is
+/// unchanged since the previous generation.
+type ReadEntry = (
+    std::sync::Arc<PublishedEntry>,
+    Vec<StaticCollectionEdge>,
+    bool,
+);
+
+/// [`read_published_entry`] for each of `docs`, in order, split into contiguous runs read on up
+/// to `threads` threads.
+fn read_published_entries(
+    extracted_json_field: Field,
+    segment: &tantivy::SegmentReader,
+    docs: &[tantivy::DocId],
+    previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
+    display: &PathDisplay,
+    threads: usize,
+) -> Result<Vec<ReadEntry>, String> {
+    let runs: Vec<_> = docs
+        .chunks(docs.len().div_ceil(threads.max(1)).max(1))
+        .collect();
+    let read = crate::parallel::map_in_order(
+        &runs,
+        threads,
+        || (),
+        |(), docs| {
+            let columns = DocumentColumns::open(segment)?;
+            let mut store = None;
+            docs.iter()
+                .map(|&doc_id| {
+                    read_published_entry(
+                        extracted_json_field,
+                        segment,
+                        &columns,
+                        &mut store,
+                        doc_id,
+                        previous,
+                        display,
+                    )
+                })
+                .collect::<Result<Vec<_>, String>>()
+        },
+    );
+    let mut entries = Vec::with_capacity(docs.len());
+    for run in read {
+        entries.extend(run?);
+    }
+    Ok(entries)
+}
+
+/// Read one document for publication: a document unchanged since `previous` at another
+/// location (after a merge) is matched by its fast-field payload hash and mtime; others are
+/// read from the store and decoded.
+fn read_published_entry(
+    extracted_json_field: Field,
+    segment: &tantivy::SegmentReader,
+    columns: &DocumentColumns,
+    store: &mut Option<tantivy::store::StoreReader>,
+    doc_id: tantivy::DocId,
+    previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
+    display: &PathDisplay,
+) -> Result<ReadEntry, String> {
+    let stamps = columns.stamps(doc_id);
+    if let Some((path, (previous, published))) = columns
+        .path(doc_id)
+        .map(|path| display.display(path))
+        .zip(previous)
+    {
+        if let Some(entry) = published
+            .by_path
+            .get(&path)
+            .filter(|entry| entry.is_current(stamps.payload, stamps.mtime))
+        {
+            return Ok((
+                std::sync::Arc::clone(entry),
+                previous.static_collection_edges(&path),
+                true,
+            ));
+        }
+    }
+    let store = match store {
+        Some(store) => store,
+        None => store.insert(
+            segment
+                .get_store_reader(1)
+                .map_err(|error| format!("published snapshot document read failed: {error}"))?,
+        ),
+    };
+    let doc = store
+        .get::<TantivyDocument>(doc_id)
+        .map_err(|error| format!("published snapshot document read failed: {error}"))?;
+    let json = doc
+        .get_first(extracted_json_field)
+        .and_then(|value| value.as_str())
+        .ok_or_else(|| "published snapshot document is missing extracted_json".to_string())?;
+    let stored = serde_json::from_str::<StoredExtractedFile>(json)
+        .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
+    let (entry, edges) = DecodedEntry::decoded(stamps, stored, display).publish();
+    Ok((entry, edges, false))
 }
 
 fn normalized_index_root(index_path: &Path, abs_cwd: &Path) -> PathBuf {
@@ -1797,7 +2564,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v42-passed-on-exports");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v43-compact-store");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

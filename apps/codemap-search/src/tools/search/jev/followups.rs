@@ -32,7 +32,7 @@ pub(in crate::tools::search) fn append_call_candidates(
     if names.is_empty() {
         return;
     }
-    let root = std::env::current_dir().unwrap_or_default();
+    let root = crate::workspace::root_dir().unwrap_or_default();
     let exclusions = crate::callers::test_code::TestCodeFilter::from_config(&root);
     let codemap = snapshot.codemap();
     let mut groups: BTreeMap<&str, BTreeSet<(&str, usize)>> = BTreeMap::new();

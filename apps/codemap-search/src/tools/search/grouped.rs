@@ -789,7 +789,7 @@ pub(super) fn plan_relation_insertions(
         .saturating_sub(primary_bytes)
         .min(cap / 2)
         .min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
-    let root = std::env::current_dir().unwrap_or_default();
+    let root = crate::workspace::root_dir().unwrap_or_default();
     let mut insertions = Vec::new();
     let mut shown_routes = crate::events::ShownRoutes::default();
     for (file_number, file) in files.iter().enumerate() {

@@ -16,7 +16,7 @@ fn build(entries: &[(&str, &str)]) -> EventIndex {
             .extract_for_index(source, path)
             .unwrap();
         inputs.insert(path.into(), aux.event_input);
-        files.push(file);
+        files.push(std::sync::Arc::new(file));
     }
     EventIndex::build(&files, inputs)
 }

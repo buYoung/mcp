@@ -274,8 +274,11 @@ pub(super) mod fixtures {
         }
     }
 
-    pub(in crate::callers) fn file(path: &str, symbols: Vec<ExtractedSymbol>) -> ExtractedFile {
-        ExtractedFile {
+    pub(in crate::callers) fn file(
+        path: &str,
+        symbols: Vec<ExtractedSymbol>,
+    ) -> std::sync::Arc<ExtractedFile> {
+        std::sync::Arc::new(ExtractedFile {
             file_path: path.to_string(),
             total_lines: 100,
             symbols,
@@ -283,7 +286,7 @@ pub(super) mod fixtures {
             docstrings: vec![],
             member_names: vec![],
             navigation: None,
-        }
+        })
     }
 
     pub(in crate::callers) fn cfg() -> CallerConfig {

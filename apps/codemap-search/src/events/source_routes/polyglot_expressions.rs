@@ -622,7 +622,12 @@ impl Interpreter<'_, '_> {
                 ));
                 return None;
             }
-            return Some(node.fields.get("value").cloned().unwrap_or_default());
+            return Some(
+                node.fields
+                    .get("value")
+                    .map(<[_]>::to_vec)
+                    .unwrap_or_default(),
+            );
         }
         let children: Vec<_> = node
             .children

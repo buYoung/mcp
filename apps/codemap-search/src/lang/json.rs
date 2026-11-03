@@ -18,15 +18,14 @@ fn query() -> &'static Query {
 
 fn qualified_key(node: Node<'_>, source: &[u8]) -> String {
     let mut keys = vec![clean(node, source)];
-    let current_pair = node.parent();
-    let mut ancestor = current_pair.and_then(|pair| pair.parent());
-    while let Some(candidate) = ancestor {
+    let mut ancestors = crate::parser::ancestors(node);
+    let current_pair = ancestors.next();
+    for candidate in ancestors {
         if candidate.kind() == "pair" && Some(candidate) != current_pair {
             if let Some(key) = candidate.child_by_field_name("key") {
                 keys.push(clean(key, source));
             }
         }
-        ancestor = candidate.parent();
     }
     keys.reverse();
     keys.join(".")

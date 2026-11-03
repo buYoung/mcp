@@ -110,28 +110,29 @@ pub(super) fn declaration<'a>(
     symbol: &ExtractedSymbol,
     is_owner: bool,
 ) -> Option<Node<'a>> {
-    let mut node = at(tree, &symbol.range)?;
-    for _ in 0..16 {
-        if if is_owner {
-            is_type(node)
-        } else {
-            is_method(node)
-        } {
-            if !is_owner && node.kind() == "function_signature" {
-                while let Some(parent) = node.parent().filter(|parent| {
-                    matches!(
-                        parent.kind(),
-                        "declaration" | "method_signature" | "method_declaration"
-                    )
-                }) {
-                    node = parent;
-                }
+    let start = at(tree, &symbol.range)?;
+    let node = std::iter::once(start)
+        .chain(crate::parser::ancestors(start))
+        .take(16)
+        .find(|node| {
+            if is_owner {
+                is_type(*node)
+            } else {
+                is_method(*node)
             }
-            return Some(node);
-        }
-        node = node.parent()?;
+        })?;
+    if !is_owner && node.kind() == "function_signature" {
+        return crate::parser::ancestors(node)
+            .take_while(|parent| {
+                matches!(
+                    parent.kind(),
+                    "declaration" | "method_signature" | "method_declaration"
+                )
+            })
+            .last()
+            .or(Some(node));
     }
-    None
+    Some(node)
 }
 
 pub(super) fn body(node: Node<'_>) -> Option<Node<'_>> {
@@ -240,8 +241,7 @@ pub(super) fn reference(node: Node<'_>, source: &[u8]) -> Option<TypeReference> 
 
 pub(super) fn namespace(node: Node<'_>, top: &str, source: &[u8]) -> String {
     let mut names = Vec::new();
-    let mut cursor = node.parent();
-    while let Some(parent) = cursor {
+    for parent in crate::parser::ancestors(node) {
         if is_type(parent)
             || matches!(
                 parent.kind(),
@@ -259,7 +259,6 @@ pub(super) fn namespace(node: Node<'_>, top: &str, source: &[u8]) -> String {
                 }
             }
         }
-        cursor = parent.parent();
     }
     names.reverse();
     if !top.is_empty() {
@@ -268,9 +267,9 @@ pub(super) fn namespace(node: Node<'_>, top: &str, source: &[u8]) -> String {
     names.join(".")
 }
 
-pub(super) fn conditions(mut node: Node<'_>, source: &[u8]) -> Vec<String> {
+pub(super) fn conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
     let mut result = Vec::new();
-    loop {
+    for node in std::iter::once(node).chain(crate::parser::ancestors(node)) {
         if matches!(
             node.kind(),
             "preproc_if"
@@ -291,8 +290,6 @@ pub(super) fn conditions(mut node: Node<'_>, source: &[u8]) -> Vec<String> {
             }
             before = attribute.prev_named_sibling();
         }
-        let Some(parent) = node.parent() else { break };
-        node = parent;
     }
     result.sort();
     result.dedup();
@@ -384,9 +381,8 @@ pub(crate) fn collect(
             method_count += 1;
             continue;
         }
-        let mut parent = node.parent();
         let mut owner = None;
-        while let Some(candidate) = parent {
+        for candidate in crate::parser::ancestors(node) {
             if let Some((_, index)) = owners
                 .iter()
                 .find(|(owner, _)| owner.id() == candidate.id())
@@ -397,7 +393,6 @@ pub(crate) fn collect(
             if is_method(candidate) || candidate.kind() == "lambda_expression" {
                 break;
             }
-            parent = candidate.parent();
         }
         let Some(index) = owner else { continue };
         let mut method = declarations::method(

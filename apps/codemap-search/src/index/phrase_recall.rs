@@ -241,7 +241,7 @@ impl SearcherHandle {
                 };
                 if let Some(anchor) = phrase_anchor(&file, unit, analyzer) {
                     return Ok(Some(PhraseMatch {
-                        file_path: path,
+                        file_path: self.path_display.display(path),
                         total_lines: file.total_lines,
                         anchor,
                     }));
@@ -267,6 +267,8 @@ impl SearcherHandle {
         if max_matches == 0 {
             return Ok(Vec::new());
         }
+        let stored_scope = self.path_display.stored_scope(workspace_scope);
+        let workspace_scope = stored_scope.as_deref();
         let mut analyzer = self
             .index
             .tokenizer_for_field(self.docstring_field)
@@ -297,7 +299,7 @@ impl SearcherHandle {
         let mut budget = RecallBudget {
             ranked_paths: ranked
                 .iter()
-                .map(|result| result.file_path.as_str())
+                .map(|result| self.path_display.stored(&result.file_path))
                 .collect(),
             decodes: 0,
             decode_limit: candidate_limit,

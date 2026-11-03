@@ -566,9 +566,8 @@ pub(super) fn detached_method(
     unit: &mut ImplementationUnit,
 ) -> bool {
     let language = unit.language.as_str();
-    let mut parent = node.parent();
     if language == "swift" {
-        while let Some(candidate) = parent {
+        for candidate in crate::parser::ancestors(node) {
             if candidate.kind() == "class_declaration" && modifier(candidate, "extension", source) {
                 let Some(owner) = candidate
                     .child_by_field_name("name")
@@ -601,12 +600,11 @@ pub(super) fn detached_method(
             if is_method(candidate) || is_type(candidate) {
                 break;
             }
-            parent = candidate.parent();
         }
         return false;
     }
     if language == "rust" {
-        while let Some(candidate) = parent {
+        for candidate in crate::parser::ancestors(node) {
             if candidate.kind() == "trait_item" {
                 return false;
             }
@@ -643,7 +641,6 @@ pub(super) fn detached_method(
             if is_method(candidate) || is_type(candidate) {
                 return false;
             }
-            parent = candidate.parent();
         }
     }
     if language == "go" && node.kind() == "method_declaration" {

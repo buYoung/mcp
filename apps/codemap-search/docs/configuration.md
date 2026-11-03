@@ -175,6 +175,8 @@ Rules are case-sensitive globs matched against directories, not files with the s
 
 The same rules apply to indexing, codemap, caller scans, watcher updates, `find` and `grep`. A direct search inside an excluded subtree does not bypass its ancestors. `include_ignored: true` on `find`/`grep` bypasses optional directory and ordinary file-ignore rules, but not mandatory internal/index directories. Removing a rule does not override `.gitignore` or `.codemapignore`.
 
+Indexing, caller scans and watcher updates also skip git linked worktrees checked out inside the workspace: folders whose `.git` file points into the `worktrees` folder of a repository. `find`, `grep` and codemap still walk them; submodules and nested repositories are indexed as before.
+
 ### Initial project detection
 
 Common folders and project recommendations are generated only for a missing repo config or its pre-v6 transition. Detection reads names of project files and does not execute a build, evaluate a manifest or follow directory symlinks. It respects ignore files, skips common/generated folders and orphan dependency/cache trees, and supports nested projects. It records recommended outputs as recursive globs even if those folders do not exist yet. Discovered project paths are not recorded, and repeated project types share the same patterns. User-customized build output paths must be added manually.
@@ -312,6 +314,8 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `"off"` | The workspace is never indexed. |
 
 When `auto` mode does not index, for example in a folder that holds several repositories, `search` returns `Index unavailable:` with the reason. The reason names up to three repositories found one or two levels down. `read`, `grep` and `find` keep returning live results, without indexed declarations or callers. Outside a repository the server creates no `.codemap/` directory: no config is scaffolded, and its empty placeholder index lives in a temporary directory that is removed when the server exits. The file limit is checked on the first index-backed call, so a repository above it still gets `.codemap/` at startup. To index such a workspace, set `mode = "on"` in `.codemap/config.toml` or the global config and restart the server.
+
+A git worktree without an index starts from the index of another worktree of the same repository when one has the current format; the one updated most recently is copied, and it is left unchanged. The first pass then re-extracts only the files whose content differs, plus native files, whose recorded macro-expansion inputs name the other worktree's files, before anything from the index is shown. A worktree that already has an index, even one in another format, is never copied into.
 
 ### Indexing and file exclusions
 
@@ -493,13 +497,15 @@ powershell = ["Describe", "Context", "It"]
 - `allowed_roots`: access the workspace and the listed external roots.
 - `anywhere`: access any path available to the server process (default).
 
-`allowed_roots` entries must be non-empty strings. Relative paths start at the workspace root; absolute paths are allowed. Existing path components are resolved, including symlinks, while nonexistent suffixes are retained. Path traversal cannot extend access beyond the configured roots. These permissions do not widen the indexing scope of `search`.
+`allowed_roots` entries must be non-empty strings. Relative paths start at the workspace root; absolute paths are allowed. Existing path components are resolved, including symlinks, while nonexistent suffixes are retained. Path traversal cannot extend access beyond the configured roots. These permissions do not add files to the start folder's index. A repository outside the start folder gets its own index for `search` with an outside `workspace_scope` only when the `read` policy allows the whole repository folder; that repository's own `[filesystem_permissions]` never widen this session's access.
 
 ### Index freshness
 
 With `watch = true`, file changes refresh the index in the background. `index.refresh.watch_debounce_ms` combines nearby changes into one refresh. Changes in paths hidden by `.gitignore`, `.ignore` or `.codemapignore` are dropped like excluded directories, and a change to one of those files triggers a full walk. When file watching is off or unavailable, `search` requests background refreshes at intervals controlled by `index.refresh.index_staleness_ms` and return the last available results immediately.
 
 With `indexer_auto_restart = true`, the next `search` attempts recovery if background indexing stops. Recovery attempts are capped per server run. With it disabled, results remain frozen until restart. Live `read`/`find`/`grep` remains available in either case.
+
+When a file's modification time changes but its content does not, as after a checkout that rewrites identical files, the index keeps the file's document and records the new time in `content-mtimes.json` in the index folder. Later passes and server starts then do not read the file again.
 
 ## Example `config.toml`
 

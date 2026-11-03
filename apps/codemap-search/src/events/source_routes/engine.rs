@@ -10,7 +10,7 @@ pub(super) type Environment = BTreeMap<String, Value>;
 
 pub(super) struct Analyzer<'a> {
     pub program: &'a Program,
-    pub summaries: BTreeMap<usize, Summary>,
+    pub summaries: BTreeMap<usize, Arc<Summary>>,
     pub globals: Vec<Environment>,
     pub value_types: BTreeMap<Value, (usize, String, String)>,
     pub owners: BTreeMap<Value, String>,
@@ -414,18 +414,24 @@ impl<'a> Analyzer<'a> {
                 } else {
                     interpreter.statement(Some(body));
                 }
-                summaries.insert(
-                    index,
-                    Summary {
-                        receiver: Some(function.receiver()),
-                        parameters: interpreter.parameters,
-                        facts: interpreter.facts,
-                        returns: interpreter.returns,
-                        calls: interpreter.calls,
-                    },
-                );
+                let summary = Summary {
+                    receiver: Some(function.receiver()),
+                    parameters: interpreter.parameters,
+                    facts: interpreter.facts,
+                    returns: interpreter.returns,
+                    calls: interpreter.calls,
+                };
+                // The pass reads the previous summaries until it ends, so an unchanged summary
+                // shares the previous allocation instead of existing twice.
+                let summary = match self.summaries.get(&index) {
+                    Some(previous) if previous.is_identical(&summary) => Arc::clone(previous),
+                    _ => Arc::new(summary),
+                };
+                summaries.insert(index, summary);
             }
-            let mut current = initial;
+            // Select by reference and clone only the kept facts: the summaries stay alive for
+            // the next pass, so a full copy would hold every fact twice.
+            let mut selected: Vec<&Fact> = initial.iter().collect();
             for (index, summary) in &summaries {
                 let f = &self.program.functions[*index];
                 if is_lambda(&self.program.sources[f.source].nodes[f.node].kind)
@@ -436,10 +442,13 @@ impl<'a> Analyzer<'a> {
                 {
                     continue;
                 }
-                current.extend(summary.facts.clone());
+                selected.extend(&summary.facts);
             }
-            dedup_facts(&mut current);
-            self.cap_facts(&mut current);
+            let mut seen = HashSet::new();
+            selected.retain(|fact| seen.insert(*fact));
+            drop(seen);
+            let current: Vec<Fact> = self.capped_facts(selected).into_iter().cloned().collect();
+            drop(initial);
             let is_stable = current == facts;
             facts = current;
             self.summaries = summaries;
@@ -462,32 +471,40 @@ impl<'a> Analyzer<'a> {
         facts
     }
     pub fn cap_facts(&mut self, facts: &mut Vec<Fact>) {
+        *facts = self.capped_facts(std::mem::take(facts));
+    }
+
+    /// The facts [`Self::cap_facts`] keeps: the same number from each path, function and kind
+    /// in turn. It also takes references, so a pass can clone only the facts it keeps.
+    fn capped_facts<T: std::borrow::Borrow<Fact> + Clone>(&mut self, facts: Vec<T>) -> Vec<T> {
         if facts.len() <= TOTAL_FACTS {
-            return;
+            return facts;
         }
         self.notices.insert((
             "total_fact_cap".into(),
             (facts.len() - TOTAL_FACTS).to_string(),
         ));
-        let mut groups: BTreeMap<(String, String, String), Vec<Fact>> = BTreeMap::new();
-        for fact in std::mem::take(facts) {
-            groups
-                .entry((
+        let mut groups: BTreeMap<(String, String, String), Vec<T>> = BTreeMap::new();
+        for fact in facts {
+            let key = {
+                let fact = fact.borrow();
+                (
                     fact.location.path.clone(),
                     fact.function.clone(),
                     fact.kind.clone(),
-                ))
-                .or_default()
-                .push(fact);
+                )
+            };
+            groups.entry(key).or_default().push(fact);
         }
+        let mut kept = Vec::new();
         let mut offset = 0;
-        while facts.len() < TOTAL_FACTS {
+        while kept.len() < TOTAL_FACTS {
             let mut has_more = false;
             for group in groups.values() {
                 if let Some(fact) = group.get(offset) {
-                    facts.push(fact.clone());
+                    kept.push(fact.clone());
                     has_more = true;
-                    if facts.len() == TOTAL_FACTS {
+                    if kept.len() == TOTAL_FACTS {
                         break;
                     }
                 }
@@ -497,6 +514,7 @@ impl<'a> Analyzer<'a> {
             }
             offset += 1;
         }
+        kept
     }
 }
 
@@ -1201,7 +1219,9 @@ impl<'a, 'p> Interpreter<'a, 'p> {
 
 pub(super) fn dedup_facts(facts: &mut Vec<Fact>) {
     let mut seen = HashSet::new();
-    facts.retain(|fact| seen.insert(fact.clone()));
+    let is_first: Vec<bool> = facts.iter().map(|fact| seen.insert(fact)).collect();
+    let mut is_first = is_first.into_iter();
+    facts.retain(|_| is_first.next().unwrap_or(false));
 }
 pub(super) fn closure_captures(value: &Value) -> Environment {
     if value.kind != "closure" {

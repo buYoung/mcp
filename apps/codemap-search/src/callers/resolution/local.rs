@@ -675,9 +675,11 @@ fn targets(entries: &[(&str, &str)], caller: &str, line: usize, name: &str) -> V
         entries
             .iter()
             .map(|(path, source)| {
-                crate::parser::TreeSitterExtractor::new()
-                    .extract(source, path)
-                    .unwrap()
+                std::sync::Arc::new(
+                    crate::parser::TreeSitterExtractor::new()
+                        .extract(source, path)
+                        .unwrap(),
+                )
             })
             .collect::<Vec<_>>(),
     );
@@ -710,14 +712,18 @@ fn targets(entries: &[(&str, &str)], caller: &str, line: usize, name: &str) -> V
 mod tests {
     use super::*;
 
-    fn project(sources: &[(&str, &str)]) -> (tempfile::TempDir, Vec<ExtractedFile>) {
+    fn project(
+        sources: &[(&str, &str)],
+    ) -> (tempfile::TempDir, Vec<std::sync::Arc<ExtractedFile>>) {
         let (root, path) = crate::callers::fixtures::write_repo(sources);
         let files = sources
             .iter()
             .map(|(name, source)| {
-                crate::parser::TreeSitterExtractor::new()
-                    .extract(source, name)
-                    .unwrap()
+                std::sync::Arc::new(
+                    crate::parser::TreeSitterExtractor::new()
+                        .extract(source, name)
+                        .unwrap(),
+                )
             })
             .collect();
         assert_eq!(root.path(), path);

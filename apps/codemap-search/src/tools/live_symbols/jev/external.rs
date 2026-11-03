@@ -73,7 +73,7 @@ fn append_support(entity: &mut FilterEntity, excerpt: context::SupportingContext
 }
 
 struct EvidenceFiles<'a> {
-    indexed: &'a [ExtractedFile],
+    indexed: &'a [std::sync::Arc<ExtractedFile>],
     captured: &'a [CapturedFile],
 }
 
@@ -307,7 +307,7 @@ pub(super) fn augment(
         }
         return;
     }
-    let root = std::env::current_dir().unwrap_or_default();
+    let root = crate::workspace::root_dir().unwrap_or_default();
     let exclusions = crate::callers::test_code::TestCodeFilter::from_config(&root);
     let config = crate::config::get();
     let mut remaining = config.navigation_callsite_budget;

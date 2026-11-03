@@ -130,9 +130,11 @@ pub fn spawn_watcher(
     // recorded by a thread that already died, freezing the gate at healthy forever.
     status.set_healthy(true);
     let thread_status = Arc::clone(&status);
+    let root_config = crate::config::thread_root_config();
     let join_handle = match std::thread::Builder::new()
         .name("codemap-watcher".to_string())
         .spawn(move || {
+            let _root = root_config.as_ref().map(crate::config::RootConfig::bind);
             // Drop guard, not a trailing statement: the health flag must flip off on ANY
             // exit — normal shutdown, indexer gone, or a panic mid-loop — or the request
             // fallback would stay suppressed against a watcher that no longer refreshes.
@@ -302,10 +304,10 @@ enum EventPathKind {
     Candidate,
 }
 
-/// The watcher-side path filter, mirroring the shared walk's exclusions
-/// ([`crate::workspace::ALWAYS_EXCLUDED_DIRS`] + configured `excluded_directories`) so
-/// tantivy's commits to `.codemap/index` and churn in `node_modules`/`target`/… never
-/// re-trigger indexing. `.git` paths are dropped except the HEAD-hint files.
+/// The watcher-side path filter, mirroring the index walk's exclusions
+/// ([`crate::workspace::ALWAYS_EXCLUDED_DIRS`] + configured `excluded_directories` + linked
+/// worktree roots) so tantivy's commits to `.codemap/index` and churn in
+/// `node_modules`/`target`/… never re-trigger indexing. `.git` paths are dropped except the HEAD-hint files.
 fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
     let rel = match path.strip_prefix(root) {
         Ok(rel) => rel,
@@ -336,7 +338,9 @@ fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
         if parent == root {
             break;
         }
-        if crate::workspace::directory_is_excluded(parent, root, &config, true) {
+        if crate::workspace::directory_is_excluded(parent, root, &config, true)
+            || crate::workspace::is_linked_worktree_root(parent)
+        {
             return EventPathKind::Ignored;
         }
         directory = parent.parent();

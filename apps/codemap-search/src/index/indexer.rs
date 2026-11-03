@@ -95,7 +95,7 @@ pub struct IndexerStatus {
 
 /// Immutable codemap snapshot published by the indexer and read by the root scope inventory. Swapped as
 /// a whole `Arc`, so readers never observe a partially-updated tree.
-pub type CodemapSnapshot = Arc<Vec<ExtractedFile>>;
+pub type CodemapSnapshot = Arc<Vec<Arc<ExtractedFile>>>;
 
 /// One immutable generation of derived index data. The indexer replaces this whole value only
 /// after a successful pass, keeping codemap, static collection records, and declaration evidence
@@ -143,11 +143,21 @@ impl PublishedIndexSnapshot {
         files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
         event_inputs: crate::events::EventInputs,
     ) -> Self {
-        Self::from_files_and_edges_with_flow(files_and_edges, event_inputs, None, None)
+        Self::from_files_and_edges_with_flow(
+            files_and_edges
+                .into_iter()
+                .map(|(file, edges)| (Arc::new(file), edges))
+                .collect(),
+            event_inputs,
+            None,
+            None,
+        )
     }
 
+    /// Files are shared with the previous generation where their stored documents did not
+    /// change, so a refresh holds only the changed files twice.
     pub(crate) fn from_files_and_edges_with_flow(
-        files_and_edges: Vec<(ExtractedFile, Vec<StaticCollectionEdge>)>,
+        files_and_edges: Vec<(Arc<ExtractedFile>, Vec<StaticCollectionEdge>)>,
         event_inputs: crate::events::EventInputs,
         flow_store: Option<crate::flow::IndexedFlowStore>,
         cache_directory: Option<&std::path::Path>,
@@ -306,6 +316,16 @@ impl PublishedIndexSnapshot {
     /// Existing nanosecond source stamps from the same committed documents as the codemap.
     pub(crate) fn source_mtime(&self, path: &str) -> Option<u64> {
         self.source_mtimes.get(path).copied()
+    }
+
+    /// The static collection edges this generation kept for `path`, in record order.
+    pub(crate) fn static_collection_edges(&self, path: &str) -> Vec<StaticCollectionEdge> {
+        self.records_by_path
+            .get(path)
+            .into_iter()
+            .flatten()
+            .map(|index| self.records[*index].edge.clone())
+            .collect()
     }
 
     pub fn records_for_result_paths<'a>(
@@ -538,6 +558,7 @@ pub fn spawn_dormant_indexer(engine: TantivySearchEngine) -> IndexerHandle {
 }
 
 fn spawn_indexer_thread(mut engine: TantivySearchEngine, is_dormant: bool) -> IndexerHandle {
+    engine.start_publishing();
     let (sender, receiver) = sync_channel::<IndexCommand>(1);
     let status = Arc::new(IndexerStatus::default());
     let initial = Arc::new(PublishedIndexSnapshot::empty());
@@ -550,9 +571,11 @@ fn spawn_indexer_thread(mut engine: TantivySearchEngine, is_dormant: bool) -> In
     let thread_snapshot = Arc::clone(&snapshot);
     let thread_publications = publications.clone();
     let thread_generation_gate = Arc::clone(&generation_gate);
+    let root_config = crate::config::thread_root_config();
     let join_handle = std::thread::Builder::new()
         .name("codemap-indexer".to_string())
         .spawn(move || {
+            let _root = root_config.as_ref().map(crate::config::RootConfig::bind);
             // The waking command only starts the initial pass, which walks everything.
             if is_dormant && receiver.recv().is_err() {
                 return;
@@ -679,7 +702,7 @@ fn run_paths_pass(
 
 /// Record a pass result and republish the codemap snapshot when requested by the caller.
 fn publish_pass_result(
-    engine: &TantivySearchEngine,
+    engine: &mut TantivySearchEngine,
     status: &IndexerStatus,
     publications: &tokio::sync::watch::Sender<Arc<PublishedIndexSnapshot>>,
     snapshot: &Mutex<Arc<PublishedIndexSnapshot>>,
@@ -689,7 +712,9 @@ fn publish_pass_result(
 ) -> bool {
     let publication = (|| -> Result<(), String> {
         if should_publish? {
-            let mut published_snapshot = engine.load_published_snapshot()?;
+            let previous = Arc::clone(&snapshot.lock().unwrap());
+            let mut published_snapshot = engine.load_next_published_snapshot(&previous)?;
+            drop(previous);
             published_snapshot.generation = NEXT_PUBLICATION_ID.fetch_add(1, Ordering::Relaxed);
             // Build the derived data before taking the short generation lock. Failed
             // reconstruction keeps both the request reader and codemap on the old view.
@@ -697,8 +722,10 @@ fn publish_pass_result(
             engine.reload_reader()?;
             published_snapshot.index_pass_ms = pass_started.elapsed().as_secs_f64() * 1000.0;
             let published_snapshot = Arc::new(published_snapshot);
+            let generation = published_snapshot.generation;
             *snapshot.lock().unwrap() = Arc::clone(&published_snapshot);
             publications.send_replace(published_snapshot);
+            engine.finish_publication(generation);
         }
         Ok(())
     })();

@@ -42,8 +42,84 @@ struct Source {
     extracted: ExtractedFile,
 }
 
+/// What loading a source reads, shared by the threads that load sources together.
+struct SourceLoader<'r, 'a> {
+    root: &'a Path,
+    stored_sources: Option<&'a HashMap<String, String>>,
+    files_by_path: &'r HashMap<&'a str, &'a ExtractedFile>,
+    test_filter: &'r super::test_code::TestCodeFilter,
+}
+
+impl SourceLoader<'_, '_> {
+    fn read_source(&self, file: &str) -> Option<String> {
+        match self.stored_sources {
+            Some(sources) => sources.get(file).cloned(),
+            None => super::read_workspace_file(file, self.root),
+        }
+    }
+
+    /// `file` with its test code masked, its extraction and its syntax.
+    fn load(&self, file: &str) -> Option<Source> {
+        self.read_source(file).and_then(|text| {
+            let digest = crate::implementations::digest(text.as_bytes());
+            let mut bytes = text.into_bytes();
+            self.test_filter.mask_source(file, &mut bytes);
+            let text = String::from_utf8(bytes).ok()?;
+            let is_unmasked = crate::implementations::digest(text.as_bytes()) == digest;
+            let extracted = match self
+                .indexed_extraction(file, &digest)
+                .filter(|_| is_unmasked)
+            {
+                Some(extracted) => extracted,
+                None => crate::parser::TreeSitterExtractor::new()
+                    .extract_for_resolution(&text, file)
+                    .ok()?,
+            };
+            SourceSyntax::parse(file, text.as_bytes()).map(|syntax| Source {
+                text,
+                syntax,
+                extracted,
+            })
+        })
+    }
+
+    /// The indexed extraction of `file` when the index read the same source, `digest`, as
+    /// extracting it again for resolution would: no parse is needed. Files the index expanded
+    /// or preprocessed differ from their source and are extracted again.
+    fn indexed_extraction(&self, file: &str, digest: &str) -> Option<ExtractedFile> {
+        if self.stored_sources.is_some() {
+            return None;
+        }
+        let indexed = self.files_by_path.get(file)?;
+        let navigation = indexed.navigation.as_ref()?;
+        if navigation.macro_expansion.is_some()
+            || navigation.implementations.as_ref()?.source_digest != digest
+        {
+            return None;
+        }
+        Some(ExtractedFile {
+            file_path: indexed.file_path.clone(),
+            total_lines: indexed.total_lines,
+            symbols: indexed.symbols.clone(),
+            literals: indexed.literals.clone(),
+            docstrings: indexed.docstrings.clone(),
+            member_names: indexed.member_names.clone(),
+            navigation: Some(crate::parser::NavigationFile {
+                implementations: None,
+                macro_expansion: None,
+                calls: navigation.calls.clone(),
+                references: navigation.references.clone(),
+                local_bindings: navigation.local_bindings.clone(),
+                imports: navigation.imports.clone(),
+                renamed_exports: navigation.renamed_exports.clone(),
+                key_sites: Vec::new(),
+            }),
+        })
+    }
+}
+
 pub(crate) struct SourceResolver<'a> {
-    files: &'a [ExtractedFile],
+    files: &'a [std::sync::Arc<ExtractedFile>],
     files_by_path: HashMap<&'a str, &'a ExtractedFile>,
     root: &'a Path,
     names: HashMap<&'a str, Vec<Target<'a>>>,
@@ -51,6 +127,8 @@ pub(crate) struct SourceResolver<'a> {
     manifests: RefCell<HashMap<PathBuf, Option<Rc<toml::Value>>>>,
     /// Indexed files by the paths lookups named, since each lookup resolves links on disk.
     file_lookups: RefCell<HashMap<PathBuf, Option<&'a ExtractedFile>>>,
+    /// Indexed files by the paths module lookups named before their links were resolved.
+    linked_files: RefCell<HashMap<PathBuf, Option<&'a ExtractedFile>>>,
     /// The nearest manifest of each name above each starting directory.
     nearest_files: RefCell<HashMap<(PathBuf, String), Option<PathBuf>>>,
     test_filter: super::test_code::TestCodeFilter,
@@ -252,7 +330,7 @@ fn unique<'a>(targets: Vec<Target<'a>>) -> Option<Target<'a>> {
 }
 
 impl<'a> SourceResolver<'a> {
-    pub(crate) fn new(files: &'a [ExtractedFile], root: &'a Path) -> Self {
+    pub(crate) fn new(files: &'a [std::sync::Arc<ExtractedFile>], root: &'a Path) -> Self {
         let mut names: HashMap<_, Vec<_>> = HashMap::new();
         for file in files
             .iter()
@@ -271,13 +349,14 @@ impl<'a> SourceResolver<'a> {
             files_by_path: files
                 .iter()
                 .filter(|file| supports(&file.file_path))
-                .map(|file| (file.file_path.as_str(), file))
+                .map(|file| (file.file_path.as_str(), &**file))
                 .collect(),
             root,
             names,
             sources: RefCell::new(HashMap::new()),
             manifests: RefCell::new(HashMap::new()),
             file_lookups: RefCell::new(HashMap::new()),
+            linked_files: RefCell::new(HashMap::new()),
             nearest_files: RefCell::new(HashMap::new()),
             test_filter: super::test_code::TestCodeFilter::from_config(root),
             target_os: crate::config::get().analysis_target_os.clone(),
@@ -305,7 +384,7 @@ impl<'a> SourceResolver<'a> {
     }
 
     pub(crate) fn from_stored_sources(
-        files: &'a [ExtractedFile],
+        files: &'a [std::sync::Arc<ExtractedFile>],
         root: &'a Path,
         sources: &'a HashMap<String, String>,
     ) -> Self {
@@ -316,10 +395,7 @@ impl<'a> SourceResolver<'a> {
     }
 
     fn read_source(&self, file: &str) -> Option<String> {
-        match self.stored_sources {
-            Some(sources) => sources.get(file).cloned(),
-            None => super::read_workspace_file(file, self.root),
-        }
+        self.loader().read_source(file)
     }
 
     pub(crate) fn reset_dependency_tracking(&self) {
@@ -396,67 +472,57 @@ impl<'a> SourceResolver<'a> {
         if let Some(source) = self.sources.borrow().get(file) {
             return source.clone();
         }
-        let source = self.read_source(file).and_then(|text| {
-            let digest = crate::implementations::digest(text.as_bytes());
-            let mut bytes = text.into_bytes();
-            self.test_filter.mask_source(file, &mut bytes);
-            let text = String::from_utf8(bytes).ok()?;
-            let is_unmasked = crate::implementations::digest(text.as_bytes()) == digest;
-            let extracted = match self
-                .indexed_extraction(file, &digest)
-                .filter(|_| is_unmasked)
-            {
-                Some(extracted) => extracted,
-                None => crate::parser::TreeSitterExtractor::new()
-                    .extract_for_resolution(&text, file)
-                    .ok()?,
-            };
-            SourceSyntax::parse(file, text.as_bytes()).map(|syntax| {
-                Rc::new(Source {
-                    text,
-                    syntax,
-                    extracted,
-                })
-            })
-        });
+        let source = self.loader().load(file).map(Rc::new);
         self.sources
             .borrow_mut()
             .insert(file.to_string(), source.clone());
         source
     }
 
-    /// The indexed extraction of `file` when the index read the same source, `digest`, as
-    /// extracting it again for resolution would: no parse is needed. Files the index expanded
-    /// or preprocessed differ from their source and are extracted again.
-    fn indexed_extraction(&self, file: &str, digest: &str) -> Option<ExtractedFile> {
-        if self.stored_sources.is_some() {
-            return None;
+    /// Loads, on all cores, the sources of `files` not loaded yet, each as `source` would, so
+    /// later `source` calls find them loaded.
+    pub(crate) fn preload_sources(&self, files: &[&str]) {
+        let missing: Vec<&str> = {
+            let sources = self.sources.borrow();
+            let mut seen = HashSet::new();
+            files
+                .iter()
+                .copied()
+                .filter(|file| !sources.contains_key(*file) && seen.insert(*file))
+                .collect()
+        };
+        let loader = self.loader();
+        let loaded = crate::parallel::map_in_order(
+            &missing,
+            crate::parallel::threads(),
+            || (),
+            |(), file| loader.load(file),
+        );
+        let mut sources = self.sources.borrow_mut();
+        for (file, source) in missing.into_iter().zip(loaded) {
+            sources.insert(file.to_string(), source.map(Rc::new));
         }
-        let indexed = self.files_by_path.get(file)?;
-        let navigation = indexed.navigation.as_ref()?;
-        if navigation.macro_expansion.is_some()
-            || navigation.implementations.as_ref()?.source_digest != digest
-        {
-            return None;
+    }
+
+    fn loader(&self) -> SourceLoader<'_, 'a> {
+        SourceLoader {
+            root: self.root,
+            stored_sources: self.stored_sources,
+            files_by_path: &self.files_by_path,
+            test_filter: &self.test_filter,
         }
-        Some(ExtractedFile {
-            file_path: indexed.file_path.clone(),
-            total_lines: indexed.total_lines,
-            symbols: indexed.symbols.clone(),
-            literals: indexed.literals.clone(),
-            docstrings: indexed.docstrings.clone(),
-            member_names: indexed.member_names.clone(),
-            navigation: Some(crate::parser::NavigationFile {
-                implementations: None,
-                macro_expansion: None,
-                calls: navigation.calls.clone(),
-                references: navigation.references.clone(),
-                local_bindings: navigation.local_bindings.clone(),
-                imports: navigation.imports.clone(),
-                renamed_exports: navigation.renamed_exports.clone(),
-                key_sites: Vec::new(),
-            }),
-        })
+    }
+
+    /// The indexed file `path` names once its links on disk are resolved.
+    fn linked_file(&self, path: &Path) -> Option<&'a ExtractedFile> {
+        if let Some(found) = self.linked_files.borrow().get(path) {
+            return *found;
+        }
+        let found = self.file(&crate::workspace::canonicalize_path_lenient(path));
+        self.linked_files
+            .borrow_mut()
+            .insert(path.to_path_buf(), found);
+        found
     }
 
     fn file(&self, path: &Path) -> Option<&'a ExtractedFile> {
@@ -1546,7 +1612,7 @@ impl Binding {
 mod tests {
     use super::*;
 
-    fn project(files: &[(&str, &str)]) -> (tempfile::TempDir, Vec<ExtractedFile>) {
+    fn project(files: &[(&str, &str)]) -> (tempfile::TempDir, Vec<std::sync::Arc<ExtractedFile>>) {
         let root = tempfile::tempdir().unwrap();
         let extractor = crate::parser::TreeSitterExtractor::new();
         let mut snapshot = Vec::new();
@@ -1555,7 +1621,9 @@ mod tests {
             std::fs::create_dir_all(full.parent().unwrap()).unwrap();
             std::fs::write(full, source).unwrap();
             if supports(path) {
-                snapshot.push(extractor.extract(source, path).unwrap());
+                snapshot.push(std::sync::Arc::new(
+                    extractor.extract(source, path).unwrap(),
+                ));
             }
         }
         (root, snapshot)
@@ -1572,7 +1640,7 @@ mod tests {
         let (mut indexed, _) = extractor.extract_for_index(indexed_text, path).unwrap();
         // Marks the indexed copy, so the test sees which extraction resolution used.
         indexed.total_lines = 99;
-        let files = vec![indexed];
+        let files = vec![std::sync::Arc::new(indexed)];
         let unchanged = SourceResolver::new(&files, root.path());
         assert_eq!(unchanged.source(path).unwrap().extracted.total_lines, 99);
         let edited_text = "export function first() {}\nexport function second() {}\n";

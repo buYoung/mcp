@@ -42,29 +42,25 @@ pub(super) fn first_descendant<'tree>(node: Node<'tree>, kind: &str) -> Option<N
 }
 
 pub(super) fn nearest_ancestor<'tree>(node: Node<'tree>, kinds: &[&str]) -> Node<'tree> {
-    let mut current = Some(node);
-    while let Some(candidate) = current {
-        if kinds.contains(&candidate.kind()) {
-            return candidate;
-        }
-        current = candidate.parent();
-    }
-    node
+    std::iter::once(node)
+        .chain(crate::parser::ancestors(node))
+        .find(|candidate| kinds.contains(&candidate.kind()))
+        .unwrap_or(node)
 }
 
 pub(super) fn is_recoverable(boundary: Node<'_>) -> bool {
     if has_recovery_marker(boundary) {
         return false;
     }
-    let mut ancestor = boundary.parent();
-    while let Some(node) = ancestor {
-        if node.parent().is_none() {
+    // The root is the last ancestor and is not itself checked.
+    let mut ancestors = crate::parser::ancestors(boundary).peekable();
+    while let Some(node) = ancestors.next() {
+        if ancestors.peek().is_none() {
             return true;
         }
         if node.is_error() || node.is_missing() {
             return false;
         }
-        ancestor = node.parent();
     }
     true
 }
@@ -73,7 +69,9 @@ fn has_recovery_marker(node: Node<'_>) -> bool {
     if node.is_error() || node.is_missing() {
         return true;
     }
-    (0..node.child_count()).any(|index| node.child(index as u32).is_some_and(has_recovery_marker))
+    let mut cursor = node.walk();
+    let children: Vec<_> = node.children(&mut cursor).collect();
+    children.into_iter().any(has_recovery_marker)
 }
 
 pub(super) fn range(node: Node<'_>) -> CodeRange {

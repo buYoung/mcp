@@ -87,12 +87,12 @@ impl EventIndex {
         Arc::clone(&self.sources)
     }
 
-    pub fn build(files: &[ExtractedFile], inputs: EventInputs) -> Self {
+    pub fn build(files: &[std::sync::Arc<ExtractedFile>], inputs: EventInputs) -> Self {
         Self::build_with_cache(files, inputs, None)
     }
 
     pub(crate) fn build_with_cache(
-        files: &[ExtractedFile],
+        files: &[std::sync::Arc<ExtractedFile>],
         mut inputs: EventInputs,
         cache_directory: Option<&Path>,
     ) -> Self {
@@ -106,7 +106,7 @@ impl EventIndex {
             super::extract::extract(
                 files,
                 &sources,
-                &std::env::current_dir().unwrap_or_default(),
+                &crate::workspace::root_dir().unwrap_or_default(),
             )
         } else {
             super::extract::Extraction {
@@ -176,7 +176,7 @@ impl EventIndex {
         let source_routes = Arc::new(source_routes::Snapshot::build(
             files,
             &sources,
-            &std::env::current_dir().unwrap_or_default(),
+            &crate::workspace::root_dir().unwrap_or_default(),
             super::ENDPOINTS_PER_SNAPSHOT.saturating_sub(extraction.endpoints.len()),
             &configured_endpoints_per_file,
             cache_directory,
@@ -336,16 +336,15 @@ impl EventIndex {
         let mut output = String::new();
         let mut seen = BTreeSet::new();
         for (path, start, _) in anchors {
-            if !seen.insert(path)
-                || !under_scope(path, scope)
-                || filter.is_file_excluded(path)
-                || !crate::workspace::walk_root_is_visible(&root.join(path), true)
-            {
+            if !seen.insert(path) || !under_scope(path, scope) || filter.is_file_excluded(path) {
                 continue;
             }
             let Some(reason) = self.unavailable_details.get(path) else {
                 continue;
             };
+            if !crate::workspace::walk_root_is_visible(&root.join(path), true) {
+                continue;
+            }
             let row = format!("- event input unavailable — {path}:{start}: {reason}.\n");
             let header = if output.is_empty() {
                 "## Analysis diagnostics\n\n"

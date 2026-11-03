@@ -19,6 +19,18 @@ pub(super) fn requested_workspace_scope(
     let explicit_scope = crate::tools::get_arg(ctx.arguments, "workspace_scope")
         .or_else(|| crate::tools::get_arg(ctx.arguments, "scope"))
         .and_then(|value| value.as_str());
+    // A scope in another root names a directory of that root's index, or a file selecting its
+    // parent; the root itself searches the whole index.
+    if let Some(root) = crate::config::get().workspace_root.clone() {
+        let start = crate::workspace::current_dir()?;
+        let path =
+            crate::workspace::resolve_path_lenient_from_cwd(&start, explicit_scope.unwrap_or("."));
+        let directory = match path.parent() {
+            Some(parent) if path.is_file() => parent.to_path_buf(),
+            _ => path,
+        };
+        return Ok((directory != root).then(|| directory.to_string_lossy().replace('\\', "/")));
+    }
 
     let snapshot = ctx.engine.published_snapshot();
     let catalog = snapshot.workspace_catalog();
