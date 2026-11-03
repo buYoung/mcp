@@ -1056,35 +1056,17 @@ fn extract_batch(
     files: &[(String, PathBuf, u64)],
     threads: usize,
 ) -> Vec<FileExtraction> {
-    let next = std::sync::atomic::AtomicUsize::new(0);
-    let slots: Vec<std::sync::OnceLock<FileExtraction>> =
-        files.iter().map(|_| std::sync::OnceLock::new()).collect();
-    let config = crate::config::get();
-    std::thread::scope(|scope| {
-        for _ in 0..threads.min(files.len()) {
-            scope.spawn(|| {
-                let _config = crate::config::pin(std::sync::Arc::clone(&config));
-                loop {
-                    let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                    let Some((rel_path, disk_path, _)) = files.get(index) else {
-                        break;
-                    };
-                    let read = std::fs::read_to_string(disk_path).map(|content| {
-                        let extraction = extractor.extract_for_index(&content, rel_path);
-                        (content, extraction)
-                    });
-                    let _ = slots[index].set(read);
-                }
-            });
-        }
-    });
-    slots
-        .into_iter()
-        .map(|slot| {
-            slot.into_inner()
-                .expect("every file in the batch is extracted")
-        })
-        .collect()
+    crate::parallel::map_in_order(
+        files,
+        threads,
+        || (),
+        |(), (rel_path, disk_path, _)| {
+            std::fs::read_to_string(disk_path).map(|content| {
+                let extraction = extractor.extract_for_index(&content, rel_path);
+                (content, extraction)
+            })
+        },
+    )
 }
 
 /// The directory indexed relative paths are resolved against: the canonical process cwd.
@@ -1371,7 +1353,7 @@ impl TantivySearchEngine {
         let mut committed_updates: Vec<(String, IndexedStamp)> = Vec::new();
         let mut committed_macro_inputs: Vec<(String, Option<RecordedExpansion>)> = Vec::new();
         let mut encoding_excluded_paths = Vec::new();
-        let threads = std::thread::available_parallelism().map_or(1, usize::from);
+        let threads = crate::parallel::threads();
         for ((rel_path, disk_path, mtime), read) in extract_in_order(&extractor, to_index, threads)
         {
             let (content, extraction) = match read {
@@ -1885,7 +1867,7 @@ impl TantivySearchEngine {
                 segment,
                 &unread,
                 previous,
-                std::thread::available_parallelism().map_or(1, usize::from),
+                crate::parallel::threads(),
             )?
             .into_iter();
             for (doc_id, document) in documents {
@@ -1966,43 +1948,35 @@ fn read_published_entries(
     previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
     threads: usize,
 ) -> Result<Vec<ReadEntry>, String> {
-    if docs.is_empty() {
-        return Ok(Vec::new());
-    }
-    let config = crate::config::get();
-    std::thread::scope(|scope| {
-        let runs: Vec<_> = docs
-            .chunks(docs.len().div_ceil(threads.max(1)))
-            .map(|docs| {
-                let config = std::sync::Arc::clone(&config);
-                scope.spawn(move || {
-                    let _config = crate::config::pin(config);
-                    let columns = DocumentColumns::open(segment)?;
-                    let mut store = None;
-                    docs.iter()
-                        .map(|&doc_id| {
-                            read_published_entry(
-                                extracted_json_field,
-                                segment,
-                                &columns,
-                                &mut store,
-                                doc_id,
-                                previous,
-                            )
-                        })
-                        .collect::<Result<Vec<_>, String>>()
+    let runs: Vec<_> = docs
+        .chunks(docs.len().div_ceil(threads.max(1)).max(1))
+        .collect();
+    let read = crate::parallel::map_in_order(
+        &runs,
+        threads,
+        || (),
+        |(), docs| {
+            let columns = DocumentColumns::open(segment)?;
+            let mut store = None;
+            docs.iter()
+                .map(|&doc_id| {
+                    read_published_entry(
+                        extracted_json_field,
+                        segment,
+                        &columns,
+                        &mut store,
+                        doc_id,
+                        previous,
+                    )
                 })
-            })
-            .collect();
-        let mut entries = Vec::with_capacity(docs.len());
-        for run in runs {
-            entries.extend(
-                run.join()
-                    .unwrap_or_else(|panic| std::panic::resume_unwind(panic))?,
-            );
-        }
-        Ok(entries)
-    })
+                .collect::<Result<Vec<_>, String>>()
+        },
+    );
+    let mut entries = Vec::with_capacity(docs.len());
+    for run in read {
+        entries.extend(run?);
+    }
+    Ok(entries)
 }
 
 /// Read one document for publication: a document unchanged since `previous` at another

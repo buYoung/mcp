@@ -336,16 +336,15 @@ impl EventIndex {
         let mut output = String::new();
         let mut seen = BTreeSet::new();
         for (path, start, _) in anchors {
-            if !seen.insert(path)
-                || !under_scope(path, scope)
-                || filter.is_file_excluded(path)
-                || !crate::workspace::walk_root_is_visible(&root.join(path), true)
-            {
+            if !seen.insert(path) || !under_scope(path, scope) || filter.is_file_excluded(path) {
                 continue;
             }
             let Some(reason) = self.unavailable_details.get(path) else {
                 continue;
             };
+            if !crate::workspace::walk_root_is_visible(&root.join(path), true) {
+                continue;
+            }
             let row = format!("- event input unavailable — {path}:{start}: {reason}.\n");
             let header = if output.is_empty() {
                 "## Analysis diagnostics\n\n"

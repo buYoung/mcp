@@ -255,6 +255,29 @@ struct ConfirmedCallers {
     is_partial: bool,
 }
 
+/// The calls in `navigation` to one of `relevant_names` or to a local name the file imports
+/// `target_name` under, in source order.
+fn relevant_calls<'f>(
+    navigation: &'f crate::parser::NavigationFile,
+    target_name: &str,
+    relevant_names: &HashSet<&str>,
+) -> Vec<&'f CallSite> {
+    // Local names this file imports the target under, found once per file.
+    let imported_as: Vec<&str> = navigation
+        .imports
+        .iter()
+        .filter(|import| import.imported_name.as_deref() == Some(target_name))
+        .map(|import| import.local_name.as_str())
+        .collect();
+    navigation
+        .calls
+        .iter()
+        .filter(|call| {
+            relevant_names.contains(call.name.as_str()) || imported_as.contains(&call.name.as_str())
+        })
+        .collect()
+}
+
 #[allow(clippy::too_many_arguments)]
 fn precise_navigation_callers(
     target: &ExtractedSymbol,
@@ -334,19 +357,37 @@ fn precise_navigation_callers(
         ),
         None => Box::new(snapshot.iter().map(|file| &**file)),
     };
-    for call_file in candidates.filter(|file| file.navigation.is_some()) {
+    let candidates: Vec<&ExtractedFile> = candidates
+        .filter(|file| file.navigation.is_some())
+        .collect();
+    // Without a deadline every call within the budget is resolved, so the sources those calls
+    // resolve in are loaded on all cores first; the walk below finds them loaded.
+    if deadline.is_none() {
+        let mut remaining = cfg.navigation_callsite_budget;
+        let mut files = Vec::new();
+        'files: for call_file in &candidates {
+            let navigation = call_file.navigation.as_ref().unwrap();
+            for call in relevant_calls(navigation, &target.name, &relevant_names) {
+                if !index.includes(&call_file.file_path, &call.range) {
+                    continue;
+                }
+                if remaining == 0 {
+                    break 'files;
+                }
+                remaining -= 1;
+                if super::resolution::supports(&call_file.file_path)
+                    && files.last() != Some(&call_file.file_path.as_str())
+                {
+                    files.push(call_file.file_path.as_str());
+                }
+            }
+        }
+        resolver.preload_sources(&files);
+    }
+    for call_file in candidates {
         let navigation = call_file.navigation.as_ref().unwrap();
-        // Local names this file imports the target under, found once per file.
-        let imported_as: Vec<&str> = navigation
-            .imports
-            .iter()
-            .filter(|import| import.imported_name.as_deref() == Some(&target.name))
-            .map(|import| import.local_name.as_str())
-            .collect();
-        let relevant = |call: &&CallSite| {
-            relevant_names.contains(call.name.as_str()) || imported_as.contains(&call.name.as_str())
-        };
-        if !navigation.calls.iter().any(|call| relevant(&call)) {
+        let calls = relevant_calls(navigation, &target.name, &relevant_names);
+        if calls.is_empty() {
             continue;
         }
         let has_source_resolution = super::resolution::supports(&call_file.file_path);
@@ -356,7 +397,7 @@ fn precise_navigation_callers(
             super::read_workspace_file(&call_file.file_path, root)
                 .and_then(|source| SourceSyntax::parse(&call_file.file_path, source.as_bytes()))
         };
-        for call in navigation.calls.iter().filter(relevant) {
+        for call in calls {
             if !index.includes(&call_file.file_path, &call.range) {
                 continue;
             }
@@ -1087,10 +1128,13 @@ pub fn annotate_results(
         root,
         AnnotationRuntimeState::default(),
         None,
+        None,
     )
 }
 
-/// `implementations` must be built from `snapshot`; it proves typed member calls.
+/// `implementations` and `call_lookup` must be built from `snapshot`; the first proves typed
+/// member calls and the second narrows caller resolution to files that can hold a caller.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn annotate_results_with_state(
     requests: &[AnnotationRequest<'_>],
     snapshot: &[std::sync::Arc<ExtractedFile>],
@@ -1099,6 +1143,7 @@ pub(crate) fn annotate_results_with_state(
     root: &Path,
     runtime_state: AnnotationRuntimeState,
     implementations: Option<&crate::implementations::ImplementationIndex>,
+    call_lookup: Option<&super::CallLookup>,
 ) -> Option<DetailAnnotations> {
     let resolver = super::resolution::SourceResolver::new(snapshot, root);
     let resolver = match implementations {
@@ -1117,6 +1162,7 @@ pub(crate) fn annotate_results_with_state(
             should_discover_callees: true,
             should_skip_ambiguous_names: false,
             resolver: &resolver,
+            call_lookup,
             limits: None,
         },
     )
@@ -1143,6 +1189,7 @@ pub(crate) fn annotate_live_results(
             should_discover_callees: true,
             should_skip_ambiguous_names: false,
             resolver,
+            call_lookup: None,
             limits: None,
         },
     )
@@ -1184,6 +1231,7 @@ pub(crate) fn annotate_live_callers(
             should_discover_callees: false,
             should_skip_ambiguous_names: true,
             resolver,
+            call_lookup: None,
             limits: Some(limits),
         },
     )
@@ -1197,6 +1245,9 @@ struct AnnotationPresentation<'a, 'source> {
     /// callers are omitted anyway, and resolving their many call sites dominates the cost.
     should_skip_ambiguous_names: bool,
     resolver: &'a super::resolution::SourceResolver<'source>,
+    /// The snapshot's files by recorded call and import names, which narrow the files whose
+    /// recorded calls are resolved to the ones that can hold a caller. `limits` brings its own.
+    call_lookup: Option<&'a super::CallLookup>,
     /// Caller-only shortcuts and deadline; search annotations take none.
     limits: Option<LiveCallerLimits<'a>>,
 }
@@ -1215,6 +1266,7 @@ fn annotate_with_presentation(
         should_discover_callees,
         should_skip_ambiguous_names,
         resolver,
+        call_lookup,
         limits,
     } = presentation;
     let should_trace_navigation_metrics = tracing::enabled!(tracing::Level::DEBUG);
@@ -1292,7 +1344,10 @@ fn annotate_with_presentation(
             .filter(|limits| limits.is_index_current)
             .map(|limits| (snapshot, limits.call_lookup)),
     };
-    let call_lookup = limits.as_ref().map(|limits| limits.call_lookup);
+    let call_lookup = limits
+        .as_ref()
+        .map(|limits| limits.call_lookup)
+        .or(call_lookup);
     let scan = scan_workspace(&names, cfg, root, &index, &scan_options)?;
     let deadline = scan_options.deadline;
     let mut is_partial = scan.is_past_deadline;

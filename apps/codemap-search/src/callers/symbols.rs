@@ -2,9 +2,9 @@
 //! index built once from the codemap snapshot, and the attribution helpers that map a
 //! scan hit to its enclosing definition and exclude same-named-definition ranges.
 
-use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use std::sync::OnceLock;
 
 use crate::parser::{ExtractedFile, ExtractedSymbol, LocalBinding};
 
@@ -20,7 +20,7 @@ pub(super) struct SymbolIndex<'a> {
 
 struct SymbolDefinitions<'a> {
     candidates: Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>,
-    included: OnceCell<Vec<usize>>,
+    included: OnceLock<Vec<usize>>,
 }
 
 impl<'a> SymbolIndex<'a> {
@@ -174,7 +174,7 @@ pub(super) fn build_symbol_index<'a>(
                 .entry(&symbol.name)
                 .or_insert_with(|| SymbolDefinitions {
                     candidates: Vec::new(),
-                    included: OnceCell::new(),
+                    included: OnceLock::new(),
                 })
                 .candidates
                 .push((file, symbol));

@@ -1113,6 +1113,7 @@ pub(crate) fn prepare_detail(
                 &root,
                 runtime_state,
                 Some(published_snapshot.implementations()),
+                Some(published_snapshot.call_lookup()),
             )
         } else {
             None
