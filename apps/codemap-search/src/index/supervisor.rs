@@ -125,7 +125,7 @@ impl EngineSupervisor {
             IndexState::Unavailable(message) => return Err(message.clone()),
             IndexState::Pending => {}
         }
-        let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
+        let cwd = crate::workspace::root_dir().map_err(|error| error.to_string())?;
         if let Some(message) = super::admission::size_refusal(&cwd) {
             self.state = IndexState::Unavailable(message.clone());
             return Err(message);
@@ -190,12 +190,12 @@ impl EngineSupervisor {
         // join returns immediately — no shutdown-order hazard here.
         self.indexer = spawn_indexer(engine);
 
-        if let Ok(cwd) = std::env::current_dir() {
+        if let Ok(cwd) = crate::workspace::root_dir() {
             self.config_watcher =
                 crate::config::spawn_config_watcher(&cwd, self.indexer.command_sender());
         }
         if crate::config::get().watch {
-            if let Ok(cwd) = std::env::current_dir() {
+            if let Ok(cwd) = crate::workspace::root_dir() {
                 self.watcher = spawn_watcher(
                     &cwd,
                     self.indexer.command_sender(),

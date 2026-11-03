@@ -16,7 +16,7 @@ pub(super) fn build(
     if count == 0 || cap < 128 {
         return contexts;
     }
-    let root = std::env::current_dir().unwrap_or_default();
+    let root = crate::workspace::root_dir().unwrap_or_default();
     let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
     let mut grouped = BTreeMap::new();
     for anchor in &output.anchors {

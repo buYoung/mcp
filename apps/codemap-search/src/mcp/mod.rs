@@ -114,12 +114,40 @@ fn read_narrowing(arguments: Option<&Value>, response: &Value, bytes: usize, cap
         .max(1);
     format!("Continue with {expansion_hint}a narrower window such as offset={first_line}, limit={suggested_limit}.")
 }
+/// The root other than the start folder whose index serves this `search` scope or this `read` or
+/// `grep` path, when the session's read policy allows that whole root.
+fn requested_other_root(name: &str, arguments: &Value) -> Option<std::path::PathBuf> {
+    let requested = match name {
+        "search" => crate::tools::get_arg(arguments, "workspace_scope")
+            .or_else(|| crate::tools::get_arg(arguments, "scope"))
+            .and_then(Value::as_str)
+            .filter(|scope| !crate::codemap::is_all_workspace_scope_input(scope))?,
+        "read" => crate::tools::read::resolve_file_path_arg(arguments).ok()?,
+        "grep" => arguments.get("path").and_then(Value::as_str).unwrap_or("."),
+        _ => return None,
+    };
+    let start = std::env::current_dir().ok()?;
+    let path = crate::workspace::resolve_path_lenient_from_cwd(&start, requested);
+    if name == "search" && !path.exists() {
+        return None;
+    }
+    let root = crate::index::roots::owning_root(&path, &start.canonicalize().ok()?)?;
+    crate::workspace::resolve_for_filesystem_tool(
+        &root.to_string_lossy(),
+        crate::workspace::FilesystemTool::Read,
+    )
+    .ok()?;
+    Some(root)
+}
+
 pub struct McpServer {
     // The live index subsystem: read-only searcher handle, background indexer, optional
     // filesystem watcher, and the supervision state (auto-restart + refresh fallback). The
     // server calls `ensure_alive()`/`trigger_refresh()` on it at the search and monorepo
     // initial_instructions dispatch sites and reads the committed snapshot through its accessors.
     engine: EngineSupervisor,
+    // The index of the one other root that requests named a path in, closed when unused.
+    other_roots: crate::index::roots::OtherRoots,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
     source_history: source_history::SourceHistory,
@@ -143,6 +171,7 @@ impl McpServer {
         });
         Self {
             engine,
+            other_roots: crate::index::roots::OtherRoots::default(),
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
             source_history: source_history::SourceHistory::default(),
@@ -562,6 +591,32 @@ impl McpServer {
                 }
                 let tool_arguments = source_history::SourceHistory::tool_arguments(name, arguments);
                 let arguments = tool_arguments.as_ref();
+                // A path in another root is served by that root's index under its settings.
+                self.other_roots.close_unused();
+                let mut unavailable_engine = None;
+                let mut _root_scopes = None;
+                let engine: &mut EngineSupervisor = match requested_other_root(name, arguments)
+                    .map(|root| self.other_roots.open(&root, name == "search"))
+                {
+                    Some(Ok(Some(open))) => {
+                        _root_scopes = Some((
+                            open.config.bind(),
+                            crate::config::pin(open.config.current()),
+                        ));
+                        &mut open.engine
+                    }
+                    Some(Err(unavailable)) => {
+                        _root_scopes = Some((
+                            unavailable.config.bind(),
+                            crate::config::pin(unavailable.config.current()),
+                        ));
+                        unavailable_engine.insert(
+                            EngineSupervisor::unavailable(unavailable.message)
+                                .map_err(|error| (-32603, error))?,
+                        )
+                    }
+                    Some(Ok(None)) | None => &mut self.engine,
+                };
 
                 match name {
                     "analyze" => {
@@ -592,7 +647,7 @@ impl McpServer {
                     }
                     "search" => {
                         crate::tools::search::validate_arguments(arguments)?;
-                        if let Err(message) = self.engine.activate() {
+                        if let Err(message) = engine.activate() {
                             return Ok(text_content(&message));
                         }
                         // Recover a dead indexer first (auto-restart, config-gated), then
@@ -603,11 +658,11 @@ impl McpServer {
                         // incremental. Lifecycle fires only here and on monorepo
                         // `initial_instructions`, never on the live-filesystem tools
                         // (read/find/grep).
-                        self.engine.ensure_alive();
-                        self.engine.trigger_refresh();
+                        engine.ensure_alive();
+                        engine.trigger_refresh();
                         let config = crate::config::get();
                         let ctx = ToolContext {
-                            engine: &self.engine,
+                            engine: &*engine,
                             arguments,
                         };
                         let output = if config.jev.is_enabled_for("search") {
@@ -629,10 +684,10 @@ impl McpServer {
                     "read" | "grep" => {
                         // Their declarations and callers come from the index, so the first
                         // read or grep also starts a deferred workspace's indexing.
-                        let _ = self.engine.activate();
+                        let _ = engine.activate();
                         let output = jev::live(
                             &mut self.jev,
-                            &self.engine,
+                            &*engine,
                             if name == "read" { "read" } else { "grep" },
                             arguments,
                             self.registered_task.as_ref(),

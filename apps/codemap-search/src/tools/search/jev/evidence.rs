@@ -83,7 +83,7 @@ impl FilterInput {
                 self.supporting_sources.insert(index, source);
             }
         }
-        let root = std::env::current_dir().unwrap_or_default();
+        let root = crate::workspace::root_dir().unwrap_or_default();
         for index in indices {
             let entity = &self.entities[index];
             self.entities[index].has_missing_context = entity.unresolved_calls > 0

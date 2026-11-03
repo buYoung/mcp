@@ -43,7 +43,7 @@ pub(super) fn trailer(
         return None;
     };
     let (start, end) = anchor.start_line.zip(anchor.end_line)?;
-    let root = std::env::current_dir().ok()?;
+    let root = crate::workspace::root_dir().ok()?;
     let path = anchor.file_path.as_str();
     let source_path = root.join(path);
     // Files the index never parses for declarations have no callers to report.

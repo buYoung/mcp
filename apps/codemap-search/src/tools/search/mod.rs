@@ -910,7 +910,7 @@ pub(crate) fn prepare_detail(
         if ctx.engine.is_warming() || ctx.engine.is_dead() || ctx.engine.last_error().is_some() {
             return Ok(Prepared::Done(SearchOutput {text:"[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into(), ..SearchOutput::default()}));
         }
-        let root = std::env::current_dir().unwrap_or_default();
+        let root = crate::workspace::root_dir().unwrap_or_default();
         let snapshot = ctx.engine.published_snapshot();
         let cap = crate::config::get().search_detail_byte_cap;
         return Ok(Prepared::Done(SearchOutput {
@@ -1104,7 +1104,8 @@ pub(crate) fn prepare_detail(
                 is_dead_or_stale: ctx.engine.is_dead() || ctx.engine.last_error().is_some(),
             };
             let available = byte_cap.saturating_sub(text.len());
-            let root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            let root =
+                crate::workspace::root_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
             crate::callers::annotate_results_with_state(
                 &requests,
                 &snapshot,

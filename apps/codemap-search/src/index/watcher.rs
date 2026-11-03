@@ -130,9 +130,11 @@ pub fn spawn_watcher(
     // recorded by a thread that already died, freezing the gate at healthy forever.
     status.set_healthy(true);
     let thread_status = Arc::clone(&status);
+    let root_config = crate::config::thread_root_config();
     let join_handle = match std::thread::Builder::new()
         .name("codemap-watcher".to_string())
         .spawn(move || {
+            let _root = root_config.as_ref().map(crate::config::RootConfig::bind);
             // Drop guard, not a trailing statement: the health flag must flip off on ANY
             // exit — normal shutdown, indexer gone, or a panic mid-loop — or the request
             // fallback would stay suppressed against a watcher that no longer refreshes.

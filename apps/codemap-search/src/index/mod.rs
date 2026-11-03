@@ -17,6 +17,7 @@ pub(crate) use phrase_recall::{PhraseAnchor, PhraseMatch};
 mod preprocess;
 pub use preprocess::MacroExpander;
 mod ranking;
+pub(crate) mod roots;
 mod segment_files;
 mod supervisor;
 mod watcher;

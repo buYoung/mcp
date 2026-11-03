@@ -190,9 +190,7 @@ pub(crate) fn path_resolved_from_cwd(path: &Path) -> PathBuf {
     let absolute = if path.is_absolute() {
         path.to_path_buf()
     } else {
-        std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join(path)
+        root_dir().unwrap_or_else(|_| PathBuf::from(".")).join(path)
     };
     canonicalize_path_lenient(&absolute)
 }
@@ -254,6 +252,15 @@ pub(crate) fn canonicalize_path_lenient(path: &Path) -> PathBuf {
         }
     } else {
         path.to_path_buf()
+    }
+}
+
+/// The root of the workspace a request or an index works on: the start folder, or the other
+/// root whose settings are in force.
+pub(crate) fn root_dir() -> std::io::Result<PathBuf> {
+    match crate::config::get().workspace_root.clone() {
+        Some(root) => Ok(root),
+        None => std::env::current_dir(),
     }
 }
 
@@ -334,7 +341,7 @@ pub(crate) fn resolve_for_filesystem_tool(
     }
 }
 
-fn resolve_path_lenient_from_cwd(cwd: &Path, input: &str) -> PathBuf {
+pub(crate) fn resolve_path_lenient_from_cwd(cwd: &Path, input: &str) -> PathBuf {
     let target = cwd.join(path_from_workspace_input(input));
     let mut resolved = PathBuf::new();
     for component in target.components() {
@@ -430,7 +437,7 @@ fn same_path(left: &Path, right: &Path) -> bool {
 fn build_base_walker(root: &Path, respect: bool) -> ignore::WalkBuilder {
     let mut builder = ignore::WalkBuilder::new(root);
     apply_ignore_settings(&mut builder, root, respect);
-    let workspace_root = std::env::current_dir().unwrap_or_default();
+    let workspace_root = root_dir().unwrap_or_default();
     let config = crate::config::get();
     builder.filter_entry(move |entry| {
         entry_allowed_by_excluded_dirs(entry, respect, &workspace_root, &config)
@@ -443,7 +450,7 @@ fn build_base_walker(root: &Path, respect: bool) -> ignore::WalkBuilder {
 /// guard at the consumer as well as the directory traversal filter.
 pub(crate) fn walk_root_is_visible(root: &Path, respect: bool) -> bool {
     let target = canonicalize_path_lenient(root);
-    let workspace_root = match std::env::current_dir() {
+    let workspace_root = match root_dir() {
         Ok(cwd) => cwd.canonicalize().unwrap_or(cwd),
         Err(_) => return true,
     };
@@ -567,7 +574,7 @@ fn build_filtered_walker(
     let respect = !include_ignored;
     let root_is_visible = walk_root_is_visible(root, respect);
     let mut builder = build_base_walker(root, respect);
-    let workspace_root = std::env::current_dir().unwrap_or_default();
+    let workspace_root = root_dir().unwrap_or_default();
     let config = crate::config::get();
     builder.filter_entry(move |entry| {
         if !root_is_visible {
@@ -640,6 +647,17 @@ pub(crate) fn normalize_relative_path(path: &Path) -> String {
 /// indexer's key contract for in-workspace files: canonicalize the path and root,
 /// strip the root, then normalize to forward slashes. If the path cannot be
 /// relativized to the workspace root, fall back to the input path's normalized form.
+/// A path relative to the request's root as requests show it: absolute while another root's
+/// settings are in force, whose index shows its paths absolute.
+pub(crate) fn shown_path(relative: String) -> String {
+    match &crate::config::get().workspace_root {
+        Some(root) if Path::new(&relative).is_relative() => {
+            format!("{}/{relative}", root.display())
+        }
+        _ => relative,
+    }
+}
+
 pub fn workspace_relative_key(path: &Path, workspace_root: &Path) -> String {
     let absolute_path = if path.is_absolute() {
         path.to_path_buf()
@@ -654,7 +672,7 @@ pub fn workspace_relative_key(path: &Path, workspace_root: &Path) -> String {
         .strip_prefix(&canonical_root)
         .or_else(|_| absolute_path.strip_prefix(workspace_root))
         .unwrap_or(path);
-    normalize_relative_path(relative)
+    shown_path(normalize_relative_path(relative))
 }
 
 /// Compute the stored index key for `entry_path`: the path relative to the

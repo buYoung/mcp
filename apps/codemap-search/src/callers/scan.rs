@@ -402,10 +402,12 @@ pub(super) fn scan_workspace(
                 if let Some(entry) = result.and_then(Result::ok) {
                     let path = entry.path();
                     if entry.file_type().is_some_and(|ft| ft.is_file()) && is_scanned_source(path) {
-                        let display = crate::workspace::walk_entry_display_path(
-                            &entry,
-                            &canonical_root,
-                            &raw_root,
+                        let display = crate::workspace::shown_path(
+                            crate::workspace::walk_entry_display_path(
+                                &entry,
+                                &canonical_root,
+                                &raw_root,
+                            ),
                         );
                         batch.push((entry.into_path(), display));
                     }
@@ -481,8 +483,9 @@ pub(super) fn scan_workspace(
                 let Some(metadata) = metadata_under_cap(path) else {
                     continue;
                 };
-                let display =
-                    crate::workspace::walk_entry_display_path(&entry, &canonical_root, &raw_root);
+                let display = crate::workspace::shown_path(
+                    crate::workspace::walk_entry_display_path(&entry, &canonical_root, &raw_root),
+                );
                 if !scan_file(
                     &mut searcher,
                     &mut budgets,

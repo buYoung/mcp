@@ -51,7 +51,7 @@ pub(super) fn trailer(
     if engine.is_warming() || engine.is_dead() || engine.last_error().is_some() {
         return None;
     }
-    let root = std::env::current_dir().ok()?;
+    let root = crate::workspace::root_dir().ok()?;
     let path = anchor.file_path.as_str();
     let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
     if filter.is_file_excluded(path) {

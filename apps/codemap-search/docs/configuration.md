@@ -495,7 +495,7 @@ powershell = ["Describe", "Context", "It"]
 - `allowed_roots`: access the workspace and the listed external roots.
 - `anywhere`: access any path available to the server process (default).
 
-`allowed_roots` entries must be non-empty strings. Relative paths start at the workspace root; absolute paths are allowed. Existing path components are resolved, including symlinks, while nonexistent suffixes are retained. Path traversal cannot extend access beyond the configured roots. These permissions do not widen the indexing scope of `search`.
+`allowed_roots` entries must be non-empty strings. Relative paths start at the workspace root; absolute paths are allowed. Existing path components are resolved, including symlinks, while nonexistent suffixes are retained. Path traversal cannot extend access beyond the configured roots. These permissions do not add files to the start folder's index. A repository outside the start folder gets its own index for `search` with an outside `workspace_scope` only when the `read` policy allows the whole repository folder; that repository's own `[filesystem_permissions]` never widen this session's access.
 
 ### Index freshness
 

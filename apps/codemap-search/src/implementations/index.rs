@@ -87,7 +87,11 @@ impl ImplementationIndex {
         files: Arc<Vec<Arc<ExtractedFile>>>,
         sources: &HashMap<String, String>,
     ) -> Self {
-        Self::build_at(files, sources, &std::env::current_dir().unwrap_or_default())
+        Self::build_at(
+            files,
+            sources,
+            &crate::workspace::root_dir().unwrap_or_default(),
+        )
     }
 
     /// Builds for a workspace at `root`, where module settings such as tsconfig files live.

@@ -571,9 +571,11 @@ fn spawn_indexer_thread(mut engine: TantivySearchEngine, is_dormant: bool) -> In
     let thread_snapshot = Arc::clone(&snapshot);
     let thread_publications = publications.clone();
     let thread_generation_gate = Arc::clone(&generation_gate);
+    let root_config = crate::config::thread_root_config();
     let join_handle = std::thread::Builder::new()
         .name("codemap-indexer".to_string())
         .spawn(move || {
+            let _root = root_config.as_ref().map(crate::config::RootConfig::bind);
             // The waking command only starts the initial pass, which walks everything.
             if is_dormant && receiver.recv().is_err() {
                 return;

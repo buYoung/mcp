@@ -168,7 +168,14 @@ pub(super) struct DecodedEntry {
 }
 
 impl DecodedEntry {
-    fn decoded(payload: Option<u64>, mtime: Option<u64>, stored: StoredExtractedFile) -> Self {
+    fn decoded(
+        payload: Option<u64>,
+        mtime: Option<u64>,
+        mut stored: StoredExtractedFile,
+        display: &PathDisplay,
+    ) -> Self {
+        stored.extracted.file_path =
+            display.display(std::mem::take(&mut stored.extracted.file_path));
         let entry = PublishedEntry::new(
             payload,
             mtime,
@@ -193,6 +200,47 @@ impl DecodedEntry {
 /// Decoded entries per segment, indexed by document id. Segments are immutable, so a live
 /// document at a recorded location is the document that was decoded there.
 type EntriesBySegment<T> = HashMap<tantivy::index::SegmentId, Vec<Option<T>>>;
+
+/// How an index's stored paths appear to requests: unchanged for the start folder, and
+/// absolute for another root, whose index keeps paths relative to that root as a server
+/// started there does.
+#[derive(Clone, Default)]
+pub(crate) struct PathDisplay(Option<std::sync::Arc<str>>);
+
+impl PathDisplay {
+    /// The display of an index opened under the settings in force.
+    fn for_root() -> Self {
+        Self(
+            crate::config::get()
+                .workspace_root
+                .as_ref()
+                .map(|root| format!("{}/", root.display()).into()),
+        )
+    }
+
+    pub(crate) fn display(&self, path: String) -> String {
+        match &self.0 {
+            Some(prefix) => format!("{prefix}{path}"),
+            None => path,
+        }
+    }
+
+    pub(crate) fn stored<'p>(&self, path: &'p str) -> &'p str {
+        match &self.0 {
+            Some(prefix) => path.strip_prefix(&**prefix).unwrap_or(path),
+            None => path,
+        }
+    }
+
+    /// A requested scope as stored paths name it; the root itself is no narrowing.
+    pub(crate) fn stored_scope(&self, scope: Option<&str>) -> Option<String> {
+        let scope = scope?;
+        match &self.0 {
+            Some(prefix) if prefix.strip_suffix('/') == Some(scope) => None,
+            _ => Some(self.stored(scope).to_string()),
+        }
+    }
+}
 
 /// A segment's fast-field columns, which identify its documents without reading the store.
 struct DocumentColumns {
@@ -307,6 +355,7 @@ pub struct SearcherHandle {
     pub(super) reference_field: Field,
     pub(super) format_text_field: Field,
     pub(super) extracted_json_field: Field,
+    pub(super) path_display: PathDisplay,
 }
 
 pub struct TantivySearchEngine {
@@ -354,6 +403,7 @@ pub struct TantivySearchEngine {
     is_publishing: bool,
     // Documents decoded by the first read of the stored state, for the first publication.
     loaded_entries: EntriesBySegment<DecodedEntry>,
+    path_display: PathDisplay,
 }
 
 /// Filename of the sidecar that stamps the extraction-format version of the stored
@@ -432,6 +482,12 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
 // drops stored flow summaries and unread stored fields, and adds fast fields for paths, mtimes
 // and content and payload hashes.
 const EXTRACTION_FORMAT_VERSION: &str = "v43-compact-store";
+
+/// Whether the index at `index` carries the current extraction format stamp.
+pub(super) fn has_current_format(index: &Path) -> bool {
+    std::fs::read_to_string(index.join(EXTRACTION_FORMAT_FILE))
+        .is_ok_and(|version| version.trim() == EXTRACTION_FORMAT_VERSION)
+}
 
 /// Stored payloads are JSON, which zstd keeps at about half of lz4's compressed size.
 fn index_settings() -> IndexSettings {
@@ -651,6 +707,14 @@ impl TantivySearchEngine {
         // in place: two server processes spawning concurrently on the same repo would
         // otherwise BOTH take the wipe path and delete each other's just-created files.
         let needs_wipe = version_mismatch && path.join("meta.json").exists();
+        // Another root's index belongs to the servers started there: it is never wiped here.
+        let may_rebuild = crate::config::get().workspace_root.is_none();
+        if needs_wipe && !may_rebuild {
+            return Err(format!(
+                "Index unavailable: the index at {} has another extraction format",
+                path.display()
+            ));
+        }
 
         // Try to open or create the index directory. Rebuild from scratch if metadata is
         // corrupted OR a populated index has an outdated extraction format — both take the
@@ -678,6 +742,12 @@ impl TantivySearchEngine {
         };
         let index = match opened {
             Ok(idx) => idx,
+            Err(error) if !may_rebuild => {
+                return Err(format!(
+                    "Index unavailable: the index at {} could not be opened: {error}",
+                    path.display()
+                ));
+            }
             Err(_) => {
                 if path.exists() {
                     std::fs::remove_dir_all(path).map_err(|error| error.to_string())?;
@@ -735,6 +805,7 @@ impl TantivySearchEngine {
             next_published_entries: None,
             is_publishing: false,
             loaded_entries: HashMap::new(),
+            path_display: PathDisplay::for_root(),
             indexed_roots: std::fs::read(path.join(INDEXED_ROOTS_FILE))
                 .ok()
                 .and_then(|data| serde_json::from_slice(&data).ok())
@@ -880,6 +951,7 @@ impl TantivySearchEngine {
                         columns.payload_hash(doc_id),
                         mtime,
                         stored,
+                        &self.path_display,
                     ));
                 }
             }
@@ -992,7 +1064,7 @@ fn tokenize_path(file_path: &str) -> String {
 /// parent, exactly as the full walk would descend. Cost is one `readdir` per path depth.
 fn is_path_visible_to_walk(path: &Path) -> bool {
     let target = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-    let root = match std::env::current_dir() {
+    let root = match crate::workspace::root_dir() {
         Ok(cwd) => cwd.canonicalize().unwrap_or(cwd),
         Err(_) => return true,
     };
@@ -1071,7 +1143,7 @@ fn extract_batch(
 
 /// The directory indexed relative paths are resolved against: the canonical process cwd.
 fn indexed_root() -> PathBuf {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let cwd = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
     cwd.canonicalize().unwrap_or(cwd)
 }
 
@@ -1123,14 +1195,18 @@ impl TantivySearchEngine {
         should_reload_reader: bool,
     ) -> Result<bool, String> {
         let mut files_to_process = Vec::new();
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let cwd = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
         // JSON and related formats are source inputs now, so a caller that indexes a parent of
         // the Tantivy directory must not feed Tantivy's own metadata back into the index.
         let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
+        // Another root's index records its walk inputs relative to that root, as a server
+        // started there does; the process works in the start folder.
+        let workspace_root = crate::config::get().workspace_root.clone();
 
         for path_str in paths {
-            let path = Path::new(path_str);
+            let resolved = workspace_root.as_ref().map(|root| root.join(path_str));
+            let path = resolved.as_deref().unwrap_or(Path::new(path_str));
             if path.is_file() {
                 if !is_under_index_root(path, &index_root, &abs_cwd) {
                     if let Some(entry) = collect_index_entry(path, &abs_cwd) {
@@ -1313,7 +1389,7 @@ impl TantivySearchEngine {
         }
 
         let extractor = crate::parser::TreeSitterExtractor::new();
-        let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let root = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
         let mut macro_expander =
             super::MacroExpander::new(&root, crate::config::get().macro_expansion.clone());
         let managed_path = Path::new(&self.index_path).join(".managed.json");
@@ -1577,7 +1653,7 @@ impl TantivySearchEngine {
         if self.event_config_stamp.as_deref() != Some(&crate::events::config_stamp()) {
             return self.refresh_indexed_roots(should_reload_reader);
         }
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let cwd = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
         let abs_cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.clone());
         let index_root = normalized_index_root(Path::new(&self.index_path), &abs_cwd);
 
@@ -1757,6 +1833,7 @@ impl TantivySearchEngine {
             reference_field: self.reference_field,
             format_text_field: self.format_text_field,
             extracted_json_field: self.extracted_json_field,
+            path_display: self.path_display.clone(),
         }
     }
 
@@ -1867,6 +1944,7 @@ impl TantivySearchEngine {
                 segment,
                 &unread,
                 previous,
+                &self.path_display,
                 crate::parallel::threads(),
             )?
             .into_iter();
@@ -1946,6 +2024,7 @@ fn read_published_entries(
     segment: &tantivy::SegmentReader,
     docs: &[tantivy::DocId],
     previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
+    display: &PathDisplay,
     threads: usize,
 ) -> Result<Vec<ReadEntry>, String> {
     let runs: Vec<_> = docs
@@ -1967,6 +2046,7 @@ fn read_published_entries(
                         &mut store,
                         doc_id,
                         previous,
+                        display,
                     )
                 })
                 .collect::<Result<Vec<_>, String>>()
@@ -1989,10 +2069,15 @@ fn read_published_entry(
     store: &mut Option<tantivy::store::StoreReader>,
     doc_id: tantivy::DocId,
     previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
+    display: &PathDisplay,
 ) -> Result<ReadEntry, String> {
     let payload = columns.payload_hash(doc_id);
     let mtime = columns.mtime(doc_id);
-    if let Some((path, (previous, published))) = columns.path(doc_id).zip(previous) {
+    if let Some((path, (previous, published))) = columns
+        .path(doc_id)
+        .map(|path| display.display(path))
+        .zip(previous)
+    {
         if let Some(entry) = published
             .by_path
             .get(&path)
@@ -2022,7 +2107,7 @@ fn read_published_entry(
         .ok_or_else(|| "published snapshot document is missing extracted_json".to_string())?;
     let stored = serde_json::from_str::<StoredExtractedFile>(json)
         .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
-    let (entry, edges) = DecodedEntry::decoded(payload, mtime, stored).publish();
+    let (entry, edges) = DecodedEntry::decoded(payload, mtime, stored, display).publish();
     Ok((entry, edges, false))
 }
 

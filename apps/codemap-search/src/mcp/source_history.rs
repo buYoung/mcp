@@ -133,7 +133,16 @@ fn rows(tool: &str, arguments: &Value, text: &str) -> Vec<Row> {
     result
 }
 fn file_revision(path: &str) -> Option<(PathBuf, blake3::Hash)> {
-    let path = crate::workspace::resolve_within_cwd(path).ok()?;
+    // Files outside the start folder, such as another root's, count when the session may read
+    // them.
+    let path = crate::workspace::resolve_within_cwd(path)
+        .or_else(|_| {
+            crate::workspace::resolve_for_filesystem_tool(
+                path,
+                crate::workspace::FilesystemTool::Read,
+            )
+        })
+        .ok()?;
     let metadata = std::fs::metadata(&path).ok()?;
     if !metadata.is_file() || metadata.len() > MAX_REVISION_BYTES {
         return None;

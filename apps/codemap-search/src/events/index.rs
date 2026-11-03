@@ -106,7 +106,7 @@ impl EventIndex {
             super::extract::extract(
                 files,
                 &sources,
-                &std::env::current_dir().unwrap_or_default(),
+                &crate::workspace::root_dir().unwrap_or_default(),
             )
         } else {
             super::extract::Extraction {
@@ -176,7 +176,7 @@ impl EventIndex {
         let source_routes = Arc::new(source_routes::Snapshot::build(
             files,
             &sources,
-            &std::env::current_dir().unwrap_or_default(),
+            &crate::workspace::root_dir().unwrap_or_default(),
             super::ENDPOINTS_PER_SNAPSHOT.saturating_sub(extraction.endpoints.len()),
             &configured_endpoints_per_file,
             cache_directory,

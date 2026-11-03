@@ -62,7 +62,7 @@ pub(super) fn size_refusal(cwd: &Path) -> Option<String> {
     })
 }
 
-fn is_repository_root(directory: &Path) -> bool {
+pub(super) fn is_repository_root(directory: &Path) -> bool {
     REPOSITORY_MARKERS
         .iter()
         .any(|marker| directory.join(marker).exists())

@@ -26,7 +26,7 @@ impl Outline {
         options: LiveOptions,
     ) -> Self {
         let mut source = std::fs::read(&file.file_path).unwrap_or_default();
-        let root = std::env::current_dir().unwrap_or_default();
+        let root = crate::workspace::root_dir().unwrap_or_default();
         crate::callers::test_code::TestCodeFilter::from_config(&root)
             .mask_source(&file.file_path, &mut source);
         let source = String::from_utf8(source).unwrap_or_default();
