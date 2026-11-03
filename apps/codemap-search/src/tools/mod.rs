@@ -327,6 +327,7 @@ fn filesystem_tool_description(
 pub fn list_tools() -> Value {
     let config = crate::config::get();
     let permissions = &config.filesystem_permissions;
+    let is_monorepo = crate::codemap::looks_like_monorepo_workspace();
     let live_view_description = "full (default) returns source with declarations and relationships; source returns only live source without context work; definitions returns declarations only; relations returns identities and supported relationships without source.";
     let read_view_description = "full (default) returns source with declarations and relationships; source returns live source, possibly followed by callers from outside the window; definitions returns declarations only; relations returns identities and supported relationships without source.";
     let unresolved_description = "Unresolved call targets in full/relations: list (default) gives bounded names plus a count; count hides the names.";
@@ -397,14 +398,16 @@ pub fn list_tools() -> Value {
         "language_hint": { "type": "string", "description": "Query language for cross-language ranking, e.g. 'typescript' or 'rust'; omitted means language-agnostic." },
         "extension_hint": { "type": "string", "description": "Query extension for same-extension ranking, e.g. 'ts' or '.rs'; omitted leaves ranking unchanged." }
     });
-    if let Some(properties) = search_properties.as_object_mut() {
-        properties.insert(
-            "workspace_scope".to_string(),
-            serde_json::json!({
-                "type": "string",
-                "description": "Limit the search to a scope listed by initial_instructions, by path or unique basename; subdirectories stay narrow and files select their parent. A folder outside the start folder or in a linked worktree searches its own repository's index, created on first use. Omit or use 'all'/'전체' for repo-wide search. Never widens automatically. Alias: scope."
-            }),
-        );
+    if is_monorepo {
+        if let Some(properties) = search_properties.as_object_mut() {
+            properties.insert(
+                "workspace_scope".to_string(),
+                serde_json::json!({
+                    "type": "string",
+                    "description": "Limit the search to a scope listed by initial_instructions, by path or unique basename; subdirectories stay narrow and files select their parent. A folder outside the start folder or in a linked worktree searches its own repository's index, created on first use. Omit or use 'all'/'전체' for repo-wide search. Never widens automatically. Alias: scope."
+                }),
+            );
+        }
     }
     let mut result = serde_json::json!({
                 "tools": [
