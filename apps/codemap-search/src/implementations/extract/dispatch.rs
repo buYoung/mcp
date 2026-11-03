@@ -74,9 +74,8 @@ fn enclosing_owner<'a>(
     owners: &[(Node<'a>, usize)],
     unit: &ImplementationUnit,
 ) -> Option<(Node<'a>, usize)> {
-    let mut current = node.parent();
     let mut crossed_method = false;
-    while let Some(parent) = current {
+    for parent in crate::parser::ancestors(node) {
         if let Some(owner) = owners.iter().find(|(owner, _)| owner.id() == parent.id()) {
             return Some(*owner);
         }
@@ -93,7 +92,6 @@ fn enclosing_owner<'a>(
         {
             return None;
         }
-        current = parent.parent();
     }
     None
 }
@@ -119,9 +117,8 @@ fn receiver_type(
         || language == "python" && receiver == Some("cls");
     let is_implicit = receiver.is_none() && has_implicit_members(language);
     if language == "rust" && (is_self || is_implicit) {
-        let mut current = node.parent();
         let mut crossed_method = false;
-        while let Some(parent) = current {
+        for parent in crate::parser::ancestors(node) {
             if let Some((_, index)) = owners
                 .nodes
                 .iter()
@@ -149,7 +146,6 @@ fn receiver_type(
                 }
                 crossed_method = true;
             }
-            current = parent.parent();
         }
         return None;
     }
@@ -261,8 +257,7 @@ fn declared_receiver_type(
         // An untyped nearest binding shadows a typed outer binding.
         return Some(None);
     }
-    let mut current = node.parent();
-    while let Some(parent) = current {
+    for parent in crate::parser::ancestors(node) {
         if is_method(parent) || matches!(parent.kind(), "arrow_function" | "lambda_expression") {
             let mut parameters = declarations::parameter_nodes(parent);
             parameters.extend(
@@ -284,7 +279,6 @@ fn declared_receiver_type(
                 }
             }
         }
-        current = parent.parent();
     }
     None
 }

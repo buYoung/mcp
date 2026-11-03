@@ -1023,16 +1023,80 @@ fn is_path_visible_to_walk(path: &Path) -> bool {
     true
 }
 
-/// Gather the index entry for a single file: enforce the source-extension allowlist
-/// and the [`crate::workspace::MAX_INDEXED_FILE_BYTES`] size cap (skip oversize/minified
-/// blobs before they are read+parsed, Child 04), and capture a sub-second mtime so a
-/// same-second edit still reindexes. Returns `None` when the file is not to be indexed.
+/// Files a refresh reads and extracts together before adding them to the writer in order.
+const EXTRACTION_BATCH_FILES: usize = 512;
+
+/// A file's text and its extraction, or the error that kept it from being read.
+type FileExtraction = std::io::Result<(
+    String,
+    Result<(ExtractedFile, crate::parser::IndexAuxiliary), String>,
+)>;
+
+/// `files` with their extractions, in the order given. Each batch is read and extracted on up
+/// to `threads` threads, so the order of documents in the writer does not depend on timing.
+fn extract_in_order<'a>(
+    extractor: &'a crate::parser::TreeSitterExtractor,
+    files: Vec<(String, PathBuf, u64)>,
+    threads: usize,
+) -> impl Iterator<Item = ((String, PathBuf, u64), FileExtraction)> + 'a {
+    let mut files = files.into_iter();
+    let mut extracted = std::collections::VecDeque::new();
+    std::iter::from_fn(move || {
+        if extracted.is_empty() {
+            let batch: Vec<_> = files.by_ref().take(EXTRACTION_BATCH_FILES).collect();
+            let extractions = extract_batch(extractor, &batch, threads);
+            extracted.extend(batch.into_iter().zip(extractions));
+        }
+        extracted.pop_front()
+    })
+}
+
+fn extract_batch(
+    extractor: &crate::parser::TreeSitterExtractor,
+    files: &[(String, PathBuf, u64)],
+    threads: usize,
+) -> Vec<FileExtraction> {
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let slots: Vec<std::sync::OnceLock<FileExtraction>> =
+        files.iter().map(|_| std::sync::OnceLock::new()).collect();
+    let config = crate::config::get();
+    std::thread::scope(|scope| {
+        for _ in 0..threads.min(files.len()) {
+            scope.spawn(|| {
+                let _config = crate::config::pin(std::sync::Arc::clone(&config));
+                loop {
+                    let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let Some((rel_path, disk_path, _)) = files.get(index) else {
+                        break;
+                    };
+                    let read = std::fs::read_to_string(disk_path).map(|content| {
+                        let extraction = extractor.extract_for_index(&content, rel_path);
+                        (content, extraction)
+                    });
+                    let _ = slots[index].set(read);
+                }
+            });
+        }
+    });
+    slots
+        .into_iter()
+        .map(|slot| {
+            slot.into_inner()
+                .expect("every file in the batch is extracted")
+        })
+        .collect()
+}
+
 /// The directory indexed relative paths are resolved against: the canonical process cwd.
 fn indexed_root() -> PathBuf {
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     cwd.canonicalize().unwrap_or(cwd)
 }
 
+/// Gather the index entry for a single file: enforce the source-extension allowlist
+/// and the [`crate::workspace::MAX_INDEXED_FILE_BYTES`] size cap (skip oversize/minified
+/// blobs before they are read+parsed, Child 04), and capture a sub-second mtime so a
+/// same-second edit still reindexes. Returns `None` when the file is not to be indexed.
 fn collect_index_entry(entry_path: &Path, abs_cwd: &Path) -> Option<(String, PathBuf, u64)> {
     if crate::workspace::is_explicitly_excluded_file(entry_path) {
         return None;
@@ -1307,9 +1371,11 @@ impl TantivySearchEngine {
         let mut committed_updates: Vec<(String, IndexedStamp)> = Vec::new();
         let mut committed_macro_inputs: Vec<(String, Option<RecordedExpansion>)> = Vec::new();
         let mut encoding_excluded_paths = Vec::new();
-        for (rel_path, disk_path, mtime) in to_index {
-            let content = match std::fs::read_to_string(&disk_path) {
-                Ok(c) => c,
+        let threads = std::thread::available_parallelism().map_or(1, usize::from);
+        for ((rel_path, disk_path, mtime), read) in extract_in_order(&extractor, to_index, threads)
+        {
+            let (content, extraction) = match read {
+                Ok(read) => read,
                 Err(e) => {
                     if e.kind() == std::io::ErrorKind::InvalidData {
                         // A formerly valid file must disappear from both search and
@@ -1327,18 +1393,17 @@ impl TantivySearchEngine {
                     continue;
                 }
             };
-            let (mut extracted, mut auxiliary) =
-                match extractor.extract_for_index(&content, &rel_path) {
-                    Ok(extracted_parts) => extracted_parts,
-                    Err(e) => {
-                        eprintln!(
-                            "Warning: Failed to parse file {}: {}",
-                            disk_path.display(),
-                            e
-                        );
-                        continue;
-                    }
-                };
+            let (mut extracted, mut auxiliary) = match extraction {
+                Ok(extracted_parts) => extracted_parts,
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Failed to parse file {}: {}",
+                        disk_path.display(),
+                        e
+                    );
+                    continue;
+                }
+            };
 
             if let Some(expanded_auxiliary) =
                 macro_expander.expand_for_index(&disk_path, &content, &mut extracted)
@@ -1790,9 +1855,9 @@ impl TantivySearchEngine {
             let reusable =
                 previous.and_then(|(_, published)| published.by_segment.get(&segment_id));
             let mut loaded = loaded.remove(&segment_id);
-            let mut columns = None;
-            let mut store = None;
             let mut located = vec![None; segment.max_doc() as usize];
+            let mut documents = Vec::new();
+            let mut unread = Vec::new();
             for doc_id in 0..segment.max_doc() {
                 if segment.is_deleted(doc_id) {
                     continue;
@@ -1803,18 +1868,29 @@ impl TantivySearchEngine {
                 let loaded = loaded
                     .as_mut()
                     .and_then(|entries| entries.get_mut(doc_id as usize)?.take());
-                let (entry, edges, is_unchanged) = if let Some((entry, (previous, _))) = reused {
+                let document = if let Some((entry, (previous, _))) = reused {
                     let edges = previous.static_collection_edges(&entry.file.file_path);
-                    (entry, edges, true)
+                    Some((entry, edges, true))
                 } else if let Some(loaded) = loaded {
                     let (entry, edges) = loaded.publish();
-                    (entry, edges, false)
+                    Some((entry, edges, false))
                 } else {
-                    let columns = match &mut columns {
-                        Some(columns) => columns,
-                        None => columns.insert(DocumentColumns::open(segment)?),
-                    };
-                    self.read_published_entry(segment, columns, &mut store, doc_id, previous)?
+                    unread.push(doc_id);
+                    None
+                };
+                documents.push((doc_id, document));
+            }
+            let mut read = read_published_entries(
+                self.extracted_json_field,
+                segment,
+                &unread,
+                previous,
+                std::thread::available_parallelism().map_or(1, usize::from),
+            )?
+            .into_iter();
+            for (doc_id, document) in documents {
+                let Some((entry, edges, is_unchanged)) = document.or_else(|| read.next()) else {
+                    continue;
                 };
                 located[doc_id as usize] = Some(std::sync::Arc::clone(&entry));
                 entries.push((entry, edges, is_unchanged));
@@ -1871,59 +1947,109 @@ impl TantivySearchEngine {
         };
         Ok((snapshot, entries))
     }
+}
 
-    /// Read one document for publication: a document unchanged since `previous` at another
-    /// location (after a merge) is matched by its fast-field payload hash and mtime; others are
-    /// read from the store and decoded.
-    fn read_published_entry(
-        &self,
-        segment: &tantivy::SegmentReader,
-        columns: &DocumentColumns,
-        store: &mut Option<tantivy::store::StoreReader>,
-        doc_id: tantivy::DocId,
-        previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
-    ) -> Result<
-        (
-            std::sync::Arc<PublishedEntry>,
-            Vec<StaticCollectionEdge>,
-            bool,
-        ),
-        String,
-    > {
-        let payload = columns.payload_hash(doc_id);
-        let mtime = columns.mtime(doc_id);
-        if let Some((path, (previous, published))) = columns.path(doc_id).zip(previous) {
-            if let Some(entry) = published
-                .by_path
-                .get(&path)
-                .filter(|entry| entry.is_current(payload, mtime))
-            {
-                return Ok((
-                    std::sync::Arc::clone(entry),
-                    previous.static_collection_edges(&path),
-                    true,
-                ));
-            }
-        }
-        let store =
-            match store {
-                Some(store) => store,
-                None => store.insert(segment.get_store_reader(1).map_err(|error| {
-                    format!("published snapshot document read failed: {error}")
-                })?),
-            };
-        let doc = store
-            .get::<TantivyDocument>(doc_id)
-            .map_err(|error| format!("published snapshot document read failed: {error}"))?;
-        let json = doc
-            .get_first(self.extracted_json_field)
-            .and_then(|value| value.as_str())
-            .ok_or_else(|| "published snapshot document is missing extracted_json".to_string())?;
-        let stored = serde_json::from_str::<StoredExtractedFile>(json)
-            .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
-        let (entry, edges) = DecodedEntry::decoded(payload, mtime, stored).publish();
-        Ok((entry, edges, false))
+/// A document read for publication: its entry, its static collection edges and whether it is
+/// unchanged since the previous generation.
+type ReadEntry = (
+    std::sync::Arc<PublishedEntry>,
+    Vec<StaticCollectionEdge>,
+    bool,
+);
+
+/// [`read_published_entry`] for each of `docs`, in order, split into contiguous runs read on up
+/// to `threads` threads.
+fn read_published_entries(
+    extracted_json_field: Field,
+    segment: &tantivy::SegmentReader,
+    docs: &[tantivy::DocId],
+    previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
+    threads: usize,
+) -> Result<Vec<ReadEntry>, String> {
+    if docs.is_empty() {
+        return Ok(Vec::new());
     }
+    let config = crate::config::get();
+    std::thread::scope(|scope| {
+        let runs: Vec<_> = docs
+            .chunks(docs.len().div_ceil(threads.max(1)))
+            .map(|docs| {
+                let config = std::sync::Arc::clone(&config);
+                scope.spawn(move || {
+                    let _config = crate::config::pin(config);
+                    let columns = DocumentColumns::open(segment)?;
+                    let mut store = None;
+                    docs.iter()
+                        .map(|&doc_id| {
+                            read_published_entry(
+                                extracted_json_field,
+                                segment,
+                                &columns,
+                                &mut store,
+                                doc_id,
+                                previous,
+                            )
+                        })
+                        .collect::<Result<Vec<_>, String>>()
+                })
+            })
+            .collect();
+        let mut entries = Vec::with_capacity(docs.len());
+        for run in runs {
+            entries.extend(
+                run.join()
+                    .unwrap_or_else(|panic| std::panic::resume_unwind(panic))?,
+            );
+        }
+        Ok(entries)
+    })
+}
+
+/// Read one document for publication: a document unchanged since `previous` at another
+/// location (after a merge) is matched by its fast-field payload hash and mtime; others are
+/// read from the store and decoded.
+fn read_published_entry(
+    extracted_json_field: Field,
+    segment: &tantivy::SegmentReader,
+    columns: &DocumentColumns,
+    store: &mut Option<tantivy::store::StoreReader>,
+    doc_id: tantivy::DocId,
+    previous: Option<(&super::indexer::PublishedIndexSnapshot, &PublishedEntries)>,
+) -> Result<ReadEntry, String> {
+    let payload = columns.payload_hash(doc_id);
+    let mtime = columns.mtime(doc_id);
+    if let Some((path, (previous, published))) = columns.path(doc_id).zip(previous) {
+        if let Some(entry) = published
+            .by_path
+            .get(&path)
+            .filter(|entry| entry.is_current(payload, mtime))
+        {
+            return Ok((
+                std::sync::Arc::clone(entry),
+                previous.static_collection_edges(&path),
+                true,
+            ));
+        }
+    }
+    let store = match store {
+        Some(store) => store,
+        None => store.insert(
+            segment
+                .get_store_reader(1)
+                .map_err(|error| format!("published snapshot document read failed: {error}"))?,
+        ),
+    };
+    let doc = store
+        .get::<TantivyDocument>(doc_id)
+        .map_err(|error| format!("published snapshot document read failed: {error}"))?;
+    let json = doc
+        .get_first(extracted_json_field)
+        .and_then(|value| value.as_str())
+        .ok_or_else(|| "published snapshot document is missing extracted_json".to_string())?;
+    let stored = serde_json::from_str::<StoredExtractedFile>(json)
+        .map_err(|error| format!("published snapshot JSON decode failed: {error}"))?;
+    let (entry, edges) = DecodedEntry::decoded(payload, mtime, stored).publish();
+    Ok((entry, edges, false))
 }
 
 fn normalized_index_root(index_path: &Path, abs_cwd: &Path) -> PathBuf {

@@ -1,7 +1,7 @@
 //! Directory rules shared by live walks, index refreshes and initial config generation.
 
-use std::collections::BTreeSet;
-use std::path::Path;
+use std::collections::{BTreeSet, HashMap};
+use std::path::{Path, PathBuf};
 
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 
@@ -83,30 +83,16 @@ pub(crate) fn recommended_directories(root: &Path) -> Vec<String> {
     let mut matcher =
         DirectoryExclusions::new(&recommendations.iter().cloned().collect::<Vec<_>>())
             .expect("common directory patterns are valid");
+    let tree = directory_tree(&root, &matcher);
     let mut pending = vec![root.clone()];
     while let Some(directory) = pending.pop() {
         if directory != root && matcher.matches_directory(&directory, &root) {
             continue;
         }
-        let mut walker = ignore::WalkBuilder::new(&directory);
-        super::apply_ignore_settings(&mut walker, &directory, true);
-        walker.max_depth(Some(1)).follow_links(false);
-        let entries: Vec<_> = walker
-            .build()
-            .filter_map(|entry| match entry {
-                Ok(entry) if entry.depth() > 0 => Some(entry),
-                Ok(_) => None,
-                Err(error) => {
-                    tracing::warn!("project discovery skipped an unreadable path: {error}");
-                    None
-                }
-            })
-            .collect();
-        let names: Vec<_> = entries
-            .iter()
-            .filter(|entry| entry.file_type().is_some_and(|kind| kind.is_file()))
-            .filter_map(|entry| entry.file_name().to_str())
-            .collect();
+        let Some((names, directories)) = tree.get(&directory) else {
+            continue;
+        };
+        let names: Vec<_> = names.iter().map(String::as_str).collect();
         let previous_len = recommendations.len();
         for pattern in project_patterns(&names) {
             // Keep recommendations independent of the discovered project's location.
@@ -120,24 +106,69 @@ pub(crate) fn recommended_directories(root: &Path) -> Vec<String> {
                 DirectoryExclusions::new(&recommendations.iter().cloned().collect::<Vec<_>>())
                     .expect("built-in recursive directory patterns are valid");
         }
-        let mut children: Vec<_> = entries
-            .into_iter()
-            .filter(|entry| entry.file_type().is_some_and(|kind| kind.is_dir()))
-            .map(|entry| entry.into_path())
+        let mut children: Vec<_> = directories
+            .iter()
             .filter(|path| !matcher.matches_directory(path, &root))
             // Orphan dependency trees must not become projects during discovery either.
-            .filter(|path| {
-                !path.file_name().is_some_and(|name| {
-                    ["node_modules", ".yarn", ".venv", "venv", "__pycache__"]
-                        .iter()
-                        .any(|candidate| name == *candidate)
-                })
-            })
+            .filter(|path| !is_dependency_tree(path))
+            .cloned()
             .collect();
         children.sort();
         pending.extend(children.into_iter().rev());
     }
     recommendations.into_iter().collect()
+}
+
+fn is_dependency_tree(path: &Path) -> bool {
+    path.file_name().is_some_and(|name| {
+        ["node_modules", ".yarn", ".venv", "venv", "__pycache__"]
+            .iter()
+            .any(|candidate| name == *candidate)
+    })
+}
+
+/// The file names and child directories of every directory below `root`, from one walk that
+/// applies the same ignore rules as a walk of each directory: a walk per directory would read
+/// every ancestor's ignore files again. Directories that `excluded` or a dependency-tree name
+/// matches are not entered, as discovery never enters them.
+fn directory_tree(
+    root: &Path,
+    excluded: &DirectoryExclusions,
+) -> HashMap<PathBuf, (Vec<String>, Vec<PathBuf>)> {
+    let mut walker = ignore::WalkBuilder::new(root);
+    super::apply_ignore_settings(&mut walker, root, true);
+    let (excluded, walk_root) = (excluded.clone(), root.to_path_buf());
+    walker.follow_links(false).filter_entry(move |entry| {
+        entry.depth() == 0
+            || !entry.file_type().is_some_and(|kind| kind.is_dir())
+            || !(excluded.matches_directory(entry.path(), &walk_root)
+                || is_dependency_tree(entry.path()))
+    });
+    let mut tree: HashMap<PathBuf, (Vec<String>, Vec<PathBuf>)> = HashMap::new();
+    for entry in walker.build() {
+        let entry = match entry {
+            Ok(entry) if entry.depth() > 0 => entry,
+            Ok(_) => continue,
+            Err(error) => {
+                tracing::warn!("project discovery skipped an unreadable path: {error}");
+                continue;
+            }
+        };
+        let Some(parent) = entry.path().parent() else {
+            continue;
+        };
+        let listing = tree.entry(parent.to_path_buf()).or_default();
+        match entry.file_type() {
+            Some(kind) if kind.is_file() => {
+                if let Some(name) = entry.file_name().to_str() {
+                    listing.0.push(name.to_string());
+                }
+            }
+            Some(kind) if kind.is_dir() => listing.1.push(entry.into_path()),
+            _ => {}
+        }
+    }
+    tree
 }
 
 fn project_patterns(names: &[&str]) -> BTreeSet<&'static str> {

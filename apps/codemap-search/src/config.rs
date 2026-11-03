@@ -1214,7 +1214,12 @@ pub(crate) struct RequestConfigScope {
 }
 
 pub(crate) fn pin_request() -> RequestConfigScope {
-    let config = get();
+    pin(get())
+}
+
+/// Uses `config` on this thread until the scope ends: a worker thread pins the generation of
+/// the thread it works for.
+pub(crate) fn pin(config: Arc<ResolvedConfig>) -> RequestConfigScope {
     RequestConfigScope {
         previous: REQUEST_CONFIG.with(|slot| slot.replace(Some(config))),
         same_thread: std::marker::PhantomData,
@@ -1223,10 +1228,7 @@ pub(crate) fn pin_request() -> RequestConfigScope {
 
 #[cfg(test)]
 pub(crate) fn pin_test_config(config: ResolvedConfig) -> RequestConfigScope {
-    RequestConfigScope {
-        previous: REQUEST_CONFIG.with(|slot| slot.replace(Some(Arc::new(config)))),
-        same_thread: std::marker::PhantomData,
-    }
+    pin(Arc::new(config))
 }
 
 impl Drop for RequestConfigScope {

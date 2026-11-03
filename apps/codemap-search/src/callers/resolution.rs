@@ -51,6 +51,8 @@ pub(crate) struct SourceResolver<'a> {
     manifests: RefCell<HashMap<PathBuf, Option<Rc<toml::Value>>>>,
     /// Indexed files by the paths lookups named, since each lookup resolves links on disk.
     file_lookups: RefCell<HashMap<PathBuf, Option<&'a ExtractedFile>>>,
+    /// Indexed files by the paths module lookups named before their links were resolved.
+    linked_files: RefCell<HashMap<PathBuf, Option<&'a ExtractedFile>>>,
     /// The nearest manifest of each name above each starting directory.
     nearest_files: RefCell<HashMap<(PathBuf, String), Option<PathBuf>>>,
     test_filter: super::test_code::TestCodeFilter,
@@ -278,6 +280,7 @@ impl<'a> SourceResolver<'a> {
             sources: RefCell::new(HashMap::new()),
             manifests: RefCell::new(HashMap::new()),
             file_lookups: RefCell::new(HashMap::new()),
+            linked_files: RefCell::new(HashMap::new()),
             nearest_files: RefCell::new(HashMap::new()),
             test_filter: super::test_code::TestCodeFilter::from_config(root),
             target_os: crate::config::get().analysis_target_os.clone(),
@@ -457,6 +460,18 @@ impl<'a> SourceResolver<'a> {
                 key_sites: Vec::new(),
             }),
         })
+    }
+
+    /// The indexed file `path` names once its links on disk are resolved.
+    fn linked_file(&self, path: &Path) -> Option<&'a ExtractedFile> {
+        if let Some(found) = self.linked_files.borrow().get(path) {
+            return *found;
+        }
+        let found = self.file(&crate::workspace::canonicalize_path_lenient(path));
+        self.linked_files
+            .borrow_mut()
+            .insert(path.to_path_buf(), found);
+        found
     }
 
     fn file(&self, path: &Path) -> Option<&'a ExtractedFile> {

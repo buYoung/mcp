@@ -41,7 +41,7 @@ pub(super) fn node_at<'a>(root: Node<'a>, location: &CodeRange) -> Option<Node<'
     )
 }
 pub(super) fn scope(mut node: Node<'_>) -> Node<'_> {
-    while let Some(parent) = node.parent() {
+    for parent in crate::parser::ancestors(node) {
         node = parent;
         if is_function(node)
             || matches!(
@@ -623,14 +623,10 @@ pub(super) fn has_opaque_modifiers(node: Node<'_>, source: &[u8]) -> bool {
             .iter()
             .any(|child| child.kind() == "decorator")
 }
-pub(super) fn has_conditional_parent(mut node: Node<'_>) -> bool {
-    while let Some(parent) = node.parent() {
-        if is_control(parent) || matches!(parent.kind(), "preproc_elif" | "preproc_else") {
-            return true;
-        }
-        node = parent;
-    }
-    false
+pub(super) fn has_conditional_parent(node: Node<'_>) -> bool {
+    crate::parser::ancestors(node).any(|parent| {
+        is_control(parent) || matches!(parent.kind(), "preproc_elif" | "preproc_else")
+    })
 }
 pub(super) fn has_accessor_modifiers(node: Node<'_>, source: &[u8]) -> bool {
     node.child_by_field_name("name")

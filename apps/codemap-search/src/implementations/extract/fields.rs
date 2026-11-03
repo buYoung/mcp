@@ -249,8 +249,7 @@ fn python_value_type<'a>(assignment: Node<'a>, source: &[u8]) -> Option<Node<'a>
     match right.kind() {
         "identifier" => {
             let parameter = text(right, source);
-            let mut current = assignment.parent();
-            while let Some(node) = current {
+            for node in crate::parser::ancestors(assignment) {
                 if node.kind() == "function_definition" {
                     return children(node.child_by_field_name("parameters")?)
                         .into_iter()
@@ -261,7 +260,6 @@ fn python_value_type<'a>(assignment: Node<'a>, source: &[u8]) -> Option<Node<'a>
                         })
                         .and_then(|candidate| candidate.child_by_field_name("type"));
                 }
-                current = node.parent();
             }
             None
         }
