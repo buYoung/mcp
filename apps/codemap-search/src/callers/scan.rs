@@ -170,6 +170,10 @@ pub(super) struct ScanOptions<'a> {
     pub(super) unchanged_calls: Option<IndexedFiles<'a>>,
     /// No further file is scanned after this instant.
     pub(super) deadline: Option<Instant>,
+    /// Indexed files the filesystem watcher keeps current, with their lookup by recorded call
+    /// names. They are scanned in place of a workspace walk, and one whose recorded calls hold
+    /// none of the scanned names is skipped before its metadata is read.
+    pub(super) indexed_walk: Option<(&'a [ExtractedFile], &'a super::CallLookup)>,
 }
 
 /// Whether `display` is an indexed file that has not changed since extraction and records no
@@ -226,9 +230,10 @@ fn escape_name(name: &str) -> String {
     out
 }
 
-/// One combined-regex `\b(?:n1|n2|…)\b` walk of the workspace, classifying every hit.
-/// Returns `None` on any setup failure (failure isolation). The walk reuses
-/// `build_walker` + the source-extension + size filters so coverage matches the indexer.
+/// One combined-regex `\b(?:n1|n2|…)\b` walk of the workspace, or of the indexed files the
+/// watcher keeps current, classifying every hit. Returns `None` on any setup failure (failure
+/// isolation). The walk reuses `build_walker` + the source-extension + size filters so
+/// coverage matches the indexer.
 pub(super) fn scan_workspace(
     names: &[String],
     cfg: &CallerConfig,
@@ -286,49 +291,35 @@ pub(super) fn scan_workspace(
         .filter_map(|(file, _)| language_family(Path::new(&file.file_path)))
         .collect();
 
-    for result in crate::workspace::build_walker(root, false).build() {
-        if options
+    // Same coverage as the indexer: source extensions only, under the size filter.
+    let is_scanned_source = |path: &Path| {
+        !crate::workspace::is_explicitly_excluded_file(path)
+            && crate::lang::supports_caller_scan(path)
+            && language_family(path).is_some_and(|family| families.contains(family))
+    };
+    let metadata_under_cap = |path: &Path| {
+        std::fs::metadata(path)
+            .ok()
+            .filter(|meta| meta.len() <= cfg.max_file_size)
+    };
+    let is_past = || {
+        options
             .deadline
             .is_some_and(|deadline| Instant::now() >= deadline)
-        {
-            is_past_deadline = true;
-            truncated.iter_mut().for_each(|t| *t = true);
-            break;
-        }
-        let entry = match result {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-        if !entry.file_type().is_some_and(|ft| ft.is_file()) {
-            continue;
-        }
-        let path = entry.path();
-        if crate::workspace::is_explicitly_excluded_file(path) {
-            continue;
-        }
-        // Same coverage as the indexer: source extensions only, under the size filter.
-        if !crate::lang::supports_caller_scan(path)
-            || !language_family(path).is_some_and(|family| families.contains(family))
-        {
-            continue;
-        }
-        let metadata = match std::fs::metadata(path) {
-            Ok(meta) if meta.len() > cfg.max_file_size => continue,
-            Ok(meta) => meta,
-            Err(_) => continue,
-        };
-        let display = crate::workspace::walk_entry_display_path(&entry, &canonical_root, &raw_root);
+    };
+    // Scans one file; false once nothing further can be collected.
+    let mut scan_file = |path: &Path, display: String, metadata: std::fs::Metadata| {
         if test_filter.is_file_excluded(&display)
             || records_no_scanned_call(&display, &metadata, &name_set, options)
         {
-            continue;
+            return true;
         }
         let Ok(mut source) = std::fs::read(path) else {
-            continue;
+            return true;
         };
         // Only matching source can contribute a caller; parse test regions on demand.
         if !matcher.is_match(&source).unwrap_or(false) {
-            continue;
+            return true;
         }
         test_filter.mask_source(&display, &mut source);
         let mut sink = ClassifySink {
@@ -343,15 +334,67 @@ pub(super) fn scan_workspace(
         };
         // A per-file searcher error is isolated: skip the file, keep scanning.
         if searcher.search_slice(&matcher, &source, &mut sink).is_err() {
-            continue;
+            return true;
         }
         all_hits.append(&mut sink.hits);
         // Every name's budget exhausted → nothing further can be collected. Unscanned
         // files may still hold hits, so every name is conservatively marked truncated.
         if budgets.iter().all(|&b| b == 0) {
             truncated.iter_mut().for_each(|t| *t = true);
-            break;
+            return false;
         }
+        true
+    };
+    match options.indexed_walk {
+        Some((files, lookup)) => {
+            for position in lookup.files(names.iter().map(String::as_str), [], true) {
+                let file = &files[position];
+                if is_past() {
+                    is_past_deadline = true;
+                    break;
+                }
+                let display = file.file_path.as_str();
+                let path = root.join(display);
+                if !is_scanned_source(&path) {
+                    continue;
+                }
+                let Some(metadata) = metadata_under_cap(&path) else {
+                    continue;
+                };
+                if !scan_file(&path, display.to_string(), metadata) {
+                    break;
+                }
+            }
+        }
+        None => {
+            for result in crate::workspace::build_walker(root, false).build() {
+                if is_past() {
+                    is_past_deadline = true;
+                    break;
+                }
+                let Ok(entry) = result else {
+                    continue;
+                };
+                if !entry.file_type().is_some_and(|ft| ft.is_file()) {
+                    continue;
+                }
+                let path = entry.path();
+                if !is_scanned_source(path) {
+                    continue;
+                }
+                let Some(metadata) = metadata_under_cap(path) else {
+                    continue;
+                };
+                let display =
+                    crate::workspace::walk_entry_display_path(&entry, &canonical_root, &raw_root);
+                if !scan_file(path, display, metadata) {
+                    break;
+                }
+            }
+        }
+    }
+    if is_past_deadline {
+        truncated.iter_mut().for_each(|t| *t = true);
     }
 
     let truncated_names: HashSet<String> = names

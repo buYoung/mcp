@@ -59,7 +59,7 @@ codemap-search가 색인에 포함할 수 있는 파일, 추출하는 구조, �
 | `is_interface_support_enabled` | `.proto`, `.graphql`, `.gql` |
 | `is_build_support_enabled` | `Makefile`, `.mk`, `CMakeLists.txt`, `.cmake`, `BUILD`, `BUILD.bazel`, `.bzl` |
 
-비활성 상태인 파일은 색인, search, overview, codemap, 파일 변경 갱신에서 제외합니다. 실시간 `find`/`grep`/`read`와 CLI의 직접 `parse`는 계속 사용할 수 있습니다. 값을 바꾸면 설정을 다시 읽은 뒤 전체 색인 갱신을 요청하며 소스 파일을 편집할 필요가 없습니다.
+비활성 상태인 파일은 색인, search, codemap, 파일 변경 갱신에서 제외합니다. 실시간 `find`/`grep`/`read`와 CLI의 직접 `parse`는 계속 사용할 수 있습니다. 값을 바꾸면 설정을 다시 읽은 뒤 전체 색인 갱신을 요청하며 소스 파일을 편집할 필요가 없습니다.
 
 | 형식 | 추출 구조 | 한계 |
 |---|---|---|

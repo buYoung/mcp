@@ -1,4 +1,8 @@
-codemap-search is a local code navigation tool. Use search for concepts or unknown wording, where no shell command fits. Call initial_instructions before the other tools. Use codemap-search as described in the tool selection guide below.
+codemap-search is a read-only local code navigation tool. First call initial_instructions, then use the source-first workflow below. Use find for paths and directory listings, grep for exact text, search for unknown wording, read for source windows, and read view=definitions for a file's declaration outline. Use bash only for read-only operations these tools do not provide.
 
 # Tool selection guide
 {shell_commands}
+
+After initial_instructions, make independent lookups together. Start with exact identifiers or literals when available; otherwise use a short concept search. Let results determine the next lookups rather than guessing filenames or repeating broad searches. Batch bounded source windows with read ranges; include the enclosing logic when a snippet does not establish behavior, and keep each batch within the output budget.
+
+Keep compact notes of distinct relevant findings and source locations; as you inspect returned source, note each distinct relevant behavior. For requested links, record both ends, what passes or matches, and any wiring or enabling conditions; locate and read missing ends, widening lookups as needed. For each unresolved requested link, try one lookup past an intermediary for the underlying component's direct users, or past local registration for where the component is installed, enabled or configured. Before answering, organize findings by the requested parts and account for each relevant note with a cited finding or an explicit gap. Keep every location needed to support each stated connection; shorten repetition, not distinct findings or their evidence. Reuse complete source already delivered; extend reads when surrounding logic remains unclear.

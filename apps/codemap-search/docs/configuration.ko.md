@@ -14,7 +14,6 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 |---|---|
 | `output` | 공통 MCP 응답 바이트 한도와 가림 여부 |
 | `output.client` | Claude 문자 한도, Codex 도구별 토큰 한도, pi·opencode 바이트 한도 |
-| `output.overview` | 루트 통계와 개요 응답 |
 | `output.search` | 검색 상세 파일·심볼·코드 조각 |
 | `output.read` | 직접 읽기 응답 |
 | `output.grep` | 일치 행·함수 본문 응답 |
@@ -23,24 +22,24 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `output.macro_expansion` | 매크로 전처리와 생성된 선언의 탐색 결과 |
 | `output.event_navigation` | 이벤트·소스 경로 색인과 탐색 결과 |
 | `output.redact` | 추가 가림 규칙과 예외 |
-| `output.jev` | 선택적 search·read·grep·루트 외 overview 출력 필터, 기본은 꺼짐 |
+| `output.jev` | 선택적 search·read·grep 출력 필터, 기본은 꺼짐 |
 | `output.context.exclude` | search 호출 관계와 read/grep 자동 문맥, 이벤트·소스 경로 분석의 공통 테스트 제외 |
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
-| `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
+| `index.exclude` | 색인·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
 | `global_instructions` | 클라이언트 전역 지침 한 줄 관리. 사용자 전역 전용이며 저장소 값은 무시 |
 
-설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
+설정 위치만 구분하며 기존 적용 범위는 유지합니다. search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
 `output.max_bytes`는 선택 사항입니다. 응답 한도 우선순위는 **저장소 도구별 값 → 저장소 공통값 → 전역 도구별 값 → 전역 공통값 → 기존 도구 기본값**입니다. 모든 값을 생략하면 검색은 1 MiB, read와 확장 grep은 5 MiB를 유지합니다. 확장 grep은 해당 계층에 grep·공통 한도가 없으면 read 한도를 이어받습니다. `output.context.max_bytes`는 별도 관계 출력 예산으로, 검색 응답 안의 남은 공간도 함께 적용합니다.
 
-search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합니다. overview·find·initial_instructions와 확장하지 않은 grep은 명시한 응답 한도를 넘으면 범위 축소 오류를 반환합니다. 한도는 MCP 본문 텍스트 기준이며 JSON 봉투나 오류 메시지에는 적용하지 않습니다. 일반 CLI의 parse·index 결과는 이 MCP 응답 한도로 자르지 않습니다.
+search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합니다. find·initial_instructions와 확장하지 않은 grep은 명시한 응답 한도를 넘으면 범위 축소 오류를 반환합니다. 한도는 MCP 본문 텍스트 기준이며 JSON 봉투나 오류 메시지에는 적용하지 않습니다. 일반 CLI의 parse·index 결과는 이 MCP 응답 한도로 자르지 않습니다.
 
 ### 클라이언트 전달 한도
 
 `output.client`는 각 코딩 에이전트가 모델에 넘기는 결과의 최대 크기, 즉 codemap-search의 최종 컨텍스트 크기입니다. `max_bytes` 예산은 그보다 앞 단계인 후보 수집·Jev 입력·렌더링·페이지 나누기에 적용되며, 얼마나 크게 지정하든 모든 최종 응답은 지정한 클라이언트 한도 중 가장 작은 값을 지켜야 합니다. 한도는 UTF-8 바이트로 비교합니다. Claude 문자 수는 바이트로 세므로 실제 문자 수보다 적게 세지 않고, Codex 토큰은 토큰화 결과가 아닌 여유 추정치 `floor(토큰 수 × 3.5)`를 쓰며, pi·opencode 값은 이미 바이트입니다. 네 키의 기본값은 각 단위 기준 `100000`이며, 모두 기본값이면 최종 전달 한도는 `100000`바이트입니다. 생략한 키는 전역 설정이나 이 내장 기본값을 이어받습니다.
 
-검사는 모든 도구에 대해 Jev 생략·마스킹·중복 제거가 끝난 최종 텍스트에서 수행합니다. 순위 검색은 검사 전에 한도에 맞춥니다. 판정 후 일치·불확실 본문을 우선하고, `min(output.search.max_bytes, 한도 − min(512, 한도 / 8))`를 넘는 낮은 우선순위 본문 전체를 정확한 read 범위로 대체하며 관계와 후속 탐색 공간도 남깁니다. 빼 둔 여유는 렌더링 뒤 붙는 마스킹·중복 표식을 위한 것입니다. 후보·Jev 입력 예산은 유지합니다. 나머지 도구는 클라이언트가 잘라낼 결과 대신 범위 축소 오류를 반환합니다. read는 더 좁은 구간을, grep은 더 작은 `head_limit`와 다음 페이지용 `offset`을 제안합니다. Claude 메타데이터와 Codex exec의 여러 도구 결과 합산 한도는 별개이며, 임의의 묶음 출력이 클라이언트 한도를 넘지 않는다는 보장은 아닙니다.
+검사는 모든 도구에 대해 Jev 생략·마스킹·중복 제거가 끝난 최종 텍스트에서 수행합니다. 순위 검색은 검사 전에 한도에 맞춥니다. 판정 후 일치·불확실 본문을 우선하고, `min(output.search.max_bytes, 한도 − min(512, 한도 / 8))`를 넘는 낮은 우선순위 본문 전체를 정확한 read 범위로 대체하며 관계와 후속 탐색 공간도 남깁니다. 빼 둔 여유는 렌더링 뒤 붙는 마스킹·중복 표식을 위한 것입니다. 후보·Jev 입력 예산은 유지합니다. `read ranges`는 마스킹·중복 제거 뒤 제목·항목 오류를 포함한 전체 항목들을 `output.read.max_bytes`와 클라이언트 전달 한도 중 작은 값 안에 맞춥니다. 처음 생략한 항목을 가리키는 안내 공간을 남기며, 생략한 항목은 전달 이력에 넣지 않습니다. 안내조차 담을 수 없는 작은 한도는 오류입니다. 나머지 호출은 클라이언트가 잘라낼 결과 대신 범위 축소 오류를 반환합니다. 단일 read는 더 좁은 구간을, grep은 더 작은 `head_limit`와 다음 페이지용 `offset`을 제안합니다. Claude 메타데이터와 Codex exec의 여러 도구 결과 합산 한도는 별개이며, 임의의 묶음 출력이 클라이언트 한도를 넘지 않는다는 보장은 아닙니다.
 
 `output.client.claude_max_result_chars`는 1~500000의 문자 수이며 기본값은 `100000`입니다. 각 도구의 `tools/list` 항목에 `_meta["anthropic/maxResultSizeChars"]`로 전달합니다. 클라이언트가 도구 목록을 다시 읽도록 MCP를 재연결하세요. [Claude Code 공식 문서](https://code.claude.com/docs/en/mcp#raise-the-limit-for-a-specific-tool)
 
@@ -50,7 +49,7 @@ Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. 
 
 `MCP client delivery context` 진단 로그는 `params._meta.callId` 유무, `exec-` 뒤에 하이픈을 포함한 UUID가 오는 형식에 한정한 ID 값, 응답 바이트 수와 설정된 Codex 한도를 기록합니다. 이 내부 ID 형식은 Code Mode의 단서일 뿐이며 실제 exec 예산이나 모델 문맥에 전달됐는지는 알 수 없습니다. 이 값으로 필터·출력 한도·중복 이력을 바꾸지 않습니다.
 
-`output.client.pi_max_bytes`와 `output.client.opencode_max_bytes`는 정수 바이트 또는 크기 문자열이며 기본값은 각각 `100000`바이트입니다. pi([pi-mcp-adapter](https://github.com/nicobailon/pi-mcp-adapter#output-guard) `settings.outputGuard.maxBytes`)와 opencode([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config))는 서버 메타데이터를 읽지 않으며, 기본으로 큰 텍스트 결과의 앞 51200바이트만 남기고 나머지는 파일로 저장합니다. 클라이언트와 서버에 같은 값을 설정하세요. 서버 기본값인 `100000`바이트를 사용하려면 클라이언트 한도도 높여야 합니다. codemap-search는 클라이언트 설정을 바꾸지 않습니다. 줄 수 한도(기본 2000줄)는 맞추지 않습니다.
+`output.client.pi_max_bytes`와 `output.client.opencode_max_bytes`는 정수 바이트 또는 크기 문자열이며 기본값은 각각 `100000`바이트입니다. 각 도구의 `tools/list` 항목에 `pi_max_bytes`를 `_meta["pi/maxOutputBytes"]`로 전달합니다. [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)는 이 값을 `mcp.json`의 `maxOutputBytes`보다 먼저 적용합니다. pi가 도구 메타데이터를 다시 읽도록 MCP를 재연결하세요. pi 기본 MCP는 도구 메타데이터를 읽지 않고 큰 결과를 20KB로 자릅니다. opencode([`tool_output.max_bytes`](https://opencode.ai/v2/docs/config))는 서버 메타데이터를 읽지 않으며, 기본으로 큰 텍스트 결과의 앞 51200바이트만 남기고 나머지는 파일로 저장합니다. opencode에도 `opencode_max_bytes`와 같은 값을 설정하세요. 서버 기본값인 `100000`바이트를 사용하려면 opencode 한도도 높여야 합니다. codemap-search는 클라이언트 설정을 바꾸지 않습니다. opencode의 줄 수 한도(기본 2000줄)는 맞추지 않습니다.
 
 ## 설정 위치와 우선순위
 
@@ -108,7 +107,7 @@ api_key = "<발급받은 OpenRouter 키>"
 
 `config_auto_update = true`이면 MCP 시작 시 누락된 저장소 `auth.toml`을 인증정보가 없는 현지화 템플릿으로 만듭니다. 기존 파일은 덮어쓰지 않으며 환경 변수의 키를 복사하지 않습니다. Unix에서는 소유자만 읽고 쓰는 `0600` 권한으로 생성하고, Windows에서는 파일시스템의 상속 ACL을 사용합니다. 전역 인증 파일은 자동 생성하지 않습니다. 모델·활성화·요청 제한은 `config.toml`의 `[output.jev]`에서 관리합니다.
 
-이름이 `auth.toml`인 모든 파일은 대소문자 구분 없이 색인·search·overview와 기본 `find`/`grep`에서 제외합니다. 이는 접근 차단 정책은 아닙니다. 직접 `read`/`parse`할 수 있고, `find`/`grep`의 `include_ignored: true`로 파일명 제외를 우회할 수 있습니다. `.codemap` 등 필수 제외 디렉터리는 탐색 시 계속 제외합니다. Git 제외는 직접 설정해야 하며 codemap-search는 Git 무시 파일을 수정하지 않습니다.
+이름이 `auth.toml`인 모든 파일은 대소문자 구분 없이 색인·search와 기본 `find`/`grep`에서 제외합니다. 이는 접근 차단 정책은 아닙니다. 직접 `read`/`parse`할 수 있고, `find`/`grep`의 `include_ignored: true`로 파일명 제외를 우회할 수 있습니다. `.codemap` 등 필수 제외 디렉터리는 탐색 시 계속 제외합니다. Git 제외는 직접 설정해야 하며 codemap-search는 Git 무시 파일을 수정하지 않습니다.
 
 ## 설정 읽기와 자동 작성
 
@@ -218,7 +217,8 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `auth.toml`의 `[jev].api_key`, `[openrouter].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
 | `[output.client].claude_max_result_chars` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
 | `[output.client].codex_output_token_limit` | 최종 전달 한도는 재로드 후 적용; 클라이언트는 codex-config를 다시 병합 |
-| `[output.client].pi_max_bytes`, `[output.client].opencode_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트 변경 불필요 |
+| `[output.client].pi_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트가 도구 목록을 갱신하도록 MCP 재연결 |
+| `[output.client].opencode_max_bytes` | 최종 전달 한도는 재로드 후 적용. 클라이언트 변경 불필요 |
 
 제외 규칙을 직접 바꾸면 파일 필터를 갱신하고 전체 색인 갱신을 요청합니다. 갱신 완료 후 제외된 파일은 결과에서 사라지고 새로 포함한 파일은 검색할 수 있습니다. 색인 기능을 사용할 수 없으면 복구하거나 서버를 재시작한 뒤 결과를 확인하세요.
 
@@ -235,10 +235,8 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output].max_bytes` | 정수 바이트 또는 크기 문자열 | 미지정 | 공통 MCP 응답 한도. 도구별 예외가 같은 계층에서 우선 |
 | `[output.client].claude_max_result_chars` | 정수(문자), 1~500000 | `100000` | Claude tools/list 메타데이터와 최종 전달 한도(바이트 기준). 재연결 필요 |
 | `[output.client].codex_output_token_limit` | 양의 정수(토큰) | `100000` | Codex 설정 내보내기와 최종 전달 한도(토큰당 3.5바이트) |
-| `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | pi 최종 전달 한도 |
+| `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | pi tools/list 메타데이터와 최종 전달 한도. 재연결 필요 |
 | `[output.client].opencode_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | opencode 최종 전달 한도 |
-| `[output.overview].is_stats_enabled` | bool | `true` | 저장소 루트와 모노레포 프로젝트 루트 `overview`에 색인 파일 언어 통계 포함. `false`면 해당 섹션 생략 |
-| `[output.overview].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | 개요 응답 한도. 공통값도 없으면 추가 제한 없음 |
 | `[output.search].detail_file_limit` | 정수 | `24` | 상세 내용을 표시할 상위 파일 수 |
 | `[output.search].overview_file_limit` | 정수 | `80` | 나머지 간략 목록에 표시할 최대 파일 수 |
 | `[output.search].snippet_max_lines` | 정수 | `500` | 심볼마다 표시할 최대 발췌 줄 수. 긴 본문은 생략 표시 |
@@ -248,7 +246,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.search].literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
 | `[output.search].anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[output.read].max_bytes` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
-| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록과 같은 키를 쓰는 다른 위치를 덧붙임. `false`면 둘 다 생략 |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록, 같은 키를 쓰는 다른 위치, 창의 선언을 import하는 다른 파일을 덧붙임. `false`면 셋 다 생략 |
 | `[output.grep].max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[output.grep].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | grep 응답 한도. 확장 본문은 read 한도도 대체값으로 사용 |
 | `[output.context].is_enabled` | bool | `true` | `search` 호출에서 `caller_context` 생략 시 호출 관계 표시 여부 |
@@ -293,7 +291,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[related_terms].dataset_path` | string | 없음 | 내려받기 대신 사용할 사용자 뜻 데이터셋 경로. 원본은 수정하지 않음 |
 | `[update].config_auto_update` | bool | `true` | MCP 시작 시 누락된 저장소 config/auth 템플릿 생성과 config 스키마 갱신 |
 | `[output.jev].enabled` | bool | `false` | 전체 스위치. false이면 scope와 무관하게 모든 Jev 출력 필터를 끔 |
-| `[output.jev].scope` | 문자열 배열 | `["overview", "search", "read", "grep"]` | enabled일 때 적용할 전체 도구 목록. []는 적용 안 함, 저장소 목록이 전역 목록을 대체 |
+| `[output.jev].scope` | 문자열 배열 | `["search", "read", "grep"]` | enabled일 때 적용할 전체 도구 목록. []는 적용 안 함, 저장소 목록이 전역 목록을 대체 |
 | `[output.jev].model` | 문자열 | `"jev-1.14.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. Jev 버전은 TypeSafe, `제작자/모델` ID는 [OpenRouter](#openrouter-decision-모델)를 사용. 별칭 이름은 검증에 실패 |
 | `[output.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
 | `[output.jev].max_in_flight_requests` | 정수, 1~3 | `3` | 동시에 진행하는 HTTP 요청 수(3이 런타임 상한) |
@@ -308,11 +306,11 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 | 모드 | 동작 |
 |---|---|
-| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `overview`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
+| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
 | `"on"` | 이 확인 없이 서버 시작 때 색인합니다. |
 | `"off"` | 작업공간을 색인하지 않습니다. |
 
-`auto` 모드가 색인하지 않으면(예: 저장소 여러 개를 담은 폴더) `search`와 `overview`는 이유와 함께 `Index unavailable:`을 반환합니다. 이유에는 한두 단계 아래에서 찾은 저장소를 세 개까지 적습니다. `read`, `grep`, `find`는 색인한 선언·호출자 없이 실제 파일 결과를 계속 반환합니다. 저장소 밖에서는 `.codemap/` 디렉터리를 만들지 않습니다. 설정 파일을 생성하지 않고, 빈 임시 색인은 서버가 끝나면 지워지는 임시 디렉터리에 둡니다. 파일 수 한도는 첫 색인 도구 호출 때 확인하므로, 한도를 넘는 저장소에도 시작 시 `.codemap/`은 생깁니다. 이런 작업공간을 색인하려면 `.codemap/config.toml`이나 전역 설정에 `mode = "on"`을 쓰고 서버를 재시작하세요.
+`auto` 모드가 색인하지 않으면(예: 저장소 여러 개를 담은 폴더) `search`는 이유와 함께 `Index unavailable:`을 반환합니다. 이유에는 한두 단계 아래에서 찾은 저장소를 세 개까지 적습니다. `read`, `grep`, `find`는 색인한 선언·호출자 없이 실제 파일 결과를 계속 반환합니다. 저장소 밖에서는 `.codemap/` 디렉터리를 만들지 않습니다. 설정 파일을 생성하지 않고, 빈 임시 색인은 서버가 끝나면 지워지는 임시 디렉터리에 둡니다. 파일 수 한도는 첫 색인 도구 호출 때 확인하므로, 한도를 넘는 저장소에도 시작 시 `.codemap/`은 생깁니다. 이런 작업공간을 색인하려면 `.codemap/config.toml`이나 전역 설정에 `mode = "on"`을 쓰고 서버를 재시작하세요.
 
 ### 색인과 파일 제외
 
@@ -320,7 +318,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 `auth.toml`, `.txt`, `*.lock`, 알려진 패키지 관리 잠금 파일, `*.map`, 압축·번들 파일은 대소문자 구분 없이 색인·코드맵·호출자 탐색에서 제외합니다. `find`/`grep`도 기본적으로 숨기지만 `include_ignored: true`로 볼 수 있고 직접 `read`/`parse`도 가능합니다. 전체 목록은 [지원 언어와 파일 제외](./language-support-checklist.ko.md)에 있습니다. `index.max_file_bytes`보다 큰 파일도 색인에서 제외합니다.
 
-다섯 `[index.language_support]` 키는 색인, search, overview, codemap, 파일 변경 갱신에 적용합니다. 실시간 `find`/`grep`/`read`와 직접 `parse`를 끄지는 않습니다.
+다섯 `[index.language_support]` 키는 색인, search, codemap, 파일 변경 갱신에 적용합니다. 실시간 `find`/`grep`/`read`와 직접 `parse`를 끄지는 않습니다.
 
 `use_git_exclude`는 `.git/info/exclude`만 제어합니다. `false`여도 `.gitignore`, 전역 Git 무시 규칙, `.codemapignore`는 적용됩니다.
 
@@ -405,11 +403,9 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 
 ### 출력과 호출 관계
 
-저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. `[output.overview].is_stats_enabled = false`이면 해당 섹션을 생략합니다. 예를 들어 선택 가능한 프로젝트 경로인 `overview(path="apps/api")`는 해당 프로젝트에 속한 색인 파일만 집계합니다. 그 외 폴더와 파일에는 통계를 붙이지 않습니다. 사라지거나 변경된 파일은 집계 불가로 표시합니다. 요청당 새로 집계할 수 있는 256개 파일 또는 64 MiB를 넘으면 대기 상태로 표시하며, 이후 요청은 완료된 집계를 재사용합니다.
-
 `search`는 상위 파일의 상세 내용 뒤에 나머지 파일을 간략 목록으로 표시합니다. 크기 설정은 출력을 제한하며 제외 파일을 바꾸지 않습니다. 일반 질의에서는 생성 파일과 번역 리소스의 순위를 낮추지만 정확한 경로·심볼·리소스 키·인용 원문으로 해당 파일을 지정할 수 있습니다.
 
-`output.search.max_bytes`에는 부분 출력 안내도 포함합니다. 결과가 잘리면 질의를 좁히거나 안내된 범위를 읽으세요. `search`에는 페이지 위치 인자가 없습니다. `output.search.anchor_snippet_limit`는 파일마다 전체 발췌를 표시할 심볼 수를 제한하며 나머지는 최대 3줄 선언으로 표시합니다.
+`output.search.max_bytes`에는 부분 출력 안내도 포함합니다. 결과가 잘리면 질의를 좁히거나 안내된 범위를 읽으세요. `search`에는 페이지 위치 인자가 없습니다. `output.search.anchor_snippet_limit`는 파일마다 전체 발췌를 표시할 심볼 수를 제한하며 나머지는 최대 3줄 선언으로 표시합니다. 쓰지 않고 남은 tail 행과 바이트에는 [순위 밖 구절 일치](../README.ko.md#탐색-도구-사용)가 들어갈 수 있습니다.
 
 `output.read.max_bytes`에는 줄 번호·문맥·제목을 포함하며 함수 본문으로 확장된 `grep`에도 적용합니다. `read` 출력이 초과하면 더 좁은 `offset`/`limit`를 안내하는 오류를 반환합니다. 확장된 `grep`은 본문을 조용히 자르는 대신 크기 초과 또는 페이지 분할을 안내합니다. `read`에서 함수 확장을 끄고 `limit`를 생략하면 별도의 전체 파일 256 KiB 제한도 적용합니다. `grep_max_columns = 0`은 긴 줄 제한을 끄고, 그 외에는 초과 줄을 `[Omitted long matching line]`으로 표시합니다. `grep`의 부분 결과에는 `next_offset`이 있습니다.
 
@@ -429,7 +425,7 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 
 ### 테스트 코드 문맥
 
-`excluded_directories`와 `use_git_exclude`는 `[index.exclude]`, 테스트 문맥의 `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, `test_calls`는 `[output.context.exclude]`에서 관리합니다. 같은 파일에서는 유효한 새 위치의 값이 이전 `[exclude]`와 `[caller_context]`, `[index]`, 최상위 별칭보다 우선하며, 언어별 표는 누락한 언어를 상속합니다. 파일 간 저장소 → 전역 → 내장 우선순위는 동일합니다. 두 디렉터리 제외 설정은 색인·overview·search·호출자 탐색·`find`/`grep`이 공유하며, 어느 쪽을 바꿔도 설정 재로드 후 전체 색인 갱신을 요청합니다. 직접 `read`에는 디렉터리 제외를 적용하지 않습니다.
+`excluded_directories`와 `use_git_exclude`는 `[index.exclude]`, 테스트 문맥의 `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, `test_calls`는 `[output.context.exclude]`에서 관리합니다. 같은 파일에서는 유효한 새 위치의 값이 이전 `[exclude]`와 `[caller_context]`, `[index]`, 최상위 별칭보다 우선하며, 언어별 표는 누락한 언어를 상속합니다. 파일 간 저장소 → 전역 → 내장 우선순위는 동일합니다. 두 디렉터리 제외 설정은 색인·search·호출자 탐색·`find`/`grep`이 공유하며, 어느 쪽을 바꿔도 설정 재로드 후 전체 색인 갱신을 요청합니다. 직접 `read`에는 디렉터리 제외를 적용하지 않습니다.
 
 `should_include_test_code = false`이면 설정한 테스트 영역을 `read`/`grep`의 자동 심볼 문맥과 `search`의 호출 관계에서 제외합니다. 같은 이름의 정의 개수, 호출 대상 조회, 호출자 탐색 한도를 계산하기 전에 적용합니다. 직접 `read`/`grep`한 원문, 검색 결과와 저장된 색인은 유지됩니다. `true`이면 테스트 문맥을 포함하지만 디렉터리·무시 파일 제외 규칙은 별도로 적용됩니다.
 
@@ -496,13 +492,13 @@ powershell = ["Describe", "Context", "It"]
 - `allowed_roots`: 작업공간과 지정한 외부 루트에 접근합니다.
 - `anywhere`: 서버 프로세스가 접근할 수 있는 모든 경로에 접근합니다(기본값).
 
-`allowed_roots` 항목은 비어 있지 않은 문자열이어야 합니다. 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다. 존재하는 경로 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고, 아직 없는 뒷부분은 유지합니다. 상위 경로 이동으로 허용된 범위를 넓힐 수는 없습니다. 이 권한은 `search`·`overview`의 색인 범위를 넓히지 않습니다.
+`allowed_roots` 항목은 비어 있지 않은 문자열이어야 합니다. 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다. 존재하는 경로 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고, 아직 없는 뒷부분은 유지합니다. 상위 경로 이동으로 허용된 범위를 넓힐 수는 없습니다. 이 권한은 `search`의 색인 범위를 넓히지 않습니다.
 
 ### 색인 갱신
 
-`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. `.gitignore`, `.ignore`, `.codemapignore`가 숨기는 경로의 변경은 제외 디렉터리처럼 버리고, 이 파일들이 바뀌면 전체 탐색을 합니다. 감시를 끄거나 사용할 수 없으면 `search`/`overview`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
+`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. `.gitignore`, `.ignore`, `.codemapignore`가 숨기는 경로의 변경은 제외 디렉터리처럼 버리고, 이 파일들이 바뀌면 전체 탐색을 합니다. 감시를 끄거나 사용할 수 없으면 `search`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
 
-`indexer_auto_restart = true`이면 백그라운드 색인 중단 후 다음 `search`/`overview`가 복구를 시도합니다. 서버 실행 중 복구 횟수에는 제한이 있습니다. 끄면 재시작 전까지 결과가 고정됩니다. 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
+`indexer_auto_restart = true`이면 백그라운드 색인 중단 후 다음 `search`가 복구를 시도합니다. 서버 실행 중 복구 횟수에는 제한이 있습니다. 끄면 재시작 전까지 결과가 고정됩니다. 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
 
 ## `config.toml` 예시
 
@@ -535,16 +531,12 @@ claude_max_result_chars = 100000
 codex_output_token_limit = 100000
 
 # pi가 받는 MCP 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
-# pi-mcp-adapter의 settings.outputGuard.maxBytes도 같은 값으로 설정하세요.
+# @buyong/pi-mcp-adapter는 도구 메타데이터에서 이 값을 읽습니다. pi 기본 MCP는 결과를 20KB에서 자릅니다.
 pi_max_bytes = 100000
 
 # opencode가 받는 도구 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
 # opencode.json의 tool_output.max_bytes도 같은 값으로 설정하세요.
 opencode_max_bytes = 100000
-
-[output.overview]
-# overview로 저장소 루트나 하위 프로젝트 루트를 볼 때 언어별 파일 통계를 함께 보여 줍니다.
-is_stats_enabled = true
 
 [output.search]
 # 상세 결과로 표시할 최대 파일 수입니다. 나머지 결과는 간략 목록으로 표시합니다.
@@ -679,8 +671,8 @@ exceptions = []
 enabled = false
 
 # enabled일 때 필터를 적용할 도구입니다. []는 적용하지 않으며 전역 목록을 대체합니다.
-# 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
-scope = ["overview", "search", "read", "grep"]
+# Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
+scope = ["search", "read", "grep"]
 
 # 사용할 decision 모델입니다(기본 jev-1.14.0). Jev 버전은 TypeSafe를, 제작자/모델 ID는
 # OpenRouter Decisions API만 사용하며 decision을 지원하지 않는 모델은 거부됩니다. 별칭은 쓸 수 없습니다.
@@ -711,7 +703,7 @@ search_filter_min_unrelated_probability = 0.70
 
 [output.context.exclude]
 # 호출 관계와 자동으로 붙는 관련 정보에 테스트 코드를 포함합니다.
-# false여도 search/overview의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
+# false여도 search의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
 should_include_test_code = false
 
 # 테스트 파일로 볼 경로 패턴입니다(*, ** 사용 가능). 작업공간 기준이며, /가 없으면 파일 이름과 비교합니다.
@@ -749,9 +741,9 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, read, grep 호출 때 시작하며,
 # 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
-# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search가 이유를 알려 줍니다.
 # "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
 # 전역 설정이 적용되도록 주석으로 둡니다.
 # mode = "auto"
@@ -782,7 +774,7 @@ excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".
 use_git_exclude = true
 
 [index.refresh]
-# 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search/overview를 호출할 때 갱신합니다.
+# 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search를 호출할 때 갱신합니다.
 # 바꾼 뒤에는 서버를 재시작하세요.
 watch = true
 
@@ -793,8 +785,8 @@ watch_debounce_ms = 500
 # 파일 감시를 쓰지 않을 때 색인을 갱신하는 최소 간격(밀리초)입니다.
 index_staleness_ms = 5000
 
-# 색인 작업이 멈추면 다음 search/overview 때 다시 시작합니다(횟수 제한 있음).
-# false이면 서버를 재시작할 때까지 search/overview 결과가 갱신되지 않습니다.
+# 색인 작업이 멈추면 다음 search 때 다시 시작합니다(횟수 제한 있음).
+# false이면 서버를 재시작할 때까지 search 결과가 갱신되지 않습니다.
 indexer_auto_restart = true
 
 [index.language_support]
@@ -886,9 +878,13 @@ allowed_roots = []
 
 저장소의 `.codemapignore`는 gitignore 문법으로 색인·`find`·`grep`에서 숨길 경로를 추가합니다.
 
-색인은 UTF-8 소스만 허용합니다. 잘못된 UTF-8 파일은 이전 색인 항목도 제거하며, `overview`·`read`에 최초 오류 바이트 위치와 제외 이유를 표시합니다. `read`의 대체 문자 표시 정책은 유지하고 원본 파일은 변경하지 않습니다.
+색인은 UTF-8 소스만 허용합니다. 잘못된 UTF-8 파일은 이전 색인 항목도 제거하며, `read`에 최초 오류 바이트 위치와 제외 이유를 표시합니다. `read`의 대체 문자 표시 정책은 유지하고 원본 파일은 변경하지 않습니다.
 
 ## read·grep 요청별 출력 제어
+
+여러 알려진 범위는 `read`의 `ranges: [{file_path, offset?, limit?}, ...]`로 한 번에 읽습니다(1~20개). 최상위 `file_path`나 그 별칭과 함께 쓰면 오류이며, 빈 배열·배열이 아닌 값·항목 수 초과도 거부합니다. 항목마다 단일 read와 같은 경로 권한·확장자 제한·파일/출력 바이트 상한을 적용합니다. 별칭 우선순위도 같습니다: `file_path` > `path` > `file` > `query`, 명시한 `offset`/`limit` > `start_line`/`end_line` > `start`/`end`. camel/kebab 변형과 문자열 숫자도 받습니다. offset 기본값은 1, limit 기본값은 EOF이며 최상위 offset/limit는 상속하지 않습니다.
+
+공통 `view`, `expand`, `unresolved`, `include_events`, `debug`, `include_seen`은 최상위에 둡니다. 항목 안의 출력 옵션은 무시합니다. 각 결과에 경로와 요청 범위 제목을 붙이며 함수 확장 시 실제 범위는 더 넓을 수 있습니다. 항목 실패는 그 자리에 오류로 표시하고 나머지는 계속합니다. 같은 연결의 단일 read·search·grep 및 앞선 항목과 전달 이력을 공유하며 `include_seen=true`는 중복 제거만 우회하고 Jev·다른 제한은 유지합니다. 합산 상한에 걸리면 처음 미룬 항목의 1부터 시작하는 범위 번호와 0부터 시작하는 `ranges` 인덱스를 알립니다. 그 항목부터 남은 범위를 더 적게 묶거나 좁혀 다시 요청하세요.
 
 다음은 TOML 설정이 아닌 요청 인자입니다. 내용 모드 `grep`은 기본으로 함수 본문까지 확장하고, `read`는 기본으로 요청한 줄 범위를 유지합니다. `search.caller_context`에는 영향을 주지 않습니다.
 
@@ -924,7 +920,7 @@ import·재수출·선언·호출 위치와 확인 가능한 부모 모듈의 �
 ```toml
 [output.jev]
 enabled = true
-scope = ["overview", "search", "read", "grep"]
+scope = ["search", "read", "grep"]
 search_filter_min_unrelated_probability = 0.70
 ```
 
@@ -943,11 +939,11 @@ enabled = true
 model = "openai/gpt-6-luna-decisions"
 ```
 
-Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `overview`, `search`, `read`, `grep`을 받으며 기본값은 네 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. `initial_instructions`, 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
+Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `search`, `read`, `grep`을 받으며 기본값은 세 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고 제거된 `overview` 이름은 무시하며, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. `initial_instructions`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
 
 ### 작업 질문 등록
 
-`initial_instructions({})`·`find`·루트 `overview`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않습니다. 이전 클라이언트가 인자를 보내도 무시하고 기존 등록을 유지합니다.
+`initial_instructions({})`·`find`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않습니다. 이전 클라이언트가 인자를 보내도 무시하고 기존 등록을 유지합니다.
 
 주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않으므로, `tools/list`는 `enabled`가 true이고 `scope`가 비어 있지 않을 때만 `register_task`를 보여 줍니다. 설정을 다시 불러와 Jev를 켜기 전에 도구 목록을 받은 클라이언트는 다시 연결해야 이 도구가 보입니다. 서버는 등록 호출을 계속 받으며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
 
@@ -974,7 +970,7 @@ Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는
 
 등록은 연결 안에서 원자적으로 교체합니다. 잘못된 교체는 이전 작업을 지우며 `initialize`도 초기화합니다. 질문 생성용 별도 서비스를 호출하지 않습니다. 등록 누락은 인수 오류이고 인증정보 부재나 평가 실패는 해당 도구의 일반 출력을 보존합니다. 공통 중복 제거는 그 뒤에 독립적으로 적용됩니다.
 
-켜진 search·read·grep·overview는 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. `initial_instructions`·루트 overview·find·analyze는 Jev를 호출하지 않습니다. `register_task`도 로컬로 동작합니다. 실제 필터와 이 표시는 모두 `enabled`와 `scope`를 따릅니다. 폐기한 `overview_enabled` 설정은 계속 경고 후 무시합니다. 생략 안내의 read 위치는 활성화된 read 필터를 우회하지 않습니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
+켜진 search·read·grep은 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. `initial_instructions`·find·analyze는 Jev를 호출하지 않습니다. `register_task`도 로컬로 동작합니다. 실제 필터와 이 표시는 모두 `enabled`와 `scope`를 따릅니다. 폐기한 `overview_enabled` 설정은 계속 경고 후 무시합니다. 생략 안내의 read 위치는 활성화된 read 필터를 우회하지 않습니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
 
 ### 질문 판단과 근거
 
@@ -1073,13 +1069,7 @@ Read·grep은 실제로 읽은 같은 버퍼에서 함수 경계와 반환 행�
 
 Rust에서 직접 사용할 때는 [`codemap_search::jev`](../src/jev/mod.rs)와 [판단 예제](../examples/jev_decisions.rs)를 참고하세요. 예제의 `--mock`은 오프라인이며 `--live`는 API 키로 실제 요청을 보냅니다.
 
-### 루트 외 overview의 Jev 적용
-
-`enabled=true`이고 `scope`에 `"overview"`가 있으면 파일과 하위 폴더의 선언 행을 판단합니다. 저장소 루트와 그 별칭·절대 경로는 등록이나 외부 호출 없이 기존 지도를 반환합니다. 모노레포의 하위 워크스페이스는 비루트 경로에 해당합니다. 폴더는 바로 포함된 파일 최대 8개의 선언을 판단하며 하위 디렉터리 지도와 파일 항목, 색인 통계는 유지합니다.
-
-판정용 소스는 파일 읽기 권한·마스킹·테스트 코드 제외 규칙을 따르고 색인 당시의 소스 해시와 현재 소스를 대조합니다. 판정 완료 후 파일을 다시 읽지 않습니다. 판단할 근거가 없거나 한도를 넘긴 선언은 미판정으로 남으며, 이를 분류 성공으로 집계하지 않습니다. 불확실 선언은 유지하고 일치하지 않는 선언만 제거합니다. 부모 선언이 남아도 그 자식 전체가 자동 보존되지는 않으며, 남은 자식의 구조를 나타내는 부모는 유지합니다.
-
-판정에 사용한 소스 본문은 overview 응답이나 공통 중복 제거 이력에 등록하지 않습니다. 이후 read에서 그 본문이 이미 전달됐다고 잘못 접히지 않습니다. read·grep과 overview의 보조 근거에는 같은 클래스 범위에서 확인한 멤버 대입·사용 및 콜백 참조도 최대 8개 연결까지 포함합니다. 이는 관련성 판단을 위한 근거이며 자동 보존 조건이나 런타임 연결 증명은 아닙니다.
+read·grep의 보조 근거에는 같은 클래스 범위에서 확인한 멤버 대입·사용 및 콜백 참조도 최대 8개 연결까지 포함합니다. 이는 관련성 판단을 위한 근거이며 자동 보존 조건이나 런타임 연결 증명은 아닙니다.
 
 ## 이벤트 관계 탐색
 
@@ -1159,7 +1149,6 @@ UTF-8 소스만 저장하며 색인·Git·디렉터리 제외 규칙을 적용�
 | 이전 경로 | 새 경로 |
 |---|---|
 | `tool_output.is_redact_enabled` | `output.is_redact_enabled` |
-| `tool_output.is_overview_stats_enabled` | `output.overview.is_stats_enabled` |
 | `search.result_threshold` | `output.search.detail_file_limit` |
 | `search.search_overview_file_limit` | `output.search.overview_file_limit` |
 | `search.search_detail_snippet_max_lines` | `output.search.snippet_max_lines` |

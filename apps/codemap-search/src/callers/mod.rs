@@ -48,6 +48,8 @@ pub use annotate::{
     annotate_results, AnnotationRequest, CallerBlockDedup, DetailAnnotations, PreparedAnnotation,
     ANNOTATION_OMITTED_MARKER,
 };
+pub(crate) use source::code_use_lines;
+pub(crate) use symbols::CallLookup;
 
 use crate::lang::spec_for_ext;
 use crate::parser::ExtractedSymbol;

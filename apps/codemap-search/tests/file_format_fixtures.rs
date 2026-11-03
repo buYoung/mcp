@@ -290,11 +290,15 @@ fn priority_three_ast_symbols_and_imports_preserve_no_call_policy() {
     let shell = extract("deploy.sh", "function deploy { :; }\nREGION=kr\nsource ./shared.sh\nsource \"$PLUGIN_ROOT/common.sh\"\n. \"$(resolve_lib)\"");
     assert!(has_symbol(&shell, "deploy") && has_symbol(&shell, "REGION"));
     let navigation = shell.navigation.unwrap();
-    assert_eq!(navigation.imports[0].source.as_deref(), Some("./shared.sh"));
+    let sources: Vec<_> = navigation
+        .imports
+        .iter()
+        .map(|import| import.source.as_deref())
+        .collect();
     assert_eq!(
-        navigation.imports.len(),
-        1,
-        "dynamic source operands are not static imports"
+        sources,
+        [Some("./shared.sh"), Some("$PLUGIN_ROOT/common.sh")],
+        "a computed directory keeps a literal file; a wholly computed operand names none"
     );
     assert!(navigation.calls.is_empty() && navigation.references.is_empty());
 }
@@ -394,7 +398,7 @@ fn added_tree_sitter_formats_emit_structural_symbols_and_dependencies() {
 }
 
 #[test]
-fn broad_tree_sitter_grammar_coverage_keeps_overview_symbols_complete() {
+fn broad_tree_sitter_grammar_coverage_keeps_declaration_symbols_complete() {
     for (path, source, expected) in [
         (
             "config.json",

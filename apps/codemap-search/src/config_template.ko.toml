@@ -1,4 +1,4 @@
-# codemap-config-version: 32
+# codemap-config-version: 33
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
@@ -24,16 +24,12 @@ claude_max_result_chars = 100000
 codex_output_token_limit = 100000
 
 # pi가 받는 MCP 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
-# pi-mcp-adapter의 settings.outputGuard.maxBytes도 같은 값으로 설정하세요.
+# @buyong/pi-mcp-adapter는 도구 메타데이터에서 이 값을 읽습니다. pi 기본 MCP는 결과를 20KB에서 자릅니다.
 pi_max_bytes = 100000
 
 # opencode가 받는 도구 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
 # opencode.json의 tool_output.max_bytes도 같은 값으로 설정하세요.
 opencode_max_bytes = 100000
-
-[output.overview]
-# overview로 저장소 루트나 하위 프로젝트 루트를 볼 때 언어별 파일 통계를 함께 보여 줍니다.
-is_stats_enabled = true
 
 [output.search]
 # 상세 결과로 표시할 최대 파일 수입니다. 나머지 결과는 간략 목록으로 표시합니다.
@@ -168,8 +164,8 @@ exceptions = []
 enabled = false
 
 # enabled일 때 필터를 적용할 도구입니다. []는 적용하지 않으며 전역 목록을 대체합니다.
-# 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
-scope = ["overview", "search", "read", "grep"]
+# Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
+scope = ["search", "read", "grep"]
 
 # 사용할 decision 모델입니다(기본 jev-1.14.0). Jev 버전은 TypeSafe를, 제작자/모델 ID는
 # OpenRouter Decisions API만 사용하며 decision을 지원하지 않는 모델은 거부됩니다. 별칭은 쓸 수 없습니다.
@@ -200,7 +196,7 @@ search_filter_min_unrelated_probability = 0.70
 
 [output.context.exclude]
 # 호출 관계와 자동으로 붙는 관련 정보에 테스트 코드를 포함합니다.
-# false여도 search/overview의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
+# false여도 search의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
 should_include_test_code = false
 
 # 테스트 파일로 볼 경로 패턴입니다(*, ** 사용 가능). 작업공간 기준이며, /가 없으면 파일 이름과 비교합니다.
@@ -238,9 +234,9 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, read, grep 호출 때 시작하며,
 # 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
-# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search가 이유를 알려 줍니다.
 # "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
 # 전역 설정이 적용되도록 주석으로 둡니다.
 # mode = "auto"
@@ -271,7 +267,7 @@ excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".
 use_git_exclude = true
 
 [index.refresh]
-# 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search/overview를 호출할 때 갱신합니다.
+# 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search를 호출할 때 갱신합니다.
 # 바꾼 뒤에는 서버를 재시작하세요.
 watch = true
 
@@ -282,8 +278,8 @@ watch_debounce_ms = 500
 # 파일 감시를 쓰지 않을 때 색인을 갱신하는 최소 간격(밀리초)입니다.
 index_staleness_ms = 5000
 
-# 색인 작업이 멈추면 다음 search/overview 때 다시 시작합니다(횟수 제한 있음).
-# false이면 서버를 재시작할 때까지 search/overview 결과가 갱신되지 않습니다.
+# 색인 작업이 멈추면 다음 search 때 다시 시작합니다(횟수 제한 있음).
+# false이면 서버를 재시작할 때까지 search 결과가 갱신되지 않습니다.
 indexer_auto_restart = true
 
 [index.language_support]

@@ -49,6 +49,28 @@ command = "codemap-search"
 args = ["mcp"]
 ```
 
+### pi
+
+Until pi's built-in MCP support passes tool `_meta`, use [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter). pi 1.4.0 ignores that metadata and cuts model-facing MCP results to 20 KB.
+
+```sh
+pi install npm:@buyong/pi-mcp-adapter
+```
+
+Turn off built-in MCP by adding `-builtin:mcp` to `extensions` in `~/.pi/agent/settings.json`, or turn off `mcp` under **Built-in** in `pi config`. Restart pi or run `/reload`.
+
+Add the server to `~/.pi/agent/mcp.json` or a trusted project's `.pi/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
+  }
+}
+```
+
+Start pi in the repository to inspect. The adapter applies codemap-search's output limit without a `maxOutputBytes` setting in `mcp.json`; see [client delivery budgets](./docs/configuration.md#client-delivery-budgets).
+
 ### OpenCode
 
 Use global `~/.config/opencode/opencode.json` or project `opencode.json`:
@@ -70,8 +92,8 @@ This is the configuration form in the [OpenCode MCP guide](https://opencode.ai/d
 
 ## Verify the first connection
 
-1. Ask the client to call `initial_instructions({})` once. It takes no arguments regardless of Jev settings and returns navigation guidance and the root overview; monorepos include selectable scopes and their languages.
-2. Confirm that the paths belong to your intended repository. A warming notice means indexing is still in progress; retry `overview` after it completes.
+1. Ask the client to call `initial_instructions({})` once. It takes no arguments regardless of Jev settings and returns navigation guidance; monorepos also list selectable scopes and their languages.
+2. Confirm that the paths belong to your intended repository. A warming notice means indexing is still in progress; retry after it completes.
 3. Find a known source file with `find`. Before using `read` or `search` with an enabled [Jev filter](#optional-jev-decision-stages), call `register_task` once as described below. Then `read` the file, search for a known symbol with `search`, and confirm that the same file appears after indexing completes.
 
 If the binary cannot be found, check the client's `PATH`. If the wrong repository appears, correct its working directory. Read stderr diagnostics for startup/config errors; stdout is reserved for MCP JSON-RPC frames.
@@ -95,11 +117,10 @@ Synchronization runs on MCP initialization, or the next request after a reloaded
 |---|---|---|
 | `initial_instructions` | Load navigation guidance without changing the registered task | None; call with `{}` |
 | `register_task` | Register the task before using an enabled Jev filter; listed only while Jev is enabled | `task_query`, `questions` (required), `match` |
-| `overview` | Inspect repository, folder or file structure; repository-root and monorepo workspace-root output include indexed-file language statistics by default | `path`, `format` |
 | `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
-| `read` | Read live source with line numbers | `file_path`, `offset`, `limit` |
+| `read` | Read live source windows with line numbers, or a file's declarations with `view=definitions` | `file_path`, `offset`, `limit`, or `ranges`; `view` |
 | `analyze` | Inspect index footprint or recorded reading activity as compact JSON | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 | `synonyms` (opt-in) | Find alternative names by field and topic in the local sense dictionary | `terms`: 1–16 selected search words, short operation compounds or one-concept technical terms |
 
@@ -109,15 +130,17 @@ Once codebase evidence is ready, `synonyms` prioritizes senses and words found i
 
 The offline [Luna/Pi replay](../../docs/related-terms/luna-replay.html) reconstructs the earlier observation logs, including client validation rejections and timeouts. It is not a screen recording or a measurement of these later display improvements.
 
-The MCP tools `search`, `read` and `grep` share the optional boolean `include_seen` (default `false`). Repeated unchanged source is omitted, including short spans, boundary lines and repeats within the same response. `find` always returns its current results and has no `include_seen` option. New source stays, and each affected response contains one `<--removed duplicated-->` marker without repeated source locations or recovery instructions. Set `include_seen=true` to return the current tool result without this deduplication, including after context loss. Other selection, masking, truncation notices and output limits still apply. History is connection-local and clears on initialization, task registration or configuration reload; changed files provide fresh source. This rule also applies when Jev is off.
+The MCP tools `search`, `read` and `grep` share the optional boolean `include_seen` (default `false`). Repeated unchanged source is omitted, including short spans, boundary lines and repeats within the same response. `find` always returns its current results and has no `include_seen` option. New source stays, and each affected response (each window in a `read ranges` batch) contains one `<--removed duplicated-->` marker without repeated source locations or recovery instructions. Set `include_seen=true` to return the current tool result without this deduplication, including after context loss. Other selection, masking, truncation notices and output limits still apply. History is connection-local and clears on initialization, task registration or configuration reload; changed files provide fresh source. This rule also applies when Jev is off.
 
-Repository-root and monorepo workspace-root `overview` output includes indexed-file language statistics by default. A project root counts only that project's indexed files. Set `[output.overview].is_stats_enabled = false` to omit that section. Unavailable or pending files make the result explicitly partial.
+Use `search` for behavior or unknown implementation locations; use `grep` for exact identifiers, comments and just-edited content. `grep.pattern` is a regex, so escape metacharacters for literal code. JSON escaping is a separate layer. `grep` defaults to numbered `content`; `files_with_matches` and `count` return paths or counts. `read` also accepts `path`/`file`/`query` and 1-based inclusive `start_line`/`end_line` or `start`/`end` aliases, including camel/kebab variants.
 
-Use `search` for behavior or unknown implementation locations; use `grep` for exact identifiers, comments and just-edited content. `grep.pattern` is a regex, so escape metacharacters for literal code. JSON escaping is a separate layer. `grep` defaults to numbered `content`; `files_with_matches` and `count` return paths or counts. `read` also accepts `path`/`file` and 1-based inclusive `start_line`/`end_line` aliases.
+Use `ranges` to read several known windows in one call, for example `{"ranges":[{"file_path":"src/main.rs","offset":10,"limit":20},{"file_path":"src/lib.rs","offset":40,"limit":15}],"view":"source"}`. Supply 1–20 items instead of top-level `file_path` (or its aliases). Each item accepts the same path/window aliases; top-level `view`, `expand`, `include_seen` and other presentation options apply to all items. Results keep input order with path/window headings; item errors do not stop later items. The combined result obeys the read and client byte caps, deferring whole items with a notice identifying the first omitted range. See [live request controls](./docs/configuration.md#live-request-controls).
 
-In monorepos, `overview` on a directory selects that exact scope for later `search`; a file selects its parent. Explicit `workspace_scope` overrides it; `all`/`전체` selects the whole repository. If the implementation scope is unknown, start with read-only repo-wide discovery and narrow from returned paths. Search never silently widens a chosen scope. Top matches have detailed snippets; the compact tail is bounded. Narrow the query or follow the supplied read ranges when output is partial.
+In monorepos, `initial_instructions` lists the selectable scopes. Pass one as `workspace_scope` to keep a `search` call inside it; a file selects its parent, and omitting it or passing `all`/`전체` searches the whole repository. If the implementation scope is unknown, start with read-only repo-wide discovery and narrow from returned paths. Search never silently widens a chosen scope. Top matches have detailed snippets; the compact tail is bounded. Narrow the query or follow the supplied read ranges when output is partial.
 
-MCP `read`/`grep` use declaration-kind/name headings within each file, followed by one source section. Folder `overview` retains its file list and adds source-backed signatures and nested fields/methods. Resolved callees include their definition file and line. Same-file constant references include definition locations and initializer previews; ambiguous names are omitted. Indexed context can lag recent edits.
+Plain `search` queries can also list files outside the ranked results under `## Exact phrase matches outside the ranking`. A file is listed when one of its docstrings or indexed string literals contains a quoted query phrase or two adjacent query words, for example `- src/events/publisher.rs (82 lines) — docstring of EventPublisher [L23-26]`. Phrases found in fewer files are tried first; each phrase adds at most one file, a file is listed once, and phrases found in too many files are skipped. Rows use only the file rows (`output.search.overview_file_limit`) and output bytes (`output.search.max_bytes`) that the ranked results leave unused, so ranked files, relations and source excerpts are unchanged. Rows stay inside the selected `workspace_scope`. A single identifier, a query with search syntax such as Boolean operators or field filters, an enabled Jev filter, partial output, and a warming, unavailable or failed index add no rows. A row reports a literal phrase match; read the file to judge whether it answers the question.
+
+MCP `read`/`grep` use declaration-kind/name headings within each file, followed by one source section. Resolved callees include their definition file and line. Same-file constant references include definition locations and initializer previews; ambiguous names are omitted. Indexed context can lag recent edits.
 
 For compact grep source, use `view="source_grouped"` with `expand="none"`: file headings replace repeated paths while source rows and line numbers remain intact. `view="source"` retains its original format. Search compacts annotation copies after Jev judgment; an explicitly configured Codex output limit also enables a final delivery guard with read ranges for deferred bodies. See [configuration](./docs/configuration.md#client-delivery-limits).
 
@@ -154,11 +177,11 @@ MCP watches existing config directories and reloads after about 1000ms. Manual e
 
 ## Optional Jev decision stages
 
-Jev evaluates complete function bodies from search, read and grep against registered task questions. It is off by default. Set `output.jev.enabled=true` and select tools with `scope` (default `["overview", "search", "read", "grep"]`). `enabled=false` disables all filters; `scope=[]` selects none. Store the API key in `.codemap/auth.toml` under `[jev].api_key`. A global `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`) is also supported; resolution is repo auth > global auth > the fixed `TYPESAFE_API_KEY` environment variable. Auth files are excluded from indexing and default find/grep. To use an OpenRouter decision model such as `openai/gpt-6-luna-decisions`, set it as `output.jev.model` and store the OpenRouter key under `[openrouter].api_key` (fallback `OPENROUTER_API_KEY`); that key is sent only to OpenRouter's Decisions API, which rejects models without decision support. The default model is `jev-1.14.0`; see [OpenRouter decision models](./docs/configuration.md#openrouter-decision-models).
+Jev evaluates complete function bodies from search, read and grep against registered task questions. It is off by default. Set `output.jev.enabled=true` and select tools with `scope` (default `["search", "read", "grep"]`). `enabled=false` disables all filters; `scope=[]` selects none. Store the API key in `.codemap/auth.toml` under `[jev].api_key`. A global `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`) is also supported; resolution is repo auth > global auth > the fixed `TYPESAFE_API_KEY` environment variable. Auth files are excluded from indexing and default find/grep. To use an OpenRouter decision model such as `openai/gpt-6-luna-decisions`, set it as `output.jev.model` and store the OpenRouter key under `[openrouter].api_key` (fallback `OPENROUTER_API_KEY`); that key is sent only to OpenRouter's Decisions API, which rejects models without decision support. The default model is `jev-1.14.0`; see [OpenRouter decision models](./docs/configuration.md#openrouter-decision-models).
 
 The main agent registers `task_query` and focused yes/no `questions` once through `register_task` before using an enabled filter, preserving the task's target, direction and coverage. Each question has `question`, `when_true` and `when_false`; IDs are generated by the server. `match` is `all` (default) or `any`. Register again when the task changes. Retrieval queries never replace task intent. Text-only registration is rejected. Clients that previously registered through `initial_instructions` must switch to `register_task`.
 
-Enabled search/read/grep filters send masked goal, questions and function evidence to the selected provider (TypeSafe or OpenRouter) and compose the separate answers in code. Uncertain evidence stays; omitted bodies retain source locations. Non-root overview uses the same criteria to select declarations; its private classification bodies are not returned or marked as delivered. `initial_instructions`, root overview and find remain local and need no task registration. For unfiltered read recovery, remove `"read"` from `output.jev.scope` or set `output.jev.enabled=false`; `include_seen=true` bypasses only common delivery deduplication. Provider failure preserves ordinary selection; the independent MCP delivery rule still applies. See the [Jev reference](./docs/configuration.md#optional-jev-decision-stages) for examples, bounds, uncertainty and diagnostics.
+Enabled search/read/grep filters send masked goal, questions and function evidence to the selected provider (TypeSafe or OpenRouter) and compose the separate answers in code. Uncertain evidence stays; omitted bodies retain source locations. `initial_instructions` and find remain local and need no task registration. For unfiltered read recovery, remove `"read"` from `output.jev.scope` or set `output.jev.enabled=false`; `include_seen=true` bypasses only common delivery deduplication. Provider failure preserves ordinary selection; the independent MCP delivery rule still applies. See the [Jev reference](./docs/configuration.md#optional-jev-decision-stages) for examples, bounds, uncertainty and diagnostics.
 
 ## Supported languages and formats
 
@@ -242,7 +265,7 @@ Run from `apps/codemap-search` in the source checkout. `./verify` builds the cur
 
 ## Indexing, diagnostics and limits
 
-The MCP server builds/loads its own index in `.codemap/index` by default. With the default `[index] mode = "auto"`, indexing starts on the first `search`, `overview`, `read` or `grep` call, and only inside a repository with at most 50,000 indexable files. In other folders, such as one holding several repositories, `search`/`overview` explain why nothing is indexed; set `mode = "on"` to index anyway (see [When indexing starts](./docs/configuration.md#when-indexing-starts)). A healthy filesystem watcher batches edits for 500ms and refreshes affected paths, skipping paths hidden by ignore files. Git HEAD changes, ignore-file changes or large batches trigger a full walk. When watching is off or unavailable, `search`/`overview` use the `index.refresh.index_staleness_ms` fallback. `read`, `find` and `grep` inspect disk directly.
+The MCP server builds/loads its own index in `.codemap/index` by default. With the default `[index] mode = "auto"`, indexing starts on the first `search`, `read` or `grep` call, and only inside a repository with at most 50,000 indexable files. In other folders, such as one holding several repositories, `search` explains why nothing is indexed; set `mode = "on"` to index anyway (see [When indexing starts](./docs/configuration.md#when-indexing-starts)). A healthy filesystem watcher batches edits for 500ms and refreshes affected paths, skipping paths hidden by ignore files. Git HEAD changes, ignore-file changes or large batches trigger a full walk. When watching is off or unavailable, `search` uses the `index.refresh.index_staleness_ms` fallback. `read`, `find` and `grep` inspect disk directly.
 
 - Files larger than `index.max_file_bytes` (default 1 MiB) are skipped by indexing/codemap.
 - `.txt`, lockfiles, source maps, minified and bundle files have separate file exclusions. `find`/`grep` can bypass these with `include_ignored`; direct `read`/`parse` remain available.

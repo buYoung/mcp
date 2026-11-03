@@ -7,6 +7,7 @@
 mod global_instructions;
 mod jev;
 pub mod protocol;
+mod read_ranges;
 mod source_history;
 
 use crate::index::EngineSupervisor;
@@ -51,7 +52,6 @@ fn response_text_bytes(response: &Value) -> usize {
 fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String)> {
     let config = crate::config::get();
     let cap = match name {
-        "overview" => config.overview_output_byte_cap,
         "grep" => config.grep_response_byte_cap,
         "find" | "initial_instructions" | "register_task" | "analyze" => config.output_byte_cap,
         _ => None,
@@ -117,10 +117,9 @@ fn read_narrowing(arguments: Option<&Value>, response: &Value, bytes: usize, cap
 pub struct McpServer {
     // The live index subsystem: read-only searcher handle, background indexer, optional
     // filesystem watcher, and the supervision state (auto-restart + refresh fallback). The
-    // server calls `ensure_alive()`/`trigger_refresh()` on it at the search/overview
-    // dispatch sites and reads the committed snapshot through its accessors.
+    // server calls `ensure_alive()`/`trigger_refresh()` on it at the search and monorepo
+    // initial_instructions dispatch sites and reads the committed snapshot through its accessors.
     engine: EngineSupervisor,
-    active_workspace_scope: Option<String>,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
     source_history: source_history::SourceHistory,
@@ -144,7 +143,6 @@ impl McpServer {
         });
         Self {
             engine,
-            active_workspace_scope: None,
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
             source_history: source_history::SourceHistory::default(),
@@ -237,25 +235,6 @@ impl McpServer {
 
     pub fn set_call_logging_enabled(&mut self, is_enabled: bool) {
         self.call_recorder.set_enabled(is_enabled);
-    }
-
-    fn overview_path_argument(arguments: &Value) -> Option<&str> {
-        ["path", "file_path", "file", "query"]
-            .iter()
-            .find_map(|key| crate::tools::get_arg(arguments, key).and_then(|value| value.as_str()))
-    }
-
-    fn update_active_workspace_scope_from_overview(&mut self, arguments: &Value) {
-        let Some(path) = Self::overview_path_argument(arguments) else {
-            self.active_workspace_scope = None;
-            return;
-        };
-        if crate::codemap::is_all_workspace_scope_input(path) {
-            self.active_workspace_scope = None;
-            return;
-        }
-        let snapshot = self.engine.published_snapshot();
-        self.active_workspace_scope = snapshot.workspace_catalog().search_scope_for_input(path);
     }
 
     pub async fn run(&mut self) -> Result<(), String> {
@@ -395,10 +374,17 @@ impl McpServer {
                     .and_then(Value::as_str)
             })
             .flatten();
+        let is_read_ranges = tool_name == Some("read")
+            && params
+                .and_then(|params| params.get("arguments"))
+                .is_some_and(crate::tools::read::has_ranges);
         let result = match self.handle_request_inner(method, params).await {
             // Negotiation and tool definitions are control metadata. PII rules must
             // not rewrite protocol versions, tool names or schema/enum values.
-            Ok(value) if matches!(method, "initialize" | "tools/list") => Ok(value),
+            // Ranges already mask/fold/budget each item with its own file identity.
+            Ok(value) if matches!(method, "initialize" | "tools/list") || is_read_ranges => {
+                Ok(value)
+            }
             Ok(mut value) => {
                 // analyze masks its structured values before serializing compact JSON.
                 if tool_name != Some("analyze") {
@@ -571,6 +557,9 @@ impl McpServer {
                 let default_args = serde_json::Value::Object(serde_json::Map::new());
                 let arguments = params.get("arguments").unwrap_or(&default_args);
                 source_history::SourceHistory::validate_arguments(name, arguments)?;
+                if name == "read" && crate::tools::read::has_ranges(arguments) {
+                    return self.read_ranges(arguments).await;
+                }
                 let tool_arguments = source_history::SourceHistory::tool_arguments(name, arguments);
                 let arguments = tool_arguments.as_ref();
 
@@ -611,15 +600,15 @@ impl McpServer {
                         // window), then search the current committed snapshot immediately
                         // — the response never blocks on indexing. A queued trigger
                         // coalesces bursts; the indexer's mtime diff keeps each pass
-                        // incremental. Lifecycle fires only here and on `overview`, never
-                        // on the live-filesystem tools (read/find/grep).
+                        // incremental. Lifecycle fires only here and on monorepo
+                        // `initial_instructions`, never on the live-filesystem tools
+                        // (read/find/grep).
                         self.engine.ensure_alive();
                         self.engine.trigger_refresh();
                         let config = crate::config::get();
                         let ctx = ToolContext {
                             engine: &self.engine,
                             arguments,
-                            active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
                         let output = if config.jev.is_enabled_for("search") {
                             jev::search(&mut self.jev, &ctx, self.registered_task.as_ref(), &config)
@@ -637,40 +626,6 @@ impl McpServer {
                             ]
                         }))
                     }
-                    "overview" => {
-                        // Recover a dead indexer first (auto-restart, config-gated), then
-                        // trigger a background refresh (debounced) and read the codemap
-                        // snapshot the indexer publishes — no per-call tree walk or parse.
-                        // The indexer parses the working tree once for the index and reuses
-                        // it here, so the former overview-only walk+parse is gone. Lifecycle
-                        // fires only here and on `search`, never on read/find/grep.
-                        if let Err(message) = self.engine.activate() {
-                            return Ok(text_content(&message));
-                        }
-                        self.engine.ensure_alive();
-                        self.engine.trigger_refresh();
-                        let ctx = ToolContext {
-                            engine: &self.engine,
-                            arguments,
-                            active_workspace_scope: self.active_workspace_scope.as_deref(),
-                        };
-                        let text = jev::overview(
-                            &mut self.jev,
-                            &ctx,
-                            self.registered_task.as_ref(),
-                            &crate::config::get(),
-                        )
-                        .await?;
-                        self.update_active_workspace_scope_from_overview(arguments);
-                        Ok(serde_json::json!({
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": text
-                                }
-                            ]
-                        }))
-                    }
                     "read" | "grep" => {
                         // Their declarations and callers come from the index, so the first
                         // read or grep also starts a deferred workspace's indexing.
@@ -682,6 +637,7 @@ impl McpServer {
                             arguments,
                             self.registered_task.as_ref(),
                             &crate::config::get(),
+                            None,
                         )
                         .await?;
                         self.pending_source_files = output.source_files;
@@ -706,22 +662,16 @@ impl McpServer {
                     "initial_instructions" => {
                         // Clients holding an older tool list may still send the former task
                         // arguments. The guidance never depends on arguments, so ignore them:
-                        // keep the current registration and render the root overview.
-                        let no_arguments = serde_json::json!({});
+                        // keep the current registration and render the root scope inventory.
                         let text = if crate::codemap::looks_like_monorepo_workspace()
                             && self.engine.activate().is_ok()
                         {
-                            // Match `overview` lifecycle behavior so the initial response can
-                            // include the same root scope selection without a second MCP call.
+                            // Match `search` lifecycle behavior so the scope inventory reads a
+                            // current snapshot.
                             self.engine.ensure_alive();
                             self.engine.trigger_refresh();
-                            let ctx = ToolContext {
-                                engine: &self.engine,
-                                arguments: &no_arguments,
-                                active_workspace_scope: self.active_workspace_scope.as_deref(),
-                            };
-                            let root_overview = crate::tools::overview::run(&ctx)?;
-                            crate::tools::instructions_with_root_overview(&root_overview)
+                            let root_inventory = crate::tools::root_inventory::render(&self.engine);
+                            crate::tools::instructions_with_root_inventory(&root_inventory)
                         } else {
                             crate::tools::instructions()
                         };

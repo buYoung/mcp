@@ -27,7 +27,7 @@ pub(super) fn unavailable_reason(
     let cfg = crate::config::get();
     let reason = if !crate::workspace::walk_root_is_visible(path, true) {
         "excluded from the current index by path/Git rules".to_string()
-    } else if crate::lang::spec_for_path(path).is_none() {
+    } else if !crate::lang::is_supported_source_path(path) {
         "file format is unsupported or disabled for indexing".to_string()
     } else if std::fs::metadata(path).is_ok_and(|metadata| metadata.len() > cfg.max_file_size) {
         format!(

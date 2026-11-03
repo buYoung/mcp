@@ -5,7 +5,7 @@
 pub struct ClientOutputConfig {
     pub claude_max_result_chars: Option<usize>,
     pub codex_output_token_limit: Option<usize>,
-    /// pi-mcp-adapter `settings.outputGuard.maxBytes`.
+    /// Advertised as `_meta["pi/maxOutputBytes"]` for @buyong/pi-mcp-adapter.
     pub pi_max_bytes: Option<usize>,
     /// opencode `tool_output.max_bytes`.
     pub opencode_max_bytes: Option<usize>,

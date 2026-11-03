@@ -98,6 +98,14 @@ impl LiveOptions {
         } else {
             Self::parse(args)?
         };
+        if matches!(mode, "files_with_matches" | "count")
+            && matches!(
+                options.view,
+                LiveView::Full | LiveView::Source | LiveView::SourceGrouped
+            )
+        {
+            options.view = LiveView::Full;
+        }
         if mode == "content" && get_arg(args, "expand").is_none() {
             options.should_expand_callable = true;
         }

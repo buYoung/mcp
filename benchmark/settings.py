@@ -1,82 +1,60 @@
-"""Current execution settings, separate from the immutable V2 dataset contract."""
+"""One Grafana execution contract for the codemap-search 1.0.0 benchmark."""
 from __future__ import annotations
 
 import copy
-import re
+import os
 from pathlib import Path
 
-from .v2.core import SPEC, digest, file_digest, read_json, require
-from .v2.dataset import validate_dataset
+from .core import digest, file_digest, require
 
 ROOT = Path(__file__).resolve().parent
 REPOSITORY = ROOT.parent
-CACHE = ROOT / ".cache"
+# Preparation data (sources, builds, indexes, baselines) may live outside the repository,
+# e.g. on a larger disk. prepare, verify and later runs must use the same location.
+CACHE = (Path(os.environ["CODEMAP_BENCH_CACHE"]).expanduser().resolve()
+         if os.environ.get("CODEMAP_BENCH_CACHE") else ROOT / ".cache")
 RUNS = ROOT / "runs"
+# Solver-visible paths (source, TMPDIR, shell HOME) live under CACHE, so the path must not name a product or the harness.
+IDENTIFYING_PATH_WORDS = ("codemap", "codegraph", "zvec", "graphify", "codebase-memory", "serena", "bench", "route", "campaign")
 
 
-def load_config() -> dict:
-    config = read_json(ROOT / "config.json")
-    require(set(config) == {"model", "reasoning_effort", "grader_model", "grader_reasoning_effort",
-                            "limits", "concurrency", "seed", "candidates"}, "지원하지 않는 벤치 설정 키")
-    for key in ("model", "grader_model"):
-        require(isinstance(config[key], str) and config[key].strip(), f"모델 설정 오류: {key}")
-    for key in ("reasoning_effort", "grader_reasoning_effort"):
-        require(config[key] in {"minimal", "low", "medium", "high", "xhigh"}, f"추론 강도 설정 오류: {key}")
-    require(set(config["limits"]) == set(SPEC["limits"]), "실행 한도 키 오류")
-    for key, value in {**config["limits"], "concurrency": config["concurrency"]}.items():
-        require(type(value) is int and value > 0, f"양의 정수가 필요합니다: {key}")
-    require(type(config["seed"]) is int, "seed는 정수여야 합니다")
-    identifiers = {"A", "current"}
-    require(isinstance(config["candidates"], list), "candidates는 배열이어야 합니다")
-    for candidate in config["candidates"]:
-        require(isinstance(candidate, dict) and set(candidate) in ({"id", "name", "path"}, {"id", "name", "git_ref"}),
-                "후보는 id, name 및 path 또는 git_ref 하나로 등록하세요")
-        ident = candidate["id"]
-        require(isinstance(ident, str) and re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}", ident)
-                and ident not in identifiers, "중복되거나 안전하지 않은 후보 ID")
-        identifiers.add(ident)
-        require(all(isinstance(value, str) and value.strip() and "\x00" not in value for value in candidate.values()),
-                "후보 설정은 비어 있지 않은 문자열이어야 합니다")
-    return config
+def require_neutral_cache() -> None:
+    found = [word for word in IDENTIFYING_PATH_WORDS if word in str(CACHE).lower()]
+    require(not found, f"CODEMAP_BENCH_CACHE 경로가 제품·하네스를 드러냅니다({', '.join(found)}). 중립적인 경로를 쓰세요")
+    # Solver-visible cwd and skill roots live under CACHE; the context audit rejects any HOME string.
+    require(not CACHE.resolve().is_relative_to(Path.home().resolve()),
+            "CODEMAP_BENCH_CACHE가 HOME 아래에 있어 모델 문맥에 운영자 HOME이 드러납니다. HOME 밖 경로를 쓰세요")
 
 
-def execution_settings(config: dict) -> dict:
-    result = copy.deepcopy(SPEC)
-    for key in ("codex_version", "product_version", "product_commit"):
-        result.pop(key)  # Original SPEC stays untouched for historical dataset hashes.
-    result.update({key: value for key, value in config.items() if key != "candidates"})
-    return result
+def execution_settings(solver_model: str | None = None) -> dict:
+    from .route_contract import load_profile, solver_model as resolve_solver
+    profile = load_profile()
+    solver = resolve_solver(solver_model)
+    return {"profile": profile["profile"], "preparation_only": True,
+            "model": solver["model"], "requested_model": solver["model"],
+            "reasoning_effort": solver["reasoning_effort"],
+            "solver_backend": solver["backend"], "measurement_mode": solver["measurement_mode"],
+            "grader_backend": "pi",
+            "grader_model": profile["grader"]["model"], "grader_reasoning_effort": profile["grader"]["reasoning_effort"],
+            "seed": profile["seed"], "concurrency": profile["concurrency"], "limits": copy.deepcopy(profile["limits"]),
+            "grader_timeout_seconds": profile["grader_timeout_seconds"],
+            # A grading packet carries the fixed evidence (~67-98 KB per question) plus each cited range; 384 KiB stays near 115K Astra tokens.
+            "batch_limits": {"bytes": 384 * 1024},
+            **{key: copy.deepcopy(profile[key]) for key in ("native_output_policy", "tool_access", "index_mode")}}
 
 
 def profiles() -> dict:
-    result = read_json(ROOT / "data/profiles.json")
-    expected = {"candidate": (3, 3), "validation": (10, 1), "formal": (30, 2)}
-    require(set(result) == set(expected), "평가 유형 변경")
-    for key, (count, repeats) in expected.items():
-        require(len(result[key]["question_ids"]) == len(set(result[key]["question_ids"])) == count
-                and result[key]["repeats"] == repeats, f"고정 평가량 변경: {key}")
-    require(set(result["candidate"]["question_ids"]) < set(result["validation"]["question_ids"])
-            < set(result["formal"]["question_ids"]), "문항 부분집합 관계가 깨졌습니다")
-    return result
+    from . import route_contract as routes
+    profile = routes.load_profile()
+    return {routes.PROFILE: {"name": profile["name"], "question_ids": list(routes.QUESTION_IDS),
+                            "repeats": profile["repetitions"], "measurement_modes": profile["measurement_modes"], "preparation_only": True}}
 
 
-def dataset_for(profile: str, source: Path | None = None) -> dict:
-    original = read_json(ROOT / "v2/data/dataset.json")
-    validate_dataset(original, source)
-    groups = profiles()
-    require(profile in groups, "알 수 없는 평가 유형")
-    lookup = {q["id"]: q for q in original["questions"]}
-    require(set(groups["formal"]["question_ids"]) == {q["id"] for q in original["questions"] if q["phase"] == "main"},
-            "정식 Grafana 문항 변경")
-    return {**original, "questions": [lookup[key] for key in groups[profile]["question_ids"]]}
-
-
-def targets(config: dict) -> list[dict]:
-    return [{"id": "A", "name": "A · 기본 도구", "group": "A"},
-            {"id": "current", "name": "현재 버전 · 작업 파일", "group": "B", "path": "apps/codemap-search"},
-            *[{**candidate, "group": "B"} for candidate in config["candidates"]]]
+def targets() -> list[dict]:
+    from .route_contract import arm_contracts
+    return arm_contracts()
 
 
 def harness_identity() -> str:
-    paths = [*ROOT.glob("*.py"), *ROOT.glob("*.mjs"), *ROOT.glob("data/*.json"), *ROOT.glob("v2/*.py")]
-    return digest({str(path.relative_to(ROOT)): file_digest(path) for path in sorted(paths)})
+    paths = [*ROOT.glob("*.py"), *ROOT.glob("*.mjs"), *[p for p in (ROOT / "data").rglob("*") if p.is_file()]]
+    return digest({str(path.relative_to(ROOT)): file_digest(path) for path in sorted(set(paths))})

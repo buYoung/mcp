@@ -13,7 +13,6 @@ struct Fixture {
     manifest: &'static str,
     factory: &'static str,
     symbol: &'static str,
-    overview: &'static str,
 }
 
 const TYPESCRIPT: Fixture = Fixture {
@@ -22,7 +21,6 @@ const TYPESCRIPT: Fixture = Fixture {
     manifest: include_str!("../../fixtures/redact_app/merchant_service.pii.json"),
     factory: "export function buildAtlasMarketScenario",
     symbol: "buildAtlasMarketScenario",
-    overview: "MerchantService",
 };
 const GO: Fixture = Fixture {
     path: "src/merchant_service.go",
@@ -30,7 +28,6 @@ const GO: Fixture = Fixture {
     manifest: include_str!("../../fixtures/redact_app/merchant_service.go.pii.json"),
     factory: "func BuildAtlasMarketScenario",
     symbol: "BuildAtlasMarketScenario",
-    overview: "RunScenario",
 };
 const RUST: Fixture = Fixture {
     path: "src/merchant_service.rs",
@@ -38,7 +35,6 @@ const RUST: Fixture = Fixture {
     manifest: include_str!("../../fixtures/redact_app/merchant_service.rs.pii.json"),
     factory: "fn build_atlas_market_scenario",
     symbol: "build_atlas_market_scenario",
-    overview: "MerchantService",
 };
 const JAVA: Fixture = Fixture {
     path: "src/MerchantService.java",
@@ -46,7 +42,6 @@ const JAVA: Fixture = Fixture {
     manifest: include_str!("../../fixtures/redact_app/MerchantService.java.pii.json"),
     factory: "    static Scenario buildAtlasMarketScenario",
     symbol: "buildAtlasMarketScenario",
-    overview: "MerchantService",
 };
 const HTML: Fixture = Fixture {
     path: "src/merchant_dashboard.html",
@@ -54,7 +49,6 @@ const HTML: Fixture = Fixture {
     manifest: include_str!("../../fixtures/redact_app/merchant_dashboard.html.pii.json"),
     factory: "    <section class=\"tenant\" data-tenant=\"atlas-market\"",
     symbol: "section",
-    overview: "tenant-filter",
 };
 
 #[derive(Deserialize)]
@@ -316,17 +310,6 @@ async fn check_fixture(fixture: &Fixture) {
                 "{entity}: {response}"
             );
         }
-    }
-    let response = call(&mut client, "overview", json!({"path":file_path})).await;
-    if fixture.path.ends_with(".html") {
-        // Thousands of tag declarations cannot fit in a single client result.
-        assert_eq!(response["result"]["isError"], true, "{response}");
-        assert!(
-            text(&response).contains("exceeds the output.client delivery limit of 100000 bytes"),
-            "{response}"
-        );
-    } else {
-        assert!(text(&response).contains(fixture.overview), "{response}");
     }
     assert_eq!(
         std::fs::read_to_string(repo.path().join(file_path)).unwrap(),

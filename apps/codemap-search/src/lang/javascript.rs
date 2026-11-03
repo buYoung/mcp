@@ -83,6 +83,10 @@ impl LanguageSpec for JavaScriptSpec {
         super::typescript::collect_ecmascript_exported_names(root, source, out);
     }
 
+    fn renamed_exports(&self, root: Node, source: &[u8]) -> Vec<crate::parser::ImportEntry> {
+        super::typescript::ecmascript_renamed_exports(root, source)
+    }
+
     fn name_for_capture(
         &self,
         capture_name: &str,

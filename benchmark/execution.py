@@ -1,328 +1,676 @@
-"""Multi-target schedules, cancellation, resume, comparable A reuse and reports."""
+"""Explicitly authorized, durable Grafana campaigns; preparation never launches a model."""
 from __future__ import annotations
 
-import collections
-import concurrent.futures
-import datetime
+import copy
+import importlib
+import inspect
 import json
-import random
-import shutil
+import os
+import queue
 import signal
 import subprocess
 import threading
+import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from . import evaluate, resources, settings
-from .v2 import metrics, runner
-from .v2.core import (ContractError, MODEL_TERMINALS, command, digest, file_digest, metric,
-                      read_json, require, write_json)
+from . import runner, settings, route_contract as routes, route_prepare, route_grading, route_metrics, tool_indexes, tool_artifacts
+from .campaign_store import campaign_lease, durable_json, immutable_copy, timestamp
+from .core import ContractError, digest, file_digest, read_json, require
 
 
 def answer_prompt(spec: dict, question: dict) -> str:
-    prefix = runner.ANSWER_PROMPT.split("실행 제한은")[0]
-    limits = spec["limits"]
-    return (prefix + f"실행 제한은 {limits['elapsed_seconds']}초, 실제 탐색 호출 {limits['exploration_calls']}회, "
-            f"누적 입력+출력 토큰 {limits['total_tokens']}개다.\n\n" + question["prompt"])
-
-
-def baseline_key(plan: dict) -> str:
-    return digest({key: plan[key] for key in ("profile", "dataset", "spec", "harness_sha256", "source", "codex_version")})
+    return runner.ANSWER_PROMPT + "\n" + question["prompt"]
 
 
 def catalog() -> dict:
-    config = settings.load_config()
-    pending = []
-    if settings.RUNS.exists():
-        for path in sorted(settings.RUNS.glob("*/manifest.json"), reverse=True):
-            status_path = path.with_name("status.json")
-            status = read_json(status_path) if status_path.exists() else {"status": "prepared"}
-            if status["status"] not in {"complete", "finished_with_errors"}:
-                manifest = read_json(path)
-                scheduled = read_json(path.with_name("schedule.json"))
-                remaining = sum(not (path.parent / "runs" / row["id"] / "run.json").exists() or
-                                read_json(path.parent / "runs" / row["id"] / "run.json")["status"] == "scheduled" for row in scheduled)
-                pending.append({"id": path.parent.name, "profile": manifest["profile"], "status": status["status"],
-                                "targets": [target["name"] for target in manifest["targets"].values()],
-                                "remaining_solver_runs": remaining, "scheduled": len(scheduled), "spec": manifest["spec"],
-                                "error": status.get("error")})
-    return {"profiles": settings.profiles(), "targets": settings.targets(config), "pending": pending,
-            "config": {key: value for key, value in config.items() if key != "candidates"}}
+    profile = routes.load_profile()
+    return {"profiles": settings.profiles(), "route_targets": settings.targets(),
+            "solver_choices": profile["solver_choices"], "default_solver_model": profile["solver"]["model"],
+            "grader": profile["grader"]}
 
 
-def prepare_plan(profile: str, selected: list[str], emit=print) -> dict:
-    config = settings.load_config()
-    observed = resources.environment()
-    prepared = resources.prepare_targets(config, selected, emit)
-    source = prepared["source"]
-    spec = settings.execution_settings(config)
-    plan = {"profile": profile, "dataset": settings.dataset_for(profile, Path(source["snapshot"])),
-            "spec": spec, "source": source, "targets": prepared["targets"], "codex_version": observed["codex_version"],
-            "environment": observed, "harness_sha256": settings.harness_identity(),
-            "repeats": settings.profiles()[profile]["repeats"]}
-    plan["baseline_key"] = baseline_key(plan)
-    choices = []
-    if "A" in selected:
-        for manifest_path in sorted(settings.RUNS.glob("*/manifest.json"), reverse=True):
-            previous = read_json(manifest_path)
-            if previous.get("baseline_key") != plan["baseline_key"]:
-                continue
-            root = manifest_path.parent
-            try:
-                verify_manifest(root)
-                rows = [row for row in runner.load_experiment_runs(root) if row["group"] == "A"]
-                expected_count = len(plan["dataset"]["questions"]) * plan["repeats"]
-                if len(rows) == expected_count and all(r["status"] in MODEL_TERMINALS and r["conditions_valid"]
-                                                      and r["usage"]["complete"] and r.get("codex_version") == plan["codex_version"] for r in rows):
-                    choices.append({"id": root.name, "runs": len(rows)})
-            except (ValueError, KeyError, OSError):
-                continue
-    plan["reuse_choices"] = choices
-    ident = uuid.uuid4().hex
-    write_json(settings.CACHE / "plans" / f"{ident}.json", plan, exclusive=True)
-    return {"plan_id": ident, "profile_name": settings.profiles()[profile]["name"],
-            "targets": [{"id": key, "name": value["name"], "source_sha256": value.get("build", {}).get("identity", {}).get("source_sha256")}
-                        for key, value in plan["targets"].items()],
-            "questions": len(plan["dataset"]["questions"]), "repeats": plan["repeats"],
-            "runs": len(selected) * len(plan["dataset"]["questions"]) * plan["repeats"],
-            "spec": spec, "codex_version": plan["codex_version"], "reuse_choices": choices,
-            "output_root": str(settings.RUNS)}
+def prepare_plan(profile: str, selected: list[str], emit=print, *, solver_model: str | None = None) -> dict:
+    require(profile == routes.PROFILE, "지원하는 벤치마크는 grafana-routes뿐입니다")
+    require(len(selected) == len(set(selected)) == len(routes.ARM_IDS) and set(selected) == set(routes.ARM_IDS),
+            "고정된 비교군을 모두 준비합니다")
+    return route_prepare.prepare_all(emit, solver_model=solver_model)
 
 
-def schedule(plan: dict) -> list[dict]:
-    rng = random.Random(plan["spec"]["seed"])
-    questions = list(plan["dataset"]["questions"])
-    rng.shuffle(questions)
-    first_order = {}
-    for question in questions:
-        order = list(plan["targets"])
-        rng.shuffle(order)
-        first_order[question["id"]] = order
-    result = []
-    for repeat in range(1, plan["repeats"] + 1):
-        for question in questions:
-            order = first_order[question["id"]]
-            shift = (repeat - 1) % len(order)
-            for target_id in order[shift:] + order[:shift]:
-                result.append({"id": f"{question['id']}-{target_id}-{repeat}", "question_id": question["id"],
-                               "target": target_id, "group": plan["targets"][target_id]["group"],
-                               "repeat": repeat, "phase": "main"})
-    return result
+def verify_prepared_plan(plan_id: str, readiness: Path, solver_model: str, readiness_sha256: str) -> dict:
+    readiness = readiness.resolve()
+    require(readiness == (routes.PREPARATION / "plans" / plan_id / "readiness.json").resolve(), "불변 계획 경로가 아닙니다")
+    require(file_digest(readiness) == readiness_sha256, "승인할 준비 기록 hash 불일치")
+    record = read_json(readiness)
+    require(record["plan_id"] == plan_id and record["models"]["solver"]["model"] == solver_model, "선택한 계획/모델 불일치")
+    route_prepare.verify_readiness(record)
+    return record
 
 
-def verify_manifest(root: Path) -> dict:
-    manifest = read_json(root / "manifest.json")
-    for name, checksum in read_json(root / "manifest-seal.json").items():
-        require(file_digest(root / name) == checksum, f"동결 실행 조건 변경: {name}")
-    require(manifest["harness_sha256"] == settings.harness_identity(), "하네스가 변경되었습니다. 기존 실행을 보존하고 새 실행을 시작하세요")
-    return manifest
-
-
-def create_run(plan_id: str, reuse: str | None) -> Path:
-    require(len(plan_id) == 32 and all(c in "0123456789abcdef" for c in plan_id), "준비 ID 오류")
-    plan = read_json(settings.CACHE / "plans" / f"{plan_id}.json")
-    require(plan["harness_sha256"] == settings.harness_identity(), "준비 이후 하네스가 변경되었습니다")
-    require(not reuse or reuse in {item["id"] for item in plan["reuse_choices"]}, "선택할 수 없는 A 재사용 결과")
-    ident = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + plan["profile"] + "-" + uuid.uuid4().hex[:8]
-    root = settings.RUNS / ident
-    root.mkdir(parents=True, exist_ok=False)
-    entries = schedule(plan)
-    manifest = {**plan, "reuse_A": reuse, "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
-    write_json(root / "manifest.json", manifest, exclusive=True)
-    write_json(root / "dataset.json", plan["dataset"], exclusive=True)
-    write_json(root / "schedule.json", entries, exclusive=True)
-    write_json(root / "manifest-seal.json", {name: file_digest(root / name) for name in
-                                           ("manifest.json", "dataset.json", "schedule.json")}, exclusive=True)
-    archive = root / "harness"
-    archive.mkdir()
-    for path in settings.ROOT.glob("*.py"):
-        shutil.copy2(path, archive / path.name)
-    shutil.copytree(settings.ROOT / "v2", archive / "v2", ignore=lambda p, names: [n for n in names if n in {"artifacts", "__pycache__", "data"}])
-    shutil.copytree(settings.ROOT / "data", archive / "data")
-    if reuse:
-        original_root = settings.RUNS / reuse
-        previous = verify_manifest(original_root)
-        require(previous["baseline_key"] == manifest["baseline_key"], "A 재사용 조건 변경")
-        originals = {r["id"]: r for r in runner.load_experiment_runs(original_root) if r["group"] == "A"}
+def authorize_run(prepared: dict, readiness: Path, approval: dict) -> tuple[Path, dict]:
+    """The only place that changes preparation_only, on independent deep copies."""
+    require(approval.get("confirmed") is True and isinstance(approval.get("actor"), str)
+            and approval["actor"].strip(), "명시적 실행 승인과 승인 주체가 필요합니다")
+    checksum = file_digest(readiness)
+    require(approval.get("plan_id") == prepared["plan_id"] and approval.get("readiness_sha256") == checksum
+            and approval.get("solver_model") == prepared["models"]["solver"]["model"], "승인 범위 불일치")
+    require(read_json(readiness) == prepared and prepared["plan_id"] == digest(route_prepare.plan_condition(prepared))[:32], "승인 조건 변경")
+    planned_ids = [slot["id"] for slot in prepared["planned_runs"]]
+    scope = approval.get("scope", {"kind": "full"})
+    if isinstance(scope, dict) and scope.get("kind") == "smoke":
+        # A smoke campaign runs only the named slots through the same lifecycle; its results are not comparisons.
+        selected = scope.get("slot_ids")
+        require(set(scope) == {"kind", "slot_ids"} and isinstance(selected, list) and selected
+                and len(set(selected)) == len(selected) and set(selected) <= set(planned_ids), "스모크 슬롯 범위 오류")
     else:
-        originals = {}
-    for entry in entries:
-        folder = root / "runs" / entry["id"]
-        if reuse and entry["group"] == "A":
-            original = originals[entry["id"]]
-            require(original["status"] in MODEL_TERMINALS and original["conditions_valid"] and original["usage"]["complete"]
-                    and original.get("codex_version") == manifest["codex_version"], "재사용 A 실행 조건 오류")
-            write_json(folder / "run.json", {**original, **entry, "reused_from": str(original_root)}, exclusive=True)
-            original_folder = original_root / "runs" / entry["id"]
-            write_json(folder / "reuse.json", {"folder": str(original_folder), "run_sha256": file_digest(original_folder / "run.json")}, exclusive=True)
-            runner.seal_run(folder)
-        else:
-            write_json(folder / "run.json", runner.placeholder_run(entry), exclusive=True)
-    write_json(root / "status.json", {"status": "prepared"})
-    return root
+        require(scope == {"kind": "full"}, "알 수 없는 실행 범위")
+        selected = planned_ids
+    campaign_id = uuid.uuid4().hex
+    root = routes.PREPARATION / "campaigns" / (("smoke-" if scope["kind"] == "smoke" else "") + campaign_id)
+    authorization = {**approval, "scope": scope, "recorded_at": timestamp(), "campaign_id": campaign_id,
+                     "max_solver_launches": len(selected), "max_grader_launches": len(selected), "calibration_runs": 0}
+    specs = copy.deepcopy(prepared["execution_specs"])
+    for spec in specs.values():
+        require(spec["preparation_only"] is True and spec["concurrency"] == 4, "준비 실행 조건 변경")
+        spec.update(preparation_only=False, campaign_id=campaign_id, plan_id=prepared["plan_id"],
+                    readiness_sha256=checksum, authorization_sha256=digest(authorization), usage_drain_seconds=0)
+    manifest = {"schema_version": 1, "campaign_id": campaign_id, "plan_id": prepared["plan_id"],
+                "cache": str(settings.CACHE.resolve()), "readiness": str(readiness.resolve()), "readiness_sha256": checksum,
+                "condition_sha256": digest(route_prepare.plan_condition(prepared)), "authorization": authorization,
+                "prepared": copy.deepcopy(prepared), "models": copy.deepcopy(prepared["models"]), "run_specs": specs,
+                "run_spec_sha256": {arm: digest(spec) for arm, spec in specs.items()},
+                "concurrency": 4, "grader_timeout_seconds": routes.load_profile()["grader_timeout_seconds"], "packet_bytes_limit": 384 * 1024}
+    durable_json(root / "manifest.json", manifest, exclusive=True)
+    rows = []
+    for rank, slot in enumerate(prepared["planned_runs"]):
+        rows.append({**slot, "plan_id": prepared["plan_id"], "campaign_id": campaign_id, "schedule_rank": rank,
+                     "model": prepared["models"]["solver"]["model"], "backend": prepared["models"]["solver"]["backend"],
+                     "reasoning_effort": prepared["models"]["solver"]["reasoning_effort"],
+                     "run_spec_sha256": manifest["run_spec_sha256"][routes.execution_key(slot["arm"], slot["mode"])],
+                     "prompt_sha256": prepared["solver_inputs"][slot["id"]]["sha256"],
+                     "phase": "pending", "launch_state": "not_started", "cli_launches": 0,
+                     "provider_call_observed": None, "conditions_valid": None, "grade_state": "not_eligible", "solver_limits": None})
+        if slot["id"] not in selected:
+            rows[-1].update(phase="terminal", status="out_of_scope", provider_call_observed=False,
+                            grade_reason="outside smoke scope")
+    durable_json(root / "ledger.json", {"schema_version": 1, "revision": 0, "campaign_id": campaign_id,
+        "manifest_sha256": file_digest(root / "manifest.json"), "status": "authorized", "slots": rows}, exclusive=True)
+    return root, manifest
 
 
-def finish_execution(folder: Path, entry: dict, execution: dict) -> dict:
-    calls, complete, host_calls, violations = runner.normalize_calls(folder)
-    exploration = metrics.exploration_metrics(calls, complete=complete, evidence=str(folder / "relay.jsonl"))
-    exploration["delivered_output_bytes"] = metric(read_json(folder / "delivery.json")["actual_model_output_bytes"], "bytes",
-                                                   evidence=[str(folder / "rollout.jsonl")])
-    return {**entry, **execution, "calls": calls, "host_calls": host_calls, "boundary_violations": violations,
-            "conditions_valid": execution["conditions_valid"] and not violations, "exploration": exploration,
-            "source_snapshot": str(folder / "source")}
+def load_ledger(root: Path) -> tuple[dict, dict]:
+    manifest, ledger = read_json(root / "manifest.json"), read_json(root / "ledger.json")
+    require(ledger["manifest_sha256"] == file_digest(root / "manifest.json"), "RunManifest 변경")
+    require(ledger["campaign_id"] == manifest["campaign_id"] and manifest["cache"] == str(settings.CACHE.resolve()), "campaign/cache 불일치")
+    expected = routes.schedule(manifest["models"]["solver"]["model"])
+    require(len(ledger["slots"]) == len(expected), "계획 slot ledger 누락")
+    for row, slot in zip(ledger["slots"], expected):
+        require(all(row[k] == slot[k] for k in ("id", "question_id", "arm", "mode", "attempt")), "ledger 순서/슬롯 변경")
+        verify_run_binding(manifest, row, manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])], current=False)
+    return manifest, ledger
 
 
-def recover(root: Path):
-    for entry in read_json(root / "schedule.json"):
-        folder = root / "runs" / entry["id"]
-        if not (folder / "run.json").exists():
-            write_json(folder / "run.json", runner.placeholder_run(entry), exclusive=True)
-        row = read_json(folder / "run.json")
-        if row["status"] == "running":
-            for record_name in ("process.json", "relay-runtime.json"):
-                record_path = folder / record_name
-                if record_path.exists():
-                    recorded = read_json(record_path)
-                    if runner.signal_target(recorded["pid"], 0, group=True):
-                        raise ContractError(f"이전 실행의 프로세스 그룹이 남아 있습니다. 종료를 확인한 뒤 이어가세요: {recorded['pid']} ({folder})")
-            shutil.copy2(folder / "run.json", folder / "run-before-recovery.json")
-            if (folder / "execution.json").exists():
-                row = finish_execution(folder, entry, read_json(folder / "execution.json"))
+def verify_run_binding(manifest: dict, slot: dict, spec: dict, *, current=True) -> None:
+    prepared = manifest["prepared"]
+    arm = routes.execution_key(slot["arm"], slot["mode"])
+    require(manifest["condition_sha256"] == digest(route_prepare.plan_condition(prepared)), "계획 조건 변경")
+    expected = copy.deepcopy(prepared["execution_specs"][arm])
+    expected.update(preparation_only=False, campaign_id=manifest["campaign_id"], plan_id=manifest["plan_id"],
+                    readiness_sha256=manifest["readiness_sha256"], authorization_sha256=digest(manifest["authorization"]),
+                    usage_drain_seconds=0)
+    require(spec == expected and digest(spec) == slot["run_spec_sha256"] == manifest["run_spec_sha256"][arm], "실행 spec binding 불일치")
+    solver = manifest["models"]["solver"]
+    require(slot["model"] == solver["model"] and slot["backend"] == solver["backend"]
+            and slot["reasoning_effort"] == solver["reasoning_effort"] and slot["plan_id"] == manifest["plan_id"]
+            and slot["campaign_id"] == manifest["campaign_id"], "실행 모델/계획 binding 불일치")
+    require(slot["prompt_sha256"] == prepared["solver_inputs"][slot["id"]]["sha256"], "풀이 입력 binding 변경")
+    if current:
+        require(file_digest(Path(prepared["solver_inputs"][slot["id"]]["path"])) == slot["prompt_sha256"], "풀이 입력 변경")
+        require(settings.harness_identity() == prepared["harness_sha256"], "실행 중 하네스 변경")
+
+
+class LedgerCoordinator:
+    """Only the scheduler thread commits; workers wait for durable acknowledgements."""
+    def __init__(self, root: Path, ledger: dict, cancel_event):
+        self.root, self.ledger, self.cancel_event = root, ledger, cancel_event
+        self.requests = queue.Queue()
+        self.owner = threading.get_ident()
+        self.fatal = None
+
+    def commit(self):
+        require(threading.get_ident() == self.owner, "ledger 단일 작성자 위반")
+        require(read_json(self.root / "ledger.json")["revision"] == self.ledger["revision"], "ledger revision 충돌")
+        value = {**self.ledger, "revision": self.ledger["revision"] + 1, "updated_at": timestamp()}
+        durable_json(self.root / "ledger.json", value)
+        self.ledger = value
+
+    def change(self, ident: str, values: dict, *, intent: str | None = None):
+        reply = queue.Queue(maxsize=1)
+        self.requests.put((ident, values, intent, reply))
+        result = reply.get()
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    def drain(self):
+        while True:
+            try:
+                ident, values, intent, reply = self.requests.get_nowait()
+            except queue.Empty:
+                return
+            try:
+                if self.fatal:
+                    raise ContractError(f"ledger write failed: {self.fatal}")
+                row = next(r for r in self.ledger["slots"] if r["id"] == ident)
+                if intent:
+                    require(not self.cancel_event.is_set(), "cancelled_before_launch")
+                    path = self.root / "runs" / ident / f"{intent}-intent.json"
+                    if intent == "launch":
+                        require(row["launch_state"] == "not_started", "solver 재실행 금지")
+                    durable_json(path, {"slot_id": ident, "campaign_id": row["campaign_id"], "created_at": timestamp(),
+                        "run_spec_sha256": row["run_spec_sha256"], "packet_seal_sha256": row.get("packet_seal_sha256")}, exclusive=True)
+                    values = {**values, f"{intent}_intent_sha256": file_digest(path)}
+                row.update(values, updated_at=timestamp())
+                self.commit()
+                reply.put(copy.deepcopy(row))
+            except (OSError, ValueError) as exc:
+                if isinstance(exc, OSError):
+                    self.fatal = str(exc)
+                    self.cancel_event.set()
+                reply.put(exc)
+
+
+class ProcessRegistry:
+    """Register owned groups before releasing prompt/attach; never signal an unknown PID."""
+    def __init__(self, folder: Path):
+        self.folder, self.groups, self.lock = folder, [], threading.Lock()
+
+    @staticmethod
+    def fingerprint(pid: int) -> str:
+        result = subprocess.run(["ps", "-p", str(pid), "-o", "lstart="], text=True, capture_output=True, timeout=5)
+        return result.stdout.strip()
+
+    def register(self, pid: int, pgid: int, owner: str) -> dict:
+        require(pid == pgid and pgid != os.getpgrp(), "독립 소유 process group만 등록합니다")
+        fingerprint = self.fingerprint(pid)
+        require(bool(fingerprint) and os.getpgid(pid) == pgid, "process identity 확인 실패")
+        item = {"pid": pid, "pgid": pgid, "owner": owner, "start_fingerprint": fingerprint}
+        with self.lock:
+            self.groups.append(item)
+            durable_json(self.folder / "owned-groups.json", self.groups)
+        return item
+
+    def cleanup(self) -> dict:
+        errors = []
+        for item in self.groups:
+            pgid = item["pgid"]
+            try:
+                os.killpg(pgid, 0)
+            except ProcessLookupError:
+                continue
+            if self.fingerprint(item["pid"]) != item["start_fingerprint"]:
+                errors.append({**item, "error": "group ownership cannot be re-established; no signal sent"})
+                continue
+            for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
+                try:
+                    os.killpg(pgid, sig)
+                    deadline = time.monotonic() + 1
+                    while time.monotonic() < deadline:
+                        os.killpg(pgid, 0)
+                        time.sleep(.02)
+                except ProcessLookupError:
+                    break
             else:
-                row = runner.placeholder_run(entry, "interrupted", "이전 실행 중단; 원자료 보존, 자동 재실행 없음")
-            write_json(folder / "run.json", row)
-        if row["status"] not in {"running", "scheduled"} and not (folder / "seal.json").exists():
-            runner.seal_run(folder)
-        if (folder / "reuse.json").exists():
-            origin = read_json(folder / "reuse.json")
-            original = Path(origin["folder"])
-            require(file_digest(original / "run.json") == origin["run_sha256"], "재사용 A 원자료 변경")
-            runner.verify_run_seal(original)
+                errors.append({**item, "error": "group still alive"})
+        return {"complete": not errors, "groups": self.groups, "errors": errors}
 
 
-def run_one(root: Path, entry: dict, manifest: dict, cancel_event, emit=print):
-    folder = root / "runs" / entry["id"]
-    if cancel_event.is_set() or read_json(folder / "run.json")["status"] != "scheduled":
-        return
-    write_json(folder / "run.json", runner.placeholder_run(entry, "running"))
+def session_factory():
+    """Stage-2 integration is mandatory; never fall back to a cold unsandboxed relay."""
     try:
-        target = manifest["targets"][entry["target"]]
-        runner.copy_source(Path(target["snapshot"]), folder / "source")
-        require(digest(runner.source_manifest(folder / "source")) == manifest["source"]["source_sha256"], "풀이 원문 복사 불일치")
-        if cancel_event.is_set():
-            raise InterruptedError("사용자가 취소했습니다")
-        relay = {"group": entry["group"], "source": str(folder / "source"), "log": str(folder / "relay.jsonl"),
-                 "product_binary": target.get("build", {}).get("binary"), "product_home": str(folder / "product-home"),
-                 "limits": manifest["spec"]["limits"]}
-        question = next(q for q in manifest["dataset"]["questions"] if q["id"] == entry["question_id"])
-        version = command(["codex", "--version"]).strip()
-        result = runner.execute_codex(folder, answer_prompt(manifest["spec"], question), relay, usage_drain_seconds=30,
-                                      settings=manifest["spec"], cancel_event=cancel_event, codex_version=version)
-        row = finish_execution(folder, entry, result)
-    except (ValueError, KeyError, TypeError, OSError, subprocess.SubprocessError) as exc:
-        row = runner.placeholder_run(entry, "interrupted" if cancel_event.is_set() else "environment_error", str(exc))
-    write_json(folder / "run.json", row)
-    runner.seal_run(folder)
-    shutil.rmtree(folder / "source", ignore_errors=True)
-    emit(f"풀이 {entry['id']}: {row['status']}")
+        module = importlib.import_module("benchmark.warm_host")
+    except ModuleNotFoundError as exc:
+        raise ContractError("query-ready warm_host 통합 전에는 실제 campaign 실행을 차단합니다") from exc
+    require("prepared_session" in inspect.signature(runner.execute_model).parameters,
+            "runner의 clock 직전 prepared_session 연결이 필요합니다")
+    return module.prepare_session
 
 
-def report(root: Path, manifest: dict, rows: list[dict], grades: dict) -> dict:
-    lookup = {q["id"]: q for q in manifest["dataset"]["questions"]}
-    normalized = [{**metrics.normalize_run(lookup[row["question_id"]], row, grades["judgments"].get(row["id"])),
-                   "target": row["target"], "codex_version": row.get("codex_version"), "reused_from": row.get("reused_from")}
-                  for row in rows]
-    targets = {}
-    for ident, target in manifest["targets"].items():
-        selected = [r for r in normalized if r["target"] == ident]
-        targets[ident] = {"name": target["name"], "categories": dict(collections.Counter(r["category"] for r in selected)),
-                          "reused_runs": sum(bool(r["reused_from"]) for r in selected),
-                          "codex_versions": dict(collections.Counter(r["codex_version"] or "미측정" for r in selected)),
-                          **metrics.summarize(selected, manifest["repeats"])}
-    summary = {"profile": manifest["profile"], "scheduled": len(rows), "targets": targets,
-               "grading_complete": grades.get("complete", False), "baseline_key": manifest["baseline_key"],
-               "manifest_sha256": file_digest(root / "manifest.json"), "grading_batches": grades.get("batches", []),
-               "rows": normalized}
-    versions = {row["codex_version"] for row in normalized if row["status"] != "scheduled"}
-    summary["same_codex_version"] = len(versions) == 1 and None not in versions
-    summary["comparisons"] = {}
-    if "A" in targets:
-        for ident in targets.keys() - {"A"}:
-            paired = [r for r in normalized if r["target"] in {"A", ident}]
-            summary["comparisons"][ident] = {
-                "same_codex_version": summary["same_codex_version"],
-                "A_reused": bool(manifest.get("reuse_A")),
-                "scope": "선택한 고정 문항의 관측 차이; 시점이 다른 재사용 결과는 무작위 동시 대조가 아님",
-                **metrics.compare(paired, manifest["repeats"], with_bootstrap=False)}
-    write_json(root / "report/summary.json", summary)
-    lines = [f"# Grafana · {settings.profiles()[manifest['profile']]['name']}", "",
-             f"풀이 {manifest['spec']['model']} / {manifest['spec']['reasoning_effort']}, "
-             f"채점 {manifest['spec']['grader_model']} / {manifest['spec']['grader_reasoning_effort']}", "",
-             "| 대상 | 예정 | 정답 | 부분 | 오답 | 무응답 | 판정 불가 | 핵심 사실 | 인용 근거 | 평균 토큰 | A 재사용 |",
-             "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
-    for target in targets.values():
-        categories = target["categories"]
-        tokens = target["metrics"]["total_tokens"]["mean"]["value"]
-        ratios = [target["metrics"][key]["mean"]["value"] for key in ("fact_ratio", "evidence_ratio")]
-        values = [target["name"], target["scheduled_runs"], *[categories.get(c, 0) for c in
-                  ("correct", "partial", "incorrect", "no_answer", "indeterminate")],
-                  *["미확인" if value is None else f"{value:.1%}" for value in ratios],
-                  "미확인" if tokens is None else f"{tokens:,.2f}", target["reused_runs"]]
-        lines.append("| " + " | ".join(map(str, values)) + " |")
-    lines += ["", "누락된 사용량·미실행·실행 조건 오류는 0으로 대체하지 않습니다. 전체 예정 횟수를 분모로 보존합니다.",
-              "후보/오류 검증 결과를 정식 결과나 인과관계 증명으로 승격하지 않습니다.", "",
-              "실제 Codex 버전: " + json.dumps({key: value["codex_versions"] for key, value in targets.items()}, ensure_ascii=False),
-              "", "소스·바이너리·설정 식별 정보: [manifest.json](../manifest.json). 원자료와 상세 지표: [summary.json](summary.json)."]
-    if not summary["same_codex_version"]:
-        lines += ["", "Codex 버전이 섞였거나 확인되지 않은 실행이 있습니다. 동일 실행 환경의 비교로 해석하지 않습니다."]
-    (root / "report/results.md").write_text("\n".join(lines) + "\n")
-    return summary
+def execute_solver(folder: Path, prompt: str, *, session, settings: dict, cancel_event, process_registry, **versions) -> dict:
+    # The runner owns t0 immediately before Popen and calls session.open_solver_gate(t0).
+    return runner.execute_model(folder, prompt, settings=settings, cancel_event=cancel_event,
+                                prepared_session=session, usage_drain_seconds=0, **versions)
 
 
-def execute(root: Path, emit=print) -> dict:
-    cancelled = threading.Event()
-    previous_signals = {}
-    def interrupt(signum, frame):
-        cancelled.set()
-    with resources.lease(root / ".run.lock"):
-        manifest = verify_manifest(root)
-        # Current settings must still agree; a CLI version change alone never blocks resume.
-        require(settings.execution_settings(settings.load_config()) == manifest["spec"], "실행 설정이 변경되었습니다. 새 실행을 시작하세요")
-        resources.environment()
-        require(digest(runner.source_manifest(Path(manifest["source"]["snapshot"]))) == manifest["source"]["source_sha256"], "평가 소스 변경")
-        for target in manifest["targets"].values():
-            if target["group"] == "B":
-                resources.verify_product(target["build"])
-                resources.verify_index(target["index"])
-        for signum in (signal.SIGINT, signal.SIGTERM):
-            previous_signals[signum] = signal.signal(signum, interrupt)
-        grades = {"judgments": {}, "complete": False}
+def restore_slot(state: dict) -> dict:
+    return tool_indexes.restore_baseline(state["id"], state, state["baseline"])
+
+
+def verify_source(state: dict, corpus: dict) -> None:
+    tool_indexes.verify_source_inventory(Path(corpus["source"]), corpus["files"])
+    require(digest(tool_indexes.tracked_manifest(Path(state["source"]), corpus["files"],
+            allowed_metadata=tool_indexes.SOURCE_METADATA[state["id"]])) == corpus["source_sha256"],
+            "solver/product changed tracked source bytes")
+
+
+def seal_slot(folder: Path, row: dict) -> dict:
+    # Product homes and the CLI workspace are not raw logs (and may contain credentials).
+    files = {p.name: {"sha256": file_digest(p), "bytes": p.stat().st_size}
+             for p in sorted(folder.iterdir()) if p.is_file() and not p.is_symlink() and p.name != "raw-seal.json"}
+    value = {"schema_version": 1, "slot_id": row["id"], "run_spec_sha256": row["run_spec_sha256"],
+             "files": files, "collection_complete": row.get("call_log_complete", False),
+             "cleanup_complete": row.get("cleanup", {}).get("complete", False)}
+    durable_json(folder / "raw-seal.json", value, exclusive=True)
+    return {"raw_seal": str(folder / "raw-seal.json"), "raw_seal_sha256": file_digest(folder / "raw-seal.json")}
+
+
+def run_slot(root: Path, manifest: dict, initial: dict, coordinator: LedgerCoordinator, cancel_event,
+             prepare_session, solver_executor, collector, restore, source_check) -> dict:
+    row = copy.deepcopy(initial)
+    state = manifest["prepared"]["arms"][row["arm"]]
+    spec = manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])]
+    folder = Path(row["folder"])
+    folder.mkdir(parents=True, exist_ok=True)
+    registry, session, cleanup_errors = ProcessRegistry(folder), None, []
+    solver_invoked = False
+    started = time.monotonic()
+    def phase(name, **values):
+        nonlocal row
+        row = coordinator.change(row["id"], {"phase": name, **values})
+        require(not cancel_event.is_set(), "cancelled")
+    try:
+        phase("restoring")
+        receipt = restore(state)
+        durable_json(folder / "restore.json", receipt)
+        phase("preflight", restore=receipt)
+        verify_run_binding(manifest, row, spec)
+        source_check(state, read_json(Path(manifest["prepared"]["source_manifest_path"])))
+        phase("warming")
+        binding = {"plan_id": row["plan_id"], "slot_id": row["id"], "arm": row["arm"],
+                   "artifact_sha256": state["artifact_sha256"], "source_sha256": state["source_sha256"],
+                   "baseline_sha256": digest(state["baseline"]), "inventory_sha256": state["native_inventory_sha256"],
+                   "isolation_sha256": digest(state.get("isolation")), "warmup_policy_sha256": digest(state.get("warmup_policy"))}
+        session = prepare_session({**state, "campaign_binding": binding}, folder, manifest["models"]["solver"], cancel_event, registry)
+        warm = session.await_ready(time.monotonic() + 300)
+        require(warm.get("ready") is True and warm.get("binding") == binding, "semantic ready gate/binding failed")
+        require(isinstance(warm.get("ready_at"), (int, float)) and started <= warm["ready_at"] <= time.monotonic(),
+                "warm readiness clock missing or invalid")
+        durable_json(folder / "warm-receipt.json", warm)
+        attachment = session.attachment()
+        require(isinstance(attachment, dict), "warmed attachment 누락")
+        phase("ready", warm_receipt={"path": str(folder / "warm-receipt.json"), "sha256": file_digest(folder / "warm-receipt.json")})
+        require(not session.health().get("condition_errors"), "ready session unhealthy")
+        verify_run_binding(manifest, row, spec)
+        row = coordinator.change(row["id"], {"phase": "launch_reserved", "launch_state": "reserved"}, intent="launch")
+        phase("running")
+        solver_invoked = True
+        execution = solver_executor(folder, Path(manifest["prepared"]["solver_inputs"][row["id"]]["path"]).read_text(),
+            session=session, settings=copy.deepcopy(spec), cancel_event=cancel_event, process_registry=registry,
+            codex_version=manifest["prepared"]["host"]["codex_version"],
+            agent_version=manifest["prepared"]["host"].get("pi", manifest["prepared"]["host"].get("claude", {})).get("version"))
+        verify_run_binding(manifest, row, spec)
+        # A returned execution without a process receipt does not prove that the CLI started.
+        process = read_json(folder / "process.json") if (folder / "process.json").exists() else None
+        observed = {"launch_state": "started" if process else "unknown", "cli_launches": 1 if process else None,
+                    "process": process, "status": execution["status"]}
+        row = coordinator.change(row["id"], {"phase": "collecting", **observed})
+        result = collector(folder, row, execution)
+        require(result.get("model") == row["model"] and result.get("backend") == row["backend"], "관측 풀이 모델/실행기 불일치")
+        result["answer_eligible"] = result.get("answer_eligible", False)
+        # A recorded provider response ID proves a provider call; without one it stays unobserved, never false.
+        result["provider_call_observed"] = True if (result.get("usage") or {}).get("response_ids") else None
+        if not process:
+            result.update(conditions_valid=False, answer_eligible=False,
+                          failure_reason="CLI launch receipt missing; launch remains unknown")
+        health = session.health()
+        if health.get("condition_errors"):
+            result.update(conditions_valid=False, answer_eligible=False, condition_errors=health["condition_errors"])
+        row = coordinator.change(row["id"], result)
+    except Exception as exc:
+        if solver_invoked:
+            try:
+                process = read_json(folder / "process.json") if (folder / "process.json").exists() else None
+            except (OSError, ValueError):
+                process = None
+            row = coordinator.change(row["id"], {"launch_state": "started" if process else "unknown",
+                                                  "cli_launches": 1 if process else None, "process": process})
+        status = ("cancelled" if cancel_event.is_set() else "warmup_failed" if row["phase"] in {"warming", "ready"}
+                  else "preflight_failed" if row["launch_state"] == "not_started"
+                  else "environment_error" if row["launch_state"] == "started" else "launch_unknown")
+        row = coordinator.change(row["id"], {"status": status, "failure_stage": row["phase"], "failure_reason": str(exc),
+            "conditions_valid": False, "answer_eligible": False,
+            "provider_call_observed": False if row["launch_state"] == "not_started" else None})
+    finally:
+        row = coordinator.change(row["id"], {"phase": "cleanup", "cancel_requested": cancel_event.is_set()})
+        receipt = {"complete": True}
+        if session:
+            try:
+                receipt = session.close(row["status"])
+                require(receipt.get("complete") is True, "warm session cleanup incomplete")
+            except Exception as exc:
+                receipt = {"complete": False, "error": str(exc)}
+                cleanup_errors.append(str(exc))
+        groups = registry.cleanup()
+        if not groups["complete"]:
+            cleanup_errors.append("owned process group cleanup incomplete")
         try:
-            recover(root)
-            write_json(root / "status.json", {"status": "running"})
-            entries = read_json(root / "schedule.json")
-            blocks = collections.defaultdict(list)
-            for entry in entries:
-                blocks[(entry["question_id"], entry["repeat"])].append(entry)
-            def run_block(block):
-                for entry in block:
-                    run_one(root, entry, manifest, cancelled, emit)
-            with concurrent.futures.ThreadPoolExecutor(max_workers=manifest["spec"]["concurrency"]) as executor:
-                list(executor.map(run_block, blocks.values()))
-            rows = runner.load_experiment_runs(root)
-            if not cancelled.is_set():
-                write_json(root / "status.json", {"status": "grading"})
-                grades = evaluate.run(root, manifest["dataset"], rows, Path(manifest["source"]["snapshot"]), manifest["spec"], cancelled, emit)
-            report(root, manifest, rows, grades)
-            state = "interrupted" if cancelled.is_set() else "complete" if grades["complete"] and all(
-                row["status"] in MODEL_TERMINALS and row["conditions_valid"] for row in rows) else "finished_with_errors"
-            result = {"status": state, "run_id": root.name, "report": str(root / "report/results.md")}
-            write_json(root / "status.json", result)
-            return result
-        except (ValueError, KeyError, OSError, subprocess.SubprocessError) as exc:
-            write_json(root / "status.json", {"status": "needs_review", "error": str(exc)})
-            report(root, manifest, runner.load_experiment_runs(root), grades)
-            raise
-        finally:
-            for signum, handler in previous_signals.items():
-                signal.signal(signum, handler)
+            source_check(state, read_json(Path(manifest["prepared"]["source_manifest_path"])))
+        except Exception as exc:
+            cleanup_errors.append(str(exc))
+        if receipt.get("complete") is True and groups["complete"]:
+            try:
+                restore(state)
+            except Exception as exc:
+                cleanup_errors.append(str(exc))
+        cleanup = {"complete": not cleanup_errors, "session": receipt, "groups": groups, "errors": cleanup_errors}
+        durable_json(folder / "cleanup.json", cleanup)
+        row.update(cleanup=cleanup, lifecycle_seconds=time.monotonic() - started)
+        if cleanup_errors:
+            row["conditions_valid"] = False
+            cancel_event.set()
+        durable_json(folder / "collected.json", row)
+        row.update(seal_slot(folder, row))
+        row = coordinator.change(row["id"], {**row, "phase": "terminal"})
+    return row
+
+
+def verify_raw_seal(row: dict) -> None:
+    path = Path(row["raw_seal"])
+    require(file_digest(path) == row["raw_seal_sha256"], "원자료 seal 변경")
+    seal = read_json(path)
+    require(seal["slot_id"] == row["id"] and seal["run_spec_sha256"] == row["run_spec_sha256"], "원자료 실행 binding 변경")
+    for name, item in seal["files"].items():
+        require(Path(name).name == name and file_digest(path.parent / name) == item["sha256"]
+                and (path.parent / name).stat().st_size == item["bytes"], "봉인된 원자료 변경")
+
+
+def grade_packet(root: Path, manifest: dict, initial: dict, coordinator: LedgerCoordinator, cancel_event, grader_executor) -> dict:
+    row = copy.deepcopy(initial)
+    try:
+        folder = Path(row["packet"])
+        seal = read_json(folder / "seal.json")
+        require(seal["run_id"] == row["id"] and seal["raw_seal_sha256"] == row["raw_seal_sha256"], "채점/원자료 binding 변경")
+        require(file_digest(folder / "seal.json") == row["packet_seal_sha256"], "packet seal 변경")
+        for name, checksum in seal["files"].items():
+            require(Path(name).name == name and file_digest(folder / name) == checksum, "채점 입력 변경")
+        require(file_digest(Path(seal["registry"])) == seal["registry_sha256"], "private registry 변경")
+        verify_raw_seal(row)
+        row = coordinator.change(row["id"], {"grade_state": "grading"}, intent="grader-launch")
+        spec = copy.deepcopy(manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])])
+        spec.pop("native_agent", None)
+        spec["grader_timeout_seconds"] = manifest["grader_timeout_seconds"]
+        result = grader_executor(folder / "job", (folder / "prompt.txt").read_text(), grading=True,
+            output_schema=read_json(folder / "schema.json"), relay_settings=None, settings=spec,
+            usage_drain_seconds=0, cancel_event=cancel_event)
+        durable_json(folder / "grader-result.json", result, exclusive=True)
+        row = coordinator.change(row["id"], {"grader_execution": {
+            **{key: result.get(key) for key in ("status", "backend", "provider", "model", "agent_version", "usage", "exit_code",
+                "conditions_valid", "condition_errors", "harness_attempts", "retry_attempts", "failed_attempts", "token_accounting", "retry_events", "compaction_events")},
+            "artifact": str(folder / "grader-result.json"), "sha256": file_digest(folder / "grader-result.json")}})
+        require(not cancel_event.is_set(), "grader cancelled")
+        require(result.get("status") == "completed" and result.get("conditions_valid") is True
+                and result.get("model") == "gpt-6-astra" and result.get("backend") == "pi"
+                and result.get("provider") == "openai-codex",
+                f"pi/Astra 실행 조건/모델 불일치 또는 미완료: {result.get('status')}; {result.get('condition_errors', [])}")
+        from .campaign_store import durable_bytes
+        durable_bytes(folder / "judgment-raw.json", result["answer"].encode(), exclusive=True)
+        judgment = route_grading.parse_judgment(result["answer"])
+        question = next(q for q in routes.load_dataset()["questions"] if q["id"] == row["question_id"])
+        judgment = route_grading.validate_judgment(question, judgment, row["blind_id"], read_json(Path(seal["registry"]))[row["blind_id"]])
+        durable_json(folder / "judgment.json", judgment, exclusive=True)
+        return coordinator.change(row["id"], {"grade_state": "validated", "judgment": str(folder / "judgment.json"),
+            "judgment_sha256": file_digest(folder / "judgment.json"), "judgment_packet_sha256": row["packet_seal_sha256"]})
+    except Exception as exc:
+        return coordinator.change(row["id"], {"grade_state": "cancelled" if cancel_event.is_set() else "failed", "grade_reason": str(exc)})
+
+
+def schedule_workers(rows: list[dict], coordinator: LedgerCoordinator, cancel_event, worker, *, solver_rounds=False):
+    pending, active, arms = list(rows), {}, set()
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        while pending or active:
+            coordinator.drain()
+            if cancel_event.is_set():
+                pending.clear()
+            while len(active) < 4:
+                round_number = min((r["attempt"] for r in [*pending, *active.values()]), default=None)
+                candidate = next((r for r in pending if (not solver_rounds or r["attempt"] == round_number) and r["arm"] not in arms), None)
+                if candidate is None:
+                    break
+                pending.remove(candidate)
+                arms.add(candidate["arm"])
+                active[pool.submit(worker, candidate)] = candidate
+            for future in list(active):
+                if future.done():
+                    row = active.pop(future)
+                    arms.remove(row["arm"])
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        cancel_event.set()
+                        coordinator.ledger["error"] = str(exc)
+            time.sleep(.005)
+    coordinator.drain()
+    if coordinator.fatal:
+        raise ContractError(coordinator.fatal)
+
+
+def recover_interrupted(root: Path, coordinator: LedgerCoordinator) -> None:
+    """An intent is irreversible, including a crash before Popen. Never guess safe cleanup."""
+    for row in coordinator.ledger["slots"]:
+        intent = root / "runs" / row["id"] / "launch-intent.json"
+        folder = Path(row.get("folder", str(intent.parent)))
+        if row["phase"] not in {"pending", "terminal"} or intent.exists() and row["phase"] != "terminal":
+            if (folder / "raw-seal.json").exists() and (folder / "collected.json").exists():
+                recovered = read_json(folder / "collected.json")
+                recovered.update(raw_seal=str(folder / "raw-seal.json"), raw_seal_sha256=file_digest(folder / "raw-seal.json"))
+                require(recovered["id"] == row["id"] and recovered["run_spec_sha256"] == row["run_spec_sha256"], "orphan raw binding 변경")
+                verify_raw_seal(recovered)
+                row.update(recovered, phase="terminal")
+            else:
+                row.update(phase="terminal", status="launch_unknown" if intent.exists() else "preflight_failed",
+                           launch_state="unknown" if intent.exists() else "not_started", conditions_valid=False,
+                           failure_reason="interrupted lifecycle; no automatic relaunch or unsafe restore", grade_state="not_eligible",
+                           cleanup={"complete": False, "errors": ["ownership/cleanup requires operator inspection"]})
+        if ((root / "runs" / row["id"] / "grader-launch-intent.json").exists()
+                and row["grade_state"] not in {"validated", "failed", "cancelled"}):
+            row.update(grade_state="failed", grade_reason="interrupted grader launch; automatic retry forbidden")
+    coordinator.commit()
+
+
+def grading_eligible(row: dict) -> bool:
+    return (row.get("status") == "completed"
+            and row.get("conditions_valid") is True and row.get("answer_eligible") is True
+            and bool(row.get("answer", "").strip()))
+
+
+def prepare_review_packets(root: Path, manifest: dict, coordinator: LedgerCoordinator,
+                           rows: list[dict], source_check) -> None:
+    """Read sealed raw evidence and the fixed baseline; never restore a live workspace."""
+    dataset = routes.load_dataset()
+    for row in rows:
+        if row["grade_state"] != "not_eligible" or row.get("grade_reason"):
+            continue
+        if not grading_eligible(row):
+            row["grade_reason"] = "no eligible complete answer with valid conditions"
+            continue
+        try:
+            verify_raw_seal(row)
+            require(read_json(Path(row["raw_seal"])).get("cleanup_complete") is True, "sealed cleanup incomplete")
+            state = manifest["prepared"]["arms"][row["arm"]]
+            corpus_path = Path(manifest["prepared"]["source_manifest_path"])
+            require(file_digest(corpus_path) == manifest["prepared"]["source_manifest_sha256"], "고정 corpus 변경")
+            corpus = read_json(corpus_path)
+            source = Path(state["baseline"]["paths"]["source"])
+            source_check({**state, "source": str(source)}, corpus)
+            result = route_grading.build_review_packet(root,
+                next(q for q in dataset["questions"] if q["id"] == row["question_id"]), row, source,
+                manifest["run_specs"][routes.execution_key(row["arm"], row["mode"])], Path(row["raw_seal"]), corpus)
+            row.update(result)
+        except Exception as exc:
+            row.update(grade_state="failed", grade_reason=str(exc))
+        coordinator.commit()
+
+
+def _run_campaign(root: Path, *, resume=False, retry_unstarted=False, cancel_event=None, prepare_session=None,
+                  solver_executor=execute_solver, grader_executor=None, collector=None,
+                  restore=restore_slot, source_check=verify_source) -> dict:
+    manifest, ledger = load_ledger(root)
+    verify_prepared_plan(manifest["plan_id"], Path(manifest["readiness"]), manifest["models"]["solver"]["model"], manifest["readiness_sha256"])
+    cancel_event = cancel_event or threading.Event()
+    coordinator = LedgerCoordinator(root, ledger, cancel_event)
+    if resume:
+        recover_interrupted(root, coordinator)
+    rows = coordinator.ledger["slots"]
+    if any(r.get("cleanup", {}).get("complete") is False for r in rows):
+        coordinator.ledger["status"] = "blocked"
+        coordinator.commit()
+        return report_campaign(root)
+    eligible = [r for r in rows if r["launch_state"] == "not_started" and r.get("status") != "out_of_scope" and
+                (r["phase"] == "pending" and not resume or resume and retry_unstarted)]
+    if eligible:
+        try:
+            factory = prepare_session or session_factory()
+        except ContractError as exc:
+            coordinator.ledger.update(status="blocked", error=str(exc))
+            coordinator.commit()
+            return report_campaign(root)
+        for row in eligible:
+            require(not (root / "runs" / row["id"] / "launch-intent.json").exists(), "launch intent가 있는 슬롯은 재실행하지 않습니다")
+            attempt = row.get("lifecycle_attempts", 0) + 1
+            if attempt > 1:
+                durable_json(root / "runs" / row["id"] / f"preflight-{attempt - 1}.json", row, exclusive=True)
+            for key in ("cleanup", "failure_reason", "failure_stage", "grade_reason", "raw_seal", "raw_seal_sha256"):
+                row.pop(key, None)
+            row.update(folder=str(root / "runs" / row["id"] / f"lifecycle-{attempt}"), lifecycle_attempts=attempt,
+                       phase="pending", status="planned", conditions_valid=None, grade_state="not_eligible")
+        coordinator.commit()
+        schedule_workers(eligible, coordinator, cancel_event, lambda row: run_slot(root, manifest, row, coordinator, cancel_event,
+            factory, solver_executor, collector or route_metrics.finish_execution, restore, source_check), solver_rounds=True)
+    for row in coordinator.ledger["slots"]:
+        if row["phase"] == "pending" and cancel_event.is_set():
+            row.update(phase="terminal", status="cancelled", cancel_requested=True, provider_call_observed=False)
+    coordinator.commit()
+    # No graders overlap solver/product lifecycles or a failed cleanup.
+    if not cancel_event.is_set():
+        prepare_review_packets(root, manifest, coordinator, coordinator.ledger["slots"], source_check)
+        schedule_workers([r for r in coordinator.ledger["slots"] if r["grade_state"] == "sealed"], coordinator, cancel_event,
+            lambda row: grade_packet(root, manifest, row, coordinator, cancel_event, grader_executor or runner.execute_model))
+    rows = [r for r in coordinator.ledger["slots"] if r.get("status") != "out_of_scope"]
+    status = ("blocked" if any(r.get("cleanup", {}).get("complete") is False for r in rows) else
+              "cancelled" if cancel_event.is_set() else "awaiting_review" if any(r["grade_state"] == "review_required" for r in rows) else
+              "completed" if all(r["grade_state"] == "validated" for r in rows) else "completed_with_failures")
+    coordinator.ledger["status"] = status
+    coordinator.commit()
+    return report_campaign(root)
+
+
+def run_campaign(root: Path, **options) -> dict:
+    with campaign_lease():
+        return _run_campaign(root.resolve(), **options)
+
+
+def run_new(request: dict, *, cancel_event=None) -> dict:
+    with campaign_lease():
+        readiness = Path(request["readiness"])
+        prepared = verify_prepared_plan(request["plan_id"], readiness, request["solver_model"], request["readiness_sha256"])
+        root, _ = authorize_run(prepared, readiness, request)
+        return _run_campaign(root, cancel_event=cancel_event)
+
+
+def grade_sealed(root: Path, *, cancel_event=None, grader_executor=None, source_check=verify_source) -> dict:
+    """Explicit partial grading of clean raw seals; never unblock or restore a campaign."""
+    with campaign_lease():
+        root = root.resolve()
+        manifest, ledger = load_ledger(root)
+        require(ledger["status"] == "blocked", "grade-sealed is only for a blocked campaign")
+        cancel_event = cancel_event or threading.Event()
+        coordinator = LedgerCoordinator(root, ledger, cancel_event)
+        rows = [row for row in ledger["slots"] if row.get("raw_seal") and grading_eligible(row)
+                and row.get("cleanup", {}).get("complete") is True
+                and row["grade_state"] in {"not_eligible", "review_required", "sealed"}]
+        for row in rows:
+            require(not (root / "runs" / row["id"] / "grader-launch-intent.json").exists(), "grader retry forbidden")
+            verify_raw_seal(row)
+            require(read_json(Path(row["raw_seal"])).get("cleanup_complete") is True, "sealed cleanup incomplete")
+        request = {"mode": "explicit_partial_grading", "requested_at": timestamp(),
+            "candidate_slots": [row["id"] for row in rows], "campaign_error": ledger.get("error"),
+            "blocking_slots": [{"id": row["id"], "status": row.get("status"),
+                "failure_reason": row.get("failure_reason"), "cleanup_errors": row.get("cleanup", {}).get("errors", [])}
+                for row in ledger["slots"] if row.get("cleanup", {}).get("complete") is False]}
+        coordinator.ledger.setdefault("blocked_grading", []).append(request)
+        coordinator.commit()
+        prepare_review_packets(root, manifest, coordinator, rows, source_check)
+        schedule_workers([row for row in rows if row["grade_state"] == "sealed"], coordinator, cancel_event,
+            lambda row: grade_packet(root, manifest, row, coordinator, cancel_event, grader_executor or runner.execute_model))
+        request["validated_slots"] = [row["id"] for row in rows if row["grade_state"] == "validated"]
+        # Failed/unknown cleanup in other slots remains blocked, with its raw evidence intact.
+        coordinator.commit()
+        return report_campaign(root)
+
+
+def approve_review(root: Path, slot_id: str, approval: dict) -> dict:
+    with campaign_lease():
+        manifest, ledger = load_ledger(root)
+        row = next(r for r in ledger["slots"] if r["id"] == slot_id)
+        require(row["grade_state"] in {"review_required", "sealed"}, "검토 대기/승인 슬롯이 아닙니다")
+        verify_raw_seal(row)
+        require(file_digest(Path(row["review"])) == row["review_sha256"], "검토 draft 변경")
+        result = route_grading.approve_identity_review(root, Path(row["review"]), approval)
+        row.update(result)
+        coordinator = LedgerCoordinator(root, ledger, threading.Event())
+        coordinator.commit()
+        return report_campaign(root)
+
+
+def report_campaign(root: Path) -> dict:
+    manifest, ledger = load_ledger(root)
+    judgments = {}
+    for row in ledger["slots"]:
+        if row["grade_state"] == "validated":
+            require(row["judgment_packet_sha256"] == row["packet_seal_sha256"] and
+                    file_digest(Path(row["judgment"])) == row["judgment_sha256"], "채점/packet binding 변경")
+            judgments[row["id"]] = read_json(Path(row["judgment"]))
+    result = route_metrics.report(root, {**manifest["prepared"], "campaign_status": ledger["status"],
+                                        "blocked_grading": ledger.get("blocked_grading", []),
+                                        "run_scope": manifest["authorization"].get("scope", {"kind": "full"})}, ledger["slots"], judgments)
+    return {"campaign_id": manifest["campaign_id"], "plan_id": manifest["plan_id"], "status": ledger["status"],
+            "scope": manifest["authorization"].get("scope", {"kind": "full"}), "error": ledger.get("error"), "blocked_grading": ledger.get("blocked_grading", []),
+            "counts": result["counts"], "ledger": str(root / "ledger.json"),
+            "report": str(root / "report/results.md"), "run_root": str(root)}
+
+
+def operator_inspection(solver_model: str | None = None) -> dict:
+    """Reproducible model-free CUI evidence using the actual catalog and immutable plan."""
+    solver = routes.solver_model(solver_model)
+    record = read_json(route_prepare.readiness_path(solver["model"]))
+    path = routes.PREPARATION / "plans" / record["plan_id"] / "readiness.json"
+    verify_prepared_plan(record["plan_id"], path, solver["model"], file_digest(path))
+    inputs = {"catalog": catalog(), "plan": route_prepare.readiness_projection(record, path)}
+    script = f"""
+import {{ interactive }} from {json.dumps((settings.ROOT / 'start.mjs').as_uri())};
+let text = ''; for await (const chunk of process.stdin) text += chunk;
+const inputs = JSON.parse(text), calls = [], messages = [], menus = [];
+const prompts = {{
+  select: async (options) => {{ menus.push(options); return menus.length === 1 ? 'grafana-routes' : inputs.plan.spec.model; }},
+  confirm: async (options) => {{ menus.push(options); if (options.default !== false) throw Error('unsafe confirmation default'); return false; }},
+}};
+await interactive({{ prompts, output: {{info: (text) => messages.push(text)}}, call: async (action, request) => {{
+  calls.push({{action, request}});
+  if (action === 'catalog') return inputs.catalog;
+  if (action === 'prepare') return inputs.plan;
+  throw Error('model launch forbidden during inspection: ' + action);
+}} }});
+console.log(JSON.stringify({{calls, menus, messages}}));
+"""
+    observed = subprocess.run(["node", "--input-type=module", "-e", script], input=json.dumps(inputs),
+                              text=True, capture_output=True, timeout=30, check=True)
+    flow = json.loads(observed.stdout)
+    require([c["action"] for c in flow["calls"]] == ["catalog", "prepare"], "inspection 실행 경계 위반")
+    value = {"schema_version": 1, "recorded_at": timestamp(), **inputs, "cui_flow": flow,
+             "solver_runs": 0, "grader_runs": 0, "implementation_sha256": settings.harness_identity(),
+             "inspection": "real CUI with verified catalog/readiness projection; confirmation declined; backend calls intercepted"}
+    suffix = "" if solver["model"] == routes.load_profile()["solver"]["model"] else "-" + solver["model"]
+    output = routes.EVIDENCE / f"07-operator-inspection{suffix}.json"
+    durable_json(output, value)
+    return {**value, "evidence": str(output)}

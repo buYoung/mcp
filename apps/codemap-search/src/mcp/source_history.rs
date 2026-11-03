@@ -15,6 +15,7 @@ static GROUP_ROW: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^([0-9]+)([:-]
 static GREP_ROW: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(.+?)([:-])([0-9]+)([:-])(.*)$").unwrap());
 type LineKey = (usize, blake3::Hash);
+#[derive(Clone)]
 struct SourceFile {
     revision: blake3::Hash,
     lines: HashSet<LineKey>,
@@ -27,6 +28,11 @@ pub(super) struct SourceHistory {
     /// Read caller trailers already delivered, keyed by file and trailer text.
     trailers: HashSet<blake3::Hash>,
     pending_trailers: Vec<blake3::Hash>,
+}
+/// A range that does not fit must not become evidence delivered to the client.
+pub(super) struct PendingCheckpoint {
+    files: HashMap<PathBuf, SourceFile>,
+    trailers: Vec<blake3::Hash>,
 }
 #[derive(Default)]
 pub(super) struct FoldedSource {
@@ -175,6 +181,16 @@ impl SourceHistory {
     pub fn begin_request(&mut self) {
         self.discard_pending();
     }
+    pub fn pending_checkpoint(&self) -> PendingCheckpoint {
+        PendingCheckpoint {
+            files: self.pending.clone(),
+            trailers: self.pending_trailers.clone(),
+        }
+    }
+    pub fn restore_pending(&mut self, checkpoint: PendingCheckpoint) {
+        self.pending = checkpoint.files;
+        self.pending_trailers = checkpoint.trailers;
+    }
     pub fn discard_pending(&mut self) {
         self.pending.clear();
         self.pending_trailers.clear();
@@ -251,19 +267,23 @@ impl SourceHistory {
             crate::tools::get_arg(arguments, "include_seen").and_then(Value::as_bool) != Some(true);
         // A read's caller trailer follows its source rows; an unchanged repeat is folded too.
         // It starts after the newline that ends the last row, so the two edits never overlap.
+        // Without a caller list, the importer trailer, which comes last, is folded alone.
         let mut trailer_edit = None;
         let trailer_start = (tool == "read")
             .then(|| {
-                text.find(&format!(
-                    "\n{}",
-                    crate::tools::live_symbols::OUTSIDE_CALLERS_HEADER
-                ))
+                [
+                    crate::tools::live_symbols::OUTSIDE_CALLERS_HEADER,
+                    crate::tools::live_symbols::IMPORTERS_HEADER,
+                ]
+                .iter()
+                .find_map(|header| text.find(&format!("\n{header}")))
             })
             .flatten()
             .map(|newline| newline + 1);
         if let (Some(start), Some(path)) = (trailer_start, read_path(arguments)) {
             let key = blake3::hash(format!("{path}\0{}", &text[start..]).as_bytes());
-            if should_fold && self.trailers.contains(&key) {
+            if should_fold && (self.trailers.contains(&key) || self.pending_trailers.contains(&key))
+            {
                 trailer_edit = Some(start..text.len());
             } else {
                 self.pending_trailers.push(key);

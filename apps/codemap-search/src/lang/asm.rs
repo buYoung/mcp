@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
 use super::{LanguageSpec, NameDecision};
+use crate::parser::{CodeRange, ImportEntry, ImportKind};
 
 // Assembly (GAS / AT&T and Intel syntax): node kinds verified against tree-sitter-asm 0.24.0
 // node-types.json and an empirical parse-tree dump. Key shapes:
@@ -134,8 +135,54 @@ impl LanguageSpec for AsmSpec {
     }
 
     fn is_import_line(&self, line: &str) -> bool {
-        // Assembly: `.include` embeds another assembly file.
-        line.trim_start().starts_with(".include")
+        // Assembly: `.include`, the preprocessor's `#include` and NASM `%include` embed
+        // another file.
+        let line = line.trim_start();
+        [".include", "#include", "%include"]
+            .iter()
+            .any(|directive| line.starts_with(directive))
+    }
+
+    fn import_entries_for_capture(
+        &self,
+        node: Node<'_>,
+        source: &[u8],
+    ) -> Option<Vec<ImportEntry>> {
+        // `.include` and `#include` decode as text; NASM's `include` instruction names its
+        // file in a string operand.
+        if node.kind() != "instruction" {
+            return None;
+        }
+        let mut cursor = node.walk();
+        let path = node
+            .named_children(&mut cursor)
+            .find(|child| child.kind() == "string")?
+            .utf8_text(source)
+            .ok()?
+            .trim()
+            .trim_matches(['"', '\''])
+            .to_string();
+        let file_name = path.rsplit(['/', '\\']).next().unwrap_or(&path);
+        let name = file_name
+            .rsplit_once('.')
+            .map_or(file_name, |(stem, _)| stem)
+            .to_string();
+        if name.is_empty() {
+            return Some(Vec::new());
+        }
+        let (start, end) = (node.start_position(), node.end_position());
+        Some(vec![ImportEntry {
+            local_name: name.clone(),
+            imported_name: Some(name),
+            source: Some(path),
+            kind: ImportKind::Named,
+            range: CodeRange {
+                start_line: start.row + 1,
+                start_col: start.column + 1,
+                end_line: end.row + 1,
+                end_col: end.column + 1,
+            },
+        }])
     }
 
     fn collect_exported_names(&self, root: Node, source: &[u8], out: &mut HashSet<String>) {

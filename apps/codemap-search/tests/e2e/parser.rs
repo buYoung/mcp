@@ -232,7 +232,12 @@ fn test_priority_three_shell_symbols_and_source_import_do_not_create_calls() {
     assert_eq!(value["navigation"]["calls"], serde_json::json!([]));
     assert_eq!(value["navigation"]["references"], serde_json::json!([]));
     assert_eq!(value["navigation"]["imports"][0]["source"], "./shared.sh");
-    assert_eq!(value["navigation"]["imports"].as_array().unwrap().len(), 1);
+    // A computed directory keeps a literal file; a wholly computed operand names none.
+    assert_eq!(
+        value["navigation"]["imports"][1]["source"],
+        "$PLUGIN_ROOT/common.sh"
+    );
+    assert_eq!(value["navigation"]["imports"].as_array().unwrap().len(), 2);
 }
 
 #[test]

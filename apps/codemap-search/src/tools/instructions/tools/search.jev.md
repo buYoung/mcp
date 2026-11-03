@@ -4,4 +4,4 @@ Results include snippets, match reasons, symbol ranges and read_suggestion. Exac
 
 Supplementary relationships use displayed matching evidence and only the bytes left after ranked details and compact tail rows; they never shorten ranked results. Exact event-key maps use a dedicated layout. Unsupported arguments are errors, including path and per-request limit.
 
-Answer from sufficient source evidence. Read only missing ranges; do not insert overview or reread already visible evidence. Partial output, ambiguity and list-only rows are not complete source evidence.
+Answer from sufficient source evidence. Read only missing ranges; do not reread already visible evidence. Partial output, ambiguity and list-only rows are not complete source evidence.

@@ -401,13 +401,13 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let scaffolded = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            scaffolded.starts_with("# codemap-config-version: 32\n"),
+            scaffolded.starts_with("# codemap-config-version: 33\n"),
             "{scaffolded}"
         );
         assert!(scaffolded.contains("\n[output.jev]\n"), "{scaffolded}");
         assert!(!scaffolded.contains("overview_enabled"));
         assert!(scaffolded.contains("\nenabled = false\n"));
-        assert!(scaffolded.contains("\nscope = [\"overview\", \"search\", \"read\", \"grep\"]\n"));
+        assert!(scaffolded.contains("\nscope = [\"search\", \"read\", \"grep\"]\n"));
         assert!(!scaffolded.contains("api_key_env"));
         assert!(scaffolded.contains("\nsearch_filter_min_unrelated_probability = 0.70\n"));
         assert!(
@@ -427,7 +427,7 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let migrated = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            migrated.starts_with("# codemap-config-version: 32\n"),
+            migrated.starts_with("# codemap-config-version: 33\n"),
             "{migrated}"
         );
         assert!(migrated.contains("detail_file_limit = 7\n"), "{migrated}");
@@ -462,13 +462,12 @@ export function dropMe(input: string): string {
         let mut client = McpClient::spawn(temp.path()).await.unwrap();
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let kept = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
-        assert!(kept.starts_with("# codemap-config-version: 32\n"), "{kept}");
+        assert!(kept.starts_with("# codemap-config-version: 33\n"), "{kept}");
         assert!(!kept.contains("_filter_enabled"), "{kept}");
         assert!(!kept.contains("analysis.jev"), "{kept}");
         assert!(!kept.contains("api_key_env"), "{kept}");
         let expected: toml::Value =
-            toml::from_str("enabled = true\nscope = ['overview', 'search', 'read', 'grep']")
-                .unwrap();
+            toml::from_str("enabled = true\nscope = ['search', 'read', 'grep']").unwrap();
         assert_eq!(
             toml::from_str::<toml::Value>(&kept).unwrap()["output"]["jev"],
             expected,

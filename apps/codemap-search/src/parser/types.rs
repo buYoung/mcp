@@ -156,6 +156,11 @@ pub struct NavigationFile {
     pub local_bindings: Vec<LocalBinding>,
     #[serde(default)]
     pub imports: Vec<ImportEntry>,
+    /// Exports renaming a declaration or an imported binding, as `export { name as alias }`:
+    /// the alias as the local name and the original as the imported name, so importers of the
+    /// alias can be traced to the declaration.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub renamed_exports: Vec<ImportEntry>,
     /// Upper-snake-case constant names by line, from a lexical scan of the indexed source.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub key_sites: Vec<KeySite>,

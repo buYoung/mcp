@@ -97,9 +97,17 @@ fn append_extension(path: &Path, extension: &str) -> PathBuf {
     PathBuf::from(name)
 }
 
-/// Files a module path may name. A dotted base name (`user.service`) is not an extension, and a
-/// `.js` specifier in TypeScript source names the `.ts` file `tsc` compiles to it.
+/// Files a module path may name. A dotted base name (`user.service`) is not an extension, a
+/// `.js` specifier in TypeScript source names the `.ts` file `tsc` compiles to it, and a
+/// component specifier (`Card.vue`) names that component file.
 fn module_candidates(base: &Path) -> Vec<PathBuf> {
+    if base
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| matches!(extension, "vue" | "svelte" | "astro"))
+    {
+        return vec![base.to_path_buf()];
+    }
     let extension = base
         .extension()
         .and_then(|extension| extension.to_str())

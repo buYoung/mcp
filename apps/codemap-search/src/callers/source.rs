@@ -83,6 +83,8 @@ impl SourceSyntax {
                     | "interpolated_expression"
                     | "embedded_expression"
                     | "command_substitution"
+                    | "simple_expansion"
+                    | "expansion"
                     | "sub_expression"
             ) {
                 return true;
@@ -167,4 +169,59 @@ impl SourceSyntax {
             "field_expression" | "member_expression" | "attribute" | "selector_expression"
         ))
     }
+}
+
+/// The lines of `source` that use each of `patterns` in code, sorted. A pattern is a name or a
+/// qualified path such as `module.name` or `module::name`. It must stand alone rather than
+/// inside a longer identifier, a plain name must not follow `.` as another value's member, and
+/// the match must lie outside comments and strings; a shell `$NAME` or an assembly `$NAME`
+/// operand uses `NAME`. Text the grammar cannot parse is matched by spelling alone.
+pub(crate) fn code_use_lines(
+    file_path: &str,
+    source: &str,
+    patterns: &[String],
+) -> Vec<Vec<usize>> {
+    let language = crate::lang::spec_for_path(Path::new(file_path))
+        .map(|spec| spec.language_name())
+        .unwrap_or_default();
+    let is_sigil = matches!(language, "bash" | "zsh" | "powershell" | "asm");
+    // Shell words, function names among them, may contain hyphens.
+    let is_shell = matches!(language, "bash" | "zsh");
+    let is_name_char = |c: char| {
+        c.is_alphanumeric() || c == '_' || (c == '$' && !is_sigil) || (c == '-' && is_shell)
+    };
+    let mut found: Vec<Vec<usize>> = vec![Vec::new(); patterns.len()];
+    let mut syntax: Option<Option<SourceSyntax>> = None;
+    let mut line_start = 0;
+    for (index, line) in source.split_inclusive('\n').enumerate() {
+        for (pattern_index, pattern) in patterns.iter().enumerate() {
+            if pattern.is_empty() {
+                continue;
+            }
+            let is_path = pattern.contains('.') || pattern.contains("::");
+            let mut from = 0;
+            while let Some(offset) = line[from..].find(pattern.as_str()) {
+                let at = from + offset;
+                from = at + pattern.len();
+                let before = line[..at].chars().next_back();
+                let after = line[from..].chars().next();
+                if before.is_some_and(|c| is_name_char(c) || (c == '.' && !is_path))
+                    || after.is_some_and(is_name_char)
+                {
+                    continue;
+                }
+                let start = line_start + at;
+                let is_code = syntax
+                    .get_or_insert_with(|| SourceSyntax::parse(file_path, source.as_bytes()))
+                    .as_ref()
+                    .is_none_or(|syntax| syntax.is_code(start..start + pattern.len()));
+                if is_code {
+                    found[pattern_index].push(index + 1);
+                    break;
+                }
+            }
+        }
+        line_start += line.len();
+    }
+    found
 }

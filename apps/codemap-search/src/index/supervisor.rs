@@ -46,16 +46,16 @@ pub struct EngineSupervisor {
     // once ALL senders are gone. The opposite order deadlocks on shutdown.
     watcher: Option<WatcherHandle>,
     // Background indexer: fire-and-forget refresh trigger, warming/error status, and the
-    // current codemap snapshot consumed by `overview`.
+    // current codemap snapshot consumed by search and the root scope inventory.
     indexer: IndexerHandle,
     // Watcher health flag: while healthy, the watcher keeps the index current and the
     // request-triggered refresh below is suppressed entirely. Stays unhealthy forever
     // when `watch = false` or the watch failed to start, which preserves the lazy path.
     watcher_status: Arc<WatcherStatus>,
     // Instant of the last refresh trigger. Within `config::index_staleness_ms` we skip
-    // re-triggering so a burst of search/overview calls enqueues at most one refresh; the
+    // re-triggering so a burst of search calls enqueues at most one refresh; the
     // indexer's own mtime diff keeps each pass incremental. A single field now suffices
-    // because search and overview share one background refresh.
+    // because every snapshot reader shares one background refresh.
     last_refresh_trigger: Option<Instant>,
     // Automatic indexer restarts performed so far (see `ensure_alive`).
     indexer_restart_attempts: u32,
@@ -207,7 +207,7 @@ impl EngineSupervisor {
 
     /// Enqueue a background index refresh unless one was already triggered within the
     /// staleness window. Fire-and-forget — never blocks the request on indexing. Shared by
-    /// search and overview, which both serve the indexer's published snapshot.
+    /// search and the monorepo initial_instructions, which both serve the indexer's published snapshot.
     ///
     /// While the filesystem watcher is healthy this is a no-op: the watcher already keeps
     /// the index current, so suppressing the request-triggered full walk here is what
@@ -297,6 +297,26 @@ impl EngineSupervisor {
         )
     }
 
+    /// [`Self::search_with_context_and_snapshot_in_scope`] plus unranked phrase matches read
+    /// under the same generation gate; `phrase_rows` sizes them from the ranked results.
+    pub(crate) fn search_with_phrase_recall_in_scope(
+        &self,
+        query: &str,
+        limit: usize,
+        context: &SearchQueryContext,
+        workspace_scope: Option<&str>,
+        phrase_rows: impl FnOnce(&[SearchResult]) -> usize,
+    ) -> Result<super::SearchWithPhrases, String> {
+        self.indexer.search_with_phrase_recall_in_scope(
+            &self.searcher,
+            query,
+            limit,
+            context,
+            workspace_scope,
+            phrase_rows,
+        )
+    }
+
     /// The current immutable index generation. Relation rendering reads this alongside its
     /// declaration evidence, so refreshes cannot mix codemap and edge generations.
     pub fn published_snapshot(&self) -> Arc<super::PublishedIndexSnapshot> {
@@ -315,6 +335,12 @@ impl EngineSupervisor {
     /// True if the background indexer thread has stopped (panicked or exited).
     pub fn is_dead(&self) -> bool {
         self.indexer.is_dead()
+    }
+
+    /// Whether the filesystem watcher keeps the published index current, so a request may
+    /// read the indexed files instead of walking the workspace (see [`Self::trigger_refresh`]).
+    pub(crate) fn keeps_index_current(&self) -> bool {
+        self.watcher_status.is_healthy() && !self.indexer.is_dead()
     }
 
     /// True until the initial background indexing pass completes.

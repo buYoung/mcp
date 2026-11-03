@@ -92,8 +92,8 @@ async fn call(client: &mut InProcessClient, tool: &str, args: Value) -> Value {
 }
 async fn warm(client: &mut InProcessClient) {
     let response = client
-        .call_tool_until("overview", json!({"path":"src/budget.ts"}), |text| {
-            text.contains("keepBody")
+        .call_tool_until("search", json!({"query":"keepBody"}), |text| {
+            text.contains("src/budget.ts") && text.contains("keepBody")
         })
         .await
         .unwrap();

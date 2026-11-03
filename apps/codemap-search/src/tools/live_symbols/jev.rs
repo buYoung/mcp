@@ -18,7 +18,6 @@ use std::path::Path;
 
 mod context;
 mod external;
-pub(crate) mod overview;
 
 const EVIDENCE_VERSION: &str = "live-task-evidence/5";
 
