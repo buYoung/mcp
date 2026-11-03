@@ -513,6 +513,53 @@ impl IgnoreProbe {
 /// included for Claude Code `--hidden` parity. The returned builder can be further
 /// configured (e.g. `.types(...)`) before `.build()`.
 pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
+    build_filtered_walker(root, include_ignored, false)
+}
+
+/// [`build_walker`] for indexing the start folder: it also skips the roots of linked
+/// worktrees, whose files are another checkout of the same repository.
+pub(crate) fn build_index_walker(root: &Path) -> ignore::WalkBuilder {
+    build_filtered_walker(root, false, true)
+}
+
+/// Whether `directory` is the root of a git linked worktree: its `.git` is a file naming a
+/// gitdir in the `worktrees` directory of a git common directory. Submodules, whose gitdirs
+/// lie under `modules`, and repositories with a `.git` directory are not.
+pub(crate) fn is_linked_worktree_root(directory: &Path) -> bool {
+    let Ok(text) = std::fs::read_to_string(directory.join(".git")) else {
+        return false;
+    };
+    let Some(gitdir) = text
+        .lines()
+        .next()
+        .and_then(|line| line.strip_prefix("gitdir:"))
+    else {
+        return false;
+    };
+    let gitdir = directory.join(gitdir.trim());
+    let Some(worktrees) = gitdir
+        .parent()
+        .filter(|parent| parent.file_name().is_some_and(|name| name == "worktrees"))
+    else {
+        return false;
+    };
+    let Ok(common) = std::fs::read_to_string(gitdir.join("commondir")) else {
+        return false;
+    };
+    let (Ok(common), Some(Ok(expected))) = (
+        gitdir.join(common.trim()).canonicalize(),
+        worktrees.parent().map(Path::canonicalize),
+    ) else {
+        return false;
+    };
+    common == expected
+}
+
+fn build_filtered_walker(
+    root: &Path,
+    include_ignored: bool,
+    skips_linked_worktrees: bool,
+) -> ignore::WalkBuilder {
     // `include_ignored` (per-call, find/grep) bypasses EVERY ignore source. Distinct from
     // that, `use_git_exclude` is a dedicated config toggle for `.git/info/exclude`
     // alone — when false, that one source is ignored while `.gitignore`/global/
@@ -527,6 +574,9 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
             return false;
         }
         entry_allowed_by_excluded_dirs(entry, respect, &workspace_root, &config)
+            && !(skips_linked_worktrees
+                && entry.file_type().is_some_and(|kind| kind.is_dir())
+                && is_linked_worktree_root(entry.path()))
     });
     builder
 }

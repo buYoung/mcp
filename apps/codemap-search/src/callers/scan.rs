@@ -272,7 +272,7 @@ fn escape_name(name: &str) -> String {
 
 /// One combined-regex `\b(?:n1|n2|…)\b` walk of the workspace, or of the indexed files the
 /// watcher keeps current, classifying every hit. Returns `None` on any setup failure (failure
-/// isolation). The walk reuses `build_walker` + the source-extension + size filters so
+/// isolation). The walk reuses `build_index_walker` + the source-extension + size filters so
 /// coverage matches the indexer.
 pub(super) fn scan_workspace(
     names: &[String],
@@ -394,7 +394,7 @@ pub(super) fn scan_workspace(
         // order.
         None if options.deadline.is_none() && options.unchanged_calls.is_none() => {
             let threads = crate::parallel::threads();
-            let mut walk = crate::workspace::build_walker(root, false).build();
+            let mut walk = crate::workspace::build_index_walker(root).build();
             let mut batch = Vec::with_capacity(SCAN_BATCH_FILES);
             loop {
                 let result = walk.next();
@@ -463,7 +463,7 @@ pub(super) fn scan_workspace(
             }
         }
         None => {
-            for result in crate::workspace::build_walker(root, false).build() {
+            for result in crate::workspace::build_index_walker(root).build() {
                 if is_past() {
                     is_past_deadline = true;
                     break;

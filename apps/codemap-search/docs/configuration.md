@@ -175,6 +175,8 @@ Rules are case-sensitive globs matched against directories, not files with the s
 
 The same rules apply to indexing, codemap, caller scans, watcher updates, `find` and `grep`. A direct search inside an excluded subtree does not bypass its ancestors. `include_ignored: true` on `find`/`grep` bypasses optional directory and ordinary file-ignore rules, but not mandatory internal/index directories. Removing a rule does not override `.gitignore` or `.codemapignore`.
 
+Indexing, caller scans and watcher updates also skip git linked worktrees checked out inside the workspace: folders whose `.git` file points into the `worktrees` folder of a repository. `find`, `grep` and codemap still walk them; submodules and nested repositories are indexed as before.
+
 ### Initial project detection
 
 Common folders and project recommendations are generated only for a missing repo config or its pre-v6 transition. Detection reads names of project files and does not execute a build, evaluate a manifest or follow directory symlinks. It respects ignore files, skips common/generated folders and orphan dependency/cache trees, and supports nested projects. It records recommended outputs as recursive globs even if those folders do not exist yet. Discovered project paths are not recorded, and repeated project types share the same patterns. User-customized build output paths must be added manually.

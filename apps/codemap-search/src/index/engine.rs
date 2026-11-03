@@ -983,7 +983,7 @@ fn tokenize_path(file_path: &str) -> String {
 }
 
 /// Whether an event path would be reached by the shared ignore-aware walk
-/// ([`crate::workspace::build_walker`]) descending from the workspace root. The full walk
+/// ([`crate::workspace::build_index_walker`]) descending from the workspace root. The full walk
 /// honors directory-only ignore rules (e.g. a `.gitignore` line `generated/`) by never
 /// descending into the ignored directory, so a single depth-1 check of the immediate
 /// parent is NOT enough — it would be rooted *inside* the ignored subtree and the
@@ -1003,7 +1003,7 @@ fn is_path_visible_to_walk(path: &Path) -> bool {
     let mut current = root;
     for component in rel.components() {
         let next = current.join(component);
-        let is_visible = crate::workspace::build_walker(&current, false)
+        let is_visible = crate::workspace::build_index_walker(&current)
             .max_depth(Some(1))
             .build()
             .filter_map(|e| e.ok())
@@ -1141,7 +1141,7 @@ impl TantivySearchEngine {
                 // Shared walker: honors EXCLUDED_DIRS + .gitignore/.codemapignore so
                 // node_modules/target/… never enter the BM25 index (Child 04), matching
                 // find/grep. include_ignored=false keeps ignored paths out of the index.
-                for entry in crate::workspace::build_walker(path, false)
+                for entry in crate::workspace::build_index_walker(path)
                     .build()
                     .filter_map(|e| e.ok())
                 {
@@ -1616,7 +1616,7 @@ impl TantivySearchEngine {
                         to_delete.push(raw_key);
                     }
                 }
-                // The full walk honors .gitignore/.codemapignore via build_walker; a single
+                // The full walk honors .gitignore/.codemapignore via build_index_walker; a single
                 // event path bypasses the walk, so check visibility explicitly — otherwise
                 // the watcher would index ignored files the next full walk then deletes
                 // (flip-flopping index contents).
@@ -1662,7 +1662,7 @@ impl TantivySearchEngine {
                 // set difference here is scoped to the subtree the walk fully covered, so
                 // it is NOT the full-walk-only delete logic the doc comment above forbids.
                 let mut subtree_disk_paths = std::collections::HashSet::new();
-                for entry in crate::workspace::build_walker(path, false)
+                for entry in crate::workspace::build_index_walker(path)
                     .build()
                     .filter_map(|e| e.ok())
                 {

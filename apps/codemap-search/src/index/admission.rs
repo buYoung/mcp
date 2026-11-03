@@ -45,7 +45,7 @@ pub fn decide(cwd: &Path) -> Admission {
 /// `[index].auto_max_files` exist. Counting stops right after the limit.
 pub(super) fn size_refusal(cwd: &Path) -> Option<String> {
     let limit = crate::config::get().index_auto_max_files;
-    let count = crate::workspace::build_walker(cwd, false)
+    let count = crate::workspace::build_index_walker(cwd)
         .build()
         .filter_map(Result::ok)
         .filter(|entry| {

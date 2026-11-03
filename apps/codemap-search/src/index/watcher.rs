@@ -302,10 +302,10 @@ enum EventPathKind {
     Candidate,
 }
 
-/// The watcher-side path filter, mirroring the shared walk's exclusions
-/// ([`crate::workspace::ALWAYS_EXCLUDED_DIRS`] + configured `excluded_directories`) so
-/// tantivy's commits to `.codemap/index` and churn in `node_modules`/`target`/… never
-/// re-trigger indexing. `.git` paths are dropped except the HEAD-hint files.
+/// The watcher-side path filter, mirroring the index walk's exclusions
+/// ([`crate::workspace::ALWAYS_EXCLUDED_DIRS`] + configured `excluded_directories` + linked
+/// worktree roots) so tantivy's commits to `.codemap/index` and churn in
+/// `node_modules`/`target`/… never re-trigger indexing. `.git` paths are dropped except the HEAD-hint files.
 fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
     let rel = match path.strip_prefix(root) {
         Ok(rel) => rel,
@@ -336,7 +336,9 @@ fn classify_event_path(path: &Path, root: &Path) -> EventPathKind {
         if parent == root {
             break;
         }
-        if crate::workspace::directory_is_excluded(parent, root, &config, true) {
+        if crate::workspace::directory_is_excluded(parent, root, &config, true)
+            || crate::workspace::is_linked_worktree_root(parent)
+        {
             return EventPathKind::Ignored;
         }
         directory = parent.parent();
