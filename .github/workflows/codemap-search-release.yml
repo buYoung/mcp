@@ -53,7 +53,7 @@ jobs:
           # binary, so the archive ships unverified at runtime.
           - { os: windows-latest, target: aarch64-pc-windows-msvc, archive: zip, best_effort: true }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.99.1
@@ -237,7 +237,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.99.1
