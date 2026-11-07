@@ -17,7 +17,7 @@ GO_SYMBOL = "DefaultSQLExpressionCellLimit"
 TS_SYMBOL = "generateUUID"
 POLICY = {"revision": 1, "poll_seconds": 1, "stable_observations": 2,
           "go": {"path": GO_FILE, "symbol": GO_SYMBOL}, "typescript": {"path": TS_FILE, "symbol": TS_SYMBOL},
-          "session_strategy": {"codemap-search": "root overview only; forward solver initialize to clear delivery dedup",
+          "session_strategy": {"codemap-search": "search starts auto indexing, then index analyze; forward solver initialize to clear delivery dedup",
               "codegraph": "forward initialize; native CODEGRAPH_EXPLORE_DEDUP off",
               "zvec-grep": "DELETE warm HTTP session; solver initializes fresh session on same server",
               "graphify": "graph_stats only; query_graph checked in disposable preparation",
@@ -81,7 +81,7 @@ def index_degradation(ident: str, result: dict, *, tool: str | None = None) -> s
             if status not in ({"fresh"} if key == "freshness" else {"inactive", "idle", "completed"}):
                 return line
     elif ident == "codemap-search":
-        if tool in {"overview", "search", "initial_instructions"} and first.startswith((
+        if tool in {"search", "initial_instructions"} and first.startswith((
                 "Index unavailable:", "Codemap is warming up (", "Background indexer stopped before the codemap was built;",
                 "_Background indexer stopped —", "_Index is warming up (", "_Last background index refresh failed:")):
             return first
@@ -136,9 +136,16 @@ def assert_ready(ident: str, name: str, result: dict, state: dict | None = None)
     check(bool(value), "empty native response")
     check(degradation(ident, result, tool=name) is None, degradation(ident, result, tool=name) or "degraded")
     if ident == "codemap-search":
-        if name == "overview":
-            for metric in ("Total Files", "Total Symbols"):
-                check(re.search(rf"(?m)^- \*\*{metric}\*\*: [1-9]\d*$", value), f"empty {metric}")
+        if name == "analyze":
+            try:
+                report = json.loads(value)
+            except ValueError:
+                report = None
+            check(isinstance(report, dict) and report.get("index_state") == "ready", "index is not ready")
+            summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+            for metric in ("files", "symbols"):
+                count = summary.get(metric)
+                check(isinstance(count, int) and not isinstance(count, bool) and count > 0, f"empty {metric}")
         elif name in {"search", "read"}:
             check(GO_FILE in value or TS_FILE in value, "neutral indexed source missing")
     elif ident == "codegraph":
@@ -191,7 +198,8 @@ def assert_ready(ident: str, name: str, result: dict, state: dict | None = None)
 def probes(state: dict, *, preparation=False) -> list[tuple[str, dict]]:
     ident, source = state["id"], state["source"]
     if ident == "codemap-search":
-        return [("overview", {})] + ([("search", {"query": GO_SYMBOL}), ("read", {"file_path": TS_FILE})] if preparation else [])
+        return [("search", {"query": GO_SYMBOL}), ("analyze", {"target": "index", "view": "summary"})] + (
+            [("read", {"file_path": TS_FILE})] if preparation else [])
     if ident == "codegraph":
         return [("codegraph_explore", {"query": "configuration settings", "projectPath": source})]
     if ident == "zvec-grep":
