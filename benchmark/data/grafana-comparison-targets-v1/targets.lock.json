@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "revision": 8,
+  "revision": 9,
   "status": "source_identities_frozen",
-  "frozen_at": "2026-10-27T00:00:00+00:00",
+  "frozen_at": "2026-11-07T00:00:00+00:00",
   "target_release": "1.0.0",
   "scope": "외부 비교 도구 6개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
   "selection_policy": "2026-10-24 공식 GitHub release/tag와 npm/PyPI stable 배포를 대조했다. zvec-grep 0.2.2는 npm/tag 배포이며 GitHub Release는 없어 관련 필드를 null로 둔다. Graphify v1.0.0은 2026-04-05의 과거 release이고 PyPI에는 없으므로 현재 upstream latest/PyPI의 0.9.95를 선택한다. 준비 중 latest를 다시 해석하지 않는다.",
@@ -19,9 +19,9 @@
   "subject": {
     "id": "codemap-search",
     "target_release": "1.0.0",
-    "version": "0.14.0",
-    "git_ref": "codemap-v0.14.0",
-    "commit": "fc0a368d0b37da44c5e2bc9df3617ef75b4891cb",
+    "version": "0.14.2",
+    "git_ref": "2d0fdf01003a32631d7fed586ae558d6528592b6",
+    "commit": "2d0fdf01003a32631d7fed586ae558d6528592b6",
     "source_and_binary_pin_status": "release_source_frozen_binary_at_preparation"
   },
   "required_comparison_ids": [
@@ -351,8 +351,8 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "풀이를 pinned Codex CLI 0.164.0 기본 code_mode_only·Claude Code 2.1.311 direct로 전환. 모델별 42슬롯이며 pi toolchain은 채점용으로 유지.",
-  "previous_lock_sha256": "de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8",
+  "revision_reason": "평가 제품 codemap-search를 벤치마크 브랜치 머지 커밋 2d0fdf010(0.14.2 이후 변경 포함) 스냅샷으로 전환. 비교 도구·풀이 CLI·채점 toolchain은 개정 8과 같다.",
+  "previous_lock_sha256": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
   "pi_toolchain": {
     "install_flags": [
       "ci",

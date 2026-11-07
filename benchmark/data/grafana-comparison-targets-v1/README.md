@@ -1,6 +1,6 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-외부 도구 6개와 풀이·채점 toolchain을 고정한 `grafana-comparison-targets-v1` **개정 8**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. `previous_lock_sha256`은 개정 7의 `de55409dc07a18364e1701fb63fffda315e576aad3c4761a22efa245f7b055b8`이다. 이번 개정은 데이터셋·Grafana commit·검색 제품 버전을 바꾸지 않고 풀이를 private Codex CLI 0.164.0 / Claude Code 2.1.311로 바꾼다. GPT는 Codex 제품 기본 code_mode_only(exec/wait), Claude는 direct이며 각각 42슬롯이다. pi toolchain은 Astra 채점용으로 유지한다. 제품 출력 설정은 기본값이고 MCP client guard만 제품 상한 이상으로 맞춘다. Codex exec/wait의 별도 출력 예산은 제품 기본값(미지정 시 10000토큰)을 유지한다.
+외부 도구 6개와 풀이·채점 toolchain을 고정한 `grafana-comparison-targets-v1` **개정 9**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. `previous_lock_sha256`은 개정 8의 `a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0`이다. 이번 개정은 평가 제품 codemap-search만 벤치마크 브랜치 머지 커밋 `2d0fdf010` 스냅샷으로 바꾸고, 데이터셋·Grafana commit·비교 도구·풀이 CLI·채점 toolchain은 개정 8과 같다. 개정 8은 풀이를 private Codex CLI 0.164.0 / Claude Code 2.1.311로 바꿨다. GPT는 Codex 제품 기본 code_mode_only(exec/wait), Claude는 direct이며 각각 42슬롯이다. pi toolchain은 Astra 채점용으로 유지한다. 제품 출력 설정은 기본값이고 MCP client guard만 제품 상한 이상으로 맞춘다. Codex exec/wait의 별도 출력 예산은 제품 기본값(미지정 시 10000토큰)을 유지한다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -13,7 +13,7 @@
 
 - CodeGraph는 사용자가 선택한 공식 `@colbymchenry/codegraph` Node 구현이다. zvec-grep은 `@zvec/zvec-grep` Node 구현이다. zvec 0.2.2에는 GitHub Release가 없으므로 release URL/ID/시각은 `null`이다. GitHub latest의 오래된 0.2.0 메타데이터를 빌려 쓰지 않는다.
 - Graphify는 공식 `Graphify-Labs/graphify`의 `graphifyy` Python 구현이다. `v1.0.0`은 2026-04-05의 과거 release이며 PyPI에는 없다. 현재 upstream latest와 PyPI가 일치하는 0.9.95를 선택했다.
-- 평가 제품 codemap-search는 작업 트리가 아니라 `codemap-v0.14.0` (`fc0a368d0`)의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.14.0**이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
+- 평가 제품 codemap-search는 작업 트리가 아니라 벤치마크 브랜치 머지 커밋 `2d0fdf010`의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.14.2**(이후 변경 포함)이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
 
 ## 데이터셋 연결
 

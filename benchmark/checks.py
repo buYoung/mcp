@@ -168,7 +168,7 @@ class BenchChecks(unittest.TestCase):
         self.assertEqual(settings.execution_settings()["grader_backend"], "pi")
         self.assertTrue(all("-codemode-" in row["id"] for row in routes.schedule()))
         pins = routes.frozen_inputs()["lock"]
-        self.assertEqual(pins["revision"], 8)
+        self.assertEqual(pins["revision"], 9)
         self.assertEqual(pins["cli_toolchain"]["versions"], {"codex": "0.164.0", "claude_code": "2.1.311"})
         self.assertIn("pi_toolchain", pins)
 

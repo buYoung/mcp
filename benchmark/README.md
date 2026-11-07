@@ -21,7 +21,7 @@ Codex 0.164.0의 내장 `models-manager/models.json`은 gpt-6.1-sol에 `tool_mod
 
 | 비교군 | 고정 버전 |
 |---|---|
-| codemap-search | 0.14.0, 로컬 태그 `codemap-v0.14.0` (`fc0a368d0`) git_ref snapshot |
+| codemap-search | 0.14.2 이후 변경 포함, 벤치마크 브랜치 머지 커밋 `2d0fdf010` git_ref snapshot |
 | CodeGraph | 1.6.2 |
 | zvec-grep | 0.2.2 |
 | Graphify | 0.9.95 |
@@ -29,7 +29,7 @@ Codex 0.164.0의 내장 `models-manager/models.json`은 gpt-6.1-sol에 `tool_mod
 | Serena | 2.1.0, `--agent-interface tools` 단일 interface 예외 |
 | 기본 코딩 에이전트(rg) | 추가 검색 제품 없음, rg 15.2.0 |
 
-[실행 계약](data/grafana-execution-v1.json), [데이터셋](data/grafana-routes-v4/README.md), [비교 lock](data/grafana-comparison-targets-v1/README.md)이 정확한 조건이다. lock **개정 8**은 두 solver CLI의 npm integrity·전체 설치 tree·native executable SHA-256을 고정한다. pi toolchain은 채점용으로 유지한다. 시스템 PATH의 Codex/Claude를 대신 사용하지 않는다.
+[실행 계약](data/grafana-execution-v1.json), [데이터셋](data/grafana-routes-v4/README.md), [비교 lock](data/grafana-comparison-targets-v1/README.md)이 정확한 조건이다. lock **개정 9**는 평가 제품을 머지 커밋 스냅샷으로 바꾸며, 개정 8부터 두 solver CLI의 npm integrity·전체 설치 tree·native executable SHA-256을 고정한다. pi toolchain은 채점용으로 유지한다. 시스템 PATH의 Codex/Claude를 대신 사용하지 않는다.
 
 ## 준비와 인증
 
@@ -133,12 +133,12 @@ Claude 제품군은 기본 `ListMcpResourcesTool`·`ReadMcpResourceTool`을 `--t
 
 | 경계 | 설정/기본값 | 근거 |
 |---|---|---|
-| 제품 응답 | 제품 기본 상한 유지(codemap은 Codex client에서 기본 100000×3.5 bytes) | codemap 0.14.0 configuration Client delivery budgets |
+| 제품 응답 | 제품 기본 상한 유지(codemap은 Codex client에서 기본 100000×3.5 bytes) | codemap 0.14.2 configuration Client delivery budgets |
 | Codex codemap MCP 도구 | `output_token_limit=100000` | 제품 `codex-config --server-name navigation`의 모든 도구 출력과 동일 |
 | Codex 나머지 MCP 도구 | `N=ceil(B/4)` | 원문 UTF-8 text 기준. Serena 312500, 나머지 262144 |
 | Codex exec/wait | **제품 기본 10000토큰**, 모델 pragma/인자가 지정하면 그 값 | `core/src/unified_exec/mod.rs::DEFAULT_MAX_OUTPUT_TOKENS/resolve_max_tokens`, `tools/code_mode/mod.rs::truncate_code_mode_result` |
 | Codex 전역 history | 제품군만 `tool_output_token_limit`: 같은 비교군의 도구별 N; rg 미설정 | 실제 다음 요청에서 별도 history 절단 확인. exec/wait 기본 10000은 바꾸지 않음 |
-| Claude codemap MCP | 제품 `_meta["anthropic/maxResultSizeChars"]=100000` 그대로 | codemap 0.14.0 configuration Client delivery budgets |
+| Claude codemap MCP | 제품 `_meta["anthropic/maxResultSizeChars"]=100000` 그대로 | codemap 0.14.2 configuration Client delivery budgets |
 | Claude 메타 없는 MCP | 해당 키만 `500000` 보충, 기존 다른 메타 보존 | Claude Code 2.1.311 MCP converter `maxResultSizeChars: present ? Math.min(value, Eie) : default`, `Eie=500000` |
 | Claude 별도 MCP token guard | 제품군만 `N=2×ceil(B/4)` | 2.1.311 본체 `d()`는 env 양수값 우선, 없으면 remote flag/기본 `E=25000` |
 | rg native 출력 | 각 CLI 기본값 | MCP 출력 guard를 적용하지 않음. Codex code-mode exec의 기본 출력도 바꾸지 않음 |
