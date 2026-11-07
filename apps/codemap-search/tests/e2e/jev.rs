@@ -6,7 +6,8 @@
 //! on the `jev stage` diagnostic lines (the canonical record of every outcome).
 
 use crate::e2e::helpers::{
-    create_mock_repo, response_text, with_in_process_server as run_server, InProcessClient,
+    create_mock_repo, decision_candidate, decision_task, response_text,
+    with_in_process_server as run_server, InProcessClient,
 };
 use codemap_search::jev::mock::{answers, MockEvaluator, MockTransport, ScriptedResponse};
 use codemap_search::jev::{
@@ -91,8 +92,6 @@ pub fn banner(name: &str) -> String {
 }
 ";
 
-const BOTH_STAGES: &str =
-    "[output.jev]\nenabled = true\nscope = ['overview', 'search', 'read', 'grep']\n";
 const FILTER_ONLY: &str = "[output.jev]\nenabled = true\nscope = ['search', 'read', 'grep']\n";
 
 async fn with_in_process_server<F, Fut>(
@@ -119,7 +118,7 @@ fn search_arguments(query: &str) -> Value {
 
 /// One judge for both stages: files under `qualifying_prefix` qualify with a clear margin,
 /// files under `tied_prefix` return equal useful/unhelpful mass, everything else is
-/// unhelpful; bodies are judged unrelated by declaration name. Overview never requests roles.
+/// unhelpful; bodies are judged unrelated by declaration name.
 fn stage_judge(
     qualifying_prefix: &'static str,
     tied_prefix: &'static str,
@@ -132,7 +131,7 @@ fn stage_judge(
             .map(|question| {
                 let answer = match question.kind() {
                     QuestionKind::Score { .. } => {
-                        let path = question.instructions()["candidate"]["file_path"]
+                        let path = question.instructions()["code"]["file"]
                             .as_str()
                             .unwrap_or("");
                         if !qualifying_prefix.is_empty() && path.starts_with(qualifying_prefix) {
@@ -144,11 +143,13 @@ fn stage_judge(
                         }
                     }
                     QuestionKind::Choice { .. } => {
-                        panic!("overview must not infer roles from names")
+                        panic!("Jev must not infer roles from names")
                     }
                     QuestionKind::Noul { .. } => {
-                        let name = question.instructions()["candidate"]["name"]
-                            .as_str()
+                        let candidate = decision_candidate(request.state(), question.id().as_str());
+                        let name = candidate
+                            .as_ref()
+                            .and_then(|candidate| candidate.name.rsplit("::").next())
                             .unwrap_or("");
                         let unrelated = unrelated_by_name
                             .iter()
@@ -173,16 +174,17 @@ fn judged_names(evaluator: &MockEvaluator) -> Vec<Vec<(String, String, Option<St
         .requests()
         .iter()
         .map(|request| {
-            request.state["candidates"]
-                .as_object()
-                .unwrap()
-                .values()
-                .map(|candidate| {
-                    (
-                        candidate["name"].as_str().unwrap().to_string(),
-                        candidate["kind"].as_str().unwrap().to_string(),
-                        candidate["owner"].as_str().map(str::to_string),
-                    )
+            request
+                .questions
+                .keys()
+                .map(|id| {
+                    let code = decision_candidate(&request.state, id.as_str()).unwrap();
+                    let qualified = code.name.as_str();
+                    let (owner, name) = match qualified.rsplit_once("::") {
+                        Some((owner, name)) => (Some(owner.to_string()), name),
+                        None => (None, qualified),
+                    };
+                    (name.to_string(), code.kind.clone(), owner)
                 })
                 .collect()
         })
@@ -300,17 +302,6 @@ async fn test_jev_disabled_stages_ignore_intent_and_an_injected_evaluator() {
         );
         assert!(!response_text(&plain).contains("Jev"));
 
-        let overview = client
-            .call_tool_until("overview", json!({ "task_query": TASK }), |text| {
-                text.contains("src/budget.ts") && !text.contains("warming up")
-            })
-            .await
-            .unwrap();
-        assert!(
-            !response_text(&overview).contains("Jev"),
-            "{}",
-            response_text(&overview)
-        );
         assert_eq!(
             judge.request_count(),
             0,
@@ -366,15 +357,35 @@ async fn test_jev_search_protects_partial_windows_and_omits_only_complete_bodies
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         tracing::callsite::rebuild_interest_cache();
         let response = client
-            .call_tool_until("search", search_arguments("keepMe wideDrop"), |text| text.contains("_omitted body:"))
+            .call_tool_until("search", search_arguments("keepMe wideDrop"), |text| {
+                text.contains("_omitted body:")
+            })
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(text.contains("const reserve = footer.length + 8;"), "the partial window of keepMe stays: {text}");
-        assert!(text.contains("more lines)"), "the window keeps its elision marker: {text}");
-        assert!(!text.contains("padEnd(160"), "the complete unrelated body is omitted: {text}");
-        assert!(text.contains("- _omitted body: L10-12 (fn wideDrop) Jev found no task match; read src/window.ts offset 10 limit 3 does not bypass Jev._"), "{text}");
-        assert_eq!(judged_names(&judge), vec![vec![("wideDrop".to_string(), "fn".to_string(), None)]], "only the complete body is judged");
+        assert!(
+            text.contains("const reserve = footer.length + 8;"),
+            "the partial window of keepMe stays: {text}"
+        );
+        assert!(
+            text.contains("more lines)"),
+            "the window keeps its elision marker: {text}"
+        );
+        assert!(
+            !text.contains("padEnd(160"),
+            "the complete unrelated body is omitted: {text}"
+        );
+        assert!(
+            text.contains(
+                "- _omitted body: L10-12 (fn wideDrop) Jev found no task match in src/window.ts._"
+            ),
+            "{text}"
+        );
+        assert_eq!(
+            judged_names(&judge),
+            vec![vec![("wideDrop".to_string(), "fn".to_string(), None)]],
+            "only the complete body is judged"
+        );
     })
     .await;
     let stages = capture.stages();
@@ -407,7 +418,9 @@ async fn test_jev_search_keeps_linked_rust_methods_and_never_judges_data_declara
     let judge = Arc::clone(&evaluator);
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         tracing::callsite::rebuild_interest_cache();
-        client.register_task("how is the order total computed at checkout?").await;
+        client
+            .register_task("how is the order total computed at checkout?")
+            .await;
         let response = client
             .call_tool_until(
                 "search",
@@ -417,20 +430,42 @@ async fn test_jev_search_keeps_linked_rust_methods_and_never_judges_data_declara
             .await
             .unwrap();
         let text = response_text(&response);
-        assert!(text.contains("- _omitted body: L25-33 (fn banner) Jev found no task match; read src/checkout.rs offset 25 limit 9 does not bypass Jev._"), "{text}");
+        assert!(
+            text.contains(
+                "- _omitted body: L25-33 (fn banner) Jev found no task match in src/checkout.rs._"
+            ),
+            "{text}"
+        );
         assert!(!text.contains("rendered.push_str"), "{text}");
-        assert!(text.contains("Ok(self.total())"), "submit stays through its call to the related total: {text}");
+        assert!(
+            text.contains("Ok(self.total())"),
+            "submit stays through its call to the related total: {text}"
+        );
         assert!(text.contains("line.price * line.quantity"), "{text}");
-        assert!(text.contains("pub const MAX_LINES: usize = 12;"), "data declarations keep their source: {text}");
-        assert!(text.contains("Checkout::submit"), "methods keep their owner: {text}");
+        assert!(
+            text.contains("pub const MAX_LINES: usize = 12;"),
+            "data declarations keep their source: {text}"
+        );
+        assert!(
+            text.contains("Checkout::submit"),
+            "methods keep their owner: {text}"
+        );
         let mut names = judged_names(&judge).remove(0);
         names.sort();
         assert_eq!(
             names,
             vec![
                 ("banner".to_string(), "fn".to_string(), None),
-                ("submit".to_string(), "fn".to_string(), Some("Checkout".to_string())),
-                ("total".to_string(), "fn".to_string(), Some("Checkout".to_string())),
+                (
+                    "submit".to_string(),
+                    "fn".to_string(),
+                    Some("Checkout".to_string())
+                ),
+                (
+                    "total".to_string(),
+                    "fn".to_string(),
+                    Some("Checkout".to_string())
+                ),
             ],
             "only callable bodies are judged; the constant and the structs are never asked"
         );
@@ -455,7 +490,10 @@ async fn test_jev_configured_deadline_wins_over_the_runtime_default_through_mcp(
     // 1.5 s leaves room for the synchronous preparation (ranking and rendering in a debug
     // build) so the request is actually dispatched; the transport then outlasts the deadline.
     let temp = create_mock_repo(&[
-        (".codemap/config.toml", "[analysis.jev]\noverview_enabled = true\nsearch_filter_enabled = true\ntimeout_ms = 1500\n"),
+        (
+            ".codemap/config.toml",
+            "[analysis.jev]\nsearch_filter_enabled = true\ntimeout_ms = 1500\n",
+        ),
         ("src/budget.ts", BUDGET_TS),
     ])
     .unwrap();
@@ -496,21 +534,6 @@ async fn test_jev_configured_deadline_wins_over_the_runtime_default_through_mcp(
                 "the 1.5 s deadline is enforced, not the 45 s runtime default"
             );
             assert_eq!(posts.post_count(), 1, "one attempt, no retry");
-
-            let plain = client.plain_call("overview", json!({})).await.unwrap();
-            let response = client
-                .call(
-                    "tools/call",
-                    json!({ "name": "overview", "arguments": { "task_query": TASK } }),
-                )
-                .await
-                .unwrap();
-            assert_eq!(
-                response_text(&response),
-                response_text(&plain),
-                "the base overview is unchanged on fallback"
-            );
-            assert_eq!(posts.post_count(), 1, "overview never evaluates");
         },
     )
     .await;
@@ -631,7 +654,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
     ])
     .unwrap();
     let (capture, _guard) = capture_logs();
-    let evaluator = Arc::new(body_judge(&[("dropMe", 0.80)]).with_usage(Usage::reported(296, 20)));
+    let evaluator = Arc::new(body_judge(&[("dropMe", 0.95)]).with_usage(Usage::reported(296, 20)));
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         // Tests share one process: a callsite first hit by another test thread caches its
         // interest against that thread's (absent) subscriber, and a scoped subscriber does
@@ -673,7 +696,7 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
     assert_eq!(applied["model"], "jev-1.14.0");
     assert_eq!(
         applied["versions"],
-        "search-task-evidence/8 search-task-questions/9 search-selection-policy/6-experimental"
+        "search-task-evidence/9 search-task-questions/11 search-selection-policy/7-experimental"
     );
     let counts = detail_counts(applied);
     assert_eq!(counts["bodies"], "2");
@@ -705,18 +728,16 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
                 || (stage["outcome"] == "bypassed"
                     && ["no_ranked_candidates", "bypassed:stale_snapshot"]
                         .contains(&stage["status"].as_str()))))
-            || (stage["tool"] == "read"
-                && stage["outcome"] == "bypassed"
-                && stage["status"] == "bypassed:no_complete_bodies")),
-        "startup searches and partial read bodies bypass evaluation: {log}"
+            || (stage["tool"] == "read" && stage["outcome"] == "applied")),
+        "startup searches bypass evaluation; a partial read body is judged as displayed: {log}"
     );
     assert_eq!(
         stages
             .iter()
             .filter(|stage| stage["outcome"] == "applied")
             .count(),
-        2,
-        "both populated searches run after one registration; the partial read sends no questions:\n{log}"
+        3,
+        "both populated searches and the partial read run after one registration:\n{log}"
     );
     assert!(
         !log.contains("const reserve") && !log.contains("input.split"),
@@ -728,23 +749,14 @@ async fn test_jev_stage_logs_report_usage_and_outcome_without_evidence() {
 #[tokio::test]
 async fn test_jev_korean_intent_reaches_search_verbatim() {
     let temp = create_mock_repo(&[
-        (".codemap/config.toml", BOTH_STAGES),
+        (".codemap/config.toml", FILTER_ONLY),
         ("src/budget.ts", BUDGET_TS),
     ])
     .unwrap();
-    let evaluator = Arc::new(stage_judge("src/budget.ts", "", &[("dropMe", 0.80)]));
+    let evaluator = Arc::new(stage_judge("src/budget.ts", "", &[("dropMe", 0.95)]));
     let judge = Arc::clone(&evaluator);
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         client.register_task(TASK_KO).await;
-        let response = client
-            .call_tool_until("overview", json!({}), |text| text.contains("src/budget.ts"))
-            .await
-            .unwrap();
-        let text = response_text(&response);
-        assert!(
-            !text.contains("Recommended files"),
-            "{text}"
-        );
         let response = client
             .call_tool_until("search", search_arguments("keepMe dropMe"), |text| {
                 text.contains("_omitted body:")
@@ -754,25 +766,25 @@ async fn test_jev_korean_intent_reaches_search_verbatim() {
         let text = response_text(&response);
         assert!(text.contains("(fn dropMe) Jev found no task match"), "{text}");
         let requests = judge.requests();
-        assert_eq!(requests[0].questions.len(), 4);
+        assert_eq!(requests[0].questions.len(), 2);
+        assert_eq!(decision_task(&requests[0].state), Some(TASK_KO));
         for (id, question) in &requests[0].questions {
-            assert!(question["instructions"].get("criterion_id").is_none());
-            let expected = if id.as_str().ends_with(".q0") {
-                "Does this function implement or concretely support the requested output-budget behavior?"
-            } else {
-                "Does the same function participate in the requested output-budget flow?"
-            };
-            assert_eq!(question["instructions"]["question"], expected);
-            assert!(question["instructions"]["candidate"].get("body").is_none());
+            assert_eq!(
+                question["instructions"],
+                format!(
+                    "About candidate [{id}] only: Does this code handle something the task names, even if only part of the task?"
+                )
+            );
+            assert!(decision_candidate(&requests[0].state, id.as_str()).is_some());
         }
         eprintln!("JEV_TASK_TRACE {}", json!({"state":requests[0].state,
             "questions":requests[0].questions.iter().map(|(id,wire)|json!({"id":id.as_str(),"wire":wire})).collect::<Vec<_>>(),
             "output":text}));
-        assert_eq!(requests.len(), 1, "only search Noul; overview stays local");
+        assert_eq!(requests.len(), 1, "only search Noul");
         assert!(
             requests
                 .iter()
-                .all(|request| request.task_query() == Some(TASK_KO)),
+                .all(|request| decision_task(&request.state) == Some(TASK_KO)),
             "the intent is transmitted verbatim (nothing in it needed masking)"
         );
     })
@@ -786,7 +798,7 @@ async fn test_jev_omitted_bodies_restore_through_read_and_retained_lines_are_ver
         ("src/budget.ts", BUDGET_TS),
     ])
     .unwrap();
-    let evaluator = Arc::new(body_judge(&[("dropMe", 0.80)]));
+    let evaluator = Arc::new(body_judge(&[("dropMe", 0.95)]));
     with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
         let response = client
             .call_tool_until("search", search_arguments("keepMe dropMe"), |text| text.contains("_omitted body:"))
@@ -799,7 +811,7 @@ async fn test_jev_omitted_bodies_restore_through_read_and_retained_lines_are_ver
         for line in BUDGET_TS.lines().skip(10).take(4) {
             assert!(!text.contains(line), "omitted line still present: {line:?}\n{text}");
         }
-        assert!(text.contains("dropMe (fn) [L10-15]"), "declaration rows stay: {text}");
+        assert!(!text.contains("dropMe (fn) [L10-15]"), "the omitted declaration's row goes with its body: {text}");
         let restored = client
             .plain_call("read", json!({ "file_path": "src/budget.ts", "offset": 10, "limit": 6, "include_seen": true }))
             .await
@@ -935,7 +947,7 @@ async fn test_jev_stale_files_are_protected_and_metadata_only_files_are_not_read
 }
 
 #[tokio::test]
-async fn test_jev_filtered_read_has_no_outside_caller_trailer() {
+async fn test_jev_named_window_read_keeps_the_requested_body_without_the_caller_trailer() {
     // `keepMe` has a caller below the read window.
     let source = format!(
         "{BUDGET_TS}\nexport function spend(): number {{\n  return keepMe(10, \"x\", 5);\n}}\n"
@@ -960,7 +972,8 @@ async fn test_jev_filtered_read_has_no_outside_caller_trailer() {
             tokio::time::sleep(Duration::from_millis(50)).await;
         };
         assert!(plain.contains(header) && plain.contains("spend ("), "{plain}");
-        // A filtered read judges source rows only, so no trailer can bypass its omissions.
+        // A read naming a callable's window asks for that body, so Jev keeps it. While Jev
+        // judges the window, the caller trailer is left out.
         let filtered = client
             .call("tools/call", json!({ "name": "read", "arguments": arguments }))
             .await
@@ -1027,7 +1040,7 @@ async fn test_initial_instructions_ignores_arguments_and_registers_no_task() {
                 let message = search["error"]["message"]
                     .as_str()
                     .unwrap_or_else(|| response_text(&search));
-                assert!(message.contains("register_task"), "{search}");
+                assert!(message.contains("initial_instructions"), "{search}");
             }
             assert_eq!(judge.request_count(), 0, "no task reached the evaluator");
         })

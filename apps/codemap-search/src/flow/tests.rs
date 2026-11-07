@@ -18,7 +18,7 @@ fn build(entries: &[(&str, &str)]) -> (FlowIndex, tempfile::TempDir) {
         if let Some(flow) = auxiliary.flow_file {
             flows.insert(path.into(), flow);
         }
-        files.push(file);
+        files.push(Arc::new(file));
         sources.insert(path.into(), source.into());
     }
     (

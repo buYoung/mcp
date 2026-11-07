@@ -190,9 +190,7 @@ pub(crate) fn path_resolved_from_cwd(path: &Path) -> PathBuf {
     let absolute = if path.is_absolute() {
         path.to_path_buf()
     } else {
-        std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join(path)
+        root_dir().unwrap_or_else(|_| PathBuf::from(".")).join(path)
     };
     canonicalize_path_lenient(&absolute)
 }
@@ -254,6 +252,15 @@ pub(crate) fn canonicalize_path_lenient(path: &Path) -> PathBuf {
         }
     } else {
         path.to_path_buf()
+    }
+}
+
+/// The root of the workspace a request or an index works on: the start folder, or the other
+/// root whose settings are in force.
+pub(crate) fn root_dir() -> std::io::Result<PathBuf> {
+    match crate::config::get().workspace_root.clone() {
+        Some(root) => Ok(root),
+        None => std::env::current_dir(),
     }
 }
 
@@ -334,7 +341,7 @@ pub(crate) fn resolve_for_filesystem_tool(
     }
 }
 
-fn resolve_path_lenient_from_cwd(cwd: &Path, input: &str) -> PathBuf {
+pub(crate) fn resolve_path_lenient_from_cwd(cwd: &Path, input: &str) -> PathBuf {
     let target = cwd.join(path_from_workspace_input(input));
     let mut resolved = PathBuf::new();
     for component in target.components() {
@@ -430,7 +437,7 @@ fn same_path(left: &Path, right: &Path) -> bool {
 fn build_base_walker(root: &Path, respect: bool) -> ignore::WalkBuilder {
     let mut builder = ignore::WalkBuilder::new(root);
     apply_ignore_settings(&mut builder, root, respect);
-    let workspace_root = std::env::current_dir().unwrap_or_default();
+    let workspace_root = root_dir().unwrap_or_default();
     let config = crate::config::get();
     builder.filter_entry(move |entry| {
         entry_allowed_by_excluded_dirs(entry, respect, &workspace_root, &config)
@@ -443,7 +450,7 @@ fn build_base_walker(root: &Path, respect: bool) -> ignore::WalkBuilder {
 /// guard at the consumer as well as the directory traversal filter.
 pub(crate) fn walk_root_is_visible(root: &Path, respect: bool) -> bool {
     let target = canonicalize_path_lenient(root);
-    let workspace_root = match std::env::current_dir() {
+    let workspace_root = match root_dir() {
         Ok(cwd) => cwd.canonicalize().unwrap_or(cwd),
         Err(_) => return true,
     };
@@ -513,6 +520,53 @@ impl IgnoreProbe {
 /// included for Claude Code `--hidden` parity. The returned builder can be further
 /// configured (e.g. `.types(...)`) before `.build()`.
 pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
+    build_filtered_walker(root, include_ignored, false)
+}
+
+/// [`build_walker`] for indexing the start folder: it also skips the roots of linked
+/// worktrees, whose files are another checkout of the same repository.
+pub(crate) fn build_index_walker(root: &Path) -> ignore::WalkBuilder {
+    build_filtered_walker(root, false, true)
+}
+
+/// Whether `directory` is the root of a git linked worktree: its `.git` is a file naming a
+/// gitdir in the `worktrees` directory of a git common directory. Submodules, whose gitdirs
+/// lie under `modules`, and repositories with a `.git` directory are not.
+pub(crate) fn is_linked_worktree_root(directory: &Path) -> bool {
+    let Ok(text) = std::fs::read_to_string(directory.join(".git")) else {
+        return false;
+    };
+    let Some(gitdir) = text
+        .lines()
+        .next()
+        .and_then(|line| line.strip_prefix("gitdir:"))
+    else {
+        return false;
+    };
+    let gitdir = directory.join(gitdir.trim());
+    let Some(worktrees) = gitdir
+        .parent()
+        .filter(|parent| parent.file_name().is_some_and(|name| name == "worktrees"))
+    else {
+        return false;
+    };
+    let Ok(common) = std::fs::read_to_string(gitdir.join("commondir")) else {
+        return false;
+    };
+    let (Ok(common), Some(Ok(expected))) = (
+        gitdir.join(common.trim()).canonicalize(),
+        worktrees.parent().map(Path::canonicalize),
+    ) else {
+        return false;
+    };
+    common == expected
+}
+
+fn build_filtered_walker(
+    root: &Path,
+    include_ignored: bool,
+    skips_linked_worktrees: bool,
+) -> ignore::WalkBuilder {
     // `include_ignored` (per-call, find/grep) bypasses EVERY ignore source. Distinct from
     // that, `use_git_exclude` is a dedicated config toggle for `.git/info/exclude`
     // alone — when false, that one source is ignored while `.gitignore`/global/
@@ -520,13 +574,16 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
     let respect = !include_ignored;
     let root_is_visible = walk_root_is_visible(root, respect);
     let mut builder = build_base_walker(root, respect);
-    let workspace_root = std::env::current_dir().unwrap_or_default();
+    let workspace_root = root_dir().unwrap_or_default();
     let config = crate::config::get();
     builder.filter_entry(move |entry| {
         if !root_is_visible {
             return false;
         }
         entry_allowed_by_excluded_dirs(entry, respect, &workspace_root, &config)
+            && !(skips_linked_worktrees
+                && entry.file_type().is_some_and(|kind| kind.is_dir())
+                && is_linked_worktree_root(entry.path()))
     });
     builder
 }
@@ -535,7 +592,7 @@ pub fn build_walker(root: &Path, include_ignored: bool) -> ignore::WalkBuilder {
 /// [`MAX_INDEXED_FILE_BYTES`] size cap before reading. Returns `None` when the file is
 /// oversize, unreadable, or non-UTF8 (`read_to_string` rejects invalid UTF-8) — so
 /// minified/binary blobs are never parsed wholesale (Child 04). Shared by the
-/// `overview` walk (`mcp.rs`) and the CLI `codemap` walk (`main.rs`).
+/// index walk and the CLI `codemap` walk (`main.rs`).
 pub fn read_source_for_parse(path: &Path) -> Option<String> {
     if is_always_excluded_file(path) {
         return None;
@@ -590,6 +647,17 @@ pub(crate) fn normalize_relative_path(path: &Path) -> String {
 /// indexer's key contract for in-workspace files: canonicalize the path and root,
 /// strip the root, then normalize to forward slashes. If the path cannot be
 /// relativized to the workspace root, fall back to the input path's normalized form.
+/// A path relative to the request's root as requests show it: absolute while another root's
+/// settings are in force, whose index shows its paths absolute.
+pub(crate) fn shown_path(relative: String) -> String {
+    match &crate::config::get().workspace_root {
+        Some(root) if Path::new(&relative).is_relative() => {
+            format!("{}/{relative}", root.display())
+        }
+        _ => relative,
+    }
+}
+
 pub fn workspace_relative_key(path: &Path, workspace_root: &Path) -> String {
     let absolute_path = if path.is_absolute() {
         path.to_path_buf()
@@ -604,7 +672,7 @@ pub fn workspace_relative_key(path: &Path, workspace_root: &Path) -> String {
         .strip_prefix(&canonical_root)
         .or_else(|_| absolute_path.strip_prefix(workspace_root))
         .unwrap_or(path);
-    normalize_relative_path(relative)
+    shown_path(normalize_relative_path(relative))
 }
 
 /// Compute the stored index key for `entry_path`: the path relative to the

@@ -100,10 +100,8 @@ const UNSUPPORTED_EXTENSIONS: &[&str] = &[
     "sketch",
 ];
 
-/// Whether `read` refuses this path by extension (see [`UNSUPPORTED_EXTENSIONS`]). Shared
-/// with `overview` so its "not in the codemap" error can say whether `read` is a viable
-/// fallback instead of pointing at a tool that would also refuse the file.
-pub fn is_unsupported_extension(path: &std::path::Path) -> bool {
+/// Whether `read` refuses this path by extension (see [`UNSUPPORTED_EXTENSIONS`]).
+fn is_unsupported_extension(path: &std::path::Path) -> bool {
     path.extension()
         .and_then(|s| s.to_str())
         .is_some_and(|ext| UNSUPPORTED_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()))
@@ -127,7 +125,7 @@ fn add_line_numbers(lines: &[&str], start_line: usize) -> String {
 /// (`filePath`, `file-path`) resolves to its canonical parameter instead of being dropped — an
 /// exact spelling still wins over a normalized variant. The error message names every accepted
 /// spelling so a wrong-param call self-corrects.
-fn resolve_file_path_arg(args: &Value) -> Result<&str, (i64, String)> {
+pub(crate) fn resolve_file_path_arg(args: &Value) -> Result<&str, (i64, String)> {
     for key in ["file_path", "path", "file", "query"] {
         if let Some(value) = get_arg(args, key).and_then(|v| v.as_str()) {
             return Ok(value);
@@ -179,6 +177,20 @@ fn resolve_window_args(args: &Value) -> (Option<usize>, Option<usize>) {
     });
 
     (offset, limit)
+}
+
+/// The read names its own line windows: an offset or line alias for the file or for every
+/// `ranges` item, or callable expansion.
+pub(crate) fn names_window(args: &Value) -> bool {
+    let has_offsets = match ranges(args) {
+        Ok(Some(ranges)) => ranges
+            .iter()
+            .all(|range| resolve_window_args(range).0.is_some()),
+        _ => resolve_window_args(args).0.is_some(),
+    };
+    has_offsets
+        || super::live_options::LiveOptions::parse(args)
+            .is_ok_and(|options| options.should_expand_callable)
 }
 
 pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
@@ -351,9 +363,14 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         Vec::new()
     } else {
         let cwd = current_dir()?;
-        let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
-        let display_path = resolved
-            .strip_prefix(&cwd_canonical)
+        // Paths in another root's index show absolute.
+        let display_base = crate::config::get()
+            .workspace_root
+            .is_none()
+            .then(|| cwd.canonicalize().unwrap_or(cwd));
+        let display_path = display_base
+            .as_ref()
+            .and_then(|base| resolved.strip_prefix(base).ok())
             .unwrap_or(&resolved)
             .to_string_lossy()
             .replace('\\', "/");

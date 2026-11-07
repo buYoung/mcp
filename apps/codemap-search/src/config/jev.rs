@@ -1,15 +1,15 @@
-//! `[output.jev]`: optional decision-model selection for search/read/grep and non-root
-//! overview, through TypeSafe Jev or an OpenRouter decision model (`model` selects which).
+//! `[output.jev]`: optional decision-model selection for search/read/grep, through TypeSafe
+//! Jev or an OpenRouter decision model (`model` selects which).
 //! `enabled` is the master switch; `scope` selects eligible output tools. Off by default.
-//! Register the full task once through `register_task`; enabled stages automatically
+//! Pass the full task once as `initial_instructions`' `task`; enabled stages automatically
 //! use it for eligible calls. The API key comes from the separate `auth.toml` file
 //! (`[jev]` or `[openrouter]`) or, as a fallback, the fixed `TYPESAFE_API_KEY` or
 //! `OPENROUTER_API_KEY` environment variable, never from this behavior section or tool
 //! arguments.
 //!
 //! Transport keys may only tighten the runtime's initial safety policy: at most
-//! `MAX_IN_FLIGHT_REQUESTS` (3) requests in flight, at least `MIN_REQUEST_SPACING`
-//! (300 ms) between request starts, at most `MAX_BATCH_BYTES` (168,000) encoded bytes per
+//! `MAX_IN_FLIGHT_REQUESTS` (8) requests in flight, at least `MIN_REQUEST_SPACING`
+//! (100 ms) between request starts, at most `MAX_BATCH_BYTES` (168,000) encoded bytes per
 //! batch. Timeouts must be positive and representable on the monotonic clock. Any invalid
 //! value warns and falls back to the lower layer or the default, like every other section.
 
@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
 
-pub(super) const TOOLS: [&str; 4] = ["overview", "search", "read", "grep"];
+pub(super) const TOOLS: [&str; 3] = ["search", "read", "grep"];
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JevConfig {
@@ -116,9 +116,13 @@ fn as_scope(value: &toml::Value, path: &Path) -> Option<Vec<String>> {
     };
     let mut scope = Vec::new();
     for value in values {
+        // The removed overview tool selects nothing; unmigrated files keep their other tools.
+        if value.as_str() == Some("overview") {
+            continue;
+        }
         let Some(tool) = value.as_str().filter(|tool| TOOLS.contains(tool)) else {
             super::warn(&format!(
-                "config 'output.jev.scope' accepts only overview, search, read and grep: {} — ignored",
+                "config 'output.jev.scope' accepts only search, read and grep: {} — ignored",
                 path.display()
             ));
             return None;
@@ -353,8 +357,8 @@ mod tests {
         assert!(!config.is_any_enabled());
         assert_eq!(config.model, crate::jev::DEFAULT_MODEL);
         assert_eq!(config.timeout_ms, 45_000);
-        assert_eq!(config.max_in_flight_requests, 3);
-        assert_eq!(config.request_spacing_ms, 300);
+        assert_eq!(config.max_in_flight_requests, 8);
+        assert_eq!(config.request_spacing_ms, 100);
         assert_eq!(config.max_batch_bytes, 168_000);
         assert_eq!(config.pool_idle_timeout_ms, 30_000);
         assert_eq!(config.search_filter_min_unrelated_probability, 0.70);
@@ -406,13 +410,13 @@ mod tests {
             "an integer 1 is the inclusive upper bound"
         );
         let config = merge(
-            layer("timeout_ms = 0\nmax_batch_bytes = 168001\nrequest_spacing_ms = 299\nmax_in_flight_requests = 4\npool_idle_timeout_ms = -5\nmodel = ''\n"),
+            layer("timeout_ms = 0\nmax_batch_bytes = 168001\nrequest_spacing_ms = 99\nmax_in_flight_requests = 9\npool_idle_timeout_ms = -5\nmodel = ''\n"),
             global,
         );
         assert_eq!(config.timeout_ms, 1000);
         assert_eq!(config.max_batch_bytes, 168_000);
-        assert_eq!(config.request_spacing_ms, 300);
-        assert_eq!(config.max_in_flight_requests, 3);
+        assert_eq!(config.request_spacing_ms, 100);
+        assert_eq!(config.max_in_flight_requests, 8);
         assert_eq!(config.pool_idle_timeout_ms, 30_000);
         assert_eq!(config.model, crate::jev::DEFAULT_MODEL);
         // Time values must stay representable on the monotonic clock.

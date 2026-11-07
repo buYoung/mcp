@@ -83,7 +83,7 @@ tree-sitter-md = { version = "0.5.3", features = ["parser"] } # MIT
 raffia = "0.13.0" # MIT
 
 # Tantivy search engine for BM25 text indexing
-tantivy = "0.27"
+tantivy = { version = "0.27", features = ["zstd-compression"] }
 
 # JSON-RPC / Serialization for MCP and state persistence
 serde = { version = "1.0", features = ["derive"] }

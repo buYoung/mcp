@@ -43,7 +43,7 @@ pub(super) fn trailer(
         return None;
     };
     let (start, end) = anchor.start_line.zip(anchor.end_line)?;
-    let root = std::env::current_dir().ok()?;
+    let root = crate::workspace::root_dir().ok()?;
     let path = anchor.file_path.as_str();
     let source_path = root.join(path);
     // Files the index never parses for declarations have no callers to report.
@@ -63,7 +63,10 @@ pub(super) fn trailer(
     }
     let snapshot = engine.published_snapshot();
     let source_files = snapshot.codemap();
-    let indexed = source_files.iter().find(|file| file.file_path == path);
+    let indexed = source_files
+        .iter()
+        .find(|file| file.file_path == path)
+        .map(|file| &**file);
     // Stale or unindexed files would attribute callers to the wrong lines.
     if let Some(reason) =
         super::diagnostics::unavailable_reason(indexed, &source_path, snapshot.flows().digest(path))
@@ -118,6 +121,8 @@ pub(super) fn trailer(
         &root,
         &resolver,
         &indexed_mtime,
+        engine.keeps_index_current(),
+        snapshot.call_lookup(),
         started,
     )?;
     trailer_text(path, (start, end), &targets, &annotations, byte_cap)
@@ -152,13 +157,17 @@ fn index_state_reason(engine: &EngineSupervisor) -> Option<&'static str> {
     }
 }
 
-/// Callers of the requested functions, looked up until [`TRAILER_TIME_BUDGET`] after `started`.
+/// Callers of the requested functions, looked up until [`TRAILER_TIME_BUDGET`] after `started`;
+/// `is_index_current` reads the indexed files instead of walking the workspace.
+#[allow(clippy::too_many_arguments)]
 fn lookup_callers(
     requests: &[AnnotationRequest<'_>],
-    files: &[ExtractedFile],
+    files: &[std::sync::Arc<ExtractedFile>],
     root: &Path,
     resolver: &crate::callers::resolution::SourceResolver<'_>,
     indexed_mtime: &dyn Fn(&str) -> Option<u64>,
+    is_index_current: bool,
+    call_lookup: &crate::callers::CallLookup,
     started: Instant,
 ) -> Option<DetailAnnotations> {
     crate::callers::annotate_live_callers(
@@ -169,6 +178,8 @@ fn lookup_callers(
         resolver,
         LiveCallerLimits {
             indexed_mtime,
+            is_index_current,
+            call_lookup,
             deadline: started + TRAILER_TIME_BUDGET,
         },
     )
@@ -218,8 +229,14 @@ fn trailer_text(
         if sites.is_empty() {
             continue;
         }
-        // Other files first; the stable sort keeps discovery order within each group.
-        sites.sort_by_key(|(site, _)| site.path == path);
+        // Other files first, then by path and line, whatever order the lookup found them in.
+        sites.sort_by(|(left, _), (right, _)| {
+            (left.path == path, &left.path, left.line).cmp(&(
+                right.path == path,
+                &right.path,
+                right.line,
+            ))
+        });
         let groups = group_by_caller(&sites);
         let shown: Vec<_> = groups
             .iter()
@@ -331,7 +348,9 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         std::fs::create_dir(temp.path().join("src")).unwrap();
         std::fs::write(temp.path().join(path), source).unwrap();
-        let files = [TreeSitterExtractor::new().extract(source, path).unwrap()];
+        let files = [std::sync::Arc::new(
+            TreeSitterExtractor::new().extract(source, path).unwrap(),
+        )];
         let functions: Vec<_> = files[0]
             .symbols
             .iter()
@@ -344,6 +363,7 @@ mod tests {
         }];
         let resolver = crate::callers::resolution::SourceResolver::new(&files, temp.path());
         let no_stamp = |_: &str| -> Option<u64> { None };
+        let call_lookup = crate::callers::CallLookup::build(&files);
         let lookup = |started| {
             lookup_callers(
                 &requests,
@@ -351,6 +371,8 @@ mod tests {
                 temp.path(),
                 &resolver,
                 &no_stamp,
+                false,
+                &call_lookup,
                 started,
             )
             .unwrap()

@@ -14,7 +14,6 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 |---|---|
 | `output` | 공통 MCP 응답 바이트 한도와 가림 여부 |
 | `output.client` | Claude 문자 한도, Codex 도구별 토큰 한도, pi·opencode 바이트 한도 |
-| `output.overview` | 루트 통계와 개요 응답 |
 | `output.search` | 검색 상세 파일·심볼·코드 조각 |
 | `output.read` | 직접 읽기 응답 |
 | `output.grep` | 일치 행·함수 본문 응답 |
@@ -23,18 +22,18 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `output.macro_expansion` | 매크로 전처리와 생성된 선언의 탐색 결과 |
 | `output.event_navigation` | 이벤트·소스 경로 색인과 탐색 결과 |
 | `output.redact` | 추가 가림 규칙과 예외 |
-| `output.jev` | 선택적 search·read·grep·루트 외 overview 출력 필터, 기본은 꺼짐 |
+| `output.jev` | 선택적 search·read·grep 출력 필터, 기본은 꺼짐 |
 | `output.context.exclude` | search 호출 관계와 read/grep 자동 문맥, 이벤트·소스 경로 분석의 공통 테스트 제외 |
 | `index`, `index.refresh`, `index.language_support` | 색인 저장·갱신·언어 지원 |
-| `index.exclude` | 색인·overview·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
+| `index.exclude` | 색인·search·호출자 탐색·find/grep의 공통 디렉터리 제외 |
 | `analysis` | Rust 분석 대상 OS |
 | `global_instructions` | 클라이언트 전역 지침 한 줄 관리. 사용자 전역 전용이며 저장소 값은 무시 |
 
-설정 위치만 구분하며 기존 적용 범위는 유지합니다. overview·search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
+설정 위치만 구분하며 기존 적용 범위는 유지합니다. search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
 `output.max_bytes`는 선택 사항입니다. 응답 한도 우선순위는 **저장소 도구별 값 → 저장소 공통값 → 전역 도구별 값 → 전역 공통값 → 기존 도구 기본값**입니다. 모든 값을 생략하면 검색은 1 MiB, read와 확장 grep은 5 MiB를 유지합니다. 확장 grep은 해당 계층에 grep·공통 한도가 없으면 read 한도를 이어받습니다. `output.context.max_bytes`는 별도 관계 출력 예산으로, 검색 응답 안의 남은 공간도 함께 적용합니다.
 
-search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합니다. overview·find·initial_instructions와 확장하지 않은 grep은 명시한 응답 한도를 넘으면 범위 축소 오류를 반환합니다. 한도는 MCP 본문 텍스트 기준이며 JSON 봉투나 오류 메시지에는 적용하지 않습니다. 일반 CLI의 parse·index 결과는 이 MCP 응답 한도로 자르지 않습니다.
+search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합니다. find·initial_instructions와 확장하지 않은 grep은 명시한 응답 한도를 넘으면 범위 축소 오류를 반환합니다. 한도는 MCP 본문 텍스트 기준이며 JSON 봉투나 오류 메시지에는 적용하지 않습니다. 일반 CLI의 parse·index 결과는 이 MCP 응답 한도로 자르지 않습니다.
 
 ### 클라이언트 전달 한도
 
@@ -108,7 +107,7 @@ api_key = "<발급받은 OpenRouter 키>"
 
 `config_auto_update = true`이면 MCP 시작 시 누락된 저장소 `auth.toml`을 인증정보가 없는 현지화 템플릿으로 만듭니다. 기존 파일은 덮어쓰지 않으며 환경 변수의 키를 복사하지 않습니다. Unix에서는 소유자만 읽고 쓰는 `0600` 권한으로 생성하고, Windows에서는 파일시스템의 상속 ACL을 사용합니다. 전역 인증 파일은 자동 생성하지 않습니다. 모델·활성화·요청 제한은 `config.toml`의 `[output.jev]`에서 관리합니다.
 
-이름이 `auth.toml`인 모든 파일은 대소문자 구분 없이 색인·search·overview와 기본 `find`/`grep`에서 제외합니다. 이는 접근 차단 정책은 아닙니다. 직접 `read`/`parse`할 수 있고, `find`/`grep`의 `include_ignored: true`로 파일명 제외를 우회할 수 있습니다. `.codemap` 등 필수 제외 디렉터리는 탐색 시 계속 제외합니다. Git 제외는 직접 설정해야 하며 codemap-search는 Git 무시 파일을 수정하지 않습니다.
+이름이 `auth.toml`인 모든 파일은 대소문자 구분 없이 색인·search와 기본 `find`/`grep`에서 제외합니다. 이는 접근 차단 정책은 아닙니다. 직접 `read`/`parse`할 수 있고, `find`/`grep`의 `include_ignored: true`로 파일명 제외를 우회할 수 있습니다. `.codemap` 등 필수 제외 디렉터리는 탐색 시 계속 제외합니다. Git 제외는 직접 설정해야 하며 codemap-search는 Git 무시 파일을 수정하지 않습니다.
 
 ## 설정 읽기와 자동 작성
 
@@ -176,6 +175,8 @@ excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".
 
 같은 규칙을 색인, 코드맵, 호출자 탐색, 파일 변경 갱신, `find`, `grep`에 적용합니다. 제외 폴더 안에서 직접 검색해도 상위 폴더의 제외 규칙을 우회하지 않습니다. `find`/`grep`의 `include_ignored: true`는 선택적 디렉터리·일반 파일 제외를 우회하지만 필수 내부 폴더·색인 폴더는 계속 제외합니다. 배열에서 규칙을 지워도 `.gitignore`와 `.codemapignore`는 적용됩니다.
 
+색인, 호출자 탐색, 파일 변경 갱신은 작업 공간 안에 체크아웃한 git 연결 worktree도 건너뜁니다. 연결 worktree는 `.git` 파일이 저장소의 `worktrees` 폴더를 가리키는 폴더입니다. `find`, `grep`, 코드맵은 이 폴더도 계속 탐색하고, 서브모듈과 중첩 저장소는 이전처럼 색인합니다.
+
 ### 최초 프로젝트 감지
 
 설정 최초 생성과 버전 6 전환 때만 공통 폴더·프로젝트 종류별 추천 glob을 만듭니다. 프로젝트 파일 이름을 확인하며 빌드를 실행하거나 매니페스트 내용을 평가하거나 디렉터리 심볼릭 링크를 따라가지 않습니다. 무시 파일을 따르고 공통·생성 폴더와 프로젝트에 속하지 않는 의존성·캐시 트리는 건너뛰며 중첩 프로젝트를 지원합니다. 아직 없는 출력 폴더도 재귀 glob으로 추천 목록에 넣습니다. 발견한 프로젝트 경로는 기록하지 않으며 같은 프로젝트 종류가 여러 곳에 있어도 패턴을 중복 추가하지 않습니다. 사용자가 지정한 별도 출력 경로는 직접 추가해야 합니다.
@@ -238,8 +239,6 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.client].codex_output_token_limit` | 양의 정수(토큰) | `100000` | Codex 설정 내보내기와 최종 전달 한도(토큰당 3.5바이트) |
 | `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | pi tools/list 메타데이터와 최종 전달 한도. 재연결 필요 |
 | `[output.client].opencode_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | opencode 최종 전달 한도 |
-| `[output.overview].is_stats_enabled` | bool | `true` | 저장소 루트와 모노레포 프로젝트 루트 `overview`에 색인 파일 언어 통계 포함. `false`면 해당 섹션 생략 |
-| `[output.overview].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | 개요 응답 한도. 공통값도 없으면 추가 제한 없음 |
 | `[output.search].detail_file_limit` | 정수 | `24` | 상세 내용을 표시할 상위 파일 수 |
 | `[output.search].overview_file_limit` | 정수 | `80` | 나머지 간략 목록에 표시할 최대 파일 수 |
 | `[output.search].snippet_max_lines` | 정수 | `500` | 심볼마다 표시할 최대 발췌 줄 수. 긴 본문은 생략 표시 |
@@ -249,7 +248,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.search].literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
 | `[output.search].anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[output.read].max_bytes` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
-| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록과 같은 키를 쓰는 다른 위치를 덧붙임. `false`면 둘 다 생략 |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록, 같은 키를 쓰는 다른 위치, 창의 선언을 import하는 다른 파일을 덧붙임. `false`면 셋 다 생략 |
 | `[output.grep].max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[output.grep].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | grep 응답 한도. 확장 본문은 read 한도도 대체값으로 사용 |
 | `[output.context].is_enabled` | bool | `true` | `search` 호출에서 `caller_context` 생략 시 호출 관계 표시 여부 |
@@ -294,14 +293,14 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[related_terms].dataset_path` | string | 없음 | 내려받기 대신 사용할 사용자 뜻 데이터셋 경로. 원본은 수정하지 않음 |
 | `[update].config_auto_update` | bool | `true` | MCP 시작 시 누락된 저장소 config/auth 템플릿 생성과 config 스키마 갱신 |
 | `[output.jev].enabled` | bool | `false` | 전체 스위치. false이면 scope와 무관하게 모든 Jev 출력 필터를 끔 |
-| `[output.jev].scope` | 문자열 배열 | `["overview", "search", "read", "grep"]` | enabled일 때 적용할 전체 도구 목록. []는 적용 안 함, 저장소 목록이 전역 목록을 대체 |
+| `[output.jev].scope` | 문자열 배열 | `["search", "read", "grep"]` | enabled일 때 적용할 전체 도구 목록. []는 적용 안 함, 저장소 목록이 전역 목록을 대체 |
 | `[output.jev].model` | 문자열 | `"jev-1.14.0"` | 모든 응답에서 검증하는 구체적인 제공자 모델. Jev 버전은 TypeSafe, `제작자/모델` ID는 [OpenRouter](#openrouter-decision-모델)를 사용. 별칭 이름은 검증에 실패 |
 | `[output.jev].timeout_ms` | 양의 정수(ms), 최대 7일 | `45000` | 단계 준비 시작 시점부터 계산하고 대기 시간을 포함하는 도구 호출 한 건의 절대 마감 시각 |
-| `[output.jev].max_in_flight_requests` | 정수, 1~3 | `3` | 동시에 진행하는 HTTP 요청 수(3이 런타임 상한) |
-| `[output.jev].request_spacing_ms` | 정수(ms), 300 이상 | `300` | 요청 시작 사이의 최소 간격(300이 런타임 하한) |
+| `[output.jev].max_in_flight_requests` | 정수, 1~8 | `8` | 동시에 진행하는 HTTP 요청 수(8이 런타임 상한) |
+| `[output.jev].request_spacing_ms` | 정수(ms), 100 이상 | `100` | 요청 시작 사이의 최소 간격(100이 런타임 하한) |
 | `[output.jev].max_batch_bytes` | 정수 바이트 또는 크기 문자열, 1~168000 | `168000` | 배치 하나의 인코딩된 요청 바이트(168000이 런타임 상한). 들어가지 않는 질문은 명시적 실패 |
 | `[output.jev].pool_idle_timeout_ms` | 양의 정수(ms), 최대 7일 | `30000` | 유휴 HTTPS 연결 유지 시간 |
-| `[output.jev].search_filter_min_unrelated_probability` | 유한한 수, `0.5 < 값 <= 1.0` | `0.70`(잠정값) | 기준별 거짓 확률 임계값. all/any로 개별 판단을 조합 |
+| `[output.jev].search_filter_min_unrelated_probability` | 유한한 수, `0.5 < 값 <= 1.0` | `0.70`(잠정값) | 본문을 생략할 아니오 확률 하한. 예 확률이 같은 값 이상이면 관련, 그 사이는 불확실로 보존 |
 
 ### 색인 시작 시점
 
@@ -309,11 +308,13 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 | 모드 | 동작 |
 |---|---|
-| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `overview`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
+| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
 | `"on"` | 이 확인 없이 서버 시작 때 색인합니다. |
 | `"off"` | 작업공간을 색인하지 않습니다. |
 
-`auto` 모드가 색인하지 않으면(예: 저장소 여러 개를 담은 폴더) `search`와 `overview`는 이유와 함께 `Index unavailable:`을 반환합니다. 이유에는 한두 단계 아래에서 찾은 저장소를 세 개까지 적습니다. `read`, `grep`, `find`는 색인한 선언·호출자 없이 실제 파일 결과를 계속 반환합니다. 저장소 밖에서는 `.codemap/` 디렉터리를 만들지 않습니다. 설정 파일을 생성하지 않고, 빈 임시 색인은 서버가 끝나면 지워지는 임시 디렉터리에 둡니다. 파일 수 한도는 첫 색인 도구 호출 때 확인하므로, 한도를 넘는 저장소에도 시작 시 `.codemap/`은 생깁니다. 이런 작업공간을 색인하려면 `.codemap/config.toml`이나 전역 설정에 `mode = "on"`을 쓰고 서버를 재시작하세요.
+`auto` 모드가 색인하지 않으면(예: 저장소 여러 개를 담은 폴더) `search`는 이유와 함께 `Index unavailable:`을 반환합니다. 이유에는 한두 단계 아래에서 찾은 저장소를 세 개까지 적습니다. `read`, `grep`, `find`는 색인한 선언·호출자 없이 실제 파일 결과를 계속 반환합니다. 저장소 밖에서는 `.codemap/` 디렉터리를 만들지 않습니다. 설정 파일을 생성하지 않고, 빈 임시 색인은 서버가 끝나면 지워지는 임시 디렉터리에 둡니다. 파일 수 한도는 첫 색인 도구 호출 때 확인하므로, 한도를 넘는 저장소에도 시작 시 `.codemap/`은 생깁니다. 이런 작업공간을 색인하려면 `.codemap/config.toml`이나 전역 설정에 `mode = "on"`을 쓰고 서버를 재시작하세요.
+
+색인이 없는 git worktree는 같은 저장소의 다른 worktree에 현재 형식의 색인이 있으면 그 색인에서 시작합니다. 가장 최근에 갱신된 색인을 복사하며, 원본 색인은 바꾸지 않습니다. 첫 갱신은 내용이 다른 파일과 네이티브 파일만 다시 추출한 뒤에 색인 결과를 보여 줍니다. 네이티브 파일은 기록된 매크로 전개 입력이 다른 worktree의 파일을 가리키기 때문입니다. 이미 색인이 있는 worktree에는 형식이 달라도 복사하지 않습니다.
 
 ### 색인과 파일 제외
 
@@ -321,7 +322,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 `auth.toml`, `.txt`, `*.lock`, 알려진 패키지 관리 잠금 파일, `*.map`, 압축·번들 파일은 대소문자 구분 없이 색인·코드맵·호출자 탐색에서 제외합니다. `find`/`grep`도 기본적으로 숨기지만 `include_ignored: true`로 볼 수 있고 직접 `read`/`parse`도 가능합니다. 전체 목록은 [지원 언어와 파일 제외](./language-support-checklist.ko.md)에 있습니다. `index.max_file_bytes`보다 큰 파일도 색인에서 제외합니다.
 
-다섯 `[index.language_support]` 키는 색인, search, overview, codemap, 파일 변경 갱신에 적용합니다. 실시간 `find`/`grep`/`read`와 직접 `parse`를 끄지는 않습니다.
+다섯 `[index.language_support]` 키는 색인, search, codemap, 파일 변경 갱신에 적용합니다. 실시간 `find`/`grep`/`read`와 직접 `parse`를 끄지는 않습니다.
 
 `use_git_exclude`는 `.git/info/exclude`만 제어합니다. `false`여도 `.gitignore`, 전역 Git 무시 규칙, `.codemapignore`는 적용됩니다.
 
@@ -406,11 +407,9 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 
 ### 출력과 호출 관계
 
-저장소 루트와 모노레포 프로젝트 루트 `overview`는 기본적으로 색인 파일 언어 통계를 포함합니다. `[output.overview].is_stats_enabled = false`이면 해당 섹션을 생략합니다. 예를 들어 선택 가능한 프로젝트 경로인 `overview(path="apps/api")`는 해당 프로젝트에 속한 색인 파일만 집계합니다. 그 외 폴더와 파일에는 통계를 붙이지 않습니다. 사라지거나 변경된 파일은 집계 불가로 표시합니다. 요청당 새로 집계할 수 있는 256개 파일 또는 64 MiB를 넘으면 대기 상태로 표시하며, 이후 요청은 완료된 집계를 재사용합니다.
-
 `search`는 상위 파일의 상세 내용 뒤에 나머지 파일을 간략 목록으로 표시합니다. 크기 설정은 출력을 제한하며 제외 파일을 바꾸지 않습니다. 일반 질의에서는 생성 파일과 번역 리소스의 순위를 낮추지만 정확한 경로·심볼·리소스 키·인용 원문으로 해당 파일을 지정할 수 있습니다.
 
-`output.search.max_bytes`에는 부분 출력 안내도 포함합니다. 결과가 잘리면 질의를 좁히거나 안내된 범위를 읽으세요. `search`에는 페이지 위치 인자가 없습니다. `output.search.anchor_snippet_limit`는 파일마다 전체 발췌를 표시할 심볼 수를 제한하며 나머지는 최대 3줄 선언으로 표시합니다.
+`output.search.max_bytes`에는 부분 출력 안내도 포함합니다. 결과가 잘리면 질의를 좁히거나 안내된 범위를 읽으세요. `search`에는 페이지 위치 인자가 없습니다. `output.search.anchor_snippet_limit`는 파일마다 전체 발췌를 표시할 심볼 수를 제한하며 나머지는 최대 3줄 선언으로 표시합니다. 쓰지 않고 남은 tail 행과 바이트에는 [순위 밖 구절 일치](../README.ko.md#탐색-도구-사용)가 들어갈 수 있습니다.
 
 `output.read.max_bytes`에는 줄 번호·문맥·제목을 포함하며 함수 본문으로 확장된 `grep`에도 적용합니다. `read` 출력이 초과하면 더 좁은 `offset`/`limit`를 안내하는 오류를 반환합니다. 확장된 `grep`은 본문을 조용히 자르는 대신 크기 초과 또는 페이지 분할을 안내합니다. `read`에서 함수 확장을 끄고 `limit`를 생략하면 별도의 전체 파일 256 KiB 제한도 적용합니다. `grep_max_columns = 0`은 긴 줄 제한을 끄고, 그 외에는 초과 줄을 `[Omitted long matching line]`으로 표시합니다. `grep`의 부분 결과에는 `next_offset`이 있습니다.
 
@@ -430,7 +429,7 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 
 ### 테스트 코드 문맥
 
-`excluded_directories`와 `use_git_exclude`는 `[index.exclude]`, 테스트 문맥의 `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, `test_calls`는 `[output.context.exclude]`에서 관리합니다. 같은 파일에서는 유효한 새 위치의 값이 이전 `[exclude]`와 `[caller_context]`, `[index]`, 최상위 별칭보다 우선하며, 언어별 표는 누락한 언어를 상속합니다. 파일 간 저장소 → 전역 → 내장 우선순위는 동일합니다. 두 디렉터리 제외 설정은 색인·overview·search·호출자 탐색·`find`/`grep`이 공유하며, 어느 쪽을 바꿔도 설정 재로드 후 전체 색인 갱신을 요청합니다. 직접 `read`에는 디렉터리 제외를 적용하지 않습니다.
+`excluded_directories`와 `use_git_exclude`는 `[index.exclude]`, 테스트 문맥의 `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, `test_calls`는 `[output.context.exclude]`에서 관리합니다. 같은 파일에서는 유효한 새 위치의 값이 이전 `[exclude]`와 `[caller_context]`, `[index]`, 최상위 별칭보다 우선하며, 언어별 표는 누락한 언어를 상속합니다. 파일 간 저장소 → 전역 → 내장 우선순위는 동일합니다. 두 디렉터리 제외 설정은 색인·search·호출자 탐색·`find`/`grep`이 공유하며, 어느 쪽을 바꿔도 설정 재로드 후 전체 색인 갱신을 요청합니다. 직접 `read`에는 디렉터리 제외를 적용하지 않습니다.
 
 `should_include_test_code = false`이면 설정한 테스트 영역을 `read`/`grep`의 자동 심볼 문맥과 `search`의 호출 관계에서 제외합니다. 같은 이름의 정의 개수, 호출 대상 조회, 호출자 탐색 한도를 계산하기 전에 적용합니다. 직접 `read`/`grep`한 원문, 검색 결과와 저장된 색인은 유지됩니다. `true`이면 테스트 문맥을 포함하지만 디렉터리·무시 파일 제외 규칙은 별도로 적용됩니다.
 
@@ -497,13 +496,15 @@ powershell = ["Describe", "Context", "It"]
 - `allowed_roots`: 작업공간과 지정한 외부 루트에 접근합니다.
 - `anywhere`: 서버 프로세스가 접근할 수 있는 모든 경로에 접근합니다(기본값).
 
-`allowed_roots` 항목은 비어 있지 않은 문자열이어야 합니다. 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다. 존재하는 경로 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고, 아직 없는 뒷부분은 유지합니다. 상위 경로 이동으로 허용된 범위를 넓힐 수는 없습니다. 이 권한은 `search`·`overview`의 색인 범위를 넓히지 않습니다.
+`allowed_roots` 항목은 비어 있지 않은 문자열이어야 합니다. 상대 경로는 작업공간 루트 기준이며 절대 경로도 허용합니다. 존재하는 경로 부분은 심볼릭 링크를 포함해 실제 경로로 해석하고, 아직 없는 뒷부분은 유지합니다. 상위 경로 이동으로 허용된 범위를 넓힐 수는 없습니다. 이 권한은 시작 폴더의 색인에 파일을 더하지 않습니다. 시작 폴더 밖의 저장소는 `read` 정책이 그 저장소 폴더 전체를 허용할 때만, 밖을 가리키는 `workspace_scope`로 `search`할 때 자기 색인을 갖습니다. 그 저장소의 `[filesystem_permissions]`는 이 세션의 접근 범위를 넓히지 않습니다.
 
 ### 색인 갱신
 
-`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. `.gitignore`, `.ignore`, `.codemapignore`가 숨기는 경로의 변경은 제외 디렉터리처럼 버리고, 이 파일들이 바뀌면 전체 탐색을 합니다. 감시를 끄거나 사용할 수 없으면 `search`/`overview`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
+`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. `.gitignore`, `.ignore`, `.codemapignore`가 숨기는 경로의 변경은 제외 디렉터리처럼 버리고, 이 파일들이 바뀌면 전체 탐색을 합니다. 감시를 끄거나 사용할 수 없으면 `search`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
 
-`indexer_auto_restart = true`이면 백그라운드 색인 중단 후 다음 `search`/`overview`가 복구를 시도합니다. 서버 실행 중 복구 횟수에는 제한이 있습니다. 끄면 재시작 전까지 결과가 고정됩니다. 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
+`indexer_auto_restart = true`이면 백그라운드 색인 중단 후 다음 `search`가 복구를 시도합니다. 서버 실행 중 복구 횟수에는 제한이 있습니다. 끄면 재시작 전까지 결과가 고정됩니다. 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
+
+체크아웃이 같은 내용으로 파일을 다시 쓸 때처럼 수정 시간만 바뀌고 내용은 그대로이면, 색인은 그 파일의 문서를 유지하고 새 수정 시간을 색인 폴더의 `content-mtimes.json`에 기록합니다. 그 뒤의 갱신과 서버 시작에서는 그 파일을 다시 읽지 않습니다.
 
 ## `config.toml` 예시
 
@@ -542,10 +543,6 @@ pi_max_bytes = 100000
 # opencode가 받는 도구 결과의 최대 바이트 수입니다(codemap-search 기본값 100000).
 # opencode.json의 tool_output.max_bytes도 같은 값으로 설정하세요.
 opencode_max_bytes = 100000
-
-[output.overview]
-# overview로 저장소 루트나 하위 프로젝트 루트를 볼 때 언어별 파일 통계를 함께 보여 줍니다.
-is_stats_enabled = true
 
 [output.search]
 # 상세 결과로 표시할 최대 파일 수입니다. 나머지 결과는 간략 목록으로 표시합니다.
@@ -672,7 +669,7 @@ exceptions = []
 
 [output.jev]
 # decision 모델(TypeSafe Jev 또는 OpenRouter)로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
+# 켜진 필터를 쓰기 전에 initial_instructions의 task로 사용자 요청을 전달하세요.
 # API 키는 여기가 아닌 auth.toml의 [jev].api_key(TypeSafe) 또는 [openrouter].api_key에 저장하세요.
 # 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY 환경 변수를 사용합니다.
 
@@ -680,8 +677,8 @@ exceptions = []
 enabled = false
 
 # enabled일 때 필터를 적용할 도구입니다. []는 적용하지 않으며 전역 목록을 대체합니다.
-# 루트 overview 지도는 항상 로컬로 유지합니다. Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
-scope = ["overview", "search", "read", "grep"]
+# Jev를 쓰지 못하면 원래 결과를 돌려줍니다.
+scope = ["search", "read", "grep"]
 
 # 사용할 decision 모델입니다(기본 jev-1.14.0). Jev 버전은 TypeSafe를, 제작자/모델 ID는
 # OpenRouter Decisions API만 사용하며 decision을 지원하지 않는 모델은 거부됩니다. 별칭은 쓸 수 없습니다.
@@ -697,8 +694,8 @@ model = "jev-1.14.0"
 timeout_ms = 45000
 
 # 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
-max_in_flight_requests = 3
-request_spacing_ms = 300
+max_in_flight_requests = 8
+request_spacing_ms = 100
 
 # 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
 max_batch_bytes = 168000
@@ -712,7 +709,7 @@ search_filter_min_unrelated_probability = 0.70
 
 [output.context.exclude]
 # 호출 관계와 자동으로 붙는 관련 정보에 테스트 코드를 포함합니다.
-# false여도 search/overview의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
+# false여도 search의 선언과 read/grep 원문에는 테스트 코드가 그대로 나옵니다.
 should_include_test_code = false
 
 # 테스트 파일로 볼 경로 패턴입니다(*, ** 사용 가능). 작업공간 기준이며, /가 없으면 파일 이름과 비교합니다.
@@ -750,9 +747,9 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, overview, read, grep 호출 때 시작하며,
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, read, grep 호출 때 시작하며,
 # 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
-# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search와 overview가 이유를 알려 줍니다.
+# 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search가 이유를 알려 줍니다.
 # "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
 # 전역 설정이 적용되도록 주석으로 둡니다.
 # mode = "auto"
@@ -783,7 +780,7 @@ excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".
 use_git_exclude = true
 
 [index.refresh]
-# 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search/overview를 호출할 때 갱신합니다.
+# 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search를 호출할 때 갱신합니다.
 # 바꾼 뒤에는 서버를 재시작하세요.
 watch = true
 
@@ -794,8 +791,8 @@ watch_debounce_ms = 500
 # 파일 감시를 쓰지 않을 때 색인을 갱신하는 최소 간격(밀리초)입니다.
 index_staleness_ms = 5000
 
-# 색인 작업이 멈추면 다음 search/overview 때 다시 시작합니다(횟수 제한 있음).
-# false이면 서버를 재시작할 때까지 search/overview 결과가 갱신되지 않습니다.
+# 색인 작업이 멈추면 다음 search 때 다시 시작합니다(횟수 제한 있음).
+# false이면 서버를 재시작할 때까지 search 결과가 갱신되지 않습니다.
 indexer_auto_restart = true
 
 [index.language_support]
@@ -887,7 +884,7 @@ allowed_roots = []
 
 저장소의 `.codemapignore`는 gitignore 문법으로 색인·`find`·`grep`에서 숨길 경로를 추가합니다.
 
-색인은 UTF-8 소스만 허용합니다. 잘못된 UTF-8 파일은 이전 색인 항목도 제거하며, `overview`·`read`에 최초 오류 바이트 위치와 제외 이유를 표시합니다. `read`의 대체 문자 표시 정책은 유지하고 원본 파일은 변경하지 않습니다.
+색인은 UTF-8 소스만 허용합니다. 잘못된 UTF-8 파일은 이전 색인 항목도 제거하며, `read`에 최초 오류 바이트 위치와 제외 이유를 표시합니다. `read`의 대체 문자 표시 정책은 유지하고 원본 파일은 변경하지 않습니다.
 
 ## read·grep 요청별 출력 제어
 
@@ -929,7 +926,7 @@ import·재수출·선언·호출 위치와 확인 가능한 부모 모듈의 �
 ```toml
 [output.jev]
 enabled = true
-scope = ["overview", "search", "read", "grep"]
+scope = ["search", "read", "grep"]
 search_filter_min_unrelated_probability = 0.70
 ```
 
@@ -948,50 +945,43 @@ enabled = true
 model = "openai/gpt-6-luna-decisions"
 ```
 
-Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `overview`, `search`, `read`, `grep`을 받으며 기본값은 네 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. `initial_instructions`, 루트 `overview`, `find`, `analyze`, 작업 등록과 CLI는 Jev를 호출하지 않습니다.
+Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는 도구에만 필터를 적용하며, `enabled=false`이면 목록과 무관하게 모두 끕니다. `scope`는 `search`, `read`, `grep`을 받으며 기본값은 세 도구 모두입니다. 목록은 상속한 값과 합치지 않고 대체하며 `[]`이면 아무 도구에도 적용하지 않습니다. 중복 이름은 한 번만 적용하고 제거된 `overview` 이름은 무시하며, 미지원 이름이나 문자열이 아닌 항목이 있으면 scope 값 전체를 무시하고 하위 설정을 상속합니다. `enabled`와 `scope`는 각각 저장소 → 전역 → 기본값 우선순위를 따릅니다. `initial_instructions`, `find`, `analyze`와 CLI는 Jev를 호출하지 않습니다.
 
-### 작업 질문 등록
+### 작업 전달
 
-`initial_instructions({})`·`find`·루트 `overview`는 Jev 설정과 관계없이 작업 등록이 필요하지 않습니다. `initial_instructions`는 인자를 받지 않습니다. 이전 클라이언트가 인자를 보내도 무시하고 기존 등록을 유지합니다.
+`find`와 `analyze`는 작업을 쓰지 않습니다. Jev가 꺼져 있으면 `initial_instructions`는 인자를 표시하지 않으며 작업은 아무 영향이 없습니다.
 
-주 에이전트는 켜진 Jev 필터를 쓰기 전에 사용자의 작업에서 집중된 예/아니오 질문을 만들고 `register_task`로 한 번 등록합니다. Jev가 꺼져 있으면 등록이 필요하지 않으므로, `tools/list`는 `enabled`가 true이고 `scope`가 비어 있지 않을 때만 `register_task`를 보여 줍니다. 설정을 다시 불러와 Jev를 켜기 전에 도구 목록을 받은 클라이언트는 다시 연결해야 이 도구가 보입니다. 서버는 등록 호출을 계속 받으며, 미리 등록한 작업은 필터를 켠 뒤 사용할 수 있습니다. `task_query`와 `questions`가 필수이며, 텍스트만 등록하면 오류 결과(`isError: true`)를 반환합니다. 작업이 바뀌면 다시 등록합니다. `search.query`는 검색어이며 등록한 목적을 바꾸지 않습니다. 기존에 `initial_instructions`로 작업을 등록하던 호출자는 `register_task`로 바꿔야 합니다. 아래 객체는 `register_task`의 입력입니다.
+`enabled`가 true이고 `scope`가 비어 있지 않으면 `tools/list`는 `initial_instructions`에 필수 문자열 인자 `task`를 표시합니다. 주 에이전트는 켜진 필터를 쓰기 전에 사용자 요청 원문을 여기에 전달하고, 작업이 바뀌면 다시 전달합니다.
 
 ```json
-{
-  "task_query": "응답 바이트 상한은 어디에서 적용되는가?",
-  "questions": [{
-    "question": "이 함수가 응답 바이트 상한을 구현하거나 구체적으로 지원하는가?",
-    "when_true": "제공된 소스가 해당 응답 바이트 예산을 계산·예약·제한하거나 전달한다.",
-    "when_false": "제공된 사실이 해당 예산과 구체적 관계가 없는 별개 동작임을 보여준다. 파일 간 근거가 없다는 이유만으로는 아니오가 아니며 불확실하다."
-  }],
-  "match": "all"
-}
+{ "task": "응답 바이트 상한은 어디에서 적용되는가?" }
 ```
 
 | 필드 | 계약 |
 | --- | --- |
-| `task_query` | 비어 있지 않은 목적. 전체 등록 크기 제한 적용 |
-| `questions` | 독립적인 예/아니오 기준 1~8개. 요청한 대상·방향·범위를 보존 |
-| `id` | 기존 호출 호환용 선택 필드이며 무시함. 생략하면 서버가 연결용 ID를 생성 |
-| `question`, `when_true`, `when_false` | 비어 있지 않은 필수 문자열. 개별 바이트 상한 없이 전체 등록·평가 예산 적용. true는 기준에 해당한다는 뜻 |
-| `match` | `all`(기본) 또는 `any`. 중첩 표현식은 없음 |
-| 전체 등록 | 인코딩한 JSON 최대 65,536바이트. 질문 필드에 중첩 값은 허용하지 않음 |
+| `task` | 비어 있지 않은 문자열, 최대 65,536바이트. 사용자 요청 원문 그대로 |
 
-등록은 연결 안에서 원자적으로 교체합니다. 잘못된 교체는 이전 작업을 지우며 `initialize`도 초기화합니다. 질문 생성용 별도 서비스를 호출하지 않습니다. 등록 누락은 인수 오류이고 인증정보 부재나 평가 실패는 해당 도구의 일반 출력을 보존합니다. 공통 중복 제거는 그 뒤에 독립적으로 적용됩니다.
+작업은 연결 안에서만 유지하며 `initialize`가 초기화합니다. `task` 없이 호출하면 현재 작업을 유지하고, 작업이 바뀌면 전달 이력을 새로 시작합니다. 비어 있거나 문자열이 아닌 `task`는 오류 결과(`isError: true`)를 반환하고 이전 작업도 지웁니다. `search.query`는 검색어이며 작업을 대체하지 않습니다. 켜진 필터에서 작업이 없으면 인수 오류이고, 인증정보 부재나 평가 실패는 해당 도구의 일반 출력을 보존합니다. 설정을 다시 불러와 Jev를 켜기 전에 도구 목록을 받은 클라이언트는 다시 연결해야 이 인자가 보이며, 서버는 어느 경우든 `task`를 받습니다. `register_task` 도구는 없어졌으며 호출하면 `Tool not found`를 반환합니다. 공통 중복 제거는 필터 뒤에 독립적으로 적용됩니다.
 
-켜진 search·read·grep·overview는 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. `initial_instructions`·루트 overview·find·analyze는 Jev를 호출하지 않습니다. `register_task`도 로컬로 동작합니다. 실제 필터와 이 표시는 모두 `enabled`와 `scope`를 따릅니다. 폐기한 `overview_enabled` 설정은 계속 경고 후 무시합니다. 생략 안내의 read 위치는 활성화된 read 필터를 우회하지 않습니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
+켜진 search·read·grep은 각 도구별로 `openWorldHint: true`를 알리며 모든 도구는 읽기 전용입니다. `initial_instructions`·find·analyze는 Jev를 호출하지 않습니다. 실제 필터와 이 표시는 모두 `enabled`와 `scope`를 따릅니다. 폐기한 `overview_enabled` 설정은 계속 경고 후 무시합니다. 생략 안내의 정확한 read 위치를 읽으면 그 소스를 다시 판단하지 않고 돌려주고, read 범위가 함수 하나 안에 있으면 그 함수의 행을 판단하지 않고 돌려줍니다. 더 넓은 범위는 평소처럼 판단합니다. `include_seen=true`는 별도 공통 중복 제거만 우회합니다. Find는 중복 제거 대상이 아닙니다.
 
 ### 질문 판단과 근거
 
-판단 가능한 함수마다 등록한 모든 기준을 Noul로 평가합니다. 함수 본문은 묶음 공통 상태에 한 번 넣고 정체성·소스 범위·완전성·마스킹 상태와 제한된 정적 호출 근거를 함께 제공합니다. 파일 간 연결이나 채널 근거가 없으면 명시하며, 근거 부재를 무관함의 증명으로 취급하지 않습니다. 각 질문은 지정한 후보의 같은 흐름을 판단합니다. 별개 속성 두 개가 참이라고 연결이 증명되지는 않습니다.
+판단 단위마다 고정된 Noul 질문 하나를 보냅니다. search의 단위는 함수 본문이며, read·grep은 [read·grep의 실제 원문 판정](#readgrep의-실제-원문-판정)에서 설명하는 단위도 판단합니다. 질문은 코드가 작업에서 언급한 것을 작업의 일부라도 다루는지 묻고, 그 흐름이 거쳐 가는 큐·버스·저장소·watcher·registry 같은 공용 기반 코드도 해당한다고 봅니다. 모든 모델이 같은 질문과 기준, 같은 후보 항목(파일·종류·이름·마스킹한 소스)을 받으며 요청 구성만 모델에 따라 다릅니다.
 
-관련성을 묻는 기준에서는 여러 기능이 섞인 함수도 관련된 분기나 콜백 하나로 기여가 확인될 수 있습니다. 위임·초기화 함수는 소스로 연결이 확인되면 전체 흐름을 구현하거나 대상 이름을 포함하지 않아도 기여할 수 있습니다. 공통 정책은 사용자 작업과 검색 인자를 구분하고 후보 본문부터 확인한 뒤 연결 근거를 판단하도록 합니다. 각 질문에 요청한 대상·관계·범위를 독립적으로 명시합니다. 등록 안내는 질문 하나가 일관된 관계를 판정하도록 하며 같은 의미의 질문과 표기 변형만 묶습니다. 질문 수를 줄이려는 목적으로 독립적으로 필요한 역할을 긴 체크리스트로 합치지 않습니다. 질문 1~8개는 허용 범위이며 채워야 할 목표가 아닙니다.
+| 모델 | 요청 구성 |
+| --- | --- |
+| TypeSafe Jev: `jev-1.14.0` 같은 Jev 버전, 또는 OpenRouter의 `typesafe/*` | 일반 텍스트 state 하나에 작업과 후보 묶음을 넣고, 후보마다 `[b3]` 같은 질문 ID를 붙입니다. 각 질문은 자기 후보를 지목합니다. 연속한 후보는 배치 하나에 들어가는 동안 같은 요청에 묶습니다 |
+| OpenRouter의 `openai/*` | 후보마다 요청 하나를 보내고, 일반 텍스트 state에 작업과 그 후보의 코드를 넣습니다. OpenAI가 요청 안의 질문 하나를 거부하면 OpenRouter가 요청 전체를 실패시키므로, 거부는 그 후보에만 영향을 줍니다 |
+| 그 밖의 OpenRouter decision 모델 | state에는 마스킹한 작업만 `task_query`로 넣고, 각 질문에 후보를 JSON 객체로 담습니다 |
 
-`search_filter_min_unrelated_probability`는 부정 판단의 의미를 유지합니다. 기본 `0.70`은 기준이 거짓일 확률이 이 값 이상이어야 아니오로 판단한다는 뜻입니다. 예는 긍정 답변에 같은 임계값을 적용하고 그 사이는 불확실로 둡니다. `all`은 하나라도 명확한 아니오면 불일치이고 모두 예일 때만 일치합니다. `any`는 하나라도 예면 일치이고 모두 아니오일 때만 불일치합니다. 나머지는 불확실입니다. 이는 개별 판단의 조합이며 보정된 결합 확률이 아닙니다. 임계값은 잠정 정책값입니다.
+질문과 기준, 보존 판단은 서버가 정하며 에이전트는 질문을 쓰지 않습니다.
 
-부분·오래된·과대·판단 불가 마스킹·정체성 미확인 본문과 불확실한 판단은 보존합니다. 호출 불가 선언·소스 위치·읽기 안내도 유지합니다. 생략 안내는 [읽기 동작 지표](./analysis.ko.md#횟수와-바이트-해석)의 전달된 원문 바이트에 포함하지 않습니다.
+`search_filter_min_unrelated_probability`는 부정 판단의 의미를 유지합니다. 기본 `0.70`은 아니오 확률이 이 값 이상이어야 본문을 생략한다는 뜻입니다. 예는 긍정 답변에 같은 임계값을 적용하고 그 사이는 불확실로 보존합니다. 이는 개별 판단이며 보정된 확률이 아닙니다. 임계값은 잠정 정책값입니다.
 
-전송 전에 최대 후보 8개씩 근거를 묶습니다. 평가기와 같은 직렬화·사전 검사로 `max_batch_bytes`와 운영 예산을 적용합니다. 운영 예산은 state+가장 긴 질문 28,000 추정 토큰, state+모든 질문 56,000 추정 토큰으로, 제공자 한도 32k/64k에서 12.5% 여유를 둡니다. 바이트 기반 추정은 실제 제공자 토크나이저가 아닙니다. 질문을 추가할 때 바이트·토큰 중 어느 예산이든 넘기기 전에 분할합니다. 후보 하나가 들어가지 않으면 그 후보를 보존하고 나머지를 평가합니다. 본문과 직접 호출자·피호출자 소스는 그룹 안에서 중복하지 않습니다. 최대 128개 그룹이 절대 마감·호출자 취소 신호·연결 풀을 공유합니다. 필수 답변 누락이나 실제 평가 실패는 해당 도구의 전체 기본 결과를 보존합니다. 정확한 `event_key` 맵은 평가하지 않습니다.
+search에서는 부분·오래된·과대·판단 불가 마스킹·정체성 미확인 본문과 불확실한 판단을 보존하고, 호출 불가 선언·소스 위치·읽기 안내도 유지합니다. 생략 안내는 [읽기 동작 지표](./analysis.ko.md#횟수와-바이트-해석)의 전달된 원문 바이트에 포함하지 않습니다.
+
+한 호출의 요청들은 평가기의 연결 풀에서 함께 실행되며 절대 마감 하나와 호출자 취소 신호를 공유합니다. TypeSafe와 OpenAI 요청은 배치 하나로 보내고, 그 밖의 OpenRouter 모델은 평가기가 요청의 질문을 배치로 나누며 배치마다 작업을 다시 넣습니다. 같은 직렬화·사전 검사로 `max_batch_bytes`와 운영 예산을 적용합니다. 운영 예산은 state+가장 긴 질문 28,000 추정 토큰, state+모든 질문 56,000 추정 토큰으로, 제공자 한도 32k/64k에서 12.5% 여유를 둡니다. 바이트 기반 추정은 실제 제공자 토크나이저가 아닙니다. 단위 하나가 들어가지 않으면 그 단위를 보존하고 나머지를 평가합니다. 요청 실패나 답변 누락은 해당 도구의 전체 기본 결과를 보존합니다. 정확한 `event_key` 맵은 평가하지 않습니다.
 
 ### 렌더링 전 선택
 
@@ -1001,31 +991,37 @@ Jev는 기본으로 꺼져 있습니다. `enabled=true`일 때 `scope`에 있는
 
 평가를 건너뛰는 조건은 해당 본문과 이웃 후보의 지원 판단 모두에서 이득이 없는 경우입니다. 생략 안내보다 작고 고립된 본문이나 무조건 보존되는 상위 본문이 이미 포함한 근거 등이 해당합니다. 작은 함수라도 판단 결과가 다른 본문의 보존에 영향을 주면 평가합니다. 건너뜀 사유와 평가 가능·생략·보호 개수를 기록합니다.
 
-준비된 분석 주석과 해당 범위의 이벤트 근거를 후보별로 확보합니다. 검색 전체에서 앞쪽 후보부터 16 KiB를 차감하거나 각 부분을 1 KiB로 자르는 제한은 없습니다. 직접 호출자·피호출자의 실제 소스는 일반 read 권한과 전체 파일 마스킹을 거치고, 선언 정체성과 반환 범위의 완전성을 확인합니다. 같은 소스는 `state.supporting_sources`에 한 번만 넣고 후보에서 이름으로 참조하며 실제 런타임 호출 대상을 증명했다고 표현하지 않습니다. 공통 근거 정책도 한 번 저장하고 각 질문이 정책과 해당 후보를 명시적으로 참조합니다. 완전한 후보 요청을 인코딩한 크기가 한도를 넘으면 해당 후보는 판단하지 않고 보존합니다. 부가 주석이나 이벤트 근거는 예산에 맞지 않으면 제외하고 `is_context_clipped`를 Jev에 전달하며, 이 표시만으로 본문을 보존하지 않습니다. 본문만의 사전 한도는 전체 state+질문 예산에서 계산하고, 최종 여부는 실제 인코딩한 요청으로 검사합니다. `caller_context=false`이면 추가 호출자·피호출자 읽기와 호출자 이벤트 지점 수집을 하지 않고, `include_events=false`이면 이벤트 근거를 추가하지 않습니다. 준비 중·중단·갱신 실패 스냅샷은 평가하지 않습니다.
+각 본문의 자체 소스만 보내며 분석 주석, 이벤트 근거, 호출자·피호출자 소스는 보내지 않습니다. 본문 하나의 완전한 요청을 인코딩한 크기가 한도를 넘으면 그 본문은 판단하지 않고 보존합니다. 준비 중·중단·갱신 실패 스냅샷에서도 표시한 본문은 판단하지만 후속 호출 후보는 추가하지 않습니다.
 
-필터가 성공하면 작업 기준 조합에서 관련성이 확인된 함수에 한해, 표시한 원문 밖에서 같은 호출 이름이 색인된 위치를 후속 후보로 추가할 수 있습니다. 근거 부족이나 불확실성 때문에 보존한 선언은 확장의 시작점으로 사용하지 않습니다. 연결이 확인된 호출 관계나 전달된 원문으로 취급하지 않습니다. 남은 출력 공간과 주석 예산 안에서 최대 4 KiB, 이름마다 호출자 표시 한도 이내의 최대 8곳, 설정한 호출 지점 분석 예산을 사용합니다. 작업 범위와 문맥 제외 규칙을 적용하고 목록이 잘리면 grep으로 전체 호출 위치를 확인하도록 안내합니다. 비활성·실패·오래된 색인·기본 출력 잘림·`caller_context=false` 검색에는 추가하지 않습니다.
+필터가 성공하면 작업과 관련 있다고 판단한 함수에 한해, 표시한 원문 밖에서 같은 호출 이름이 색인된 위치를 후속 후보로 추가할 수 있습니다. 근거 부족이나 불확실성 때문에 보존한 선언은 확장의 시작점으로 사용하지 않습니다. 연결이 확인된 호출 관계나 전달된 원문으로 취급하지 않습니다. 남은 출력 공간과 주석 예산 안에서 최대 4 KiB, 이름마다 호출자 표시 한도 이내의 최대 8곳, 설정한 호출 지점 분석 예산을 사용합니다. 작업 범위와 문맥 제외 규칙을 적용하고 목록이 잘리면 grep으로 전체 호출 위치를 확인하도록 안내합니다. 비활성·실패·오래된 색인·기본 출력 잘림·`caller_context=false` 검색에는 추가하지 않습니다. Jev는 앞쪽 후보를 담은 함수도 검색마다 최대 8개까지 작업과 관련 있는지 판단합니다. 관련 없는 후보는 빼고, 관련 있는 후보는 `(Jev: related)`로 표시해 먼저 보여 주며, 나머지는 표시하지 않습니다. 판단이 실패하면 모든 후보를 판단하지 않은 채로 둡니다.
 
-짧은 생략 안내에 소스 위치와 read가 Jev를 우회하지 않는다는 사실을 남깁니다. 생략으로 공간을 확보한 경우 요약에 보존한 불확실성도 표시하며 점수표용 공간을 예약하지 않습니다. 진단 바이트는 계획한 기본 출력·실제 반환 텍스트·전달한 원문을 구분하고, 생략 안내를 원문 관측에 포함하지 않습니다. 평가 전 `jev candidate evidence` 로그는 그룹·후보 번호를 마스킹된 경로와 소스 범위, 본문·문맥 크기 및 해시, 근거 확보 상태에 연결합니다. 소스·사용자 질문 원문은 기록하지 않으며 메인 도구 응답에도 포함하지 않습니다.
+짧은 생략 안내에 소스 위치와 본문을 돌려받을 정확한 read 위치를 남깁니다. 생략한 본문의 개요 행과 관계 안내도 함께 빼되, 보존한 멤버를 담은 행은 남깁니다. 표시한 본문을 모두 생략한 파일은 제목과 생략 안내만 남깁니다. 클라이언트가 출력 한도를 낮추면 생략으로 빈 공간을 미룬 본문로 다시 채우지 않고, Jev가 보호한 본문도 아예 미루지 않는 대신 마지막에 미룹니다. 생략으로 공간을 확보한 경우 요약에 보존한 불확실성도 표시하며 점수표용 공간을 예약하지 않습니다. 진단 바이트는 계획한 기본 출력·실제 반환 텍스트·전달한 원문을 구분하고, 생략 안내를 원문 관측에 포함하지 않습니다. 평가 전 `jev candidate evidence` 로그는 후보 번호를 마스킹된 경로와 소스 범위, 본문 크기 및 해시에 연결합니다. 소스·사용자 질문 원문은 기록하지 않으며 메인 도구 응답에도 포함하지 않습니다.
 
 ### read·grep의 실제 원문 판정
 
-Read·grep은 실제로 읽은 같은 버퍼에서 함수 경계와 반환 행을 확보합니다. `full`, `source`, grep의 `source_grouped` 보기에서 완전히 반환된 함수·메서드 본문만 판단합니다. 부분 범위, 열 잘림, 구문·정체성 미확인, 너무 큰 본문은 보존합니다. 선언·관계 보기와 grep의 파일 목록·개수 모드는 판단하지 않습니다.
+Read·grep은 실제로 읽은 같은 버퍼에서 함수 경계와 반환 행을 확보합니다. `full`, `source`, grep의 `source_grouped` 보기에서는 반환한 소스를 다음 단위로 판단합니다.
 
-본문의 완전성과 보조 문맥의 확보 범위는 구분합니다. 선택적인 참조 색인 설정과 독립적으로 같은 파싱 버퍼에서 값·타입 참조를 수집합니다. 같은 파일의 호출자·피호출자·참조 선언과 소속 타입의 멤버 선언을 마스킹된 근거로 제공합니다. 후보 자신의 바인딩·선언을 먼저 처리하고 기존 예산 안에서 가까운 연결부터 너비 우선으로 수집하여, 호출자의 의존성 연쇄가 후보를 처리하기 전에 예산을 소진하지 않게 합니다. import, 미해결 호출, 모호한 선언, 분석 공백과 보조 근거 예산 초과는 근거 설명과 `has_missing_context`, `is_context_clipped`로 Jev에 전달합니다. 이 상태만으로 평가를 제외하거나 본문을 보존하지 않습니다. Jev가 각 공백이 등록된 판단 기준에 필요한지 평가하며, 기준과 무관한 공백은 확정적인 판단을 막지 않습니다.
+- 완전히 반환된 함수·메서드 본문. grep은 일치 행을 보여 준 함수의 본문 전체를 판단합니다.
+- read 범위가 잘라 낸 함수·메서드의 반환 행. 보이는 그대로 판단합니다.
+- 모든 함수 밖에 있는 인접 반환 행의 묶음. 같은 최상위 선언이 담은 행끼리, 또는 어떤 선언에도 속하지 않는 행끼리 묶으며, 묶음 양 끝의 빈 행은 판단하지 않습니다.
 
-분류 전에 색인 후보에서 파일 간 호출자·피호출자·import 선언의 근거를 제한적으로 확보합니다. 후보 소스의 명시적인 호출·import 의존성을 먼저 확보하고 남은 예산을 호출자 후보와 공유합니다. 이미 읽은 버퍼를 재사용하며 다른 파일은 일반 read 권한·크기 한도 안에서 최대 8개만 읽습니다. 현재 소스의 호출 또는 선언을 색인 위치와 대조하고 문맥 제외 규칙, 탐색·연결·바이트 예산, 호출자의 절대 마감과 취소를 적용합니다. 발췌에는 본문 또는 부분임을 표시한 선언 정보가 포함됩니다. 소속 타입의 멤버 선언은 후보가 참조하는 멤버를 우선합니다. 보조 선언의 import는 제공한 발췌에서 참조한 바인딩으로 좁히되, 개별 이름만으로 범위를 판단할 수 없는 glob·무명 import는 유지합니다. 이름·import 단서는 미확정 대상 후보이며 그 자체로 과제 관련성을 인정하지 않습니다. 발췌는 Jev 전용으로, 메인 응답의 원문 범위를 넓히지 않습니다.
+열 잘림, 이어지지 않는 행, 구문·정체성 미확인, 판단 불가 마스킹, 너무 큰 단위는 보존합니다. 선언·관계 보기와 grep의 파일 목록·개수 모드는 판단하지 않습니다.
 
-식별된 완전한 본문은 인코딩한 요청이 한도 안에 들어오면 기존 Noul 판정을 받습니다. 보조 근거에 공백이 있어도 Jev의 확정적인 불일치 판정으로 생략될 수 있으며, Jev는 제공된 사실과 공백이 해당 기준에 미치는 영향을 판단해야 합니다. 부분·정체성 미확인 본문, 요청 크기 초과, 모델의 불확실 판정, 겹치거나 직접 연결된 보존 본문의 기존 보호는 별도로 유지합니다. 진단은 실제 평가한 후보를 세고 `matched`, `no_match`, `judged_uncertain`, `unjudged_bodies`를 최종 `protected`·`linked` 결과와 구분합니다. 이는 연결·정책 동작의 명세이며 실제 분류 정확도나 토큰 개선을 측정한 결과가 아닙니다.
+생략한 본문에는 범위·종류·이름을 담은 안내를 남깁니다. read는 `_omitted body:`, grep은 `_omitted matches:`로 시작합니다. 생략한 잘린 범위나 행 묶음은 `_omitted lines: L<시작>-<끝> (<이름>)`으로 남깁니다. 한 파일에서 인접한 생략 단위는 안내 하나로 합치며, 최대 세 개의 이름을 적고 나머지는 `+N more`로 표시합니다.
 
-현재 과제·질문, all/any 조합, 불확실 보존, 연결된 본문 보호, 전송 예산과 절대 마감을 search와 공유합니다. 원래 페이지와 렌더링을 먼저 확정한 뒤 생략 부분만 바꾸므로, 평가 도중 파일이 바뀌어도 새 버퍼와 섞지 않고 생략한 만큼 다음 페이지를 채우지 않습니다. 공통 중복 제거는 Jev 뒤에 적용하며 find는 제외합니다.
+각 단위의 자체 소스만 보냅니다. 같은 파일이나 다른 파일의 보조 문맥은 수집하지 않으며, 판단을 위해 다른 파일을 읽지 않습니다.
+
+식별된 완전한 단위는 인코딩한 요청이 한도 안에 들어오면 Noul 판정을 받습니다. 불완전하거나 정체성 미확인인 단위, 요청 크기 초과, 모델의 불확실 판정, 겹치거나 직접 연결된 보존 본문의 기존 보호는 별도로 유지합니다. 진단은 실제 평가한 후보를 세고 `matched`, `no_match`, `judged_uncertain`, `unjudged_bodies`를 최종 `protected`·`linked` 결과와 구분합니다. 이는 연결·정책 동작의 명세이며 실제 분류 정확도나 토큰 개선을 측정한 결과가 아닙니다.
+
+현재 작업, 불확실 보존, 연결된 본문 보호, 전송 예산과 절대 마감을 search와 공유합니다. 원래 페이지와 렌더링을 먼저 확정한 뒤 생략 부분만 바꾸므로, 평가 도중 파일이 바뀌어도 새 버퍼와 섞지 않고 생략한 만큼 다음 페이지를 채우지 않습니다. 공통 중복 제거는 Jev 뒤에 적용하며 find는 제외합니다.
 
 ### 제공자에 전송하는 데이터
 
-활성화된 search·read·grep이 마스킹한 목적·등록 질문·도구 인수·판단 대상 함수 본문과 제공된 지원 근거를 모델이 선택한 제공자(TypeSafe, 또는 OpenRouter와 해당 모델의 원본 제공자)에 전송합니다. 전송 전에 마스킹하지만 모든 민감값을 탐지할 수는 없습니다. API 키는 HTTPS 인증에만 사용합니다. 기본 제공자 모델은 `jev-1.14.0`입니다.
+활성화된 search·read·grep이 마스킹한 작업과 판단 단위별 경로·종류·이름·마스킹한 소스를 모델이 선택한 제공자(TypeSafe, 또는 OpenRouter와 해당 모델의 원본 제공자)에 전송합니다. 전송 전에 마스킹하지만 모든 민감값을 탐지할 수는 없습니다. API 키는 HTTPS 인증에만 사용합니다. 기본 제공자 모델은 `jev-1.14.0`입니다.
 
 ### OpenRouter decision 모델
 
-제작자 접두어가 있는 모델 ID(`제작자/모델`)는 OpenRouter를 선택합니다. 요청은 `[openrouter].api_key`(대체값 `OPENROUTER_API_KEY`)로 OpenRouter Decisions API인 `POST https://openrouter.ai/api/alpha/decisions`에만 보냅니다. 요청·응답 형식이 TypeSafe와 같아 위의 질문·예산·임계값·전송 한도를 그대로 적용합니다. `jev-1.14.0` 같은 Jev 버전은 계속 TypeSafe와 그 키를 사용합니다.
+제작자 접두어가 있는 모델 ID(`제작자/모델`)는 OpenRouter를 선택합니다. 요청은 `[openrouter].api_key`(대체값 `OPENROUTER_API_KEY`)로 OpenRouter Decisions API인 `POST https://openrouter.ai/api/alpha/decisions`에만 보냅니다. 응답 형식이 TypeSafe와 같아 위의 질문·예산·임계값·전송 한도를 그대로 적용합니다. 요청 구성은 [질문 판단과 근거](#질문-판단과-근거)의 표처럼 모델을 따릅니다. `jev-1.14.0` 같은 Jev 버전은 계속 TypeSafe와 그 키를 사용합니다.
 
 - **decision 모델 전용.** 이 엔드포인트에 채팅·임베딩 모델이나 없는 모델을 보내면 OpenRouter가 모델 실행 전에 HTTP 400(`Model … does not exist`)으로 거부합니다. 이때 단계는 `http_status`로 대체 처리되고 도구는 일반 결과를 반환합니다.
 - **고정 ID.** OpenRouter는 정식 슬러그를 보고합니다. 요청 ID에서 `:변형` 접미사를 뺀 값이거나, 그 뒤에 `-YYYYMMDD` 출시일이 붙은 값입니다(예: `openai/gpt-6-luna-decisions` 요청에 `openai/gpt-6-luna-decisions-20261006`으로 응답). 그 밖의 응답 모델은 검증에 실패합니다. `~typesafe/jev-latest` 같은 별칭(`~제작자/모델`)은 가리키는 버전이 바뀔 수 있어 요청을 보내기 전에 거부합니다.
@@ -1051,8 +1047,8 @@ Read·grep은 실제로 읽은 같은 버퍼에서 함수 경계와 반환 행�
 
 | 설정 또는 제한 | 계약 |
 | --- | --- |
-| `max_in_flight_requests` | 동시 요청 1~3개 |
-| `request_spacing_ms` | 최소 300ms |
+| `max_in_flight_requests` | 동시 요청 1~8개 |
+| `request_spacing_ms` | 최소 100ms |
 | `max_batch_bytes` | 인코딩 1~168,000바이트. 명시한 더 작은 값은 유지 |
 | 토큰 추정 | 운영 기본값: state+가장 긴 질문 28,000, state+전체 질문 56,000. `ceil(인코딩 바이트/3)`은 실제 사용량이 아닌 추정값 |
 | `timeout_ms` | 양수, 최대 7일; 준비 과정과 모든 배치를 하나의 마감으로 제한 |
@@ -1078,13 +1074,7 @@ Read·grep은 실제로 읽은 같은 버퍼에서 함수 경계와 반환 행�
 
 Rust에서 직접 사용할 때는 [`codemap_search::jev`](../src/jev/mod.rs)와 [판단 예제](../examples/jev_decisions.rs)를 참고하세요. 예제의 `--mock`은 오프라인이며 `--live`는 API 키로 실제 요청을 보냅니다.
 
-### 루트 외 overview의 Jev 적용
-
-`enabled=true`이고 `scope`에 `"overview"`가 있으면 파일과 하위 폴더의 선언 행을 판단합니다. 저장소 루트와 그 별칭·절대 경로는 등록이나 외부 호출 없이 기존 지도를 반환합니다. 모노레포의 하위 워크스페이스는 비루트 경로에 해당합니다. 폴더는 바로 포함된 파일 최대 8개의 선언을 판단하며 하위 디렉터리 지도와 파일 항목, 색인 통계는 유지합니다.
-
-판정용 소스는 파일 읽기 권한·마스킹·테스트 코드 제외 규칙을 따르고 색인 당시의 소스 해시와 현재 소스를 대조합니다. 판정 완료 후 파일을 다시 읽지 않습니다. 판단할 근거가 없거나 한도를 넘긴 선언은 미판정으로 남으며, 이를 분류 성공으로 집계하지 않습니다. 불확실 선언은 유지하고 일치하지 않는 선언만 제거합니다. 부모 선언이 남아도 그 자식 전체가 자동 보존되지는 않으며, 남은 자식의 구조를 나타내는 부모는 유지합니다.
-
-판정에 사용한 소스 본문은 overview 응답이나 공통 중복 제거 이력에 등록하지 않습니다. 이후 read에서 그 본문이 이미 전달됐다고 잘못 접히지 않습니다. read·grep과 overview의 보조 근거에는 같은 클래스 범위에서 확인한 멤버 대입·사용 및 콜백 참조도 최대 8개 연결까지 포함합니다. 이는 관련성 판단을 위한 근거이며 자동 보존 조건이나 런타임 연결 증명은 아닙니다.
+read·grep의 보조 근거에는 같은 클래스 범위에서 확인한 멤버 대입·사용 및 콜백 참조도 최대 8개 연결까지 포함합니다. 이는 관련성 판단을 위한 근거이며 자동 보존 조건이나 런타임 연결 증명은 아닙니다.
 
 ## 이벤트 관계 탐색
 
@@ -1164,7 +1154,6 @@ UTF-8 소스만 저장하며 색인·Git·디렉터리 제외 규칙을 적용�
 | 이전 경로 | 새 경로 |
 |---|---|
 | `tool_output.is_redact_enabled` | `output.is_redact_enabled` |
-| `tool_output.is_overview_stats_enabled` | `output.overview.is_stats_enabled` |
 | `search.result_threshold` | `output.search.detail_file_limit` |
 | `search.search_overview_file_limit` | `output.search.overview_file_limit` |
 | `search.search_detail_snippet_max_lines` | `output.search.snippet_max_lines` |

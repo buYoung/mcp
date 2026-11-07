@@ -105,7 +105,7 @@ impl<'a> SourceResolver<'a> {
                                 && (is_imported
                                     || same_source_root(&file.file_path, &candidate.file_path))
                         })
-                        .map(|candidate| (candidate, name.to_string()))
+                        .map(|candidate| (&**candidate, name.to_string()))
                         .collect();
                     (files, None)
                 }
@@ -179,7 +179,7 @@ impl<'a> SourceResolver<'a> {
                             candidate.file_path.ends_with(".swift")
                                 && swift_module(&candidate.file_path) == module
                         })
-                        .map(|candidate| (candidate, call.name.clone()))
+                        .map(|candidate| (&**candidate, call.name.clone()))
                         .collect();
                     (files, None)
                 }
@@ -255,6 +255,7 @@ impl<'a> SourceResolver<'a> {
         self.files
             .iter()
             .filter(|file| libraries.matches(path, uri, &file.file_path))
+            .map(|file| &**file)
             .collect()
     }
 
@@ -303,6 +304,7 @@ impl<'a> SourceResolver<'a> {
                             })
                     })
                 })
+                .map(|file| &**file)
                 .collect()
         };
         let [only] = matches.as_slice() else {
@@ -312,7 +314,7 @@ impl<'a> SourceResolver<'a> {
     }
 
     /// The one indexed file a dotted Lua module names, as `a/b.lua` or `a/b/init.lua`.
-    fn lua_module(&self, module: &str) -> Option<&'a ExtractedFile> {
+    pub(super) fn lua_module(&self, module: &str) -> Option<&'a ExtractedFile> {
         let path = module.replace('.', "/");
         let names = [format!("{path}.lua"), format!("{path}/init.lua")];
         let matches = self
@@ -332,7 +334,7 @@ impl<'a> SourceResolver<'a> {
 
     /// Files loaded by a path relative to the calling file: Ruby `require_relative` or
     /// PowerShell dot-sourcing and `Import-Module`.
-    fn relative_imports(
+    pub(super) fn relative_imports(
         &self,
         path: &str,
         imports: &[ImportEntry],
@@ -677,7 +679,7 @@ impl<'a> SourceResolver<'a> {
 #[derive(Default)]
 pub(in crate::callers::resolution) struct ModuleLookups<'a> {
     /// Indexed files by file name, to find an included path by its suffix.
-    by_file_name: HashMap<&'a str, Vec<&'a ExtractedFile>>,
+    pub(super) by_file_name: HashMap<&'a str, Vec<&'a ExtractedFile>>,
     /// Top-level C/C++ function declarations and definitions, by name.
     functions: HashMap<&'a str, Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>>,
     /// C++ class and struct declarations, by name.
@@ -885,7 +887,7 @@ fn returned_table(source: &Source) -> Option<String> {
 }
 
 /// The package a Kotlin file declares.
-fn package_of(file: &ExtractedFile) -> Option<String> {
+pub(super) fn package_of(file: &ExtractedFile) -> Option<String> {
     file.navigation
         .as_ref()?
         .implementations
@@ -897,7 +899,7 @@ fn package_of(file: &ExtractedFile) -> Option<String> {
 }
 
 /// A SwiftPM module is the directory below `Sources/<Module>/`; elsewhere the directory.
-fn swift_module(path: &str) -> String {
+pub(super) fn swift_module(path: &str) -> String {
     if let Some((prefix, rest)) = path.split_once("Sources/") {
         if let Some((module, _)) = rest.split_once('/') {
             return format!("{prefix}Sources/{module}");

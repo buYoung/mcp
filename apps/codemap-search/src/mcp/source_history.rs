@@ -133,7 +133,16 @@ fn rows(tool: &str, arguments: &Value, text: &str) -> Vec<Row> {
     result
 }
 fn file_revision(path: &str) -> Option<(PathBuf, blake3::Hash)> {
-    let path = crate::workspace::resolve_within_cwd(path).ok()?;
+    // Files outside the start folder, such as another root's, count when the session may read
+    // them.
+    let path = crate::workspace::resolve_within_cwd(path)
+        .or_else(|_| {
+            crate::workspace::resolve_for_filesystem_tool(
+                path,
+                crate::workspace::FilesystemTool::Read,
+            )
+        })
+        .ok()?;
     let metadata = std::fs::metadata(&path).ok()?;
     if !metadata.is_file() || metadata.len() > MAX_REVISION_BYTES {
         return None;
@@ -267,13 +276,16 @@ impl SourceHistory {
             crate::tools::get_arg(arguments, "include_seen").and_then(Value::as_bool) != Some(true);
         // A read's caller trailer follows its source rows; an unchanged repeat is folded too.
         // It starts after the newline that ends the last row, so the two edits never overlap.
+        // Without a caller list, the importer trailer, which comes last, is folded alone.
         let mut trailer_edit = None;
         let trailer_start = (tool == "read")
             .then(|| {
-                text.find(&format!(
-                    "\n{}",
-                    crate::tools::live_symbols::OUTSIDE_CALLERS_HEADER
-                ))
+                [
+                    crate::tools::live_symbols::OUTSIDE_CALLERS_HEADER,
+                    crate::tools::live_symbols::IMPORTERS_HEADER,
+                ]
+                .iter()
+                .find_map(|header| text.find(&format!("\n{header}")))
             })
             .flatten()
             .map(|newline| newline + 1);

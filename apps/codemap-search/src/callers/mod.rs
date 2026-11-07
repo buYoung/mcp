@@ -48,6 +48,8 @@ pub use annotate::{
     annotate_results, AnnotationRequest, CallerBlockDedup, DetailAnnotations, PreparedAnnotation,
     ANNOTATION_OMITTED_MARKER,
 };
+pub(crate) use source::code_use_lines;
+pub(crate) use symbols::CallLookup;
 
 use crate::lang::spec_for_ext;
 use crate::parser::ExtractedSymbol;
@@ -272,8 +274,11 @@ pub(super) mod fixtures {
         }
     }
 
-    pub(in crate::callers) fn file(path: &str, symbols: Vec<ExtractedSymbol>) -> ExtractedFile {
-        ExtractedFile {
+    pub(in crate::callers) fn file(
+        path: &str,
+        symbols: Vec<ExtractedSymbol>,
+    ) -> std::sync::Arc<ExtractedFile> {
+        std::sync::Arc::new(ExtractedFile {
             file_path: path.to_string(),
             total_lines: 100,
             symbols,
@@ -281,7 +286,7 @@ pub(super) mod fixtures {
             docstrings: vec![],
             member_names: vec![],
             navigation: None,
-        }
+        })
     }
 
     pub(in crate::callers) fn cfg() -> CallerConfig {

@@ -4,8 +4,8 @@
 //! lifecycle, the one absolute deadline
 //! per tool call, and the per-tool glue that turns adapter results into response text plus
 //! secret-free stderr diagnostics. Nothing here runs unless a stage is enabled in
-//! `[output.jev]`. Enabled filters use the task registered for this connection; missing
-//! registration is an error. Other bypasses/fallbacks preserve the base output. The record of what
+//! `[output.jev]`. Enabled filters use the task passed to `initial_instructions` on this
+//! connection; a missing task is an error. Other bypasses/fallbacks preserve the base output. The record of what
 //! happened is the `jev stage` diagnostic line, never inline text.
 
 use crate::config::{AuthConfig, JevConfig, ResolvedConfig};
@@ -59,14 +59,22 @@ struct BuiltEvaluator {
 pub struct JevHost {
     injected: Option<Arc<dyn Evaluator>>,
     built: Option<BuiltEvaluator>,
+    /// Masked path and line range of every note a live tool wrote on this connection; a
+    /// read of exactly such a location returns its source.
+    omitted_locations: std::collections::HashSet<(String, usize, usize)>,
 }
 
 impl JevHost {
     pub fn injected(evaluator: Arc<dyn Evaluator>) -> Self {
         Self {
             injected: Some(evaluator),
-            built: None,
+            ..Self::default()
         }
+    }
+
+    fn is_omitted_location(&self, path: &str, start: usize, end: usize) -> bool {
+        self.omitted_locations
+            .contains(&(crate::redact::source(path).into_owned(), start, end))
     }
 
     /// Resolve the evaluator for one request. `Err(reason)` is a bypass label
@@ -175,7 +183,7 @@ fn log_bypass(tool: &'static str, reason: &str, model: &str) {
 }
 
 /// Mode #2 for one `search` call: the structured body filter over the selected evidence,
-/// using the registered task. Missing registration is an error; unavailable credentials,
+/// using the connection's task. A missing task is an error; unavailable credentials,
 /// ineligible evidence or provider failures preserve the byte-identical plain output.
 pub(super) async fn search(
     host: &mut JevHost,
@@ -223,47 +231,7 @@ pub(super) fn require_task<'a>(
     task: Option<&'a crate::tools::task::RegisteredTask>,
     tool: &str,
 ) -> Result<&'a crate::tools::task::RegisteredTask, (i64, String)> {
-    task.ok_or_else(|| (-32602, format!("Jev {tool} requires task_query and questions registered through register_task. Register the user's complete task and focused yes/no criteria, then retry. If register_task is missing from the tool list, the list was loaded before Jev was enabled; reconnect the MCP client to load it.")))
-}
-
-/// Root maps remain local and usable before task registration. Non-root views use
-/// the same registered criteria and transport limits as the other Jev tools.
-pub(super) async fn overview(
-    host: &mut JevHost,
-    ctx: &ToolContext<'_>,
-    task: Option<&crate::tools::task::RegisteredTask>,
-    config: &ResolvedConfig,
-) -> Result<String, (i64, String)> {
-    let started = Instant::now();
-    let prepared = crate::tools::overview::prepare(ctx)?;
-    if !config.jev.is_enabled_for("overview") || prepared.is_root() {
-        return Ok(prepared.render());
-    }
-    let task = require_task(task, "overview")?;
-    let Some(deadline_at) = started.checked_add(config.jev.deadline()) else {
-        log_bypass("overview", "invalid_config", &config.jev.model);
-        return Ok(prepared.render());
-    };
-    let evaluator = match host.resolve(&config.jev, &config.auth) {
-        Ok(evaluator) => evaluator,
-        Err(reason) => {
-            log_bypass("overview", reason, &config.jev.model);
-            return Ok(prepared.render());
-        }
-    };
-    let policy = FilterPolicy {
-        min_unrelated_probability: config.jev.search_filter_min_unrelated_probability,
-        max_group_bytes: config.jev.max_batch_bytes,
-        model: config.jev.model.clone(),
-        deadline_at: Some(deadline_at),
-        cancel: None,
-    };
-    let (text, mut result) = prepared
-        .filter(ctx, task, evaluator.as_ref(), &policy)
-        .await;
-    result.timing.elapsed = started.elapsed();
-    log_filter_result("overview", result, &config.jev.model);
-    Ok(text)
+    task.ok_or_else(|| (-32602, format!("Jev {tool} requires the user's task. Call initial_instructions with task set to the user's complete request, then retry. If initial_instructions lists no task parameter, the tool list was loaded before Jev was enabled; reconnect the MCP client to load it.")))
 }
 
 fn log_filter_result(
@@ -272,11 +240,10 @@ fn log_filter_result(
     model: &str,
 ) {
     // Numeric provider answers and their consumed decisions are reproducible without
-    // logging task text, source, user criterion ids or credentials.
+    // logging task text, source or credentials.
     for judgment in &result.judgments {
         let decision = &result.decisions[judgment.entity];
-        tracing::info!(group_index=judgment.group, candidate_index=judgment.entity,
-            criterion_index=judgment.criterion, yes_probability=judgment.noul.noul,
+        tracing::info!(candidate_index=judgment.entity, yes_probability=judgment.noul.noul,
             match_state=?decision.match_state, is_retained=decision.is_retained,
             reason=decision.reason.as_ref().map_or("no_match", |reason| reason.label()),
             "jev consumed judgment");
@@ -311,7 +278,7 @@ fn log_filter_result(
 }
 
 /// Live tools retain their filesystem permissions, selected windows/pages and final base
-/// rendering. Every enabled source request uses the registered task, without a per-call opt-in.
+/// rendering. Every enabled source request uses the connection's task, without a per-call opt-in.
 pub(super) async fn live(
     host: &mut JevHost,
     engine: &crate::index::EngineSupervisor,
@@ -377,6 +344,26 @@ pub(super) async fn live(
     };
     // Jev judges source rows only; a caller trailer would bypass its omissions.
     output.should_list_outside_callers &= !should_capture;
+    // A read naming its own windows asks for that source, such as an omission note's location.
+    let requested: Vec<live_symbols::jev::RequestedWindow> = if is_read
+        && crate::tools::read::names_window(arguments)
+    {
+        output
+            .anchors
+            .iter()
+            .filter_map(|anchor| {
+                let (start, end) = (anchor.start_line?, anchor.end_line?);
+                Some(live_symbols::jev::RequestedWindow {
+                    is_omitted_location: host.is_omitted_location(&anchor.file_path, start, end),
+                    path: anchor.file_path.clone(),
+                    start,
+                    end,
+                })
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
     if !is_content {
         return Ok(PreparedLiveOutput {
             text: output.text,
@@ -405,16 +392,18 @@ pub(super) async fn live(
         return Ok(prepared);
     }
     if let Some((evaluator, policy)) = evaluation {
-        let mut plan = std::mem::take(&mut prepared.capture).prepare(
+        let plan = std::mem::take(&mut prepared.capture).prepare(
             &prepared.text,
             &prepared.copies,
             require_task(task, tool)?,
-            arguments,
+            &requested,
         );
-        plan.add_indexed_context(engine, &policy);
         let mut result =
             crate::tools::search::jev::evaluate(&plan.input, evaluator.as_ref(), &policy).await;
-        plan.apply(&mut prepared.text, &mut prepared.source_files, &mut result);
+        for location in plan.apply(&mut prepared.text, &mut prepared.source_files, &mut result) {
+            host.omitted_locations
+                .insert((location.path, location.start, location.end));
+        }
         result.timing.elapsed = started.elapsed();
         log_filter_result(tool, result, &config.jev.model);
     }

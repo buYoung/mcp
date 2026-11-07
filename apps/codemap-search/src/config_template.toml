@@ -1,4 +1,4 @@
-# codemap-config-version: 32
+# codemap-config-version: 33
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
@@ -29,10 +29,6 @@ pi_max_bytes = 100000
 # Maximum bytes in a tool result in opencode (codemap-search default 100000).
 # Set tool_output.max_bytes in opencode.json to the same value.
 opencode_max_bytes = 100000
-
-[output.overview]
-# Show per-language file statistics when overview opens the repository root or a subproject root.
-is_stats_enabled = true
 
 [output.search]
 # Maximum number of top-ranked files shown in detail. Remaining results use a compact list.
@@ -159,7 +155,7 @@ exceptions = []
 
 [output.jev]
 # Use a decision model (TypeSafe Jev or OpenRouter) to remove code bodies unrelated to the task (default: off).
-# Register the task with register_task(task_query, questions) before using an enabled filter.
+# Pass the user's request as initial_instructions' task before using an enabled filter.
 # Store API keys in auth.toml under [jev].api_key (TypeSafe) or [openrouter].api_key, not here.
 # If neither auth file supplies the key, TYPESAFE_API_KEY or OPENROUTER_API_KEY is used.
 
@@ -167,8 +163,8 @@ exceptions = []
 enabled = false
 
 # Tools to filter when enabled. [] selects none; this list replaces the global scope.
-# Root overview maps remain local. If Jev is unavailable, ordinary output is retained.
-scope = ["overview", "search", "read", "grep"]
+# If Jev is unavailable, ordinary output is retained.
+scope = ["search", "read", "grep"]
 
 # Decision model (default jev-1.14.0). A Jev version uses TypeSafe; an author/model ID uses only
 # OpenRouter's Decisions API, which rejects models without decision support. Aliases are not accepted.
@@ -183,9 +179,9 @@ model = "jev-1.14.0"
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 timeout_ms = 45000
 
-# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
-max_in_flight_requests = 3
-request_spacing_ms = 300
+# Maximum concurrent requests (1–8, default 8) and minimum gap between requests in milliseconds (100 or more, default 100).
+max_in_flight_requests = 8
+request_spacing_ms = 100
 
 # Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
 max_batch_bytes = 168000
@@ -199,7 +195,7 @@ search_filter_min_unrelated_probability = 0.70
 
 [output.context.exclude]
 # Include test code in call relationships and automatically added context.
-# Test code still appears in search/overview declarations and read/grep source when false.
+# Test code still appears in search declarations and read/grep source when false.
 should_include_test_code = false
 
 # Path patterns for test files (* and ** allowed), relative to the workspace. A pattern without / matches file names.
@@ -237,9 +233,9 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# When the MCP server indexes this workspace. "auto" starts on the first search, overview, read or grep,
+# When the MCP server indexes this workspace. "auto" starts on the first search, read or grep,
 # only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
-# Other folders, such as one holding several repositories, are not indexed; search and overview say why.
+# Other folders, such as one holding several repositories, are not indexed; search says why.
 # "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
 # Commented so that a global setting applies.
 # mode = "auto"
@@ -270,7 +266,7 @@ excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".
 use_git_exclude = true
 
 [index.refresh]
-# Update the index automatically when files change. If false, search/overview refresh it when called.
+# Update the index automatically when files change. If false, search refreshes it when called.
 # Restart the server after changing this.
 watch = true
 
@@ -281,8 +277,8 @@ watch_debounce_ms = 500
 # Minimum interval between refreshes when file watching is not used, in milliseconds.
 index_staleness_ms = 5000
 
-# Restart indexing on the next search/overview if it stops (a limited number of times).
-# If false, search/overview results stop updating until the server restarts.
+# Restart indexing on the next search if it stops (a limited number of times).
+# If false, search results stop updating until the server restarts.
 indexer_auto_restart = true
 
 [index.language_support]

@@ -328,7 +328,11 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
         ));
     }
     let cwd = current_dir()?;
-    let cwd_canonical = cwd.canonicalize().unwrap_or(cwd);
+    // Paths in another root's index show absolute.
+    let display_base = crate::config::get()
+        .workspace_root
+        .is_none()
+        .then(|| cwd.canonicalize().unwrap_or(cwd));
 
     // `dot_matches_new_line(multiline)` makes `.` cross lines under multiline search —
     // the only place dotall lives in the grep API (equivalent to `rg -U --multiline-dotall`).
@@ -449,8 +453,9 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
             if output_mode == "content" {
                 redact_hits(p, bytes.as_deref(), expected_stamp, &mut sink.hits);
             }
-            let display = p
-                .strip_prefix(&cwd_canonical)
+            let display = display_base
+                .as_ref()
+                .and_then(|base| p.strip_prefix(base).ok())
                 .unwrap_or(p)
                 .to_string_lossy()
                 .replace('\\', "/");
@@ -597,6 +602,7 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
             }
             let (page, footer) = paginate(&lines, offset, head_limit);
             let mut output = LiveOutput::default();
+            output.jev.judges_enclosing_bodies = true;
             output.jev.files = files
                 .iter_mut()
                 .filter_map(|file| file.filter_file.take())

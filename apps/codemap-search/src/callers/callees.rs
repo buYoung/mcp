@@ -324,9 +324,11 @@ mod tests {
         use crate::parser::CodeExtractor;
         let source = "fn ordinary() { test_only(); }\n#[test]\nfn test_only() {}\nfn outer() {\n #[test]\n fn nested() { helper(); }\n}\nfn helper() {}\n";
         let (_directory, root) = crate::callers::fixtures::write_repo(&[("main.rs", source)]);
-        let snapshot = vec![crate::parser::TreeSitterExtractor::new()
-            .extract(source, "main.rs")
-            .unwrap()];
+        let snapshot = vec![std::sync::Arc::new(
+            crate::parser::TreeSitterExtractor::new()
+                .extract(source, "main.rs")
+                .unwrap(),
+        )];
         let filter = crate::callers::test_code::TestCodeFilter::from_config(&root);
         let index = build_symbol_index(&snapshot, Some(&filter));
         let resolver = super::super::resolution::SourceResolver::new(&snapshot, &root);

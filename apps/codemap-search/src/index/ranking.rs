@@ -48,6 +48,10 @@ const EXACT_NAME_SCORE_BOOST: f32 = 3.0;
 /// BELOW `EXACT_NAME_SCORE_BOOST` (3.0) so a symbol-exact exec member always ranks first. Gated to
 /// qualified (`::`/`.`) forms so a bare common word in a literal can't earn it.
 const QUALIFIED_LITERAL_SCORE_BOOST: f32 = 1.6;
+pub(super) const DOCSTRING_SCORE_BOOST: f32 = 2.0;
+/// Lowest tier: a literal hit ranks a file in, but never outvotes a symbol or docstring match
+/// for the same terms.
+pub(super) const LITERAL_SCORE_BOOST: f32 = 1.0;
 const DEFINITION_BODY_SCORE_BOOST: f32 = 0.75;
 const REFERENCE_SCORE_BOOST: f32 = 1.5;
 /// Language/extension hints are an additive prior applied after the existing exact-symbol,
@@ -497,7 +501,7 @@ fn is_test_like_path(path: &str) -> bool {
         || file_name.contains(".spec.")
 }
 
-fn restrict_to_scope(
+pub(super) fn restrict_to_scope(
     query: Box<dyn Query>,
     path_field: Field,
     workspace_scope: Option<&str>,
@@ -638,6 +642,8 @@ impl SearcherHandle {
         workspace_scope: Option<&str>,
     ) -> Result<Vec<SearchResult>, String> {
         let search_started = std::time::Instant::now();
+        let stored_scope = self.path_display.stored_scope(workspace_scope);
+        let workspace_scope = stored_scope.as_deref();
         if query_str.len() > 10000 {
             return Err("Query too long".to_string());
         }
@@ -658,11 +664,9 @@ impl SearcherHandle {
         );
 
         query_parser.set_field_boost(self.symbol_field, 4.0);
-        query_parser.set_field_boost(self.docstring_field, 2.0);
+        query_parser.set_field_boost(self.docstring_field, DOCSTRING_SCORE_BOOST);
         query_parser.set_field_boost(self.file_path_parts_field, 1.0);
-        // Lowest tier: a literal hit ranks a file in, but never outvotes a symbol or
-        // docstring match for the same terms.
-        query_parser.set_field_boost(self.literal_field, 1.0);
+        query_parser.set_field_boost(self.literal_field, LITERAL_SCORE_BOOST);
         query_parser.set_field_boost(self.definition_body_field, DEFINITION_BODY_SCORE_BOOST);
         query_parser.set_field_boost(self.reference_field, REFERENCE_SCORE_BOOST);
         query_parser.set_field_boost(self.format_text_field, 0.5);
@@ -1033,6 +1037,11 @@ impl SearcherHandle {
             results = results.len(),
             "search candidate timings"
         );
+        for result in &mut results {
+            result.file_path = self
+                .path_display
+                .display(std::mem::take(&mut result.file_path));
+        }
 
         Ok(results)
     }

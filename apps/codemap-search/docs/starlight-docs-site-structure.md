@@ -11,7 +11,7 @@
 
 ## 기본 방향
 
-사이트의 중심은 `Tool Reference`가 아니라 `How to Navigate Code`다. codemap-search의 핵심 사용 모델은 `overview -> search -> read/find/grep` 흐름이므로, 사용자는 먼저 "어떤 도구가 있나"보다 "지금 상황에서 무엇을 호출해야 하나"를 이해해야 한다.
+사이트의 중심은 `Tool Reference`가 아니라 `How to Navigate Code`다. codemap-search의 핵심 사용 모델은 `initial_instructions -> search/grep -> read` 흐름이므로, 사용자는 먼저 "어떤 도구가 있나"보다 "지금 상황에서 무엇을 호출해야 하나"를 이해해야 한다.
 
 벤치마크는 성능 홍보가 아니라 측정 체계와 제품 개선 기록으로 다룬다. 결과를 말할 때는 측정 조건, 과제 세트, 클라이언트, 색인 상태, 한계를 함께 표시한다.
 
@@ -34,7 +34,6 @@
 │  └─ Read Large Files Safely
 ├─ Tool Reference
 │  ├─ initial_instructions
-│  ├─ overview
 │  ├─ search
 │  ├─ read
 │  ├─ find
@@ -84,7 +83,7 @@ Section Notes는 트리의 모든 노드를 1:1로 풀어 쓰지 않고, 구성 
 홈은 긴 설명보다 진입점을 제공한다.
 
 - 한 문장 가치 제안
-- `overview -> search -> read/find/grep` 탐색 흐름
+- `initial_instructions -> search/grep -> read` 탐색 흐름
 - `Getting Started`, `How to Navigate Code`, `Tool Reference`, `Benchmarks`로 가는 주요 링크
 
 ### Getting Started

@@ -401,13 +401,13 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let scaffolded = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            scaffolded.starts_with("# codemap-config-version: 32\n"),
+            scaffolded.starts_with("# codemap-config-version: 33\n"),
             "{scaffolded}"
         );
         assert!(scaffolded.contains("\n[output.jev]\n"), "{scaffolded}");
         assert!(!scaffolded.contains("overview_enabled"));
         assert!(scaffolded.contains("\nenabled = false\n"));
-        assert!(scaffolded.contains("\nscope = [\"overview\", \"search\", \"read\", \"grep\"]\n"));
+        assert!(scaffolded.contains("\nscope = [\"search\", \"read\", \"grep\"]\n"));
         assert!(!scaffolded.contains("api_key_env"));
         assert!(scaffolded.contains("\nsearch_filter_min_unrelated_probability = 0.70\n"));
         assert!(
@@ -427,7 +427,7 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let migrated = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            migrated.starts_with("# codemap-config-version: 32\n"),
+            migrated.starts_with("# codemap-config-version: 33\n"),
             "{migrated}"
         );
         assert!(migrated.contains("detail_file_limit = 7\n"), "{migrated}");
@@ -462,13 +462,12 @@ export function dropMe(input: string): string {
         let mut client = McpClient::spawn(temp.path()).await.unwrap();
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let kept = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
-        assert!(kept.starts_with("# codemap-config-version: 32\n"), "{kept}");
+        assert!(kept.starts_with("# codemap-config-version: 33\n"), "{kept}");
         assert!(!kept.contains("_filter_enabled"), "{kept}");
         assert!(!kept.contains("analysis.jev"), "{kept}");
         assert!(!kept.contains("api_key_env"), "{kept}");
         let expected: toml::Value =
-            toml::from_str("enabled = true\nscope = ['overview', 'search', 'read', 'grep']")
-                .unwrap();
+            toml::from_str("enabled = true\nscope = ['search', 'read', 'grep']").unwrap();
         assert_eq!(
             toml::from_str::<toml::Value>(&kept).unwrap()["output"]["jev"],
             expected,
@@ -478,10 +477,10 @@ export function dropMe(input: string): string {
 
     #[tokio::test]
     async fn test_jev_threshold_overrides_and_invalid_values_reach_the_retention_policy() {
-        // 0.90 keeps both bodies judged 0.80 unrelated (the output is the plain search);
-        // an invalid 0.5 or a string falls back to the 0.70 default, which omits both. The
+        // 0.85 keeps both bodies judged 0.80 unrelated (the output is the plain search); an
+        // invalid 0.5 or a string falls back to the 0.70 default, which omits both. The
         // evaluator never sees the threshold.
-        for (configured, expected_omissions) in [("0.90", 0), ("0.5", 2), ("\"seventy\"", 2)] {
+        for (configured, expected_omissions) in [("0.85", 0), ("0.5", 2), ("\"seventy\"", 2)] {
             let config = format!("[output.jev]\nenabled = true\nsearch_filter_min_unrelated_probability = {configured}\n");
             let temp = create_mock_repo(&[
                 (".codemap/config.toml", &config),
@@ -528,7 +527,12 @@ export function dropMe(input: string): string {
                         "configured {configured}: all-keep is the plain output"
                     );
                 }
-                assert!(text.contains("dropMe (fn) [L9-13]"), "rows stay: {text}");
+                // The outline goes only when every displayed body of the file was omitted.
+                assert_eq!(
+                    text.contains("dropMe (fn) [L9-13]"),
+                    expected_omissions == 0,
+                    "rows: {text}"
+                );
             })
             .await;
         }

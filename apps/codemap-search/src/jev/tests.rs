@@ -845,7 +845,7 @@ async fn invalid_answer_fails_the_batch_but_keeps_usage_and_identity() {
     assert_eq!(failure.requests.len(), 1);
     assert_eq!(failure.requests[0].http_status, Some(200));
     assert_eq!(failure.timing.request_count, 1);
-    assert_eq!(evaluator.available_permits(), 3);
+    assert_eq!(evaluator.available_permits(), 8);
 }
 
 #[tokio::test]
@@ -907,7 +907,7 @@ async fn model_mismatch_incomplete_sets_and_non_json_bodies_are_explicit() {
         failure.error,
         JevError::InvalidResponse { batch_index: 0, .. }
     ));
-    assert_eq!(evaluator.available_permits(), 3);
+    assert_eq!(evaluator.available_permits(), 8);
 }
 
 #[tokio::test]
@@ -975,7 +975,7 @@ async fn response_bodies_above_the_limit_fail_without_parsing() {
         other => panic!("unexpected error {other:?}"),
     }
     assert_eq!(failure.usage, Usage::unreported());
-    assert_eq!(evaluator.available_permits(), 3);
+    assert_eq!(evaluator.available_permits(), 8);
 }
 
 #[tokio::test]
@@ -1011,7 +1011,7 @@ async fn http_statuses_and_transport_errors_map_to_bounded_errors() {
         assert_eq!(failure.error, expected);
         assert_eq!(failure.requests[0].http_status, Some(status));
         assert!(failure.usage.is_empty());
-        assert_eq!(evaluator.available_permits(), 3);
+        assert_eq!(evaluator.available_permits(), 8);
     }
 
     for (error, kind) in [
@@ -1032,7 +1032,7 @@ async fn http_statuses_and_transport_errors_map_to_bounded_errors() {
         assert_eq!(failure.error.kind(), kind);
         assert_eq!(failure.requests[0].http_status, None);
         assert_eq!(failure.timing.request_count, 1);
-        assert_eq!(evaluator.available_permits(), 3);
+        assert_eq!(evaluator.available_permits(), 8);
     }
 }
 
@@ -1044,6 +1044,7 @@ async fn http_statuses_and_transport_errors_map_to_bounded_errors() {
 async fn deadline_counts_queue_time_and_reports_completed_work() {
     let config = EvaluatorConfig {
         deadline: Duration::from_millis(500),
+        request_spacing: Duration::from_millis(300),
         ..single_question_batches()
     };
     let (evaluator, transport) = handler_evaluator(config, Duration::ZERO);
@@ -1076,7 +1077,7 @@ async fn deadline_counts_queue_time_and_reports_completed_work() {
     assert_eq!(failure.timing.queue_wait, Duration::from_millis(300));
     assert_eq!(failure.timing.http, Duration::ZERO);
     assert_eq!(failure.timing.request_count, 2);
-    assert_eq!(evaluator.available_permits(), 3);
+    assert_eq!(evaluator.available_permits(), 8);
 }
 
 #[tokio::test(start_paused = true)]
@@ -1099,7 +1100,7 @@ async fn caller_deadline_shorter_than_the_configured_one_wins() {
     assert_eq!(failure.requests[0].http_status, None);
     assert!(failure.usage.is_empty());
     assert_eq!(transport.posts()[0].timeout, Duration::from_millis(100));
-    assert_eq!(evaluator.available_permits(), 3);
+    assert_eq!(evaluator.available_permits(), 8);
 }
 
 #[tokio::test(start_paused = true)]
@@ -1120,15 +1121,18 @@ async fn caller_deadline_longer_than_the_configured_one_is_clamped() {
         }
     );
     assert_eq!(transport.posts()[0].timeout, Duration::from_millis(1_000));
-    assert_eq!(evaluator.available_permits(), 3);
+    assert_eq!(evaluator.available_permits(), 8);
 }
 
 #[tokio::test(start_paused = true)]
 async fn one_absolute_deadline_is_shared_by_consecutive_requests() {
     // An adapter's two stages pass the same instant: the second stage only gets what the
     // first left, and nothing re-adds a duration.
-    let (evaluator, transport) =
-        handler_evaluator(EvaluatorConfig::default(), Duration::from_millis(200));
+    let config = EvaluatorConfig {
+        request_spacing: Duration::from_millis(300),
+        ..EvaluatorConfig::default()
+    };
+    let (evaluator, transport) = handler_evaluator(config, Duration::from_millis(200));
     let deadline_at = Instant::now() + Duration::from_millis(300);
     let first = evaluator
         .evaluate(request(vec![noul_question("a")]).with_deadline_at(deadline_at))
@@ -1168,7 +1172,7 @@ async fn one_absolute_deadline_is_shared_by_consecutive_requests() {
     );
     assert!(spent.requests.is_empty());
     assert_eq!(transport.post_count(), 1);
-    assert_eq!(evaluator.available_permits(), 3);
+    assert_eq!(evaluator.available_permits(), 8);
 }
 
 #[tokio::test(start_paused = true)]
@@ -1205,7 +1209,7 @@ async fn cancellation_stops_the_call_and_the_evaluator_stays_usable() {
     assert_eq!(failure.requests.len(), 1);
     assert_eq!(failure.requests[0].http_status, None);
     assert!(cancel.is_cancelled());
-    assert_eq!(evaluator.available_permits(), 3);
+    assert_eq!(evaluator.available_permits(), 8);
 
     slow.store(false, Ordering::SeqCst);
     let outcome = evaluator
@@ -1314,7 +1318,7 @@ async fn request_spacing_is_shared_across_sequential_calls() {
     let posts = transport.posts();
     assert_eq!(
         posts[1].started_at - posts[0].started_at,
-        Duration::from_millis(300)
+        Duration::from_millis(100)
     );
 }
 
@@ -1359,8 +1363,8 @@ async fn a_failed_batch_stops_new_dispatch_but_keeps_completed_accounting() {
 fn evaluator_config_defaults_carry_the_initial_safety_policy() {
     let config = EvaluatorConfig::default();
     assert_eq!(config.model, "jev-1.14.0");
-    assert_eq!(config.max_in_flight_requests, 3);
-    assert_eq!(config.request_spacing, Duration::from_millis(300));
+    assert_eq!(config.max_in_flight_requests, 8);
+    assert_eq!(config.request_spacing, Duration::from_millis(100));
     assert_eq!(config.max_batch_bytes, 168_000);
     assert_eq!(config.deadline, Duration::from_millis(45_000));
     assert_eq!(config.max_estimated_tokens, 56_000);
@@ -1369,8 +1373,8 @@ fn evaluator_config_defaults_carry_the_initial_safety_policy() {
         28_000
     );
     assert!(config.validate().is_ok());
-    assert_eq!(MAX_IN_FLIGHT_REQUESTS, 3);
-    assert_eq!(MIN_REQUEST_SPACING, Duration::from_millis(300));
+    assert_eq!(MAX_IN_FLIGHT_REQUESTS, 8);
+    assert_eq!(MIN_REQUEST_SPACING, Duration::from_millis(100));
     assert_eq!(MAX_BATCH_BYTES, 168_000);
     assert_eq!(MAX_QUESTIONS_PER_REQUEST, 8_192);
     assert_eq!(MAX_BATCHES_PER_REQUEST, 128);
@@ -1378,7 +1382,7 @@ fn evaluator_config_defaults_carry_the_initial_safety_policy() {
 
     let settings = HttpsSettings::default();
     assert_eq!(settings.pool_idle_timeout, Duration::from_millis(30_000));
-    assert_eq!(settings.max_idle_connections, 3);
+    assert_eq!(settings.max_idle_connections, 8);
     assert_eq!(settings.connect_timeout, Duration::from_millis(10_000));
     assert!(settings.validate().is_ok());
     assert_eq!(ENDPOINT, "https://api.typesafe.ai/v1/systemone");

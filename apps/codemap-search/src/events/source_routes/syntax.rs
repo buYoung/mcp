@@ -15,8 +15,59 @@ pub(crate) struct Node {
     pub column: usize,
     pub parent: Option<NodeId>,
     pub children: Vec<NodeId>,
-    pub fields: BTreeMap<String, Vec<NodeId>>,
-    pub tokens: BTreeSet<String>,
+    pub fields: Fields,
+    pub tokens: Tokens,
+}
+
+/// Children by grammar field name. A source holds up to a million nodes, so names and ids sit
+/// in two exact-size arrays sorted by name; the ids of one field keep their source order.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Fields {
+    names: Box<[&'static str]>,
+    ids: Box<[NodeId]>,
+}
+
+impl Fields {
+    fn new(mut entries: Vec<(&'static str, NodeId)>) -> Self {
+        entries.sort_by_key(|(name, _)| *name);
+        let (names, ids): (Vec<_>, Vec<_>) = entries.into_iter().unzip();
+        Self {
+            names: names.into_boxed_slice(),
+            ids: ids.into_boxed_slice(),
+        }
+    }
+
+    pub fn get(&self, name: &str) -> Option<&[NodeId]> {
+        let start = self.names.partition_point(|candidate| *candidate < name);
+        let end = start + self.names[start..].partition_point(|candidate| *candidate == name);
+        (start < end).then(|| &self.ids[start..end])
+    }
+
+    pub fn contains_key(&self, name: &str) -> bool {
+        self.get(name).is_some()
+    }
+}
+
+/// Kinds of the anonymous child tokens, sorted and without repeats.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Tokens(Box<[&'static str]>);
+
+impl Tokens {
+    fn new(mut kinds: Vec<&'static str>) -> Self {
+        kinds.sort_unstable();
+        kinds.dedup();
+        Self(kinds.into_boxed_slice())
+    }
+
+    pub fn contains(&self, kind: &str) -> bool {
+        self.0
+            .binary_search_by(|candidate| (*candidate).cmp(kind))
+            .is_ok()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &'static str> + '_ {
+        self.0.iter().copied()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -70,11 +121,12 @@ impl Source {
         if !supported(language) {
             return None;
         }
+        let text = Arc::new(data.to_string());
         let mut source = Self {
             path: path.into(),
             language: language.into(),
-            data: Arc::new(data.into()),
-            parsed_data: Arc::new(data.into()),
+            data: Arc::clone(&text),
+            parsed_data: text,
             line_starts: std::iter::once(0)
                 .chain(
                     data.bytes()
@@ -159,9 +211,12 @@ impl Source {
             column: location.column,
             parent,
             children: Vec::new(),
-            fields: BTreeMap::new(),
-            tokens: BTreeSet::new(),
+            fields: Fields::default(),
+            tokens: Tokens::default(),
         });
+        let mut children = Vec::new();
+        let mut fields = Vec::new();
+        let mut tokens = Vec::new();
         for index in 0..node.child_count() {
             let Some(child) = node.child(index as u32) else {
                 continue;
@@ -172,33 +227,30 @@ impl Source {
                     break;
                 }
                 let nested = self.collect_node(child, Some(id), depth + 1);
-                self.nodes[id].children.push(nested);
+                children.push(nested);
                 if let Some(name) = node.field_name_for_child(index as u32) {
-                    self.nodes[id]
-                        .fields
-                        .entry(name.into())
-                        .or_default()
-                        .push(nested);
+                    fields.push((name, nested));
                 }
             } else {
-                self.nodes[id].tokens.insert(child.kind().into());
+                tokens.push(child.kind());
                 if child.is_missing() {
                     self.has_parse_error = true;
                 }
                 if let Some(name) = node.field_name_for_child(index as u32) {
                     if self.nodes.len() < 131_072 && depth < 256 {
                         let nested = self.collect_node(child, Some(id), depth + 1);
-                        self.nodes[id]
-                            .fields
-                            .entry(name.into())
-                            .or_default()
-                            .push(nested);
+                        fields.push((name, nested));
                     } else {
                         self.has_node_limit = true;
                     }
                 }
             }
         }
+        children.shrink_to_fit();
+        let collected = &mut self.nodes[id];
+        collected.children = children;
+        collected.fields = Fields::new(fields);
+        collected.tokens = Tokens::new(tokens);
         id
     }
     pub fn text(&self, id: Option<NodeId>) -> &str {
@@ -210,7 +262,7 @@ impl Source {
         let node = &self.nodes[id];
         names
             .iter()
-            .find_map(|name| node.fields.get(*name).and_then(|v| v.first()).copied())
+            .find_map(|name| node.fields.get(name).and_then(|v| v.first()).copied())
     }
     pub fn first(&self, id: NodeId, kinds: &[&str]) -> Option<NodeId> {
         self.nodes[id]

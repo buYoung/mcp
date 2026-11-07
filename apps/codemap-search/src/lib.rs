@@ -13,6 +13,7 @@ pub mod jev;
 pub mod lang;
 pub(crate) mod locations;
 pub mod mcp;
+pub(crate) mod parallel;
 pub mod parser;
 pub(crate) mod redact;
 pub mod related_terms;

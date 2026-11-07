@@ -9,6 +9,7 @@ fn build(entries: &[(&str, &str)]) -> ImplementationIndex {
     let files = entries
         .iter()
         .map(|(path, source)| TreeSitterExtractor::new().extract(source, path).unwrap())
+        .map(std::sync::Arc::new)
         .collect();
     ImplementationIndex::build(std::sync::Arc::new(files), &sources)
 }

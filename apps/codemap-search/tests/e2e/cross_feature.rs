@@ -255,7 +255,7 @@ async fn test_cross_indexing_mcp_realtime() {
 }
 
 #[tokio::test]
-async fn test_cross_mcp_codemap_reflects_modify() {
+async fn test_cross_mcp_index_reflects_modify() {
     // A content edit must be reflected by the background indexer: the modified file is
     // re-parsed and the published codemap snapshot shows the new symbol while the stale one
     // is gone. (Sub-second mtime resolution ensures a same-second edit still reindexes.)
@@ -269,85 +269,43 @@ async fn test_cross_mcp_codemap_reflects_modify() {
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
-    let res_1 = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "src/lib.rs" }
-            }),
+    client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "before_symbol", "include_seen": true }),
+            |t| t.contains("src/lib.rs"),
         )
         .await
         .unwrap();
-    assert!(res_1["result"]["content"][0]["text"]
-        .as_str()
-        .unwrap()
-        .contains("before_symbol"));
 
     // Same-second edit (no sleep) — exercises the sub-second fingerprint path.
     fs::write(temp.path().join("src/lib.rs"), "pub fn after_symbol() {}").unwrap();
 
     let res_2 = client
         .send_tool_until(
-            "overview",
-            serde_json::json!({ "path": "src/lib.rs" }),
-            |t| t.contains("after_symbol") && !t.contains("before_symbol"),
+            "search",
+            serde_json::json!({ "query": "after_symbol", "include_seen": true }),
+            |t| t.contains("src/lib.rs"),
         )
         .await
         .unwrap();
     let text = res_2["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         text.contains("after_symbol"),
-        "codemap must reflect modify: {text:?}"
+        "the index must reflect modify: {text:?}"
     );
-    assert!(
-        !text.contains("before_symbol"),
-        "stale symbol leaked from codemap: {text:?}"
-    );
-}
-
-#[tokio::test]
-async fn test_cross_mcp_overview_accepts_slash_and_backslash_file_paths() {
-    let temp = create_mock_repo(&[
-        ("src/lib.rs", "pub fn overview_path_symbol() {}"),
-        (
-            ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
-        ),
-    ])
-    .unwrap();
-    let mut client = McpClient::spawn(temp.path()).await.unwrap();
-
-    let forward = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "src/lib.rs" }
-            }),
+    let stale = client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "before_symbol", "include_seen": true }),
+            |t| !t.contains("src/lib.rs"),
         )
         .await
         .unwrap();
-    let forward_text = forward["result"]["content"][0]["text"].as_str().unwrap();
+    let stale = stale["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        forward_text.contains("overview_path_symbol"),
-        "forward-slash overview should show file details: {forward_text:?}"
-    );
-
-    let backslash = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "src\\lib.rs" }
-            }),
-        )
-        .await
-        .unwrap();
-    let backslash_text = backslash["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(
-        backslash_text.contains("overview_path_symbol"),
-        "backslash overview should show file details: {backslash_text:?}"
+        !stale.contains("src/lib.rs"),
+        "stale symbol leaked from the index: {stale:?}"
     );
 }
 
@@ -399,7 +357,7 @@ async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
 }
 
 #[tokio::test]
-async fn test_programming_languages_flow_through_index_search_and_mcp_overview() {
+async fn test_programming_languages_flow_through_index_and_search() {
     let temp = create_mock_repo(&[
         (
             "src/rust_flow.rs",
@@ -594,14 +552,6 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
             search_text.contains(qualified_name),
             "{qualified_name}: {search_text}"
         );
-        let overview = client
-            .send_tool_until("overview", serde_json::json!({ "path": path }), |text| {
-                text.contains(query)
-            })
-            .await
-            .unwrap();
-        let overview_text = overview["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(overview_text.contains(query), "{path}: {overview_text}");
     }
 
     for (path, target_query, caller_query, qualified_target, qualified_caller, call_site) in [
@@ -756,7 +706,7 @@ async fn test_programming_languages_flow_through_index_search_and_mcp_overview()
 }
 
 #[tokio::test]
-async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
+async fn test_cross_mcp_search_and_read_consume_priority_format_results() {
     let temp = create_mock_repo(&[
         ("config.json", r#"{"services":[{"port":8080}]}"#),
         ("settings.toml", "root = { nested = { leaf = 1 } }\n"),
@@ -825,15 +775,15 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
         .as_str()
         .unwrap()
         .contains("config.yaml"));
-    let overview = client
+    let definitions = client
         .send_tool_until(
-            "overview",
-            serde_json::json!({ "path": "schema.graphql" }),
+            "read",
+            serde_json::json!({ "file_path": "schema.graphql", "view": "definitions", "include_seen": true }),
             |text| text.contains("PriorityOperation"),
         )
         .await
         .unwrap();
-    assert!(overview["result"]["content"][0]["text"]
+    assert!(definitions["result"]["content"][0]["text"]
         .as_str()
         .unwrap()
         .contains("PriorityOperation"));
@@ -862,15 +812,17 @@ async fn test_cross_mcp_search_and_overview_consume_priority_format_results() {
         ("default.nix", "target"),
     ] {
         let result = client
-            .send_tool_until("overview", serde_json::json!({ "path": path }), |text| {
-                text.contains(symbol)
-            })
+            .send_tool_until(
+                "read",
+                serde_json::json!({ "file_path": path, "view": "definitions", "include_seen": true }),
+                |text| text.contains(symbol),
+            )
             .await
             .unwrap();
         let text = result["result"]["content"][0]["text"].as_str().unwrap();
         assert!(
             text.contains(symbol),
-            "overview omitted {symbol} from {path}: {text:?}"
+            "read definitions omitted {symbol} from {path}: {text:?}"
         );
     }
 
@@ -976,7 +928,7 @@ fn test_cross_benchmark_indexing() {
 }
 
 #[tokio::test]
-async fn test_cross_mcp_codemaps_dynamic() {
+async fn test_cross_mcp_index_reflects_added_files() {
     let temp = create_mock_repo(&[
         ("src/nested/file.rs", "pub fn old_symbol() {}"),
         (
@@ -988,21 +940,15 @@ async fn test_cross_mcp_codemaps_dynamic() {
 
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
-    // 1. Get folder level codemap via MCP
-    let res_1 = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "overview",
-                "arguments": { "path": "src/nested" }
-            }),
+    // 1. The indexed folder serves search.
+    client
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "old_symbol", "include_seen": true }),
+            |t| t.contains("src/nested/file.rs"),
         )
         .await
         .unwrap();
-    assert!(res_1["result"]["content"][0]["text"]
-        .as_str()
-        .unwrap()
-        .contains("file.rs"));
 
     // 2. Add files inside folder
     fs::write(
@@ -1011,15 +957,15 @@ async fn test_cross_mcp_codemaps_dynamic() {
     )
     .unwrap();
 
-    // 3. Get folder level codemap again; poll until the added file is reflected.
+    // 3. Search again; poll until the added file is reflected.
     let res_2 = client
         .send_tool_until(
-            "overview",
-            serde_json::json!({ "path": "src/nested" }),
+            "search",
+            serde_json::json!({ "query": "new_symbol", "include_seen": true }),
             |t| t.contains("other.rs"),
         )
         .await
         .unwrap();
     let text = res_2["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(text.contains("other.rs"));
+    assert!(text.contains("src/nested/other.rs"));
 }

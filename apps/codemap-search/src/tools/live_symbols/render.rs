@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 /// first class cannot reserve every annotation before another file is considered.
 pub(super) fn annotate(
     outlines: &[Outline],
-    snapshot: &[ExtractedFile],
+    snapshot: &[std::sync::Arc<ExtractedFile>],
     cap: usize,
     options: LiveOptions,
     root: &std::path::Path,

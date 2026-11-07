@@ -239,9 +239,8 @@ impl<'a> Collector<'a> {
                 break;
             }
             let node = self.functions[id];
-            let mut parent = node.parent();
             let mut owner = None;
-            while let Some(candidate) = parent {
+            for candidate in crate::parser::ancestors(node) {
                 if let Some(&class) = self.class_ids.get(&candidate.id()) {
                     owner = Some(class);
                     break;
@@ -249,7 +248,6 @@ impl<'a> Collector<'a> {
                 if is_function(candidate) {
                     break;
                 }
-                parent = candidate.parent();
             }
             self.unit.functions[id].owner = owner;
             if let Some(owner) = owner {

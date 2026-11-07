@@ -6,43 +6,32 @@ use crate::analyze::FileObservation;
 use crate::parser::ExtractedFile;
 use crate::tools::search::jev::BlockSymbol;
 use crate::tools::search::jev::{
-    self as policy, EvidenceStatus, FilterEntity, FilterInput, FilterResult,
+    self as policy, EvidenceStatus, FilterEntity, FilterInput, FilterResult, Unit,
     MAX_COMPLETE_BODY_BYTES,
 };
 use crate::tools::search::jev::{is_callable_kind, simple_name};
 use crate::tools::task::RegisteredTask;
-use serde_json::Value;
 use std::collections::HashMap;
 use std::ops::Range;
 use std::path::Path;
 
-mod context;
-mod external;
-pub(crate) mod overview;
-
-const EVIDENCE_VERSION: &str = "live-task-evidence/5";
+const EVIDENCE_VERSION: &str = "live-task-evidence/6";
 
 pub(crate) struct CapturedFile {
     path: String,
     file: ExtractedFile,
     bounds: Vec<CallableBounds>,
-    reference_gaps: Vec<crate::parser::CodeRange>,
-    self_member_uses: Vec<super::references::SelfMemberUse>,
-    declaration_headers: Vec<Option<(usize, usize)>>,
-    // Mask the full immutable buffer before taking any supporting excerpts.
+    // Masked full buffer, the source of a grep match view's judged body.
     source: String,
 }
 
 impl CapturedFile {
     pub fn new(path: &str, source: &str) -> Option<Self> {
-        let captured = callable::capture(Path::new(path), source, true).ok()?;
+        let captured = callable::capture(Path::new(path), source).ok()?;
         Some(Self {
             path: path.into(),
             file: captured.file,
             bounds: captured.bounds,
-            reference_gaps: captured.reference_gaps,
-            self_member_uses: captured.self_member_uses,
-            declaration_headers: captured.declaration_headers,
             source: crate::redact::source(source).into_owned(),
         })
     }
@@ -61,6 +50,9 @@ pub(crate) struct SourceRow {
 pub(crate) struct Capture {
     pub files: Vec<CapturedFile>,
     pub rows: Vec<SourceRow>,
+    /// The rows are grep matches: a callable around them is judged from its whole captured
+    /// body, and an omission replaces only its displayed rows.
+    pub judges_enclosing_bodies: bool,
 }
 
 /// An exact copy made by the live renderer, excluding removed grep path prefixes.
@@ -73,29 +65,21 @@ pub(crate) struct Plan {
     pub input: FilterInput,
     spans: Vec<Option<Range<usize>>>,
     rows: Vec<SourceRow>,
-    captured_files: Vec<CapturedFile>,
 }
 
-fn masked_value(value: &Value) -> Value {
-    match value {
-        Value::String(text) => Value::String(crate::redact::source(text).into_owned()),
-        Value::Array(values) => Value::Array(values.iter().map(masked_value).collect()),
-        Value::Object(values) => Value::Object(
-            values
-                .iter()
-                .map(|(key, value)| {
-                    let masked = match value {
-                        Value::String(text) => {
-                            Value::String(crate::redact::named_value(key, text).into_owned())
-                        }
-                        _ => masked_value(value),
-                    };
-                    (crate::redact::source(key).into_owned(), masked)
-                })
-                .collect(),
-        ),
-        _ => value.clone(),
-    }
+/// A line window a read named, with whether it is exactly a location omitted earlier.
+pub(crate) struct RequestedWindow {
+    pub path: String,
+    pub start: usize,
+    pub end: usize,
+    pub is_omitted_location: bool,
+}
+
+/// A location an applied plan replaced with one note.
+pub(crate) struct OmittedLocation {
+    pub path: String,
+    pub start: usize,
+    pub end: usize,
 }
 
 impl Capture {
@@ -107,13 +91,17 @@ impl Capture {
         }
     }
 
+    /// `requested` are the windows a read named itself. A unit containing one is the
+    /// requested source and stays whole; so does every unit inside a window that is exactly
+    /// a location this connection omitted before.
     pub fn prepare(
         self,
         text: &str,
         copies: &[SourceCopy],
         task: &RegisteredTask,
-        arguments: &Value,
+        requested: &[RequestedWindow],
     ) -> Plan {
+        let judges_enclosing_bodies = self.judges_enclosing_bodies;
         let rows: Vec<_> = self
             .rows
             .into_iter()
@@ -142,14 +130,17 @@ impl Capture {
         for (file_index, captured) in self.files.iter().enumerate() {
             for (symbol_index, symbol) in captured.file.symbols.iter().enumerate() {
                 let is_callable = is_callable_kind(&symbol.kind);
-                if !is_callable {
-                    continue;
-                }
-                let bounds = captured
+                // A callable without safe body bounds, such as an interface method, is
+                // judged with the lines around it.
+                let Some(bounds) = captured
                     .bounds
                     .iter()
-                    .find(|b| b.symbol_index == symbol_index);
-                let start = bounds.map_or(symbol.range.start_line, |b| b.start);
+                    .find(|b| b.symbol_index == symbol_index)
+                    .filter(|_| is_callable)
+                else {
+                    continue;
+                };
+                let start = bounds.start;
                 let end = symbol.range.end_line_inclusive();
                 let selected: Vec<_> = rows
                     .iter()
@@ -158,24 +149,39 @@ impl Capture {
                 let (Some(first), Some(last)) = (selected.first(), selected.last()) else {
                     continue;
                 };
+                let is_contiguous = selected.windows(2).all(|pair| {
+                    pair[0].range.end <= pair[1].range.start
+                        && text[pair[0].range.end..pair[1].range.start]
+                            .trim()
+                            .is_empty()
+                });
                 let is_complete = selected.len() == end.saturating_sub(start) + 1
                     && selected
                         .iter()
                         .enumerate()
                         .all(|(i, row)| row.is_complete && row.line == start + i)
-                    && selected.windows(2).all(|pair| {
-                        pair[0].range.end <= pair[1].range.start
-                            && text[pair[0].range.end..pair[1].range.start]
-                                .trim()
-                                .is_empty()
-                    });
+                    && is_contiguous;
+                let is_match_view = !is_complete && judges_enclosing_bodies && is_contiguous;
+                // A window cutting the body: its displayed rows are judged as they read.
+                let is_part = !is_complete
+                    && !is_match_view
+                    && is_contiguous
+                    && selected.iter().all(|row| row.is_complete);
                 let span = first.range.start..last.range.end;
-                let body = &text[span.clone()];
-                let masked_lines = selected
-                    .iter()
-                    .map(|row| format!("{}→{}", row.line, row.content))
-                    .collect::<Vec<_>>()
-                    .join("\n");
+                let masked_lines = if is_match_view {
+                    numbered_lines(&captured.source, start, end)
+                } else {
+                    selected
+                        .iter()
+                        .map(|row| format!("{}→{}", row.line, row.content))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                };
+                let body = if is_match_view {
+                    masked_lines.as_str()
+                } else {
+                    &text[span.clone()]
+                };
                 let identity = BlockSymbol {
                     name: crate::redact::source(&symbol.name).into_owned(),
                     kind: symbol.kind.clone(),
@@ -186,47 +192,60 @@ impl Capture {
                     start_line: start,
                     end_line: end,
                 };
-                let evidence = if !is_complete {
+                let evidence = if !is_complete && !is_match_view && !is_part {
                     EvidenceStatus::PartialSource
                 } else if body.len() > MAX_COMPLETE_BODY_BYTES {
                     EvidenceStatus::Oversized
-                } else if is_callable
-                    && (bounds.is_none() || !policy::identity_verified(&masked_lines, &identity))
-                {
+                } else if !is_part && !policy::identity_verified(&masked_lines, &identity) {
                     EvidenceStatus::IdentityUnverified
                 } else if policy::is_masked_unavailable(&masked_lines) {
                     EvidenceStatus::MaskedUnavailable
                 } else {
                     EvidenceStatus::Complete
                 };
-                let context = if evidence == EvidenceStatus::Complete {
-                    context::capture(captured, symbol_index)
-                } else {
-                    context::SupportingContext::default()
-                };
                 entities.push(FilterEntity {
                     file_index,
                     path: crate::redact::source(&captured.path).into_owned(),
                     symbol: identity,
                     block_index: Some(spans.len()),
-                    displayed: Some((first.line, last.line)),
+                    // The whole judged body stands for its rows in nesting and retention.
+                    displayed: Some(if is_match_view {
+                        (start, end)
+                    } else {
+                        (first.line, last.line)
+                    }),
                     evidence,
                     is_callable,
-                    is_masked: body.contains(crate::redact::MARKER),
-                    body_bytes: body.len(),
+                    body_bytes: span.len(),
                     body: (evidence == EvidenceStatus::Complete).then(|| body.to_string()),
+                    is_match_view,
+                    unit: if is_part {
+                        Unit::Part
+                    } else {
+                        Unit::Declaration
+                    },
                     outgoing: Vec::new(),
                     incoming: Vec::new(),
                     parent: None,
-                    indexed_callers: Vec::new(),
-                    omitted_indexed_callers: 0,
-                    unresolved_calls: 0,
-                    supporting_context: context.text,
-                    is_context_clipped: context.is_clipped,
-                    has_missing_context: context.has_missing,
+                    is_requested: false,
                 });
-                spans.push(is_complete.then_some(span));
+                spans.push((is_complete || is_match_view || is_part).then_some(span));
             }
+            line_units(text, file_index, captured, &rows, &mut entities, &mut spans);
+        }
+        for entity in &mut entities {
+            let path = &entity.path;
+            let (first, last) = entity
+                .displayed
+                .unwrap_or((entity.symbol.start_line, entity.symbol.end_line));
+            entity.is_requested = requested.iter().any(|window| {
+                crate::redact::source(&window.path) == path.as_str()
+                    && ((entity.symbol.start_line <= window.start
+                        && window.end <= entity.symbol.end_line)
+                        || (window.is_omitted_location
+                            && window.start <= first
+                            && last <= window.end))
+            });
         }
         // Use the same conservative relationship resolver and retention closure as search.
         let mut by_name: HashMap<String, Vec<usize>> = HashMap::new();
@@ -277,8 +296,6 @@ impl Capture {
                     if target != owner && !links.contains(&(owner, target)) {
                         links.push((owner, target));
                     }
-                } else {
-                    entities[owner].unresolved_calls += 1;
                 }
             }
         }
@@ -288,61 +305,261 @@ impl Capture {
         }
         Plan {
             input: FilterInput {
-                selection_unit: policy::SelectionUnit::Body,
                 evidence_version: EVIDENCE_VERSION,
                 task: task.masked(),
                 is_snapshot_fresh: true,
-                supporting_sources: HashMap::new(),
-                search_arguments: masked_value(arguments),
-                file_count: self.files.len(),
+                merges_omissions: true,
                 entities,
             },
             spans,
             rows,
-            captured_files: self.files,
         }
     }
 }
 
+/// Units for displayed rows outside every callable with safe bounds: runs of adjacent rows
+/// held by the same outermost declaration, or by none.
+fn line_units(
+    text: &str,
+    file_index: usize,
+    captured: &CapturedFile,
+    rows: &[SourceRow],
+    entities: &mut Vec<FilterEntity>,
+    spans: &mut Vec<Option<Range<usize>>>,
+) {
+    let symbols = &captured.file.symbols;
+    let callables: Vec<(usize, usize)> = captured
+        .bounds
+        .iter()
+        .filter(|bounds| is_callable_kind(&symbols[bounds.symbol_index].kind))
+        .map(|bounds| {
+            (
+                bounds.start,
+                symbols[bounds.symbol_index].range.end_line_inclusive(),
+            )
+        })
+        .collect();
+    let holder = |line: usize| {
+        symbols
+            .iter()
+            .filter(|symbol| {
+                symbol.range.start_line <= line && line <= symbol.range.end_line_inclusive()
+            })
+            .max_by_key(|symbol| symbol.range.end_line_inclusive() - symbol.range.start_line)
+    };
+    let outside: Vec<&SourceRow> = rows
+        .iter()
+        .filter(|row| {
+            row.path == captured.path
+                && !callables
+                    .iter()
+                    .any(|(start, end)| *start <= row.line && row.line <= *end)
+        })
+        .collect();
+    let mut start = 0;
+    while start < outside.len() {
+        let owner = holder(outside[start].line);
+        let mut end = start + 1;
+        while end < outside.len() {
+            let (previous, next) = (outside[end - 1], outside[end]);
+            let is_adjacent = next.line == previous.line + 1
+                && previous.range.end <= next.range.start
+                && text[previous.range.end..next.range.start].trim().is_empty();
+            if !is_adjacent || holder(next.line).map(|s| &s.range) != owner.map(|s| &s.range) {
+                break;
+            }
+            end += 1;
+        }
+        let mut run = &outside[start..end];
+        start = end;
+        // Blank rows carry nothing to judge; they only join neighboring omissions.
+        while run.first().is_some_and(|row| row.content.trim().is_empty()) {
+            run = &run[1..];
+        }
+        while run.last().is_some_and(|row| row.content.trim().is_empty()) {
+            run = &run[..run.len() - 1];
+        }
+        let (Some(&first), Some(&last)) = (run.first(), run.last()) else {
+            continue;
+        };
+        let span = first.range.start..last.range.end;
+        let is_complete = run.iter().all(|row| row.is_complete);
+        let masked_lines = run
+            .iter()
+            .map(|row| format!("{}→{}", row.line, row.content))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let body = &text[span.clone()];
+        let evidence = if !is_complete {
+            EvidenceStatus::PartialSource
+        } else if body.len() > MAX_COMPLETE_BODY_BYTES {
+            EvidenceStatus::Oversized
+        } else if policy::is_masked_unavailable(&masked_lines) {
+            EvidenceStatus::MaskedUnavailable
+        } else {
+            EvidenceStatus::Complete
+        };
+        let (kind, name, owner_name) = match owner {
+            Some(symbol) => (
+                symbol.kind.clone(),
+                crate::redact::source(&symbol.name).into_owned(),
+                symbol
+                    .owner
+                    .as_deref()
+                    .map(|s| crate::redact::source(s).into_owned()),
+            ),
+            None => ("lines".into(), String::new(), None),
+        };
+        entities.push(FilterEntity {
+            file_index,
+            path: crate::redact::source(&captured.path).into_owned(),
+            symbol: BlockSymbol {
+                name,
+                kind,
+                owner: owner_name,
+                start_line: first.line,
+                end_line: last.line,
+            },
+            block_index: Some(spans.len()),
+            displayed: Some((first.line, last.line)),
+            evidence,
+            is_callable: false,
+            body_bytes: span.len(),
+            body: (evidence == EvidenceStatus::Complete).then(|| body.to_string()),
+            is_match_view: false,
+            unit: Unit::Lines,
+            outgoing: Vec::new(),
+            incoming: Vec::new(),
+            parent: None,
+            is_requested: false,
+        });
+        spans.push(is_complete.then_some(span));
+    }
+}
+
+/// Lines `start..=end` of a captured buffer, numbered as the live tools display them.
+fn numbered_lines(source: &str, start: usize, end: usize) -> String {
+    source
+        .lines()
+        .enumerate()
+        .skip(start.saturating_sub(1))
+        .take(end.saturating_sub(start) + 1)
+        .map(|(index, line)| format!("{}→{line}", index + 1))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 impl Plan {
-    pub(crate) fn add_indexed_context(
-        &mut self,
-        engine: &crate::index::EngineSupervisor,
-        policy: &policy::FilterPolicy,
-    ) {
-        let captured = std::mem::take(&mut self.captured_files);
-        external::augment(&mut self.input, engine, &captured, policy);
+    /// Displayed line numbers of the first and last source row inside `span`.
+    fn row_lines(&self, span: &Range<usize>) -> Option<(usize, usize)> {
+        let mut lines = self
+            .rows
+            .iter()
+            .filter(|row| span.start <= row.range.start && row.range.end <= span.end)
+            .map(|row| row.line);
+        let first = lines.next()?;
+        Some((first, lines.next_back().unwrap_or(first)))
     }
 
+    /// Whether only blank source rows and whitespace lie in `gap`, and how many rows.
+    fn blank_rows_in(&self, text: &str, gap: Range<usize>) -> Option<usize> {
+        let mut cursor = gap.start;
+        let mut count = 0;
+        for row in self
+            .rows
+            .iter()
+            .filter(|row| gap.start <= row.range.start && row.range.end <= gap.end)
+        {
+            if cursor > row.range.start
+                || !text[cursor..row.range.start].trim().is_empty()
+                || !row.content.trim().is_empty()
+            {
+                return None;
+            }
+            cursor = row.range.end;
+            count += 1;
+        }
+        text[cursor..gap.end].trim().is_empty().then_some(count)
+    }
+
+    /// Replace omitted units with notes. Adjacent omitted units of one file, with only blank
+    /// rows between them, share one note; a note never grows the output.
     pub fn apply(
         self,
         text: &mut String,
         observations: &mut Vec<FileObservation>,
         result: &mut FilterResult,
-    ) {
-        let mut omitted: Vec<_> = result
+    ) -> Vec<OmittedLocation> {
+        let mut omitted: Vec<(Range<usize>, usize)> = result
             .decisions
             .iter()
             .filter(|d| !d.is_retained)
-            .filter_map(|decision| {
-                let span = self.spans[decision.entity].clone()?;
-                let note = policy::omission_note(&self.input.entities[decision.entity]);
-                (note.len() < span.len()).then_some((span, note))
-            })
+            .filter_map(|decision| Some((self.spans[decision.entity].clone()?, decision.entity)))
             .collect();
         omitted.sort_by_key(|(span, _)| (span.start, std::cmp::Reverse(span.end)));
-        let mut disjoint: Vec<(Range<usize>, String)> = Vec::new();
-        for (span, note) in omitted {
-            if disjoint
+        let mut outer: Vec<(Range<usize>, usize)> = Vec::new();
+        for (span, entity) in omitted {
+            if outer
                 .last()
                 .is_some_and(|(previous, _)| span.start < previous.end)
             {
                 continue;
             }
+            outer.push((span, entity));
+        }
+        let mut groups: Vec<(Range<usize>, Vec<usize>)> = Vec::new();
+        for (span, entity) in outer {
+            if let Some((previous, members)) = groups.last_mut() {
+                let is_adjacent = self.input.entities[members[0]].path
+                    == self.input.entities[entity].path
+                    && self
+                        .blank_rows_in(text, previous.end..span.start)
+                        .zip(self.row_lines(previous).zip(self.row_lines(&span)))
+                        .is_some_and(|(blank, ((_, last), (first, _)))| last + 1 + blank == first);
+                if is_adjacent {
+                    previous.end = span.end;
+                    members.push(entity);
+                    continue;
+                }
+            }
+            groups.push((span, vec![entity]));
+        }
+        let mut disjoint: Vec<(Range<usize>, String)> = Vec::new();
+        let mut locations = Vec::new();
+        for (span, members) in groups {
+            let units: Vec<&FilterEntity> = members
+                .iter()
+                .map(|index| &self.input.entities[*index])
+                .collect();
+            let (note, (start, end)) = if let [unit] = units.as_slice() {
+                let location = match unit.unit {
+                    Unit::Declaration => (unit.symbol.start_line, unit.symbol.end_line),
+                    Unit::Part | Unit::Lines => unit
+                        .displayed
+                        .unwrap_or((unit.symbol.start_line, unit.symbol.end_line)),
+                };
+                (policy::omission_note(unit), location)
+            } else {
+                let Some((first, last)) = self.row_lines(&span) else {
+                    continue;
+                };
+                (
+                    policy::merged_omission_note(&units, first, last),
+                    (first, last),
+                )
+            };
+            if note.len() >= span.len() {
+                continue;
+            }
+            locations.push(OmittedLocation {
+                path: units[0].path.clone(),
+                start,
+                end,
+            });
             disjoint.push((span, note));
         }
         if disjoint.is_empty() {
-            return;
+            return locations;
         }
         observations.retain_mut(|observation| {
             let retained = self.rows.iter().any(|row| {
@@ -377,5 +594,6 @@ impl Plan {
         for (span, note) in disjoint.into_iter().rev() {
             text.replace_range(span, &note);
         }
+        locations
     }
 }

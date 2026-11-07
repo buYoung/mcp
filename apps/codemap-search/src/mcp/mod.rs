@@ -52,9 +52,8 @@ fn response_text_bytes(response: &Value) -> usize {
 fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String)> {
     let config = crate::config::get();
     let cap = match name {
-        "overview" => config.overview_output_byte_cap,
         "grep" => config.grep_response_byte_cap,
-        "find" | "initial_instructions" | "register_task" | "analyze" => config.output_byte_cap,
+        "find" | "initial_instructions" | "analyze" => config.output_byte_cap,
         _ => None,
     };
     let Some(cap) = cap else { return Ok(()) };
@@ -115,18 +114,45 @@ fn read_narrowing(arguments: Option<&Value>, response: &Value, bytes: usize, cap
         .max(1);
     format!("Continue with {expansion_hint}a narrower window such as offset={first_line}, limit={suggested_limit}.")
 }
+/// The root other than the start folder whose index serves this `search` scope or this `read` or
+/// `grep` path, when the session's read policy allows that whole root.
+fn requested_other_root(name: &str, arguments: &Value) -> Option<std::path::PathBuf> {
+    let requested = match name {
+        "search" => crate::tools::get_arg(arguments, "workspace_scope")
+            .or_else(|| crate::tools::get_arg(arguments, "scope"))
+            .and_then(Value::as_str)
+            .filter(|scope| !crate::codemap::is_all_workspace_scope_input(scope))?,
+        "read" => crate::tools::read::resolve_file_path_arg(arguments).ok()?,
+        "grep" => arguments.get("path").and_then(Value::as_str).unwrap_or("."),
+        _ => return None,
+    };
+    let start = std::env::current_dir().ok()?;
+    let path = crate::workspace::resolve_path_lenient_from_cwd(&start, requested);
+    if name == "search" && !path.exists() {
+        return None;
+    }
+    let root = crate::index::roots::owning_root(&path, &start.canonicalize().ok()?)?;
+    crate::workspace::resolve_for_filesystem_tool(
+        &root.to_string_lossy(),
+        crate::workspace::FilesystemTool::Read,
+    )
+    .ok()?;
+    Some(root)
+}
+
 pub struct McpServer {
     // The live index subsystem: read-only searcher handle, background indexer, optional
     // filesystem watcher, and the supervision state (auto-restart + refresh fallback). The
-    // server calls `ensure_alive()`/`trigger_refresh()` on it at the search/overview
-    // dispatch sites and reads the committed snapshot through its accessors.
+    // server calls `ensure_alive()`/`trigger_refresh()` on it at the search and monorepo
+    // initial_instructions dispatch sites and reads the committed snapshot through its accessors.
     engine: EngineSupervisor,
-    active_workspace_scope: Option<String>,
+    // The index of the one other root that requests named a path in, closed when unused.
+    other_roots: crate::index::roots::OtherRoots,
     call_recorder: crate::analyze::CallRecorder,
     pending_source_files: Vec<crate::analyze::FileObservation>,
     source_history: source_history::SourceHistory,
     source_history_config: Option<std::sync::Arc<crate::config::ResolvedConfig>>,
-    // Task context is connection-local, registered separately through register_task.
+    // Task context is connection-local, passed as initial_instructions' task argument.
     // Credentials/evaluator remain separate and are resolved only for enabled stages.
     registered_task: Option<crate::tools::task::RegisteredTask>,
     global_instructions: global_instructions::GlobalInstructions,
@@ -145,7 +171,7 @@ impl McpServer {
         });
         Self {
             engine,
-            active_workspace_scope: None,
+            other_roots: crate::index::roots::OtherRoots::default(),
             call_recorder: crate::analyze::CallRecorder::new(),
             pending_source_files: Vec::new(),
             source_history: source_history::SourceHistory::default(),
@@ -238,25 +264,6 @@ impl McpServer {
 
     pub fn set_call_logging_enabled(&mut self, is_enabled: bool) {
         self.call_recorder.set_enabled(is_enabled);
-    }
-
-    fn overview_path_argument(arguments: &Value) -> Option<&str> {
-        ["path", "file_path", "file", "query"]
-            .iter()
-            .find_map(|key| crate::tools::get_arg(arguments, key).and_then(|value| value.as_str()))
-    }
-
-    fn update_active_workspace_scope_from_overview(&mut self, arguments: &Value) {
-        let Some(path) = Self::overview_path_argument(arguments) else {
-            self.active_workspace_scope = None;
-            return;
-        };
-        if crate::codemap::is_all_workspace_scope_input(path) {
-            self.active_workspace_scope = None;
-            return;
-        }
-        let snapshot = self.engine.published_snapshot();
-        self.active_workspace_scope = snapshot.workspace_catalog().search_scope_for_input(path);
     }
 
     pub async fn run(&mut self) -> Result<(), String> {
@@ -584,6 +591,32 @@ impl McpServer {
                 }
                 let tool_arguments = source_history::SourceHistory::tool_arguments(name, arguments);
                 let arguments = tool_arguments.as_ref();
+                // A path in another root is served by that root's index under its settings.
+                self.other_roots.close_unused();
+                let mut unavailable_engine = None;
+                let mut _root_scopes = None;
+                let engine: &mut EngineSupervisor = match requested_other_root(name, arguments)
+                    .map(|root| self.other_roots.open(&root, name == "search"))
+                {
+                    Some(Ok(Some(open))) => {
+                        _root_scopes = Some((
+                            open.config.bind(),
+                            crate::config::pin(open.config.current()),
+                        ));
+                        &mut open.engine
+                    }
+                    Some(Err(unavailable)) => {
+                        _root_scopes = Some((
+                            unavailable.config.bind(),
+                            crate::config::pin(unavailable.config.current()),
+                        ));
+                        unavailable_engine.insert(
+                            EngineSupervisor::unavailable(unavailable.message)
+                                .map_err(|error| (-32603, error))?,
+                        )
+                    }
+                    Some(Ok(None)) | None => &mut self.engine,
+                };
 
                 match name {
                     "analyze" => {
@@ -614,7 +647,7 @@ impl McpServer {
                     }
                     "search" => {
                         crate::tools::search::validate_arguments(arguments)?;
-                        if let Err(message) = self.engine.activate() {
+                        if let Err(message) = engine.activate() {
                             return Ok(text_content(&message));
                         }
                         // Recover a dead indexer first (auto-restart, config-gated), then
@@ -622,15 +655,15 @@ impl McpServer {
                         // window), then search the current committed snapshot immediately
                         // — the response never blocks on indexing. A queued trigger
                         // coalesces bursts; the indexer's mtime diff keeps each pass
-                        // incremental. Lifecycle fires only here and on `overview`, never
-                        // on the live-filesystem tools (read/find/grep).
-                        self.engine.ensure_alive();
-                        self.engine.trigger_refresh();
+                        // incremental. Lifecycle fires only here and on monorepo
+                        // `initial_instructions`, never on the live-filesystem tools
+                        // (read/find/grep).
+                        engine.ensure_alive();
+                        engine.trigger_refresh();
                         let config = crate::config::get();
                         let ctx = ToolContext {
-                            engine: &self.engine,
+                            engine: &*engine,
                             arguments,
-                            active_workspace_scope: self.active_workspace_scope.as_deref(),
                         };
                         let output = if config.jev.is_enabled_for("search") {
                             jev::search(&mut self.jev, &ctx, self.registered_task.as_ref(), &config)
@@ -648,47 +681,13 @@ impl McpServer {
                             ]
                         }))
                     }
-                    "overview" => {
-                        // Recover a dead indexer first (auto-restart, config-gated), then
-                        // trigger a background refresh (debounced) and read the codemap
-                        // snapshot the indexer publishes — no per-call tree walk or parse.
-                        // The indexer parses the working tree once for the index and reuses
-                        // it here, so the former overview-only walk+parse is gone. Lifecycle
-                        // fires only here and on `search`, never on read/find/grep.
-                        if let Err(message) = self.engine.activate() {
-                            return Ok(text_content(&message));
-                        }
-                        self.engine.ensure_alive();
-                        self.engine.trigger_refresh();
-                        let ctx = ToolContext {
-                            engine: &self.engine,
-                            arguments,
-                            active_workspace_scope: self.active_workspace_scope.as_deref(),
-                        };
-                        let text = jev::overview(
-                            &mut self.jev,
-                            &ctx,
-                            self.registered_task.as_ref(),
-                            &crate::config::get(),
-                        )
-                        .await?;
-                        self.update_active_workspace_scope_from_overview(arguments);
-                        Ok(serde_json::json!({
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": text
-                                }
-                            ]
-                        }))
-                    }
                     "read" | "grep" => {
                         // Their declarations and callers come from the index, so the first
                         // read or grep also starts a deferred workspace's indexing.
-                        let _ = self.engine.activate();
+                        let _ = engine.activate();
                         let output = jev::live(
                             &mut self.jev,
-                            &self.engine,
+                            &*engine,
                             if name == "read" { "read" } else { "grep" },
                             arguments,
                             self.registered_task.as_ref(),
@@ -705,35 +704,34 @@ impl McpServer {
                             "content": [{ "type": "text", "text": text }]
                         }))
                     }
-                    "register_task" => {
-                        // A new registration replaces the old task; an invalid registration
-                        // must not leave a previous task active for subsequent filtering.
-                        self.registered_task = None;
-                        self.source_history.clear();
-                        self.registered_task = Some(crate::tools::task::parse(arguments)?);
-                        Ok(serde_json::json!({
-                            "content": [{ "type": "text", "text": "Jev task registered. Enabled filters reuse these criteria; register again when the user's task changes." }]
-                        }))
-                    }
                     "initial_instructions" => {
-                        // Clients holding an older tool list may still send the former task
-                        // arguments. The guidance never depends on arguments, so ignore them:
-                        // keep the current registration and render the root overview.
-                        let no_arguments = serde_json::json!({});
+                        // A changed task replaces the old one and starts a fresh delivery
+                        // history; an invalid task must not leave a previous task active for
+                        // subsequent filtering. A call without `task` keeps the current task,
+                        // and the guidance never depends on other arguments.
+                        match crate::tools::task::parse(arguments) {
+                            Ok(Some(task)) => {
+                                if self.registered_task.as_ref() != Some(&task) {
+                                    self.source_history.clear();
+                                    self.registered_task = Some(task);
+                                }
+                            }
+                            Ok(None) => {}
+                            Err(error) => {
+                                self.registered_task = None;
+                                self.source_history.clear();
+                                return Err(error);
+                            }
+                        }
                         let text = if crate::codemap::looks_like_monorepo_workspace()
                             && self.engine.activate().is_ok()
                         {
-                            // Match `overview` lifecycle behavior so the initial response can
-                            // include the same root scope selection without a second MCP call.
+                            // Match `search` lifecycle behavior so the scope inventory reads a
+                            // current snapshot.
                             self.engine.ensure_alive();
                             self.engine.trigger_refresh();
-                            let ctx = ToolContext {
-                                engine: &self.engine,
-                                arguments: &no_arguments,
-                                active_workspace_scope: self.active_workspace_scope.as_deref(),
-                            };
-                            let root_overview = crate::tools::overview::run(&ctx)?;
-                            crate::tools::instructions_with_root_overview(&root_overview)
+                            let root_inventory = crate::tools::root_inventory::render(&self.engine);
+                            crate::tools::instructions_with_root_inventory(&root_inventory)
                         } else {
                             crate::tools::instructions()
                         };

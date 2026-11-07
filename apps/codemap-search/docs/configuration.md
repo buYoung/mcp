@@ -14,7 +14,6 @@ Keep behavior settings in `config.toml`, grouped by responsibility, and credenti
 |---|---|
 | `output` | Common MCP response byte ceiling and masking switch |
 | `output.client` | Claude character limit, Codex per-tool token limit and pi/opencode byte limits |
-| `output.overview` | Root statistics and overview responses |
 | `output.search` | Ranked files, symbols and snippets |
 | `output.read` | Live file reads |
 | `output.grep` | Matching rows and expanded callable responses |
@@ -23,18 +22,18 @@ Keep behavior settings in `config.toml`, grouped by responsibility, and credenti
 | `output.macro_expansion` | Native preprocessing and generated declaration results |
 | `output.event_navigation` | Indexed event/source routes and navigation results |
 | `output.redact` | Additional masking rules and exceptions |
-| `output.jev` | Optional search/read/grep/non-root overview output filtering; off by default |
+| `output.jev` | Optional search/read/grep output filtering; off by default |
 | `output.context.exclude` | Shared test exclusions for search relationships, read/grep context and event/source-route analysis |
 | `index`, `index.refresh`, `index.language_support` | Storage, refresh and indexed languages |
-| `index.exclude` | Shared directory exclusions for indexing, overview, search, caller scans and find/grep |
+| `index.exclude` | Shared directory exclusions for indexing, search, caller scans and find/grep |
 | `analysis` | Explicit Rust target OS |
 | `global_instructions` | User-global opt-in for a managed client instruction line; ignored in repo config |
 
-Only the configuration location changes. Overview and search use indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
+Only the configuration location changes. Search uses indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
 `output.max_bytes` is optional. Response ceilings resolve as **repo tool override > repo common > global tool override > global common > existing tool default**. With all limits omitted, search remains 1 MiB and read/expanded grep remain 5 MiB. Expanded grep inherits the read ceiling within a layer when neither grep nor common is configured there. `output.context.max_bytes` is a separate relationship sub-budget, additionally bounded by space left in the search response.
 
-Search returns explicit partial output; read requests a narrower range. Overview, find, initial_instructions and unexpanded grep reject responses exceeding an explicitly configured ceiling with a narrowing error. Budgets cover MCP body text, not the JSON envelope or error messages. They do not truncate ordinary CLI parse/index output.
+Search returns explicit partial output; read requests a narrower range. Find, initial_instructions and unexpanded grep reject responses exceeding an explicitly configured ceiling with a narrowing error. Budgets cover MCP body text, not the JSON envelope or error messages. They do not truncate ordinary CLI parse/index output.
 
 ### Client delivery budgets
 
@@ -110,7 +109,7 @@ api_key = "<your OpenRouter key>"
 
 With `config_auto_update = true`, MCP startup creates a missing repo `auth.toml` as an empty, localized template; existing files are never overwritten and environment keys are never copied into it. New files use owner-only `0600` permissions on Unix; Windows uses inherited filesystem ACLs. No global auth file is generated. Model, enable flags and request limits remain in `config.toml` under `[output.jev]`.
 
-Every file named `auth.toml` is excluded case-insensitively from indexing/search/overview and default `find`/`grep`. This is not an access-control boundary: direct `read`/`parse` remains available, and `include_ignored: true` bypasses the filename exclusion for `find`/`grep`. Mandatory `.codemap` directory exclusions still apply to walks. Keep credential files out of Git yourself; codemap-search never edits Git ignore files.
+Every file named `auth.toml` is excluded case-insensitively from indexing/search and default `find`/`grep`. This is not an access-control boundary: direct `read`/`parse` remains available, and `include_ignored: true` bypasses the filename exclusion for `find`/`grep`. Mandatory `.codemap` directory exclusions still apply to walks. Keep credential files out of Git yourself; codemap-search never edits Git ignore files.
 
 ## Loading and automatic writes
 
@@ -176,6 +175,8 @@ Rules are case-sensitive globs matched against directories, not files with the s
 
 The same rules apply to indexing, codemap, caller scans, watcher updates, `find` and `grep`. A direct search inside an excluded subtree does not bypass its ancestors. `include_ignored: true` on `find`/`grep` bypasses optional directory and ordinary file-ignore rules, but not mandatory internal/index directories. Removing a rule does not override `.gitignore` or `.codemapignore`.
 
+Indexing, caller scans and watcher updates also skip git linked worktrees checked out inside the workspace: folders whose `.git` file points into the `worktrees` folder of a repository. `find`, `grep` and codemap still walk them; submodules and nested repositories are indexed as before.
+
 ### Initial project detection
 
 Common folders and project recommendations are generated only for a missing repo config or its pre-v6 transition. Detection reads names of project files and does not execute a build, evaluate a manifest or follow directory symlinks. It respects ignore files, skips common/generated folders and orphan dependency/cache trees, and supports nested projects. It records recommended outputs as recursive globs even if those folders do not exist yet. Discovered project paths are not recorded, and repeated project types share the same patterns. User-customized build output paths must be added manually.
@@ -239,8 +240,6 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.client].codex_output_token_limit` | positive integer tokens | `100000` | Codex export and final delivery limit (3.5 bytes per token) |
 | `[output.client].pi_max_bytes` | integer bytes or size string | `100000` | pi tools/list metadata and final delivery limit; reconnect required |
 | `[output.client].opencode_max_bytes` | integer bytes or size string | `100000` | opencode final delivery limit |
-| `[output.overview].is_stats_enabled` | bool | `true` | Include indexed-file language statistics in repository-root and monorepo project-root `overview` output; `false` omits the section |
-| `[output.overview].max_bytes` | integer bytes or size string | common budget | Overview ceiling; no extra cap if common is unset |
 | `[output.search].detail_file_limit` | integer | `24` | Number of top-ranked files `search` renders as details before the ranked tail |
 | `[output.search].overview_file_limit` | integer | `80` | Max file headers in `search`'s compact ranked tail |
 | `[output.search].snippet_max_lines` | integer | `500` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
@@ -250,7 +249,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.search].literal_limit` | integer | `60` | Max matched literals rendered per file in `search` detail view |
 | `[output.search].anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[output.read].max_bytes` | integer bytes or size string | `"5mb"` (`5242880`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
-| `[output.read].is_outside_callers_enabled` | bool | `true` | Let `read view=source` end with callers from outside the window for the functions it shows, and with other places using the same keys; `false` omits both lists |
+| `[output.read].is_outside_callers_enabled` | bool | `true` | Let `read view=source` end with callers from outside the window for the functions it shows, with other places using the same keys, and with other files importing the window's declarations; `false` omits all three lists |
 | `[output.grep].max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
 | `[output.grep].max_bytes` | integer bytes or size string | common budget | Grep response ceiling; expanded bodies can also fall back to read |
 | `[output.context].is_enabled` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
@@ -275,7 +274,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[index.refresh].watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
 | `[index.refresh].index_staleness_ms` | integer (ms) | `5000` | Debounce for the request-triggered fallback refresh |
 | `[index.refresh].indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
-| `[index.language_support].is_document_support_enabled` | bool | `false` | Include `.md`/`.mdx` in index, search, overview, codemap, and watcher refreshes |
+| `[index.language_support].is_document_support_enabled` | bool | `false` | Include `.md`/`.mdx` in index, search, codemap, and watcher refreshes |
 | `[index.language_support].is_shell_support_enabled` | bool | `false` | Include `.sh`, `.bash`, and `.zsh` in index-backed discovery |
 | `[index.language_support].is_infrastructure_support_enabled` | bool | `false` | Include HCL/Terraform, Dockerfile, and Nix definitions |
 | `[index.language_support].is_interface_support_enabled` | bool | `false` | Include Protocol Buffers and GraphQL definitions |
@@ -288,14 +287,14 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.context.exclude].test_decorators` | language → string array | See test-code context | Decorator patterns; [] disables one language’s list |
 | `[output.context.exclude].test_calls` | language → string array | See test-code context | Test-call patterns; [] disables one language’s list |
 | `[output.jev].enabled` | bool | `false` | Master switch; false prevents all Jev output filtering regardless of scope |
-| `[output.jev].scope` | string array | `["overview", "search", "read", "grep"]` | Complete tool selection when enabled; [] selects none, repo list replaces global |
+| `[output.jev].scope` | string array | `["search", "read", "grep"]` | Complete tool selection when enabled; [] selects none, repo list replaces global |
 | `[output.jev].model` | string | `"jev-1.14.0"` | Concrete provider model validated against every response; a bare Jev version uses TypeSafe, an `author/slug` ID uses [OpenRouter](#openrouter-decision-models); alias names fail validation |
 | `[output.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
-| `[output.jev].max_in_flight_requests` | integer, 1 to 3 | `3` | HTTP requests in flight at once (3 is the runtime ceiling) |
-| `[output.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
+| `[output.jev].max_in_flight_requests` | integer, 1 to 8 | `8` | HTTP requests in flight at once (8 is the runtime ceiling) |
+| `[output.jev].request_spacing_ms` | integer (ms), at least 100 | `100` | Minimum spacing between request starts (100 is the runtime floor) |
 | `[output.jev].max_batch_bytes` | integer bytes or size string, 1 to 168000 | `168000` | Encoded request bytes per batch (168000 is the runtime ceiling); a question that does not fit is an explicit failure |
 | `[output.jev].pool_idle_timeout_ms` | positive integer (ms), at most 7 days | `30000` | Idle HTTPS connection lifetime |
-| `[output.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Per-criterion false-probability threshold; composed with all/any |
+| `[output.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Minimum no-probability for omitting a body; a yes answer at the same value counts as related, and values between stay as uncertain |
 | `[filesystem_permissions].find` | string | `"anywhere"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"anywhere"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"anywhere"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -310,19 +309,21 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 
 | Mode | Behavior |
 |---|---|
-| `"auto"` (default) | Indexing starts on the first `search`, `overview`, `read` or `grep` call, or on `synonyms` or a monorepo `initial_instructions`, not at server start. It runs only when the workspace is inside a repository and has at most `[index].auto_max_files` indexable files. A `.git`, `.hg` or `.jj` in the workspace or a parent folder marks a repository; one in the home directory itself does not. |
+| `"auto"` (default) | Indexing starts on the first `search`, `read` or `grep` call, or on `synonyms` or a monorepo `initial_instructions`, not at server start. It runs only when the workspace is inside a repository and has at most `[index].auto_max_files` indexable files. A `.git`, `.hg` or `.jj` in the workspace or a parent folder marks a repository; one in the home directory itself does not. |
 | `"on"` | Indexing starts at server start without these checks. |
 | `"off"` | The workspace is never indexed. |
 
-When `auto` mode does not index, for example in a folder that holds several repositories, `search` and `overview` return `Index unavailable:` with the reason. The reason names up to three repositories found one or two levels down. `read`, `grep` and `find` keep returning live results, without indexed declarations or callers. Outside a repository the server creates no `.codemap/` directory: no config is scaffolded, and its empty placeholder index lives in a temporary directory that is removed when the server exits. The file limit is checked on the first index-backed call, so a repository above it still gets `.codemap/` at startup. To index such a workspace, set `mode = "on"` in `.codemap/config.toml` or the global config and restart the server.
+When `auto` mode does not index, for example in a folder that holds several repositories, `search` returns `Index unavailable:` with the reason. The reason names up to three repositories found one or two levels down. `read`, `grep` and `find` keep returning live results, without indexed declarations or callers. Outside a repository the server creates no `.codemap/` directory: no config is scaffolded, and its empty placeholder index lives in a temporary directory that is removed when the server exits. The file limit is checked on the first index-backed call, so a repository above it still gets `.codemap/` at startup. To index such a workspace, set `mode = "on"` in `.codemap/config.toml` or the global config and restart the server.
+
+A git worktree without an index starts from the index of another worktree of the same repository when one has the current format; the one updated most recently is copied, and it is left unchanged. The first pass then re-extracts only the files whose content differs, plus native files, whose recorded macro-expansion inputs name the other worktree's files, before anything from the index is shown. A worktree that already has an index, even one in another format, is never copied into.
 
 ### Indexing and file exclusions
 
 The user home directory itself cannot be an MCP workspace or an explicit `index`/`benchmark` target; a project beneath it is valid. If neither `HOME` nor `USERPROFILE` is available, the server warns and continues.
 
-`auth.toml`, `.txt`, `*.lock`, known package-manager lockfiles, `*.map`, and minified/bundle files are excluded case-insensitively from indexing, codemap, and caller scans. `find`/`grep` hide them by default but accept `include_ignored: true`; direct `read`/`parse` remains available. See [supported languages and file exclusions](./language-support-checklist.md) for the full list. Files larger than `index.max_file_bytes` are also skipped by indexing. Indexing accepts UTF-8 source only. Invalid UTF-8 removes any stale indexed symbols; `overview` and `read` explain the exclusion with the first invalid byte offset. `read` keeps its replacement-character display and never rewrites the source.
+`auth.toml`, `.txt`, `*.lock`, known package-manager lockfiles, `*.map`, and minified/bundle files are excluded case-insensitively from indexing, codemap, and caller scans. `find`/`grep` hide them by default but accept `include_ignored: true`; direct `read`/`parse` remains available. See [supported languages and file exclusions](./language-support-checklist.md) for the full list. Files larger than `index.max_file_bytes` are also skipped by indexing. Indexing accepts UTF-8 source only. Invalid UTF-8 removes any stale indexed symbols; `read` explains the exclusion with the first invalid byte offset. `read` keeps its replacement-character display and never rewrites the source.
 
-The five `[index.language_support]` switches control indexing, search, overview, codemap, and file-change refreshes. They do not disable live `find`/`grep`/`read` or direct `parse`.
+The five `[index.language_support]` switches control indexing, search, codemap, and file-change refreshes. They do not disable live `find`/`grep`/`read` or direct `parse`.
 
 `use_git_exclude` controls only `.git/info/exclude`. Setting it to `false` leaves `.gitignore`, global Git ignores, and `.codemapignore` in effect.
 
@@ -407,11 +408,9 @@ Unrecognized names/formats, encoded values and values assembled through calls ca
 
 ### Output and call relationships
 
-Repository-root and monorepo project-root `overview` output includes indexed-file language statistics by default; set `[output.overview].is_stats_enabled = false` to omit the section. For example, `overview(path="apps/api")` counts only that selectable project's indexed physical files. Other folders and file views omit statistics. Missing or changed sources are reported as unavailable; collection beyond 256 uncached files or 64 MiB per request is reported as pending, and subsequent requests reuse completed counts.
-
 `search` shows detailed top matches followed by a compact list. Its size settings limit output; they do not change which files are excluded. General queries rank generated files and translation resources lower, while exact paths, symbols, resource keys, or quoted text can target those files directly.
 
-`output.search.max_bytes` includes the partial-output notice. If results are cut off, narrow the query or read the suggested ranges; `search` has no page-offset parameter. `output.search.anchor_snippet_limit` limits full snippets per file; further matches show signatures of up to three lines.
+`output.search.max_bytes` includes the partial-output notice. If results are cut off, narrow the query or read the suggested ranges; `search` has no page-offset parameter. `output.search.anchor_snippet_limit` limits full snippets per file; further matches show signatures of up to three lines. Tail rows and bytes left unused can hold [exact phrase matches outside the ranking](../README.md#use-the-navigation-tools).
 
 `output.read.max_bytes` includes line numbers, context, and headings, and also bounds callable-expanded `grep`. Oversized `read` output returns an error with a narrower `offset`/`limit` suggestion. Expanded grep reports oversized bodies or pagination instead of silently splitting a callable. A separate 256 KiB whole-file limit applies to `read` when `limit` is omitted and callable expansion is off. `grep_max_columns = 0` disables the long-line limit; otherwise long matches become `[Omitted long matching line]`. Partial `grep` pages report `next_offset`.
 
@@ -431,7 +430,7 @@ At `output.context.common_name_threshold` definitions of the same name, approxim
 
 ### Test-code context
 
-Manage `excluded_directories` and `use_git_exclude` under `[index.exclude]`, and the test-context keys `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, and `test_calls` under `[output.context.exclude]`. Within one file, valid new locations take precedence over `[exclude]` and older `[caller_context]`, `[index]`, and root aliases; language tables inherit missing language entries. Repo → global → built-in precedence still applies between files. The directory rules remain shared by indexing, overview, search, caller scans, and `find`/`grep`; changing either requests a full index refresh after config reload. Direct `read` does not apply directory exclusions.
+Manage `excluded_directories` and `use_git_exclude` under `[index.exclude]`, and the test-context keys `should_include_test_code`, `test_file_patterns`, `test_attributes`, `test_decorators`, and `test_calls` under `[output.context.exclude]`. Within one file, valid new locations take precedence over `[exclude]` and older `[caller_context]`, `[index]`, and root aliases; language tables inherit missing language entries. Repo → global → built-in precedence still applies between files. The directory rules remain shared by indexing, search, caller scans, and `find`/`grep`; changing either requests a full index refresh after config reload. Direct `read` does not apply directory exclusions.
 
 `should_include_test_code = false` excludes configured test regions from automatic `read`/`grep` symbol context and `search` caller/callee annotations. The filter runs before definition counts, navigation lookup, and caller-scan budgets. Direct `read`/`grep` source, search hits, and the stored index remain available. Set it to `true` to include test context; directory/ignore exclusions still apply independently.
 
@@ -498,13 +497,15 @@ powershell = ["Describe", "Context", "It"]
 - `allowed_roots`: access the workspace and the listed external roots.
 - `anywhere`: access any path available to the server process (default).
 
-`allowed_roots` entries must be non-empty strings. Relative paths start at the workspace root; absolute paths are allowed. Existing path components are resolved, including symlinks, while nonexistent suffixes are retained. Path traversal cannot extend access beyond the configured roots. These permissions do not widen the indexing scope of `search` or `overview`.
+`allowed_roots` entries must be non-empty strings. Relative paths start at the workspace root; absolute paths are allowed. Existing path components are resolved, including symlinks, while nonexistent suffixes are retained. Path traversal cannot extend access beyond the configured roots. These permissions do not add files to the start folder's index. A repository outside the start folder gets its own index for `search` with an outside `workspace_scope` only when the `read` policy allows the whole repository folder; that repository's own `[filesystem_permissions]` never widen this session's access.
 
 ### Index freshness
 
-With `watch = true`, file changes refresh the index in the background. `index.refresh.watch_debounce_ms` combines nearby changes into one refresh. Changes in paths hidden by `.gitignore`, `.ignore` or `.codemapignore` are dropped like excluded directories, and a change to one of those files triggers a full walk. When file watching is off or unavailable, `search`/`overview` request background refreshes at intervals controlled by `index.refresh.index_staleness_ms` and return the last available results immediately.
+With `watch = true`, file changes refresh the index in the background. `index.refresh.watch_debounce_ms` combines nearby changes into one refresh. Changes in paths hidden by `.gitignore`, `.ignore` or `.codemapignore` are dropped like excluded directories, and a change to one of those files triggers a full walk. When file watching is off or unavailable, `search` requests background refreshes at intervals controlled by `index.refresh.index_staleness_ms` and return the last available results immediately.
 
-With `indexer_auto_restart = true`, the next `search`/`overview` attempts recovery if background indexing stops. Recovery attempts are capped per server run. With it disabled, results remain frozen until restart. Live `read`/`find`/`grep` remains available in either case.
+With `indexer_auto_restart = true`, the next `search` attempts recovery if background indexing stops. Recovery attempts are capped per server run. With it disabled, results remain frozen until restart. Live `read`/`find`/`grep` remains available in either case.
+
+When a file's modification time changes but its content does not, as after a checkout that rewrites identical files, the index keeps the file's document and records the new time in `content-mtimes.json` in the index folder. Later passes and server starts then do not read the file again.
 
 ## Example `config.toml`
 
@@ -542,10 +543,6 @@ pi_max_bytes = 100000
 # Maximum bytes in a tool result in opencode (codemap-search default 100000).
 # Set tool_output.max_bytes in opencode.json to the same value.
 opencode_max_bytes = 100000
-
-[output.overview]
-# Show per-language file statistics when overview opens the repository root or a subproject root.
-is_stats_enabled = true
 
 [output.search]
 # Maximum number of top-ranked files shown in detail. Remaining results use a compact list.
@@ -672,7 +669,7 @@ exceptions = []
 
 [output.jev]
 # Use a decision model (TypeSafe Jev or OpenRouter) to remove code bodies unrelated to the task (default: off).
-# Register the task with register_task(task_query, questions) before using an enabled filter.
+# Pass the user's request as initial_instructions' task before using an enabled filter.
 # Store API keys in auth.toml under [jev].api_key (TypeSafe) or [openrouter].api_key, not here.
 # If neither auth file supplies the key, TYPESAFE_API_KEY or OPENROUTER_API_KEY is used.
 
@@ -680,8 +677,8 @@ exceptions = []
 enabled = false
 
 # Tools to filter when enabled. [] selects none; this list replaces the global scope.
-# Root overview maps remain local. If Jev is unavailable, ordinary output is retained.
-scope = ["overview", "search", "read", "grep"]
+# If Jev is unavailable, ordinary output is retained.
+scope = ["search", "read", "grep"]
 
 # Decision model (default jev-1.14.0). A Jev version uses TypeSafe; an author/model ID uses only
 # OpenRouter's Decisions API, which rejects models without decision support. Aliases are not accepted.
@@ -697,8 +694,8 @@ model = "jev-1.14.0"
 timeout_ms = 45000
 
 # Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
-max_in_flight_requests = 3
-request_spacing_ms = 300
+max_in_flight_requests = 8
+request_spacing_ms = 100
 
 # Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
 max_batch_bytes = 168000
@@ -712,7 +709,7 @@ search_filter_min_unrelated_probability = 0.70
 
 [output.context.exclude]
 # Include test code in call relationships and automatically added context.
-# Test code still appears in search/overview declarations and read/grep source when false.
+# Test code still appears in search declarations and read/grep source when false.
 should_include_test_code = false
 
 # Path patterns for test files (* and ** allowed), relative to the workspace. A pattern without / matches file names.
@@ -750,9 +747,9 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# When the MCP server indexes this workspace. "auto" starts on the first search, overview, read or grep,
+# When the MCP server indexes this workspace. "auto" starts on the first search, read or grep,
 # only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
-# Other folders, such as one holding several repositories, are not indexed; search and overview say why.
+# Other folders, such as one holding several repositories, are not indexed; search says why.
 # "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
 # Commented so that a global setting applies.
 # mode = "auto"
@@ -783,7 +780,7 @@ excluded_directories = [".git", ".svn", ".hg", ".bzr", ".jj", ".sl", ".idea", ".
 use_git_exclude = true
 
 [index.refresh]
-# Update the index automatically when files change. If false, search/overview refresh it when called.
+# Update the index automatically when files change. If false, search refreshes it when called.
 # Restart the server after changing this.
 watch = true
 
@@ -794,8 +791,8 @@ watch_debounce_ms = 500
 # Minimum interval between refreshes when file watching is not used, in milliseconds.
 index_staleness_ms = 5000
 
-# Restart indexing on the next search/overview if it stops (a limited number of times).
-# If false, search/overview results stop updating until the server restarts.
+# Restart indexing on the next search if it stops (a limited number of times).
+# If false, search results stop updating until the server restarts.
 indexer_auto_restart = true
 
 [index.language_support]
@@ -928,7 +925,7 @@ One response uses one configuration snapshot; a concurrent reload applies to sub
 ```toml
 [output.jev]
 enabled = true
-scope = ["overview", "search", "read", "grep"]
+scope = ["search", "read", "grep"]
 search_filter_min_unrelated_probability = 0.70
 ```
 
@@ -947,50 +944,43 @@ enabled = true
 model = "openai/gpt-6-luna-decisions"
 ```
 
-Jev is off by default. `enabled=true` permits filtering only for tools in `scope`; `enabled=false` disables it for every tool, regardless of the list. `scope` accepts `overview`, `search`, `read` and `grep`, defaults to all four, and replaces the inherited list rather than merging with it. `[]` selects none. Duplicate names are ignored; unknown names or non-string entries reject the whole scope value and inherit the lower layer. `enabled` and `scope` independently follow repo > global > default precedence. `initial_instructions`, root `overview`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
+Jev is off by default. `enabled=true` permits filtering only for tools in `scope`; `enabled=false` disables it for every tool, regardless of the list. `scope` accepts `search`, `read` and `grep`, defaults to all three, and replaces the inherited list rather than merging with it. `[]` selects none. Duplicate names and the removed `overview` name are ignored; unknown names or non-string entries reject the whole scope value and inherit the lower layer. `enabled` and `scope` independently follow repo > global > default precedence. `initial_instructions`, `find`, `analyze` and the CLI do not invoke Jev.
 
-### Task registration
+### Task
 
-`initial_instructions({})`, `find` and root `overview` require no task registration, regardless of Jev settings. `initial_instructions` takes no arguments; it ignores any that older clients still send and preserves the current registration.
+`find` and `analyze` never use the task. With Jev off, `initial_instructions` lists no arguments and the task has no effect.
 
-Before using an enabled Jev filter, the main agent derives focused yes/no questions from the user's task and registers them once through `register_task`. Registration is unnecessary while Jev is disabled, so `tools/list` includes `register_task` only when `enabled` is true and `scope` is not empty. A client that loaded the tool list before a configuration reload enabled Jev must reconnect to see the tool. The server still accepts registrations, and a task registered earlier can be used after enabling a filter. A valid registration requires `task_query` and `questions`; text-only registration returns an error result (`isError: true`). Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. Clients that previously registered through `initial_instructions` must switch to `register_task`. The following object is the input to `register_task`:
+While `enabled` is true and `scope` is not empty, `tools/list` gives `initial_instructions` a required string argument, `task`. Before using an enabled filter, the main agent passes the user's complete request there, and again when the task changes:
 
 ```json
-{
-  "task_query": "Where is the response byte cap applied?",
-  "questions": [{
-    "question": "Does this function implement or concretely support the response byte cap?",
-    "when_true": "The supplied source computes, reserves, enforces or passes this response byte budget.",
-    "when_false": "The supplied facts establish a separate behavior with no concrete role in that budget; missing cross-file evidence alone is uncertain."
-  }],
-  "match": "all"
-}
+{ "task": "Where is the response byte cap applied?" }
 ```
 
 | Field | Contract |
 | --- | --- |
-| `task_query` | Nonempty goal; bounded by the whole registration |
-| `questions` | 1–8 independent yes/no criteria; preserve the requested target, direction and coverage |
-| `id` | Optional legacy label, ignored; omit it. Routing IDs are generated by the server |
-| `question`, `when_true`, `when_false` | Required nonempty strings; no separate per-field byte cap. True means the criterion matches |
-| `match` | `all` (default) or `any`; no nested expressions |
-| Whole registration | At most 65,536 encoded JSON bytes; question fields do not accept nested values |
+| `task` | Nonempty string of at most 65,536 bytes: the user's request, verbatim |
 
-Registration is atomic and connection-local. Invalid replacement clears the previous task, and `initialize` resets it. No separate question-generation service is used. Missing registration is an argument error, while unavailable credentials or evaluation failures preserve the tool's ordinary output. Common delivery deduplication still applies afterward.
+The task is connection-local, and `initialize` resets it. A call without `task` keeps the current task, and a changed task starts a fresh delivery history. A blank or non-string `task` returns an error result (`isError: true`) and clears the previous task. `search.query` remains the retrieval query and never replaces the task. A missing task is an argument error for an enabled filter, while unavailable credentials or evaluation failures preserve the tool's ordinary output. A client that loaded the tool list before a configuration reload enabled Jev must reconnect to see the argument; the server accepts `task` either way. The `register_task` tool is removed and answers `Tool not found`. Common delivery deduplication still applies after filtering.
 
-Each enabled search/read/grep/overview filter advertises `openWorldHint: true`; every tool remains read-only. `initial_instructions`, root overview, find and analyze do not invoke Jev. `register_task` also remains local. `enabled` and `scope` govern these hints as well as runtime filtering. The retired `overview_enabled` key still warns and is ignored. An omission's read location does not bypass the enabled read filter. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
+Each enabled search/read/grep filter advertises `openWorldHint: true`; every tool remains read-only. `initial_instructions`, find and analyze do not invoke Jev. `enabled` and `scope` govern these hints as well as runtime filtering. The retired `overview_enabled` key still warns and is ignored. Reading an omission note's exact location returns that source without a new judgment, and a read window that lies inside one function returns that function's rows unjudged; a wider window is judged as usual. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
 
 ### Question decisions and evidence
 
-Each eligible function is evaluated against every registered criterion with Noul. The function body appears once in a group state, with identity, source range, completeness, masking status and bounded static call evidence. Missing cross-file or channel evidence is explicit and must not be treated as proof of irrelevance. Questions refer to their named candidate and the same flow; two unrelated true properties do not prove a connection.
+Each judged unit is asked one fixed Noul question. In search a unit is a function body; read and grep also judge the units described under [Live read/grep selection](#live-readgrep-selection). The question asks whether the code handles something the task names, even if only part of the task, and counts shared infrastructure, such as a queue, bus, store, watcher or registry, that the named flow passes through. Every model gets the same question, criteria and candidate fields: file, kind, name and masked source. Only the request layout depends on the model:
 
-For a relevance criterion, one qualifying branch or callback can establish contribution even in a mixed-purpose function. A wrapper or setup function can contribute through a source-backed connection without implementing the whole flow or naming the target. The shared policy separates the user's task from retrieval arguments and asks Jev to inspect the candidate's body first, then its connected support. Each question independently states the requested target, relationship and scope. Registration guidance asks for one coherent relationship per question, merges equivalent questions and groups spelling variants. Independently useful roles should not be packed into a long checklist merely to reduce the count. The 1–8 question limit is a capacity, not a target count.
+| Model | Request layout |
+| --- | --- |
+| TypeSafe Jev: a bare version such as `jev-1.14.0`, or OpenRouter `typesafe/*` | One plain-text state holds the task and a group of candidates, each under its question ID, such as `[b3]`; each question names its candidate. Consecutive candidates share a request while it fits one batch |
+| OpenRouter `openai/*` | One request per candidate, whose plain-text state holds the task and that candidate's code. OpenRouter fails a whole request when OpenAI refuses one of its questions, so a refusal affects only that candidate |
+| Other OpenRouter decision models | The state holds only the masked task, as `task_query`; each question carries its candidate as a JSON object |
 
-`search_filter_min_unrelated_probability` retains its negative meaning: default `0.70` is the minimum probability of a criterion being false for a no decision. A yes requires the same threshold on the positive answer; values between the two are uncertain. `all` fails on any decisive no and matches only if every leaf is yes; `any` matches on any decisive yes and fails only if every leaf is no. All other combinations are uncertain. These are discrete decisions, not calibrated joint probabilities. The threshold remains provisional.
+The server owns the question, its criteria and the retention decision; the agent writes none.
 
-Partial, stale, oversized, masked or identity-unverified bodies remain visible, as do uncertain judgments. Non-callable declarations, source locations and read hints stay. Omission notes never count as delivered source in [reading-activity metrics](./analysis.md#interpreting-counts-and-bytes).
+`search_filter_min_unrelated_probability` retains its negative meaning: default `0.70` is the minimum probability of no for an omission. A yes requires the same threshold on the positive answer; values between the two are uncertain and stay. These are discrete decisions, not calibrated probabilities. The threshold remains provisional.
 
-Evidence is split before dispatch into groups of at most eight candidates. The same preflight and serializer as the evaluator enforce `max_batch_bytes` and operating estimates of 28,000 tokens for state plus the longest question and 56,000 tokens for state plus all questions. These leave 12.5% headroom below the provider's 32k/64k limits; the byte-based estimate is not the provider tokenizer. Questions split before exceeding either budget. A single candidate that cannot fit stays visible while other candidates are evaluated. Bodies and direct caller/callee source occur once per group. At most 128 groups share one absolute deadline, caller cancellation and the evaluator pool. A missing answer or failed required group preserves the entire base response of that tool. Exact `event_key` maps bypass selection.
+In search, partial, stale, oversized, masked or identity-unverified bodies remain visible, as do uncertain judgments, and non-callable declarations, source locations and read hints stay. Omission notes never count as delivered source in [reading-activity metrics](./analysis.md#interpreting-counts-and-bytes).
+
+The requests of one call run together on the evaluator pool under one absolute deadline and caller cancellation. A TypeSafe or OpenAI request is sent as one batch; for other OpenRouter models the evaluator splits the request's questions into batches that each repeat the task. The same preflight and serializer enforce `max_batch_bytes` and operating estimates of 28,000 tokens for state plus the longest question and 56,000 tokens for state plus all questions. These leave 12.5% headroom below the provider's 32k/64k limits; the byte-based estimate is not the provider tokenizer. A single unit that cannot fit stays visible while the others are evaluated. A failed request or a missing answer preserves the entire base response of that tool. Exact `event_key` maps bypass selection.
 
 ### Selection before rendering
 
@@ -1000,31 +990,37 @@ Uncertain, partial and identity-unverified source stays. A matched function can 
 
 Evaluation is skipped only when neither that candidate's own body nor a neighboring candidate's support decision can benefit. This includes isolated bodies no larger than their omission note and bodies already covered by an unconditionally retained parent. A small function can still be evaluated when its answer could protect another body. Bypass reasons and eligible/omitted/protected counts are recorded.
 
-Each candidate receives its prepared annotations and scoped event evidence independently, without a search-wide 16 KiB prefix quota or 1 KiB per-part caps. Direct caller/callee source uses ordinary read permissions and full-file redaction, checks the declaration identity and complete returned range, and is deduplicated in `state.supporting_sources`. Named references connect each candidate to this evidence without claiming verified runtime dispatch. Shared evidence policy is stored once, and question instructions explicitly reference it and their candidate. If a complete encoded candidate request cannot fit, that candidate remains unjudged and visible. Bounded supplementary annotations or event context may be omitted with `is_context_clipped` set; that coverage flag is passed to Jev and does not itself force retention. The body-only preliminary bound is derived from the whole state-plus-question budget; final eligibility uses complete encoded requests. `caller_context=false` disables extra caller/callee reads and caller event anchors; `include_events=false` disables event evidence. Warming, stopped or failed snapshots bypass evaluation.
+Only each body's own source is sent; relationship summaries, event evidence and caller/callee source are not. If a complete encoded request for a body cannot fit, that body remains unjudged and visible. Warming, stopped or failed snapshots still judge the displayed bodies but add no follow-up call candidates.
 
-After successful filtering, search may append indexed call-name candidates outside the displayed source, seeded only by functions with a positive composed task match. Declarations retained solely for missing or uncertain evidence do not seed expansion. These are discovery hints, not verified edges or delivered source. They use only the remaining output budget, up to 4 KiB within the annotation budget, at most eight sites per name within the caller limit, and the configured navigation call-site budget. Scope and context exclusions apply; capped lists explicitly direct the caller to grep. Disabled, failed, stale, capped-primary and `caller_context=false` searches do not add them.
+After successful filtering, search may append indexed call-name candidates outside the displayed source, seeded only by functions with a positive task match. Declarations retained solely for missing or uncertain evidence do not seed expansion. These are discovery hints, not verified edges or delivered source. They use only the remaining output budget, up to 4 KiB within the annotation budget, at most eight sites per name within the caller limit, and the configured navigation call-site budget. Scope and context exclusions apply; capped lists explicitly direct the caller to grep. Disabled, failed, stale, capped-primary and `caller_context=false` searches do not add them. Jev also judges the functions around the first candidates, at most eight per search, against the task: unrelated ones are left out, related ones are marked `(Jev: related)` and listed first, and the rest stay unmarked. A failed judgment leaves every candidate unjudged.
 
-Compact omission notes preserve source locations and state that a read location does not bypass Jev. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations. Before evaluation, `jev candidate evidence` maps each group/candidate index to its masked path and source range, body/context sizes and hashes, and coverage flags. It does not log source text or task text, and is not part of the main tool response.
+Compact omission notes preserve source locations and give the exact read location that returns the body. An omitted body's outline rows and relation notes go with it, except a row that still holds a retained member, and a file whose displayed bodies are all omitted keeps only its heading and omission notes. When a client lowers the output cap, the room that omissions free is not refilled with deferred bodies, and bodies Jev protects are deferred last instead of never. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations. Before evaluation, `jev candidate evidence` maps each candidate index to its masked path and source range, body size and hash. It does not log source text or task text, and is not part of the main tool response.
 
 ### Live read/grep selection
 
-Read and grep capture callable bounds and returned source rows from the exact buffer used by the tool. Complete returned function/method bodies are eligible in full/source views and grep source_grouped. Partial windows, clipped columns, unverified syntax/identity and oversized bodies remain visible. Declaration/relation views and grep file/count modes are not evaluated.
+Read and grep capture callable bounds and returned source rows from the exact buffer used by the tool. In full/source views and grep source_grouped, the returned source is judged in units:
 
-Body completeness and supporting-context coverage are separate. Live selection captures value/type references from the same parsed buffer independently of the optional persisted reference index. Same-file callers, callees, referenced declarations and enclosing member contracts provide masked evidence. Capture starts with the candidate's own bindings and contracts, then traverses support breadth-first within the existing budgets so a caller's dependency chain cannot consume them before the candidate is visited. Imports, unresolved calls, ambiguous declarations, extraction gaps and exhausted support budgets are described in the Jev input through supporting notes, `has_missing_context` and `is_context_clipped`. These flags neither skip evaluation nor force retention. Jev assesses whether each gap matters to the registered criterion; an unrelated gap does not preclude a decisive answer.
+- a complete returned function or method body; grep judges the whole body of a function whose matching rows it shows;
+- the returned rows of a function or method that a read window cuts, judged as they read;
+- runs of adjacent returned rows outside every function, each held by the same outermost declaration or by none. Blank rows at either end of a run are not judged.
 
-Before classification, bounded indexed candidates supply possible cross-file callers, callees and imported declarations. The candidate's explicit call/import dependencies are captured before possible callers share the remaining budgets. Existing captured buffers are reused; at most eight other files are read within ordinary read permissions and size limits. Current calls or declarations must match the indexed locations. Context exclusions, scan/link/byte budgets and the caller's absolute deadline and cancellation apply. Excerpts include source bodies or explicitly partial declaration contracts. Referenced enclosing members take priority over other member contracts. Supporting declarations include import bindings referenced by the supplied excerpts; glob and unnamed imports remain because a local spelling cannot establish their scope. Name/import hints remain unverified target candidates; they are not automatic evidence of task relevance. These Jev-only excerpts do not expand the main response's source window.
+Clipped columns, non-contiguous rows, unverified syntax or identity, masked source and oversized units remain visible. Declaration/relation views and grep file/count modes are not evaluated.
 
-Complete, identifiable bodies proceed to the ordinary Noul judgment when the encoded request fits. A decisive non-match can omit a body even when supporting evidence has gaps; the model must assess the supplied facts and relevance of those gaps. Existing protections for partial/unidentified bodies, oversized requests, uncertain model judgments and overlapping or directly linked retained source remain separate. Diagnostics count actual evaluated candidates and distinguish `matched`, `no_match`, `judged_uncertain` and `unjudged_bodies` from the final `protected`/`linked` outcomes. These are integration and policy contracts, not a measured improvement in classification accuracy or token use.
+An omitted body keeps a note with its range, kind and name: `_omitted body:` in read and `_omitted matches:` in grep. An omitted cut window or row run reads `_omitted lines: L<start>-<end> (<label>)`. Adjacent omitted units of one file share one such note, which names at most three of them and then `+N more`.
 
-The registered task, all/any decisions, uncertainty retention, linked-body protection, request budgets and absolute deadline are shared with search. Live rendering and pagination finish before evaluation. Omissions only replace captured spans: no reread after await, no mixing changed file versions, and no refill from the next page. Independent common deduplication follows Jev and excludes find.
+Only each unit's own source is sent. No same-file or cross-file supporting context is captured, and no other file is read for the judgment.
+
+Complete, identifiable units proceed to the Noul judgment when the encoded request fits. Existing protections for incomplete or unidentified units, oversized requests, uncertain model judgments and overlapping or directly linked retained source remain separate. Diagnostics count actual evaluated candidates and distinguish `matched`, `no_match`, `judged_uncertain` and `unjudged_bodies` from the final `protected`/`linked` outcomes. These are integration and policy contracts, not a measured improvement in classification accuracy or token use.
+
+The task, uncertainty retention, linked-body protection, request budgets and absolute deadline are shared with search. Live rendering and pagination finish before evaluation. Omissions only replace captured spans: no reread after await, no mixing changed file versions, and no refill from the next page. Independent common deduplication follows Jev and excludes find.
 
 ### Data sent to the provider
 
-Enabled search/read/grep/non-root overview filters send the masked registered goal and questions, tool arguments, eligible source bodies and their bounded supporting evidence to the provider the model selects: TypeSafe, or OpenRouter and the model's upstream provider. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model is `jev-1.14.0`.
+Enabled search/read/grep filters send the masked task and the masked source of each judged unit, with its path, kind and name, to the provider the model selects: TypeSafe, or OpenRouter and the model's upstream provider. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model is `jev-1.14.0`.
 
 ### OpenRouter decision models
 
-A model ID with an author prefix (`author/slug`) selects OpenRouter. Requests go only to OpenRouter's Decisions API, `POST https://openrouter.ai/api/alpha/decisions`, with the `[openrouter].api_key` key (fallback `OPENROUTER_API_KEY`). The request and answer shapes match TypeSafe's, so the questions, budgets, thresholds and transport limits above apply unchanged. A bare Jev version such as `jev-1.14.0` keeps using TypeSafe and its own key.
+A model ID with an author prefix (`author/slug`) selects OpenRouter. Requests go only to OpenRouter's Decisions API, `POST https://openrouter.ai/api/alpha/decisions`, with the `[openrouter].api_key` key (fallback `OPENROUTER_API_KEY`). The answer shape matches TypeSafe's, and the question, budgets, thresholds and transport limits above apply unchanged. The request layout follows the model, as the table under [Question decisions and evidence](#question-decisions-and-evidence) shows. A bare Jev version such as `jev-1.14.0` keeps using TypeSafe and its own key.
 
 - **Decision models only.** OpenRouter answers a chat, embedding or unknown model on this endpoint with HTTP 400 (`Model … does not exist`) before any model runs. The stage then falls back with `http_status`, and the tool returns its ordinary output.
 - **Pinned IDs.** OpenRouter reports its canonical slug: the requested ID without a `:variant` suffix, optionally followed by a `-YYYYMMDD` release date (for example `openai/gpt-6-luna-decisions` answers as `openai/gpt-6-luna-decisions-20261006`). Any other response model fails validation. Alias models (`~author/slug`, such as `~typesafe/jev-latest`) are rejected before a request is sent because they answer as whichever version they point to.
@@ -1050,8 +1046,8 @@ The following OpenRouter decision models accepted this runtime's request shape o
 
 | Setting or limit | Contract |
 | --- | --- |
-| `max_in_flight_requests` | 1–3 concurrent requests |
-| `request_spacing_ms` | At least 300ms |
+| `max_in_flight_requests` | 1–8 concurrent requests |
+| `request_spacing_ms` | At least 100ms |
 | `max_batch_bytes` | 1–168,000 encoded bytes; a smaller explicit value remains effective |
 | Token estimates | Operating defaults: 28,000 state + longest question; 56,000 state + all questions. `ceil(encoded bytes / 3)` is an estimate, not exact usage |
 | `timeout_ms` | Positive, at most seven days; one deadline includes preparation and all batches |
@@ -1077,13 +1073,7 @@ Each executed stage records a `jev stage` line on stderr at `info` level (`codem
 
 For direct Rust integration, see [`codemap_search::jev`](../src/jev/mod.rs) and the [decision example](../examples/jev_decisions.rs). The example's `--mock` mode is offline; `--live` uses an API key and sends a real request.
 
-### Jev on non-root overview
-
-With `enabled=true` and `"overview"` in `scope`, Jev selects declaration rows in file and subfolder views. The repository root, its aliases and its absolute path return the ordinary local map without registration or external calls. A child workspace in a monorepo is a non-root path. Folder views judge declarations in up to eight immediate files; subdirectory maps, file entries and indexed statistics remain unchanged.
-
-Private classification source follows read permissions, redaction and test-code exclusions, with its digest checked against the committed index. Files are not reread after inference. Unavailable or over-budget evidence stays unjudged, which is not counted as successful classification. Uncertain declarations remain; only unrelated declarations are removed. Retaining a parent does not retain all children, while a retained child preserves its enclosing declaration structure.
-
-Classification bodies are neither returned by overview nor recorded in common source delivery history, so later reads do not fold them as already delivered. Supporting evidence for read, grep and overview includes up to eight same-container member assignment/use or callback-reference links. These are evidence for Jev, not automatic retention rules or proof of runtime dispatch.
+Supporting evidence for read and grep includes up to eight same-container member assignment/use or callback-reference links. These are evidence for Jev, not automatic retention rules or proof of runtime dispatch.
 
 ## Indexed event navigation
 
@@ -1163,7 +1153,6 @@ Legacy root keys and sections remain readable. A canonical spelling in the same 
 | Legacy path | Canonical path |
 |---|---|
 | `tool_output.is_redact_enabled` | `output.is_redact_enabled` |
-| `tool_output.is_overview_stats_enabled` | `output.overview.is_stats_enabled` |
 | `search.result_threshold` | `output.search.detail_file_limit` |
 | `search.search_overview_file_limit` | `output.search.overview_file_limit` |
 | `search.search_detail_snippet_max_lines` | `output.search.snippet_max_lines` |

@@ -433,9 +433,11 @@ pub(crate) fn expand_sources(
     sources: Vec<Arc<Source>>,
     bindings: &BTreeMap<String, String>,
 ) -> Vec<Arc<Source>> {
-    let mut sources: Vec<Source> = sources.into_iter().map(|s| (*s).clone()).collect();
+    // Only Rust sources change, so the others stay shared with the caller and `templates`,
+    // and a Rust source is copied only when invocation expansion edits it.
+    let mut sources = sources;
     for source in sources.iter_mut().filter(|s| s.language == "rust") {
-        expand_items(source);
+        expand_items(Arc::make_mut(source));
     }
     let templates = sources.clone();
     let mut definitions: BTreeMap<(usize, String), Vec<NodeId>> = BTreeMap::new();
@@ -470,11 +472,11 @@ pub(crate) fn expand_sources(
             is_exported = false;
         }
     }
-    for (index, source) in sources
-        .iter_mut()
-        .enumerate()
-        .filter(|(_, s)| s.language == "rust")
-    {
+    for index in 0..sources.len() {
+        let source = &*sources[index];
+        if source.language != "rust" {
+            continue;
+        }
         let mut imports: BTreeMap<String, Vec<String>> = BTreeMap::new();
         for &id in &source.nodes[0].children {
             if source.nodes[id].kind == "use_declaration" {
@@ -609,9 +611,13 @@ pub(crate) fn expand_sources(
             });
             generated.insert(alias, template.path.clone());
         }
+        if edits.is_empty() {
+            continue;
+        }
+        let source = Arc::make_mut(&mut sources[index]);
         if source.apply_macro_edits(edits) {
             source.generated_imports = generated;
         }
     }
-    sources.into_iter().map(Arc::new).collect()
+    sources
 }

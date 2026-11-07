@@ -559,7 +559,7 @@ impl Interpreter<'_, '_> {
         let Some(summary) = self.analyzer.summaries.get(&target).cloned() else {
             return Value::unknown();
         };
-        self.expand_summary(target, summary, receiver, arguments, id)
+        self.expand_summary(target, &summary, receiver, arguments, id)
     }
     pub fn apply_source(
         &mut self,
@@ -708,12 +708,12 @@ impl Interpreter<'_, '_> {
             returns: nested.returns,
             calls: nested.calls,
         };
-        self.expand_summary(target, summary, Value::unknown(), Vec::new(), id)
+        self.expand_summary(target, &summary, Value::unknown(), Vec::new(), id)
     }
     pub fn expand_summary(
         &mut self,
         target: usize,
-        summary: Summary,
+        summary: &Summary,
         receiver: Value,
         arguments: Vec<Value>,
         id: NodeId,
@@ -830,10 +830,11 @@ impl Interpreter<'_, '_> {
                     .insert(allocated.clone(), prototype.substitute(&replacements));
             }
         }
-        for mut call in summary.calls {
+        for call in &summary.calls {
             if call.via.len() >= 8 || call.via.contains(&location) {
                 continue;
             }
+            let mut call = call.clone();
             call.result = call.result.substitute(&replacements);
             call.callee = call.callee.substitute(&replacements);
             call.receiver = call.receiver.substitute(&replacements);
@@ -851,7 +852,7 @@ impl Interpreter<'_, '_> {
                 self.calls.push(call);
             }
         }
-        for mut fact in summary.facts {
+        for fact in &summary.facts {
             let is_argument_store = self.is_polyglot()
                 && fact.kind == "store"
                 && summary
@@ -876,6 +877,7 @@ impl Interpreter<'_, '_> {
             ) {
                 continue;
             }
+            let mut fact = fact.clone();
             fact.target = fact.target.substitute(&replacements);
             fact.value = fact.value.substitute(&replacements);
             fact.conditions.extend(self.conditions.iter().cloned());

@@ -1,5 +1,7 @@
+mod ancestors;
 mod bounded;
 pub(crate) mod composite;
+pub(crate) use ancestors::ancestors;
 mod key_sites;
 pub(crate) use bounded::parse_source;
 mod markdown;
@@ -388,16 +390,14 @@ fn normalized_collection_owner_type(text: &str) -> Option<String> {
 }
 
 fn first_descendant_kind<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>> {
+    let mut cursor = node.walk();
     let mut pending = vec![node];
     while let Some(node) = pending.pop() {
         if kinds.contains(&node.kind()) {
             return Some(node);
         }
-        pending.extend(
-            (0..node.child_count())
-                .rev()
-                .filter_map(|index| node.child(index as u32)),
-        );
+        let children: Vec<_> = node.children(&mut cursor).collect();
+        pending.extend(children.into_iter().rev());
     }
     None
 }
@@ -720,14 +720,7 @@ fn callable_scope_id(node: Node) -> Option<usize> {
 }
 
 fn scope_id_for_node(node: Node) -> Option<usize> {
-    let mut current = node.parent();
-    while let Some(ancestor) = current {
-        if let Some(scope) = callable_scope_id(ancestor) {
-            return Some(scope);
-        }
-        current = ancestor.parent();
-    }
-    None
+    ancestors(node).find_map(callable_scope_id)
 }
 
 fn reference_scope_index(tree: &Tree) -> HashMap<usize, Option<usize>> {
@@ -934,8 +927,13 @@ fn push_named_imports(
         if trimmed.is_empty() {
             continue;
         }
-        let mut pieces = trimmed.split_whitespace();
-        let imported = pieces.next().unwrap_or("").trim();
+        let mut pieces = trimmed.split_whitespace().peekable();
+        let mut imported = pieces.next().unwrap_or("").trim();
+        // A TypeScript type-only specifier, `{ type Foo }`, names `Foo`; `{ type }` and
+        // `{ type as alias }` import a binding called `type`.
+        if imported == "type" && pieces.peek().is_some_and(|next| *next != "as") {
+            imported = pieces.next().unwrap_or(imported);
+        }
         if imported.is_empty() {
             continue;
         }
@@ -1344,17 +1342,13 @@ fn import_entries_from_node(node: Node, source: &[u8]) -> Vec<ImportEntry> {
     import_entries_from_text(&text, range)
 }
 
-fn enclosing_typescript_class(mut node: Node) -> Option<Node> {
-    while let Some(parent) = node.parent() {
-        if matches!(
+fn enclosing_typescript_class(node: Node) -> Option<Node> {
+    ancestors(node).find(|parent| {
+        matches!(
             parent.kind(),
             "class_declaration" | "abstract_class_declaration"
-        ) {
-            return Some(parent);
-        }
-        node = parent;
-    }
-    None
+        )
+    })
 }
 
 fn typescript_class_name(class_node: Node, source: &[u8]) -> Option<String> {
@@ -1467,13 +1461,13 @@ fn typescript_collection_owner_type(
 }
 
 fn typescript_source_context(
-    mut node: Node,
+    node: Node,
     source: &[u8],
 ) -> (Option<String>, Option<String>, Option<CodeRange>) {
     let mut source_owner = None;
     let mut source_symbol = None;
     let mut source_owner_range = None;
-    while let Some(parent) = node.parent() {
+    for parent in ancestors(node) {
         if source_symbol.is_none()
             && matches!(parent.kind(), "method_definition" | "function_declaration")
         {
@@ -1493,14 +1487,13 @@ fn typescript_source_context(
         if source_owner.is_some() && source_symbol.is_some() {
             break;
         }
-        node = parent;
     }
     (source_owner, source_symbol, source_owner_range)
 }
 
-fn enclosing_callable(mut node: Node) -> Option<Node> {
-    while let Some(parent) = node.parent() {
-        if matches!(
+fn enclosing_callable(node: Node) -> Option<Node> {
+    ancestors(node).find(|parent| {
+        matches!(
             parent.kind(),
             "function_declaration"
                 | "function_definition"
@@ -1510,12 +1503,8 @@ fn enclosing_callable(mut node: Node) -> Option<Node> {
                 | "function_item"
                 | "class_method_definition"
                 | "function_statement"
-        ) {
-            return Some(parent);
-        }
-        node = parent;
-    }
-    None
+        )
+    })
 }
 
 fn callable_name(node: Node, source: &[u8]) -> Option<String> {
@@ -1540,14 +1529,10 @@ fn static_collection_source_context(
     };
     let source_owner = spec.find_owner(callable, ext, source);
     let source_owner_range = source_owner.as_ref().and_then(|owner| {
-        let mut node = site_node;
-        while let Some(parent) = node.parent() {
-            if node_declares_type(parent, owner, source) {
-                return Some(range_for_node(parent));
-            }
-            node = parent;
-        }
-        types.unique_range(owner)
+        ancestors(site_node)
+            .find(|parent| node_declares_type(*parent, owner, source))
+            .map(range_for_node)
+            .or_else(|| types.unique_range(owner))
     });
     (
         source_owner,
@@ -1557,9 +1542,10 @@ fn static_collection_source_context(
 }
 
 fn named_children(node: Node) -> impl DoubleEndedIterator<Item = Node> {
-    (0..node.child_count())
-        .filter_map(move |index| node.child(index as u32))
-        .filter(|child| child.is_named())
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .collect::<Vec<_>>()
+        .into_iter()
 }
 
 fn unwrap_collection_expression(mut node: Node) -> Node {
@@ -1749,19 +1735,10 @@ fn type_field_type(
         }
         // Preserve the original traversal's pruning of nested declarations after
         // entering a matching outer type.
-        if owner_range.is_none() {
-            let mut ancestor = owner.parent();
-            let mut is_nested_match = false;
-            while let Some(node) = ancestor {
-                if node_declares_type(node, owner_type, source) {
-                    is_nested_match = true;
-                    break;
-                }
-                ancestor = node.parent();
-            }
-            if is_nested_match {
-                continue;
-            }
+        if owner_range.is_none()
+            && ancestors(*owner).any(|node| node_declares_type(node, owner_type, source))
+        {
+            continue;
         }
         let mut pending = vec![*owner];
         while let Some(node) = pending.pop() {
@@ -2283,6 +2260,9 @@ impl TreeSitterExtractor {
         // specifiers; ASM `.globl`/`.global` directives). No-op for languages without one.
         let mut exported_names = std::collections::HashSet::new();
         spec.collect_exported_names(tree.root_node(), source, &mut exported_names);
+        if navigation_enabled {
+            navigation.renamed_exports = spec.renamed_exports(tree.root_node(), source);
+        }
 
         let mut query_cursor = QueryCursor::new();
         let mut matches = query_cursor.matches(query, tree.root_node(), source);
@@ -2777,6 +2757,9 @@ fn merge_composite_part(
         }
         for import in source.imports {
             push_unique(&mut target.imports, import);
+        }
+        for export in source.renamed_exports {
+            push_unique(&mut target.renamed_exports, export);
         }
     }
     for definition in part_auxiliary.definition_body {
@@ -3471,6 +3454,81 @@ class Calculator:
             .calls
             .iter()
             .any(|call| call.name == "commentCall"));
+    }
+
+    #[test]
+    fn test_ts_type_only_import_specifiers_name_the_imported_declaration() {
+        let content =
+            "import { type Item, type Row as Line, type, type as kind, value } from './m';\n";
+        let file = TreeSitterExtractor::new().extract(content, "m.ts").unwrap();
+        let imports: Vec<_> = file
+            .navigation
+            .expect("typescript navigation should run")
+            .imports
+            .into_iter()
+            .map(|entry| (entry.local_name, entry.imported_name.unwrap_or_default()))
+            .collect();
+        let pairs: Vec<_> = imports
+            .iter()
+            .map(|(local, imported)| (local.as_str(), imported.as_str()))
+            .collect();
+        assert_eq!(
+            pairs,
+            [
+                ("Item", "Item"),
+                ("Line", "Row"),
+                ("type", "type"),
+                ("kind", "type"),
+                ("value", "value")
+            ]
+        );
+    }
+
+    #[test]
+    fn test_ecmascript_renamed_exports_record_alias_and_original() {
+        let content = "import { inner } from './inner';\nexport { inner as outer };\nexport { first as second, third } from './m';\nexport { default as Main } from './main';\nconst local = 1;\nexport { local };\nexport * as tools from './helper';\nexport * from './all';\n";
+        for path in ["m.ts", "m.js"] {
+            let file = TreeSitterExtractor::new().extract(content, path).unwrap();
+            let exports: Vec<_> = file
+                .navigation
+                .expect("script navigation should run")
+                .renamed_exports
+                .into_iter()
+                .map(|entry| {
+                    (
+                        entry.local_name,
+                        entry.imported_name.unwrap_or_default(),
+                        entry.source,
+                        entry.range.start_line,
+                    )
+                })
+                .collect();
+            assert_eq!(
+                exports,
+                [
+                    ("outer".to_string(), "inner".to_string(), None, 2),
+                    (
+                        "second".to_string(),
+                        "first".to_string(),
+                        Some("./m".to_string()),
+                        3
+                    ),
+                    (
+                        "Main".to_string(),
+                        "default".to_string(),
+                        Some("./main".to_string()),
+                        4
+                    ),
+                    (
+                        "tools".to_string(),
+                        String::new(),
+                        Some("./helper".to_string()),
+                        7
+                    ),
+                ],
+                "{path}"
+            );
+        }
     }
 
     #[test]

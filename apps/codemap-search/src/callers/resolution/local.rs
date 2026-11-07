@@ -6,11 +6,13 @@ use super::*;
 
 mod cpp_members;
 mod dispatched_calls;
+mod import_reach;
 mod module_functions;
 mod reexports;
 mod script_modules;
 mod typed_fields;
 
+pub(crate) use import_reach::{may_reach_unnamed, ImportReach};
 pub(super) use module_functions::ModuleLookups;
 use module_functions::{is_top_level, only_binding};
 pub(super) use reexports::ExportLookup;
@@ -673,9 +675,11 @@ fn targets(entries: &[(&str, &str)], caller: &str, line: usize, name: &str) -> V
         entries
             .iter()
             .map(|(path, source)| {
-                crate::parser::TreeSitterExtractor::new()
-                    .extract(source, path)
-                    .unwrap()
+                std::sync::Arc::new(
+                    crate::parser::TreeSitterExtractor::new()
+                        .extract(source, path)
+                        .unwrap(),
+                )
             })
             .collect::<Vec<_>>(),
     );
@@ -708,14 +712,18 @@ fn targets(entries: &[(&str, &str)], caller: &str, line: usize, name: &str) -> V
 mod tests {
     use super::*;
 
-    fn project(sources: &[(&str, &str)]) -> (tempfile::TempDir, Vec<ExtractedFile>) {
+    fn project(
+        sources: &[(&str, &str)],
+    ) -> (tempfile::TempDir, Vec<std::sync::Arc<ExtractedFile>>) {
         let (root, path) = crate::callers::fixtures::write_repo(sources);
         let files = sources
             .iter()
             .map(|(name, source)| {
-                crate::parser::TreeSitterExtractor::new()
-                    .extract(source, name)
-                    .unwrap()
+                std::sync::Arc::new(
+                    crate::parser::TreeSitterExtractor::new()
+                        .extract(source, name)
+                        .unwrap(),
+                )
             })
             .collect();
         assert_eq!(root.path(), path);

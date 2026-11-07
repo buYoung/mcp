@@ -36,7 +36,7 @@ const ROOT_FILE_SUMMARY_LIMIT: usize = 60;
 /// Max symbol names shown per kind inside a compact root file row.
 const ROOT_SYMBOLS_PER_KIND_LIMIT: usize = 4;
 /// Max file links in llms-txt root output. The full file set remains discoverable through
-/// folder overview and find; llms-txt is a first-call orientation surface, not an index dump.
+/// folder views and find; llms-txt is a first-call orientation surface, not an index dump.
 const LLMS_TXT_FILE_LIMIT: usize = 200;
 
 fn grouped_symbol_summary(file: &ExtractedFileSummary<'_>) -> Option<String> {
@@ -102,7 +102,7 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
         if !self.directories.is_empty() {
             writeln!(
                 f,
-                "## Directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `overview <dir>`)"
+                "## Directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `find path=<dir> pattern=*`)"
             )?;
             write_directory_tree(f, &self.directories, "", ROOT_DIRECTORY_LIMIT)?;
             writeln!(f)?;
@@ -127,7 +127,7 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
             if self.files.len() > ROOT_FILE_SUMMARY_LIMIT {
                 writeln!(
                     f,
-                    "- _Showing files 1-{} of {}; continue with `overview <dir>` for the relevant subtree or `find` for exact file enumeration._",
+                    "- _Showing files 1-{} of {}; continue with `find` for exact file enumeration._",
                     ROOT_FILE_SUMMARY_LIMIT,
                     self.files.len()
                 )?;
@@ -137,7 +137,7 @@ impl<'a> std::fmt::Display for RootCodemap<'a> {
 
         writeln!(
             f,
-            "_Tip: `overview <dir>` lists a folder's files; `search <keyword>` jumps straight to code by name._"
+            "_Tip: `find path=<dir> pattern=*` lists a folder's files; `search <keyword>` jumps straight to code by name._"
         )?;
         Ok(())
     }
@@ -175,7 +175,7 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
         if has_subdirs {
             writeln!(
                 f,
-                "## Sub-directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `overview <dir>`)"
+                "## Sub-directories (recursive file/symbol counts; children inlined as `parent: childA, childB`; drill in with `find path=<dir> pattern=*`)"
             )?;
             write_directory_tree(
                 f,
@@ -196,7 +196,7 @@ impl<'a> std::fmt::Display for FolderCodemap<'a> {
                 )?;
                 // Significant symbols only, names/kinds without line ranges: the folder
                 // view orients within a known folder but is not a locator — exact
-                // positions come from search/grep (overview must not substitute for search).
+                // positions come from search/grep (a folder view must not substitute for search).
                 if let Some(outline) = &file.outline {
                     write!(f, "{outline}")?;
                 } else {
@@ -293,11 +293,13 @@ pub struct CodemapGenerator;
 
 impl CodemapGenerator {
     /// Root level: Overview of files and top-level definitions
-    pub fn generate_root_view<'a>(files: &'a [crate::parser::ExtractedFile]) -> RootCodemap<'a> {
+    pub fn generate_root_view<'a>(
+        files: &'a [std::sync::Arc<crate::parser::ExtractedFile>],
+    ) -> RootCodemap<'a> {
         let total_files = files.len();
 
         let mut files_summary: Vec<ExtractedFileSummary<'a>> =
-            files.iter().map(summarize_file).collect();
+            files.iter().map(|file| summarize_file(file)).collect();
         files_summary.sort_by(|a, b| a.file_path.cmp(&b.file_path));
         // Root counts significant symbols after per-file summarization, not the
         // raw extracted total; the later row caps only limit what is printed.
@@ -317,7 +319,7 @@ impl CodemapGenerator {
     /// `folder_path`, plus the files that live directly in that folder (with their
     /// symbols) — the files-with-symbols payload is what this view adds over the root.
     pub fn generate_folder_view<'a>(
-        files: &'a [crate::parser::ExtractedFile],
+        files: &'a [std::sync::Arc<crate::parser::ExtractedFile>],
         folder_path: &str,
     ) -> FolderCodemap<'a> {
         let normalized_folder = normalize_path(folder_path).into_owned();
@@ -396,12 +398,15 @@ impl CodemapGenerator {
     }
 
     /// LLMS.txt format view
-    pub fn generate_llms_txt_view(files: &[crate::parser::ExtractedFile]) -> String {
+    pub fn generate_llms_txt_view(
+        files: &[std::sync::Arc<crate::parser::ExtractedFile>],
+    ) -> String {
         use std::fmt::Write;
         let mut view = String::new();
         let _ = writeln!(view, "# llms.txt");
         let _ = writeln!(view);
-        let mut sorted_files: Vec<&crate::parser::ExtractedFile> = files.iter().collect();
+        let mut sorted_files: Vec<&crate::parser::ExtractedFile> =
+            files.iter().map(|file| &**file).collect();
         sorted_files.sort_by(|a, b| a.file_path.cmp(&b.file_path));
         let shown = sorted_files.len().min(LLMS_TXT_FILE_LIMIT);
         let _ = writeln!(
@@ -416,7 +421,7 @@ impl CodemapGenerator {
         if files.len() > LLMS_TXT_FILE_LIMIT {
             let _ = writeln!(
                 view,
-                "- _{} more files not shown; continue with `overview <dir>` or `find`._",
+                "- _{} more files not shown; continue with `find path=<dir> pattern=*`._",
                 files.len() - LLMS_TXT_FILE_LIMIT
             );
         }
@@ -429,7 +434,7 @@ mod tests {
     use super::*;
     use crate::parser::{CodeRange, ExtractedFile, ExtractedSymbol, SymbolFlags};
 
-    fn make_mock_file(path: &str, symbol_names: &[(&str, &str)]) -> ExtractedFile {
+    fn make_mock_file(path: &str, symbol_names: &[(&str, &str)]) -> std::sync::Arc<ExtractedFile> {
         let symbols = symbol_names
             .iter()
             .map(|(name, kind)| ExtractedSymbol {
@@ -453,7 +458,7 @@ mod tests {
             })
             .collect();
 
-        ExtractedFile {
+        std::sync::Arc::new(ExtractedFile {
             file_path: path.to_string(),
             total_lines: 0,
             symbols,
@@ -461,7 +466,7 @@ mod tests {
             docstrings: vec![],
             member_names: vec![],
             navigation: None,
-        }
+        })
     }
 
     #[test]
@@ -718,7 +723,7 @@ mod tests {
         assert!(formatted.contains("## Symbols"));
         // File view is a trimmed outline: name, kind, line range only.
         assert!(formatted.contains("- check (fn) [L5-10]"));
-        // Verbose details (flags, docstrings, literals) belong to read/grep, not overview.
+        // Verbose details (flags, docstrings, literals) belong to read/grep, not codemap views.
         assert!(!formatted.contains("Docstring"));
         assert!(!formatted.contains("Flags:"));
         assert!(!formatted.contains("## Literals"));

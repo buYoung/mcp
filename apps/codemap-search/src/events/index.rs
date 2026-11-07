@@ -87,12 +87,12 @@ impl EventIndex {
         Arc::clone(&self.sources)
     }
 
-    pub fn build(files: &[ExtractedFile], inputs: EventInputs) -> Self {
+    pub fn build(files: &[std::sync::Arc<ExtractedFile>], inputs: EventInputs) -> Self {
         Self::build_with_cache(files, inputs, None)
     }
 
     pub(crate) fn build_with_cache(
-        files: &[ExtractedFile],
+        files: &[std::sync::Arc<ExtractedFile>],
         mut inputs: EventInputs,
         cache_directory: Option<&Path>,
     ) -> Self {
@@ -106,7 +106,7 @@ impl EventIndex {
             super::extract::extract(
                 files,
                 &sources,
-                &std::env::current_dir().unwrap_or_default(),
+                &crate::workspace::root_dir().unwrap_or_default(),
             )
         } else {
             super::extract::Extraction {
@@ -176,7 +176,7 @@ impl EventIndex {
         let source_routes = Arc::new(source_routes::Snapshot::build(
             files,
             &sources,
-            &std::env::current_dir().unwrap_or_default(),
+            &crate::workspace::root_dir().unwrap_or_default(),
             super::ENDPOINTS_PER_SNAPSHOT.saturating_sub(extraction.endpoints.len()),
             &configured_endpoints_per_file,
             cache_directory,
@@ -336,16 +336,15 @@ impl EventIndex {
         let mut output = String::new();
         let mut seen = BTreeSet::new();
         for (path, start, _) in anchors {
-            if !seen.insert(path)
-                || !under_scope(path, scope)
-                || filter.is_file_excluded(path)
-                || !crate::workspace::walk_root_is_visible(&root.join(path), true)
-            {
+            if !seen.insert(path) || !under_scope(path, scope) || filter.is_file_excluded(path) {
                 continue;
             }
             let Some(reason) = self.unavailable_details.get(path) else {
                 continue;
             };
+            if !crate::workspace::walk_root_is_visible(&root.join(path), true) {
+                continue;
+            }
             let row = format!("- event input unavailable — {path}:{start}: {reason}.\n");
             let header = if output.is_empty() {
                 "## Analysis diagnostics\n\n"
@@ -632,8 +631,18 @@ impl EventIndex {
             }
             rendered_endpoints += 1;
         }
-        if total == 0 {
-            append("\n[No eligible event endpoints in this bounded indexed scope. Unknown/unconfigured API receivers are not joined by method spelling.]\n");
+        if total == 0
+            && !append(concat!(
+                "\nNo eligible event endpoints for this exact key in the inspected map; this is not proof that a route is absent.\n",
+                "This event-key lookup did not run ranked search for query. Event extraction covers Rust/JavaScript/TypeScript and matched configured API rules, not arbitrary methods or transports.\n",
+                "Input/extraction coverage counts below are snapshot-wide, not counts for this key or scope.\n",
+                "Next: grep a known source identifier, or omit event_key to run ranked search.\n",
+            ))
+        {
+            return "[Event output budget unavailable; narrow the source request.]\n"
+                .chars()
+                .take(cap)
+                .collect();
         }
         let query_omissions = candidate_omissions
             + indices.len().saturating_sub(super::CANDIDATES_PER_QUERY)

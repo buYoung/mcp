@@ -127,6 +127,41 @@ fn tail_omission_note(omitted_count: usize) -> String {
     format!("{omitted_count} files omitted; narrow the query.\n")
 }
 
+/// Files outside the ranked results that state a query phrase in one docstring or literal.
+/// Rows use only tail rows and bytes the finished output left unused, so ranked evidence,
+/// relations and source spans stay exactly as planned.
+fn append_phrase_matches(
+    text: &mut String,
+    matches: &[crate::index::PhraseMatch],
+    free_rows: usize,
+    byte_cap: usize,
+) {
+    const HEADING: &str = "\n## Exact phrase matches outside the ranking\n";
+    let mut rows = String::new();
+    for phrase_match in matches.iter().take(free_rows) {
+        let anchor = match &phrase_match.anchor {
+            crate::index::PhraseAnchor::Docstring {
+                symbol,
+                start_line,
+                end_line,
+            } => format!("docstring of {symbol} [L{start_line}-{end_line}]"),
+            crate::index::PhraseAnchor::Literal { line } => format!("string literal [L{line}]"),
+        };
+        let row = format!(
+            "- {} ({} lines) — {anchor}\n",
+            phrase_match.file_path, phrase_match.total_lines
+        );
+        if text.len() + HEADING.len() + rows.len() + row.len() > byte_cap {
+            break;
+        }
+        rows.push_str(&row);
+    }
+    if !rows.is_empty() {
+        text.push_str(HEADING);
+        text.push_str(&rows);
+    }
+}
+
 fn compact_symbol_names(symbols: &[crate::parser::ExtractedSymbol], limit: usize) -> String {
     let mut names: Vec<&str> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
     names.sort_unstable();
@@ -456,6 +491,125 @@ pub struct SearchOutput {
     pub source_files: Vec<crate::analyze::FileObservation>,
 }
 
+/// All budget decisions are complete before construction. Serialization must not refill
+/// tail, candidate or relation space. File metadata retains annotation and deferred-read locations.
+struct SelectedSearchOutput {
+    primary: String,
+    note_definition_offset: usize,
+    files: Vec<grouped::FileOutput>,
+    retained_primary_bytes: usize,
+    relation_insertions: Vec<(usize, String)>,
+    call_candidate_text: String,
+}
+
+impl SelectedSearchOutput {
+    fn serialize(&self, fold_notes: bool) -> SearchOutput {
+        let (text, source_ranges) = self.write_selected(fold_notes);
+        let source_files = self
+            .files
+            .iter()
+            .zip(source_ranges)
+            .filter_map(|(file, ranges)| {
+                let result_bytes: usize = ranges.iter().map(|range| range.len()).sum();
+                (result_bytes > 0).then(|| crate::analyze::FileObservation {
+                    path: file.path.clone(),
+                    result_bytes: result_bytes as u64,
+                })
+            })
+            .collect();
+        SearchOutput { text, source_files }
+    }
+
+    /// Rebase selected source pieces with the writer's UTF-8 byte cursor, never by applying
+    /// the old cutoff to the shorter output. Only complete, structured notes may be edited.
+    fn write_selected(&self, fold_notes: bool) -> (String, Vec<Vec<std::ops::Range<usize>>>) {
+        let rebase = |range: std::ops::Range<usize>| {
+            let before_start: usize = self
+                .relation_insertions
+                .iter()
+                .filter(|(offset, _)| *offset <= range.start)
+                .map(|(_, text)| text.len())
+                .sum();
+            let before_end: usize = self
+                .relation_insertions
+                .iter()
+                .filter(|(offset, _)| *offset < range.end)
+                .map(|(_, text)| text.len())
+                .sum();
+            range.start + before_start..range.end + before_end
+        };
+        let limit = self.retained_primary_bytes.min(self.primary.len());
+        let sources = self
+            .files
+            .iter()
+            .map(|file| {
+                file.selected_source_ranges(limit)
+                    .into_iter()
+                    .map(&rebase)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let mut deferred = Vec::new();
+        let mut headers = Vec::new();
+        for (index, file) in self.files.iter().enumerate() {
+            for mut note in file.selected_deferred_notes(limit, index) {
+                note.range = rebase(note.range);
+                deferred.push(note);
+            }
+            for mut header in file.selected_callee_headers(limit, index) {
+                header.range = rebase(header.range);
+                headers.push(header);
+            }
+        }
+        let mut baseline = self.primary.clone();
+        for (offset, relations) in &self.relation_insertions {
+            baseline.insert_str(*offset, relations);
+        }
+        baseline.push_str(&self.call_candidate_text);
+        let edits = if fold_notes {
+            let allowances = self
+                .files
+                .iter()
+                .map(|file| file.remaining_bytes())
+                .collect::<Vec<_>>();
+            display::plan_note_folding(
+                &baseline,
+                &deferred,
+                &headers,
+                &allowances,
+                (self.note_definition_offset <= limit).then_some(self.note_definition_offset),
+            )
+        } else {
+            Vec::new()
+        };
+        let mut text = String::with_capacity(baseline.len());
+        let mut final_ranges = vec![Vec::new(); self.files.len()];
+        let mut copy = |range: std::ops::Range<usize>, text: &mut String| {
+            let cursor = text.len();
+            for (file, ranges) in sources.iter().enumerate() {
+                for source in ranges {
+                    let start = source.start.max(range.start);
+                    let end = source.end.min(range.end);
+                    if start < end {
+                        final_ranges[file]
+                            .push(cursor + start - range.start..cursor + end - range.start);
+                    }
+                }
+            }
+            text.push_str(&baseline[range]);
+        };
+        let mut previous_end = 0;
+        for edit in edits {
+            copy(previous_end..edit.range.start, &mut text);
+            text.push_str(&edit.text);
+            previous_end = edit.range.end;
+        }
+        copy(previous_end..baseline.len(), &mut text);
+        debug_assert!(text.len() <= baseline.len());
+        (text, final_ranges)
+    }
+}
+
 /// The parent directory of a workspace-relative path (`a/b/c.rs` → `a/b`), or `""` for a
 /// top-level file. The diversity unit for the detail-head reorder.
 fn parent_dir(file_path: &str) -> &str {
@@ -592,8 +746,7 @@ pub(crate) struct DetailState {
     has_refresh_error: bool,
     search_started: std::time::Instant,
     candidates_elapsed: std::time::Duration,
-    /// Masked copy of the search arguments the filter stage names in its shared state.
-    search_arguments: serde_json::Value,
+    phrase_matches: Vec<crate::index::PhraseMatch>,
 }
 
 pub(crate) enum Prepared {
@@ -606,7 +759,7 @@ pub(crate) fn run_inner_with_metadata(
     workspace_scope: Option<&str>,
     search_limit: usize,
 ) -> Result<SearchOutput, (i64, String)> {
-    match prepare_detail(ctx, workspace_scope, search_limit)? {
+    match prepare_detail(ctx, workspace_scope, search_limit, true)? {
         Prepared::Done(output) => Ok(output),
         Prepared::Detail(state) => Ok(finish_detail(*state, None, None).0),
     }
@@ -626,20 +779,14 @@ pub(crate) async fn run_inner_with_filter(
     policy: &jev::FilterPolicy,
 ) -> Result<(SearchOutput, Option<jev::FilterResult>), (i64, String)> {
     let selection_started = tokio::time::Instant::now();
-    let state = match prepare_detail(ctx, workspace_scope, search_limit)? {
+    let state = match prepare_detail(ctx, workspace_scope, search_limit, false)? {
         Prepared::Done(output) => return Ok((output, None)),
         Prepared::Detail(state) => state,
     };
     let files: Vec<&grouped::FileOutput> = state.files.iter().map(|(file, _)| file).collect();
-    let mut input = jev::FilterInput::capture(task, state.search_arguments.clone(), &files);
-    input.add_supporting_evidence(
-        &files,
-        &state.published_snapshot,
-        workspace_scope,
-        state.should_include_events,
-        !state.is_warming && !state.is_dead && !state.has_refresh_error,
-        policy,
-    );
+    let mut input = jev::FilterInput::capture(task, &files);
+    // Follow-up caller candidates come from the index and need a fresh snapshot.
+    input.is_snapshot_fresh = !state.is_warming && !state.is_dead && !state.has_refresh_error;
     let planned_primary_bytes = state
         .files
         .last()
@@ -650,11 +797,6 @@ pub(crate) async fn run_inner_with_filter(
         candidate_count = input.entities.len(),
         complete_bodies = input.evidence_summary().complete,
         eligible_bodies = input.judgeable().len(),
-        supporting_context_bytes = input
-            .entities
-            .iter()
-            .map(|entity| entity.supporting_context.len())
-            .sum::<usize>(),
         "jev selection plan"
     );
     let mut result = jev::evaluate(&input, evaluator, policy).await;
@@ -664,11 +806,16 @@ pub(crate) async fn run_inner_with_filter(
         && state.caller_context_enabled
         && input.is_snapshot_fresh
         && !state.output_was_capped;
-    let (output, rendered_omissions) = finish_detail(
-        *state,
-        Some(outcome),
-        should_add_candidates.then_some((&input, &result)),
-    );
+    let snapshot = std::sync::Arc::clone(&state.published_snapshot);
+    let mut candidates = should_add_candidates
+        .then(|| jev::call_candidates(&input, &result, &snapshot, workspace_scope))
+        .flatten();
+    if let Some(candidates) = &mut candidates {
+        candidates
+            .judge(&input, &mut result, &snapshot, evaluator, policy)
+            .await;
+    }
+    let (output, rendered_omissions) = finish_detail(*state, Some(outcome), candidates.as_ref());
     result.rendered_omissions = rendered_omissions;
     result.timing.elapsed = selection_started.elapsed();
     tracing::info!(
@@ -685,42 +832,15 @@ pub(crate) async fn run_inner_with_filter(
     Ok((output, Some(result)))
 }
 
-fn masked_search_arguments(
-    ctx: &ToolContext,
-    query: &str,
-    workspace_scope: Option<&str>,
-    caller_context_enabled: bool,
-) -> serde_json::Value {
-    let mut arguments = serde_json::Map::new();
-    arguments.insert(
-        "query".into(),
-        serde_json::Value::String(crate::redact::source(query).into_owned()),
-    );
-    for key in ["language_hint", "extension_hint"] {
-        if let Some(value) = ctx.arguments.get(key).and_then(|value| value.as_str()) {
-            arguments.insert(
-                key.into(),
-                serde_json::Value::String(crate::redact::named_value(key, value).into_owned()),
-            );
-        }
-    }
-    if let Some(scope) = workspace_scope {
-        arguments.insert("workspace_scope".into(), serde_json::json!(scope));
-    }
-    arguments.insert(
-        "caller_context".into(),
-        serde_json::json!(caller_context_enabled),
-    );
-    serde_json::Value::Object(arguments)
-}
-
 /// Plan ranking, readiness notices, source blocks and metadata under the configured budget.
 /// Large result bodies are assembled once, after any Jev selection. The budget is the
-/// same whether or not a filter follows.
+/// same whether or not a filter follows. `should_recall_phrases` also reads unranked phrase
+/// matches for the tail rows the ranked results leave unused.
 pub(crate) fn prepare_detail(
     ctx: &ToolContext,
     workspace_scope: Option<&str>,
     search_limit: usize,
+    should_recall_phrases: bool,
 ) -> Result<Prepared, (i64, String)> {
     let search_started = std::time::Instant::now();
     let query = ctx
@@ -753,7 +873,7 @@ pub(crate) fn prepare_detail(
         if ctx.engine.is_warming() || ctx.engine.is_dead() || ctx.engine.last_error().is_some() {
             return Ok(Prepared::Done(SearchOutput {text:"[Event index unavailable or stale; retry after indexing, or use read/grep for live source.]".into(), ..SearchOutput::default()}));
         }
-        let root = std::env::current_dir().unwrap_or_default();
+        let root = crate::workspace::root_dir().unwrap_or_default();
         let snapshot = ctx.engine.published_snapshot();
         let cap = crate::config::get().search_detail_byte_cap;
         return Ok(Prepared::Done(SearchOutput {
@@ -788,25 +908,35 @@ pub(crate) fn prepare_detail(
     // initial pass finishes after we read an empty snapshot, checking again while
     // rendering would lose the warm-up notice and incorrectly report a ready no-match.
     let is_warming = ctx.engine.is_warming();
-    let (mut results, published_snapshot) = ctx
+    // Result-branch threshold: at or below it, return file details;
+    // above it, return a codemap overview. Config-driven (Child 05),
+    // default 5.
+    let result_branch_threshold = crate::config::get().result_threshold;
+    let tail_file_limit = crate::config::get().search_overview_file_limit;
+    let (mut results, mut phrase_matches, published_snapshot) = ctx
         .engine
-        .search_with_context_and_snapshot_in_scope(
+        .search_with_phrase_recall_in_scope(
             query,
             search_limit,
             &search_context,
             workspace_scope,
+            |results| {
+                if should_recall_phrases {
+                    tail_file_limit
+                        .saturating_sub(results.len().saturating_sub(result_branch_threshold))
+                } else {
+                    0
+                }
+            },
         )
         .map_err(|e| (-32603, format!("Search error: {}", e)))?;
     let candidates_elapsed = search_started.elapsed();
     if let Some(scope) = workspace_scope {
         results.retain(|result| monorepo::result_is_under_scope(result, scope));
         results.truncate(DEFAULT_SEARCH_LIMIT);
+        phrase_matches
+            .retain(|phrase_match| monorepo::path_is_under_scope(&phrase_match.file_path, scope));
     }
-
-    // Result-branch threshold: at or below it, return file details;
-    // above it, return a codemap overview. Config-driven (Child 05),
-    // default 5.
-    let result_branch_threshold = crate::config::get().result_threshold;
 
     let mut text = String::new();
     // While the initial background index builds, results can be empty or
@@ -937,7 +1067,8 @@ pub(crate) fn prepare_detail(
                 is_dead_or_stale: ctx.engine.is_dead() || ctx.engine.last_error().is_some(),
             };
             let available = byte_cap.saturating_sub(text.len());
-            let root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            let root =
+                crate::workspace::root_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
             crate::callers::annotate_results_with_state(
                 &requests,
                 &snapshot,
@@ -946,6 +1077,7 @@ pub(crate) fn prepare_detail(
                 &root,
                 runtime_state,
                 Some(published_snapshot.implementations()),
+                Some(published_snapshot.call_lookup()),
             )
         } else {
             None
@@ -999,7 +1131,8 @@ pub(crate) fn prepare_detail(
                 detail_files_rendered,
                 snapshot_files
                     .iter()
-                    .find(|file| file.file_path == res.file_path),
+                    .find(|file| file.file_path == res.file_path)
+                    .map(|file| &**file),
                 projected_len,
                 file_byte_cap,
             );
@@ -1145,8 +1278,8 @@ pub(crate) fn prepare_detail(
                         .saturating_sub(snippet_starts.len() + listed + unlisted_keys);
                     if remaining > 0 {
                         text.push_str(&format!(
-                        "- _… {remaining} more symbols not shown; use overview/read to inspect._\n"
-                    ));
+                            "- _… {remaining} more symbols not shown; use read to inspect._\n"
+                        ));
                     }
                 } else {
                     // Name-matched file: emit capped snippets via the shared
@@ -1179,7 +1312,7 @@ pub(crate) fn prepare_detail(
                     }
                     if skipped_for_cap > 0 {
                         text.push_str(&format!(
-                        "- _… {skipped_for_cap} more symbols not shown; use overview/read to inspect._\n"
+                        "- _… {skipped_for_cap} more symbols not shown; use read to inspect._\n"
                     ));
                     }
                 }
@@ -1223,8 +1356,6 @@ pub(crate) fn prepare_detail(
         }
         rendered_detail_count = detail_files_rendered;
     }
-    let search_arguments =
-        masked_search_arguments(ctx, query, workspace_scope, caller_context_enabled);
     Ok(Prepared::Detail(Box::new(DetailState {
         text,
         files: grouped_files,
@@ -1243,17 +1374,16 @@ pub(crate) fn prepare_detail(
         has_refresh_error: ctx.engine.last_error().is_some(),
         search_started,
         candidates_elapsed,
-        search_arguments,
+        phrase_matches,
     })))
 }
 
-/// Write the rendered files (after any retention mask), then the ranked tail, the output
-/// cap, the post-cap source observations and the relation blocks. Returns the output and
-/// the number of body blocks the retention mask actually replaced.
+/// Finalize files, ranked tail, truncation, candidates and relations before serialization.
+/// Returns the output and the number of body blocks the retention mask actually replaced.
 fn finish_detail(
     state: DetailState,
     filter: Option<jev::FilterOutcome>,
-    call_candidates: Option<(&jev::FilterInput, &jev::FilterResult)>,
+    call_candidates: Option<&jev::CallCandidates>,
 ) -> (SearchOutput, usize) {
     let DetailState {
         mut text,
@@ -1273,9 +1403,11 @@ fn finish_detail(
         has_refresh_error,
         search_started,
         candidates_elapsed,
-        search_arguments: _,
+        phrase_matches,
     } = state;
     let workspace_scope = workspace_scope.as_deref();
+    // The title ends the prepared prefix, after any warming/stale/scope notices.
+    let note_definition_offset = text.len();
     let remaining_results: Vec<&crate::index::SearchResult> = remaining_indices
         .iter()
         .map(|index| &results[*index])
@@ -1284,11 +1416,25 @@ fn finish_detail(
     let byte_cap = display::delivery_byte_cap(byte_cap);
     let mut grouped_files = Vec::with_capacity(files.len());
     let mut rendered_omissions = 0;
+    let mut omitted_bytes = 0;
     let mut display = display::DisplayContext::default();
     for (file_index, (mut file_output, is_partial_file)) in files.into_iter().enumerate() {
         if let Some(filter) = &filter {
+            let before = file_output.written_len(is_partial_file);
+            let omitted_symbols: Vec<_> = file_output
+                .blocks()
+                .iter()
+                .enumerate()
+                .filter(|(block_index, _)| {
+                    filter.replacement_for(file_index, *block_index).is_some()
+                })
+                .filter_map(|(_, block)| block.symbol.clone())
+                .collect();
             rendered_omissions += file_output
                 .retain_blocks(|block_index, _| filter.replacement_for(file_index, block_index));
+            file_output.drop_omitted_members(&omitted_symbols);
+            file_output.drop_outline_if_all_omitted();
+            omitted_bytes += before.saturating_sub(file_output.written_len(is_partial_file));
         }
         file_output.compact_display(&mut display);
         grouped_files.push((file_output, is_partial_file));
@@ -1298,9 +1444,11 @@ fn finish_detail(
     let reserved_bytes = (byte_cap / 8).min(12 * 1024);
     // An agent resends this page with every later request, so bodies beyond a third of one
     // call's delivery budget wait behind their read ranges; ranked headings stay.
+    // Jev omissions shrink the page; the space they free is not refilled with deferred bodies.
     let primary_budget_bytes = byte_cap
         .saturating_sub(reserved_bytes)
-        .min(byte_cap / SEARCH_PAGE_BODY_SHARE);
+        .min(byte_cap / SEARCH_PAGE_BODY_SHARE)
+        .saturating_sub(omitted_bytes);
     let mut primary_bytes = text.len()
         + grouped_files
             .iter()
@@ -1316,6 +1464,11 @@ fn finish_detail(
                         .as_ref()
                         .is_some_and(|filter| filter.is_delivery_protected(file_index, block_index))
                 });
+        }
+        // Jev protection orders deferral; it does not lift the page budget.
+        for (file, _) in grouped_files.iter_mut().rev() {
+            deferred_bodies +=
+                file.defer_bodies(&mut primary_bytes, primary_budget_bytes, |_| false);
         }
     }
     let grouped_files = grouped_files
@@ -1426,40 +1579,20 @@ fn finish_detail(
     let is_partial = output_was_capped || text.len() > byte_cap;
     let (mut text, retained_bytes) = finish_search_output(text, byte_cap, is_partial);
     retained_primary_bytes = retained_primary_bytes.min(retained_bytes);
-    let source_files = grouped_files
-        .iter()
-        .filter_map(|file| {
-            if file.first_source_byte? >= retained_primary_bytes {
-                return None;
-            }
-            // Omission notes written by the structured filter are not delivered source.
-            let result_bytes = file.delivered_source_bytes(retained_primary_bytes);
-            (result_bytes > 0).then(|| crate::analyze::FileObservation {
-                path: file.path.clone(),
-                result_bytes: result_bytes as u64,
-            })
-        })
-        .collect();
     // Plan candidate text once before allocating relation space. Empty or ineligible
     // candidates must not reduce that space; nonempty candidates keep the existing reserve.
-    let call_candidate_text = if let Some((input, result)) = call_candidates {
+    let call_candidate_text = if let Some(candidates) = call_candidates {
         let start = text.len();
-        jev::append_call_candidates(
-            &mut text,
-            input,
-            result,
-            &published_snapshot,
-            workspace_scope,
-        );
+        jev::append_call_candidates(&mut text, candidates);
         text.split_off(start)
     } else {
         String::new()
     };
     // A clipped primary body no longer guarantees that all collected anchors
     // remain visible. It already carries the search-cap notice; skip relations.
-    if !is_partial && !is_warming && !is_dead && !has_refresh_error {
-        grouped::append_relations(
-            &mut text,
+    let relation_insertions = if !is_partial && !is_warming && !is_dead && !has_refresh_error {
+        grouped::plan_relation_insertions(
+            text.len(),
             &grouped_files,
             &published_snapshot,
             workspace_scope,
@@ -1473,9 +1606,26 @@ fn finish_detail(
                 },
             },
             &mut display,
-        );
+        )
+    } else {
+        Vec::new()
+    };
+    // Tail rows the ranked tail left unused; none once the tail itself is clipped.
+    let free_tail_rows = crate::config::get()
+        .search_overview_file_limit
+        .saturating_sub(remaining_results.len());
+    let mut output = SelectedSearchOutput {
+        primary: text,
+        note_definition_offset,
+        files: grouped_files,
+        retained_primary_bytes,
+        relation_insertions,
+        call_candidate_text,
     }
-    text.push_str(&call_candidate_text);
+    .serialize(true);
+    if !is_partial && !is_warming && !is_dead && !has_refresh_error {
+        append_phrase_matches(&mut output.text, &phrase_matches, free_tail_rows, byte_cap);
+    }
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,
         output_ms = search_started
@@ -1486,5 +1636,283 @@ fn finish_detail(
         total_ms = search_started.elapsed().as_secs_f64() * 1000.0,
         "search tool timing"
     );
-    (SearchOutput { text, source_files }, rendered_omissions)
+    (output, rendered_omissions)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::{CodeRange, ExtractedSymbol, SymbolFlags};
+
+    fn selected_fixture() -> SelectedSearchOutput {
+        let mut primary = "_Workspace scope: `src`._\n\n# codemap-search\n".to_string();
+        let note_definition_offset = primary.len();
+        let mut files = Vec::new();
+        let mut relation_insertions = Vec::new();
+        for (number, path) in ["경로/first.rs", "second.rs"].into_iter().enumerate() {
+            let mut file = grouped::FileOutput::new(path, number + 1, None, 0, 64 * 1024);
+            for index in 0..3 {
+                let first = 10 * index + 1;
+                let symbol = ExtractedSymbol {
+                    name: format!("work{index}"),
+                    kind: "fn".into(),
+                    owner: None,
+                    docstring: None,
+                    range: CodeRange {
+                        start_line: first,
+                        start_col: 1,
+                        end_line: first + 8,
+                        end_col: 2,
+                    },
+                    flags: SymbolFlags {
+                        has_todo: false,
+                        has_fixme: false,
+                        is_test: false,
+                        is_exported: true,
+                        is_deprecated: false,
+                    },
+                };
+                assert!(file.start_symbol(&symbol, Some("")));
+                assert!(file.push_annotation(&format!(
+                    "  - _{}:_\n    - target — helper.rs:2 (precise)\n",
+                    display::CALLEE_HEADERS[0]
+                )));
+                let body = format!("{first}→ fn work{index}() {{\n{}\n  - _calls (depth 1, source/import resolution checked):_\n_Body deferred by delivery budget, not a relevance judgment; read literal.rs offset 1 limit 2 to restore._\n}}", "한글 source evidence\n".repeat(80));
+                assert!(file.plan_source_for_symbol(&body, "", &symbol, (first, first + 8), false));
+                file.anchor(first, first + 8);
+            }
+            let mut bytes = file.primary_bytes(false);
+            assert_eq!(file.defer_bodies(&mut bytes, 0, |index| index == 2), 2);
+            let start = primary.len();
+            file.write_primary(&mut primary, false);
+            let insertion = start + primary[start..].find("\n### results\n").unwrap();
+            relation_insertions.push((
+                insertion,
+                format!("\n#### Selected relation {number}\n- endpoint → other.rs:4\n"),
+            ));
+            files.push(file);
+        }
+        relation_insertions.reverse();
+        SelectedSearchOutput {
+            retained_primary_bytes: primary.len(),
+            primary,
+            note_definition_offset,
+            files,
+            relation_insertions,
+            call_candidate_text: String::new(),
+        }
+    }
+
+    fn expand_notes(text: &str) -> String {
+        let mut expanded = text.replace("\n[D1] Body deferred by delivery budget, not a relevance judgment; listed reads restore unshown source.\n", "");
+        let lines = expanded.split_inclusive('\n').map(|line| {
+            if let Some(read) = line.strip_prefix("_Body deferred [D1]; read ").and_then(|line| line.strip_suffix("._\n")) {
+                format!("_Body deferred by delivery budget, not a relevance judgment; read {read} to restore._\n")
+            } else { line.to_string() }
+        }).collect::<String>();
+        expanded = lines;
+        for label in 1..=3 {
+            let prefix = format!("calls [C{label}] ");
+            let definition = expanded.lines().find_map(|line| {
+                let trimmed = line.trim().strip_prefix("- _")?.strip_suffix(":_")?;
+                trimmed
+                    .strip_prefix(&prefix)
+                    .map(|suffix| (trimmed.to_string(), format!("calls {suffix}")))
+            });
+            if let Some((definition, original)) = definition {
+                expanded = expanded
+                    .replace(&definition, &original)
+                    .replace(&format!("calls [C{label}]"), &original);
+            }
+        }
+        expanded
+    }
+
+    fn assert_same_plan(selected: &SelectedSearchOutput) -> (SearchOutput, SearchOutput) {
+        let unfolded = selected.serialize(false);
+        let folded = selected.serialize(true);
+        assert!(folded.text.len() <= unfolded.text.len());
+        assert_eq!(expand_notes(&folded.text), unfolded.text);
+        let observations = |output: &SearchOutput| {
+            output
+                .source_files
+                .iter()
+                .map(|file| (file.path.clone(), file.result_bytes))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(observations(&folded), observations(&unfolded));
+        let (original_text, original_ranges) = selected.write_selected(false);
+        let (final_text, final_ranges) = selected.write_selected(true);
+        for (before, after) in original_ranges.iter().zip(&final_ranges) {
+            let bytes = |text: &str, ranges: &[std::ops::Range<usize>]| {
+                ranges
+                    .iter()
+                    .map(|range| &text[range.clone()])
+                    .collect::<String>()
+            };
+            assert_eq!(bytes(&original_text, before), bytes(&final_text, after));
+        }
+        println!(
+            "fixture bytes: unfolded={}, folded={}, delta={}",
+            unfolded.text.len(),
+            folded.text.len(),
+            folded.text.len() as isize - unfolded.text.len() as isize
+        );
+        (unfolded, folded)
+    }
+
+    #[test]
+    fn test_note_folding_does_not_admit_omitted_tail() {
+        let mut selected = selected_fixture();
+        selected.relation_insertions.clear();
+        let tail = format!("\n## Other matches\n- omitted.rs\n{}", "x".repeat(2970));
+        let cap = selected.primary.len() + tail.len() - 1;
+        assert!(selected.primary.len() + tail.len() > cap);
+        let note = tail_omission_note(1);
+        let retained = append_preserved_partial_note(&mut selected.primary, cap, &note);
+        let (primary, limit) = finish_search_output(selected.primary, cap, true);
+        selected.primary = primary;
+        selected.retained_primary_bytes = retained.min(limit);
+        let (_, folded) = assert_same_plan(&selected);
+        assert!(
+            folded.text.len() + tail.len() < cap,
+            "saved bytes would admit the old tail"
+        );
+        assert!(folded.text.contains(&note));
+        assert!(folded.text.contains(SEARCH_CAP_FOOTER));
+        assert!(!folded.text.contains("omitted.rs"));
+        let mut fitting = selected_fixture();
+        fitting
+            .primary
+            .push_str("\n## Other matches\n- included.rs\n");
+        let (_, folded) = assert_same_plan(&fitting);
+        assert!(folded.text.contains("- included.rs"));
+    }
+
+    #[test]
+    fn test_note_folding_does_not_refill_relation_budget() {
+        use crate::parser::{ExtractedFile, StaticCollectionEdge, StaticCollectionEdgeKind};
+        let range = |line| CodeRange {
+            start_line: line,
+            start_col: 1,
+            end_line: line,
+            end_col: 2,
+        };
+        let snapshot = crate::index::PublishedIndexSnapshot::from_files_and_edges(
+            ["경로/first.rs", "second.rs"]
+                .into_iter()
+                .map(|path| {
+                    let file = ExtractedFile {
+                        file_path: path.into(),
+                        total_lines: 30,
+                        symbols: Vec::new(),
+                        literals: Vec::new(),
+                        docstrings: Vec::new(),
+                        member_names: Vec::new(),
+                        navigation: None,
+                    };
+                    let edges = (0..6)
+                        .flat_map(|index| {
+                            [
+                                (StaticCollectionEdgeKind::Producer, "put", 21),
+                                (StaticCollectionEdgeKind::Consumer, "get", 22),
+                            ]
+                            .into_iter()
+                            .map(move |(kind, symbol, line)| StaticCollectionEdge {
+                                kind,
+                                collection_owner_type: "T".into(),
+                                collection_field: format!("items_with_a_long_fixture_name_{index}"),
+                                owner_expression: "self".into(),
+                                source_owner: Some("T".into()),
+                                source_owner_range: Some(range(1)),
+                                source_symbol: Some(symbol.into()),
+                                value: None,
+                                range: range(line),
+                            })
+                        })
+                        .collect();
+                    (file, edges)
+                })
+                .collect(),
+        );
+        let mut plans = Vec::new();
+        for candidate in ["", "\n## Call candidates\n- fixed.rs:3\n"] {
+            let mut selected = selected_fixture();
+            selected.call_candidate_text = candidate.into();
+            let cap = selected.primary.len() + 5000;
+            let relation_cap = cap - if candidate.is_empty() { 0 } else { 4096 };
+            selected.relation_insertions = grouped::plan_relation_insertions(
+                selected.primary.len(),
+                &selected.files,
+                &snapshot,
+                None,
+                grouped::RelationOptions {
+                    should_include_calls: false,
+                    should_include_events: false,
+                    byte_cap: relation_cap,
+                },
+                &mut display::DisplayContext::default(),
+            );
+            let chosen = selected.relation_insertions.clone();
+            assert_eq!(chosen.len(), 2);
+            assert!(chosen.iter().all(|(_, text)| !text.is_empty()));
+            let (unfolded, folded) = assert_same_plan(&selected);
+            for (_, relation) in &chosen {
+                assert_eq!(folded.text.matches(relation).count(), 1);
+            }
+            assert!(folded.text.ends_with(candidate));
+            assert!(folded.text.len() < unfolded.text.len());
+            assert!(folded.text.len() <= cap);
+            assert_eq!(chosen, selected.relation_insertions);
+            plans.push(chosen);
+        }
+        assert_ne!(
+            plans[0], plans[1],
+            "nonempty candidates keep their 4096-byte reserve"
+        );
+    }
+
+    #[test]
+    fn test_note_folding_preserves_partial_selection() {
+        let mut selected = selected_fixture();
+        selected.relation_insertions.clear();
+        let last_source = selected.primary.rfind("한글 source").unwrap();
+        let cap = last_source + 1 + SEARCH_CAP_FOOTER.len() + "\n```\n".len();
+        let (primary, retained) = finish_search_output(selected.primary, cap, true);
+        selected.primary = primary;
+        selected.retained_primary_bytes = retained;
+        let (_, folded) = assert_same_plan(&selected);
+        assert!(folded.text.len() < cap);
+        assert!(folded.text.ends_with(SEARCH_CAP_FOOTER));
+        assert!(!folded.text.contains("Selected relation"));
+        assert!(selected.primary.is_char_boundary(retained));
+        // Tiny clipped headings cannot create a definition or a dangling reference.
+        selected.primary = "# code".into();
+        selected.retained_primary_bytes = 0;
+        assert_eq!(selected.serialize(true).text, "# code");
+        assert!(selected.serialize(true).source_files.is_empty());
+    }
+
+    #[test]
+    fn test_note_folding_rebases_delivered_source_spans() {
+        let mut selected = selected_fixture();
+        selected.call_candidate_text = "\n## Call candidates\n- untouched.rs:9\n".into();
+        let (unfolded, folded) = assert_same_plan(&selected);
+        assert!(folded.text.len() < unfolded.text.len());
+        let (_, old_ranges) = selected.write_selected(false);
+        let (text, ranges) = selected.write_selected(true);
+        assert_ne!(old_ranges, ranges);
+        assert_eq!(folded.source_files.len(), 2);
+        for (file, spans) in folded.source_files.iter().zip(&ranges) {
+            assert_eq!(
+                file.result_bytes,
+                spans.iter().map(|range| range.len() as u64).sum::<u64>()
+            );
+            for span in spans {
+                assert!(text[span.clone()].contains("한글 source"));
+                assert!(!text[span.clone()].contains("_Body deferred [D1];"));
+                assert!(text[span.clone()].contains("read literal.rs offset 1 limit 2 to restore"));
+            }
+        }
+    }
 }

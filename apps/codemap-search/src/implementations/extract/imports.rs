@@ -2,7 +2,7 @@ use super::*;
 use crate::parser::{ImportEntry, ImportKind};
 
 pub(super) fn scope(mut node: Node<'_>) -> Node<'_> {
-    while let Some(parent) = node.parent() {
+    for parent in crate::parser::ancestors(node) {
         node = parent;
         if matches!(
             node.kind(),

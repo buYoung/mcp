@@ -80,12 +80,12 @@ pub const ENDPOINT: &str = "https://api.typesafe.ai/v1/systemone";
 /// OpenRouter's Decisions API for `author/slug` model IDs. It serves decision models only.
 pub const OPENROUTER_ENDPOINT: &str = "https://openrouter.ai/api/alpha/decisions";
 
-/// Upper bound of [`EvaluatorConfig::max_in_flight_requests`]: the initial safety policy
-/// allows at most three HTTP requests in flight per evaluator.
-pub const MAX_IN_FLIGHT_REQUESTS: usize = 3;
-/// Lower bound of [`EvaluatorConfig::request_spacing`]: request starts are at least 300 ms
+/// Upper bound of [`EvaluatorConfig::max_in_flight_requests`]: the safety policy allows at
+/// most eight HTTP requests in flight per evaluator.
+pub const MAX_IN_FLIGHT_REQUESTS: usize = 8;
+/// Lower bound of [`EvaluatorConfig::request_spacing`]: request starts are at least 100 ms
 /// apart on one evaluator.
-pub const MIN_REQUEST_SPACING: Duration = Duration::from_millis(300);
+pub const MIN_REQUEST_SPACING: Duration = Duration::from_millis(100);
 /// Operating budgets leave 12.5% headroom below Jev's 64k / 32k limits (1.13 and 1.14).
 pub const DEFAULT_REQUEST_TOKEN_BUDGET: u64 = 56_000;
 pub const DEFAULT_STATE_QUESTION_TOKEN_BUDGET: u64 = 28_000;
@@ -97,8 +97,8 @@ pub const MAX_BATCH_BYTES: usize =
 /// questions and its answers well under [`MAX_RESPONSE_BODY_BYTES`].
 pub const MAX_QUESTIONS_PER_REQUEST: usize = 8_192;
 /// Batches produced from one request. At [`MIN_REQUEST_SPACING`] this many batches need at
-/// least 38.1 s of dispatch spacing, which already approaches the default 45 s deadline; the
-/// bound also caps the encoded bodies held in memory at `128 * MAX_BATCH_BYTES` (21.504 MB).
+/// least 12.7 s of dispatch spacing; the bound also caps the encoded bodies held in memory at
+/// `128 * MAX_BATCH_BYTES` (21.504 MB).
 pub const MAX_BATCHES_PER_REQUEST: usize = 128;
 /// Bytes read from one HTTP response body before the read is abandoned. A full 168,000-byte
 /// batch answers in well under 1 MB; 4 MiB leaves room for legends and provider extensions

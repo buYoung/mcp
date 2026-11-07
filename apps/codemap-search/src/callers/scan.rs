@@ -35,24 +35,66 @@ pub(super) struct ScanHit {
 
 /// Sink that records, per matched line, every name-occurrence and whether it is a call
 /// site (`name(`) or a non-call reference. One sink per file (the `grep.rs` pattern).
-///
-/// Budgets are PER NAME (parallel to `names`): a hot name exhausting its own budget can
-/// no longer starve every other name of the walk's remaining files — which used to leave
-/// a later-in-walk symbol with zero collected hits and a misleading "no direct caller
-/// observed" despite real call sites.
+/// [`Budgets`] then keeps the hits their names' budgets allow, in walk order.
 struct ClassifySink<'a> {
     names: &'a [String],
     file_path: String,
     source: &'a [u8],
     syntax: OnceCell<Option<SourceSyntax>>,
     index: &'a SymbolIndex<'a>,
-    /// Remaining hit budget per name (same index as `names`). Decremented on push.
-    budgets: &'a mut [usize],
-    hits: Vec<ScanHit>,
-    /// Per-name flag (same index as `names`): set the moment a hit for that name is
-    /// dropped because its budget was already exhausted.
-    truncated: &'a mut [bool],
+    /// Hits in file order, each with the index of its name in `names`.
+    hits: Vec<(usize, ScanHit)>,
 }
+
+/// The hits of one searched file, before budgets are applied.
+struct FileHits {
+    hits: Vec<(usize, ScanHit)>,
+    /// The searcher failed on the file; its hits only use up budget.
+    is_failed: bool,
+}
+
+/// Hit budgets PER NAME (parallel to `names`): a hot name exhausting its own budget can
+/// no longer starve every other name of the walk's remaining files — which used to leave
+/// a later-in-walk symbol with zero collected hits and a misleading "no direct caller
+/// observed" despite real call sites.
+struct Budgets {
+    /// Remaining hit budget per name. Decremented for each hit taken.
+    remaining: Vec<usize>,
+    /// Per-name flag: set the moment a hit for that name is dropped because its budget was
+    /// already exhausted.
+    truncated: Vec<bool>,
+}
+
+impl Budgets {
+    /// Takes the hits of the next searched file in walk order into `hits`; false once nothing
+    /// further can be collected.
+    fn take(&mut self, file: FileHits, hits: &mut Vec<ScanHit>) -> bool {
+        for (name, hit) in file.hits {
+            if self.remaining[name] == 0 {
+                self.truncated[name] = true;
+                continue;
+            }
+            self.remaining[name] -= 1;
+            if !file.is_failed {
+                hits.push(hit);
+            }
+        }
+        // A per-file searcher error is isolated: skip the file, keep scanning.
+        if file.is_failed {
+            return true;
+        }
+        // Every name's budget exhausted → nothing further can be collected. Unscanned
+        // files may still hold hits, so every name is conservatively marked truncated.
+        if self.remaining.iter().all(|&b| b == 0) {
+            self.truncated.iter_mut().for_each(|t| *t = true);
+            return false;
+        }
+        true
+    }
+}
+
+/// Files a scan without a deadline searches together before taking their hits in walk order.
+const SCAN_BATCH_FILES: usize = 256;
 
 impl<'a> Sink for ClassifySink<'a> {
     type Error = std::io::Error;
@@ -122,19 +164,17 @@ impl<'a> Sink for ClassifySink<'a> {
                     // First non-whitespace char after the name decides call vs reference.
                     let trailing = line[after_idx..].trim_start().chars().next();
                     let is_call = trailing == Some('(');
-                    if self.budgets[name_idx] == 0 {
-                        self.truncated[name_idx] = true;
-                        continue;
-                    }
-                    self.budgets[name_idx] -= 1;
-                    self.hits.push(ScanHit {
-                        name: name.clone(),
-                        file_path: self.file_path.clone(),
-                        line_number,
-                        is_call,
-                        is_member_access,
-                        line_text: line.to_string(),
-                    });
+                    self.hits.push((
+                        name_idx,
+                        ScanHit {
+                            name: name.clone(),
+                            file_path: self.file_path.clone(),
+                            line_number,
+                            is_call,
+                            is_member_access,
+                            line_text: line.to_string(),
+                        },
+                    ));
                 }
             }
         }
@@ -170,6 +210,10 @@ pub(super) struct ScanOptions<'a> {
     pub(super) unchanged_calls: Option<IndexedFiles<'a>>,
     /// No further file is scanned after this instant.
     pub(super) deadline: Option<Instant>,
+    /// Indexed files the filesystem watcher keeps current, with their lookup by recorded call
+    /// names. They are scanned in place of a workspace walk, and one whose recorded calls hold
+    /// none of the scanned names is skipped before its metadata is read.
+    pub(super) indexed_walk: Option<(&'a [std::sync::Arc<ExtractedFile>], &'a super::CallLookup)>,
 }
 
 /// Whether `display` is an indexed file that has not changed since extraction and records no
@@ -226,9 +270,10 @@ fn escape_name(name: &str) -> String {
     out
 }
 
-/// One combined-regex `\b(?:n1|n2|…)\b` walk of the workspace, classifying every hit.
-/// Returns `None` on any setup failure (failure isolation). The walk reuses
-/// `build_walker` + the source-extension + size filters so coverage matches the indexer.
+/// One combined-regex `\b(?:n1|n2|…)\b` walk of the workspace, or of the indexed files the
+/// watcher keeps current, classifying every hit. Returns `None` on any setup failure (failure
+/// isolation). The walk reuses `build_index_walker` + the source-extension + size filters so
+/// coverage matches the indexer.
 pub(super) fn scan_workspace(
     names: &[String],
     cfg: &CallerConfig,
@@ -256,10 +301,12 @@ pub(super) fn scan_workspace(
     matcher_builder.line_terminator(Some(b'\n'));
     let matcher = matcher_builder.build(&pattern).ok()?;
 
-    let mut searcher = SearcherBuilder::new()
-        .line_number(true)
-        .binary_detection(BinaryDetection::quit(0))
-        .build();
+    let new_searcher = || {
+        SearcherBuilder::new()
+            .line_number(true)
+            .binary_detection(BinaryDetection::quit(0))
+            .build()
+    };
 
     // Produce workspace-relative display paths that match the codemap snapshot's
     // `file_path` keys via the shared `crate::workspace::workspace_display_path` helper
@@ -276,8 +323,10 @@ pub(super) fn scan_workspace(
         .scan_cap
         .div_ceil(names.len())
         .max(MIN_PER_NAME_SCAN_HITS);
-    let mut budgets = vec![per_name_cap; names.len()];
-    let mut truncated = vec![false; names.len()];
+    let mut budgets = Budgets {
+        remaining: vec![per_name_cap; names.len()],
+        truncated: vec![false; names.len()],
+    };
     // The classifier already rejects unrelated runtimes. Apply that same boundary
     // before opening files, especially in generated repositories with many languages.
     let families: HashSet<_> = names
@@ -286,49 +335,28 @@ pub(super) fn scan_workspace(
         .filter_map(|(file, _)| language_family(Path::new(&file.file_path)))
         .collect();
 
-    for result in crate::workspace::build_walker(root, false).build() {
-        if options
+    // Same coverage as the indexer: source extensions only, under the size filter.
+    let is_scanned_source = |path: &Path| {
+        !crate::workspace::is_explicitly_excluded_file(path)
+            && crate::lang::supports_caller_scan(path)
+            && language_family(path).is_some_and(|family| families.contains(family))
+    };
+    let metadata_under_cap = |path: &Path| {
+        std::fs::metadata(path)
+            .ok()
+            .filter(|meta| meta.len() <= cfg.max_file_size)
+    };
+    let is_past = || {
+        options
             .deadline
             .is_some_and(|deadline| Instant::now() >= deadline)
-        {
-            is_past_deadline = true;
-            truncated.iter_mut().for_each(|t| *t = true);
-            break;
-        }
-        let entry = match result {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-        if !entry.file_type().is_some_and(|ft| ft.is_file()) {
-            continue;
-        }
-        let path = entry.path();
-        if crate::workspace::is_explicitly_excluded_file(path) {
-            continue;
-        }
-        // Same coverage as the indexer: source extensions only, under the size filter.
-        if !crate::lang::supports_caller_scan(path)
-            || !language_family(path).is_some_and(|family| families.contains(family))
-        {
-            continue;
-        }
-        let metadata = match std::fs::metadata(path) {
-            Ok(meta) if meta.len() > cfg.max_file_size => continue,
-            Ok(meta) => meta,
-            Err(_) => continue,
-        };
-        let display = crate::workspace::walk_entry_display_path(&entry, &canonical_root, &raw_root);
-        if test_filter.is_file_excluded(&display)
-            || records_no_scanned_call(&display, &metadata, &name_set, options)
-        {
-            continue;
-        }
-        let Ok(mut source) = std::fs::read(path) else {
-            continue;
-        };
+    };
+    // Reads and searches one file that is not skipped; `None` when it holds no match.
+    let search_file = |searcher: &mut Searcher, path: &Path, display: String| {
+        let mut source = std::fs::read(path).ok()?;
         // Only matching source can contribute a caller; parse test regions on demand.
         if !matcher.is_match(&source).unwrap_or(false) {
-            continue;
+            return None;
         }
         test_filter.mask_source(&display, &mut source);
         let mut sink = ClassifySink {
@@ -337,26 +365,147 @@ pub(super) fn scan_workspace(
             source: &source,
             syntax: OnceCell::new(),
             index,
-            budgets: &mut budgets,
             hits: Vec::new(),
-            truncated: &mut truncated,
         };
-        // A per-file searcher error is isolated: skip the file, keep scanning.
-        if searcher.search_slice(&matcher, &source, &mut sink).is_err() {
-            continue;
+        let is_failed = searcher.search_slice(&matcher, &source, &mut sink).is_err();
+        Some(FileHits {
+            hits: sink.hits,
+            is_failed,
+        })
+    };
+    let mut searcher = new_searcher();
+    // Scans one file; false once nothing further can be collected.
+    let scan_file = |searcher: &mut Searcher,
+                     budgets: &mut Budgets,
+                     all_hits: &mut Vec<ScanHit>,
+                     path: &Path,
+                     display: String,
+                     metadata: std::fs::Metadata| {
+        if test_filter.is_file_excluded(&display)
+            || records_no_scanned_call(&display, &metadata, &name_set, options)
+        {
+            return true;
         }
-        all_hits.append(&mut sink.hits);
-        // Every name's budget exhausted → nothing further can be collected. Unscanned
-        // files may still hold hits, so every name is conservatively marked truncated.
-        if budgets.iter().all(|&b| b == 0) {
-            truncated.iter_mut().for_each(|t| *t = true);
-            break;
+        search_file(searcher, path, display).is_none_or(|file| budgets.take(file, all_hits))
+    };
+    match options.indexed_walk {
+        // Without a deadline or skipped files the outcome does not depend on how long a file
+        // takes, so a batch of files is searched on all cores and its hits are taken in walk
+        // order.
+        None if options.deadline.is_none() && options.unchanged_calls.is_none() => {
+            let threads = crate::parallel::threads();
+            let mut walk = crate::workspace::build_index_walker(root).build();
+            let mut batch = Vec::with_capacity(SCAN_BATCH_FILES);
+            loop {
+                let result = walk.next();
+                let is_walked = result.is_none();
+                if let Some(entry) = result.and_then(Result::ok) {
+                    let path = entry.path();
+                    if entry.file_type().is_some_and(|ft| ft.is_file()) && is_scanned_source(path) {
+                        let display = crate::workspace::shown_path(
+                            crate::workspace::walk_entry_display_path(
+                                &entry,
+                                &canonical_root,
+                                &raw_root,
+                            ),
+                        );
+                        batch.push((entry.into_path(), display));
+                    }
+                }
+                if batch.len() < SCAN_BATCH_FILES && !is_walked {
+                    continue;
+                }
+                let found = crate::parallel::map_in_order(
+                    &batch,
+                    threads,
+                    new_searcher,
+                    |searcher, (path, display)| {
+                        metadata_under_cap(path)?;
+                        if test_filter.is_file_excluded(display) {
+                            return None;
+                        }
+                        search_file(searcher, path, display.clone())
+                    },
+                );
+                batch.clear();
+                let is_exhausted = !found
+                    .into_iter()
+                    .flatten()
+                    .all(|file| budgets.take(file, &mut all_hits));
+                if is_exhausted || is_walked {
+                    break;
+                }
+            }
         }
+        Some((files, lookup)) => {
+            for position in lookup.files(names.iter().map(String::as_str), [], true) {
+                let file = &files[position];
+                if is_past() {
+                    is_past_deadline = true;
+                    break;
+                }
+                let display = file.file_path.as_str();
+                let path = root.join(display);
+                if !is_scanned_source(&path) {
+                    continue;
+                }
+                let Some(metadata) = metadata_under_cap(&path) else {
+                    continue;
+                };
+                if !scan_file(
+                    &mut searcher,
+                    &mut budgets,
+                    &mut all_hits,
+                    &path,
+                    display.to_string(),
+                    metadata,
+                ) {
+                    break;
+                }
+            }
+        }
+        None => {
+            for result in crate::workspace::build_index_walker(root).build() {
+                if is_past() {
+                    is_past_deadline = true;
+                    break;
+                }
+                let Ok(entry) = result else {
+                    continue;
+                };
+                if !entry.file_type().is_some_and(|ft| ft.is_file()) {
+                    continue;
+                }
+                let path = entry.path();
+                if !is_scanned_source(path) {
+                    continue;
+                }
+                let Some(metadata) = metadata_under_cap(path) else {
+                    continue;
+                };
+                let display = crate::workspace::shown_path(
+                    crate::workspace::walk_entry_display_path(&entry, &canonical_root, &raw_root),
+                );
+                if !scan_file(
+                    &mut searcher,
+                    &mut budgets,
+                    &mut all_hits,
+                    path,
+                    display,
+                    metadata,
+                ) {
+                    break;
+                }
+            }
+        }
+    }
+    if is_past_deadline {
+        budgets.truncated.iter_mut().for_each(|t| *t = true);
     }
 
     let truncated_names: HashSet<String> = names
         .iter()
-        .zip(&truncated)
+        .zip(&budgets.truncated)
         .filter(|(_, &t)| t)
         .map(|(n, _)| n.clone())
         .collect();

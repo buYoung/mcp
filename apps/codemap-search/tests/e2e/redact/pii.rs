@@ -162,7 +162,6 @@ async fn test_all_pii_types_preserve_mcp_negotiation() {
             "find",
             "grep",
             "initial_instructions",
-            "overview",
             "read",
             "search"
         ]
@@ -208,7 +207,10 @@ async fn test_selected_pii_rules_reach_mcp_source_and_indexed_outputs() {
             "search",
             json!({"query":"4111111111111111", "caller_context":false}),
         ),
-        ("overview", json!({"path":"src"})),
+        (
+            "read",
+            json!({"file_path":"src/account.ts", "view":"definitions"}),
+        ),
     ];
     for (tool, arguments) in requests {
         let response = call(&mut client, tool, arguments).await;

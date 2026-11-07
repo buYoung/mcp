@@ -2,12 +2,14 @@
 pub(crate) mod callable;
 mod context;
 mod diagnostics;
+mod importers;
 pub(crate) mod jev;
 mod locations;
 mod outside_callers;
 mod references;
 mod shared_keys;
 
+pub(crate) use importers::HEADER as IMPORTERS_HEADER;
 pub(crate) use outside_callers::HEADER as OUTSIDE_CALLERS_HEADER;
 mod render;
 mod structure;
@@ -210,11 +212,10 @@ fn frame(
         });
         text.push_str(&output.text);
     } else {
-        text.push_str(if options.view == LiveView::SourceGrouped {
-            "Locations refer to the enclosing file; 42:match and 43-context preserve the original grep rows.\n"
-        } else {
-            "Locations without a path refer to the enclosing file. Scope: enclosing declarations and members; detailed relationships cover returned source anchors.\n"
-        });
+        // The grep schema already defines the grouped row markers.
+        if options.view != LiveView::SourceGrouped {
+            text.push_str("Locations without a path refer to the enclosing file. Scope: enclosing declarations and members; detailed relationships cover returned source anchors.\n");
+        }
         if options.should_include_relations() {
             if let Some(target_os) = crate::config::get().analysis_target_os.as_deref() {
                 if output
@@ -301,6 +302,11 @@ fn render(
         }
         let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
         if let Some(trailer) = shared_keys::trailer(engine, &output, room) {
+            text.push('\n');
+            text.push_str(&trailer);
+        }
+        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
+        if let Some(trailer) = importers::trailer(engine, &output, room) {
             text.push('\n');
             text.push_str(&trailer);
         }

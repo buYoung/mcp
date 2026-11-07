@@ -1,7 +1,8 @@
 //! Actual MCP regressions for task-based read/grep filtering;
 //! SQLite assertions inspect the real final response accounting, not a copied policy.
 use super::helpers::{
-    create_mock_repo, response_text, with_in_process_server_logging as run_server, InProcessClient,
+    create_mock_repo, decision_candidate, decision_task, response_text,
+    with_in_process_server_logging as run_server, InProcessClient,
 };
 use codemap_search::jev::mock::{answers, Gate, MockEvaluator};
 use codemap_search::jev::{EvaluationRequest, JevError};
@@ -41,7 +42,9 @@ fn judge() -> MockEvaluator {
             .questions()
             .iter()
             .map(|q| {
-                let name = q.instructions()["candidate"]["name"].as_str().unwrap();
+                let name = decision_candidate(request.state(), q.id().as_str())
+                    .unwrap()
+                    .name;
                 (
                     q.id().clone(),
                     answers::noul(if name == "keepBody" { 0.99 } else { 0.01 }),
@@ -92,8 +95,8 @@ async fn call(client: &mut InProcessClient, tool: &str, args: Value) -> Value {
 }
 async fn warm(client: &mut InProcessClient) {
     let response = client
-        .call_tool_until("overview", json!({"path":"src/budget.ts"}), |text| {
-            text.contains("keepBody")
+        .call_tool_until("search", json!({"query":"keepBody"}), |text| {
+            text.contains("src/budget.ts") && text.contains("keepBody")
         })
         .await
         .unwrap();
@@ -179,7 +182,7 @@ async fn read_and_grep_omit_unrelated_bodies_and_record_delivered_bytes() {
 }
 
 #[tokio::test]
-async fn partial_windows_rows_and_metadata_modes_never_send_body_questions() {
+async fn only_grep_rows_judge_enclosing_bodies_among_partial_and_metadata_modes() {
     let source = source();
     let temp =
         create_mock_repo(&[(".codemap/config.toml", CONFIG), ("src/budget.ts", &source)]).unwrap();
@@ -200,7 +203,9 @@ async fn partial_windows_rows_and_metadata_modes_never_send_body_questions() {
             let response = call(&mut client, tool, args).await;
             assert_eq!(response_text(&response), response_text(&plain), "{tool}");
         }
-        assert_eq!(recorded.request_count(), 0);
+        // Grep rows judge their enclosing body: keepBody's declaration row is long enough to
+        // omit and is judged related; dropBody's row is shorter than its note.
+        assert_eq!(recorded.request_count(), 1);
     }).await;
 }
 
@@ -274,6 +279,13 @@ async fn marker_only_files_are_not_recorded_as_read_source() {
                     args["pattern"] = json!("function dropBody");
                 }
                 let response = call(&mut client, tool, args).await;
+                if tool == "read" {
+                    // An exact read of the body's own window is the requested source.
+                    assert!(response_text(&response).contains("UNRELATED_MARKER"));
+                    assert!(!observations(&root, &response).is_empty());
+                    assert_eq!(recorded.request_count(), 0);
+                    return;
+                }
                 assert!(
                     response_text(&response).contains("_omitted body:"),
                     "{response}"
@@ -340,7 +352,7 @@ async fn an_omitted_grep_page_keeps_its_footer_and_does_not_refill_from_the_next
             );
             assert!(observations(&root, &response).is_empty());
             assert_eq!(recorded.request_count(), 1);
-            assert_eq!(recorded.requests()[0].questions.len(), 2);
+            assert_eq!(recorded.requests()[0].questions.len(), 1);
         },
     )
     .await;
@@ -445,8 +457,7 @@ async fn captures_masked_payload_and_keeps_the_snapshot_during_inference() {
                 .unwrap();
                 assert!(!wire.contains(&secret), "outbound payload must be masked");
                 assert!(wire.contains("[REDACTED]"));
-                assert!(!requests[0].state["candidates"].as_object().unwrap().is_empty());
-                assert!(requests[0].state.get("search_arguments").is_some());
+                assert!(!requests[0].questions.is_empty());
                 std::fs::write(
                     &path,
                     "export function afterCapture() { return 'NEW_SOURCE'; }\n",
@@ -520,13 +531,13 @@ async fn enabled_scope_schema_reload_and_threshold_reach_live_consumers() {
             client.register_task("inspect the updated task").await;
             call(&mut client, "read", arguments("read", "source")).await;
             assert_eq!(
-                recorded.requests().last().unwrap().task_query(),
+                decision_task(&recorded.requests().last().unwrap().state),
                 Some("inspect the updated task")
             );
             let missing = client
                 .call(
                     "tools/call",
-                    json!({"name":"register_task","arguments":{"task_query":" "}}),
+                    json!({"name":"initial_instructions","arguments":{"task":" "}}),
                 )
                 .await
                 .unwrap();
@@ -540,7 +551,7 @@ async fn enabled_scope_schema_reload_and_threshold_reach_live_consumers() {
                 .unwrap();
             assert_eq!(
                 missing["result"]["isError"], true,
-                "a failed new registration clears the old task"
+                "a failed new task clears the old task"
             );
             assert_eq!(
                 recorded.request_count(),

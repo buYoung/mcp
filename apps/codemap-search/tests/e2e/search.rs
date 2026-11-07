@@ -88,8 +88,19 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
                 .await
                 .unwrap(),
         );
-        assert!(out.contains("No eligible event endpoints"), "{out}");
+        for statement in [
+            "No eligible event endpoints for this exact key in the inspected map; this is not proof that a route is absent.",
+            "This event-key lookup did not run ranked search for query.",
+            "Event extraction covers Rust/JavaScript/TypeScript and matched configured API rules, not arbitrary methods or transports.",
+            "Input/extraction coverage counts below are snapshot-wide, not counts for this key or scope.",
+            "Next: grep a known source identifier, or omit event_key to run ranked search.",
+        ] {
+            assert_eq!(out.matches(statement).count(), 1, "{key}: {out}");
+        }
+        assert!(!out.contains("## 1. "), "{out}");
     }
+    assert!(!saved.contains("This event-key lookup"), "{saved}");
+    assert!(!saved.contains("No eligible event endpoints"), "{saved}");
     for (key, expected) in [
         ("opaque", "unresolved publisher"),
         ("local", "unresolved publisher"),
@@ -127,10 +138,13 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
             && ranked.contains("handler definition: handleSaved — src/events.ts:5"),
         "{ranked}"
     );
+    assert!(!ranked.contains("This event-key lookup"), "{ranked}");
+    assert!(!ranked.contains("No eligible event endpoints"), "{ranked}");
     let hidden=text(client.send_request("tools/call",serde_json::json!({"name":"search","arguments":{"query":"save users","caller_context":false,"include_events":false}})).await.unwrap());
     assert!(!hidden.contains("Event relationships"), "{hidden}");
     for arguments in [
         serde_json::json!({"query":"saved","event_key":""}),
+        serde_json::json!({"query":"saved","event_key":"x".repeat(257)}),
         serde_json::json!({"query":"saved","include_events":"yes"}),
     ] {
         let response = client
@@ -141,6 +155,77 @@ async fn test_events_exact_key_negative_controls_and_ranked_search() {
             .await
             .unwrap();
         assert_eq!(response["result"]["isError"], true, "{response}");
+    }
+}
+
+#[tokio::test]
+async fn test_exact_event_key_zero_result_preserves_search_contract() {
+    for (path, source) in [
+        (
+            "src/route.go",
+            "package route\nfunc routeDispatch() { println(\"missing\") }\n",
+        ),
+        (
+            "src/route.ts",
+            "const bus = { emit(key: string) {} };\nexport function routeDispatch() { bus.emit('missing'); }\n",
+        ),
+        (
+            "src/route.ts",
+            "import {EventEmitter} from 'node:events';\nconst bus = new EventEmitter();\nexport function routeDispatch() { bus.emit('present'); }\n",
+        ),
+    ] {
+        let temp = create_mock_repo(&[
+            (path, source),
+            (
+                ".codemap/config.toml",
+                "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=true\n",
+            ),
+        ])
+        .unwrap();
+        let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+            .await
+            .unwrap();
+        let response = client
+            .send_tool_until(
+                "search",
+                serde_json::json!({
+                    "query":"routeDispatch",
+                    "event_key":"missing",
+                    "caller_context":false
+                }),
+                |out| out.contains("No eligible event endpoints"),
+            )
+            .await
+            .unwrap();
+        let exact = response["result"]["content"][0]["text"].as_str().unwrap();
+        for statement in [
+            "No eligible event endpoints for this exact key in the inspected map; this is not proof that a route is absent.",
+            "This event-key lookup did not run ranked search for query.",
+            "Event extraction covers Rust/JavaScript/TypeScript and matched configured API rules, not arbitrary methods or transports.",
+            "Input/extraction coverage counts below are snapshot-wide, not counts for this key or scope.",
+            "Next: grep a known source identifier, or omit event_key to run ranked search.",
+        ] {
+            assert_eq!(exact.matches(statement).count(), 1, "{path}: {exact}");
+        }
+        assert!(!exact.contains("## 1. "), "{exact}");
+        assert!(!exact.contains("routeDispatch"), "{exact}");
+        assert!(!exact.contains("publisher:"), "{exact}");
+
+        let response = client
+            .send_request(
+                "tools/call",
+                serde_json::json!({"name":"search","arguments":{
+                    "query":"routeDispatch",
+                    "caller_context":false
+                }}),
+            )
+            .await
+            .unwrap();
+        let ranked = response["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(ranked.contains(&format!("## 1. {path}")), "{ranked}");
+        assert!(ranked.contains("routeDispatch"), "{ranked}");
+        assert!(!ranked.contains("This event-key lookup"), "{ranked}");
+        assert!(!ranked.contains("No eligible event endpoints"), "{ranked}");
     }
 }
 
@@ -298,6 +383,257 @@ rules=[
             && text.contains("configured target assumption"),
         "{fixed}"
     );
+}
+
+/// One language's declarations for the phrase-recall fixtures: a doc-commented declaration and
+/// a declaration holding one string literal, plus the docstring and literal phrases it plants.
+struct PhraseLanguage {
+    extension: &'static str,
+    header: &'static str,
+    docstring_phrase: [&'static str; 2],
+    literal_phrase: [&'static str; 2],
+    documented: fn(&str, &str) -> String,
+    literal: fn(&str, &str) -> String,
+}
+
+const PHRASE_LANGUAGES: [PhraseLanguage; 5] = [
+    PhraseLanguage {
+        extension: "rs",
+        header: "",
+        docstring_phrase: ["lease", "renewal"],
+        literal_phrase: ["buffer", "rotation"],
+        documented: |doc, name| format!("/// {doc}\npub fn {name}() {{}}\n"),
+        literal: |name, value| format!("pub const {name}: &str = \"{value}\";\n"),
+    },
+    PhraseLanguage {
+        extension: "ts",
+        header: "",
+        docstring_phrase: ["palette", "lookup"],
+        literal_phrase: ["request", "envelope"],
+        documented: |doc, name| format!("/** {doc} */\nexport function {name}(): void {{}}\n"),
+        literal: |name, value| format!("export const {name} = \"{value}\";\n"),
+    },
+    PhraseLanguage {
+        extension: "py",
+        header: "",
+        docstring_phrase: ["cache", "eviction"],
+        literal_phrase: ["batch", "checkpoint"],
+        documented: |doc, name| {
+            format!("def {name}():\n    \"\"\"{doc}\"\"\"\n    return None\n\n")
+        },
+        literal: |name, value| format!("{name} = \"{value}\"\n"),
+    },
+    PhraseLanguage {
+        extension: "go",
+        header: "package fixture\n\n",
+        docstring_phrase: ["quota", "refresh"],
+        literal_phrase: ["cursor", "rewind"],
+        documented: |doc, name| format!("// {doc}\nfunc {name}() {{}}\n\n"),
+        literal: |name, value| format!("const {name} = \"{value}\"\n"),
+    },
+    PhraseLanguage {
+        extension: "java",
+        header: "",
+        docstring_phrase: ["retry", "window"],
+        literal_phrase: ["schema", "migration"],
+        documented: |doc, name| format!("/** {doc} */\nclass {name} {{}}\n"),
+        literal: |name, value| {
+            format!("class {name} {{\n    static final String STATE = \"{value}\";\n}}\n")
+        },
+    },
+];
+
+/// A two-workspace repository: 110 noise files whose symbols and docstrings carry every query
+/// word, but never as a planted phrase, outrank the planted records and fill the ranked pool.
+fn phrase_recall_repo(language: &PhraseLanguage, search_config: &str) -> tempfile::TempDir {
+    let [a, b] = language.docstring_phrase;
+    let [c, d] = language.literal_phrase;
+    let file = |body: String| format!("{}{body}", language.header);
+    let doc = language.documented;
+    let mut files: Vec<(String, String)> = (0..110)
+        .map(|index| {
+            let note = format!("Worker pool notes: {b} then {a}, also {d} then {c}.");
+            (
+                format!("apps/noise/n{index}.{}", language.extension),
+                file(doc(&note, &format!("worker_{a}_{b}_{c}_{d}_{index}"))),
+            )
+        })
+        .collect();
+    let ext = language.extension;
+    files.extend([
+        (
+            format!("apps/planted/doc.{ext}"),
+            file(doc(
+                &format!("Coordinates the {a} {b} schedule."),
+                "coordinate",
+            )),
+        ),
+        (
+            format!("apps/planted/literal.{ext}"),
+            file((language.literal)(
+                "state_note",
+                &format!("{c} {d} pending"),
+            )),
+        ),
+        (
+            format!("apps/planted/split.{ext}"),
+            file(
+                doc(&format!("Tracks the {a}."), "track_hold")
+                    + &doc(&format!("{d} happens later."), "track_later"),
+            ),
+        ),
+        (
+            format!("apps/planted/repeat.{ext}"),
+            file(doc("Shared worker notes index.", "shared_index")),
+        ),
+        (
+            format!("apps/planted/common.{ext}"),
+            file(doc("Shared worker pool limits.", "pool_limits")),
+        ),
+        (
+            ".codemap/config.toml".into(),
+            format!("[update]\nconfig_auto_update=false\n[search]\n{search_config}"),
+        ),
+    ]);
+    let borrowed: Vec<_> = files
+        .iter()
+        .map(|(path, content)| (path.as_str(), content.as_str()))
+        .collect();
+    create_mock_repo(&borrowed).unwrap()
+}
+
+const PHRASE_HEADING: &str = "\n## Exact phrase matches outside the ranking\n";
+
+async fn phrase_search(
+    client: &mut crate::e2e::helpers::McpClient,
+    arguments: serde_json::Value,
+) -> String {
+    // An empty ranked result is a valid ready answer (a qualified name with no indexed match).
+    let is_ready = |text: &str| {
+        !text.contains("warming up")
+            && (text.contains("# codemap-search") || text.starts_with("No indexed matches"))
+    };
+    let response = client
+        .send_tool_until("search", arguments.clone(), is_ready)
+        .await
+        .unwrap();
+    let output = response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(
+        is_ready(&output) && response["result"]["isError"] != true,
+        "{arguments}: ready search results expected: {output}"
+    );
+    output
+}
+
+#[tokio::test]
+async fn test_search_recalls_buried_indexed_phrases_without_displacing_ranked_results() {
+    for language in &PHRASE_LANGUAGES {
+        let [a, b] = language.docstring_phrase;
+        let [c, d] = language.literal_phrase;
+        let ext = language.extension;
+        let temp = phrase_recall_repo(language, "");
+        let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+            .await
+            .unwrap();
+        let positives = [
+            (
+                format!("worker {a} {b}"),
+                format!("- apps/planted/doc.{ext} ("),
+                "docstring of coordinate [L",
+            ),
+            (
+                format!("worker \"{a} {b}\""),
+                format!("- apps/planted/doc.{ext} ("),
+                "docstring of coordinate [L",
+            ),
+            (
+                format!("worker {c} {d}"),
+                format!("- apps/planted/literal.{ext} ("),
+                "string literal [L",
+            ),
+            (
+                format!("worker \"{c} {d}\""),
+                format!("- apps/planted/literal.{ext} ("),
+                "string literal [L",
+            ),
+        ];
+        for (query, row, anchor) in positives {
+            let output = phrase_search(&mut client, serde_json::json!({"query": query, "workspace_scope": "all", "caller_context": false})).await;
+            let (ranked, recalled) = output
+                .split_once(PHRASE_HEADING)
+                .unwrap_or_else(|| panic!("{ext} {query}: {output}"));
+            // The ranked pool stays full of noise: 24 detail files and the 76-file tail.
+            assert!(
+                ranked.contains("## Other matches — 76 more files"),
+                "{ext} {query}: {ranked}"
+            );
+            assert!(
+                !ranked.contains("apps/planted/doc.") && !ranked.contains("apps/planted/literal."),
+                "{ext} {query}: {ranked}"
+            );
+            let rows: Vec<&str> = recalled.lines().collect();
+            assert!(
+                rows.len() <= 4,
+                "{ext} {query}: only the 4 unused tail rows: {recalled}"
+            );
+            assert!(
+                rows.iter()
+                    .any(|line| line.starts_with(&row) && line.contains(anchor)),
+                "{ext} {query}: {recalled}"
+            );
+            assert!(
+                !recalled.contains("apps/planted/split.")
+                    && !recalled.contains("apps/planted/repeat."),
+                "{ext} {query}: {recalled}"
+            );
+        }
+        let negatives = [
+            // A phrase split across two records is never joined.
+            format!("worker {a} {d}"),
+            // Reversed, interrupted, repeated and cross-quote pairs are not query phrases.
+            format!("worker {b} {a}"),
+            format!("worker {a} pending {b}"),
+            format!("{a} worker {a} notes"),
+            format!("\"worker {a}\" \"{b} clock\""),
+            format!("worker \"{a} {b} clock\""),
+            // Single identifiers and search syntax keep their existing meaning only.
+            "coordinate".to_string(),
+            "planted.coordinate".to_string(),
+            format!("worker AND {a} {b}"),
+            format!("docstring:{a} {b}"),
+            format!("worker -{a} {b}"),
+            format!("worker \"{a} {b}"),
+            format!("worker \\\"{a} {b}\\\""),
+            // A phrase in more files than the candidate pool adds nothing.
+            "worker pool".to_string(),
+        ];
+        for query in negatives {
+            let output = phrase_search(&mut client, serde_json::json!({"query": query, "workspace_scope": "all", "caller_context": false})).await;
+            assert!(!output.contains(PHRASE_HEADING), "{ext} {query}: {output}");
+        }
+        // An explicit scope never admits a phrase match from outside it.
+        let output = phrase_search(&mut client, serde_json::json!({"query": format!("worker {a} {b}"), "workspace_scope": "apps/noise", "caller_context": false})).await;
+        assert!(
+            !output.contains(PHRASE_HEADING) && !output.contains("apps/planted/"),
+            "{ext}: {output}"
+        );
+        drop(client);
+        // Without unused tail rows or output bytes, the ranked output is all there is.
+        for config in ["result_threshold=2\n", "search_detail_byte_cap=12000\n"] {
+            let temp = phrase_recall_repo(language, config);
+            let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+                .await
+                .unwrap();
+            let output = phrase_search(&mut client, serde_json::json!({"query": format!("worker {a} {b}"), "workspace_scope": "all", "caller_context": false})).await;
+            assert!(
+                !output.contains(PHRASE_HEADING) && !output.contains("apps/planted/doc."),
+                "{ext} {config}: {output}"
+            );
+        }
+    }
 }
 
 #[test]
@@ -822,6 +1158,101 @@ async fn test_path_matched_data_file_lists_matching_keys_and_counts_the_rest() {
     for key in ["color", "theme", "size"] {
         assert!(!output.contains(&format!("Symbol: {key} ")), "{output}");
     }
+}
+
+#[tokio::test]
+async fn test_search_note_folding_preserves_source_and_ranked_paths() {
+    let sources: Vec<(String, String)> = (0..8).map(|index| {
+        let steps = (0..60).map(|step| format!("  const step{step} = entries.length + {step};\n")).collect::<String>();
+        (format!("src/ledger{index}.ts"), format!("import {{finish}} from './helper';\nexport function reconcileLedger{index}(entries: number[]): number {{\n{steps}  return finish(entries.length);\n}}\n"))
+    }).collect();
+    let mut files = sources
+        .iter()
+        .map(|(path, source)| (path.as_str(), source.as_str()))
+        .collect::<Vec<_>>();
+    files.push((
+        "src/helper.ts",
+        "export function finish(value: number): number { return value; }\n",
+    ));
+    files.push((".codemap/config.toml", "[update]\nconfig_auto_update=false\n[search]\nresult_threshold=6\n[output.client]\npi_max_bytes=16000\n"));
+    let temp = create_mock_repo(&files).unwrap();
+    let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
+        .await
+        .unwrap();
+    let args =
+        serde_json::json!({"query":"reconcile ledger","caller_context":true,"include_seen":true});
+    let response = client
+        .send_tool_until("search", args.clone(), |text| {
+            text.contains("[D1]")
+                && text.contains("calls [C1]")
+                && (0..8).all(|index| text.contains(&format!("src/ledger{index}.ts")))
+        })
+        .await
+        .unwrap();
+    let output = response["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(output.len() <= 16000, "{output}");
+    assert_eq!(output.matches("[D1] Body deferred").count(), 1, "{output}");
+    assert!(
+        output.matches("_Body deferred [D1]; read ").count() >= 2,
+        "{output}"
+    );
+    assert!(output.contains("## Other matches"), "{output}");
+    assert!(output.contains("calls [C1]"), "{output}");
+    let read = output
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("_Body deferred [D1]; read ")
+                .and_then(|line| line.strip_suffix("._"))
+        })
+        .unwrap();
+    let (path, coordinates) = read.rsplit_once(" offset ").unwrap();
+    let (offset, limit) = coordinates.split_once(" limit ").unwrap();
+    let offset = offset.parse::<usize>().unwrap();
+    let limit = limit.parse::<usize>().unwrap();
+    let source = &sources
+        .iter()
+        .find(|(candidate, _)| candidate == path)
+        .unwrap()
+        .1;
+    assert_eq!(offset, 2);
+    assert_eq!(offset + limit - 1, source.lines().count());
+    let restored = client.send_request("tools/call", serde_json::json!({"name":"read","arguments":{"file_path":path,"offset":offset,"limit":limit,"include_seen":true}})).await.unwrap();
+    assert!(
+        restored["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("return finish(entries.length)"),
+        "{restored}"
+    );
+    let repeated = client
+        .send_request(
+            "tools/call",
+            serde_json::json!({"name":"search","arguments":args}),
+        )
+        .await
+        .unwrap();
+    let repeated = repeated["result"]["content"][0]["text"].as_str().unwrap();
+    let paths = |text: &str| {
+        text.lines()
+            .filter(|line| line.starts_with("## ") || line.starts_with("- src/ledger"))
+            .map(str::to_string)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(paths(output), paths(repeated));
+    // include_seen restores source-history suppression, not delivery-budget deferral.
+    assert!(
+        repeated.contains(&format!("_Body deferred [D1]; read {read}._")),
+        "{repeated}"
+    );
+    let restored_again = client.send_request("tools/call", serde_json::json!({"name":"read","arguments":{"file_path":path,"offset":offset,"limit":limit,"include_seen":true}})).await.unwrap();
+    assert!(
+        restored_again["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("return finish(entries.length)"),
+        "{restored_again}"
+    );
+    println!("MCP note folding: bytes={}, deferred_reads={}, all_ranked_paths=8, restored_offset={offset}, restored_limit={limit}, repeated_read_restored=true", output.len(), output.matches("_Body deferred [D1]; read ").count());
 }
 
 #[tokio::test]

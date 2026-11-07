@@ -1,7 +1,7 @@
 //! Keep ranked snippet selection separate from its presentation order.
 use crate::declarations;
 use crate::parser::{ExtractedFile, ExtractedSymbol};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) struct Section {
     root: Option<ExtractedSymbol>,
@@ -10,6 +10,8 @@ pub(super) struct Section {
     shown: BTreeSet<(String, usize, usize)>,
     /// Every declaration row written into this section, in row order.
     members: Vec<BlockSymbol>,
+    /// Each member's own row in `text`.
+    rows: Vec<(BlockSymbol, std::ops::Range<usize>)>,
     annotations: Vec<(BlockSymbol, std::ops::Range<usize>)>,
     pub anchors: Vec<(String, usize, usize)>,
     pub insertion: usize,
@@ -95,6 +97,21 @@ impl SourceBlock {
 
 pub(super) const PARTIAL_FILE_NOTICE: &str = "\n_Partial file output: per-file byte budget reached. Narrow the query or use `read` for the listed ranges._\n";
 
+/// Recovery coordinates for a deferred body; its owning file and block index locate the note.
+struct DeferredRead {
+    offset: usize,
+    limit: usize,
+}
+
+impl DeferredRead {
+    fn note(&self, path: &str) -> String {
+        format!(
+            "_Body deferred by delivery budget, not a relevance judgment; read {path} offset {} limit {} to restore._\n",
+            self.offset, self.limit
+        )
+    }
+}
+
 pub(crate) struct FileOutput {
     pub path: String,
     header: String,
@@ -107,6 +124,7 @@ pub(crate) struct FileOutput {
     // after selection in write_primary. Budgeting needs only its byte count.
     results_bytes: usize,
     blocks: Vec<SourceBlock>,
+    deferred_reads: BTreeMap<usize, DeferredRead>,
     indexed: Option<ExtractedFile>,
     has_impl_scopes: bool,
     base_bytes: usize,
@@ -135,6 +153,7 @@ impl FileOutput {
             current_symbol: None,
             results_bytes: 0,
             blocks: Vec::new(),
+            deferred_reads: BTreeMap::new(),
             indexed: indexed.cloned(),
             has_impl_scopes: false,
             base_bytes,
@@ -237,17 +256,6 @@ impl FileOutput {
     pub(crate) fn indexed(&self) -> Option<&ExtractedFile> {
         self.indexed.as_ref()
     }
-    /// Already prepared caller/callee evidence, including its precise/approximate labels.
-    /// Borrow ranges instead of retaining another full annotation catalogue.
-    pub(crate) fn annotation_for(&self, symbol: &BlockSymbol) -> Option<&str> {
-        self.sections.iter().find_map(|section| {
-            section
-                .annotations
-                .iter()
-                .find(|(owner, _)| owner == symbol)
-                .map(|(_, range)| &section.text[range.clone()])
-        })
-    }
     /// Called only after evidence capture/selection. Source and declaration identities stay
     /// unchanged; rebuild ranges so later consumers cannot observe stale byte offsets.
     pub(super) fn compact_display(&mut self, display: &mut super::display::DisplayContext) {
@@ -341,6 +349,84 @@ impl FileOutput {
         }
         replaced
     }
+    /// Jev omitted these declarations: their outline rows and relation notes go with their
+    /// bodies, except a row that still holds a retained member. A declaration section left
+    /// without members goes whole.
+    pub(crate) fn drop_omitted_members(&mut self, omitted: &[BlockSymbol]) {
+        if omitted.is_empty() {
+            return;
+        }
+        let is_omitted = |symbol: &BlockSymbol| {
+            omitted.iter().any(|other| {
+                (other.name.as_str(), other.start_line, other.end_line)
+                    == (symbol.name.as_str(), symbol.start_line, symbol.end_line)
+            })
+        };
+        let mut emptied = Vec::new();
+        for (section_index, section) in self.sections.iter_mut().enumerate() {
+            let gone: Vec<BlockSymbol> = section
+                .rows
+                .iter()
+                .filter(|(symbol, _)| {
+                    is_omitted(symbol)
+                        && !section
+                            .rows
+                            .iter()
+                            .any(|(other, _)| !is_omitted(other) && symbol.contains(other))
+                })
+                .map(|(symbol, _)| symbol.clone())
+                .collect();
+            if gone.is_empty() {
+                continue;
+            }
+            let mut cuts: Vec<std::ops::Range<usize>> = section
+                .rows
+                .iter()
+                .chain(&section.annotations)
+                .filter(|(symbol, _)| gone.contains(symbol))
+                .map(|(_, range)| range.clone())
+                .collect();
+            cuts.sort_by_key(|range| range.start);
+            let shift = |offset: usize| {
+                offset
+                    - cuts
+                        .iter()
+                        .filter(|cut| cut.end <= offset)
+                        .map(|cut| cut.len())
+                        .sum::<usize>()
+            };
+            let mut text = String::with_capacity(section.text.len());
+            let mut previous_end = 0;
+            for cut in &cuts {
+                text.push_str(&section.text[previous_end..cut.start]);
+                previous_end = cut.end;
+            }
+            text.push_str(&section.text[previous_end..]);
+            for ranges in [&mut section.rows, &mut section.annotations] {
+                ranges.retain(|(symbol, _)| !gone.contains(symbol));
+                for (_, range) in ranges.iter_mut() {
+                    *range = shift(range.start)..shift(range.end);
+                }
+            }
+            section.members.retain(|member| !gone.contains(member));
+            section.text = text;
+            if section.members.is_empty() {
+                emptied.push(section_index);
+            }
+        }
+        for index in emptied.into_iter().rev() {
+            self.sections.remove(index);
+        }
+    }
+    /// When Jev omitted every displayed body, the file's match metadata and declaration
+    /// outline go too; its heading and omission notes keep the locations.
+    pub(crate) fn drop_outline_if_all_omitted(&mut self) {
+        if self.blocks.is_empty() || !self.blocks.iter().all(|block| block.is_note) {
+            return;
+        }
+        self.metadata.clear();
+        self.sections.clear();
+    }
     #[cfg(test)]
     pub(crate) fn anchors(&self) -> Vec<(String, usize, usize)> {
         self.sections
@@ -367,6 +453,81 @@ impl FileOutput {
         }
         delivered
     }
+    /// Freeze only the source pieces admitted by the original primary cutoff.
+    pub(super) fn selected_source_ranges(&self, limit: usize) -> Vec<std::ops::Range<usize>> {
+        if self.first_source_byte.is_none_or(|first| first >= limit) {
+            return Vec::new();
+        }
+        let Some(span) = &self.source_span else {
+            return Vec::new();
+        };
+        let mut offset = span.start;
+        let mut ranges = Vec::new();
+        for block in &self.blocks {
+            let start = offset;
+            offset += block.rendered_len();
+            let end = offset.min(limit);
+            if !block.is_note && start < end {
+                ranges.push(start..end);
+            }
+        }
+        debug_assert_eq!(
+            ranges.iter().map(|range| range.len()).sum::<usize>(),
+            self.delivered_source_bytes(limit)
+        );
+        ranges
+    }
+
+    pub(super) fn selected_deferred_notes(
+        &self,
+        limit: usize,
+        file: usize,
+    ) -> Vec<super::display::DeferredNote> {
+        let Some(span) = &self.source_span else {
+            return Vec::new();
+        };
+        let mut offset = span.start;
+        let mut notes = Vec::new();
+        for (index, block) in self.blocks.iter().enumerate() {
+            let start = offset;
+            offset += block.rendered_len();
+            if offset > limit {
+                break;
+            }
+            if let Some(read) = self.deferred_reads.get(&index) {
+                if block.is_note && block.text == read.note(&self.path) {
+                    notes.push(super::display::DeferredNote {
+                        range: start..offset,
+                        file,
+                        read: format!("{} offset {} limit {}", self.path, read.offset, read.limit),
+                    });
+                }
+            }
+        }
+        notes
+    }
+
+    pub(super) fn selected_callee_headers(
+        &self,
+        limit: usize,
+        file: usize,
+    ) -> Vec<super::display::CalleeHeader> {
+        let mut headers = Vec::new();
+        for section in &self.sections {
+            let start = section.insertion - section.text.len();
+            for (_, range) in &section.annotations {
+                if start + range.end <= limit {
+                    headers.extend(super::display::callee_headers(
+                        &section.text[range.clone()],
+                        start + range.start,
+                        file,
+                    ));
+                }
+            }
+        }
+        headers
+    }
+
     /// The bytes `write_primary` will append for this file.
     pub fn written_len(&self, is_partial_file: bool) -> usize {
         self.len()
@@ -397,16 +558,33 @@ impl FileOutput {
             .filter(|(index, _)| is_protected(*index))
             .filter_map(|(_, block)| block.displayed)
             .collect::<Vec<_>>();
-        self.retain_blocks(|index, block| {
-            if *primary_bytes <= budget_bytes || block.is_note || is_protected(index) { return None; }
+        let mut deferred_reads = BTreeMap::new();
+        let replaced = self.retain_blocks(|index, block| {
+            if *primary_bytes <= budget_bytes || block.is_note || is_protected(index) {
+                return None;
+            }
             block.symbol.as_ref()?;
             let (first, last) = block.displayed?;
-            if protected_ranges.iter().any(|(start, end)| first <= *start && *end <= last) { return None; }
-            let note = format!("_Body deferred by delivery budget, not a relevance judgment; read {path} offset {first} limit {} to restore._\n", last - first + 1);
-            if note.len().saturating_add(512) > block.rendered_len() { return None; }
+            if protected_ranges
+                .iter()
+                .any(|(start, end)| first <= *start && *end <= last)
+            {
+                return None;
+            }
+            let deferred_read = DeferredRead {
+                offset: first,
+                limit: last - first + 1,
+            };
+            let note = deferred_read.note(&path);
+            if note.len().saturating_add(512) > block.rendered_len() {
+                return None;
+            }
             *primary_bytes -= block.rendered_len() - note.len();
+            deferred_reads.insert(index, deferred_read);
             Some(note)
-        })
+        });
+        self.deferred_reads.extend(deferred_reads);
+        replaced
     }
     pub fn push_annotation(&mut self, text: &str) -> bool {
         let Some(index) = self.current else {
@@ -563,6 +741,7 @@ impl FileOutput {
                 text: String::new(),
                 shown: BTreeSet::new(),
                 members: Vec::new(),
+                rows: Vec::new(),
                 annotations: Vec::new(),
                 anchors: Vec::new(),
                 insertion: 0,
@@ -570,7 +749,12 @@ impl FileOutput {
             self.sections.len() - 1
         });
         for (member, row) in rows {
+            let start = self.sections[index].text.len();
             self.sections[index].text.push_str(&row);
+            let end = self.sections[index].text.len();
+            self.sections[index]
+                .rows
+                .push((BlockSymbol::from_symbol(member), start..end));
             self.sections[index].shown.insert((
                 member.name.clone(),
                 member.range.start_line,
@@ -622,6 +806,7 @@ impl FileOutput {
                     text: String::new(),
                     shown: BTreeSet::new(),
                     members: Vec::new(),
+                    rows: Vec::new(),
                     annotations: Vec::new(),
                     anchors: Vec::new(),
                     insertion: 0,
@@ -661,24 +846,26 @@ pub(super) struct RelationOptions {
     pub byte_cap: usize,
 }
 
-pub(super) fn append_relations(
-    text: &mut String,
+/// Freeze relation text and descending insertion offsets using the unfolded primary length.
+/// Display labels commit only for accepted sections, in the original traversal order.
+pub(super) fn plan_relation_insertions(
+    primary_bytes: usize,
     files: &[FileOutput],
     snapshot: &crate::index::PublishedIndexSnapshot,
     scope: Option<&str>,
     options: RelationOptions,
     display: &mut super::display::DisplayContext,
-) {
+) -> Vec<(usize, String)> {
     let RelationOptions {
         should_include_calls,
         should_include_events,
         byte_cap: cap,
     } = options;
     let mut remaining = cap
-        .saturating_sub(text.len())
+        .saturating_sub(primary_bytes)
         .min(cap / 2)
         .min(crate::tools::live_symbols::PAYLOAD_BYTE_CAP);
-    let root = std::env::current_dir().unwrap_or_default();
+    let root = crate::workspace::root_dir().unwrap_or_default();
     let mut insertions = Vec::new();
     let mut shown_routes = crate::events::ShownRoutes::default();
     for (file_number, file) in files.iter().enumerate() {
@@ -760,7 +947,213 @@ pub(super) fn append_relations(
         }
     }
     insertions.sort_by_key(|(offset, _)| std::cmp::Reverse(*offset));
-    for (offset, relations) in insertions {
-        text.insert_str(offset, &relations);
+    insertions
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::{CodeRange, StaticCollectionEdge, StaticCollectionEdgeKind};
+
+    #[test]
+    fn test_deferred_read_ranges_survive_note_folding() {
+        let mut file = FileOutput::new("경로/worker.rs", 1, None, 0, 16 * 1024);
+        let mut primary = "# codemap-search\n".to_string();
+        for first in [1, 11, 21] {
+            assert!(file.push_block(SourceBlock {
+                text: "source bytes\n".repeat(80),
+                prefix: String::new(),
+                suffix: String::new(),
+                source_offset: Some(0),
+                symbol: Some(BlockSymbol {
+                    name: format!("f{first}"),
+                    kind: "fn".into(),
+                    owner: None,
+                    start_line: first,
+                    end_line: first + 8
+                }),
+                displayed: Some((first, first + 8)),
+                is_clipped: false,
+                is_note: false,
+            }));
+        }
+        let mut budget = file.primary_bytes(false);
+        assert_eq!(file.defer_bodies(&mut budget, 0, |_| false), 3);
+        file.write_primary(&mut primary, false);
+        let notes = file.selected_deferred_notes(primary.len(), 0);
+        assert_eq!(
+            notes
+                .iter()
+                .map(|note| note.read.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "경로/worker.rs offset 1 limit 9",
+                "경로/worker.rs offset 11 limit 9",
+                "경로/worker.rs offset 21 limit 9",
+            ]
+        );
+        assert!(file.selected_source_ranges(primary.len()).is_empty());
+        let definition_offset = Some("# codemap-search\n".len());
+        let edits = super::super::display::plan_note_folding(
+            &primary,
+            &notes,
+            &[],
+            &[0],
+            definition_offset,
+        );
+        let mut folded = primary.clone();
+        for edit in edits.into_iter().rev() {
+            folded.replace_range(edit.range, &edit.text);
+        }
+        assert!(folded.len() < primary.len());
+        assert_eq!(folded.matches("[D1] Body deferred").count(), 1);
+        for note in &notes {
+            assert!(folded.contains(&format!("_Body deferred [D1]; read {}._", note.read)));
+        }
+        // A clipped note is never folded, nor can a missing title leave undefined labels.
+        assert_eq!(
+            file.selected_deferred_notes(notes[2].range.end - 1, 0)
+                .len(),
+            2
+        );
+        assert!(super::super::display::plan_note_folding(
+            &primary,
+            &notes[..1],
+            &[],
+            &[0],
+            definition_offset
+        )
+        .is_empty());
+        assert!(
+            super::super::display::plan_note_folding(
+                &primary,
+                &notes[..2],
+                &[],
+                &[0],
+                definition_offset
+            )
+            .is_empty(),
+            "two references do not repay this definition's bytes"
+        );
+        assert!(super::super::display::plan_note_folding(
+            &primary.replacen("# codemap-search", "# missing title", 1),
+            &notes,
+            &[],
+            &[0],
+            definition_offset
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn test_relation_plan_keeps_existing_budget_order() {
+        let range = |start, end| CodeRange {
+            start_line: start,
+            start_col: 1,
+            end_line: end,
+            end_col: 2,
+        };
+        let mut indexed_files = Vec::new();
+        let mut files = Vec::new();
+        let mut primary = String::new();
+        let mut expected_insertions = Vec::new();
+        for (file_number, path) in ["a.rs", "b.rs"].into_iter().enumerate() {
+            let indexed = ExtractedFile {
+                file_path: path.into(),
+                total_lines: 30,
+                symbols: Vec::new(),
+                literals: Vec::new(),
+                docstrings: Vec::new(),
+                member_names: Vec::new(),
+                navigation: None,
+            };
+            let edges = [
+                (StaticCollectionEdgeKind::Producer, "put", 2),
+                (StaticCollectionEdgeKind::Consumer, "get", 20),
+            ]
+            .into_iter()
+            .map(|(kind, symbol, line)| StaticCollectionEdge {
+                kind,
+                collection_owner_type: "T".into(),
+                collection_field: "items".into(),
+                owner_expression: "self".into(),
+                source_owner: Some("T".into()),
+                source_owner_range: Some(range(1, 30)),
+                source_symbol: Some(symbol.into()),
+                value: None,
+                range: range(line, line),
+            })
+            .collect();
+            indexed_files.push((indexed, edges));
+            let mut file = FileOutput::new(path, file_number + 1, None, 0, 16 * 1024);
+            // Two sections in the first file split its share; the last file receives
+            // all bytes that earlier sections could not use, not a fixed initial share.
+            for line in if file_number == 0 {
+                vec![2, 20]
+            } else {
+                vec![2]
+            } {
+                file.sections.push(Section {
+                    root: None,
+                    heading: format!("\n### line {line}\n\n"),
+                    text: String::new(),
+                    shown: BTreeSet::new(),
+                    members: Vec::new(),
+                    rows: Vec::new(),
+                    annotations: Vec::new(),
+                    anchors: vec![(path.into(), line, line)],
+                    insertion: 0,
+                });
+            }
+            file.write_primary(&mut primary, false);
+            // Literal pre-refactor rendering, including heading nesting and newlines.
+            let relations = format!(
+                "\n\n#### Related write/read paths (static hint)\n\n_Inferred from direct, typed collection identity; confirm in source._\n- `T.items`: `T.put` at `{path}:2` → `T.get` at `{path}:20`\n"
+            );
+            assert!(relations.len() < 256);
+            for section in &file.sections {
+                expected_insertions.push((section.insertion, relations.clone()));
+            }
+            files.push(file);
+        }
+        let snapshot = crate::index::PublishedIndexSnapshot::from_files_and_edges(indexed_files);
+        assert!(primary.len() < 2048);
+        primary.push_str(&" ".repeat(2048 - primary.len()));
+        // Up to 2048 spare bytes, neither cap/2 nor the payload cap reduces the reserve.
+        // The old loop skips shares below 256 before rendering any relation text.
+        for (remaining, selected) in [
+            (0, vec![]),
+            (255, vec![]),
+            (256, vec![2]),
+            (511, vec![2]),
+            (512, vec![2, 1]),
+            (1023, vec![2, 1]),
+            (1024, vec![2, 1, 0]),
+            (2048, vec![2, 1, 0]),
+        ] {
+            let mut display = super::super::display::DisplayContext::default();
+            let note = "[Partial source analysis: fixture]\n";
+            assert_eq!(display.compact(note), format!("[N1] {note}"));
+            let insertions = plan_relation_insertions(
+                primary.len(),
+                &files,
+                &snapshot,
+                None,
+                RelationOptions {
+                    should_include_calls: false,
+                    should_include_events: false,
+                    byte_cap: primary.len() + remaining,
+                },
+                &mut display,
+            );
+            let expected = selected
+                .into_iter()
+                .map(|index| expected_insertions[index].clone())
+                .collect::<Vec<_>>();
+            assert_eq!(insertions, expected, "remaining bytes: {remaining}");
+            assert_eq!(display.compact(note), "[N1 applies here]\n");
+            let next_note = "[Partial source analysis: next]\n";
+            assert_eq!(display.compact(next_note), format!("[N2] {next_note}"));
+        }
     }
 }

@@ -11,9 +11,9 @@ pub mod find;
 pub mod grep;
 pub(crate) mod live_options;
 pub(crate) mod live_symbols;
-pub mod overview;
 pub(crate) mod path_suggestions;
 pub mod read;
+pub(crate) mod root_inventory;
 pub mod search;
 pub(crate) mod synonyms;
 pub mod task;
@@ -22,7 +22,7 @@ use crate::index::EngineSupervisor;
 use serde_json::Value;
 use std::path::Path;
 
-/// Borrowed request context for the snapshot-backed tools (`search`/`overview`). The MCP
+/// Borrowed request context for the snapshot-backed `search` tool. The MCP
 /// dispatch arm runs the `EngineSupervisor` lifecycle (`ensure_alive`/`trigger_refresh`)
 /// itself, then hands the tool body an immutable engine borrow plus the parsed arguments;
 /// the tool reads the committed snapshot through `engine` and never needs `&mut`. The
@@ -30,7 +30,6 @@ use std::path::Path;
 pub struct ToolContext<'a> {
     pub engine: &'a EngineSupervisor,
     pub arguments: &'a Value,
-    pub active_workspace_scope: Option<&'a str>,
 }
 
 // --- Shared gitignore-style glob matching (find + grep) --------------------------------
@@ -219,6 +218,31 @@ pub fn server_instructions() -> String {
     text
 }
 
+/// A tool's Jev paragraph, present only while that tool's Jev stage is enabled.
+fn jev_guidance(is_enabled: bool, text: &str) -> String {
+    if is_enabled {
+        format!("\n\n{}", text.trim_end())
+    } else {
+        String::new()
+    }
+}
+
+/// Enabled Jev filters require the user's task before their first call.
+fn with_jev_guidance(mut text: String) -> String {
+    let jev = &crate::config::get().jev;
+    let tools: Vec<_> = ["grep", "read", "search"]
+        .into_iter()
+        .filter(|tool| jev.is_enabled_for(tool))
+        .collect();
+    if !tools.is_empty() {
+        text.push_str(&format!(
+            "\n\nJev filtering is enabled for {}. Pass the user's complete request as task to initial_instructions before the first of these calls, and again when the request changes.",
+            tools.join(", ")
+        ));
+    }
+    text
+}
+
 fn with_related_terms_guidance(mut text: String) -> String {
     if crate::config::get().related_terms.enabled {
         text.push_str("\n\nFor behavior/flow discovery, first read synonyms' full description and schema, not a clipped tool preview. Select inputs BEFORE calling: use only the argument key `terms` (not `query`), with an array of lowercase targets. Split identifiers into selected words; keep a technical term that names one concept as one spaced item (`abort signal`); never send a whole identifier or an invented alternative. Keep inflections and useful base words (find AND find_by). Then call once before search/grep, even for known names, and verify relevant returned alternatives alongside the originals. Do not force unrelated alternatives.");
@@ -268,22 +292,33 @@ pub fn instructions() -> String {
     } else {
         common.to_string()
     };
-    with_related_terms_guidance(text)
+    with_jev_guidance(with_related_terms_guidance(text))
+}
+
+/// `initial_instructions` takes the user's task only while a Jev filter is enabled. A client
+/// that cached the list before a configuration reload enabled Jev must reconnect to see it;
+/// a task argument stays accepted either way.
+fn initial_instructions_schema(is_jev_enabled: bool) -> Value {
+    if is_jev_enabled {
+        serde_json::json!({ "type": "object", "properties": { "task": task::schema_property() }, "required": ["task"], "additionalProperties": false })
+    } else {
+        serde_json::json!({ "type": "object", "properties": {}, "required": [], "additionalProperties": false })
+    }
 }
 
 /// Removed body-filter arguments must not silently select, bypass or replace task context.
 pub(crate) fn reject_body_task_query(arguments: &Value) -> Result<(), (i64, String)> {
     if get_arg(arguments, "task_query").is_some() {
-        return Err((-32602, "task_query is not a per-tool option. Register the full task once with register_task; enabled search/read/grep filters run automatically.".into()));
+        return Err((-32602, "task_query is not a per-tool option. Pass the full task once as initial_instructions' task; enabled search/read/grep filters run automatically.".into()));
     }
     Ok(())
 }
 
 /// Compose the monorepo bootstrap response from the existing navigation guidance and the root
-/// overview rendered from the current index snapshot. The caller owns lifecycle handling and
-/// invokes this only for monorepos, preserving the non-monorepo response unchanged.
-pub fn instructions_with_root_overview(root_overview: &str) -> String {
-    format!("{}\n\n{}", instructions(), root_overview)
+/// scope inventory rendered from the current index snapshot. The caller owns lifecycle handling
+/// and invokes this only for monorepos, preserving the non-monorepo response unchanged.
+pub fn instructions_with_root_inventory(root_inventory: &str) -> String {
+    format!("{}\n\n{}", instructions(), root_inventory)
 }
 
 pub(super) fn grep_regex_guidance() -> &'static str {
@@ -319,7 +354,7 @@ fn filesystem_tool_description(
 /// The MCP `tools/list` result: tool schemas (name, description, read-only
 /// annotations, and input schema), including `initial_instructions`. Base tool
 /// `description` prose is embedded from `instructions/tools/<name>.md` via `include_str!`.
-/// Read/grep/overview use `<name>.jev.md` when their Jev stage is enabled. Task registration
+/// Read/grep use `<name>.jev.md` when their Jev stage is enabled. Task registration
 /// has its own tool; `initial_instructions` has no arguments.
 /// Live filesystem tools append their currently configured permission policy. Tool descriptions
 /// own selection and tool-specific output details; property descriptions own argument contracts.
@@ -343,53 +378,47 @@ pub fn list_tools() -> Value {
     let include_ignored_description = "Bypass .gitignore and .codemapignore (default false).";
     let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
     let jev = &config.jev;
-    // An enabled Jev stage uses its dedicated `<name>.jev.md` as the tool's whole static prose.
-    let read_description = if jev.is_enabled_for("read") {
+    // An enabled Jev stage appends its `<name>.jev.md` to the tool's ordinary prose, so both
+    // configurations keep the same navigation guidance.
+    let read_description = format!(
+        "{}\n\n{}{}",
         filesystem_tool_description(
-            include_str!("instructions/tools/read.jev.md").trim_end(),
+            include_str!("instructions/tools/read.md").trim_end(),
             permissions.read,
             &permissions.allowed_roots,
-        )
-    } else {
-        format!(
-            "{}\n\n{}",
-            filesystem_tool_description(
-                include_str!("instructions/tools/read.md").trim_end(),
-                permissions.read,
-                &permissions.allowed_roots,
-            ),
-            include_str!("instructions/tools/read.evidence.md").trim_end(),
-        )
-    };
+        ),
+        include_str!("instructions/tools/read.evidence.md").trim_end(),
+        jev_guidance(
+            jev.is_enabled_for("read"),
+            include_str!("instructions/tools/read.jev.md")
+        ),
+    );
     let find_description = filesystem_tool_description(
         include_str!("instructions/tools/find.md").trim_end(),
         permissions.find,
         &permissions.allowed_roots,
     );
-    let grep_description = if jev.is_enabled_for("grep") {
+    let grep_description = format!(
+        "{}\n\n{}{}",
         filesystem_tool_description(
-            include_str!("instructions/tools/grep.jev.md").trim_end(),
+            include_str!("instructions/tools/grep.md").trim_end(),
             permissions.grep,
             &permissions.allowed_roots,
-        )
-    } else {
-        format!(
-            "{}\n\n{}",
-            filesystem_tool_description(
-                include_str!("instructions/tools/grep.md").trim_end(),
-                permissions.grep,
-                &permissions.allowed_roots,
-            ),
-            include_str!("instructions/tools/grep.evidence.md").trim_end(),
-        )
-    };
-    let search_description = include_str!("instructions/tools/search.md").trim_end();
-    let overview_description = if jev.is_enabled_for("overview") {
-        include_str!("instructions/tools/overview.jev.md")
-    } else {
-        include_str!("instructions/tools/overview.md")
-    }
-    .trim_end();
+        ),
+        include_str!("instructions/tools/grep.evidence.md").trim_end(),
+        jev_guidance(
+            jev.is_enabled_for("grep"),
+            include_str!("instructions/tools/grep.jev.md")
+        ),
+    );
+    let search_description = format!(
+        "{}{}",
+        include_str!("instructions/tools/search.md").trim_end(),
+        jev_guidance(
+            jev.is_enabled_for("search"),
+            include_str!("instructions/tools/search.jev.md")
+        ),
+    );
     // Read-only stays true: neither stage writes anywhere. The open-world hint follows the
     // effective enable flag of this request, because an enabled stage may contact the
     // external provider even when no key is present at this moment.
@@ -399,7 +428,7 @@ pub fn list_tools() -> Value {
         "query": { "type": "string" },
         "include_seen": include_seen_schema.clone(),
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
-        "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes) selecting an indexed event map instead of ranked search; query is still required. Bus identity and qualifiers remain separate." },
+        "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes), not ranked search; query is required. Zero endpoints does not prove no route. Bus identity and qualifiers remain separate." },
         "debug": { "type": "boolean", "default": false, "description": debug_description },
         "caller_context": { "type": "boolean", "description": "Depth-one callers/callees for detail snippets; defaults to caller_context_default. False also skips callsite implementation lookup, but retains declaration/implementation and static collection links." },
         "language_hint": { "type": "string", "description": "Query language for cross-language ranking, e.g. 'typescript' or 'rust'; omitted means language-agnostic." },
@@ -411,7 +440,7 @@ pub fn list_tools() -> Value {
                 "workspace_scope".to_string(),
                 serde_json::json!({
                     "type": "string",
-                    "description": "Override the active overview scope with a listed path or unique basename; subdirectories stay narrow and files select their parent. Omit to retain the active scope; 'all'/'전체' searches repo-wide. Never widens automatically. Alias: scope."
+                    "description": "Limit the search to a scope listed by initial_instructions, by path or unique basename; subdirectories stay narrow and files select their parent. A folder outside the start folder or in a linked worktree searches its own repository's index, created on first use. Omit or use 'all'/'전체' for repo-wide search. Never widens automatically. Alias: scope."
                 }),
             );
         }
@@ -421,24 +450,12 @@ pub fn list_tools() -> Value {
                     {
                         "name": "initial_instructions",
                         "description": include_str!("instructions/tools/initial_instructions.md").trim_end(),
-                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                        "inputSchema": { "type": "object", "properties": {}, "required": [], "additionalProperties": false }
-                    },
-                    {
-                        "name": "overview",
-                        "description": overview_description,
                         // Navigation tools are read-only over the local workspace. Declaring it
                         // matters: clients gate approval on these hints (Codex auto-cancels
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
-                        "annotations": { "readOnlyHint": true, "openWorldHint": jev.is_enabled_for("overview") },
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "path": { "type": "string", "description": "Root when empty/omitted, otherwise a folder or file. In monorepos, a folder sets subsequent search scope, a file selects its parent, and root/'all' resets it. Aliases: file_path/file/query." },
-                                "format": { "type": "string", "description": "Set 'llms-txt' for a bounded root text map." }
-                            }
-                        }
+                        "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                        "inputSchema": initial_instructions_schema(jev.is_any_enabled())
                     },
                     {
                         "name": "search",
@@ -516,7 +533,7 @@ pub fn list_tools() -> Value {
                                 "path": { "type": "string", "description": search_path_description },
                                 "glob": { "type": "string", "description": format!("File filter using {glob_syntax} Slashed patterns are relative to path. Separate patterns with whitespace/commas outside braces. Aliases: include/file_pattern.") },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
-                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "Default content uses 42:match/43-context rows; view=source adds file prefixes. files_with_matches returns paths; count returns per-file counts. These latter modes skip context and reject non-default view/unresolved/debug, expand=callable or explicit include_events=true." },
+                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "content (default): 42:match/43-context rows; view=source adds paths. files_with_matches: paths; count: per-file counts. File/count modes ignore full/source/source_grouped view; other views, unresolved=count, debug=true, expand=callable or include_events=true are errors." },
                                 "-i": { "type": "boolean", "description": "Case-insensitive (default false)." },
                                 "-n": { "type": "boolean", "description": "Show line numbers in content mode (default true)." },
                                 "-A": { "type": "integer", "description": "Context lines after each match." },
@@ -532,20 +549,6 @@ pub fn list_tools() -> Value {
                     }
                 ]
     });
-    // Registration only feeds enabled Jev filters, so it is listed only then. A client that
-    // cached this list before a configuration reload enabled Jev must reconnect to see it;
-    // registration calls stay accepted either way.
-    if jev.is_any_enabled() {
-        result["tools"].as_array_mut().unwrap().insert(
-            1,
-            serde_json::json!({
-                "name": "register_task",
-                "description": include_str!("instructions/tools/register_task.md").trim_end(),
-                "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                "inputSchema": task::schema()
-            }),
-        );
-    }
     result["tools"]
         .as_array_mut()
         .unwrap()
@@ -580,5 +583,71 @@ mod tests {
     fn test_normalize_glob_prefix_accepts_windows_separators() {
         assert_eq!(normalize_glob_prefix(".\\src\\*.rs"), "src/*.rs");
         assert_eq!(normalize_glob_prefix("!.\\src\\*.rs"), "!src/*.rs");
+    }
+
+    #[test]
+    fn test_initial_guidance_distinguishes_locations_from_cross_file_evidence() {
+        let old_sentence = "Stop when the requested facts are established.";
+        let new_sentence = "For unscoped discovery, search/grep requested concepts repo-wide, then narrow. Verify requested links' ends, transfer/registration and conditions in source. Follow missing links before stopping, or state the blocker and gap.";
+        // The overview tool is removed, so the sentence pointing away from it goes too.
+        let overview_sentence = " A known file or line needs no intermediate overview.";
+        // Read trailers now find callers and importers, so following them depends on the question.
+        let old_trailer_sentence = "A read view=source may end with callers from outside the window for the functions it shows; follow them to find what reaches a function (entry points).";
+        let new_trailer_sentence = "A read view=source may end with callers from outside the window for the functions it shows and with other files importing its declarations; these are static uses, so follow the ones the question needs to find what reaches or uses that code.";
+        let original_common = r#"Use returned source evidence directly; read only missing ranges. A known file or line needs no intermediate overview. Stop when the requested facts are established. Partial, ambiguous or list-only results are incomplete evidence, and missing indexed declarations do not prove absent source. Analysis notices do not require rereading visible code. Follow explicit truncation or recovery notices; oversized bodies need smaller read windows.
+
+Within an MCP connection, search/read/grep omit unchanged source already delivered or repeated in the same response. Find returns its complete current result on every call. New source stays. One <--removed duplicated--> marker replaces repeats. Set include_seen=true to restore the current result, including after context loss. This rule is independent of Jev.
+
+Full output groups declarations and their relationships under numbered file headings, followed by one results section per file. Methods stay under their owner. Pathless L42 refers to the current file heading; foreign locations keep paths.
+
+For source-only text discovery, prefer grep view=source_grouped with expand=none; read view=source for missing ranges. A read view=source may end with callers from outside the window for the functions it shows; follow them to find what reaches a function (entry points). Search may group non-call reference locations and reuse labeled analysis notes. A body deferred by the delivery budget is unshown evidence, not an unrelatedness judgment; its read range restores it.
+
+Relationships obey scope, exclusions, freshness and shared output budgets. Source/model/candidate and precise/unresolved labels distinguish evidence; static calls, callback passing and event registration do not prove runtime execution or delivery order. Source routes distinguish callback candidates, argument transfer and data consumers without classifying events.
+
+read/find/grep state their current filesystem permission: workspace confines paths to this workspace; allowed_roots also permits the listed external roots; anywhere permits any reachable path. [REDACTED] or asterisks represent hidden values, not source or replacement code. Matching uses original data; masking cannot detect every secret format."#;
+        let expected_monorepo = "The scope inventory below lists selectable scopes; call initial_instructions again only if it reports a warming indexer. Scopes include both conventional workspaces and top-level source roots. Check language counts rather than inferring ownership from names. Confirm scope before broad changes; an explicit whole-repository request already supplies that choice.";
+        let common = include_str!("instructions/tools/initial_instructions.result.md").trim_end();
+        let monorepo =
+            include_str!("instructions/tools/initial_instructions.result.monorepo.md").trim_end();
+
+        assert_eq!(old_sentence.chars().count(), 46);
+        assert_eq!(new_sentence.chars().count(), 224);
+        assert_eq!(original_common.chars().count(), 2_225);
+        assert_eq!(overview_sentence.chars().count(), 53);
+        assert_eq!(old_trailer_sentence.chars().count(), 151);
+        assert_eq!(new_trailer_sentence.chars().count(), 240);
+        assert_eq!(
+            common
+                .replace(new_sentence, old_sentence)
+                .replace(new_trailer_sentence, old_trailer_sentence),
+            original_common.replace(overview_sentence, ""),
+            "all guidance outside the stop, overview and read trailer sentences must remain unchanged"
+        );
+        assert_eq!(common.matches(new_trailer_sentence).count(), 1);
+        assert_eq!(monorepo, expected_monorepo);
+        assert_eq!(monorepo.chars().count(), 361);
+        assert!(
+            common.contains(new_sentence),
+            "missing cross-file stop rule"
+        );
+        assert_eq!(common.matches(new_sentence).count(), 1);
+        assert!(!common.contains(old_sentence));
+        assert_eq!(
+            common.chars().count(),
+            original_common.chars().count() + 178 - 53 + 89
+        );
+        assert_eq!(common.chars().count(), 2_439);
+
+        let expected = if crate::codemap::looks_like_monorepo_workspace() {
+            format!("{common}\n\n{expected_monorepo}")
+        } else {
+            common.to_string()
+        };
+        // Repo-wide discovery is stated once, in the common guidance, for every workspace.
+        assert_eq!(expected.matches("repo-wide").count(), 1);
+        assert_eq!(
+            super::instructions(),
+            super::with_related_terms_guidance(expected)
+        );
     }
 }
