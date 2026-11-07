@@ -1,14 +1,14 @@
 {
   "arms": [
     {
-      "commit": "fc0a368d0b37da44c5e2bc9df3617ef75b4891cb",
-      "git_ref": "codemap-v0.14.0",
+      "commit": "2d0fdf01003a32631d7fed586ae558d6528592b6",
+      "git_ref": "2d0fdf01003a32631d7fed586ae558d6528592b6",
       "id": "codemap-search",
       "name": "codemap-search",
       "path": "apps/codemap-search",
       "pin_status": "release_source_frozen_binary_at_preparation",
       "role": "subject",
-      "version": "0.14.0"
+      "version": "0.14.2"
     },
     {
       "commit": "6560052a6f856855d3f71eee838fd66ccfa4285d",
@@ -109,7 +109,7 @@
     ],
     "prompt_separation": "passed"
   },
-  "contract_hash": "3c13eb783e86ad4074aea4f87721a9630a72f63375b1bc1f268af9de1d36e55a",
+  "contract_hash": "256a0b48ef31698ec3a5fcce0e29920835739f1ed922548dfbb89b9204452e24",
   "contract_paths": {
     "private_dataset": "benchmark/data/grafana-routes-v4/dataset.json",
     "profile": "benchmark/data/grafana-execution-v1.json",
@@ -134,20 +134,20 @@
   "implementation_hashes": {
     "benchmark/data/grafana-execution-v1.json": "15b5944f86ec79d96a99fadc4c6e31e5a91df35284666e62137ad1136e253956",
     "benchmark/execution.py": "8b1fcac17905dbec8948c837936b0e276ff15fe6aa59aca73f2b5facee101011",
-    "benchmark/route_contract.py": "2f5831899ab3aa6f5316f6cbcf3b05ba7fde5515ae15beb6a6169a3229984506",
+    "benchmark/route_contract.py": "765f0fefb358b91f3a85a3178fc8469811f615d11da9cb3616ef7acd206a4e13",
     "benchmark/runner.py": "1a2467f1421ed2dc70481301f988013781de8bd1dd855d49f7c6aafd79692989",
     "benchmark/settings.py": "74c8b3dfa9f305176b781cfe036494636e9d879479354e7a936d193a4e7da66d"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "ec8904ed0026be882668c76fe364b2051626cc07847e8bea034b8cedddfdb27e",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "7a306eb35533ca3b1fd048071949ef0221e80aa2ea93cb445e85450e32f15dff",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "3c68f46150cd8ba8efb286e6928c6cd5a08ead5927db697a5aac36325f6fe3b7",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "3afc18b2ea2cf63cdc707b4abab01e61311c45c2ae1a2884a7d53fe2031acb20",
     "benchmark/data/grafana-comparison-targets-v1/cli-package-lock.json": "cf7ef941e0fb2367f72458fde9a3d37b990eb9b32c4427506fe9dfa382876022",
     "benchmark/data/grafana-comparison-targets-v1/cli-package.json": "519444dde90d2b3f115b46aeda9c939b1f2a8f9d24974101288c84d44cfb1b5f",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "03c36da8f9ad0018e9ef82ce79a74a899f180e9bb50b0e3eb1e9e5ca00957b59",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "8a036445611af224d96c4f478cde925e37b3de77e2337707cf851b8ff97fabd3",
     "benchmark/data/grafana-routes-v4/README.md": "b7c385ae0cb4d51ed5cae4c8eb4d4c8684cf6cce7cc015085ce586df21c4040f",
     "benchmark/data/grafana-routes-v4/SHA256SUMS": "8dce9a29307bd232384310ebc38a8cf585860dd462e682940ae2bec037700a66",
     "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
@@ -282,7 +282,7 @@
     "git-oauth-authorization",
     "plugin-http-route-bridge"
   ],
-  "recorded_at": "2026-10-27T14:22:02.811548+00:00",
+  "recorded_at": "2026-11-07T03:57:01.227830+00:00",
   "repetitions": 3,
   "schema_version": 1,
   "solver": {

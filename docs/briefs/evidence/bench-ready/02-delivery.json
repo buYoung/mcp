@@ -67,7 +67,7 @@
             "-na",
             "--offline",
             "-e",
-            "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/pi-mcp-adapter",
+            "/Volumes/Samsung_990_PRO/wsk/pi-toolchain/installation/node_modules/pi-mcp-adapter",
             "--mcp-config",
             "<temporary>/mcp-adapter.json",
             "--help"
@@ -87,7 +87,7 @@
             "-na",
             "--offline",
             "-e",
-            "/Volumes/Samsung_990_PRO/wsv4/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
+            "/Volumes/Samsung_990_PRO/wsk/pi-toolchain/installation/node_modules/@buyong/pi-claude-bridge/src/index.ts",
             "--list-models"
           ],
           "exit_code": 0,
@@ -105,8 +105,8 @@
         }
       },
       "model_invocations": 0,
-      "node_path": "/Users/buyong/.nvm/versions/node/v24.14.0/bin/node",
-      "node_sha256": "20a18709f0154d668f1bd6f6ea8c2a7ae001447b4b2c339732f22e57a8767a55",
+      "node_path": "/Users/buyong/.nvm/versions/node/v26.13.0/bin/node",
+      "node_sha256": "533bd644c5ae0e0ea3a80e433aad16b817447ccba1e1eea701875eac80cb75d4",
       "required_flags": [
         "--no-tools",
         "--no-mcp",
@@ -116,21 +116,21 @@
         "--session-dir",
         "--thinking"
       ],
-      "toolchain_sha256": "89a7a9ecabd9dd2228c1ef4e3c6284039c2e50a84ce920b30b41c42fa5e11f31",
+      "toolchain_sha256": "9a446b97a0e4fd6b18d7cbc6a9acdac6cbe268abbba6e300bc9252939c68eefa",
       "version": "1.4.0",
       "versions": {
         "agent_sdk": "0.3.310",
         "bridge": "0.13.1",
         "claude_code": "2.1.310",
         "mcp_adapter": "7.0.0",
-        "node": "v24.14.0",
+        "node": "v26.13.0",
         "pi": "1.4.0"
       }
     }
   },
-  "contract_hash": "3c13eb783e86ad4074aea4f87721a9630a72f63375b1bc1f268af9de1d36e55a",
+  "contract_hash": "256a0b48ef31698ec3a5fcce0e29920835739f1ed922548dfbb89b9204452e24",
   "dependency_hashes": {
-    "01-contract.json": "ba82a14a536e1261286a054d44fe8fbd9e4dfada180f71ed602d68be2e6837a2"
+    "01-contract.json": "ca56109e8a43ffb43a75d698f371a96cd45189f05bd7212e10d2dfca228dd44d"
   },
   "grader_runs": 0,
   "implementation_hashes": {
@@ -139,15 +139,15 @@
     "benchmark/runner.py": "1a2467f1421ed2dc70481301f988013781de8bd1dd855d49f7c6aafd79692989"
   },
   "input_hashes": {
-    "benchmark/data/grafana-comparison-targets-v1/README.md": "ec8904ed0026be882668c76fe364b2051626cc07847e8bea034b8cedddfdb27e",
-    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "7a306eb35533ca3b1fd048071949ef0221e80aa2ea93cb445e85450e32f15dff",
+    "benchmark/data/grafana-comparison-targets-v1/README.md": "3c68f46150cd8ba8efb286e6928c6cd5a08ead5927db697a5aac36325f6fe3b7",
+    "benchmark/data/grafana-comparison-targets-v1/SHA256SUMS": "3afc18b2ea2cf63cdc707b4abab01e61311c45c2ae1a2884a7d53fe2031acb20",
     "benchmark/data/grafana-comparison-targets-v1/cli-package-lock.json": "cf7ef941e0fb2367f72458fde9a3d37b990eb9b32c4427506fe9dfa382876022",
     "benchmark/data/grafana-comparison-targets-v1/cli-package.json": "519444dde90d2b3f115b46aeda9c939b1f2a8f9d24974101288c84d44cfb1b5f",
     "benchmark/data/grafana-comparison-targets-v1/graphifyy-0.9.95-py312-darwin-arm64.requirements.txt": "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
     "benchmark/data/grafana-comparison-targets-v1/pi-package-lock.json": "14fdacfe216f5db2384605237c19820b3d4dd5ef931071d277fb87c597c28f81",
     "benchmark/data/grafana-comparison-targets-v1/pi-package.json": "03c36da8f9ad0018e9ef82ce79a74a899f180e9bb50b0e3eb1e9e5ca00957b59",
     "benchmark/data/grafana-comparison-targets-v1/provenance.json": "b6a9196e1356639eb93110208d2ea5eab70d058009743cf4deb1e760e5607b94",
-    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
+    "benchmark/data/grafana-comparison-targets-v1/targets.lock.json": "8a036445611af224d96c4f478cde925e37b3de77e2337707cf851b8ff97fabd3",
     "benchmark/data/grafana-routes-v4/README.md": "b7c385ae0cb4d51ed5cae4c8eb4d4c8684cf6cce7cc015085ce586df21c4040f",
     "benchmark/data/grafana-routes-v4/SHA256SUMS": "8dce9a29307bd232384310ebc38a8cf585860dd462e682940ae2bec037700a66",
     "benchmark/data/grafana-routes-v4/dataset.json": "27e85e09886bfc76bb4b2bb2b221dcb7c671b2286bcff0663cf79429836edadd",
@@ -207,11 +207,11 @@
       "frontend_stopped": true,
       "owned_process_groups": [
         {
-          "pgid": 27062,
+          "pgid": 48255,
           "stopped": true
         }
       ],
-      "pid": 27062,
+      "pid": 48255,
       "shared_daemon_stopped": null
     },
     "fields_preserved": true,
@@ -269,16 +269,16 @@
     ],
     "probe": "rg over a copied harness source file",
     "probe_source_sha256": "7ba54a84da133780e4d30ef755ffc3bf33320131a8b6660c2a2c0772cefa76ba",
-    "protocol_log": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/delivery-probe/1793110937563352000/protocol.jsonl",
+    "protocol_log": "/Volumes/Samsung_990_PRO/wsk/route-preparation/delivery-probe/1794023835610144000/protocol.jsonl",
     "protocol_sha256": "b0a865a1d8e2634f60cecf342f72a5b0eedfc18053365bef9fa05708e0e6b3f8",
-    "relay_log": "/Volumes/Samsung_990_PRO/wsv4/route-preparation/delivery-probe/1793110937563352000/relay.jsonl",
-    "relay_sha256": "6eca5771d611e55fde944c238dd6467cbd87bd7c5afb51f3eb54b57792a8aec9",
+    "relay_log": "/Volumes/Samsung_990_PRO/wsk/route-preparation/delivery-probe/1794023835610144000/relay.jsonl",
+    "relay_sha256": "b617487de906b4ff38aee1f530e811edeaaaa37d81ee75da8fd070674d8159a4",
     "scope": "neutral relay transport fixture only; not the native-agent baseline configuration",
     "status": "passed",
     "stdout_bytes": 90437,
     "stdout_lines": 1419
   },
-  "recorded_at": "2026-10-27T14:22:21.079998+00:00",
+  "recorded_at": "2026-11-07T03:57:19.348356+00:00",
   "schema_version": 1,
   "solver_runs": 0,
   "status": "verified_offline",
