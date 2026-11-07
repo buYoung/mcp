@@ -189,28 +189,14 @@ fn fixture() -> Fixture {
     Fixture { cap, other }
 }
 
-fn arguments() -> Value {
-    json!({ "query": "cap output", "caller_context": false })
-}
-
 fn task(goal: &str) -> RegisteredTask {
     RegisteredTask {
         task_query: goal.into(),
-        match_mode: MatchMode::All,
-        questions: vec![crate::tools::task::TaskQuestion {
-            id: "budget".into(),
-            question: "Does the candidate implement or support the requested output byte cap?"
-                .into(),
-            when_true: "Related: supplied facts connect it to output budgeting.".into(),
-            when_false:
-                "Unrelated: supplied facts establish separate behavior, not merely missing context."
-                    .into(),
-        }],
     }
 }
 
 fn capture(fixture: &Fixture) -> FilterInput {
-    FilterInput::capture(&task(TASK), arguments(), &[&fixture.cap, &fixture.other])
+    FilterInput::capture(&task(TASK), &[&fixture.cap, &fixture.other])
 }
 
 fn entity<'a>(input: &'a FilterInput, name: &str) -> (usize, &'a FilterEntity) {
@@ -231,6 +217,19 @@ fn decision<'a>(
     &result.decisions[index]
 }
 
+/// The `name:` line of the candidate question `id` asks about in a request's plain-text state.
+fn candidate_name<'a>(state: &'a serde_json::Value, id: &QuestionId) -> &'a str {
+    let text = state.as_str().unwrap_or_default();
+    let marker = format!("[{id}]\n");
+    let block = text
+        .split_once(marker.as_str())
+        .map_or(text, |(_, rest)| rest);
+    block
+        .lines()
+        .find_map(|line| line.strip_prefix("name: "))
+        .unwrap_or_default()
+}
+
 /// A mock that answers each body question from the declaration name.
 fn judge(probabilities: &[(&'static str, f64)]) -> MockEvaluator {
     let probabilities: BTreeMap<&'static str, f64> = probabilities.iter().copied().collect();
@@ -239,8 +238,9 @@ fn judge(probabilities: &[(&'static str, f64)]) -> MockEvaluator {
             .questions()
             .iter()
             .map(|question| {
-                let name = question.instructions()["candidate"]["name"]
-                    .as_str()
+                let name = candidate_name(request.state(), question.id())
+                    .rsplit("::")
+                    .next()
                     .unwrap_or_default();
                 let unrelated = probabilities.get(name).copied().unwrap_or(0.0);
                 (question.id().clone(), answers::noul(1.0 - unrelated))
@@ -255,10 +255,8 @@ fn judgments(input: &FilterInput, probabilities: &[(&str, f64)]) -> Vec<BodyJudg
         .map(|(name, unrelated)| {
             let (index, _) = entity(input, name);
             BodyJudgment {
-                question_id: question_id(index, 0),
+                question_id: question_id(index),
                 entity: index,
-                criterion: 0,
-                group: 0,
                 noul: NoulAnswer {
                     noul: 1.0 - *unrelated,
                 },
@@ -342,7 +340,6 @@ fn capture_builds_entities_with_evidence_status_nesting_and_visible_call_links()
             "clippedThing"
         ]
     );
-    assert_eq!(input.file_count, 2);
     assert_eq!(input.body_count(), 7);
     assert_eq!(input.task.task_query, TASK);
 
@@ -356,7 +353,11 @@ fn capture_builds_entities_with_evidence_status_nesting_and_visible_call_links()
 
     assert_eq!(apply.evidence, EvidenceStatus::Complete);
     assert!(apply.is_judgeable());
-    assert!(!apply.is_masked);
+    assert!(!apply
+        .body
+        .as_deref()
+        .unwrap()
+        .contains(crate::redact::MARKER));
     assert_eq!(apply.body.as_deref().unwrap().lines().count(), 8);
     assert!(apply
         .body
@@ -381,7 +382,7 @@ fn capture_builds_entities_with_evidence_status_nesting_and_visible_call_links()
 
     assert_eq!(budget_entity.evidence, EvidenceStatus::Complete);
     assert!(!budget_entity.is_callable);
-    assert!(!budget_entity.is_judgeable());
+    assert!(budget_entity.is_judgeable());
     assert_eq!(fit.parent, Some(budget));
     assert_eq!(fit.qualified_name(), "Budget::fit");
     assert!(fit.is_judgeable());
@@ -390,7 +391,10 @@ fn capture_builds_entities_with_evidence_status_nesting_and_visible_call_links()
     assert_eq!(unrelated.block_index, Some(0));
     assert_eq!(clipped.evidence, EvidenceStatus::PartialSource);
     assert_eq!(clipped.block_index, Some(1));
-    assert_eq!(input.judgeable(), vec![apply_cap, render_tail, 5]);
+    assert_eq!(
+        input.judgeable(),
+        vec![apply_cap, render_tail, budget, 4, 5]
+    );
     assert_eq!(
         input.evidence_summary(),
         EvidenceSummary {
@@ -425,7 +429,7 @@ fn identity_is_verified_on_the_displayed_buffer_not_on_line_counts() {
             "const movedValue = 3;",
         ],
     );
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     let entity = &input.entities[0];
     assert_eq!(entity.evidence, EvidenceStatus::IdentityUnverified);
     assert!(!entity.is_judgeable());
@@ -497,14 +501,17 @@ fn masking_beyond_the_signature_protects_a_body_while_partial_masking_is_judged(
             "}",
         ],
     );
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     let (secret_index, secret_entity) = entity(&input, "loadSecret");
     let (partial_index, partial_entity) = entity(&input, "loadPartial");
     assert_eq!(secret_entity.evidence, EvidenceStatus::MaskedUnavailable);
-    assert!(secret_entity.is_masked);
     assert!(secret_entity.body.is_none());
     assert_eq!(partial_entity.evidence, EvidenceStatus::Complete);
-    assert!(partial_entity.is_masked);
+    assert!(partial_entity
+        .body
+        .as_deref()
+        .unwrap()
+        .contains(crate::redact::MARKER));
     assert_eq!(input.judgeable(), vec![partial_index]);
     assert_eq!(input.evidence_summary().masked_unavailable, 1);
     let decisions = apply_policy(
@@ -536,7 +543,7 @@ fn capture_masks_secret_like_paths_and_the_intent_when_redaction_is_active() {
     let mut file = output(&path, None);
     push_body(&mut file, &leaked, (1, 3), false);
     let intent = format!("where is {AWS_LIKE_TOKEN} validated?");
-    let input = FilterInput::capture(&task(&intent), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(&intent), &[&file]);
     assert!(
         !input.entities[0].path.contains(AWS_LIKE_TOKEN),
         "path reached the evidence unmasked: {}",
@@ -550,8 +557,10 @@ fn capture_masks_secret_like_paths_and_the_intent_when_redaction_is_active() {
     assert!(input.task.task_query.contains("validated"));
     let note = omission_note(&input.entities[0]);
     assert!(!note.contains(AWS_LIKE_TOKEN));
-    let groups = questions::groups(&input, &input.judgeable(), &FilterPolicy::default()).unwrap();
-    let state = serde_json::to_string(groups[0].request.state()).unwrap();
+    let requests = decision::request_for(&input, &input.judgeable(), &FilterPolicy::default())
+        .unwrap()
+        .unwrap();
+    let state = serde_json::to_string(requests[0].1.state()).unwrap();
     assert!(!state.contains(AWS_LIKE_TOKEN), "{state}");
 }
 
@@ -631,29 +640,6 @@ fn replaying_raw_judgments_with_another_threshold_changes_decisions_without_infe
     assert!(at_ninety[apply_index].is_retained);
     // The same answers replay to the same decisions.
     assert_eq!(apply_policy(&input, &judged, 0.70), at_seventy);
-    // Replaying the newly registered composition changes decisions, never probabilities.
-    let mut any_input = input.clone();
-    any_input.task.match_mode = MatchMode::Any;
-    let mut second = any_input.task.questions[0].clone();
-    second.id = "support".into();
-    any_input.task.questions.push(second);
-    let mut any_answers = judged.clone();
-    any_answers.push(BodyJudgment {
-        question_id: question_id(unrelated_index, 1),
-        entity: unrelated_index,
-        criterion: 1,
-        group: 0,
-        noul: NoulAnswer { noul: 0.99 },
-    });
-    assert_eq!(
-        apply_policy(&any_input, &any_answers, 0.70)[unrelated_index].match_state,
-        MatchState::Matched
-    );
-    any_input.task.match_mode = MatchMode::All;
-    assert_eq!(
-        apply_policy(&any_input, &any_answers, 0.70)[unrelated_index].match_state,
-        MatchState::NoMatch
-    );
 }
 
 #[test]
@@ -690,7 +676,7 @@ fn policy_keeps_bodies_linked_to_nested_in_or_containing_retained_blocks() {
         Some(RetentionReason::NestedInRetained(budget)),
         "a nested body stays while its enclosing block is displayed"
     );
-    assert_eq!(by_name("Budget").reason, Some(RetentionReason::NotCallable));
+    assert_eq!(by_name("Budget").reason, Some(RetentionReason::NoJudgment));
     assert_eq!(
         by_name("helper").reason,
         Some(RetentionReason::IncompleteEvidence(
@@ -713,7 +699,7 @@ fn policy_keeps_bodies_linked_to_nested_in_or_containing_retained_blocks() {
     let mut file = output("src/nested_fns.ts", None);
     push_body(&mut file, &outer, (1, 20), false);
     push_body(&mut file, &inner, (5, 9), false);
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     let (outer_index, _) = entity(&input, "outer");
     let (inner_index, inner_entity) = entity(&input, "inner");
     assert_eq!(inner_entity.parent, Some(outer_index));
@@ -760,7 +746,7 @@ fn policy_does_not_keep_a_body_through_an_omitted_neighbor_or_a_row_only_parent(
     let mut file = output("src/nested.ts", None);
     assert!(file.start_symbol(&outer, Some("")));
     push_body(&mut file, &inner, (5, 9), false);
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     let (inner_index, inner_entity) = entity(&input, "inner");
     let (outer_index, outer_entity) = entity(&input, "Outer");
     assert_eq!(outer_entity.evidence, EvidenceStatus::NoSource);
@@ -773,7 +759,9 @@ fn policy_does_not_keep_a_body_through_an_omitted_neighbor_or_a_row_only_parent(
     assert!(!decisions[inner_index].is_retained);
     assert_eq!(
         decisions[outer_index].reason,
-        Some(RetentionReason::NotCallable)
+        Some(RetentionReason::IncompleteEvidence(
+            EvidenceStatus::NoSource
+        ))
     );
 
     let holder = symbol("holder", "function", 1, 12);
@@ -781,7 +769,7 @@ fn policy_does_not_keep_a_body_through_an_omitted_neighbor_or_a_row_only_parent(
     let mut file = output("src/holder.ts", None);
     push_body(&mut file, &holder, (1, 12), false);
     assert!(file.start_symbol(&local, Some("")));
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     let (holder_index, _) = entity(&input, "holder");
     let decisions = apply_policy(
         &input,
@@ -808,7 +796,7 @@ fn oversized_complete_bodies_are_protected_instead_of_judged() {
         (1, 3),
         false
     ));
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     assert_eq!(input.entities[0].evidence, EvidenceStatus::Oversized);
     assert!(input.judgeable().is_empty());
     let decisions = apply_policy(&input, &[], DEFAULT_MIN_UNRELATED_PROBABILITY);
@@ -821,7 +809,7 @@ fn oversized_complete_bodies_are_protected_instead_of_judged() {
 }
 
 #[tokio::test]
-async fn evaluate_sends_one_noul_question_per_complete_callable_body() {
+async fn evaluate_sends_one_noul_question_per_complete_body() {
     let fixture = fixture();
     let input = capture(&fixture);
     let evaluator = judge(&[("unrelatedThing", 0.99)]).with_usage(Usage::reported(296, 20));
@@ -835,69 +823,45 @@ async fn evaluate_sends_one_noul_question_per_complete_callable_body() {
     let requests = evaluator.requests();
     assert_eq!(requests.len(), 1);
     let request = &requests[0];
-    assert_eq!(request.task_query(), Some(TASK));
     assert_eq!(request.deadline_at, Some(deadline_at));
-    assert_eq!(request.state["task_query"], json!(TASK));
-    assert_eq!(request.state["search_arguments"], arguments());
-    assert_eq!(
-        request.state["filter"]["question_version"],
-        json!(QUESTION_VERSION)
-    );
-    assert_eq!(
-        request.state["filter"]["evidence_version"],
-        json!(EVIDENCE_VERSION)
+    let state = request.state.as_str().unwrap();
+    assert!(
+        state.starts_with(&format!("Task:\n{TASK}\n\nCandidates:\n\n[b0]\n")),
+        "{state}"
     );
     let ids: Vec<&str> = request.questions.keys().map(QuestionId::as_str).collect();
     assert_eq!(
         ids,
-        ["b0.q0", "b1.q0", "b5.q0"],
-        "only complete callable bodies are asked"
+        ["b0", "b1", "b3", "b4", "b5"],
+        "only complete bodies are asked"
     );
-    for question in request.questions.values() {
+    for (id, question) in &request.questions {
         assert_eq!(question["type"], json!("noul"));
         assert_eq!(
-            question["instructions"]["question"],
-            input.task.questions[0].question
+            question["instructions"],
+            json!(format!(
+                "About candidate [{id}] only: {}",
+                decision::QUESTION
+            ))
         );
-        assert_eq!(
-            question["criteria"]["true"],
-            input.task.questions[0].when_true
-        );
-        assert_eq!(
-            question["criteria"]["false"],
-            input.task.questions[0].when_false
-        );
-        assert!(question["instructions"]["candidate"].get("body").is_none());
+        assert_eq!(question["criteria"]["true"], json!(decision::WHEN_TRUE));
+        assert_eq!(question["criteria"]["false"], json!(decision::WHEN_FALSE));
     }
-    let apply_cap = &request.state["candidates"]["b0"];
-    assert_eq!(apply_cap["file_path"], json!("src/search/cap.ts"));
-    assert_eq!(apply_cap["lines"], json!("L1-L8"));
-    assert_eq!(apply_cap["is_masked"], json!(false));
-    assert_eq!(apply_cap["calls_displayed"][0]["name"], "renderTail");
-    assert_eq!(apply_cap["called_by_displayed"], json!([]));
-    assert!(apply_cap["body"].as_str().unwrap().starts_with(
-        "1→ line 1 of applyCap: budget.fit(remaining_bytes, footer.len(), limit)\n2→"
+    assert!(state.contains(
+        "[b0]\nfile: src/search/cap.ts\nkind: function\nname: applyCap\nsource:\n1→ line 1 of applyCap: budget.fit(remaining_bytes, footer.len(), limit)\n2→"
     ));
-    assert_eq!(
-        request.state["candidates"]["b1"]["called_by_displayed"][0]["name"],
-        "applyCap"
-    );
-    assert!(
-        request.state["candidates"].get("b4").is_none(),
-        "the retained parent already supplies this body"
-    );
 
     assert_eq!(
         result.status,
         FilterStatus::Applied {
             bodies: 7,
-            judged: 3,
+            judged: 5,
             omitted: 1,
-            protected: 3,
-            linked: 1,
+            protected: 2,
+            linked: 0,
         }
     );
-    assert_eq!(result.judgments.len(), 3);
+    assert_eq!(result.judgments.len(), 5);
     assert_eq!(result.decisions.len(), 7);
     assert_eq!(result.omitted_entities().collect::<Vec<_>>(), vec![5]);
     assert_eq!(
@@ -911,10 +875,10 @@ async fn evaluate_sends_one_noul_question_per_complete_callable_body() {
     assert_eq!(result.question_version, QUESTION_VERSION);
     assert_eq!(result.policy_version, POLICY_VERSION);
     assert!(summary_note(&result).contains("1 of 7 planned bodies omitted"));
-    assert!(summary_note(&result).contains("3 judged, 3 protected, 0 uncertain retained, 1 kept"));
+    assert!(summary_note(&result).contains("5 judged, 2 protected, 0 uncertain retained, 0 kept"));
     assert!(result
         .diagnostic()
-        .starts_with("bodies=7 judged=3 omitted=1 rendered_omissions=0"));
+        .starts_with("bodies=7 judged=5 omitted=1 rendered_omissions=0"));
 }
 
 #[tokio::test]
@@ -932,9 +896,9 @@ async fn evaluate_reports_linked_bodies_separately_from_protected_ones() {
         result.status,
         FilterStatus::Applied {
             bodies: 7,
-            judged: 3,
+            judged: 5,
             omitted: 1,
-            protected: 3,
+            protected: 2,
             linked: 2,
         }
     );
@@ -958,7 +922,7 @@ async fn retention_rewrites_the_results_body_and_drops_omitted_anchors_only() {
         .expect("unrelatedThing is omitted");
     assert_eq!(
         note,
-        "- _omitted body: L1-6 (function unrelatedThing) Jev found no task match; read src/search/other.ts offset 1 limit 6 does not bypass Jev._\n"
+        "- _omitted body: L1-6 (function unrelatedThing) Jev found no task match in src/search/other.ts._\n"
     );
 
     let Fixture { cap, mut other } = fixture;
@@ -1023,7 +987,7 @@ fn retaining_every_block_keeps_the_output_byte_identical() {
 }
 
 #[test]
-fn rust_containers_constants_and_unknown_kinds_are_retained_without_judgment() {
+fn rust_containers_constants_and_unknown_kinds_are_judged_only_when_displayed() {
     // Rust-shaped rows: an `impl` container with two methods, a `struct` with a displayed
     // body, a row-only `const`, and a kind the policy does not know.
     let container = symbol("Cache", "impl", 10, 40);
@@ -1051,7 +1015,7 @@ fn rust_containers_constants_and_unknown_kinds_are_retained_without_judgment() {
     push_body(&mut file, &evict, (22, 39), false);
     assert!(file.start_symbol(&limit, Some("")));
     push_body(&mut file, &widget, (44, 50), false);
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     let names: Vec<&str> = input
         .entities
         .iter()
@@ -1069,7 +1033,12 @@ fn rust_containers_constants_and_unknown_kinds_are_retained_without_judgment() {
         "`self.evict()` resolves to the sibling"
     );
     assert_eq!(evict_entity.incoming, vec![get_index]);
-    assert_eq!(input.judgeable(), vec![get_index, evict_index]);
+    let (entry_index, _) = entity(&input, "Entry");
+    let (gadget_index, _) = entity(&input, "gadget");
+    assert_eq!(
+        input.judgeable(),
+        vec![entry_index, get_index, evict_index, gadget_index]
+    );
 
     let decisions = apply_policy(
         &input,
@@ -1080,13 +1049,23 @@ fn rust_containers_constants_and_unknown_kinds_are_retained_without_judgment() {
         let (index, _) = entity(&input, name);
         decisions[index].reason.clone()
     };
-    assert_eq!(reason("Entry"), Some(RetentionReason::NotCallable));
-    assert_eq!(reason("Cache"), Some(RetentionReason::NotCallable));
-    assert_eq!(reason("LIMIT"), Some(RetentionReason::NotCallable));
+    assert_eq!(reason("Entry"), Some(RetentionReason::NoJudgment));
+    assert_eq!(
+        reason("Cache"),
+        Some(RetentionReason::IncompleteEvidence(
+            EvidenceStatus::NoSource
+        ))
+    );
+    assert_eq!(
+        reason("LIMIT"),
+        Some(RetentionReason::IncompleteEvidence(
+            EvidenceStatus::NoSource
+        ))
+    );
     assert_eq!(
         reason("gadget"),
-        Some(RetentionReason::NotCallable),
-        "unknown kinds stay visible"
+        Some(RetentionReason::NoJudgment),
+        "unknown kinds stay visible without an answer"
     );
     // The impl row does not display the method lines, so nesting protects nothing here
     // and both methods are omitted on their own forced judgments.
@@ -1108,9 +1087,7 @@ fn rust_containers_constants_and_unknown_kinds_are_retained_without_judgment() {
     assert!(text.contains("44→ line 44 of gadget"));
     assert!(!text.contains("line 12 of get"));
     assert!(!text.contains("line 22 of evict"));
-    assert!(text.contains(
-        "(method Cache::get) Jev found no task match; read src/cache.rs offset 12 limit 9"
-    ));
+    assert!(text.contains("(method Cache::get) Jev found no task match in src/cache.rs._"));
     assert_eq!(
         text.matches("```").count(),
         4,
@@ -1124,7 +1101,7 @@ fn a_body_no_larger_than_its_omission_note_is_never_omitted() {
     let mut file = output("src/tiny.ts", None);
     assert!(file.start_symbol(&tiny, Some("")));
     assert!(file.plan_source_for_symbol("1→ tiny()", "", &tiny, (1, 1), false));
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     assert_eq!(input.entities[0].body_bytes, "```\n1→ tiny()\n```\n".len());
     assert!(
         input.judgeable().is_empty(),
@@ -1156,7 +1133,7 @@ fn the_status_line_is_inline_only_when_omissions_freed_the_room() {
             "// trailing comment that keeps this body larger than its omission note but not by much",
         ],
     );
-    let input = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let input = FilterInput::capture(&task(TASK), &[&file]);
     let decisions = apply_policy(
         &input,
         &judgments(&input, &[("smallish", 0.99)]),
@@ -1324,9 +1301,9 @@ async fn forced_unrelated_answers_still_keep_protected_bodies() {
         result.status,
         FilterStatus::Applied {
             bodies: 7,
-            judged: 3,
+            judged: 5,
             omitted: 3,
-            protected: 3,
+            protected: 2,
             linked: 1,
         }
     );
@@ -1348,7 +1325,7 @@ async fn bypasses_never_send_a_request() {
     let input = capture(&fixture);
     let evaluator = judge(&[]);
 
-    let blank = FilterInput::capture(&task("   "), arguments(), &[&fixture.cap]);
+    let blank = FilterInput::capture(&task("   "), &[&fixture.cap]);
     let result = evaluate(&blank, &evaluator, &FilterPolicy::default()).await;
     assert_eq!(
         result.status,
@@ -1369,7 +1346,7 @@ async fn bypasses_never_send_a_request() {
     let partial = symbol("partial", "function", 1, 9);
     let mut file = output("src/partial.ts", None);
     push_body(&mut file, &partial, (1, 5), false);
-    let no_bodies = FilterInput::capture(&task(TASK), arguments(), &[&file]);
+    let no_bodies = FilterInput::capture(&task(TASK), &[&file]);
     let result = evaluate(&no_bodies, &evaluator, &FilterPolicy::default()).await;
     assert_eq!(
         result.status,
@@ -1412,7 +1389,7 @@ fn summary_note_names_the_policy_version_and_threshold() {
     };
     result.effective_threshold = 0.85;
     let note = summary_note(&result);
-    assert!(note.contains("search-selection-policy/6-experimental"));
+    assert!(note.contains("search-selection-policy/7-experimental"));
     assert!(note.contains("threshold 0.85"));
     assert!(note.contains("2 of 7 planned bodies omitted"));
     assert!(note.contains("1 kept through direct support or nesting"));

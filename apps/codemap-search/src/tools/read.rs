@@ -179,6 +179,20 @@ fn resolve_window_args(args: &Value) -> (Option<usize>, Option<usize>) {
     (offset, limit)
 }
 
+/// The read names its own line windows: an offset or line alias for the file or for every
+/// `ranges` item, or callable expansion.
+pub(crate) fn names_window(args: &Value) -> bool {
+    let has_offsets = match ranges(args) {
+        Ok(Some(ranges)) => ranges
+            .iter()
+            .all(|range| resolve_window_args(range).0.is_some()),
+        _ => resolve_window_args(args).0.is_some(),
+    };
+    has_offsets
+        || super::live_options::LiveOptions::parse(args)
+            .is_ok_and(|options| options.should_expand_callable)
+}
+
 pub fn read_file(args: &Value) -> Result<String, (i64, String)> {
     read_file_with_metadata(args).map(|output| output.text)
 }

@@ -1,7 +1,7 @@
-//! Shared evaluation of registered task questions over bounded source evidence.
-//! Each candidate body appears once in its group state. Code composes separate Noul
-//! answers as all/any/uncertain decisions; it never reports a joint probability.
-//! Any required evaluation failure preserves the entire ordinary search response.
+//! Shared evaluation of displayed callable bodies against the user's task.
+//! Each body is asked one fixed Noul question carrying its own source; code turns the
+//! answers into retention decisions. Any required evaluation failure preserves the entire
+//! ordinary response.
 
 pub(crate) use super::grouped::BlockSymbol;
 use super::grouped::FileOutput;
@@ -20,34 +20,34 @@ pub(crate) fn simple_name(name: &str) -> &str {
         .unwrap_or(name)
 }
 
-use serde_json::{json, Map, Value};
+use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use tokio::time::Instant;
 
+mod decision;
 mod evidence;
 mod followups;
-mod questions;
-use crate::tools::task::{MatchMode, RegisteredTask};
-pub(super) use followups::append_call_candidates;
-use questions::question_id;
+use crate::tools::task::RegisteredTask;
+use decision::question_id;
+pub(super) use followups::{append_call_candidates, call_candidates, CallCandidates};
 
 #[cfg(test)]
 mod tests;
 
 /// Version of the evidence capture (statuses, identity check, masking rule, links).
-pub const EVIDENCE_VERSION: &str = "search-task-evidence/8";
-pub const QUESTION_VERSION: &str = "search-task-questions/9";
-pub const POLICY_VERSION: &str = "search-selection-policy/6-experimental";
-/// Provisional default for `search_filter_min_unrelated_probability`. It is a starting
-/// policy value, not a calibrated one: omission needs a decisive composed no-match; a Noul
-/// answer assigns at least this much mass to a criterion being false.
+pub const EVIDENCE_VERSION: &str = "search-task-evidence/9";
+pub const QUESTION_VERSION: &str = "search-task-questions/11";
+pub const POLICY_VERSION: &str = "search-selection-policy/7-experimental";
+/// Provisional default for `search_filter_min_unrelated_probability`: the documented starting
+/// point for Noul answers (yes at 0.7, no at 0.3), not a calibrated value. Omission needs a
+/// no answer with at least this much mass.
 pub const DEFAULT_MIN_UNRELATED_PROBABILITY: f64 = 0.70;
 /// A body alone cannot exceed the entire state-plus-question operating budget.
 /// Smaller bodies are preflighted together with their goal, questions and evidence.
 pub const MAX_COMPLETE_BODY_BYTES: usize = crate::jev::DEFAULT_STATE_QUESTION_TOKEN_BUDGET as usize
     * crate::jev::ESTIMATED_BYTES_PER_TOKEN as usize;
-/// Call links named per direction in one question.
+/// Follow-up call candidates listed per name.
 pub const MAX_LINKS_PER_QUESTION: usize = 8;
 /// Displayed lines inspected for the declaration name when verifying identity.
 pub const IDENTITY_CHECK_LINES: usize = 3;
@@ -80,7 +80,7 @@ impl Default for FilterPolicy {
     fn default() -> Self {
         Self {
             min_unrelated_probability: DEFAULT_MIN_UNRELATED_PROBABILITY,
-            max_group_bytes: questions::MAX_GROUP_BYTES,
+            max_group_bytes: decision::MAX_GROUP_BYTES,
             model: crate::jev::DEFAULT_MODEL.into(),
             deadline_at: None,
             cancel: None,
@@ -134,8 +134,6 @@ pub struct FilterEntity {
     pub displayed: Option<(usize, usize)>,
     pub evidence: EvidenceStatus,
     pub is_callable: bool,
-    /// The displayed body contains at least one redaction marker.
-    pub is_masked: bool,
     /// Rendered bytes of the body block (fence included); 0 without a body.
     pub body_bytes: usize,
     /// Numbered source lines of a complete body, exactly as displayed (already redacted).
@@ -144,25 +142,31 @@ pub struct FilterEntity {
     pub outgoing: Vec<usize>,
     /// Displayed callables whose bodies visibly call this one (entity indices).
     pub incoming: Vec<usize>,
-    /// Indexed callers outside the rendered source windows: (entity, call-site line).
-    /// These are bounded name-resolution candidates, not verified runtime targets.
-    pub indexed_callers: Vec<(usize, usize)>,
-    pub omitted_indexed_callers: usize,
     /// Smallest strictly enclosing displayed declaration in the same file.
     pub parent: Option<usize>,
-    pub unresolved_calls: usize,
-    pub supporting_context: String,
-    pub is_context_clipped: bool,
-    /// Bounded supporting evidence has gaps. This is input to the relevance judgment,
-    /// not a server-side decision to skip evaluation or retain the body.
-    pub has_missing_context: bool,
+    /// The request asked for a window inside this body, such as an omission note's location.
+    pub is_requested: bool,
+    /// Only grep's matching rows of this body are displayed; the body is judged whole.
+    pub is_match_view: bool,
+    pub unit: Unit,
+}
+
+/// What a judged unit covers and therefore how its omission note names it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Unit {
+    /// A whole declaration, or grep's matching rows of one.
+    Declaration,
+    /// The displayed rows of a callable the window cuts.
+    Part,
+    /// Displayed rows outside every callable, labelled by the declaration holding them.
+    Lines,
 }
 
 impl FilterEntity {
-    /// A body is judged only when it is a callable displayed completely with a verified
-    /// identity and usable text.
+    /// A unit is judged only when its displayed text is complete for that unit, verified
+    /// and usable.
     pub fn is_judgeable(&self) -> bool {
-        self.is_callable && self.evidence == EvidenceStatus::Complete
+        self.evidence == EvidenceStatus::Complete
     }
 
     pub fn qualified_name(&self) -> String {
@@ -189,29 +193,20 @@ pub struct EvidenceSummary {
     pub non_callable: usize,
 }
 
-/// Presentation copy of everything the filter judges: the explicit (masked) intent, the
-/// masked search arguments named in the shared state, and one entity per displayed
-/// declaration.
+/// Presentation copy of everything the filter judges: the explicit (masked) intent and one
+/// entity per displayed declaration. An omission removes a whole body, never part of one.
 #[derive(Clone, Debug)]
 pub struct FilterInput {
-    pub selection_unit: SelectionUnit,
     /// Capture contract of the producer; search and live tools build different evidence.
     pub evidence_version: &'static str,
     pub task: RegisteredTask,
-    pub search_arguments: Value,
     pub entities: Vec<FilterEntity>,
-    pub file_count: usize,
+    /// Index-derived follow-up caller candidates need a fresh snapshot; the displayed
+    /// bodies, verified against their own text, are judged either way.
     pub is_snapshot_fresh: bool,
-    /// Masked direct caller/callee source shared by candidate groups.
-    pub supporting_sources: HashMap<usize, String>,
-}
-
-/// Body output is indivisible: an omission removes a whole body, never part of one. The unit
-/// is part of each request so the provider sees what an omission removes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SelectionUnit {
-    Body,
+    /// The renderer joins adjacent omissions into one note, so a unit shorter than its own
+    /// note can still be omitted together with its neighbors.
+    pub merges_omissions: bool,
 }
 
 fn symbol_key(symbol: &BlockSymbol) -> (String, usize, usize) {
@@ -234,18 +229,14 @@ fn entity_index(
             block_index: None,
             displayed: None,
             evidence: EvidenceStatus::NoSource,
-            is_masked: false,
             body_bytes: 0,
             body: None,
             outgoing: Vec::new(),
             incoming: Vec::new(),
-            indexed_callers: Vec::new(),
-            omitted_indexed_callers: 0,
             parent: None,
-            unresolved_calls: 0,
-            supporting_context: String::new(),
-            is_context_clipped: false,
-            has_missing_context: false,
+            is_requested: false,
+            is_match_view: false,
+            unit: Unit::Declaration,
         });
         entities.len() - 1
     })
@@ -357,11 +348,7 @@ impl FilterInput {
     /// Capture the displayed declarations of `files` (prepared output order). Bodies come
     /// from the renderer's block list, nesting from declaration ranges, and call links from
     /// the indexed call sites whose line is inside a displayed callable body.
-    pub(crate) fn capture(
-        task: &RegisteredTask,
-        search_arguments: Value,
-        files: &[&FileOutput],
-    ) -> Self {
+    pub(crate) fn capture(task: &RegisteredTask, files: &[&FileOutput]) -> Self {
         let mut entities: Vec<FilterEntity> = Vec::new();
         let mut file_spans: Vec<std::ops::Range<usize>> = Vec::with_capacity(files.len());
         for (file_index, file) in files.iter().enumerate() {
@@ -385,7 +372,6 @@ impl FilterInput {
                 entity.block_index = Some(block_index);
                 entity.displayed = block.displayed;
                 entity.body_bytes = block.rendered_len();
-                entity.is_masked = block.text.contains(crate::redact::MARKER);
                 entity.evidence = if !block.is_complete_body() {
                     EvidenceStatus::PartialSource
                 } else if block.rendered_len() > MAX_COMPLETE_BODY_BYTES {
@@ -438,18 +424,8 @@ impl FilterInput {
             let span = &file_spans[file_index];
             for call in &navigation.calls {
                 let line = call.range.start_line;
-                let indexed_owner = span
-                    .clone()
-                    .filter(|index| {
-                        let entity = &entities[*index];
-                        entity.is_callable
-                            && entity.symbol.start_line <= line
-                            && line <= entity.symbol.end_line
-                    })
-                    .min_by_key(|index| {
-                        entities[*index].symbol.end_line - entities[*index].symbol.start_line
-                    });
-                let displayed_owner = span
+                // Only a call displayed inside a callable body links two displayed bodies.
+                let Some(owner) = span
                     .clone()
                     .filter(|index| {
                         let entity = &entities[*index];
@@ -460,32 +436,14 @@ impl FilterInput {
                     })
                     .min_by_key(|index| {
                         entities[*index].symbol.end_line - entities[*index].symbol.start_line
-                    });
-                let Some(owner) = displayed_owner.or(indexed_owner) else {
+                    })
+                else {
                     continue;
                 };
-                let is_displayed = entities[owner]
-                    .displayed
-                    .is_some_and(|(first, last)| first <= line && line <= last);
                 let Some(target) = resolve_call(&entities, &by_name, call, owner) else {
-                    if is_displayed {
-                        entities[owner].unresolved_calls += 1;
-                    }
                     continue;
                 };
-                if target == owner {
-                    continue;
-                }
-                if !is_displayed {
-                    let callers = &mut entities[target].indexed_callers;
-                    if !callers.contains(&(owner, line)) {
-                        if callers.len() < MAX_LINKS_PER_QUESTION {
-                            callers.push((owner, line));
-                        } else {
-                            entities[target].omitted_indexed_callers += 1;
-                        }
-                    }
-                } else if !links.contains(&(owner, target)) {
+                if target != owner && !links.contains(&(owner, target)) {
                     links.push((owner, target));
                 }
             }
@@ -496,35 +454,35 @@ impl FilterInput {
         }
 
         Self {
-            selection_unit: SelectionUnit::Body,
             task: task.masked(),
             evidence_version: EVIDENCE_VERSION,
-            search_arguments,
             entities,
-            file_count: files.len(),
             is_snapshot_fresh: true,
-            supporting_sources: HashMap::new(),
+            merges_omissions: false,
         }
+    }
+
+    /// A note at least as long as the unit grows the output, unless neighbors join it.
+    fn is_too_small(&self, entity: &FilterEntity) -> bool {
+        !self.merges_omissions && omission_note(entity).len() >= entity.body_bytes
     }
 
     /// Retention known before inference. A judgment cannot shrink these bodies.
     fn deterministic_retention(&self, index: usize) -> Option<RetentionReason> {
         let entity = &self.entities[index];
-        if !entity.is_callable {
-            return Some(RetentionReason::NotCallable);
+        if entity.is_requested {
+            return Some(RetentionReason::RequestedLocation);
         }
         if entity.evidence != EvidenceStatus::Complete {
             return Some(RetentionReason::IncompleteEvidence(entity.evidence));
         }
-        if omission_note(entity).len() >= entity.body_bytes {
+        if self.is_too_small(entity) {
             return Some(RetentionReason::TooSmallToOmit);
         }
         let mut ancestor = entity.parent;
         while let Some(parent) = ancestor {
             let container = &self.entities[parent];
-            if (!container.is_callable
-                || container.evidence != EvidenceStatus::Complete
-                || omission_note(container).len() >= container.body_bytes)
+            if (container.evidence != EvidenceStatus::Complete || self.is_too_small(container))
                 && container.displayed.is_some_and(|(first, last)| {
                     first <= entity.symbol.start_line && entity.symbol.end_line <= last
                 })
@@ -590,19 +548,15 @@ impl FilterInput {
 pub struct BodyJudgment {
     pub question_id: QuestionId,
     pub entity: usize,
-    pub criterion: usize,
-    pub group: usize,
     pub noul: NoulAnswer,
 }
 
 /// Why a body stayed in the output.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RetentionReason {
-    /// The registered criteria compose to a positive task match.
+    /// The answer is a positive task match.
     JudgedRelated,
     Uncertain,
-    /// Structs, enums, classes and other non-callable declarations are never judged.
-    NotCallable,
     /// The body is not displayed completely, is oversized, could not be identified in the
     /// displayed buffer, or is masked beyond use, so no judgment is fair.
     IncompleteEvidence(EvidenceStatus),
@@ -611,6 +565,8 @@ pub enum RetentionReason {
     /// Judged unrelated, but its rendered body is no larger than the omission note that
     /// would replace it: an omission must shrink the output, never grow it.
     TooSmallToOmit,
+    /// The request asked for a window inside this body, so the body is the requested source.
+    RequestedLocation,
     /// Visibly calls, or is visibly called by, the retained callable at this index.
     ConnectedToRetained(usize),
     /// Its lines are displayed inside the retained enclosing block at this index.
@@ -625,10 +581,10 @@ impl RetentionReason {
         match self {
             Self::JudgedRelated => "judged_related",
             Self::Uncertain => "uncertain",
-            Self::NotCallable => "not_callable",
             Self::IncompleteEvidence(_) => "incomplete_evidence",
             Self::NoJudgment => "no_judgment",
             Self::TooSmallToOmit => "too_small_to_omit",
+            Self::RequestedLocation => "requested_location",
             Self::ConnectedToRetained(_) => "connected_to_retained",
             Self::NestedInRetained(_) => "nested_in_retained",
             Self::ContainsRetained(_) => "contains_retained",
@@ -639,11 +595,11 @@ impl RetentionReason {
     pub fn is_protection(&self) -> bool {
         matches!(
             self,
-            Self::NotCallable
-                | Self::IncompleteEvidence(_)
+            Self::IncompleteEvidence(_)
                 | Self::Uncertain
                 | Self::NoJudgment
                 | Self::TooSmallToOmit
+                | Self::RequestedLocation
         )
     }
 
@@ -672,46 +628,26 @@ pub enum MatchState {
     Uncertain,
 }
 
+/// A yes probability at or above the threshold matches; one whose complement reaches it is
+/// a no-match; anything between, or a missing or invalid answer, stays uncertain.
 fn compose(input: &FilterInput, judgments: &[BodyJudgment], threshold: f64) -> Vec<MatchState> {
     (0..input.entities.len())
-        .map(|entity| {
-            let leaves: Vec<_> = (0..input.task.questions.len())
-                .map(|criterion| {
-                    match judgments
-                        .iter()
-                        .find(|answer| answer.entity == entity && answer.criterion == criterion)
-                    {
-                        Some(answer)
-                            if answer.noul.noul.is_finite()
-                                && (0.0..=1.0).contains(&answer.noul.noul) =>
-                        {
-                            if answer.noul.noul >= threshold {
-                                MatchState::Matched
-                            } else if 1.0 - answer.noul.noul + 1e-9 >= threshold {
-                                MatchState::NoMatch
-                            } else {
-                                MatchState::Uncertain
-                            }
-                        }
-                        _ => MatchState::Uncertain,
+        .map(
+            |entity| match judgments.iter().find(|answer| answer.entity == entity) {
+                Some(answer)
+                    if answer.noul.noul.is_finite() && (0.0..=1.0).contains(&answer.noul.noul) =>
+                {
+                    if answer.noul.noul >= threshold {
+                        MatchState::Matched
+                    } else if 1.0 - answer.noul.noul + 1e-9 >= threshold {
+                        MatchState::NoMatch
+                    } else {
+                        MatchState::Uncertain
                     }
-                })
-                .collect();
-            if leaves.is_empty() {
-                return MatchState::Uncertain;
-            }
-            match input.task.match_mode {
-                MatchMode::All if leaves.contains(&MatchState::NoMatch) => MatchState::NoMatch,
-                MatchMode::All if leaves.iter().all(|leaf| *leaf == MatchState::Matched) => {
-                    MatchState::Matched
-                }
-                MatchMode::Any if leaves.contains(&MatchState::Matched) => MatchState::Matched,
-                MatchMode::Any if leaves.iter().all(|leaf| *leaf == MatchState::NoMatch) => {
-                    MatchState::NoMatch
                 }
                 _ => MatchState::Uncertain,
-            }
-        })
+            },
+        )
         .collect()
 }
 
@@ -968,11 +904,8 @@ pub async fn evaluate(
         Ok(threshold) => threshold,
         Err(_) => return bypass("invalid_threshold", requested_threshold),
     };
-    if input.task.task_query.trim().is_empty() || input.task.questions.is_empty() {
+    if input.task.task_query.trim().is_empty() {
         return bypass("missing_task_query", threshold);
-    }
-    if !input.is_snapshot_fresh {
-        return bypass("stale_snapshot", threshold);
     }
     let judgeable = input.judgeable();
     if judgeable.is_empty() {
@@ -996,119 +929,18 @@ pub async fn evaluate(
             requests,
         )
     };
-    let groups = match questions::groups(input, &judgeable, policy) {
-        Ok(groups) => groups,
-        Err(error) => {
-            return fallback(
-                error.kind(),
-                Usage::default(),
-                Timing::default(),
-                Vec::new(),
-            )
-        }
-    };
-    if groups.is_empty() {
+    let Some(JudgedBodies {
+        judgments,
+        usage,
+        timing,
+        requests,
+        failure,
+    }) = judge(input, &judgeable, evaluator, policy, started).await
+    else {
         return bypass("candidate_context_budget", threshold);
-    }
-    let deadline_at = policy
-        .deadline_at
-        .unwrap_or_else(|| started + crate::jev::EvaluatorConfig::default().deadline);
-    let request_policy = RequestPolicy {
-        deadline_at: Some(deadline_at),
-        cancel: policy.cancel.clone(),
     };
-    let mut groups = groups.into_iter();
-    let mut usage = Usage::default();
-    let mut timing = Timing::default();
-    let mut requests = Vec::new();
-    let mut judgments = Vec::new();
-    let evaluate_group = |group: Option<questions::Group>| {
-        let policy = request_policy.clone();
-        async move {
-            match group {
-                Some(group) => {
-                    for &index in &group.entities {
-                        let entity = &input.entities[index];
-                        // Correlate judgments with bounded, already-masked evidence without
-                        // logging the task, source text, provider payload or credentials.
-                        tracing::info!(
-                            group_index = group.index,
-                            candidate_index = index,
-                            file_path = %entity.path,
-                            start_line = entity.symbol.start_line,
-                            end_line = entity.symbol.end_line,
-                            evidence_status = entity.evidence.label(),
-                            body_bytes = entity.body.as_ref().map_or(0, String::len),
-                            body_sha256 = %evidence_sha256(entity.body.as_deref().unwrap_or_default()),
-                            supporting_context_bytes = entity.supporting_context.len(),
-                            supporting_context_sha256 = %evidence_sha256(&entity.supporting_context),
-                            has_missing_context = entity.has_missing_context,
-                            is_context_clipped = entity.is_context_clipped,
-                            "jev candidate evidence"
-                        );
-                    }
-                    Some((
-                        group.index,
-                        group.entities,
-                        evaluator.evaluate(group.request.with_policy(policy)).await,
-                    ))
-                }
-                None => None,
-            }
-        }
-    };
-    while let Some(first) = groups.next() {
-        // At most three borrowed evaluation futures; transport permits and spacing remain
-        // owned by the shared evaluator. No detached work can outlive this search.
-        let (a, b, c) = tokio::join!(
-            evaluate_group(Some(first)),
-            evaluate_group(groups.next()),
-            evaluate_group(groups.next())
-        );
-        let mut failure = None;
-        for (group, entities, outcome) in [a, b, c].into_iter().flatten() {
-            let (group_usage, group_timing, group_requests) = match &outcome {
-                Ok(result) => (result.usage, result.timing, &result.requests),
-                Err(result) => (result.usage, result.timing, &result.requests),
-            };
-            usage = usage + group_usage;
-            timing.http += group_timing.http;
-            timing.queue_wait += group_timing.queue_wait;
-            timing.request_count += group_timing.request_count;
-            for request in group_requests {
-                tracing::info!(group_index=group, batch_index=request.batch_index,
-                    request_sha256=%request.request_sha256, request_bytes=request.request_bytes,
-                    "jev question group");
-            }
-            requests.extend(group_requests.iter().cloned());
-            match outcome {
-                Err(error) => {
-                    failure = Some(error.error.kind().to_string());
-                }
-                Ok(outcome) => {
-                    for entity in entities {
-                        for criterion in 0..input.task.questions.len() {
-                            let id = question_id(entity, criterion);
-                            match outcome.noul(&id) {
-                                Some(noul) => judgments.push(BodyJudgment {
-                                    question_id: id,
-                                    entity,
-                                    criterion,
-                                    group,
-                                    noul: *noul,
-                                }),
-                                None => {
-                                    failure = Some("incomplete_answers".into());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if let Some(reason) = failure {
-            return fallback(&reason, usage, timing, requests);
-        }
+    if let Some(reason) = failure {
+        return fallback(&reason, usage, timing, requests);
     }
     let decisions = apply_policy(input, &judgments, threshold);
     let with_body =
@@ -1168,18 +1000,206 @@ pub async fn evaluate(
     }
 }
 
-/// The inline note that replaces an omitted body. It keeps the declaration identity and
-/// the exact source location. A location is not a bypass of enabled read filtering.
-pub fn omission_note(entity: &FilterEntity) -> String {
-    format!(
-        "- _omitted body: L{start}-{end} ({kind} {name}) Jev found no task match; read {path} offset {start} limit {lines} does not bypass Jev._\n",
-        start = entity.symbol.start_line,
-        end = entity.symbol.end_line,
-        kind = entity.symbol.kind,
-        name = entity.qualified_name(),
-        path = entity.path,
-        lines = entity.line_count(),
+/// Raw answers of one judging pass with what it cost; `failure` names the request failure
+/// or a missing answer.
+pub(super) struct JudgedBodies {
+    pub judgments: Vec<BodyJudgment>,
+    pub usage: Usage,
+    pub timing: Timing,
+    pub requests: Vec<RequestIdentity>,
+    pub failure: Option<String>,
+}
+
+/// Poll every future to completion together and return their outputs in order.
+async fn join_all<F: std::future::Future>(futures: Vec<F>) -> Vec<F::Output> {
+    let mut futures: Vec<_> = futures.into_iter().map(Box::pin).collect();
+    let mut outputs: Vec<Option<F::Output>> = futures.iter().map(|_| None).collect();
+    std::future::poll_fn(|context| {
+        let mut is_pending = false;
+        for (future, output) in futures.iter_mut().zip(outputs.iter_mut()) {
+            if output.is_none() {
+                match future.as_mut().poll(context) {
+                    std::task::Poll::Ready(value) => *output = Some(value),
+                    std::task::Poll::Pending => is_pending = true,
+                }
+            }
+        }
+        if is_pending {
+            std::task::Poll::Pending
+        } else {
+            std::task::Poll::Ready(())
+        }
+    })
+    .await;
+    outputs.into_iter().flatten().collect()
+}
+
+/// Judge the given candidates against the task. The requests of one pass run together on
+/// the evaluator's shared permits and deadline; any failed request or missing answer fails
+/// the pass. `None` means no candidate fits a request.
+pub(super) async fn judge(
+    input: &FilterInput,
+    indices: &[usize],
+    evaluator: &dyn Evaluator,
+    policy: &FilterPolicy,
+    started: Instant,
+) -> Option<JudgedBodies> {
+    let requests = match decision::request_for(input, indices, policy) {
+        Ok(Some(asked)) => asked,
+        Ok(None) => return None,
+        Err(error) => {
+            return Some(JudgedBodies {
+                judgments: Vec::new(),
+                usage: Usage::default(),
+                timing: Timing::default(),
+                requests: Vec::new(),
+                failure: Some(error.kind().to_string()),
+            })
+        }
+    };
+    let deadline_at = policy
+        .deadline_at
+        .unwrap_or_else(|| started + crate::jev::EvaluatorConfig::default().deadline);
+    for &index in requests.iter().flat_map(|(asked, _)| asked) {
+        let entity = &input.entities[index];
+        // Correlate judgments with bounded, already-masked evidence without logging the
+        // task, source text, provider payload or credentials.
+        tracing::info!(
+            candidate_index = index,
+            file_path = %entity.path,
+            start_line = entity.symbol.start_line,
+            end_line = entity.symbol.end_line,
+            evidence_status = entity.evidence.label(),
+            body_bytes = entity.body.as_ref().map_or(0, String::len),
+            body_sha256 = %evidence_sha256(entity.body.as_deref().unwrap_or_default()),
+            "jev candidate evidence"
+        );
+    }
+    let outcomes = join_all(
+        requests
+            .into_iter()
+            .map(|(asked, request)| {
+                let outcome = evaluator.evaluate(request.with_policy(RequestPolicy {
+                    deadline_at: Some(deadline_at),
+                    cancel: policy.cancel.clone(),
+                }));
+                async move { (asked, outcome.await) }
+            })
+            .collect(),
     )
+    .await;
+    let mut usage = Usage::default();
+    let mut timing = Timing::default();
+    let mut requests = Vec::new();
+    let mut judgments = Vec::new();
+    let mut failure = None;
+    for (asked, outcome) in outcomes {
+        let (pass_usage, pass_timing, pass_requests) = match &outcome {
+            Ok(result) => (result.usage, result.timing, &result.requests),
+            Err(result) => (result.usage, result.timing, &result.requests),
+        };
+        usage = usage + pass_usage;
+        timing = Timing {
+            elapsed: timing.elapsed.max(pass_timing.elapsed),
+            queue_wait: timing.queue_wait + pass_timing.queue_wait,
+            http: timing.http + pass_timing.http,
+            request_count: timing.request_count + pass_timing.request_count,
+        };
+        requests.extend(pass_requests.iter().cloned());
+        match outcome {
+            Err(error) => {
+                failure.get_or_insert_with(|| error.error.kind().to_string());
+            }
+            Ok(outcome) => {
+                for entity in asked {
+                    let id = question_id(entity);
+                    match outcome.noul(&id) {
+                        Some(noul) => judgments.push(BodyJudgment {
+                            question_id: id,
+                            entity,
+                            noul: *noul,
+                        }),
+                        None => {
+                            failure.get_or_insert_with(|| "incomplete_answers".into());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for request in &requests {
+        tracing::info!(
+            batch_index = request.batch_index,
+            request_sha256 = %request.request_sha256,
+            request_bytes = request.request_bytes,
+            "jev question batch"
+        );
+    }
+    Some(JudgedBodies {
+        judgments,
+        usage,
+        timing,
+        requests,
+        failure,
+    })
+}
+
+/// The inline note that replaces an omitted body. It keeps the declaration identity and
+/// the exact source location; a read of that location returns the body.
+pub fn omission_note(entity: &FilterEntity) -> String {
+    match entity.unit {
+        Unit::Declaration => format!(
+            "- _omitted {omitted}: L{start}-{end} ({kind} {name}) Jev found no task match in {path}._\n",
+            omitted = if entity.is_match_view {
+                "matches"
+            } else {
+                "body"
+            },
+            start = entity.symbol.start_line,
+            end = entity.symbol.end_line,
+            kind = entity.symbol.kind,
+            name = entity.qualified_name(),
+            path = entity.path,
+        ),
+        Unit::Part | Unit::Lines => {
+            let (start, end) = entity
+                .displayed
+                .unwrap_or((entity.symbol.start_line, entity.symbol.end_line));
+            lines_note(start, end, &unit_label(entity), &entity.path)
+        }
+    }
+}
+
+/// The note that replaces adjacent omitted units of one file, naming at most three.
+pub fn merged_omission_note(units: &[&FilterEntity], start: usize, end: usize) -> String {
+    const NAMED: usize = 3;
+    let mut labels: Vec<String> = Vec::new();
+    for unit in units {
+        let label = unit_label(unit);
+        if !labels.contains(&label) {
+            labels.push(label);
+        }
+    }
+    let more = labels.len().saturating_sub(NAMED);
+    labels.truncate(NAMED);
+    if more > 0 {
+        labels.push(format!("+{more} more"));
+    }
+    lines_note(start, end, &labels.join(", "), &units[0].path)
+}
+
+fn lines_note(start: usize, end: usize, label: &str, path: &str) -> String {
+    format!("- _omitted lines: L{start}-{end} ({label}) Jev found no task match in {path}._\n")
+}
+
+fn unit_label(entity: &FilterEntity) -> String {
+    let declaration = format!("{} {}", entity.symbol.kind, entity.qualified_name());
+    match entity.unit {
+        Unit::Declaration => declaration,
+        Unit::Part => format!("part of {declaration}"),
+        Unit::Lines if entity.symbol.name.is_empty() => "source lines".into(),
+        Unit::Lines => declaration,
+    }
 }
 
 /// The status line written after the rendered files when the filter omitted bodies and the
@@ -1193,7 +1213,7 @@ pub fn summary_note(result: &FilterResult) -> String {
             protected,
             linked,
         } => format!(
-            "\n_Jev body filter applied ({policy}, threshold {threshold:.2}): {omitted} of {bodies} planned bodies omitted as unrelated ({judged} judged, {protected} protected, {uncertain} uncertain retained, {linked} kept through direct support or nesting). Read locations do not bypass enabled Jev filtering._\n",
+            "\n_Jev body filter applied ({policy}, threshold {threshold:.2}): {omitted} of {bodies} planned bodies omitted as unrelated ({judged} judged, {protected} protected, {uncertain} uncertain retained, {linked} kept through direct support or nesting). Reading an omitted body's exact location returns it._\n",
             policy = POLICY_VERSION,
             threshold = result.effective_threshold,
             uncertain = result.decisions.iter().filter(|decision| decision.reason == Some(RetentionReason::Uncertain)).count(),

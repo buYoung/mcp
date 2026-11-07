@@ -290,11 +290,11 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.jev].scope` | string array | `["search", "read", "grep"]` | Complete tool selection when enabled; [] selects none, repo list replaces global |
 | `[output.jev].model` | string | `"jev-1.14.0"` | Concrete provider model validated against every response; a bare Jev version uses TypeSafe, an `author/slug` ID uses [OpenRouter](#openrouter-decision-models); alias names fail validation |
 | `[output.jev].timeout_ms` | positive integer (ms), at most 7 days | `45000` | One absolute deadline per tool call, counted from the start of the stage's preparation and including queue time |
-| `[output.jev].max_in_flight_requests` | integer, 1 to 3 | `3` | HTTP requests in flight at once (3 is the runtime ceiling) |
-| `[output.jev].request_spacing_ms` | integer (ms), at least 300 | `300` | Minimum spacing between request starts (300 is the runtime floor) |
+| `[output.jev].max_in_flight_requests` | integer, 1 to 8 | `8` | HTTP requests in flight at once (8 is the runtime ceiling) |
+| `[output.jev].request_spacing_ms` | integer (ms), at least 100 | `100` | Minimum spacing between request starts (100 is the runtime floor) |
 | `[output.jev].max_batch_bytes` | integer bytes or size string, 1 to 168000 | `168000` | Encoded request bytes per batch (168000 is the runtime ceiling); a question that does not fit is an explicit failure |
 | `[output.jev].pool_idle_timeout_ms` | positive integer (ms), at most 7 days | `30000` | Idle HTTPS connection lifetime |
-| `[output.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Per-criterion false-probability threshold; composed with all/any |
+| `[output.jev].search_filter_min_unrelated_probability` | finite number, `0.5 < value <= 1.0` | `0.70` (provisional) | Minimum no-probability for omitting a body; a yes answer at the same value counts as related, and values between stay as uncertain |
 | `[filesystem_permissions].find` | string | `"anywhere"` | Path policy for `find`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].grep` | string | `"anywhere"` | Path policy for `grep`: `workspace`, `allowed_roots`, or `anywhere` |
 | `[filesystem_permissions].read` | string | `"anywhere"` | Path policy for `read`: `workspace`, `allowed_roots`, or `anywhere` |
@@ -669,7 +669,7 @@ exceptions = []
 
 [output.jev]
 # Use a decision model (TypeSafe Jev or OpenRouter) to remove code bodies unrelated to the task (default: off).
-# Register the task with register_task(task_query, questions) before using an enabled filter.
+# Pass the user's request as initial_instructions' task before using an enabled filter.
 # Store API keys in auth.toml under [jev].api_key (TypeSafe) or [openrouter].api_key, not here.
 # If neither auth file supplies the key, TYPESAFE_API_KEY or OPENROUTER_API_KEY is used.
 
@@ -694,8 +694,8 @@ model = "jev-1.14.0"
 timeout_ms = 45000
 
 # Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
-max_in_flight_requests = 3
-request_spacing_ms = 300
+max_in_flight_requests = 8
+request_spacing_ms = 100
 
 # Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
 max_batch_bytes = 168000
@@ -944,50 +944,43 @@ enabled = true
 model = "openai/gpt-6-luna-decisions"
 ```
 
-Jev is off by default. `enabled=true` permits filtering only for tools in `scope`; `enabled=false` disables it for every tool, regardless of the list. `scope` accepts `search`, `read` and `grep`, defaults to all three, and replaces the inherited list rather than merging with it. `[]` selects none. Duplicate names and the removed `overview` name are ignored; unknown names or non-string entries reject the whole scope value and inherit the lower layer. `enabled` and `scope` independently follow repo > global > default precedence. `initial_instructions`, `find`, `analyze`, task registration and the CLI do not invoke Jev.
+Jev is off by default. `enabled=true` permits filtering only for tools in `scope`; `enabled=false` disables it for every tool, regardless of the list. `scope` accepts `search`, `read` and `grep`, defaults to all three, and replaces the inherited list rather than merging with it. `[]` selects none. Duplicate names and the removed `overview` name are ignored; unknown names or non-string entries reject the whole scope value and inherit the lower layer. `enabled` and `scope` independently follow repo > global > default precedence. `initial_instructions`, `find`, `analyze` and the CLI do not invoke Jev.
 
-### Task registration
+### Task
 
-`initial_instructions({})` and `find` require no task registration, regardless of Jev settings. `initial_instructions` takes no arguments; it ignores any that older clients still send and preserves the current registration.
+`find` and `analyze` never use the task. With Jev off, `initial_instructions` lists no arguments and the task has no effect.
 
-Before using an enabled Jev filter, the main agent derives focused yes/no questions from the user's task and registers them once through `register_task`. Registration is unnecessary while Jev is disabled, so `tools/list` includes `register_task` only when `enabled` is true and `scope` is not empty. A client that loaded the tool list before a configuration reload enabled Jev must reconnect to see the tool. The server still accepts registrations, and a task registered earlier can be used after enabling a filter. A valid registration requires `task_query` and `questions`; text-only registration returns an error result (`isError: true`). Register again when the task changes. `search.query` remains the retrieval query and never replaces task intent. Clients that previously registered through `initial_instructions` must switch to `register_task`. The following object is the input to `register_task`:
+While `enabled` is true and `scope` is not empty, `tools/list` gives `initial_instructions` a required string argument, `task`. Before using an enabled filter, the main agent passes the user's complete request there, and again when the task changes:
 
 ```json
-{
-  "task_query": "Where is the response byte cap applied?",
-  "questions": [{
-    "question": "Does this function implement or concretely support the response byte cap?",
-    "when_true": "The supplied source computes, reserves, enforces or passes this response byte budget.",
-    "when_false": "The supplied facts establish a separate behavior with no concrete role in that budget; missing cross-file evidence alone is uncertain."
-  }],
-  "match": "all"
-}
+{ "task": "Where is the response byte cap applied?" }
 ```
 
 | Field | Contract |
 | --- | --- |
-| `task_query` | Nonempty goal; bounded by the whole registration |
-| `questions` | 1–8 independent yes/no criteria; preserve the requested target, direction and coverage |
-| `id` | Optional legacy label, ignored; omit it. Routing IDs are generated by the server |
-| `question`, `when_true`, `when_false` | Required nonempty strings; no separate per-field byte cap. True means the criterion matches |
-| `match` | `all` (default) or `any`; no nested expressions |
-| Whole registration | At most 65,536 encoded JSON bytes; question fields do not accept nested values |
+| `task` | Nonempty string of at most 65,536 bytes: the user's request, verbatim |
 
-Registration is atomic and connection-local. Invalid replacement clears the previous task, and `initialize` resets it. No separate question-generation service is used. Missing registration is an argument error, while unavailable credentials or evaluation failures preserve the tool's ordinary output. Common delivery deduplication still applies afterward.
+The task is connection-local, and `initialize` resets it. A call without `task` keeps the current task, and a changed task starts a fresh delivery history. A blank or non-string `task` returns an error result (`isError: true`) and clears the previous task. `search.query` remains the retrieval query and never replaces the task. A missing task is an argument error for an enabled filter, while unavailable credentials or evaluation failures preserve the tool's ordinary output. A client that loaded the tool list before a configuration reload enabled Jev must reconnect to see the argument; the server accepts `task` either way. The `register_task` tool is removed and answers `Tool not found`. Common delivery deduplication still applies after filtering.
 
-Each enabled search/read/grep filter advertises `openWorldHint: true`; every tool remains read-only. `initial_instructions`, find and analyze do not invoke Jev. `register_task` also remains local. `enabled` and `scope` govern these hints as well as runtime filtering. The retired `overview_enabled` key still warns and is ignored. An omission's read location does not bypass the enabled read filter. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
+Each enabled search/read/grep filter advertises `openWorldHint: true`; every tool remains read-only. `initial_instructions`, find and analyze do not invoke Jev. `enabled` and `scope` govern these hints as well as runtime filtering. The retired `overview_enabled` key still warns and is ignored. Reading an omission note's exact location returns that source without a new judgment, and a read window that lies inside one function returns that function's rows unjudged; a wider window is judged as usual. `include_seen=true` bypasses only common delivery deduplication. Find is not deduplicated.
 
 ### Question decisions and evidence
 
-Each eligible function is evaluated against every registered criterion with Noul. The function body appears once in a group state, with identity, source range, completeness, masking status and bounded static call evidence. Missing cross-file or channel evidence is explicit and must not be treated as proof of irrelevance. Questions refer to their named candidate and the same flow; two unrelated true properties do not prove a connection.
+Each judged unit is asked one fixed Noul question. In search a unit is a function body; read and grep also judge the units described under [Live read/grep selection](#live-readgrep-selection). The question asks whether the code handles something the task names, even if only part of the task, and counts shared infrastructure, such as a queue, bus, store, watcher or registry, that the named flow passes through. Every model gets the same question, criteria and candidate fields: file, kind, name and masked source. Only the request layout depends on the model:
 
-For a relevance criterion, one qualifying branch or callback can establish contribution even in a mixed-purpose function. A wrapper or setup function can contribute through a source-backed connection without implementing the whole flow or naming the target. The shared policy separates the user's task from retrieval arguments and asks Jev to inspect the candidate's body first, then its connected support. Each question independently states the requested target, relationship and scope. Registration guidance asks for one coherent relationship per question, merges equivalent questions and groups spelling variants. Independently useful roles should not be packed into a long checklist merely to reduce the count. The 1–8 question limit is a capacity, not a target count.
+| Model | Request layout |
+| --- | --- |
+| TypeSafe Jev: a bare version such as `jev-1.14.0`, or OpenRouter `typesafe/*` | One plain-text state holds the task and a group of candidates, each under its question ID, such as `[b3]`; each question names its candidate. Consecutive candidates share a request while it fits one batch |
+| OpenRouter `openai/*` | One request per candidate, whose plain-text state holds the task and that candidate's code. OpenRouter fails a whole request when OpenAI refuses one of its questions, so a refusal affects only that candidate |
+| Other OpenRouter decision models | The state holds only the masked task, as `task_query`; each question carries its candidate as a JSON object |
 
-`search_filter_min_unrelated_probability` retains its negative meaning: default `0.70` is the minimum probability of a criterion being false for a no decision. A yes requires the same threshold on the positive answer; values between the two are uncertain. `all` fails on any decisive no and matches only if every leaf is yes; `any` matches on any decisive yes and fails only if every leaf is no. All other combinations are uncertain. These are discrete decisions, not calibrated joint probabilities. The threshold remains provisional.
+The server owns the question, its criteria and the retention decision; the agent writes none.
 
-Partial, stale, oversized, masked or identity-unverified bodies remain visible, as do uncertain judgments. Non-callable declarations, source locations and read hints stay. Omission notes never count as delivered source in [reading-activity metrics](./analysis.md#interpreting-counts-and-bytes).
+`search_filter_min_unrelated_probability` retains its negative meaning: default `0.70` is the minimum probability of no for an omission. A yes requires the same threshold on the positive answer; values between the two are uncertain and stay. These are discrete decisions, not calibrated probabilities. The threshold remains provisional.
 
-Evidence is split before dispatch into groups of at most eight candidates. The same preflight and serializer as the evaluator enforce `max_batch_bytes` and operating estimates of 28,000 tokens for state plus the longest question and 56,000 tokens for state plus all questions. These leave 12.5% headroom below the provider's 32k/64k limits; the byte-based estimate is not the provider tokenizer. Questions split before exceeding either budget. A single candidate that cannot fit stays visible while other candidates are evaluated. Bodies and direct caller/callee source occur once per group. At most 128 groups share one absolute deadline, caller cancellation and the evaluator pool. A missing answer or failed required group preserves the entire base response of that tool. Exact `event_key` maps bypass selection.
+In search, partial, stale, oversized, masked or identity-unverified bodies remain visible, as do uncertain judgments, and non-callable declarations, source locations and read hints stay. Omission notes never count as delivered source in [reading-activity metrics](./analysis.md#interpreting-counts-and-bytes).
+
+The requests of one call run together on the evaluator pool under one absolute deadline and caller cancellation. A TypeSafe or OpenAI request is sent as one batch; for other OpenRouter models the evaluator splits the request's questions into batches that each repeat the task. The same preflight and serializer enforce `max_batch_bytes` and operating estimates of 28,000 tokens for state plus the longest question and 56,000 tokens for state plus all questions. These leave 12.5% headroom below the provider's 32k/64k limits; the byte-based estimate is not the provider tokenizer. A single unit that cannot fit stays visible while the others are evaluated. A failed request or a missing answer preserves the entire base response of that tool. Exact `event_key` maps bypass selection.
 
 ### Selection before rendering
 
@@ -997,31 +990,37 @@ Uncertain, partial and identity-unverified source stays. A matched function can 
 
 Evaluation is skipped only when neither that candidate's own body nor a neighboring candidate's support decision can benefit. This includes isolated bodies no larger than their omission note and bodies already covered by an unconditionally retained parent. A small function can still be evaluated when its answer could protect another body. Bypass reasons and eligible/omitted/protected counts are recorded.
 
-Each candidate receives its prepared annotations and scoped event evidence independently, without a search-wide 16 KiB prefix quota or 1 KiB per-part caps. Direct caller/callee source uses ordinary read permissions and full-file redaction, checks the declaration identity and complete returned range, and is deduplicated in `state.supporting_sources`. Named references connect each candidate to this evidence without claiming verified runtime dispatch. Shared evidence policy is stored once, and question instructions explicitly reference it and their candidate. If a complete encoded candidate request cannot fit, that candidate remains unjudged and visible. Bounded supplementary annotations or event context may be omitted with `is_context_clipped` set; that coverage flag is passed to Jev and does not itself force retention. The body-only preliminary bound is derived from the whole state-plus-question budget; final eligibility uses complete encoded requests. `caller_context=false` disables extra caller/callee reads and caller event anchors; `include_events=false` disables event evidence. Warming, stopped or failed snapshots bypass evaluation.
+Only each body's own source is sent; relationship summaries, event evidence and caller/callee source are not. If a complete encoded request for a body cannot fit, that body remains unjudged and visible. Warming, stopped or failed snapshots still judge the displayed bodies but add no follow-up call candidates.
 
-After successful filtering, search may append indexed call-name candidates outside the displayed source, seeded only by functions with a positive composed task match. Declarations retained solely for missing or uncertain evidence do not seed expansion. These are discovery hints, not verified edges or delivered source. They use only the remaining output budget, up to 4 KiB within the annotation budget, at most eight sites per name within the caller limit, and the configured navigation call-site budget. Scope and context exclusions apply; capped lists explicitly direct the caller to grep. Disabled, failed, stale, capped-primary and `caller_context=false` searches do not add them.
+After successful filtering, search may append indexed call-name candidates outside the displayed source, seeded only by functions with a positive task match. Declarations retained solely for missing or uncertain evidence do not seed expansion. These are discovery hints, not verified edges or delivered source. They use only the remaining output budget, up to 4 KiB within the annotation budget, at most eight sites per name within the caller limit, and the configured navigation call-site budget. Scope and context exclusions apply; capped lists explicitly direct the caller to grep. Disabled, failed, stale, capped-primary and `caller_context=false` searches do not add them. Jev also judges the functions around the first candidates, at most eight per search, against the task: unrelated ones are left out, related ones are marked `(Jev: related)` and listed first, and the rest stay unmarked. A failed judgment leaves every candidate unjudged.
 
-Compact omission notes preserve source locations and state that a read location does not bypass Jev. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations. Before evaluation, `jev candidate evidence` maps each group/candidate index to its masked path and source range, body/context sizes and hashes, and coverage flags. It does not log source text or task text, and is not part of the main tool response.
+Compact omission notes preserve source locations and give the exact read location that returns the body. An omitted body's outline rows and relation notes go with it, except a row that still holds a retained member, and a file whose displayed bodies are all omitted keeps only its heading and omission notes. When a client lowers the output cap, the room that omissions free is not refilled with deferred bodies, and bodies Jev protects are deferred last instead of never. Where omissions free enough room, the summary also identifies retained uncertainty. No space is reserved for score tables. Diagnostic byte counts distinguish planned primary output, returned text and delivered source; omission notes are not source observations. Before evaluation, `jev candidate evidence` maps each candidate index to its masked path and source range, body size and hash. It does not log source text or task text, and is not part of the main tool response.
 
 ### Live read/grep selection
 
-Read and grep capture callable bounds and returned source rows from the exact buffer used by the tool. Complete returned function/method bodies are eligible in full/source views and grep source_grouped. Partial windows, clipped columns, unverified syntax/identity and oversized bodies remain visible. Declaration/relation views and grep file/count modes are not evaluated.
+Read and grep capture callable bounds and returned source rows from the exact buffer used by the tool. In full/source views and grep source_grouped, the returned source is judged in units:
 
-Body completeness and supporting-context coverage are separate. Live selection captures value/type references from the same parsed buffer independently of the optional persisted reference index. Same-file callers, callees, referenced declarations and enclosing member contracts provide masked evidence. Capture starts with the candidate's own bindings and contracts, then traverses support breadth-first within the existing budgets so a caller's dependency chain cannot consume them before the candidate is visited. Imports, unresolved calls, ambiguous declarations, extraction gaps and exhausted support budgets are described in the Jev input through supporting notes, `has_missing_context` and `is_context_clipped`. These flags neither skip evaluation nor force retention. Jev assesses whether each gap matters to the registered criterion; an unrelated gap does not preclude a decisive answer.
+- a complete returned function or method body; grep judges the whole body of a function whose matching rows it shows;
+- the returned rows of a function or method that a read window cuts, judged as they read;
+- runs of adjacent returned rows outside every function, each held by the same outermost declaration or by none. Blank rows at either end of a run are not judged.
 
-Before classification, bounded indexed candidates supply possible cross-file callers, callees and imported declarations. The candidate's explicit call/import dependencies are captured before possible callers share the remaining budgets. Existing captured buffers are reused; at most eight other files are read within ordinary read permissions and size limits. Current calls or declarations must match the indexed locations. Context exclusions, scan/link/byte budgets and the caller's absolute deadline and cancellation apply. Excerpts include source bodies or explicitly partial declaration contracts. Referenced enclosing members take priority over other member contracts. Supporting declarations include import bindings referenced by the supplied excerpts; glob and unnamed imports remain because a local spelling cannot establish their scope. Name/import hints remain unverified target candidates; they are not automatic evidence of task relevance. These Jev-only excerpts do not expand the main response's source window.
+Clipped columns, non-contiguous rows, unverified syntax or identity, masked source and oversized units remain visible. Declaration/relation views and grep file/count modes are not evaluated.
 
-Complete, identifiable bodies proceed to the ordinary Noul judgment when the encoded request fits. A decisive non-match can omit a body even when supporting evidence has gaps; the model must assess the supplied facts and relevance of those gaps. Existing protections for partial/unidentified bodies, oversized requests, uncertain model judgments and overlapping or directly linked retained source remain separate. Diagnostics count actual evaluated candidates and distinguish `matched`, `no_match`, `judged_uncertain` and `unjudged_bodies` from the final `protected`/`linked` outcomes. These are integration and policy contracts, not a measured improvement in classification accuracy or token use.
+An omitted body keeps a note with its range, kind and name: `_omitted body:` in read and `_omitted matches:` in grep. An omitted cut window or row run reads `_omitted lines: L<start>-<end> (<label>)`. Adjacent omitted units of one file share one such note, which names at most three of them and then `+N more`.
 
-The registered task, all/any decisions, uncertainty retention, linked-body protection, request budgets and absolute deadline are shared with search. Live rendering and pagination finish before evaluation. Omissions only replace captured spans: no reread after await, no mixing changed file versions, and no refill from the next page. Independent common deduplication follows Jev and excludes find.
+Only each unit's own source is sent. No same-file or cross-file supporting context is captured, and no other file is read for the judgment.
+
+Complete, identifiable units proceed to the Noul judgment when the encoded request fits. Existing protections for incomplete or unidentified units, oversized requests, uncertain model judgments and overlapping or directly linked retained source remain separate. Diagnostics count actual evaluated candidates and distinguish `matched`, `no_match`, `judged_uncertain` and `unjudged_bodies` from the final `protected`/`linked` outcomes. These are integration and policy contracts, not a measured improvement in classification accuracy or token use.
+
+The task, uncertainty retention, linked-body protection, request budgets and absolute deadline are shared with search. Live rendering and pagination finish before evaluation. Omissions only replace captured spans: no reread after await, no mixing changed file versions, and no refill from the next page. Independent common deduplication follows Jev and excludes find.
 
 ### Data sent to the provider
 
-Enabled search/read/grep filters send the masked registered goal and questions, tool arguments, eligible source bodies and their bounded supporting evidence to the provider the model selects: TypeSafe, or OpenRouter and the model's upstream provider. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model is `jev-1.14.0`.
+Enabled search/read/grep filters send the masked task and the masked source of each judged unit, with its path, kind and name, to the provider the model selects: TypeSafe, or OpenRouter and the model's upstream provider. Redaction runs before transmission; it cannot detect every sensitive format. The API key is confined to HTTPS authorization. The default provider model is `jev-1.14.0`.
 
 ### OpenRouter decision models
 
-A model ID with an author prefix (`author/slug`) selects OpenRouter. Requests go only to OpenRouter's Decisions API, `POST https://openrouter.ai/api/alpha/decisions`, with the `[openrouter].api_key` key (fallback `OPENROUTER_API_KEY`). The request and answer shapes match TypeSafe's, so the questions, budgets, thresholds and transport limits above apply unchanged. A bare Jev version such as `jev-1.14.0` keeps using TypeSafe and its own key.
+A model ID with an author prefix (`author/slug`) selects OpenRouter. Requests go only to OpenRouter's Decisions API, `POST https://openrouter.ai/api/alpha/decisions`, with the `[openrouter].api_key` key (fallback `OPENROUTER_API_KEY`). The answer shape matches TypeSafe's, and the question, budgets, thresholds and transport limits above apply unchanged. The request layout follows the model, as the table under [Question decisions and evidence](#question-decisions-and-evidence) shows. A bare Jev version such as `jev-1.14.0` keeps using TypeSafe and its own key.
 
 - **Decision models only.** OpenRouter answers a chat, embedding or unknown model on this endpoint with HTTP 400 (`Model … does not exist`) before any model runs. The stage then falls back with `http_status`, and the tool returns its ordinary output.
 - **Pinned IDs.** OpenRouter reports its canonical slug: the requested ID without a `:variant` suffix, optionally followed by a `-YYYYMMDD` release date (for example `openai/gpt-6-luna-decisions` answers as `openai/gpt-6-luna-decisions-20261006`). Any other response model fails validation. Alias models (`~author/slug`, such as `~typesafe/jev-latest`) are rejected before a request is sent because they answer as whichever version they point to.
@@ -1047,8 +1046,8 @@ The following OpenRouter decision models accepted this runtime's request shape o
 
 | Setting or limit | Contract |
 | --- | --- |
-| `max_in_flight_requests` | 1–3 concurrent requests |
-| `request_spacing_ms` | At least 300ms |
+| `max_in_flight_requests` | 1–8 concurrent requests |
+| `request_spacing_ms` | At least 100ms |
 | `max_batch_bytes` | 1–168,000 encoded bytes; a smaller explicit value remains effective |
 | Token estimates | Operating defaults: 28,000 state + longest question; 56,000 state + all questions. `ceil(encoded bytes / 3)` is an estimate, not exact usage |
 | `timeout_ms` | Positive, at most seven days; one deadline includes preparation and all batches |

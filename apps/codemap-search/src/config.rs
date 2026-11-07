@@ -1826,7 +1826,7 @@ const MIGRATIONS: &[Migration] = &[
 /// the presence guard (`jev`), so a file that already has the section is never touched.
 const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Use TypeSafe Jev to remove code bodies unrelated to the task from results (default: off).
-# Register the task with register_task(task_query, questions) before using an enabled filter.
+# Pass the user's request as initial_instructions' task before using an enabled filter.
 # Apply to search results. Each removed body leaves its source range; an enabled read filter still applies.
 # If Jev cannot be used, the original result is returned.
 # search_filter_enabled = false
@@ -1835,20 +1835,20 @@ const JEV_MIGRATION_BLOCK_EN: &str = "# [analysis.jev]
 # Store the TypeSafe API key in auth.toml under [jev].api_key, not here.
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 # timeout_ms = 45000
-# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
-# max_in_flight_requests = 3
-# request_spacing_ms = 300
+# Maximum concurrent requests (1–8, default 8) and minimum gap between requests in milliseconds (100 or more, default 100).
+# max_in_flight_requests = 8
+# request_spacing_ms = 100
 # Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
 # max_batch_bytes = 168000
 # How long an idle HTTPS connection is kept, in milliseconds (at most 7 days, default 30000).
 # pool_idle_timeout_ms = 30000
-# Minimum probability for judging a question's answer as \"no\" (above 0.5, at most 1.0, default 0.70).
+# Minimum probability for judging a question's answer as \"no\" (above 0.5, at most 1.0, default 0.90).
 # Higher values remove bodies only when Jev is more certain.
-# search_filter_min_unrelated_probability = 0.70";
+# search_filter_min_unrelated_probability = 0.90";
 
 const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # TypeSafe Jev로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
+# 켜진 필터를 쓰기 전에 initial_instructions의 task로 사용자 요청을 전달하세요.
 # search 결과에 적용합니다. 뺀 본문의 소스 범위를 남기며 활성화된 read 필터는 그대로 적용합니다.
 # Jev를 쓰지 못하면 원래 결과를 그대로 돌려줍니다.
 # search_filter_enabled = false
@@ -1857,16 +1857,16 @@ const JEV_MIGRATION_BLOCK_KO: &str = "# [analysis.jev]
 # TypeSafe API 키는 여기가 아닌 auth.toml의 [jev].api_key에 저장하세요.
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 # timeout_ms = 45000
-# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
-# max_in_flight_requests = 3
-# request_spacing_ms = 300
+# 동시에 보낼 최대 요청 수(1~8, 기본 8)와 요청 사이의 최소 간격(밀리초, 100 이상, 기본 100)입니다.
+# max_in_flight_requests = 8
+# request_spacing_ms = 100
 # 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
 # max_batch_bytes = 168000
 # 쓰지 않는 HTTPS 연결을 유지할 시간(밀리초, 최대 7일, 기본 30000)입니다.
 # pool_idle_timeout_ms = 30000
-# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.70).
+# 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.90).
 # 높일수록 더 확실한 경우에만 본문을 뺍니다.
-# search_filter_min_unrelated_probability = 0.70";
+# search_filter_min_unrelated_probability = 0.90";
 
 /// `# codemap-config-version: <version>` — the stamp line written into every managed file.
 fn version_marker_line(version: u32) -> String {

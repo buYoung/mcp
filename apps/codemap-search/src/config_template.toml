@@ -155,7 +155,7 @@ exceptions = []
 
 [output.jev]
 # Use a decision model (TypeSafe Jev or OpenRouter) to remove code bodies unrelated to the task (default: off).
-# Register the task with register_task(task_query, questions) before using an enabled filter.
+# Pass the user's request as initial_instructions' task before using an enabled filter.
 # Store API keys in auth.toml under [jev].api_key (TypeSafe) or [openrouter].api_key, not here.
 # If neither auth file supplies the key, TYPESAFE_API_KEY or OPENROUTER_API_KEY is used.
 
@@ -179,9 +179,9 @@ model = "jev-1.14.0"
 # Maximum time Jev may use per tool call, including waiting, in milliseconds (at most 7 days, default 45000).
 timeout_ms = 45000
 
-# Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
-max_in_flight_requests = 3
-request_spacing_ms = 300
+# Maximum concurrent requests (1–8, default 8) and minimum gap between requests in milliseconds (100 or more, default 100).
+max_in_flight_requests = 8
+request_spacing_ms = 100
 
 # Maximum size of one question batch in bytes (1–168000, default 168000). A single larger question fails.
 max_batch_bytes = 168000

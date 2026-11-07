@@ -53,7 +53,7 @@ fn enforce_response_cap(name: &str, response: &Value) -> Result<(), (i64, String
     let config = crate::config::get();
     let cap = match name {
         "grep" => config.grep_response_byte_cap,
-        "find" | "initial_instructions" | "register_task" | "analyze" => config.output_byte_cap,
+        "find" | "initial_instructions" | "analyze" => config.output_byte_cap,
         _ => None,
     };
     let Some(cap) = cap else { return Ok(()) };
@@ -152,7 +152,7 @@ pub struct McpServer {
     pending_source_files: Vec<crate::analyze::FileObservation>,
     source_history: source_history::SourceHistory,
     source_history_config: Option<std::sync::Arc<crate::config::ResolvedConfig>>,
-    // Task context is connection-local, registered separately through register_task.
+    // Task context is connection-local, passed as initial_instructions' task argument.
     // Credentials/evaluator remain separate and are resolved only for enabled stages.
     registered_task: Option<crate::tools::task::RegisteredTask>,
     global_instructions: global_instructions::GlobalInstructions,
@@ -704,20 +704,25 @@ impl McpServer {
                             "content": [{ "type": "text", "text": text }]
                         }))
                     }
-                    "register_task" => {
-                        // A new registration replaces the old task; an invalid registration
-                        // must not leave a previous task active for subsequent filtering.
-                        self.registered_task = None;
-                        self.source_history.clear();
-                        self.registered_task = Some(crate::tools::task::parse(arguments)?);
-                        Ok(serde_json::json!({
-                            "content": [{ "type": "text", "text": "Jev task registered. Enabled filters reuse these criteria; register again when the user's task changes." }]
-                        }))
-                    }
                     "initial_instructions" => {
-                        // Clients holding an older tool list may still send the former task
-                        // arguments. The guidance never depends on arguments, so ignore them:
-                        // keep the current registration and render the root scope inventory.
+                        // A changed task replaces the old one and starts a fresh delivery
+                        // history; an invalid task must not leave a previous task active for
+                        // subsequent filtering. A call without `task` keeps the current task,
+                        // and the guidance never depends on other arguments.
+                        match crate::tools::task::parse(arguments) {
+                            Ok(Some(task)) => {
+                                if self.registered_task.as_ref() != Some(&task) {
+                                    self.source_history.clear();
+                                    self.registered_task = Some(task);
+                                }
+                            }
+                            Ok(None) => {}
+                            Err(error) => {
+                                self.registered_task = None;
+                                self.source_history.clear();
+                                return Err(error);
+                            }
+                        }
                         let text = if crate::codemap::looks_like_monorepo_workspace()
                             && self.engine.activate().is_ok()
                         {

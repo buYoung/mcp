@@ -82,7 +82,7 @@ Read only evidence still needed; a partial analysis notice is not a request to r
 | [server.md](../src/tools/instructions/server.md) | MCP `initialize.instructions`. `{shell_commands}` 자리에 실행 OS의 `server.<windows\|macos\|linux>.md`를 넣음 | 도구 소개와 도구별 용도, 최초 안내 호출, 도구 선택 가이드(셸 명령 대신 쓸 도구), 소스 우선 탐색 순서, 근거 기록·연결 확인·답변 정리 안내. `server.md`는 `format!` 문자열이라 중괄호는 `{{`, `}}`로 씁니다 |
 | [initial_instructions.result.md](../src/tools/instructions/tools/initial_instructions.result.md) | `tools/call initial_instructions`의 결과(도구 설명인 `initial_instructions.md`와 별개) | 공통 흐름, 근거 사용, 종료 조건, 출력 해석 |
 | [initial_instructions.result.monorepo.md](../src/tools/instructions/tools/initial_instructions.result.monorepo.md) | 모노레포의 `initial_instructions` 결과 확장 | 범위 선택과 이미 제공한 범위 목록의 재사용 |
-| [tools 디렉터리](../src/tools/instructions/tools) | `tools/list`의 각 `description`. 해당 도구의 Jev 단계가 켜지면 `<도구>.jev.md`만 사용. `initial_instructions`는 항상 같은 설명과 빈 입력 스키마를 사용하고, 켜진 필터를 쓰기 전의 작업 등록 안내는 `register_task.md`에 두며, 이 도구는 Jev가 켜졌을 때만 목록에 나옴. `<도구>.result*.md`는 설명이 아니라 호출 결과 | 도구 선택·추가 호출 판단·도구별 출력 설명 |
+| [tools 디렉터리](../src/tools/instructions/tools) | `tools/list`의 각 `description`. 해당 도구의 Jev 단계가 켜지면 일반 설명 뒤에 `<도구>.jev.md`를 덧붙임. `initial_instructions`는 항상 같은 설명을 쓰고 Jev가 켜졌을 때만 입력 스키마에 필수 `task`를 두며, 켜진 필터를 쓰기 전의 작업 전달 안내는 Jev가 켜졌을 때의 `initial_instructions` 결과 끝에 둠. `<도구>.result*.md`는 설명이 아니라 호출 결과 | 도구 선택·추가 호출 판단·도구별 출력 설명 |
 | [tools/mod.rs](../src/tools/mod.rs)의 `list_tools` | 실제 도구 설명과 입력 스키마 | 문구 조합, 동적 권한 안내, 인자 계약 |
 | [codemap/monorepo.rs](../src/codemap/monorepo.rs)의 `WorkspaceCatalog` 출력 | 모노레포 범위 목록 | 범위·언어 목록을 유지하고, 중복 `Next Step` 안내는 모노레포 공통 안내에 통합 |
 | [tools/grep.rs](../src/tools/grep.rs)의 `empty_result_hint` | grep 결과가 없을 때의 안내 | 활성 필터·정규식 안내와 재시도 전 패턴 또는 필터 조정 조건 |

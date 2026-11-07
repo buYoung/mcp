@@ -212,11 +212,10 @@ fn frame(
         });
         text.push_str(&output.text);
     } else {
-        text.push_str(if options.view == LiveView::SourceGrouped {
-            "Locations refer to the enclosing file; 42:match and 43-context preserve the original grep rows.\n"
-        } else {
-            "Locations without a path refer to the enclosing file. Scope: enclosing declarations and members; detailed relationships cover returned source anchors.\n"
-        });
+        // The grep schema already defines the grouped row markers.
+        if options.view != LiveView::SourceGrouped {
+            text.push_str("Locations without a path refer to the enclosing file. Scope: enclosing declarations and members; detailed relationships cover returned source anchors.\n");
+        }
         if options.should_include_relations() {
             if let Some(target_os) = crate::config::get().analysis_target_os.as_deref() {
                 if output

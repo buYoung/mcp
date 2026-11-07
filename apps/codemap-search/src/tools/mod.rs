@@ -218,6 +218,31 @@ pub fn server_instructions() -> String {
     text
 }
 
+/// A tool's Jev paragraph, present only while that tool's Jev stage is enabled.
+fn jev_guidance(is_enabled: bool, text: &str) -> String {
+    if is_enabled {
+        format!("\n\n{}", text.trim_end())
+    } else {
+        String::new()
+    }
+}
+
+/// Enabled Jev filters require the user's task before their first call.
+fn with_jev_guidance(mut text: String) -> String {
+    let jev = &crate::config::get().jev;
+    let tools: Vec<_> = ["grep", "read", "search"]
+        .into_iter()
+        .filter(|tool| jev.is_enabled_for(tool))
+        .collect();
+    if !tools.is_empty() {
+        text.push_str(&format!(
+            "\n\nJev filtering is enabled for {}. Pass the user's complete request as task to initial_instructions before the first of these calls, and again when the request changes.",
+            tools.join(", ")
+        ));
+    }
+    text
+}
+
 fn with_related_terms_guidance(mut text: String) -> String {
     if crate::config::get().related_terms.enabled {
         text.push_str("\n\nFor behavior/flow discovery, first read synonyms' full description and schema, not a clipped tool preview. Select inputs BEFORE calling: use only the argument key `terms` (not `query`), with an array of lowercase targets. Split identifiers into selected words; keep a technical term that names one concept as one spaced item (`abort signal`); never send a whole identifier or an invented alternative. Keep inflections and useful base words (find AND find_by). Then call once before search/grep, even for known names, and verify relevant returned alternatives alongside the originals. Do not force unrelated alternatives.");
@@ -267,13 +292,24 @@ pub fn instructions() -> String {
     } else {
         common.to_string()
     };
-    with_related_terms_guidance(text)
+    with_jev_guidance(with_related_terms_guidance(text))
+}
+
+/// `initial_instructions` takes the user's task only while a Jev filter is enabled. A client
+/// that cached the list before a configuration reload enabled Jev must reconnect to see it;
+/// a task argument stays accepted either way.
+fn initial_instructions_schema(is_jev_enabled: bool) -> Value {
+    if is_jev_enabled {
+        serde_json::json!({ "type": "object", "properties": { "task": task::schema_property() }, "required": ["task"], "additionalProperties": false })
+    } else {
+        serde_json::json!({ "type": "object", "properties": {}, "required": [], "additionalProperties": false })
+    }
 }
 
 /// Removed body-filter arguments must not silently select, bypass or replace task context.
 pub(crate) fn reject_body_task_query(arguments: &Value) -> Result<(), (i64, String)> {
     if get_arg(arguments, "task_query").is_some() {
-        return Err((-32602, "task_query is not a per-tool option. Register the full task once with register_task; enabled search/read/grep filters run automatically.".into()));
+        return Err((-32602, "task_query is not a per-tool option. Pass the full task once as initial_instructions' task; enabled search/read/grep filters run automatically.".into()));
     }
     Ok(())
 }
@@ -342,47 +378,47 @@ pub fn list_tools() -> Value {
     let include_ignored_description = "Bypass .gitignore and .codemapignore (default false).";
     let glob_syntax = "ripgrep-style glob: slash-less patterns match basenames at any depth; '**' crosses directories, '*'/'?' do not; '{a,b}' expands and '!' negates.";
     let jev = &config.jev;
-    // An enabled Jev stage uses its dedicated `<name>.jev.md` as the tool's whole static prose.
-    let read_description = if jev.is_enabled_for("read") {
+    // An enabled Jev stage appends its `<name>.jev.md` to the tool's ordinary prose, so both
+    // configurations keep the same navigation guidance.
+    let read_description = format!(
+        "{}\n\n{}{}",
         filesystem_tool_description(
-            include_str!("instructions/tools/read.jev.md").trim_end(),
+            include_str!("instructions/tools/read.md").trim_end(),
             permissions.read,
             &permissions.allowed_roots,
-        )
-    } else {
-        format!(
-            "{}\n\n{}",
-            filesystem_tool_description(
-                include_str!("instructions/tools/read.md").trim_end(),
-                permissions.read,
-                &permissions.allowed_roots,
-            ),
-            include_str!("instructions/tools/read.evidence.md").trim_end(),
-        )
-    };
+        ),
+        include_str!("instructions/tools/read.evidence.md").trim_end(),
+        jev_guidance(
+            jev.is_enabled_for("read"),
+            include_str!("instructions/tools/read.jev.md")
+        ),
+    );
     let find_description = filesystem_tool_description(
         include_str!("instructions/tools/find.md").trim_end(),
         permissions.find,
         &permissions.allowed_roots,
     );
-    let grep_description = if jev.is_enabled_for("grep") {
+    let grep_description = format!(
+        "{}\n\n{}{}",
         filesystem_tool_description(
-            include_str!("instructions/tools/grep.jev.md").trim_end(),
+            include_str!("instructions/tools/grep.md").trim_end(),
             permissions.grep,
             &permissions.allowed_roots,
-        )
-    } else {
-        format!(
-            "{}\n\n{}",
-            filesystem_tool_description(
-                include_str!("instructions/tools/grep.md").trim_end(),
-                permissions.grep,
-                &permissions.allowed_roots,
-            ),
-            include_str!("instructions/tools/grep.evidence.md").trim_end(),
-        )
-    };
-    let search_description = include_str!("instructions/tools/search.md").trim_end();
+        ),
+        include_str!("instructions/tools/grep.evidence.md").trim_end(),
+        jev_guidance(
+            jev.is_enabled_for("grep"),
+            include_str!("instructions/tools/grep.jev.md")
+        ),
+    );
+    let search_description = format!(
+        "{}{}",
+        include_str!("instructions/tools/search.md").trim_end(),
+        jev_guidance(
+            jev.is_enabled_for("search"),
+            include_str!("instructions/tools/search.jev.md")
+        ),
+    );
     // Read-only stays true: neither stage writes anywhere. The open-world hint follows the
     // effective enable flag of this request, because an enabled stage may contact the
     // external provider even when no key is present at this moment.
@@ -419,7 +455,7 @@ pub fn list_tools() -> Value {
                         // un-annotated tools in non-interactive runs, and prompts per call in
                         // interactive ones).
                         "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                        "inputSchema": { "type": "object", "properties": {}, "required": [], "additionalProperties": false }
+                        "inputSchema": initial_instructions_schema(jev.is_any_enabled())
                     },
                     {
                         "name": "search",
@@ -513,20 +549,6 @@ pub fn list_tools() -> Value {
                     }
                 ]
     });
-    // Registration only feeds enabled Jev filters, so it is listed only then. A client that
-    // cached this list before a configuration reload enabled Jev must reconnect to see it;
-    // registration calls stay accepted either way.
-    if jev.is_any_enabled() {
-        result["tools"].as_array_mut().unwrap().insert(
-            1,
-            serde_json::json!({
-                "name": "register_task",
-                "description": include_str!("instructions/tools/register_task.md").trim_end(),
-                "annotations": { "readOnlyHint": true, "openWorldHint": false },
-                "inputSchema": task::schema()
-            }),
-        );
-    }
     result["tools"]
         .as_array_mut()
         .unwrap()

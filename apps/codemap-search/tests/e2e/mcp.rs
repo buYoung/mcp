@@ -934,7 +934,10 @@ async fn test_caller_context_annotation_respects_byte_cap() {
 // --- Jev stages: config-gated, intent-driven, offline through an injected evaluator ---------
 
 mod jev_stages {
-    use crate::e2e::helpers::{create_mock_repo, response_text, with_in_process_server, McpClient};
+    use crate::e2e::helpers::{
+        create_mock_repo, decision_candidate, decision_task, response_text, with_in_process_server,
+        McpClient,
+    };
     use codemap_search::jev::mock::{answers, Gate, MockEvaluator};
     use codemap_search::jev::{EvaluationRequest, JevError};
     use serde_json::json;
@@ -977,8 +980,10 @@ export function dropMe(input: string): string {
                 .questions()
                 .iter()
                 .map(|question| {
-                    let name = question.instructions()["candidate"]["name"]
-                        .as_str()
+                    let candidate = decision_candidate(request.state(), question.id().as_str());
+                    let name = candidate
+                        .as_ref()
+                        .and_then(|candidate| candidate.name.rsplit("::").next())
                         .unwrap_or("");
                     let unrelated = unrelated_by_name
                         .iter()
@@ -1005,14 +1010,12 @@ export function dropMe(input: string): string {
         let judge = Arc::clone(&evaluator);
         with_in_process_server(temp.path(), Some(evaluator), |mut client| async move {
             let missing = client.call("tools/call", json!({"name":"search","arguments":search_arguments()})).await.unwrap();
-            assert_eq!(missing["result"]["isError"], true, "missing registration is not an opt-out");
-            let legacy = client.call("tools/call", json!({"name":"register_task","arguments":{"task_query":TASK}})).await.unwrap();
-            assert_eq!(legacy["result"]["isError"], true, "text-only registration is rejected");
+            assert_eq!(missing["result"]["isError"], true, "a missing task is not an opt-out");
             client.register_task(TASK).await;
-            let invalid = client.call("tools/call", json!({"name":"register_task","arguments":{"task_query":TASK,"questions":[]}})).await.unwrap();
+            let invalid = client.call("tools/call", json!({"name":"initial_instructions","arguments":{"task":" "}})).await.unwrap();
             assert_eq!(invalid["result"]["isError"], true);
             let stale = client.call("tools/call", json!({"name":"search","arguments":search_arguments()})).await.unwrap();
-            assert_eq!(stale["result"]["isError"], true, "invalid replacement clears the previous registration");
+            assert_eq!(stale["result"]["isError"], true, "an invalid replacement clears the previous task");
             client.register_task(TASK).await;
             let response = client.plain_call("search", search_arguments()).await.unwrap();
             let plain = response_text(&response).to_string();
@@ -1031,15 +1034,16 @@ export function dropMe(input: string): string {
                     .clone()
             };
             let initial = tool("initial_instructions");
-            assert_eq!(initial["inputSchema"]["required"], json!([]));
-            assert_eq!(initial["inputSchema"]["properties"], json!({}));
+            assert_eq!(initial["inputSchema"]["required"], json!(["task"]));
+            assert_eq!(initial["inputSchema"]["properties"]["task"]["type"], "string");
             let search_tool = tool("search");
             let initial_description = initial["description"].as_str().unwrap();
             assert!(initial_description.starts_with("Return shared navigation guidance"), "{initial_description}");
             assert!(!initial_description.contains("task_query") && !initial_description.contains("questions"), "{initial_description}");
-            let registration = tool("register_task");
-            assert_eq!(registration["inputSchema"]["required"], json!(["task_query","questions"]));
-            assert_eq!(registration["inputSchema"]["properties"]["match"]["default"], "all");
+            assert!(
+                tools["result"]["tools"].as_array().unwrap().iter().all(|tool| tool["name"] != "register_task"),
+                "the task is passed to initial_instructions"
+            );
             assert!(search_tool["inputSchema"]["properties"].get("task_query").is_none());
             assert_eq!(search_tool["annotations"]["openWorldHint"], json!(true));
             assert_eq!(search_tool["annotations"]["readOnlyHint"], json!(true));
@@ -1060,12 +1064,12 @@ export function dropMe(input: string): string {
             let response = client.receive().await.unwrap();
             let text = response_text(&response);
             assert!(
-                text.contains("- _omitted body: L10-15 (fn dropMe) Jev found no task match; read src/budget.ts offset 10 limit 6 does not bypass Jev._"),
+                text.contains("- _omitted body: L10-15 (fn dropMe) Jev found no task match in src/budget.ts._"),
                 "{text}"
             );
             assert!(!text.contains("input.split"), "the omitted body is gone: {text}");
             assert!(text.contains("const reserve = footer.length + 8;"), "the related body stays: {text}");
-            assert!(text.contains("dropMe (fn) [L10-15]"), "declaration rows stay: {text}");
+            assert!(!text.contains("dropMe (fn) [L10-15]"), "the omitted declaration's row goes with its body: {text}");
             assert!(text.len() < plain.len(), "an omission only ever shrinks the output");
             assert_eq!(judge.request_count(), 1);
 
@@ -1079,9 +1083,8 @@ export function dropMe(input: string): string {
             assert_eq!(text, plain, "all-keep preserves the base output byte for byte");
             assert_eq!(judge.request_count(), 2);
             let requests = judge.requests();
-            assert!(requests.iter().all(|request| request.task_query() == Some(TASK)));
-            assert!(requests.iter().all(|request| request.state["search_arguments"]["query"] == json!("keepMe dropMe")));
-            assert_eq!(requests[0].questions.len(), 4, "two registered Noul questions per complete body");
+            assert!(requests.iter().all(|request| decision_task(&request.state) == Some(TASK)));
+            assert_eq!(requests[0].questions.len(), 2, "one Noul question per complete body");
         })
         .await;
     }

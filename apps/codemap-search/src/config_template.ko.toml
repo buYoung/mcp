@@ -156,7 +156,7 @@ exceptions = []
 
 [output.jev]
 # decision 모델(TypeSafe Jev 또는 OpenRouter)로 작업과 관계없는 코드 본문을 결과에서 뺍니다(기본: 꺼짐).
-# 켜진 필터를 쓰기 전에 register_task(task_query, questions)로 작업을 등록하세요.
+# 켜진 필터를 쓰기 전에 initial_instructions의 task로 사용자 요청을 전달하세요.
 # API 키는 여기가 아닌 auth.toml의 [jev].api_key(TypeSafe) 또는 [openrouter].api_key에 저장하세요.
 # 두 auth 파일에 키가 없으면 TYPESAFE_API_KEY 또는 OPENROUTER_API_KEY 환경 변수를 사용합니다.
 
@@ -180,9 +180,9 @@ model = "jev-1.14.0"
 # 도구 호출 한 번에 Jev가 쓸 수 있는 최대 시간(밀리초)이며 대기 시간도 포함합니다(최대 7일, 기본 45000).
 timeout_ms = 45000
 
-# 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
-max_in_flight_requests = 3
-request_spacing_ms = 300
+# 동시에 보낼 최대 요청 수(1~8, 기본 8)와 요청 사이의 최소 간격(밀리초, 100 이상, 기본 100)입니다.
+max_in_flight_requests = 8
+request_spacing_ms = 100
 
 # 질문 묶음 하나의 최대 크기(바이트, 1~168000, 기본 168000)입니다. 질문 하나가 이보다 크면 실패합니다.
 max_batch_bytes = 168000

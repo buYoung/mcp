@@ -10,6 +10,8 @@ pub(super) struct Section {
     shown: BTreeSet<(String, usize, usize)>,
     /// Every declaration row written into this section, in row order.
     members: Vec<BlockSymbol>,
+    /// Each member's own row in `text`.
+    rows: Vec<(BlockSymbol, std::ops::Range<usize>)>,
     annotations: Vec<(BlockSymbol, std::ops::Range<usize>)>,
     pub anchors: Vec<(String, usize, usize)>,
     pub insertion: usize,
@@ -254,17 +256,6 @@ impl FileOutput {
     pub(crate) fn indexed(&self) -> Option<&ExtractedFile> {
         self.indexed.as_ref()
     }
-    /// Already prepared caller/callee evidence, including its precise/approximate labels.
-    /// Borrow ranges instead of retaining another full annotation catalogue.
-    pub(crate) fn annotation_for(&self, symbol: &BlockSymbol) -> Option<&str> {
-        self.sections.iter().find_map(|section| {
-            section
-                .annotations
-                .iter()
-                .find(|(owner, _)| owner == symbol)
-                .map(|(_, range)| &section.text[range.clone()])
-        })
-    }
     /// Called only after evidence capture/selection. Source and declaration identities stay
     /// unchanged; rebuild ranges so later consumers cannot observe stale byte offsets.
     pub(super) fn compact_display(&mut self, display: &mut super::display::DisplayContext) {
@@ -357,6 +348,84 @@ impl FileOutput {
             self.results_bytes += block.rendered_len();
         }
         replaced
+    }
+    /// Jev omitted these declarations: their outline rows and relation notes go with their
+    /// bodies, except a row that still holds a retained member. A declaration section left
+    /// without members goes whole.
+    pub(crate) fn drop_omitted_members(&mut self, omitted: &[BlockSymbol]) {
+        if omitted.is_empty() {
+            return;
+        }
+        let is_omitted = |symbol: &BlockSymbol| {
+            omitted.iter().any(|other| {
+                (other.name.as_str(), other.start_line, other.end_line)
+                    == (symbol.name.as_str(), symbol.start_line, symbol.end_line)
+            })
+        };
+        let mut emptied = Vec::new();
+        for (section_index, section) in self.sections.iter_mut().enumerate() {
+            let gone: Vec<BlockSymbol> = section
+                .rows
+                .iter()
+                .filter(|(symbol, _)| {
+                    is_omitted(symbol)
+                        && !section
+                            .rows
+                            .iter()
+                            .any(|(other, _)| !is_omitted(other) && symbol.contains(other))
+                })
+                .map(|(symbol, _)| symbol.clone())
+                .collect();
+            if gone.is_empty() {
+                continue;
+            }
+            let mut cuts: Vec<std::ops::Range<usize>> = section
+                .rows
+                .iter()
+                .chain(&section.annotations)
+                .filter(|(symbol, _)| gone.contains(symbol))
+                .map(|(_, range)| range.clone())
+                .collect();
+            cuts.sort_by_key(|range| range.start);
+            let shift = |offset: usize| {
+                offset
+                    - cuts
+                        .iter()
+                        .filter(|cut| cut.end <= offset)
+                        .map(|cut| cut.len())
+                        .sum::<usize>()
+            };
+            let mut text = String::with_capacity(section.text.len());
+            let mut previous_end = 0;
+            for cut in &cuts {
+                text.push_str(&section.text[previous_end..cut.start]);
+                previous_end = cut.end;
+            }
+            text.push_str(&section.text[previous_end..]);
+            for ranges in [&mut section.rows, &mut section.annotations] {
+                ranges.retain(|(symbol, _)| !gone.contains(symbol));
+                for (_, range) in ranges.iter_mut() {
+                    *range = shift(range.start)..shift(range.end);
+                }
+            }
+            section.members.retain(|member| !gone.contains(member));
+            section.text = text;
+            if section.members.is_empty() {
+                emptied.push(section_index);
+            }
+        }
+        for index in emptied.into_iter().rev() {
+            self.sections.remove(index);
+        }
+    }
+    /// When Jev omitted every displayed body, the file's match metadata and declaration
+    /// outline go too; its heading and omission notes keep the locations.
+    pub(crate) fn drop_outline_if_all_omitted(&mut self) {
+        if self.blocks.is_empty() || !self.blocks.iter().all(|block| block.is_note) {
+            return;
+        }
+        self.metadata.clear();
+        self.sections.clear();
     }
     #[cfg(test)]
     pub(crate) fn anchors(&self) -> Vec<(String, usize, usize)> {
@@ -672,6 +741,7 @@ impl FileOutput {
                 text: String::new(),
                 shown: BTreeSet::new(),
                 members: Vec::new(),
+                rows: Vec::new(),
                 annotations: Vec::new(),
                 anchors: Vec::new(),
                 insertion: 0,
@@ -679,7 +749,12 @@ impl FileOutput {
             self.sections.len() - 1
         });
         for (member, row) in rows {
+            let start = self.sections[index].text.len();
             self.sections[index].text.push_str(&row);
+            let end = self.sections[index].text.len();
+            self.sections[index]
+                .rows
+                .push((BlockSymbol::from_symbol(member), start..end));
             self.sections[index].shown.insert((
                 member.name.clone(),
                 member.range.start_line,
@@ -731,6 +806,7 @@ impl FileOutput {
                     text: String::new(),
                     shown: BTreeSet::new(),
                     members: Vec::new(),
+                    rows: Vec::new(),
                     annotations: Vec::new(),
                     anchors: Vec::new(),
                     insertion: 0,
@@ -1023,6 +1099,7 @@ mod tests {
                     text: String::new(),
                     shown: BTreeSet::new(),
                     members: Vec::new(),
+                    rows: Vec::new(),
                     annotations: Vec::new(),
                     anchors: vec![(path.into(), line, line)],
                     insertion: 0,

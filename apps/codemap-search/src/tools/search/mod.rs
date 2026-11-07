@@ -747,8 +747,6 @@ pub(crate) struct DetailState {
     search_started: std::time::Instant,
     candidates_elapsed: std::time::Duration,
     phrase_matches: Vec<crate::index::PhraseMatch>,
-    /// Masked copy of the search arguments the filter stage names in its shared state.
-    search_arguments: serde_json::Value,
 }
 
 pub(crate) enum Prepared {
@@ -786,15 +784,9 @@ pub(crate) async fn run_inner_with_filter(
         Prepared::Detail(state) => state,
     };
     let files: Vec<&grouped::FileOutput> = state.files.iter().map(|(file, _)| file).collect();
-    let mut input = jev::FilterInput::capture(task, state.search_arguments.clone(), &files);
-    input.add_supporting_evidence(
-        &files,
-        &state.published_snapshot,
-        workspace_scope,
-        state.should_include_events,
-        !state.is_warming && !state.is_dead && !state.has_refresh_error,
-        policy,
-    );
+    let mut input = jev::FilterInput::capture(task, &files);
+    // Follow-up caller candidates come from the index and need a fresh snapshot.
+    input.is_snapshot_fresh = !state.is_warming && !state.is_dead && !state.has_refresh_error;
     let planned_primary_bytes = state
         .files
         .last()
@@ -805,11 +797,6 @@ pub(crate) async fn run_inner_with_filter(
         candidate_count = input.entities.len(),
         complete_bodies = input.evidence_summary().complete,
         eligible_bodies = input.judgeable().len(),
-        supporting_context_bytes = input
-            .entities
-            .iter()
-            .map(|entity| entity.supporting_context.len())
-            .sum::<usize>(),
         "jev selection plan"
     );
     let mut result = jev::evaluate(&input, evaluator, policy).await;
@@ -819,11 +806,16 @@ pub(crate) async fn run_inner_with_filter(
         && state.caller_context_enabled
         && input.is_snapshot_fresh
         && !state.output_was_capped;
-    let (output, rendered_omissions) = finish_detail(
-        *state,
-        Some(outcome),
-        should_add_candidates.then_some((&input, &result)),
-    );
+    let snapshot = std::sync::Arc::clone(&state.published_snapshot);
+    let mut candidates = should_add_candidates
+        .then(|| jev::call_candidates(&input, &result, &snapshot, workspace_scope))
+        .flatten();
+    if let Some(candidates) = &mut candidates {
+        candidates
+            .judge(&input, &mut result, &snapshot, evaluator, policy)
+            .await;
+    }
+    let (output, rendered_omissions) = finish_detail(*state, Some(outcome), candidates.as_ref());
     result.rendered_omissions = rendered_omissions;
     result.timing.elapsed = selection_started.elapsed();
     tracing::info!(
@@ -838,35 +830,6 @@ pub(crate) async fn run_inner_with_filter(
         "jev selection output"
     );
     Ok((output, Some(result)))
-}
-
-fn masked_search_arguments(
-    ctx: &ToolContext,
-    query: &str,
-    workspace_scope: Option<&str>,
-    caller_context_enabled: bool,
-) -> serde_json::Value {
-    let mut arguments = serde_json::Map::new();
-    arguments.insert(
-        "query".into(),
-        serde_json::Value::String(crate::redact::source(query).into_owned()),
-    );
-    for key in ["language_hint", "extension_hint"] {
-        if let Some(value) = ctx.arguments.get(key).and_then(|value| value.as_str()) {
-            arguments.insert(
-                key.into(),
-                serde_json::Value::String(crate::redact::named_value(key, value).into_owned()),
-            );
-        }
-    }
-    if let Some(scope) = workspace_scope {
-        arguments.insert("workspace_scope".into(), serde_json::json!(scope));
-    }
-    arguments.insert(
-        "caller_context".into(),
-        serde_json::json!(caller_context_enabled),
-    );
-    serde_json::Value::Object(arguments)
 }
 
 /// Plan ranking, readiness notices, source blocks and metadata under the configured budget.
@@ -1393,8 +1356,6 @@ pub(crate) fn prepare_detail(
         }
         rendered_detail_count = detail_files_rendered;
     }
-    let search_arguments =
-        masked_search_arguments(ctx, query, workspace_scope, caller_context_enabled);
     Ok(Prepared::Detail(Box::new(DetailState {
         text,
         files: grouped_files,
@@ -1413,7 +1374,6 @@ pub(crate) fn prepare_detail(
         has_refresh_error: ctx.engine.last_error().is_some(),
         search_started,
         candidates_elapsed,
-        search_arguments,
         phrase_matches,
     })))
 }
@@ -1423,7 +1383,7 @@ pub(crate) fn prepare_detail(
 fn finish_detail(
     state: DetailState,
     filter: Option<jev::FilterOutcome>,
-    call_candidates: Option<(&jev::FilterInput, &jev::FilterResult)>,
+    call_candidates: Option<&jev::CallCandidates>,
 ) -> (SearchOutput, usize) {
     let DetailState {
         mut text,
@@ -1443,7 +1403,6 @@ fn finish_detail(
         has_refresh_error,
         search_started,
         candidates_elapsed,
-        search_arguments: _,
         phrase_matches,
     } = state;
     let workspace_scope = workspace_scope.as_deref();
@@ -1457,11 +1416,25 @@ fn finish_detail(
     let byte_cap = display::delivery_byte_cap(byte_cap);
     let mut grouped_files = Vec::with_capacity(files.len());
     let mut rendered_omissions = 0;
+    let mut omitted_bytes = 0;
     let mut display = display::DisplayContext::default();
     for (file_index, (mut file_output, is_partial_file)) in files.into_iter().enumerate() {
         if let Some(filter) = &filter {
+            let before = file_output.written_len(is_partial_file);
+            let omitted_symbols: Vec<_> = file_output
+                .blocks()
+                .iter()
+                .enumerate()
+                .filter(|(block_index, _)| {
+                    filter.replacement_for(file_index, *block_index).is_some()
+                })
+                .filter_map(|(_, block)| block.symbol.clone())
+                .collect();
             rendered_omissions += file_output
                 .retain_blocks(|block_index, _| filter.replacement_for(file_index, block_index));
+            file_output.drop_omitted_members(&omitted_symbols);
+            file_output.drop_outline_if_all_omitted();
+            omitted_bytes += before.saturating_sub(file_output.written_len(is_partial_file));
         }
         file_output.compact_display(&mut display);
         grouped_files.push((file_output, is_partial_file));
@@ -1471,9 +1444,11 @@ fn finish_detail(
     let reserved_bytes = (byte_cap / 8).min(12 * 1024);
     // An agent resends this page with every later request, so bodies beyond a third of one
     // call's delivery budget wait behind their read ranges; ranked headings stay.
+    // Jev omissions shrink the page; the space they free is not refilled with deferred bodies.
     let primary_budget_bytes = byte_cap
         .saturating_sub(reserved_bytes)
-        .min(byte_cap / SEARCH_PAGE_BODY_SHARE);
+        .min(byte_cap / SEARCH_PAGE_BODY_SHARE)
+        .saturating_sub(omitted_bytes);
     let mut primary_bytes = text.len()
         + grouped_files
             .iter()
@@ -1489,6 +1464,11 @@ fn finish_detail(
                         .as_ref()
                         .is_some_and(|filter| filter.is_delivery_protected(file_index, block_index))
                 });
+        }
+        // Jev protection orders deferral; it does not lift the page budget.
+        for (file, _) in grouped_files.iter_mut().rev() {
+            deferred_bodies +=
+                file.defer_bodies(&mut primary_bytes, primary_budget_bytes, |_| false);
         }
     }
     let grouped_files = grouped_files
@@ -1601,15 +1581,9 @@ fn finish_detail(
     retained_primary_bytes = retained_primary_bytes.min(retained_bytes);
     // Plan candidate text once before allocating relation space. Empty or ineligible
     // candidates must not reduce that space; nonempty candidates keep the existing reserve.
-    let call_candidate_text = if let Some((input, result)) = call_candidates {
+    let call_candidate_text = if let Some(candidates) = call_candidates {
         let start = text.len();
-        jev::append_call_candidates(
-            &mut text,
-            input,
-            result,
-            &published_snapshot,
-            workspace_scope,
-        );
+        jev::append_call_candidates(&mut text, candidates);
         text.split_off(start)
     } else {
         String::new()

@@ -17,6 +17,49 @@ is_build_support_enabled = true
 
 pub const EVENT_NAVIGATION_CONFIG: &str = include_str!("../fixtures/event_navigation/config.toml");
 
+/// One candidate of a Jev decision request, read back from its plain-text state.
+#[derive(Debug)]
+pub struct DecisionCandidate {
+    pub kind: String,
+    pub name: String,
+}
+
+/// The task a decision request's plain-text state starts with.
+pub fn decision_task(state: &Value) -> Option<&str> {
+    let rest = state.as_str()?.strip_prefix("Task:\n")?;
+    let end = rest
+        .find("\n\nCandidates:\n\n")
+        .or_else(|| rest.find("\n\nCode:\n"))?;
+    Some(&rest[..end])
+}
+
+/// The candidate question `id` asks about: its `[id]` block in a grouped state, or the one
+/// code of a single-candidate state.
+pub fn decision_candidate(state: &Value, id: &str) -> Option<DecisionCandidate> {
+    let text = state.as_str()?;
+    let block = match text.split_once("\n\nCandidates:\n\n") {
+        Some((_, candidates)) => {
+            let marker = format!("[{id}]\n");
+            let block = &candidates[candidates.find(&marker)? + marker.len()..];
+            &block[..block.find("\n\n[b").unwrap_or(block.len())]
+        }
+        None => text.split_once("\n\nCode:\n")?.1,
+    };
+    let field = |name: &str| {
+        block
+            .lines()
+            .find_map(|line| line.strip_prefix(name))
+            .map(str::to_string)
+    };
+    // A complete candidate names its file and carries its source.
+    field("file: ")?;
+    block.split_once("\nsource:\n")?;
+    Some(DecisionCandidate {
+        kind: field("kind: ")?,
+        name: field("name: ")?,
+    })
+}
+
 pub fn event_navigation_repo() -> TempDir {
     create_mock_repo(&[
         (
@@ -298,17 +341,12 @@ pub struct InProcessClient {
 }
 
 impl InProcessClient {
-    /// Register one task through the public setup contract, not a per-call filter argument.
+    /// Pass one task through the public setup contract, not a per-call filter argument.
     pub async fn register_task(&mut self, task: &str) {
         let response = self
             .call(
                 "tools/call",
-                serde_json::json!({
-                    "name": "register_task", "arguments": { "task_query": task, "questions": [
-                        {"id":"budget", "question":"Does this function implement or concretely support the requested output-budget behavior?", "when_true":"It computes, reserves, caps, renders or passes the requested output budget.", "when_false":"Supplied code establishes a separate behavior with no concrete budget role."},
-                        {"id":"flow", "question":"Does the same function participate in the requested output-budget flow?", "when_true":"The body or supplied call evidence connects it to that output-budget flow.", "when_false":"Supplied evidence establishes an unrelated flow; missing links alone are uncertain."}
-                    ], "match":"all" }
-                }),
+                serde_json::json!({ "name": "initial_instructions", "arguments": { "task": task } }),
             )
             .await
             .unwrap();

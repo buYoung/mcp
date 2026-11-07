@@ -92,9 +92,9 @@ This is the configuration form in the [OpenCode MCP guide](https://opencode.ai/d
 
 ## Verify the first connection
 
-1. Ask the client to call `initial_instructions({})` once. It takes no arguments regardless of Jev settings and returns navigation guidance; monorepos also list selectable scopes and their languages.
+1. Ask the client to call `initial_instructions` once. It returns navigation guidance; monorepos also list selectable scopes and their languages. With Jev off it takes no arguments; with an enabled [Jev filter](#optional-jev-decision-stages), pass the user's complete request as `task`.
 2. Confirm that the paths belong to your intended repository. A warming notice means indexing is still in progress; retry after it completes.
-3. Find a known source file with `find`. Before using `read` or `search` with an enabled [Jev filter](#optional-jev-decision-stages), call `register_task` once as described below. Then `read` the file, search for a known symbol with `search`, and confirm that the same file appears after indexing completes.
+3. Find a known source file with `find`. Then `read` the file, search for a known symbol with `search`, and confirm that the same file appears after indexing completes.
 
 If the binary cannot be found, check the client's `PATH`. If the wrong repository appears, correct its working directory. Read stderr diagnostics for startup/config errors; stdout is reserved for MCP JSON-RPC frames.
 
@@ -115,8 +115,7 @@ Synchronization runs on MCP initialization, or the next request after a reloaded
 
 | Tool | Use | Main arguments |
 |---|---|---|
-| `initial_instructions` | Load navigation guidance without changing the registered task | None; call with `{}` |
-| `register_task` | Register the task before using an enabled Jev filter; listed only while Jev is enabled | `task_query`, `questions` (required), `match` |
+| `initial_instructions` | Load navigation guidance; with Jev enabled, also set the user's task | `task` (required while Jev is enabled); otherwise none |
 | `search` | Find implementations with ranked symbols and snippets | `query`, `workspace_scope`, `language_hint`, `extension_hint`, `caller_context` |
 | `find` | Find files or directories by glob or basename regex; newest entries first | `pattern`, `path`, `include_ignored`, `entry_type`, `max_depth`, `pattern_type` |
 | `grep` | Search live files with a regex | `pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `multiline`, `head_limit`, `offset`, `include_ignored` |
@@ -179,11 +178,11 @@ MCP watches existing config directories and reloads after about 1000ms. Manual e
 
 ## Optional Jev decision stages
 
-Jev evaluates complete function bodies from search, read and grep against registered task questions. It is off by default. Set `output.jev.enabled=true` and select tools with `scope` (default `["search", "read", "grep"]`). `enabled=false` disables all filters; `scope=[]` selects none. Store the API key in `.codemap/auth.toml` under `[jev].api_key`. A global `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`) is also supported; resolution is repo auth > global auth > the fixed `TYPESAFE_API_KEY` environment variable. Auth files are excluded from indexing and default find/grep. To use an OpenRouter decision model such as `openai/gpt-6-luna-decisions`, set it as `output.jev.model` and store the OpenRouter key under `[openrouter].api_key` (fallback `OPENROUTER_API_KEY`); that key is sent only to OpenRouter's Decisions API, which rejects models without decision support. The default model is `jev-1.14.0`; see [OpenRouter decision models](./docs/configuration.md#openrouter-decision-models).
+Jev judges the source that search, read and grep return against the user's task. It is off by default. Search judges complete function bodies; read and grep also judge a function that a read window cuts and the rows outside functions. Set `output.jev.enabled=true` and select tools with `scope` (default `["search", "read", "grep"]`). `enabled=false` disables all filters; `scope=[]` selects none. Store the API key in `.codemap/auth.toml` under `[jev].api_key`. A global `$CODEMAP_HOME/auth.toml` (otherwise `~/.codemap/auth.toml`) is also supported; resolution is repo auth > global auth > the fixed `TYPESAFE_API_KEY` environment variable. Auth files are excluded from indexing and default find/grep. To use an OpenRouter decision model such as `openai/gpt-6-luna-decisions`, set it as `output.jev.model` and store the OpenRouter key under `[openrouter].api_key` (fallback `OPENROUTER_API_KEY`); that key is sent only to OpenRouter's Decisions API, which rejects models without decision support. The default model is `jev-1.14.0`; see [OpenRouter decision models](./docs/configuration.md#openrouter-decision-models).
 
-The main agent registers `task_query` and focused yes/no `questions` once through `register_task` before using an enabled filter, preserving the task's target, direction and coverage. Each question has `question`, `when_true` and `when_false`; IDs are generated by the server. `match` is `all` (default) or `any`. Register again when the task changes. Retrieval queries never replace task intent. Text-only registration is rejected. Clients that previously registered through `initial_instructions` must switch to `register_task`.
+Before using an enabled filter, the main agent passes the user's complete request once as the `task` argument of `initial_instructions`, and again when the task changes. A blank or invalid `task` is an error and clears the previous task. Retrieval queries never replace the task. The server asks one fixed yes/no question per judged unit, with that unit's source; the agent writes no questions. The request layout depends on the model. The `register_task` tool is removed; clients that used it must pass `task` to `initial_instructions` instead.
 
-Enabled search/read/grep filters send masked goal, questions and function evidence to the selected provider (TypeSafe or OpenRouter) and compose the separate answers in code. Uncertain evidence stays; omitted bodies retain source locations. `initial_instructions` and find remain local and need no task registration. For unfiltered read recovery, remove `"read"` from `output.jev.scope` or set `output.jev.enabled=false`; `include_seen=true` bypasses only common delivery deduplication. Provider failure preserves ordinary selection; the independent MCP delivery rule still applies. See the [Jev reference](./docs/configuration.md#optional-jev-decision-stages) for examples, bounds, uncertainty and diagnostics.
+Enabled search/read/grep filters send the masked task and the masked source of each judged unit to the selected provider (TypeSafe or OpenRouter) and decide in code which source to omit. Uncertain source stays; omitted source keeps its location, and reading that exact location returns it. `initial_instructions` and find remain local. For unfiltered reads of wider windows, remove `"read"` from `output.jev.scope` or set `output.jev.enabled=false`; `include_seen=true` bypasses only common delivery deduplication. Provider failure preserves ordinary selection; the independent MCP delivery rule still applies. See the [Jev reference](./docs/configuration.md#optional-jev-decision-stages) for examples, bounds, uncertainty and diagnostics.
 
 ## Supported languages and formats
 

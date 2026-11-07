@@ -602,6 +602,7 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
             }
             let (page, footer) = paginate(&lines, offset, head_limit);
             let mut output = LiveOutput::default();
+            output.jev.judges_enclosing_bodies = true;
             output.jev.files = files
                 .iter_mut()
                 .filter_map(|file| file.filter_file.take())
