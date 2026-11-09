@@ -158,13 +158,13 @@ def product_environment(ident: str, home: Path, source: Path) -> dict:
         env.update(CBM_CACHE_DIR=str(home), CBM_ALLOWED_ROOT=str(source), CBM_RUNTIME_DIR=str(cbm_runtime_dir()))
     elif ident == "serena":
         from .serena_support import environment
-        env.update(environment(home, load_artifacts(verify=False)[ident]))
+        env.update(environment(home, load_artifacts(verify=False, arms=routes.relay_arms(ident))[ident]))
     return env
 
 
 def prepare_index(ident: str, emit=print) -> dict:
     corpus = read_json(CORPUS)
-    artifact = load_artifacts(verify=False)[ident]
+    artifact = load_artifacts(verify=False, arms=routes.relay_arms(ident))[ident]
     source, home = workspace(ident, corpus)
     base = source.parent
     record = base / "prepared-index.json"
@@ -497,7 +497,7 @@ def probe_is_current(ident: str, backend="pi") -> bool:
     if not path.exists():
         return False
     try:
-        verify_probe(read_json(path), load_artifacts(verify=False))
+        verify_probe(read_json(path), load_artifacts(verify=False, arms=routes.relay_arms(ident)))
         return True
     except (OSError, ValueError, KeyError, TypeError):
         return False
@@ -513,7 +513,7 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
     from . import readiness, isolation
     from .execution import ProcessRegistry
     from .warm_host import prepare_session
-    artifacts = load_artifacts(verify=False)
+    artifacts = load_artifacts(verify=False, arms=routes.relay_arms(ident))
     state = load_index(ident)
     state["agent_backend"] = backend
     if ident == "serena":
@@ -598,12 +598,12 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
     return result
 
 
-def publish_indexes(backend="pi") -> dict:
+def publish_indexes(backend="pi", arms: tuple[str, ...] = routes.ARM_IDS) -> dict:
     corpus = read_json(CORPUS)
     verify_source_inventory(Path(corpus["source"]), corpus["files"])
-    artifacts = load_artifacts(verify=False)
+    artifacts = load_artifacts(verify=False, arms=arms)
     states = {}
-    for ident in routes.ARM_IDS:
+    for ident in arms:
         state = read_json(ready_path(ident, backend))
         require(state["agent_backend"] == backend, "조회 실행기 불일치")
         verify_probe(state, artifacts)

@@ -155,7 +155,21 @@ def execution_key(arm: str, mode: str) -> str:
     return f"{arm}/{mode}"
 
 
-def schedule() -> list[dict]:
+def ordered_arms(names) -> tuple[str, ...]:
+    """Named arms in contract order; rg stays in every subset because each relay carries its binary."""
+    selected = tuple(arm for arm in ARM_IDS if arm in names)
+    require(len(selected) == len(names) and "rg" in selected, "비교군 선택 오류: 고정 비교군 중에서 rg를 포함해 고릅니다")
+    return selected
+
+
+def relay_arms(ident: str) -> tuple[str, ...]:
+    """The arms whose artifacts one arm's index, probe and relay read: its own and rg's."""
+    return ordered_arms({ident, "rg"})
+
+
+def schedule(arms: tuple[str, ...] = ARM_IDS) -> list[dict]:
+    """The full seeded schedule, narrowed to the given arms without reordering the remaining slots."""
+    arms = ordered_arms(arms)
     profile = load_profile()
     rng = random.Random(profile["seed"])
     rows = []
@@ -170,7 +184,7 @@ def schedule() -> list[dict]:
                          "mode": mode, "attempt": attempt, "status": "planned"} for arm, mode in conditions)
     require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS) * profile["repetitions"] * len(MEASUREMENT_MODES),
             "계획 슬롯 오류")
-    return rows
+    return [row for row in rows if row["arm"] in arms]
 
 
 def implementation_hashes(names: list[str]) -> dict:

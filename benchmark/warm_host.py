@@ -143,8 +143,9 @@ class WarmSession:
         self.deadline = deadline
         try:
             require(not self.cancel_event.is_set() and time.monotonic() < deadline, "warm-up cancelled/expired")
+            from . import route_contract as routes
             from .tool_artifacts import load_artifacts
-            artifacts = load_artifacts(verify=False)
+            artifacts = load_artifacts(verify=False, arms=routes.relay_arms(self.ident))
             artifact = artifacts[self.ident]
             offline = readiness.prepared_evidence(self.state, artifact)
             if self.state.get("campaign_binding"):

@@ -537,7 +537,8 @@ def quality_counts(judgments: list[dict], questions: list[dict]) -> dict:
 def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dict:
     dataset = routes.load_dataset()
     questions = {q["id"]: q for q in dataset["questions"]}
-    planned = routes.schedule()
+    planned_arms = routes.ordered_arms(manifest.get("prepared", manifest).get("arms", routes.ARM_IDS))
+    planned = routes.schedule(planned_arms)
     by_id = {r["id"]: r for r in rows}
     require(len(by_id) == len(rows) and set(by_id) <= {r["id"] for r in planned}, "계획 밖 또는 중복 결과")
     require(set(judgments) <= set(by_id), "실행 기록 없는 채점")
@@ -574,7 +575,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     for mode in routes.MEASUREMENT_MODES:
         arms = {}
         mode_rows = [row for row in result_rows if row["mode"] == mode]
-        for arm in routes.ARM_IDS:
+        for arm in planned_arms:
             selected = [r for r in mode_rows if r["arm"] == arm]
             graded = [r["judgment"] for r in selected if r["judgment"] is not None]
             arms[arm] = {"planned": len(selected), "observed": sum(r["cli_launches"] == 1 for r in selected),
@@ -597,7 +598,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
               "out_of_scope": sum(r["status"] == "out_of_scope" for r in result_rows),
               "not_started": sum(r["launch_state"] in {None, "not_started"} for r in result_rows),
               "launch_unknown": sum(r["launch_state"] == "unknown" for r in result_rows)}
-    result = {"schema_version": 4, "solver_limits": None, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(routes.schedule()),
+    result = {"schema_version": 4, "solver_limits": None, "counts": counts, "profile": routes.PROFILE, "planned_solver_runs": len(planned),
               "campaign_status": manifest.get("campaign_status"), "blocked_grading": manifest.get("blocked_grading", []),
               "run_scope": manifest.get("run_scope", {"kind": "full"}),
               "condition_identity": {key: manifest.get(key) for key in ("contract_hash", "harness_sha256", "input_hashes", "models", "actual_versions", "execution_specs")},

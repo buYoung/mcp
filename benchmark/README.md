@@ -96,6 +96,12 @@ python3 -m benchmark.route_prepare prepare --solver-model all
 python3 -m benchmark.route_prepare verify --solver-model all
 ```
 
+일부 비교군만 준비하려면 `--arms`에 쉼표로 구분한 비교군을 준다. 모든 relay가 rg 실행 파일을 쓰므로 rg는 항상 포함한다. 계획에는 선택한 비교군의 슬롯만 들어가고, 슬롯 순서는 전체 계획에서의 순서를 따른다.
+
+```sh
+python3 -m benchmark.route_prepare prepare --solver-model all --arms codemap-search,rg
+```
+
 준비·실행 승인 CUI는 다음 명령으로 연다.
 
 ```sh
