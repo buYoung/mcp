@@ -11,7 +11,7 @@ from .core import digest, file_digest, read_json, require, write_json
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
 DATASET_MANIFEST_SHA256 = "33fdd791be316fd3912ea5b1a401763357fab73b5ec6078b5cb6fce8d597a2ed"
-TARGET_LOCK_SHA256 = "d9c19c7fc1e65d4637582f5cb7547814acf5661662648895716a4b1981cf66c7"
+TARGET_LOCK_SHA256 = "449313be7975b7b05f3f9b9e0933bb8aa58418a026a0f9a3d12a8b9057e7ca89"
 QUESTION_IDS = ("git-sync-job-dispatch", "alertmanager-config-autosync", "scope-annotation-filter")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")
