@@ -207,7 +207,6 @@ def cleanup_cbm_temporary(before: set[Path]) -> list[str]:
 PINNED_ARGUMENTS = {
     'codemap-search': {
         'initial_instructions': set(''.split()),
-        'overview': set('format path'.split()),
         'search': set('caller_context debug event_key extension_hint include_events include_seen language_hint query'.split()),
         'read': set('debug expand file_path include_events include_seen limit offset unresolved view'.split()),
         'find': set('entry_type include_ignored max_depth path pattern pattern_type'.split()),
@@ -285,7 +284,7 @@ PINNED_ARGUMENTS = {
 }
 
 QUERY_TOOLS = {
-    "codemap-search": set("initial_instructions overview search read find grep analyze".split()),
+    "codemap-search": set("initial_instructions search read find grep analyze".split()),
     "codegraph": {"codegraph_explore"}, "zvec-grep": {"zvec_grep_search"},
     "graphify": set("query_graph get_node get_neighbors get_community god_nodes graph_stats shortest_path".split()),
     "codebase-memory-mcp": set("search_graph query_graph trace_path get_code_snippet get_file_outline get_graph_schema compare_graphs get_architecture search_code list_projects index_status check_index_coverage detect_changes".split()),
@@ -295,7 +294,6 @@ QUERY_TOOLS = {
 PINNED_PROMPTS = {"codebase-memory-mcp": {"explore_codebase": {"project", "question"},
                                              "review_change_impact": {"project", "change", "base_branch"}}}
 ALIASES = {("codemap-search", "read"): {"path", "file", "query"},
-           ("codemap-search", "overview"): {"file_path", "file", "query"},
            ("codemap-search", "search"): {"workspace_scope", "scope"},
            ("codemap-search", "grep"): {"include", "file_pattern"}}
 
@@ -424,13 +422,11 @@ class RelayPolicy:
             if "glob" in arguments:
                 self.glob(arguments["glob"])
         elif self.ident == "codemap-search":
-            if name in {"read", "overview"}:
+            if name == "read":
                 values = []
                 for key, value in arguments.items():
-                    if (read_argument_key(key) if is_read else key) in READ_PATH_KEYS:
-                        if name == "overview" and isinstance(value, str) and value in {"", "all", "전체"}:
-                            value = "."
-                        values.append(self.path(value, file=name == "read"))
+                    if read_argument_key(key) in READ_PATH_KEYS:
+                        values.append(self.path(value, file=True))
                 require(len(set(values)) <= 1, "서로 다른 path aliases")
                 if name == "read" and arguments.get("ranges") is not None:
                     require("ranges" in properties and isinstance(arguments["ranges"], list), "미광고 ranges 인자")
