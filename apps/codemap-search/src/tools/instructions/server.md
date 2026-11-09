@@ -1,4 +1,4 @@
-codemap-search is a read-only local code navigation tool. First call initial_instructions, then use the source-first workflow below. Use find for paths and directory listings, grep for exact text, search for unknown wording, read for source windows, and read view=definitions for a file's declaration outline. Use bash only for read-only operations these tools do not provide.
+codemap-search is a read-only local code navigation tool. First call initial_instructions, then use the source-first workflow below. Use find for paths and directory listings, grep for exact text, search for unknown wording, read for source windows, and read view=definitions for a file's declaration outline. Use bash only for read-only operations these tools do not provide. Unless the request is about tests or generated code, do not read or cite test files or generated files; trace and cite the hand-written implementation instead.
 
 # Tool selection guide
 {shell_commands}
