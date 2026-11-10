@@ -7,6 +7,7 @@
 //! so it never needs `&mut` access to the engine.
 
 mod arguments;
+mod compact;
 mod display;
 mod grouped;
 pub mod jev;
@@ -24,6 +25,10 @@ const SEARCH_CAP_FOOTER: &str = "\n_Partial search output: reached the configure
 const MIN_FILE_OUTPUT_BUDGET_BYTES: usize = 32 * 1024;
 /// Under a client delivery limit, search bodies keep to this fraction of one call's budget.
 const SEARCH_PAGE_BODY_SHARE: usize = 3;
+/// A ranked page longer than this is resent with every later request of the agent, so it is
+/// delivered as one compact entry per listed file instead. Smaller pages, such as a precise
+/// query with a few files, keep their bodies and stay byte-identical.
+const COMPACT_OUTPUT_THRESHOLD_BYTES: usize = 32 * 1024;
 
 fn search_cap_footer(byte_cap: usize) -> &'static str {
     if byte_cap < 512 {
@@ -336,7 +341,8 @@ fn format_read_suggestion(file_path: &str, offset: usize, limit: usize) -> Strin
     format!("read {file_path}:{offset} ({limit} lines)")
 }
 
-fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
+/// The suggested read window as (offset, limit).
+fn read_window(res: &crate::index::SearchResult) -> Option<(usize, usize)> {
     if !res.symbol_fallback {
         return res.matched_symbols.first().map(|symbol| {
             let limit = symbol
@@ -344,12 +350,16 @@ fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
                 .end_line
                 .saturating_sub(symbol.range.start_line)
                 .saturating_add(1);
-            format_read_suggestion(&res.file_path, symbol.range.start_line, limit.min(40))
+            (symbol.range.start_line, limit.min(40))
         });
     }
     res.matched_literals
         .first()
-        .map(|literal| format_read_suggestion(&res.file_path, literal.line, 1))
+        .map(|literal| (literal.line, 1))
+}
+
+fn read_suggestion(res: &crate::index::SearchResult) -> Option<String> {
+    read_window(res).map(|(offset, limit)| format_read_suggestion(&res.file_path, offset, limit))
 }
 
 #[derive(Debug)]
@@ -731,6 +741,9 @@ pub(crate) struct DetailState {
     text: String,
     /// Rendered files with their per-file partial flag, in output order, not yet written.
     files: Vec<(grouped::FileOutput, bool)>,
+    /// Caller sites already computed for the detail files; the compact layout lists them.
+    caller_annotations: Option<crate::callers::DetailAnnotations>,
+    query_tokens: crate::parser::QueryTokens,
     results: Vec<crate::index::SearchResult>,
     remaining_indices: Vec<usize>,
     output_was_capped: bool,
@@ -1021,6 +1034,8 @@ pub(crate) fn prepare_detail(
     let mut projected_len = text.len();
     let detail_result_count;
     let rendered_detail_count;
+    let detail_caller_annotations;
+    let detail_query_tokens;
     {
         // Detail view: enclosing code scopes for the pinpointed files,
         // bounded by config caps so a few large or fallback-matched files
@@ -1149,6 +1164,15 @@ pub(crate) fn prepare_detail(
                     hint_line.push_str(&format!("; {ambiguity}"));
                 }
                 let mut hints = format!("{hint_line}\n");
+                // The compact entry keeps the same hint with a pathless read range; the
+                // file heading already names the path.
+                let mut compact_hint = hint_line.clone();
+                let compact_window =
+                    read_window(res).map(|(offset, limit)| (offset, offset + limit - 1));
+                if let Some((start, end)) = compact_window {
+                    compact_hint.push_str(&format!("; read L{start}-{end}"));
+                }
+                compact_hint.push('\n');
                 if let Some(info) = published_snapshot
                     .codemap()
                     .iter()
@@ -1156,7 +1180,9 @@ pub(crate) fn prepare_detail(
                     .and_then(|file| file.navigation.as_ref()?.macro_expansion.as_ref())
                 {
                     hints.push_str(&format!("- {}\n", info.notice));
+                    compact_hint.push_str(&format!("- {}\n", info.notice));
                 }
+                text.set_compact_hint(compact_hint, compact_window);
                 if let Some(suggestion) = read_suggestion(res) {
                     hints.push_str(&format!("- {suggestion}\n"));
                 }
@@ -1355,10 +1381,14 @@ pub(crate) fn prepare_detail(
             output_was_capped = true;
         }
         rendered_detail_count = detail_files_rendered;
+        detail_caller_annotations = caller_annotations;
+        detail_query_tokens = query_tokens;
     }
     Ok(Prepared::Detail(Box::new(DetailState {
         text,
         files: grouped_files,
+        caller_annotations: detail_caller_annotations,
+        query_tokens: detail_query_tokens,
         results,
         remaining_indices,
         output_was_capped,
@@ -1378,6 +1408,73 @@ pub(crate) fn prepare_detail(
     })))
 }
 
+/// Ranked tail: one line per remaining match, strongest first, with up to 3 matched
+/// symbols inline. The index's matched-symbol selection (exact-name/partial promotions
+/// included, strongest first) is reused as-is; a fallback entry (path/docstring-only match)
+/// shows a bare header instead of leaking unrelated symbols. Count-capped by
+/// `search_overview_file_limit`; the caller applies the byte cap.
+fn ranked_tail(remaining_results: &[&crate::index::SearchResult]) -> String {
+    let tail_cfg = crate::config::get();
+    let tail_file_limit = tail_cfg.search_overview_file_limit;
+    let mut tail = format!(
+        "\n## Other matches — {} more files, ranked by relevance\n",
+        remaining_results.len()
+    );
+    let mut shown_tail = 0usize;
+    for res in remaining_results.iter().take(tail_file_limit) {
+        // The matched qualified literal leads the tail note (#2): it is the discriminative
+        // reason a legacy dispatch/lookup file ranked in, and surfacing it in BOTH the
+        // non-fallback (symbol-notes) and the bare-path (fallback) sub-branches fixes the
+        // `encoding [L20]` mislabel — the file reads as its dispatch table, not as a plain mod.
+        let mut notes: Vec<String> = Vec::new();
+        if let Some(literal) = &res.qualified_literal_hit {
+            let source = render::RenderSource::new(&res.file_path);
+            let literal = source.matched_literal_value(literal, &res.matched_literals);
+            notes.push(format!("matched literal: `{literal}`"));
+        }
+        if !res.symbol_fallback {
+            notes.extend(res.matched_symbols.iter().take(3).map(|sym| {
+                format!(
+                    "{} [L{}-{}]",
+                    sym.name,
+                    sym.range.start_line,
+                    sym.range.end_line_inclusive()
+                )
+            }));
+        }
+        if notes.is_empty() {
+            tail.push_str(&format!(
+                "- {} ({} lines)\n",
+                res.file_path, res.total_lines
+            ));
+        } else {
+            tail.push_str(&format!(
+                "- {} ({} lines) — {}\n",
+                res.file_path,
+                res.total_lines,
+                notes.join(", ")
+            ));
+        }
+        shown_tail += 1;
+    }
+    if remaining_results.len() > shown_tail {
+        if shown_tail == 0 {
+            tail.push_str(&format!(
+                "- _Showing tail files 0 of {}; {} files not shown. Continue by narrowing the query._\n",
+                remaining_results.len(),
+                remaining_results.len()
+            ));
+        } else {
+            tail.push_str(&format!(
+                "- _Showing tail files 1-{shown_tail} of {}; {} more files not shown. Continue by narrowing the query._\n",
+                remaining_results.len(),
+                remaining_results.len() - shown_tail
+            ));
+        }
+    }
+    tail
+}
+
 /// Finalize files, ranked tail, truncation, candidates and relations before serialization.
 /// Returns the output and the number of body blocks the retention mask actually replaced.
 fn finish_detail(
@@ -1388,6 +1485,8 @@ fn finish_detail(
     let DetailState {
         mut text,
         files,
+        caller_annotations,
+        query_tokens,
         results,
         remaining_indices,
         mut output_was_capped,
@@ -1439,6 +1538,15 @@ fn finish_detail(
         file_output.compact_display(&mut display);
         grouped_files.push((file_output, is_partial_file));
     }
+    // Compact entries are planned from the selected bodies before any delivery deferral;
+    // they are used only when the full page exceeds the compact threshold. The Jev path
+    // keeps its existing layout.
+    let compact_entries = (filter.is_none() && call_candidates.is_none()).then(|| {
+        grouped_files
+            .iter()
+            .map(|(file, is_partial_file)| file.compact_entry(&query_tokens, *is_partial_file))
+            .collect::<Vec<_>>()
+    });
     // Reserve discovery/relationship space before allowing the client to clip the
     // middle of source. Candidate capture and Jev input used the original server cap.
     let reserved_bytes = (byte_cap / 8).min(12 * 1024);
@@ -1471,6 +1579,7 @@ fn finish_detail(
                 file.defer_bodies(&mut primary_bytes, primary_budget_bytes, |_| false);
         }
     }
+    let compact_prefix = text.clone();
     let grouped_files = grouped_files
         .into_iter()
         .map(|(mut file, partial)| {
@@ -1478,6 +1587,7 @@ fn finish_detail(
             file
         })
         .collect::<Vec<_>>();
+    let files_end = text.len();
     tracing::info!(
         delivery_byte_cap = byte_cap,
         deferred_bodies,
@@ -1491,6 +1601,8 @@ fn finish_detail(
         // base evidence.
         text.push_str(note);
     }
+    // Detail files the planner could not fit; the tail is then not shown either.
+    let is_planner_capped = output_was_capped;
     if output_was_capped {
         let omitted_detail_count = detail_result_count.saturating_sub(rendered_detail_count);
         if omitted_detail_count > 0 || !remaining_results.is_empty() {
@@ -1500,72 +1612,9 @@ fn finish_detail(
         }
     }
 
-    // Ranked tail: one line per remaining match, strongest first, with
-    // up to 3 matched symbols inline. The index's matched-symbol
-    // selection (exact-name/partial promotions included, strongest
-    // first) is reused as-is; a fallback entry (path/docstring-only
-    // match) shows a bare header instead of leaking unrelated symbols.
-    // Count-capped by `search_overview_file_limit` and byte-capped like
-    // the detail view.
+    // Ranked tail, byte-capped like the detail view.
     if !output_was_capped && !remaining_results.is_empty() {
-        let tail_cfg = crate::config::get();
-        let tail_file_limit = tail_cfg.search_overview_file_limit;
-        let mut tail = format!(
-            "\n## Other matches — {} more files, ranked by relevance\n",
-            remaining_results.len()
-        );
-        let mut shown_tail = 0usize;
-        for res in remaining_results.iter().take(tail_file_limit) {
-            // The matched qualified literal leads the tail note (#2): it is the discriminative
-            // reason a legacy dispatch/lookup file ranked in, and surfacing it in BOTH the
-            // non-fallback (symbol-notes) and the bare-path (fallback) sub-branches fixes the
-            // `encoding [L20]` mislabel — the file reads as its dispatch table, not as a plain mod.
-            let mut notes: Vec<String> = Vec::new();
-            if let Some(literal) = &res.qualified_literal_hit {
-                let source = render::RenderSource::new(&res.file_path);
-                let literal = source.matched_literal_value(literal, &res.matched_literals);
-                notes.push(format!("matched literal: `{literal}`"));
-            }
-            if !res.symbol_fallback {
-                notes.extend(res.matched_symbols.iter().take(3).map(|sym| {
-                    format!(
-                        "{} [L{}-{}]",
-                        sym.name,
-                        sym.range.start_line,
-                        sym.range.end_line_inclusive()
-                    )
-                }));
-            }
-            if notes.is_empty() {
-                tail.push_str(&format!(
-                    "- {} ({} lines)\n",
-                    res.file_path, res.total_lines
-                ));
-            } else {
-                tail.push_str(&format!(
-                    "- {} ({} lines) — {}\n",
-                    res.file_path,
-                    res.total_lines,
-                    notes.join(", ")
-                ));
-            }
-            shown_tail += 1;
-        }
-        if remaining_results.len() > shown_tail {
-            if shown_tail == 0 {
-                tail.push_str(&format!(
-                    "- _Showing tail files 0 of {}; {} files not shown. Continue by narrowing the query._\n",
-                    remaining_results.len(),
-                    remaining_results.len()
-                ));
-            } else {
-                tail.push_str(&format!(
-                    "- _Showing tail files 1-{shown_tail} of {}; {} more files not shown. Continue by narrowing the query._\n",
-                    remaining_results.len(),
-                    remaining_results.len() - shown_tail
-                ));
-            }
-        }
+        let tail = ranked_tail(&remaining_results);
         if text.len() + tail.len() <= byte_cap {
             text.push_str(&tail);
         } else {
@@ -1614,17 +1663,99 @@ fn finish_detail(
     let free_tail_rows = crate::config::get()
         .search_overview_file_limit
         .saturating_sub(remaining_results.len());
+    // A partial page loses its tail or source to the cap; it is compacted when the full
+    // detail files alone exceed the threshold. Its relations were skipped above, so the
+    // compact page plans them over the same files.
+    let should_compact = if is_partial {
+        files_end > COMPACT_OUTPUT_THRESHOLD_BYTES
+    } else {
+        text.len() > COMPACT_OUTPUT_THRESHOLD_BYTES
+    };
+    let compact_entries = compact_entries.filter(|_| should_compact);
+    let after_files = text.get(files_end..).unwrap_or_default().to_string();
+    let compact_relations =
+        if compact_entries.is_some() && is_partial && !is_warming && !is_dead && !has_refresh_error
+        {
+            grouped::plan_relation_insertions(
+                0,
+                &grouped_files,
+                &published_snapshot,
+                workspace_scope,
+                grouped::RelationOptions {
+                    should_include_calls: caller_context_enabled,
+                    should_include_events,
+                    byte_cap,
+                },
+                &mut display.clone(),
+            )
+        } else {
+            relation_insertions.clone()
+        };
+    let relations_by_file = grouped_files
+        .iter()
+        .map(|file| {
+            let insertions = file.section_insertions();
+            compact_relations
+                .iter()
+                .rev()
+                .filter(|(offset, _)| insertions.contains(offset))
+                .map(|(_, relations)| relations.clone())
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
     let mut output = SelectedSearchOutput {
         primary: text,
         note_definition_offset,
         files: grouped_files,
         retained_primary_bytes,
         relation_insertions,
-        call_candidate_text,
+        call_candidate_text: call_candidate_text.clone(),
     }
     .serialize(true);
+    let phrase_start = output.text.len();
     if !is_partial && !is_warming && !is_dead && !has_refresh_error {
         append_phrase_matches(&mut output.text, &phrase_matches, free_tail_rows, byte_cap);
+    }
+    if let Some(entries) = compact_entries {
+        let mut page = compact::CompactPage::new(compact_prefix, entries);
+        if !is_partial {
+            // Everything after the files is byte-identical to the full page.
+            page.text.push_str(&after_files);
+            page.text.push_str(&call_candidate_text);
+            page.text.push_str(&output.text[phrase_start..]);
+        } else {
+            // The same planned tail, shown when the compact page leaves room for it.
+            let omitted_detail_count = detail_result_count.saturating_sub(rendered_detail_count);
+            let mut is_tail_shown = false;
+            if is_planner_capped {
+                if omitted_detail_count > 0 || !remaining_results.is_empty() {
+                    page.text.push_str(&tail_omission_note(
+                        omitted_detail_count + remaining_results.len(),
+                    ));
+                }
+            } else if !remaining_results.is_empty() {
+                let tail = ranked_tail(&remaining_results);
+                if page.text.len() + tail.len() <= byte_cap {
+                    page.text.push_str(&tail);
+                    is_tail_shown = true;
+                } else {
+                    page.text
+                        .push_str(&tail_omission_note(remaining_results.len()));
+                }
+            }
+            page.text.push_str(&call_candidate_text);
+            if (is_tail_shown || remaining_results.is_empty() && !is_planner_capped)
+                && !is_warming
+                && !is_dead
+                && !has_refresh_error
+            {
+                append_phrase_matches(&mut page.text, &phrase_matches, free_tail_rows, byte_cap);
+            }
+        }
+        // A compact page that cannot itself fit keeps the full page.
+        if page.text.len() <= byte_cap {
+            output = page.finish(&relations_by_file, caller_annotations.as_ref(), byte_cap);
+        }
     }
     tracing::debug!(
         candidates_ms = candidates_elapsed.as_secs_f64() * 1000.0,

@@ -408,7 +408,7 @@ Unrecognized names/formats, encoded values and values assembled through calls ca
 
 ### Output and call relationships
 
-`search` shows detailed top matches followed by a compact list. Its size settings limit output; they do not change which files are excluded. General queries rank generated files and translation resources lower, while exact paths, symbols, resource keys, or quoted text can target those files directly.
+`search` shows detailed top matches followed by a compact list; a page over 32 KiB lists each top match with its match reason, read range, matched declarations and up to two matching lines, followed by connected locations. Its size settings limit output; they do not change which files are excluded. General queries rank generated files and translation resources lower, while exact paths, symbols, resource keys, or quoted text can target those files directly.
 
 `output.search.max_bytes` includes the partial-output notice. If results are cut off, narrow the query or read the suggested ranges; `search` has no page-offset parameter. `output.search.anchor_snippet_limit` limits full snippets per file; further matches show signatures of up to three lines. Tail rows and bytes left unused can hold [exact phrase matches outside the ranking](../README.md#use-the-navigation-tools).
 

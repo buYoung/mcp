@@ -1084,6 +1084,23 @@ impl DetailAnnotations {
             })
     }
 
+    /// Attributed and unconfirmed caller sites of the symbol starting at `start_line`, as
+    /// [`Self::render`] would list them. `None` when that symbol was not annotated.
+    pub(crate) fn callers_at(
+        &self,
+        file_path: &str,
+        start_line: usize,
+    ) -> Option<(&[CallerSite], &[CallerSite])> {
+        self.annotations
+            .get(&(file_path.to_string(), start_line))
+            .map(|annotation| {
+                (
+                    annotation.callers.as_slice(),
+                    annotation.unconfirmed_callers.as_slice(),
+                )
+            })
+    }
+
     /// Prepare the annotation for a specific symbol AT ITS EMISSION POINT, deduping its caller
     /// block against the symbols already emitted for this file (`seen`). Returns the prepared
     /// text + record intent, or `None` when the symbol has no annotation. Callers MUST invoke

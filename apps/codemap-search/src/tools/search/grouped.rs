@@ -133,6 +133,12 @@ pub(crate) struct FileOutput {
     pub source_span: Option<std::ops::Range<usize>>,
     first_result_source_offset: Option<usize>,
     pub first_source_byte: Option<usize>,
+    /// Declarations the renderer was asked to show, in request order (not their parents).
+    listed: Vec<BlockSymbol>,
+    /// Match line with a pathless read range, for the compact layout.
+    compact_hint: String,
+    /// The suggested read window as inclusive lines; preview rows inside it win ties.
+    compact_window: Option<(usize, usize)>,
 }
 
 impl FileOutput {
@@ -162,6 +168,9 @@ impl FileOutput {
             source_span: None,
             first_result_source_offset: None,
             first_source_byte: None,
+            listed: Vec::new(),
+            compact_hint: String::new(),
+            compact_window: None,
         }
     }
     pub fn len(&self) -> usize {
@@ -766,8 +775,148 @@ impl FileOutput {
         }
         self.current = Some(index);
         self.current_depth = chain.len() - 1;
-        self.current_symbol = Some(BlockSymbol::from_symbol(symbol));
+        let shown = BlockSymbol::from_symbol(symbol);
+        if !self.listed.contains(&shown) {
+            self.listed.push(shown.clone());
+        }
+        self.current_symbol = Some(shown);
         true
+    }
+    pub(super) fn set_compact_hint(&mut self, hint: String, window: Option<(usize, usize)>) {
+        self.compact_hint = hint;
+        self.compact_window = window;
+    }
+    /// Offsets after each declaration section written by `write_primary`, where relation
+    /// text is inserted.
+    pub(super) fn section_insertions(&self) -> Vec<usize> {
+        self.sections
+            .iter()
+            .map(|section| section.insertion)
+            .collect()
+    }
+    /// One compact entry: heading, match line with its read range, the first listed
+    /// declarations with their ranges, and a few matching source lines as previews. The rows
+    /// are `line: text` previews, not `line→` source, so delivery history never treats them
+    /// as delivered source and a later read returns the complete window.
+    pub(super) fn compact_entry(
+        &self,
+        query: &crate::parser::QueryTokens,
+        is_partial_file: bool,
+    ) -> super::compact::CompactEntry {
+        let mut text = format!("{}\n{}", self.header.trim_end(), self.compact_hint);
+        if !self.listed.is_empty() {
+            let shown = self
+                .listed
+                .iter()
+                .take(super::compact::SYMBOL_LIMIT)
+                .map(|symbol| {
+                    let name = symbol.name.split_whitespace().collect::<Vec<_>>().join(" ");
+                    let name = super::compact::truncate(&name, super::compact::ROW_MAX_CHARS);
+                    if symbol.start_line == symbol.end_line {
+                        format!("{name} ({}) L{}", symbol.kind, symbol.start_line)
+                    } else {
+                        format!(
+                            "{name} ({}) L{}-{}",
+                            symbol.kind, symbol.start_line, symbol.end_line
+                        )
+                    }
+                })
+                .collect::<Vec<_>>();
+            text.push_str("- ");
+            text.push_str(&shown.join("; "));
+            let more = self
+                .listed
+                .len()
+                .saturating_sub(super::compact::SYMBOL_LIMIT);
+            if more > 0 {
+                text.push_str(&format!("; +{more} more"));
+            }
+            text.push('\n');
+        }
+        // Candidate lines from the planned bodies and matched literals, in file order, each
+        // scored by the number of distinct query tokens it contains.
+        let distinct_query_tokens = |line: &str| {
+            let evidence = crate::parser::QueryTokens::parse(line);
+            query
+                .tokens()
+                .iter()
+                .filter(|token| evidence.contains_token(token))
+                .count()
+        };
+        let mut candidates: Vec<(usize, String)> = Vec::new();
+        let mut first_row = None;
+        for block in self.blocks.iter().filter(|block| !block.is_note) {
+            if block.symbol.is_some() {
+                for line in block.displayed_source().lines() {
+                    let Some((number, body)) = line.split_once('\u{2192}') else {
+                        continue;
+                    };
+                    let Ok(number) = number.trim().parse::<usize>() else {
+                        continue;
+                    };
+                    let body = body.strip_prefix('\t').unwrap_or(body).trim();
+                    first_row.get_or_insert_with(|| (number, body.to_string()));
+                    if !body.is_empty() {
+                        candidates.push((number, body.to_string()));
+                    }
+                }
+            } else if let Some(literal) = block.text.strip_prefix("- Literal: ") {
+                if let Some((value, line)) = literal.trim_end().rsplit_once(" [L") {
+                    if let Ok(number) = line.trim_end_matches(']').parse::<usize>() {
+                        candidates.push((number, format!("Literal {value}")));
+                    }
+                }
+            }
+        }
+        // Highest score first; ties prefer the suggested read window, then file order.
+        let in_window = |number: usize| {
+            self.compact_window
+                .is_some_and(|(start, end)| start <= number && number <= end)
+        };
+        let mut scored = candidates
+            .into_iter()
+            .enumerate()
+            .map(|(order, (number, body))| {
+                let score = distinct_query_tokens(&body);
+                (score, !in_window(number), order, number, body)
+            })
+            .filter(|(score, ..)| *score > 0)
+            .collect::<Vec<_>>();
+        scored.sort_by(|a, b| (b.0, a.1, a.2).cmp(&(a.0, b.1, b.2)));
+        let mut rows: Vec<(usize, String)> = Vec::new();
+        for (_, _, _, number, body) in scored {
+            if rows.len() >= super::compact::EVIDENCE_ROWS {
+                break;
+            }
+            if !rows.iter().any(|(shown, _)| *shown == number) {
+                rows.push((number, body));
+            }
+        }
+        if rows.is_empty() {
+            rows.extend(first_row);
+        }
+        rows.sort_by_key(|(number, _)| *number);
+        let mut shown_lines = Vec::new();
+        let mut evidence_bytes = 0;
+        for (number, body) in rows {
+            let row = format!(
+                "{number}: {}\n",
+                super::compact::truncate(&body, super::compact::ROW_MAX_CHARS)
+            );
+            evidence_bytes += row.len();
+            text.push_str(&row);
+            shown_lines.push(number);
+        }
+        if is_partial_file {
+            text.push_str(PARTIAL_FILE_NOTICE);
+        }
+        super::compact::CompactEntry {
+            text,
+            path: self.path.clone(),
+            listed: self.listed.clone(),
+            shown_lines,
+            evidence_bytes,
+        }
     }
     pub fn anchor(&mut self, start: usize, end: usize) {
         if let Some(index) = self.current {
