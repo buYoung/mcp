@@ -898,7 +898,7 @@ class BenchChecks(unittest.TestCase):
                     runner.execute_model(self.root / backend, "fixture", settings=spec)
         subject = routes.arm_contracts()[0]
         self.assertEqual((subject["version"], subject["git_ref"], subject["commit"]),
-                         ("0.14.2", "trial-bench-merge-tg-prompt", "1a0ecb578d359b5846425be1d532f4bf57fe9bba"))
+                         ("0.14.2", "trial-bench-merge-compact-output", "e727d20c6504948c823cf55398a2f68d45337f7c"))
 
     def test_pi_codemode_extension_keeps_native_execution_and_disables_models(self):
         from .pi_client import codemode_extension_source

@@ -20,8 +20,8 @@
     "id": "codemap-search",
     "target_release": "1.0.0",
     "version": "0.14.2",
-    "git_ref": "trial-bench-merge-tg-prompt",
-    "commit": "1a0ecb578d359b5846425be1d532f4bf57fe9bba",
+    "git_ref": "trial-bench-merge-compact-output",
+    "commit": "e727d20c6504948c823cf55398a2f68d45337f7c",
     "source_and_binary_pin_status": "release_source_frozen_binary_at_preparation"
   },
   "required_comparison_ids": [
