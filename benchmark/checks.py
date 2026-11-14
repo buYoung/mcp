@@ -132,21 +132,21 @@ class BenchChecks(unittest.TestCase):
                   "grader": {"model": "fixture", "reasoning_effort": "high"}}
         observed = {**rows[0], "model": "fixture", "backend": "pi", "status": "completed",
                     "observations": {"direct_calls_outside_script": 1, "cancelled_before_admission": 1},
-                    "bash_calls": 2, "bash_call_ratio": 0.5, "client_full_output_reads": 1, "bash_rejected_before_admission": 2,
+                    "read_tool_calls": 2, "read_tool_call_ratio": 0.5, "client_full_output_reads": 1, "read_tool_rejected_before_admission": 2,
                     "claude_persisted_tool_results": {"count": 1, "bytes": 85592}}
         report = route_metrics.report(self.root, {"models": models}, [observed], {})
         self.assertEqual(report["rows"][0]["claude_persisted_tool_results"], {"count": 1, "bytes": 85592})
         self.assertEqual(report["rows"][0]["observations"]["cancelled_before_admission"], 1)
-        self.assertEqual(report["rows"][0]["bash_calls"], 2)
-        self.assertEqual(report["rows"][0]["bash_call_ratio"], 0.5)
+        self.assertEqual(report["rows"][0]["read_tool_calls"], 2)
+        self.assertEqual(report["rows"][0]["read_tool_call_ratio"], 0.5)
         self.assertEqual(report["rows"][0]["client_full_output_reads"], 1)
-        self.assertEqual(report["rows"][0]["bash_rejected_before_admission"], 2)
+        self.assertEqual(report["rows"][0]["read_tool_rejected_before_admission"], 2)
         self.assertIsNone(report["rows"][1]["client_full_output_reads"])
-        self.assertIsNone(report["rows"][1]["bash_rejected_before_admission"])
-        self.assertIn("| client_full_output_reads | bash 실행 전 거절 |", (self.root / "report/results.md").read_text())
-        self.assertIsNone(report["rows"][1]["bash_calls"])
-        self.assertIsNone(report["rows"][1]["bash_call_ratio"])
-        self.assertIn("| bash 호출 | bash 비율 |", (self.root / "report/results.md").read_text())
+        self.assertIsNone(report["rows"][1]["read_tool_rejected_before_admission"])
+        self.assertIn("| client_full_output_reads | 읽기 도구 실행 전 거절 |", (self.root / "report/results.md").read_text())
+        self.assertIsNone(report["rows"][1]["read_tool_calls"])
+        self.assertIsNone(report["rows"][1]["read_tool_call_ratio"])
+        self.assertIn("| 읽기 도구 호출 | 읽기 도구 비율 |", (self.root / "report/results.md").read_text())
         self.assertIn('"bytes": 85592', (self.root / "report/results.md").read_text())
 
     def test_schedule_workers_serializes_arms_and_rounds(self):
@@ -266,19 +266,23 @@ class BenchChecks(unittest.TestCase):
         for key in ("adapter_nested_content_truncated", "codemode_output_truncated", "include_seen_true_calls"):
             self.assertEqual(observed[key], 1)
 
-    def test_pi_observations_separate_bash_content_and_nested_structured_truncation(self):
+    def test_pi_observations_count_read_tool_truncation_and_limits(self):
         from .route_metrics import pi_observations
-        events = [{"type": "tool_execution_end", "toolName": "bash", "toolCallId": "direct", "result": {
-                      "details": {"truncation": {"truncated": True}}, "structuredContent": {"truncated": True}}},
-                  {"type": "tool_execution_end", "toolName": "bash", "toolCallId": "script/1", "parentToolCallId": "script", "result": {
-                      "details": {"truncation": {"truncated": True}}, "structuredContent": {"truncated": False}}},
-                  {"type": "tool_execution_end", "toolName": "bash", "toolCallId": "script/2", "parentToolCallId": "script", "result": {
-                      "details": {"truncation": {"truncated": True}}, "structuredContent": {"truncated": True}}},
+        events = [{"type": "tool_execution_end", "toolName": "read", "toolCallId": "direct", "result": {
+                      "details": {"truncation": {"truncated": True}}}},
+                  {"type": "tool_execution_end", "toolName": "grep", "toolCallId": "script/1", "parentToolCallId": "script", "result": {
+                      "details": {"matchLimitReached": 100, "linesTruncated": True}}},
+                  {"type": "tool_execution_end", "toolName": "find", "toolCallId": "script/2", "parentToolCallId": "script", "result": {
+                      "details": {"resultLimitReached": 1000, "truncation": {"truncated": True}}}},
+                  {"type": "tool_execution_end", "toolName": "ls", "toolCallId": "plain", "result": {}},
+                  # A product tool with the same short name is not a pi read tool.
+                  {"type": "tool_execution_end", "toolName": "mcp__navigation__read", "toolCallId": "product", "result": {
+                      "details": {"truncation": {"truncated": True}}}},
                   {"type": "agent_settled"}]
         (self.root / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
         observed = pi_observations(self.root, [], call_log_complete=True)
-        self.assertEqual(observed["bash_content_truncated"], 1)
-        self.assertEqual(observed["bash_nested_structured_content_truncated"], 1)
+        self.assertEqual(observed["read_tool_content_truncated"], 2)
+        self.assertEqual(observed["read_tool_limit_reached"], 2)
         self.assertEqual(observed["codemode_output_truncated"], 0)
         self.assertEqual(observed["adapter_output_guard_truncated"], 0)
 
@@ -481,11 +485,12 @@ class BenchChecks(unittest.TestCase):
         # An unsandboxed control proves the syscall itself works, without inspecting its buffer.
         control = subprocess.run(isolation.kern_procargs_command(os.getpid()), capture_output=True, timeout=10)
         self.assertEqual(control.returncode, 0, control.stderr)
-        config = pi_client.configuration(source, rg)
+        config = pi_client.configuration(source, rg, rg)
         folder = self.root / "slot"
         folder.mkdir()
-        wrapper = pi_client.shell_wrapper(config, folder)
-        result = subprocess.run([str(wrapper), "-c", shlex.join(isolation.kern_procargs_command(os.getpid()))], cwd=source,
+        # The profile that confines pi's rg and fd children, applied to the same syscall.
+        profile = pi_client.read_boundary(config, folder)
+        result = subprocess.run(["/usr/bin/sandbox-exec", "-f", profile["profile_path"], *isolation.kern_procargs_command(os.getpid())], cwd=source,
                                 env={"HOME": str(home), "PATH": os.environ["PATH"]}, capture_output=True, timeout=10)
         self.assertTrue(isolation.process_environment_observation(result)["rejected"])
         for code, payload in ((0, {"return_code": 0, "errno": 0}), (2, {"return_code": -1, "errno": 22})):
@@ -504,7 +509,7 @@ class BenchChecks(unittest.TestCase):
     def test_pi_probe_requires_exact_claude_description_prefix(self):
         from .pi_probe import description_delivery, NATIVE_DESCRIPTION_MARKER
         full = {name: {"description": "Original tool description with multiple lines.\nSecond line."}
-                for name in ("codemode", "bash", "read_mcp_resource", "mcp__navigation__read")}
+                for name in ("codemode", "grep", "read_mcp_resource", "mcp__navigation__read")}
         for name, tool in full.items():
             body = {"tools": [{"name": "mcp__custom-tools__" + name, "description": tool["description"]}]}
             self.assertTrue(description_delivery(body, full)["passed"])
@@ -565,7 +570,7 @@ class BenchChecks(unittest.TestCase):
             for arm, mode in ((arm, mode) for arm in ARM_IDS[:-1] for mode in ("direct", "codemode")):
                 source = self.root / arm / "source"
                 source.mkdir(parents=True, exist_ok=True)
-                relay = {"arm": arm, "source": str(source), "rg_binary": str(rg), "enabled_tools": ["graph_stats"]}
+                relay = {"arm": arm, "source": str(source), "rg_binary": str(rg), "fd_binary": str(rg), "enabled_tools": ["graph_stats"]}
                 folder = self.root / arm / mode
                 folder.mkdir()
                 spec = settings.execution_settings("claude-opus-5-5")
@@ -579,9 +584,12 @@ class BenchChecks(unittest.TestCase):
                 self.assertEqual(cwd, source)
                 self.assertEqual(config["maxOutputBytes"], pi_client.OUTPUT_GUARD_BYTES[arm])
                 self.assertEqual(config["mcpServers"]["navigation"]["maxOutputBytes"], pi_client.OUTPUT_GUARD_BYTES[arm])
-                boundary = read_json(folder / "pi-bash.json")["profile"]
+                boundary = read_json(folder / "pi-read.json")["profile"]
                 self.assertEqual(boundary["source"], str(source))
-                self.assertEqual(Path(boundary["env"]["PATH"].split(":")[0], "rg").read_bytes(), rg.read_bytes())
+                for name in ("rg", "fd"):
+                    self.assertEqual(Path(boundary["binaries"][name]).read_bytes(), rg.read_bytes())
+                    self.assertIn(boundary["binaries"][name], (folder / "pi-agent/bin" / name).read_text())
+                self.assertIn(str(folder / "pi-agent/read-guard.mjs"), argv)
                 self.assertEqual(config["mcpServers"]["navigation"]["exposure"], "direct")
                 server_work = pi_client.private_root(folder) / "work"
                 self.assertEqual(config["mcpServers"]["navigation"]["cwd"], str(server_work))
@@ -591,82 +599,143 @@ class BenchChecks(unittest.TestCase):
                 self.assertNotIn("--mcp-config", argv)
                 self.assertNotIn("MCP_DIRECT_TOOLS", env)
                 self.assertEqual(set(argv[argv.index("--tools") + 1].split(",")),
-                    {"mcp__navigation__graph_stats", *pi_client.RESOURCE_TOOLS, "bash", *(["codemode"] if mode == "codemode" else [])})
+                    {"mcp__navigation__graph_stats", *pi_client.RESOURCE_TOOLS, *pi_client.NATIVE_TOOLS, *(["codemode"] if mode == "codemode" else [])})
                 self.assertEqual((folder / "pi-agent/server-instructions.md").read_text(),
                                  pi_client.server_instructions_prompt(server["instructions"]))
                 metadata = (folder / "pi-agent/delivery-meta.mjs").read_text()
                 self.assertIn('"read_mcp_resource": {"anthropic/maxResultSizeChars": 500000}', metadata)
                 self.assertNotIn('"codemode"', metadata)
-                self.assertNotIn('"bash"', metadata)
+                self.assertNotIn('"grep"', metadata)
                 pi_settings = read_json(folder / "pi-agent/settings.json")
-                self.assertEqual(pi_settings["shellPath"], str(folder / "pi-shell"))
+                self.assertNotIn("shellPath", pi_settings)
                 self.assertEqual(pi_settings.get("codemode"), {"mode": "only"} if mode == "codemode" else None)
 
-    def test_solver_prompt_prefers_navigation_with_bash_fallback_and_keeps_rg_wording(self):
+    def test_solver_prompt_prefers_navigation_names_no_shell_and_asks_for_line_ranges(self):
         from . import route_contract as routes
         source = self.root / "source"
         for arm in routes.ARM_IDS:
             prompt = routes.solver_prompt(routes.QUESTION_IDS[0], source, arm)
             self.assertNotIn("간결히", prompt)
+            self.assertNotIn("bash", prompt)
             self.assertIn("질문에서 요구한 내용과 조건을 설명하라.", prompt)
             self.assertIn(f"탐색 소스 루트: {source.resolve()}", prompt)
+            # Every arm gets the same citation sentence.
+            self.assertIn("최종 답변에서는 각 근거 위치를 그 내용을 입증하는 행 범위(`path:시작-끝`)로 제시하고, 한 줄로 충분하면 `path:행`으로 제시한다.", prompt)
             if arm == "rg":
-                self.assertIn("기본 코딩 에이전트 도구로 제공된 소스를 탐색한다. 사용할 명령과 탐색 방법은 스스로 선택한다.", prompt)
+                self.assertIn("기본 코딩 에이전트 도구로 제공된 소스를 탐색한다. 사용할 도구와 탐색 방법은 스스로 선택한다.", prompt)
                 self.assertNotIn("navigation MCP", prompt)
             else:
-                self.assertIn("코드 탐색에는 navigation MCP에 노출된 도구를 최대한 사용한다. 그 도구로 할 수 없는 작업에만 bash를 사용한다.", prompt)
+                self.assertIn("코드 탐색에는 navigation MCP에 노출된 도구를 최대한 사용한다. 그 도구로 할 수 없는 작업에만 에이전트의 기본 도구를 사용한다.", prompt)
 
-    def test_pi_bash_boundary_denies_nested_metadata_and_late_state(self):
-        import shlex
+    def test_pi_read_tools_guard_and_wrappers_deny_metadata_outside_and_late_state(self):
+        import shutil
         from . import isolation, pi_client
         source, folder = self.root / "source.with (regex)+", self.root / "slot"
         source.mkdir()
         folder.mkdir()
         (source / "README.md").write_text("visible source\n")
-        rg = self.bin / "rg"
-        rg.write_text("#!/bin/sh\nprintf 'pinned-rg\\n'\n")
-        rg.chmod(0o700)
+        # Stand-in for both binaries: prints its arguments, then the file named last.
+        fake = self.bin / "rg"
+        fake.write_text("#!/bin/sh\nprintf 'arg:%s\\n' \"$@\"\nfor a in \"$@\"; do last=$a; done\nexec /bin/cat \"$last\"\n")
+        fake.chmod(0o700)
+        # Stand-in for the pinned path module; the preparation probe exercises the real one through pi.
+        pi_cli = self.root / "pi/dist/cli.js"
+        (pi_cli.parent / "core/tools").mkdir(parents=True)
+        (pi_cli.parent / "core/tools/path-utils.js").write_text(
+            'import path from "node:path";\nexport const resolveToCwd = (p, cwd) => path.resolve(cwd, p);\nexport const resolveReadPath = resolveToCwd;\n')
+        (self.root / "pi/package.json").write_text('{"type": "module"}')
+        agent = folder / "pi-agent"
+        agent.mkdir()
         (self.root / "neutral").mkdir()
         with patch.object(settings, "CACHE", self.root / "neutral"):
-            wrapper = pi_client.shell_wrapper(pi_client.configuration(source, rg), folder)
+            guard = pi_client.read_tools(pi_client.configuration(source, fake, fake), folder, agent, pi_cli)
+            tmp = pi_client.private_root(folder) / "tmp"
         # Create metadata after the profile, including a file rather than a directory.
         denied = []
         for prefix in (Path("."), Path("pkg/deeper")):
             for name in sorted(isolation.METADATA | {".pi", ".claude"}):
-                path = source / prefix / name
+                target = source / prefix / name
                 if prefix == Path("."):
-                    path /= "state.txt"
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text("private state\n")
-                denied.append(str(path.relative_to(source)))
+                    target /= "state.txt"
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("private state\n")
+                denied.append(str(target.relative_to(source)))
         outside = self.root / "other-source.txt"
-        outside.write_text("outside\n")
-        def shell(command):
-            return subprocess.run([str(wrapper), "-c", command], cwd=self.root, capture_output=True, text=True, timeout=10)
-        visible = shell("pwd; cat README.md; rg --version")
+        outside.write_text("private state\n")
+        (source / "link").symlink_to(outside)
+        (source / "pkg/graphify-output.txt").write_text("ordinary source\n")
+        (tmp / "pi-mcp-0.txt").write_text("full")
+
+        def run(name, *args):
+            return subprocess.run([str(agent / "bin" / name), *args], cwd=source, capture_output=True, text=True, timeout=10,
+                                  env={**os.environ, "PI_PARENT_SECRET": "STUB_SECRET"})
+        visible = run("rg", "--glob", ".git/**", "--", "pattern", "README.md")
         self.assertEqual(visible.returncode, 0, visible.stderr)
-        self.assertEqual(visible.stdout.splitlines(), [str(source), "visible source", "pinned-rg"])
-        for path in [*denied, str(outside)]:
-            with self.subTest(path=path):
-                result = shell("cat " + shlex.quote(path))
+        args = [line[4:] for line in visible.stdout.splitlines() if line.startswith("arg:")]
+        self.assertEqual(visible.stdout.splitlines()[-1], "visible source")
+        # The caller's glob comes first; the exclusions sit right before "--", so they win.
+        self.assertEqual(args[:2], ["--glob", ".git/**"])
+        self.assertEqual(args[-3:], ["--", "pattern", "README.md"])
+        for name in sorted(isolation.METADATA | {".pi", ".claude"}):
+            self.assertIn("!" + name, args[2:-3])
+            self.assertIn("!" + name + "/**", args[2:-3])
+        listed = run("fd", "--glob", "--", "README.md", "README.md")
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        fd_args = [line[4:] for line in listed.stdout.splitlines() if line.startswith("arg:")]
+        self.assertEqual(fd_args[-4:], ["--glob", "--", "README.md", "README.md"])
+        self.assertEqual(fd_args[:-4], [part for name in sorted(isolation.METADATA | {".pi", ".claude"}) for part in ("--exclude", name)])
+        for target in [*denied, str(outside), "link"]:
+            with self.subTest(wrapper=target):
+                result = run("rg", "--", "pattern", target)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn("private state", result.stdout)
         # A non-metadata basename remains readable; matching is component-exact.
-        (source / "pkg/graphify-output.txt").write_text("ordinary source\n")
-        self.assertEqual(shell("cat pkg/graphify-output.txt").stdout, "ordinary source\n")
-        self.assertNotEqual(shell("echo changed > README.md").returncode, 0)
-        self.assertNotEqual(shell(f"kill -0 {os.getpid()}").returncode, 0)
-        self.assertEqual(shell("sleep 5 & child=$!; kill $child; wait $child; test $? -eq 143").returncode, 0)
-        self.assertEqual(shell("yes | head -n 1").returncode, 0)
-        full_output = shell('printf full > "$TMPDIR/pi-mcp-0.txt"; cat "$TMPDIR/pi-mcp-0.txt"')
-        self.assertEqual((full_output.returncode, full_output.stdout), (0, "full"))
-        write_json(folder / "stop.json", {"reason": "interrupted"})
-        self.assertEqual(shell("pwd").returncode, 81)
-        calls, results = read_jsonl(folder / "bash-calls.jsonl"), read_jsonl(folder / "bash-results.jsonl")
-        self.assertFalse(calls[-1]["dispatched"])
-        self.assertEqual(len(calls) - 1, len(results))
+        self.assertEqual(run("rg", "--", "pattern", "pkg/graphify-output.txt").stdout.splitlines()[-1], "ordinary source")
+        self.assertEqual(run("rg", "--", "pattern", str(tmp / "pi-mcp-0.txt")).stdout.splitlines()[-1], "full")
 
-    def test_route_metrics_product_bash_admissions_include_codemode_subcalls(self):
+        driver = self.root / "drive.mjs"
+        driver.write_text("import guard from " + json.dumps(str(guard)) + """;
+const handlers = {};
+guard({ on: (name, handler) => { handlers[name] = handler; } });
+const out = [];
+for (const [id, toolName, input] of JSON.parse(process.argv[2])) {
+  const verdict = await handlers.tool_call({ toolName, toolCallId: id, input }, { cwd: process.argv[3] });
+  if (!verdict) await handlers.tool_result({ toolCallId: id, isError: false });
+  out.push(verdict ?? null);
+}
+console.log(JSON.stringify(out));
+""")
+        def decide(calls):
+            result = subprocess.run([shutil.which("node"), str(driver), json.dumps(calls), str(source)], capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)
+        allowed = [["read", {"path": "README.md"}], ["read", {"path": str(source / "README.md")}], ["grep", {"pattern": "x"}],
+                   ["grep", {"pattern": "x", "glob": "*.go"}], ["find", {"pattern": "*.md", "path": "pkg"}], ["ls", {}],
+                   ["read", {"path": "pkg/graphify-output.txt"}], ["read", {"path": "missing/file.txt"}],
+                   ["read", {"path": str(tmp / "pi-mcp-0.txt")}], ["bash", {"command": "cat /etc/passwd"}]]
+        rejected = [["read", {"path": target}] for target in [*denied, str(outside), "link", "../other-source.txt", ".GIT/HEAD"]]
+        rejected += [["grep", {"pattern": "x", "path": ".."}], ["grep", {"pattern": "x", "path": ".git"}],
+                     ["grep", {"pattern": "x", "glob": ".codemap/**"}], ["grep", {"pattern": "x", "glob": "{pkg,.git}/**"}],
+                     ["grep", {"pattern": "x", "glob": "!.serena"}], ["find", {"pattern": ".git/*"}],
+                     ["find", {"pattern": "*", "path": str(self.root)}], ["ls", {"path": ".codemap"}], ["ls", {"path": str(self.root)}]]
+        calls = [[f"call-{index}", tool, arguments] for index, (tool, arguments) in enumerate([*allowed, *rejected])]
+        verdicts = decide(calls)
+        self.assertEqual(verdicts[:len(allowed)], [None] * len(allowed))
+        self.assertEqual(verdicts[len(allowed):], [{"block": True, "reason": pi_client.REJECTION}] * len(rejected))
+        rows, results = read_jsonl(folder / pi_client.READ_CALLS), read_jsonl(folder / pi_client.READ_RESULTS)
+        # bash is not a read tool: the guard neither admits nor records it (the tool list keeps it out).
+        self.assertEqual([row["call_id"] for row in rows], [call[0] for call in calls if call[1] != "bash"])
+        self.assertEqual([row["id"] for row in rows], list(range(1, len(rows) + 1)))
+        self.assertEqual([row["dispatched"] for row in rows], [True] * (len(allowed) - 1) + [False] * len(rejected))
+        self.assertEqual({row["scope"] for row in rows if row["dispatched"]}, {"source", "client_output"})
+        self.assertEqual(next(row["scope"] for row in rows if row["arguments"] == {"path": str(tmp / "pi-mcp-0.txt")}), "client_output")
+        self.assertEqual([row["id"] for row in results], [row["id"] for row in rows if row["dispatched"]])
+        self.assertNotIn("STUB_SECRET", json.dumps(rows))
+        write_json(folder / "stop.json", {"reason": "interrupted"})
+        self.assertEqual(decide([["late", "read", {"path": "README.md"}]]), [{"block": True, "reason": pi_client.STOPPED}])
+        self.assertFalse(read_jsonl(folder / pi_client.READ_CALLS)[-1]["dispatched"])
+
+    def test_route_metrics_product_read_tool_admissions_include_codemode_subcalls(self):
         from . import route_metrics
         for mode in ("direct", "codemode"):
             folder = self.root / mode
@@ -678,8 +747,9 @@ class BenchChecks(unittest.TestCase):
             events = [{"type": "turn_start"}]
             if mode == "codemode":
                 events.append({"type": "tool_execution_start", "toolCallId": "script", "toolName": "codemode", "args": {"code": "fixture"}})
+            # The product's own read and pi's built-in read share a short name.
             for ident, name, args in (("product", "mcp__navigation__read", {"file_path": "README.md"}),
-                                      ("b1", "bash", {"command": "pwd"}), ("b2", "bash", {"command": "cat .codemap/config"})):
+                                      ("b1", "grep", {"pattern": "needle"}), ("b2", "read", {"path": "missing.txt"})):
                 parent = {"parentToolCallId": "script"} if mode == "codemode" else {}
                 events.extend([{"type": "tool_execution_start", "toolCallId": ident, "toolName": name, "args": args, **parent},
                                {"type": "tool_execution_end", "toolCallId": ident, "toolName": name, "isError": ident == "b2",
@@ -690,82 +760,80 @@ class BenchChecks(unittest.TestCase):
             relay = [{"event": "request", "id": "p1", "arm": "codemap-search", "tool": "read", "arguments": {"file_path": "README.md"},
                       "started_monotonic": 1},
                      {"event": "result", "id": "p1", "raw_result": {}, "relay_result": {}, "finished_monotonic": 2}]
-            admissions = [{"id": i, "tool": "bash", "command": command, "dispatched": True}
-                          for i, command in enumerate(("pwd", "cat .codemap/config"), 1)]
+            admissions = [{"id": i, "call_id": ident, "tool": tool, "arguments": args, "dispatched": True, "status": "admitted", "scope": "source"}
+                          for i, (ident, tool, args) in enumerate((("b1", "grep", {"pattern": "needle"}), ("b2", "read", {"path": "missing.txt"})), 1)]
             finishes = [{"id": i, "started_monotonic": 1, "finished_monotonic": 2} for i in (1, 2)]
-            for name, rows in (("events.jsonl", events), ("relay.jsonl", relay), ("bash-calls.jsonl", admissions), ("bash-results.jsonl", finishes)):
+            for name, rows in (("events.jsonl", events), ("relay.jsonl", relay), ("read-calls.jsonl", admissions), ("read-results.jsonl", finishes)):
                 (folder / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
             with patch.object(runner, "recorded_usage", return_value={}):
                 result = route_metrics.finish_execution(folder, {}, {"conditions_valid": True})
             self.assertTrue(result["call_log_complete"])
             self.assertEqual(result["boundary_violations"], [])
-            self.assertEqual(result["bash_calls"], 2)
-            self.assertEqual(result["bash_call_ratio"], 2 / 3)
+            self.assertEqual(result["read_tool_calls"], 2)
+            self.assertEqual(result["read_tool_call_ratio"], 2 / 3)
             self.assertEqual(result["host_calls"], 4 if mode == "codemode" else 3)
             self.assertEqual(result["exploration_attempts"]["total"], 3)
-            self.assertEqual(result["tool_call_counts"]["auxiliary:bash"], 2)
+            self.assertEqual(result["tool_call_counts"], {"native:read": 1, "auxiliary:grep": 1, "auxiliary:read": 1})
             self.assertEqual(result["observations"]["tool_seconds"], 3)
             self.assertTrue(all(call["arm"] == "codemap-search" for call in result["calls"]))
-            admissions[0]["command"] = "unmatched"
-            (folder / "bash-calls.jsonl").write_text("".join(json.dumps(row) + "\n" for row in admissions))
+            admissions[0]["call_id"] = "unmatched"
+            (folder / "read-calls.jsonl").write_text("".join(json.dumps(row) + "\n" for row in admissions))
             with patch.object(runner, "recorded_usage", return_value={}):
                 invalid = route_metrics.finish_execution(folder, {}, {"conditions_valid": True})
             self.assertFalse(invalid["call_log_complete"])
             self.assertFalse(invalid["conditions_valid"])
-            self.assertIsNone(invalid["bash_call_ratio"])
+            self.assertIsNone(invalid["read_tool_call_ratio"])
             self.assertIn("inventory mismatch", invalid["boundary_violations"][0]["reason"])
 
-    def test_route_metrics_bash_zero_rejected_discovery_and_cancelled_admissions(self):
+    def test_route_metrics_read_tool_zero_rejected_discovery_and_cancelled_admissions(self):
         from . import route_metrics
         write_json(self.root / "runtime.json", {"backend": "pi", "record_collection_complete": True,
                    "shutdown": {"relay_cleanup": {"complete": True}}})
         write_json(self.root / "pi-policy.json", {"measurement_mode": "codemode", "mcp_client": {"resource_tools": ["list_mcp_resources"]}})
         write_json(self.root / "relay-settings.json", {"arm": "graphify", "source": str(self.root), "enabled_tools": []})
-        for name in ("relay.jsonl", "bash-calls.jsonl", "bash-results.jsonl"):
+        for name in ("relay.jsonl", "read-calls.jsonl", "read-results.jsonl"):
             (self.root / name).write_text("")
         (self.root / "events.jsonl").write_text(json.dumps({"type": "agent_settled"}) + "\n")
         with patch.object(runner, "recorded_usage", return_value={}):
             empty = route_metrics.finish_execution(self.root, {}, {"conditions_valid": True})
         self.assertTrue(empty["call_log_complete"])
-        self.assertEqual(empty["bash_calls"], 0)
-        self.assertIsNone(empty["bash_call_ratio"])
+        self.assertEqual(empty["read_tool_calls"], 0)
+        self.assertIsNone(empty["read_tool_call_ratio"])
         events = [{"type": "tool_execution_start", "toolCallId": "script", "toolName": "codemode", "args": {"code": "fixture"}},
-                  {"type": "tool_execution_start", "toolCallId": "b", "parentToolCallId": "script", "toolName": "bash", "args": {"command": "pwd"}},
-                  {"type": "tool_execution_end", "toolCallId": "b", "parentToolCallId": "script", "toolName": "bash", "isError": True, "result": {}},
-                  {"type": "tool_execution_start", "toolCallId": "script/2", "parentToolCallId": "script", "toolName": "bash", "args": {"command": "sleep 3"}},
+                  {"type": "tool_execution_start", "toolCallId": "b", "parentToolCallId": "script", "toolName": "read", "args": {"path": ".git/HEAD"}},
+                  {"type": "tool_execution_end", "toolCallId": "b", "parentToolCallId": "script", "toolName": "read", "isError": True, "result": {}},
+                  {"type": "tool_execution_start", "toolCallId": "script/2", "parentToolCallId": "script", "toolName": "grep", "args": {"pattern": "slow"}},
                   {"type": "tool_execution_end", "toolCallId": "script", "toolName": "codemode", "result": {"details": {"calls": [
-                      {"id": "script/?", "name": "bash", "args": '{"command":"sleep 3"}', "status": "cancelled"}]}}},
+                      {"id": "script/?", "name": "grep", "args": '{"pattern":"slow"}', "status": "cancelled"}]}}},
                   {"type": "tool_execution_start", "toolCallId": "d", "toolName": "list_mcp_resources", "args": {}},
                   {"type": "tool_execution_end", "toolCallId": "d", "toolName": "list_mcp_resources", "result": {}},
                   {"type": "agent_settled"}]
         relay = [{"event": "request", "id": "d1", "arm": "graphify", "tool": "resources/list", "arguments": {}, "discovery": True,
                   "started_monotonic": 1}, {"event": "result", "id": "d1", "raw_result": {}, "relay_result": {}, "finished_monotonic": 2}]
-        for name, rows in (("events.jsonl", events), ("relay.jsonl", relay),
-                           ("bash-calls.jsonl", [{"id": 1, "tool": "bash", "command": "pwd", "dispatched": False}])):
+        rejected = [{"id": 1, "call_id": "b", "tool": "read", "arguments": {"path": ".git/HEAD"}, "dispatched": False, "status": "rejected",
+                     "reason": "denied folder", "scope": None}]
+        for name, rows in (("events.jsonl", events), ("relay.jsonl", relay), ("read-calls.jsonl", rejected)):
             (self.root / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
         with patch.object(runner, "recorded_usage", return_value={}):
             result = route_metrics.finish_execution(self.root, {}, {"conditions_valid": True})
         self.assertTrue(result["call_log_complete"])
         self.assertEqual(result["boundary_violations"], [])
-        self.assertEqual((result["bash_calls"], result["bash_call_ratio"]), (1, 1))
+        self.assertEqual((result["read_tool_calls"], result["read_tool_call_ratio"]), (1, 1))
         self.assertEqual(result["exploration_attempts"], {"total": 1, "dispatched": 0, "rejected": 1, "errored": 0})
         self.assertEqual(result["observations"]["cancelled_before_admission"], 1)
         self.assertEqual(result["client_discovery_calls"], {"resources/list": 1})
-        (self.root / "bash-calls.jsonl").unlink()
+        (self.root / "read-calls.jsonl").unlink()
         with patch.object(runner, "recorded_usage", return_value={}):
             missing = route_metrics.finish_execution(self.root, {}, {"conditions_valid": True})
         self.assertFalse(missing["call_log_complete"])
-        self.assertIsNone(missing["bash_calls"])
-        self.assertIsNone(missing["bash_call_ratio"])
+        self.assertIsNone(missing["read_tool_calls"])
+        self.assertIsNone(missing["read_tool_call_ratio"])
 
-    def test_pi_bash_admission_check_accepts_only_host_validation_or_truncated_errors(self):
+    def test_pi_read_admission_check_accepts_only_host_validation_or_truncated_errors(self):
         from . import pi_client, route_metrics
-        rejected = [({"timeout": "bad"}, 'Validation failed for tool "bash":\n  - command: Expected string\n\nReceived arguments:\n{}'),
-                    ({"command": []}, 'Validation failed for tool "bash":\n  - command: Expected string\n\nReceived arguments:\n{}'),
-                    ({"command": "pwd"}, 'Invalid arguments for tool "bash": incomplete JSON'),
-                    ({"command": "pwd", "timeout": 0}, "Invalid timeout: must be a finite number of seconds"),
-                    ({"command": "pwd", "timeout": 1e7}, "Invalid timeout: maximum is 2147483.647 seconds"),
-                    ({"command": "pwd"}, 'Tool call "bash" was not executed: the response hit the output token limit, '
+        rejected = [({"pattern": []}, 'Validation failed for tool "grep":\n  - pattern: Expected string\n\nReceived arguments:\n{}'),
+                    ({"pattern": "x"}, 'Invalid arguments for tool "grep": incomplete JSON'),
+                    ({"pattern": "x"}, 'Tool call "grep" was not executed: the response hit the output token limit, '
                      'so its arguments may be truncated. Re-issue the tool call with complete arguments.')]
         for arm in ("rg", "codemap-search"):
             for mode in ("direct", "codemode"):
@@ -778,68 +846,71 @@ class BenchChecks(unittest.TestCase):
                     write_json(folder / ("native-agent.json" if arm == "rg" else "relay-settings.json"),
                                {"arm": arm, "source": str(self.root), "enabled_tools": []})
                     events = []
-                    for i, (args, text) in enumerate([*rejected, ({"command": "pwd"}, "source")]):
+                    for i, (args, text) in enumerate([*rejected, ({"pattern": "x"}, "source")]):
                         extra = {"parentToolCallId": "script"} if mode == "codemode" else {}
-                        events += [{"type": "tool_execution_start", "toolCallId": str(i), "toolName": "bash", "args": args, **extra},
-                                   {"type": "tool_execution_end", "toolCallId": str(i), "toolName": "bash", "isError": i < len(rejected),
+                        events += [{"type": "tool_execution_start", "toolCallId": str(i), "toolName": "grep", "args": args, **extra},
+                                   {"type": "tool_execution_end", "toolCallId": str(i), "toolName": "grep", "isError": i < len(rejected),
                                     "result": {"content": [{"type": "text", "text": text}]}, **extra}]
                     events.append({"type": "agent_settled"})
-                    admissions = [{"id": 1, "command": "pwd", "tool": "bash", "dispatched": True}]
-                    for name, rows in (("events.jsonl", events), ("relay.jsonl", []), ("bash-calls.jsonl", admissions),
-                                       ("bash-results.jsonl", [{"id": 1, "started_monotonic": 1, "finished_monotonic": 2}])):
+                    admissions = [{"id": 1, "call_id": str(len(rejected)), "tool": "grep", "arguments": {"pattern": "x"},
+                                   "dispatched": True, "status": "admitted", "scope": "source"}]
+                    for name, rows in (("events.jsonl", events), ("relay.jsonl", []), ("read-calls.jsonl", admissions),
+                                       ("read-results.jsonl", [{"id": 1, "started_monotonic": 1, "finished_monotonic": 2}])):
                         (folder / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
                     items = pi_client.tool_items(events)
-                    check = pi_client.bash_admission_check(items, admissions)
+                    check = pi_client.read_admission_check(items, admissions)
                     self.assertTrue(check["matched"])
                     self.assertEqual(len(check["host_rejected_calls"]), len(rejected))
                     with patch.object(runner, "recorded_usage", return_value={}):
                         result = route_metrics.finish_execution(folder, {}, {"conditions_valid": True})
                     self.assertTrue(result["conditions_valid"])
                     self.assertTrue(result["call_log_complete"])
-                    self.assertEqual(result["bash_rejected_before_admission"], len(rejected))
-                    self.assertEqual(result["bash_calls"], 1)
+                    self.assertEqual(result["read_tool_rejected_before_admission"], len(rejected))
+                    self.assertEqual(result["read_tool_calls"], 1)
                     self.assertEqual(result["exploration_attempts"]["total"], 1)
-                    # An executed/error call without its admission must still invalidate the slot.
-                    (folder / "bash-calls.jsonl").write_text("")
+                    # An executed call without its admission must still invalidate the slot.
+                    (folder / "read-calls.jsonl").write_text("")
                     with patch.object(runner, "recorded_usage", return_value={}):
                         invalid = route_metrics.finish_execution(folder, {}, {"conditions_valid": True})
                     self.assertFalse(invalid["conditions_valid"])
                     self.assertFalse(invalid["call_log_complete"])
-                    items[-1]["result"] = {"is_error": True, "content": [{"type": "text", "text": "Command failed with exit code 1"}]}
-                    self.assertFalse(pi_client.bash_admission_check(items, [])["matched"])
-                    self.assertFalse(pi_client.bash_admission_check(items[:-1], admissions)["matched"])
-                    # A real shell can print the same words; its structured result is not a host rejection.
-                    items[-1]["result"] = {"is_error": True, "content": [{"type": "text", "text": rejected[0][1]}],
-                                          "structuredContent": {"exit_code": 1}}
-                    self.assertTrue(pi_client.bash_admission_check(items, admissions)["matched"])
-                    self.assertFalse(pi_client.bash_admission_check(items, [])["matched"])
+                    items[-1]["result"] = {"is_error": True, "content": [{"type": "text", "text": "ENOENT: no such file or directory"}]}
+                    self.assertFalse(pi_client.read_admission_check(items, [])["matched"])
+                    self.assertFalse(pi_client.read_admission_check(items[:-1], admissions)["matched"])
+                    # A call the guard recorded is an admission even when its error repeats the host's words.
+                    items[-1]["result"] = {"is_error": True, "content": [{"type": "text", "text": rejected[0][1]}]}
+                    recorded = pi_client.read_admission_check(items, admissions)
+                    self.assertTrue(recorded["matched"])
+                    self.assertEqual(len(recorded["host_rejected_calls"]), len(rejected))
 
-    def test_route_metrics_client_full_output_reads_counts_visible_admitted_commands(self):
+    def test_route_metrics_client_full_output_reads_counts_admitted_client_output_scope(self):
         from . import route_metrics
         write_json(self.root / "runtime.json", {"backend": "pi", "record_collection_complete": True})
         write_json(self.root / "pi-policy.json", {"measurement_mode": "codemode"})
         write_json(self.root / "native-agent.json", {"source": str(self.root)})
         events, admissions = [], []
-        for i, command in enumerate(('cat /tmp/pi-mcp-123.txt', 'sed -n 1p "$TMPDIR"/pi-bash-*.log',
-                                      'cat "$TMPDIR"/pi-mcp-* "$TMPDIR"/pi-bash-*', 'cat "$hidden"',
-                                      'cat /tmp/pi-mcp-rejected.txt', 'head "$TMPDIR"/pi-codemode-1.txt')):
-            events += [{"type": "tool_execution_start", "toolCallId": str(i), "toolName": "bash", "args": {"command": command},
+        for i, (tool, arguments, scope) in enumerate((("read", {"path": "/tmp/pi-mcp-123.txt"}, "client_output"),
+                                                      ("grep", {"pattern": "x", "path": "/tmp/pi-codemode-1.txt"}, "client_output"),
+                                                      ("read", {"path": "README.md"}, "source"),
+                                                      ("read", {"path": "/elsewhere/pi-mcp-rejected.txt"}, None))):
+            events += [{"type": "tool_execution_start", "toolCallId": str(i), "toolName": tool, "args": arguments,
                         "parentToolCallId": "script"},
-                       {"type": "tool_execution_end", "toolCallId": str(i), "toolName": "bash", "result": {}}]
-            admissions.append({"id": i, "tool": "bash", "command": command, "dispatched": i != 4})
+                       {"type": "tool_execution_end", "toolCallId": str(i), "toolName": tool, "result": {}}]
+            admissions.append({"id": i, "call_id": str(i), "tool": tool, "arguments": arguments, "dispatched": scope is not None,
+                               "status": "admitted" if scope else "rejected", "scope": scope})
         events.append({"type": "agent_settled"})
-        for name, rows in (("events.jsonl", events), ("bash-calls.jsonl", admissions), ("bash-results.jsonl", [])):
+        for name, rows in (("events.jsonl", events), ("read-calls.jsonl", admissions), ("read-results.jsonl", [])):
             (self.root / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
         with patch.object(runner, "recorded_usage", return_value={}):
             result = route_metrics.finish_execution(self.root, {}, {"conditions_valid": True})
         self.assertTrue(result["call_log_complete"])
-        self.assertEqual(result["client_full_output_reads"], 4)
-        self.assertEqual(result["bash_calls"], 6)
-        (self.root / "bash-calls.jsonl").unlink()
+        self.assertEqual(result["client_full_output_reads"], 2)
+        self.assertEqual(result["read_tool_calls"], 4)
+        (self.root / "read-calls.jsonl").unlink()
         with patch.object(runner, "recorded_usage", return_value={}):
             self.assertIsNone(route_metrics.finish_execution(self.root, {}, {})["client_full_output_reads"])
 
-    def test_tool_indexes_product_pi_bash_probe_records_own_metadata_boundary(self):
+    def test_tool_indexes_product_pi_read_probe_gets_own_metadata_boundary(self):
         from . import pi_client, tool_indexes, isolation, warm_host
         from .core import digest, file_digest, read_json
         from types import SimpleNamespace
@@ -858,14 +929,22 @@ class BenchChecks(unittest.TestCase):
             metadata.mkdir(exist_ok=True)
             state = {"id": arm, "source": str(source), "home": str(home), "artifact_sha256": digest({}),
                      "modes": {"graph_path": str(metadata / "graph.json")}, "source_sha256": digest({})}
-            relay = {"source": str(source), "rg_binary": str(rg), "auxiliaries": [], "auxiliary_necessity": []}
+            relay = {"source": str(source), "rg_binary": str(rg), "fd_binary": str(rg), "auxiliaries": [], "auxiliary_necessity": []}
             def prepare(state, probe, *args):
                 write_json(probe / "inventory.json", {})
                 (probe / "warmup.jsonl").write_text("")
                 (probe / "native.stderr.log").write_text("")
                 return SimpleNamespace(relay_settings=relay, profile={}, await_ready=lambda *_: {"timings": {}},
                     verify_preparation=lambda: {"observations": []}, close=lambda *_: {"complete": True, "cleanup_seconds": 0})
-            with patch.object(settings, "CACHE", cache), patch.object(pi_client, "capabilities", return_value={}), \
+            seen = {}
+            # The probe itself drives the pinned pi; here only its inputs and its place in the receipt are checked.
+            def read_probe(value, folder, denied_paths, *, metadata_root=None):
+                seen.update(value=value, folder=folder, metadata_root=metadata_root)
+                (folder / "direct").mkdir(parents=True)
+                write_json(folder / "probe.json", {"boundaries": []})
+                write_json(folder / "direct/read-calls.jsonl", [])
+                return {"probes": [], "probe_log": str(folder / "probe.json"), "probe_log_sha256": file_digest(folder / "probe.json")}
+            with patch.object(settings, "CACHE", cache), patch.object(pi_client, "probe", side_effect=read_probe), \
                  patch.object(tool_indexes, "load_artifacts", return_value={arm: {}}), patch.object(tool_indexes, "load_index", return_value=state), \
                  patch.object(tool_indexes, "freeze_baseline", return_value={}), patch.object(tool_indexes, "restore_baseline", return_value={"elapsed_seconds": 0}), \
                  patch.object(tool_indexes, "probe_inputs", return_value={}), patch.object(tool_indexes, "read_json", return_value={"files": {}}), \
@@ -873,17 +952,14 @@ class BenchChecks(unittest.TestCase):
                  patch.object(isolation, "audit_index_paths", return_value={}), patch.object(warm_host, "prepare_session", side_effect=prepare), \
                  patch("benchmark.serena_support.language_dependencies", return_value={}), patch("benchmark.serena_support.verify_indexing_log"):
                 result = tool_indexes.probe_index(arm, emit=lambda *_: None)
-            bash = result["bash_probe"]
-            names = {row["name"]: row for row in bash["probes"]}
-            self.assertNotEqual(names["metadata"]["exit_code"], 0)
-            self.assertNotEqual(names["signal_outside_sandbox"]["exit_code"], 0)
-            self.assertEqual(names["signal_child"]["exit_code"], 0)
-            commands = read_jsonl(Path(bash["probe_log"]).parent / "bash-calls.jsonl")
-            self.assertTrue(any(str(metadata) in row["command"] for row in commands))
-            self.assertEqual(file_digest(Path(bash["probe_log"])), bash["probe_log_sha256"])
+            self.assertEqual(seen["metadata_root"], metadata)
+            self.assertEqual(seen["folder"].name, "read-probe")
+            self.assertEqual((seen["value"]["source"], seen["value"]["rg_binary"], seen["value"]["fd_binary"]),
+                             (str(source.resolve()), str(rg.resolve()), str(rg.resolve())))
+            self.assertEqual(seen["value"]["tools"], ["read", "grep", "find", "ls"])
+            self.assertEqual(result["read_probe"]["probe_log_sha256"], file_digest(seen["folder"] / "probe.json"))
             evidence = {row["path"] for row in result["prepared_index_ready"]["evidence"]}
-            self.assertIn(bash["probe_log"], evidence)
-            self.assertEqual(read_json(root / "ready.json")["bash_probe"], bash)
+            self.assertLessEqual({str(seen["folder"] / "probe.json"), str(seen["folder"] / "direct/read-calls.jsonl")}, evidence)
 
     def test_pi_campaign_rejects_direct_cli_solver_overrides(self):
         from . import route_contract as routes
@@ -1220,9 +1296,9 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
     def test_pi_codemode_reconciles_only_proven_nested_cancellations(self):
         from . import pi_client
         events = [{"type": "tool_execution_start", "toolCallId": "s", "toolName": "codemode", "args": {}},
-                  {"type": "tool_execution_start", "toolCallId": "s/1", "parentToolCallId": "s", "toolName": "bash", "args": {"command": "sleep 2"}},
+                  {"type": "tool_execution_start", "toolCallId": "s/1", "parentToolCallId": "s", "toolName": "grep", "args": {"pattern": "slow"}},
                   {"type": "tool_execution_end", "toolCallId": "s", "toolName": "codemode", "isError": True,
-                   "result": {"details": {"calls": [{"id": "s/?", "name": "bash", "args": '{"command":"sleep 2"}', "status": "cancelled"}]}}},
+                   "result": {"details": {"calls": [{"id": "s/?", "name": "grep", "args": '{"pattern":"slow"}', "status": "cancelled"}]}}},
                   {"type": "message_end", "message": {"role": "assistant", "stopReason": "stop", "content": [{"type": "text", "text": "Done"}],
                    "usage": {"input": 1, "output": 1, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 2}}}, {"type": "agent_settled"}]
         state = pi_client.EventState()
@@ -1237,8 +1313,8 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         self.assertEqual(len(before["calls"]), 1)
         self.assertEqual(before["calls"][0]["match"], "parent+name+args unique")
         self.assertFalse(before["calls"][0]["budget_consumed"])
-        self.assertEqual(pi_client.cancelled_before_admission(items, [{"command": "sleep 2"}], native=True)["calls"], [])
-        for field, value in (("status", "error"), ("args", '{"command":"different"}'), ("id", "other/?")):
+        self.assertEqual(pi_client.cancelled_before_admission(items, [{"call_id": "s/1"}], native=True)["calls"], [])
+        for field, value in (("status", "error"), ("args", '{"pattern":"different"}'), ("id", "other/?")):
             changed = copy.deepcopy(events)
             changed[2]["result"]["details"]["calls"][0][field] = value
             self.assertFalse(pi_client.usage(changed, terminal_complete=True, evidence="fixture")["complete"])
@@ -1258,44 +1334,48 @@ print(json.dumps({"type":"agent_settled", "aborted":False}))
         self.assertEqual(len(pi_client.cancelled_before_admission(items, [], native=False, enabled_tools=["read"])["calls"]), 1)
         admitted = [{"method": "tools/call", "tool": "read", "arguments": {"file_path": "source.py"}}]
         self.assertEqual(pi_client.cancelled_before_admission(items, admitted, native=False, enabled_tools=["read"])["calls"], [])
-        # Pinned codemode keeps only a 197-unit argument preview; long commands match by that prefix, shared prefixes stay unresolved.
+        # Pinned codemode keeps only a 197-unit argument preview; long arguments match by that prefix, shared prefixes stay unresolved.
         long = copy.deepcopy(events)
-        long[1]["args"] = {"command": "rg -n " + "x" * 300}
+        long[1]["args"] = {"pattern": "x" * 300}
         long[2]["result"]["details"]["calls"][0]["args"] = pi_client.script_args_preview(long[1]["args"])
         self.assertEqual(len(long[2]["result"]["details"]["calls"][0]["args"]), pi_client.ARGS_PREVIEW_CHARS)
         self.assertTrue(pi_client.usage(long, terminal_complete=True, evidence="fixture")["complete"])
         shared = copy.deepcopy(long)
-        shared.insert(2, {**long[1], "toolCallId": "s/2", "args": {"command": long[1]["args"]["command"] + "y"}})
+        shared.insert(2, {**long[1], "toolCallId": "s/2", "args": {"pattern": long[1]["args"]["pattern"] + "y"}})
         self.assertFalse(pi_client.usage(shared, terminal_complete=True, evidence="fixture")["complete"])
 
 
-    def test_pi_bash_killed_preserves_call_log_and_partial_timing(self):
+    def test_pi_read_tool_cancelled_preserves_call_log_and_partial_timing(self):
         from . import route_metrics
-        events = [{"type": "tool_execution_start", "toolCallId": "b", "toolName": "bash", "args": {"command": "sleep 3"}},
-                  {"type": "tool_execution_end", "toolCallId": "b", "toolName": "bash", "isError": True,
-                   "result": {"content": [{"type": "text", "text": "Command timed out after 1 seconds"}]}}, {"type": "agent_settled"}]
-        for name, rows in (("events.jsonl", events), ("bash-calls.jsonl", [{"id": 1, "command": "sleep 3", "tool": "bash", "dispatched": True}]),
-                           ("bash-results.jsonl", [])):
+        # The script was aborted while an admitted grep was still running: no result event and no guard finish row.
+        events = [{"type": "tool_execution_start", "toolCallId": "s", "toolName": "codemode", "args": {}},
+                  {"type": "tool_execution_start", "toolCallId": "s/1", "parentToolCallId": "s", "toolName": "grep", "args": {"pattern": "slow"}},
+                  {"type": "tool_execution_end", "toolCallId": "s", "toolName": "codemode", "isError": True,
+                   "result": {"details": {"calls": [{"id": "s/?", "name": "grep", "args": '{"pattern":"slow"}', "status": "cancelled"}]}}},
+                  {"type": "agent_settled"}]
+        admission = {"id": 1, "call_id": "s/1", "tool": "grep", "arguments": {"pattern": "slow"}, "dispatched": True,
+                     "status": "admitted", "scope": "source"}
+        for name, rows in (("events.jsonl", events), ("read-calls.jsonl", [admission]), ("read-results.jsonl", [])):
             (self.root / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
         write_json(self.root / "runtime.json", {"record_collection_complete": True})
-        write_json(self.root / "pi-policy.json", {"measurement_mode": "direct"})
+        write_json(self.root / "pi-policy.json", {"measurement_mode": "codemode"})
         calls, complete, _, violations = route_metrics.normalize_pi_native_calls(self.root)
         self.assertTrue(complete)
         self.assertEqual(violations, [])
         self.assertEqual(calls[0]["status"], "killed")
         observed = route_metrics.pi_observations(self.root, calls, call_log_complete=complete)
+        self.assertEqual(observed["cancelled_before_admission"], 0)
         self.assertIsNone(observed["tool_seconds"])
         self.assertEqual(observed["observed_tool_seconds"], 0)
         self.assertEqual(observed["tool_seconds_missing_calls"], 1)
         write_json(self.root / "native-agent.json", {})
-        (self.root / "bash-results.jsonl").write_text(json.dumps({"id": 1, "started_monotonic": 1, "finished_monotonic": 2}) + "\npartial")
+        (self.root / "read-results.jsonl").write_text(json.dumps({"id": 1, "started_monotonic": 1, "finished_monotonic": 2}) + "\npartial")
         calls, complete, _, _ = route_metrics.normalize_pi_native_calls(self.root)
         observed = route_metrics.pi_observations(self.root, calls, call_log_complete=complete)
         self.assertTrue(complete)
         self.assertIsNone(observed["tool_seconds"])
         self.assertEqual(observed["observed_tool_seconds"], 1)
         self.assertEqual(observed["tool_seconds_missing_calls"], 0)
-
 
     def test_cleanup_private_counts_only_bound_claude_result_metadata(self):
         from . import pi_client

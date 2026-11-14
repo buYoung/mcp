@@ -11,7 +11,7 @@ from .core import digest, file_digest, read_json, require, write_json
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
 DATASET_MANIFEST_SHA256 = "33fdd791be316fd3912ea5b1a401763357fab73b5ec6078b5cb6fce8d597a2ed"
-TARGET_LOCK_SHA256 = "d7b8ba2eaebb97196cb2b8e4f5ec4a01b1bb2a2c4c18c07c56871d878edfefeb"
+TARGET_LOCK_SHA256 = "cc1554c638123f4ada1a9222b3e5c2afdb05b5428f83158ae2bf60838c89087b"
 QUESTION_IDS = ("git-sync-job-dispatch", "alertmanager-config-autosync", "scope-annotation-filter")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")
@@ -90,8 +90,8 @@ def solver_prompt(question_id: str, source: Path, arm: str | None = None) -> str
     prompt = answer_prompt(load_profile(), question)
     if arm == "rg":
         prompt = prompt.replace(
-            "코드 탐색에는 navigation MCP에 노출된 도구를 최대한 사용한다. 그 도구로 할 수 없는 작업에만 bash를 사용한다. 탐색은 제공된 소스 루트 안에서 수행하고 네트워크와 하위 에이전트는 사용하지 않는다.",
-            "기본 코딩 에이전트 도구로 제공된 소스를 탐색한다. 사용할 명령과 탐색 방법은 스스로 선택한다. 탐색은 제공된 소스 루트 안에서 수행하고 네트워크와 하위 에이전트는 사용하지 않는다.")
+            "코드 탐색에는 navigation MCP에 노출된 도구를 최대한 사용한다. 그 도구로 할 수 없는 작업에만 에이전트의 기본 도구를 사용한다. 탐색은 제공된 소스 루트 안에서 수행하고 네트워크와 하위 에이전트는 사용하지 않는다.",
+            "기본 코딩 에이전트 도구로 제공된 소스를 탐색한다. 사용할 도구와 탐색 방법은 스스로 선택한다. 탐색은 제공된 소스 루트 안에서 수행하고 네트워크와 하위 에이전트는 사용하지 않는다.")
     return prompt + f"\n\n탐색 소스 루트: {source.resolve()}\n"
 
 

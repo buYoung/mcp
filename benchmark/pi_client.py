@@ -1,14 +1,13 @@
-"""Pinned pi client policy, sandboxed bash admission, and JSON stream observations."""
+"""Pinned pi client policy, guarded built-in read tools, and JSON stream observations."""
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import pwd
 import shlex
 import shutil
 import subprocess
-import sys
-import time
 import unicodedata
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -18,7 +17,11 @@ from .claude_auth import Credential, ChildEnvChannel
 
 BACKEND = "pi"
 TOKEN_ENV = "CODEMAP_BENCH_PI_TOKEN"
-NATIVE_TOOLS = ("bash",)
+NATIVE_TOOLS = ("read", "grep", "find", "ls")
+READ_CALLS, READ_RESULTS = "read-calls.jsonl", "read-results.jsonl"
+# The only two texts the guard returns to the model.
+REJECTION = "Path is not inside the readable exploration source."
+STOPPED = "Exploration call rejected before execution: solver stopped."
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
 NAVIGATION_SERVER = "navigation"
 # Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
@@ -52,7 +55,7 @@ def server_instructions_prompt(instructions: str) -> str:
 
 
 def private_root(folder: Path) -> Path:
-    """Solver-visible cwd and scratch (TMPDIR, shell HOME, rg copy) uses an opaque cache name, never the slot path."""
+    """Solver-visible cwd and scratch (TMPDIR, tool HOME, rg and fd copies) uses an opaque cache name, never the slot path."""
     from .settings import CACHE
     root = CACHE / digest({"private_root": str(folder.resolve())})[:16]
     require(not root.is_symlink(), "private root symlink 금지")
@@ -60,7 +63,7 @@ def private_root(folder: Path) -> Path:
     root.chmod(0o700)
     record = folder / "private-root.json"
     if not record.exists():
-        write_json(record, {"path": str(root), "purpose": "solver-visible cwd, TMPDIR, shell HOME and rg copy"})
+        write_json(record, {"path": str(root), "purpose": "solver-visible cwd, TMPDIR, tool HOME and rg/fd copies"})
     require(read_json(record)["path"] == str(root), "private root binding 변경")
     return root
 
@@ -184,37 +187,48 @@ def capabilities(*, toolchain: dict | None = None) -> dict:
             "node_path": tools["node"], "node_sha256": tools["node_sha256"], "required_flags": flags,
             "auth": "runtime only; operator token/Claude login not exercised during preparation",
             "model_free_probes": probes, "model_invocations": 0,
-            "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi bash default; pi codemode default output unless the script's // @options line sets it",
+            "defaults": {"compaction": "pi default", "retry": "pi default", "output_truncation": "pi read/grep/find/ls defaults; pi codemode default output unless the script's // @options line sets it",
                          "mcp_client": f"@buyong/pi-mcp-adapter {tools['versions']['mcp_adapter']}; private mcp.json; explicit exposure/timeout/output guard",
                          "mcp_output_guard": {"default": DEFAULT_TEXT_BYTES, "per_arm_bytes": OUTPUT_GUARD_BYTES},
                          "claude_result_chars": {"missing_product_meta": CLAUDE_PRODUCT_CHARS, "codemode": "bridge default (52224)",
-                                                 "native_bash": "bridge default (52224)"}}}
+                                                 "native_tools": "bridge default (52224)"}}}
 
 
-def configuration(source: Path, rg_binary: Path) -> dict:
+def configuration(source: Path, rg_binary: Path, fd_binary: Path) -> dict:
     return {"schema": "grafana-native-agent-v1", "backend": BACKEND, "mode": "native_agent",
             "source": str(source.resolve()), "rg_binary": str(rg_binary.resolve()), "rg_sha256": file_digest(rg_binary),
-            "search_product_mcp": False, "tools": ["bash"], "native_tools": "pi bash via per-slot Seatbelt wrapper",
-            "call_unit": "atomic wrapper admission; calls measured without a limit",
+            "fd_binary": str(fd_binary.resolve()), "fd_sha256": file_digest(fd_binary),
+            "search_product_mcp": False, "tools": list(NATIVE_TOOLS),
+            "native_tools": "pi read/grep/find/ls behind a path guard; their rg and fd run under a per-slot Seatbelt wrapper",
+            "call_unit": "guard admission per tool call; calls measured without a limit",
             "output_policy": "pi defaults; no harness clipping"}
 
 
-def baseline_boundary(native: dict, folder: Path) -> dict:
-    from .isolation import METADATA, _profile_text, preflight
-    source, pinned = Path(native["source"]).resolve(), Path(native["rg_binary"]).resolve()
-    require(file_digest(pinned) == native["rg_sha256"], "고정 rg 변경")
+def denied_names() -> list[str]:
+    """Folders inside the source that no read tool may open: version control and product or client state."""
+    from .isolation import METADATA
+    return sorted(METADATA | {".pi", ".claude"})
+
+
+def read_boundary(native: dict, folder: Path) -> dict:
+    """Seatbelt profile for the rg and fd children of grep and find. read and ls run inside pi and rely on the guard."""
+    from .isolation import _profile_text, preflight
+    source = Path(native["source"]).resolve()
     root = private_root(folder)
     tmp, home, bin_dir = root / "tmp", root / "home", root / "bin"
     for path in (tmp, home, bin_dir):
         path.mkdir(parents=True, exist_ok=True, mode=0o700)
-    # A byte-identical copy keeps the artifact path (and its naming) out of the solver's PATH.
-    rg = bin_dir / "rg"
-    if not rg.exists():
-        shutil.copy2(pinned, rg)
-    require(not rg.is_symlink() and file_digest(rg) == native["rg_sha256"], "rg 복사본 변경")
+    binaries = {}
+    for name in ("rg", "fd"):
+        pinned, copy = Path(native[name + "_binary"]).resolve(), bin_dir / name
+        require(file_digest(pinned) == native[name + "_sha256"], f"고정 {name} 변경")
+        # A byte-identical copy keeps the artifact path (and its naming) out of the tool's process arguments.
+        if not copy.exists():
+            shutil.copy2(pinned, copy)
+        require(not copy.is_symlink() and file_digest(copy) == native[name + "_sha256"], f"{name} 복사본 변경")
+        binaries[name] = str(copy)
     preflight(source, home)
     text = _profile_text([source, bin_dir, tmp, home], [tmp])
-    # Basic shell/navigation utilities need no external Mach service lookup.
     text += "(deny lsopen)\n(deny appleevent-send)\n(deny mach-lookup)\n"
     text += "(deny signal)\n(allow signal (target same-sandbox))\n"
     # Other processes' names and arguments (products, harness, other slots) are not exploration targets.
@@ -222,67 +236,121 @@ def baseline_boundary(native: dict, folder: Path) -> dict:
     text += "(deny process-info*)\n(allow process-info* (target self))\n(deny sysctl-read (sysctl-name-prefix \"kern.proc\"))\n"
     import re
     # Products can create state below nested projects after the profile is written.
-    metadata = "|".join(re.escape(name) for name in sorted(METADATA | {".pi", ".claude"}))
-    pattern = "^" + re.escape(str(source)) + "/(.*/)?(" + metadata + ")(/|$)"
+    names = denied_names()
+    pattern = "^" + re.escape(str(source)) + "/(.*/)?(" + "|".join(re.escape(name) for name in names) + ")(/|$)"
     text += f"(deny file-read-data file-write* (regex {json.dumps(pattern)}))\n"
-    profile = folder / "pi-bash.sb"
+    profile = folder / "pi-read.sb"
     profile.write_text(text)
-    env = {"PATH": str(bin_dir) + ":/usr/bin:/bin", "HOME": str(home), "TMPDIR": str(tmp), "LANG": "en_US.UTF-8"}
+    env = {"PATH": "/usr/bin:/bin", "HOME": str(home), "TMPDIR": str(tmp), "LANG": "en_US.UTF-8"}
     return {"profile_path": str(profile), "profile_sha256": file_digest(profile), "env": env, "source": str(source),
-            "allowed": {"read": [str(source), str(rg), str(tmp), str(home)], "write": [str(tmp)], "network": False,
+            "client_output": str(tmp), "binaries": binaries, "denied_names": names,
+            "allowed": {"read": [str(source), *binaries.values(), str(tmp), str(home)], "write": [str(tmp)], "network": False,
                         "process_info_others": False, "signal_outside_sandbox": False}}
 
 
-def shell_wrapper(native: dict, folder: Path) -> Path:
-    profile = baseline_boundary(native, folder)
-    config = folder / "pi-bash.json"
-    (folder / "bash-calls.jsonl").touch(exist_ok=False)
-    (folder / "bash-results.jsonl").touch(exist_ok=False)
-    write_json(config, {"folder": str(folder), "profile": profile}, exclusive=True)
-    wrapper = folder / "pi-shell"
-    wrapper.write_text(f"#!{sys.executable}\nimport sys\nsys.path.insert(0, {str(Path(__file__).resolve().parent.parent)!r})\n"
-                       f"from benchmark.pi_client import shell_main\nshell_main({str(config)!r}, sys.argv[1:])\n")
-    wrapper.chmod(0o700)
-    return wrapper
+# For ripgrep the last matching glob wins, so the exclusions go right before "--": the caller's own --glob cannot re-include them.
+RG_WRAPPER = """#!/bin/sh
+n=$#
+seen=
+for a in "$@"; do
+  if [ -z "$seen" ] && [ "$a" = "--" ]; then
+    seen=1
+    set -- "$@" {globs}
+  fi
+  set -- "$@" "$a"
+done
+shift "$n"
+{launch} "$@"
+"""
+
+READ_GUARD = r"""// Written by the benchmark harness. Admits or rejects every read, grep, find and ls call before it runs and records it.
+import { appendFileSync, existsSync, realpathSync } from "node:fs";
+import path from "node:path";
+import { resolveReadPath, resolveToCwd } from %(utils)s;
+const ROOT = %(root)s, OUTPUT = %(output)s, DENIED = new Set(%(denied)s), TOOLS = new Set(%(tools)s);
+const CALLS = %(calls)s, RESULTS = %(results)s, STOP = %(stop)s;
+const now = () => Number(process.hrtime.bigint()) / 1e9;
+const real = (target) => {
+  // The deepest existing ancestor decides where a missing path would land.
+  for (let current = target, rest = [];;) {
+    try { return path.join(realpathSync.native(current), ...rest); }
+    catch {
+      const parent = path.dirname(current);
+      if (parent === current) return target;
+      rest.unshift(path.basename(current));
+      current = parent;
+    }
+  }
+};
+const inside = (target, root) => target === root || target.startsWith(root + path.sep);
+const denied = (parts) => parts.some((part) => DENIED.has(part.toLowerCase()));
+function decide(tool, input, cwd) {
+  const given = typeof input?.path === "string" && input.path !== "" ? input.path : ".";
+  const target = real(tool === "read" ? resolveReadPath(given, cwd) : resolveToCwd(given, cwd));
+  // pi keeps the full text of a truncated result in its temporary folder; reading it back is ordinary client use.
+  if (inside(target, OUTPUT)) return { scope: "client_output" };
+  if (!inside(target, ROOT)) return { reason: "outside source" };
+  if (denied(path.relative(ROOT, target).split(path.sep))) return { reason: "denied folder" };
+  const selector = tool === "grep" ? input?.glob : tool === "find" ? input?.pattern : undefined;
+  if (typeof selector === "string" && denied(selector.split(/[\\/{},]/).map((part) => part.replace(/^!/, "")))) {
+    return { reason: "denied folder in selector" };
+  }
+  return { scope: "source" };
+}
+export default function (pi) {
+  let count = 0;
+  const running = new Map();
+  pi.on("tool_call", async (event, ctx) => {
+    if (!TOOLS.has(event.toolName)) return;
+    const id = ++count;
+    let verdict;
+    try { verdict = existsSync(STOP) ? { reason: "solver stopped" } : decide(event.toolName, event.input, ctx.cwd); }
+    catch { verdict = { reason: "path check failed" }; }
+    appendFileSync(CALLS, JSON.stringify({ id, call_id: event.toolCallId, tool: event.toolName, arguments: event.input,
+      dispatched: !verdict.reason, status: verdict.reason ? "rejected" : "admitted", reason: verdict.reason ?? null,
+      scope: verdict.scope ?? null }) + "\n");
+    if (verdict.reason) {
+      return { block: true, reason: verdict.reason === "solver stopped" ? %(stopped)s : %(rejection)s };
+    }
+    running.set(event.toolCallId, { id, at: now() });
+  });
+  pi.on("tool_result", async (event) => {
+    const call = running.get(event.toolCallId);
+    if (!call) return;
+    running.delete(event.toolCallId);
+    appendFileSync(RESULTS, JSON.stringify({ id: call.id, call_id: event.toolCallId, started_monotonic: call.at,
+      finished_monotonic: now(), is_error: event.isError === true }) + "\n");
+  });
+}
+"""
 
 
-def shell_main(config_path: str, args: list[str]) -> None:
-    """Trusted unsandboxed launcher. Admission and stop share the relay's atomic lock."""
-    from .route_transport import navigation_lock, append_jsonl
-    from .runner import read_jsonl_prefix
-    from .isolation import wrap
-    from .execution import ProcessRegistry
-    require(len(args) == 2 and args[0] == "-c", "pi shell argv 오류")
-    config = read_json(Path(config_path))
-    folder = Path(config["folder"])
-    with navigation_lock(folder):
-        log = folder / "bash-calls.jsonl"
-        rows, collection = read_jsonl_prefix(log)
-        require(collection["complete"], "pi bash admission log 불완전")
-        ident = len(rows) + 1
-        stopped = (folder / "stop.json").exists()
-        allowed = not stopped
-        append_jsonl(log, {"id": ident, "tool": "bash", "command": redact(args[1], os.environ.get(TOKEN_ENV)), "dispatched": allowed,
-                           "pid": os.getpid(), "pgid": os.getpgrp(), "start_fingerprint": ProcessRegistry.fingerprint(os.getpid()),
-                           "status": "admitted" if allowed else "rejected", "monotonic": time.monotonic()})
-    if not allowed:
-        print("Exploration call rejected before execution: solver stopped.", file=sys.stderr)
-        raise SystemExit(81)
-    profile = config["profile"]
-    command = wrap(["/usr/bin/env", "-i", *[f"{k}={v}" for k, v in profile["env"].items()],
-                    "/bin/bash", "--noprofile", "--norc", "-c", args[1]], profile)
-    started = time.monotonic()
-    try:
-        result = subprocess.run(command, env={}, cwd=profile["source"])
-        code = result.returncode
-    except BaseException:
-        code = None
-        raise
-    finally:
-        with navigation_lock(folder):
-            append_jsonl(folder / "bash-results.jsonl", {"id": ident, "started_monotonic": started,
-                "finished_monotonic": time.monotonic(), "exit_code": code})
-    raise SystemExit(code if code >= 0 else 128 - code)
+def read_tools(native: dict, folder: Path, agent: Path, pi_cli: Path) -> Path:
+    """Write the guard extension and the bin/rg and bin/fd wrappers that pi's grep and find look up first."""
+    profile = read_boundary(native, folder)
+    for name in (READ_CALLS, READ_RESULTS):
+        (folder / name).touch(exist_ok=False)
+    env = " ".join(shlex.quote(f"{key}={value}") for key, value in profile["env"].items())
+    launch = f"exec /usr/bin/sandbox-exec -f {shlex.quote(profile['profile_path'])} /usr/bin/env -i {env} "
+    names = profile["denied_names"]
+    globs = " ".join(f"--glob {shlex.quote('!' + name)} --glob {shlex.quote('!' + name + '/**')}" for name in names)
+    wrappers = agent / "bin"
+    wrappers.mkdir(mode=0o700)
+    (wrappers / "rg").write_text(RG_WRAPPER.format(globs=globs, launch=launch + shlex.quote(profile["binaries"]["rg"])))
+    (wrappers / "fd").write_text("#!/bin/sh\n" + launch + shlex.quote(profile["binaries"]["fd"]) + " "
+                                 + " ".join(f"--exclude {shlex.quote(name)}" for name in names) + ' "$@"\n')
+    for name in ("rg", "fd"):
+        (wrappers / name).chmod(0o700)
+    guard = agent / "read-guard.mjs"
+    guard.write_text(READ_GUARD % {
+        "utils": json.dumps(str(pi_cli.parent / "core/tools/path-utils.js")), "root": json.dumps(profile["source"]),
+        "output": json.dumps(str(Path(profile["client_output"]).resolve())), "denied": json.dumps(names),
+        "tools": json.dumps(list(NATIVE_TOOLS)), "calls": json.dumps(str(folder / READ_CALLS)),
+        "results": json.dumps(str(folder / READ_RESULTS)), "stop": json.dumps(str(folder / "stop.json")),
+        "rejection": json.dumps(REJECTION), "stopped": json.dumps(STOPPED)})
+    write_json(folder / "pi-read.json", {"folder": str(folder), "profile": profile, "guard": str(guard),
+        "guard_sha256": file_digest(guard), "wrappers": {name: file_digest(wrappers / name) for name in ("rg", "fd")}}, exclusive=True)
+    return guard
 
 
 def codemode_extension_source(factory: Path) -> str:
@@ -333,8 +401,10 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
         path.mkdir(parents=True, exist_ok=True, mode=0o700)
         path.chmod(0o700)
     provider = spec["provider"]
-    bash = native or (configuration(Path(relay_settings["source"]), Path(relay_settings["rg_binary"])) if relay_settings else None)
-    settings = {"shellPath": str(shell_wrapper(bash, folder))} if bash else {}
+    # Product arms get the same built-in read tools as the baseline, next to the MCP tools.
+    reading = native or (configuration(Path(relay_settings["source"]), Path(relay_settings["rg_binary"]),
+                                       Path(relay_settings["fd_binary"])) if relay_settings else None)
+    settings = {}
     mode = spec.get("measurement_mode", "direct")
     require(mode in {"direct", "codemode"}, "unknown measurement mode")
     if mode == "codemode":
@@ -350,6 +420,8 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
         factory = Path(tools["pi_cli"]).parent / "extensions/codemode/index.js"
         extension.write_text(codemode_extension_source(factory))
         args += ["-e", str(extension)]
+    if reading:
+        args += ["-e", str(read_tools(reading, folder, agent, Path(tools["pi_cli"])))]
     if is_claude:
         home = claude_auth.create_home(folder)
         bridge = agent / "private-bridge.mjs"
@@ -375,7 +447,7 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
         resource_tools = list(RESOURCE_TOOLS) if "resources" in server.get("capabilities", {}) else []
         require(len(set(product_tools)) == len(product_tools), "navigation 도구 이름 충돌")
         args += ["-e", tools["mcp_adapter_extension"], "--tools",
-                 ",".join([*product_tools, *resource_tools, "bash", *(["codemode"] if mode == "codemode" else [])])]
+                 ",".join([*product_tools, *resource_tools, *NATIVE_TOOLS, *(["codemode"] if mode == "codemode" else [])])]
         instructions = server.get("instructions") or ""
         require(isinstance(instructions, str), "server instructions 형식 오류")
         if instructions.strip():
@@ -396,7 +468,8 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
                                   "  if (typeof request?.reply === 'function') request.reply(" + json.dumps(metadata) + ");\n});\n")
         args += ["-e", str(meta_extension)]
     if not relay_settings:
-        args += ["--no-mcp", "--tools", "bash,codemode" if mode == "codemode" else "bash"] if native else ["--no-mcp", "--no-tools"]
+        args += (["--no-mcp", "--tools", ",".join([*NATIVE_TOOLS, *(["codemode"] if mode == "codemode" else [])])]
+                 if native else ["--no-mcp", "--no-tools"])
     # A loopback-only test launch must never touch operator credentials.
     if provider == "openai-codex" and local_endpoint is not None:
         from .pi_audit import dummy_token
@@ -413,7 +486,7 @@ def _launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: di
         "claude_result_meta": {"product": "preserve native _meta; fill absent anthropic/maxResultSizeChars with 500000",
                                "codemode": "bridge default (52224)" if mode == "codemode" else None,
                                "resources": CLAUDE_PRODUCT_CHARS if relay_settings else None,
-                               "native_bash": "bridge default (52224)"} if provider == "claude-bridge" else None,
+                               "native_tools": "bridge default (52224)"} if provider == "claude-bridge" else None,
         "mcp_client": ({"extension": "@buyong/pi-mcp-adapter", "version": tools["versions"]["mcp_adapter"],
                         "config_mode": "private PI_CODING_AGENT_DIR/mcp.json, project config rejected",
                         "settings": adapter_settings(relay_settings["arm"]), "server": {**ADAPTER_SERVER, "cwd": str(server_work), "maxOutputBytes": OUTPUT_GUARD_BYTES[relay_settings["arm"]]}, "tools": product_tools,
@@ -443,25 +516,6 @@ def redact(data: bytes | str, token: str | tuple[str, ...] | None) -> bytes | st
     for value in sorted(variants, key=len, reverse=True):
         data = data.replace(value.encode(), b"[REDACTED]") if isinstance(data, bytes) else data.replace(value, "[REDACTED]")
     return data
-
-
-def cleanup_shells(folder: Path, pump) -> dict:
-    """Pi launches bash in detached groups; killing only the pi PGID is insufficient."""
-    from types import SimpleNamespace
-    from .runner import cleanup_solver, read_live_jsonl, signal_target
-    from .execution import ProcessRegistry
-    rows = read_live_jsonl(folder / "bash-calls.jsonl")
-    groups = []
-    for row in rows:
-        if row["dispatched"]:
-            require(row["pid"] == row["pgid"] and row["pgid"] != os.getpgrp(), "pi shell group ownership 오류")
-            if signal_target(row["pgid"], 0, group=True):
-                current = ProcessRegistry.fingerprint(row["pid"])
-                if not row.get("start_fingerprint") or current and current != row["start_fingerprint"]:
-                    groups.append({"complete": False, "pgid": row["pgid"], "error": "shell group ownership changed; no signal sent"})
-                    continue
-            groups.append(cleanup_solver(SimpleNamespace(pid=row["pgid"]), pump))
-    return {"complete": all(row["complete"] for row in groups), "groups": groups}
 
 
 def claude_project_slug(workspace: Path) -> str:
@@ -570,9 +624,9 @@ def cancelled_before_admission(items: list[dict], admissions: list[dict], *, nat
     for item in items:
         if item.get("status") != "cancelled":
             continue
-        if native and item["name"] == "bash":
-            admitted = sum(row.get("command") == bash_command(item) for row in admissions)
-            starts = sum(other["name"] == "bash" and bash_command(other) == bash_command(item) for other in items)
+        if native and item["name"] in NATIVE_TOOLS:
+            # The guard records the client's own call id, so the join is exact.
+            admitted, starts = sum(row.get("call_id") == item["id"] for row in admissions), 1
         elif not native and item["name"] in aliases:
             admitted = sum(row.get("method") == "tools/call" and row.get("tool") == aliases[item["name"]]
                            and canonical(row.get("arguments")) == canonical(item["input"]) for row in admissions)
@@ -591,44 +645,36 @@ def cancelled_before_admission(items: list[dict], admissions: list[dict], *, nat
     return {"calls": calls, "ambiguous": ambiguous}
 
 
-def bash_command(item: dict) -> object:
-    arguments = item.get("input")
-    return arguments.get("command") if isinstance(arguments, dict) else None
-
-
-def bash_admission_check(items: list[dict], admissions: list[dict]) -> dict:
-    """Pinned pi validation/truncated-message errors are host-only, not wrapper admissions."""
+def read_admission_check(items: list[dict], admissions: list[dict]) -> dict:
+    """Every read-tool call in the stream has one guard row with its call id, unless pi stopped it before the guard ran."""
     from collections import Counter
+    recorded = Counter(row["call_id"] for row in admissions)
     cancellations = cancelled_before_admission(items, admissions, native=True)
     excluded = {item["id"] for item in cancellations["calls"]}
     rejected = []
     for item in items:
         result = item.get("result") or {}
-        if (item["name"] != "bash" or not item.get("completed") or item.get("missing_start")
-                or not result.get("is_error") or "structuredContent" in result):
+        if (item["name"] not in NATIVE_TOOLS or item["id"] in recorded or not item.get("completed") or item.get("missing_start")
+                or not result.get("is_error")):
             continue
         content = result.get("content")
         if not isinstance(content, list) or len(content) != 1 or content[0].get("type") != "text":
             continue
-        text = content[0].get("text", "")
+        text, name = content[0].get("text", ""), item["name"]
         reason = None
-        # Pinned bash also rejects a schema-valid timeout before spawning.
-        if (text.startswith('Validation failed for tool "bash":\n') and "\n\nReceived arguments:\n" in text
-                or text.startswith('Invalid arguments for tool "bash": ')
-                or text in ("Invalid timeout: must be a finite number of seconds",
-                            "Invalid timeout: maximum is 2147483.647 seconds")):
+        # Pinned pi validates arguments and refuses truncated tool calls before any tool_call handler runs.
+        if (text.startswith(f'Validation failed for tool "{name}":\n') and "\n\nReceived arguments:\n" in text
+                or text.startswith(f'Invalid arguments for tool "{name}": ')):
             reason = "argument_validation"
-        elif text == ('Tool call "bash" was not executed: the response hit the output token limit, '
+        elif text == (f'Tool call "{name}" was not executed: the response hit the output token limit, '
                       'so its arguments may be truncated. Re-issue the tool call with complete arguments.'):
             reason = "truncated_message"
         if reason:
             excluded.add(item["id"])
-            rejected.append({"id": item["id"], "parentToolCallId": item.get("parentToolCallId"), "name": "bash",
+            rejected.append({"id": item["id"], "parentToolCallId": item.get("parentToolCallId"), "name": name,
                              "arguments": item["input"], "reason": reason, "dispatched": False})
-    # Invalid arguments can themselves be arrays/objects; never use them as Counter keys directly.
-    expected = Counter(canonical(bash_command(item)) for item in items if item["name"] == "bash" and item["id"] not in excluded)
-    actual = Counter(canonical(row["command"]) for row in admissions)
-    return {"matched": expected == actual, "cancellations": cancellations, "host_rejected_calls": rejected,
+    expected = Counter(item["id"] for item in items if item["name"] in NATIVE_TOOLS and item["id"] not in excluded)
+    return {"matched": expected == recorded, "cancellations": cancellations, "host_rejected_calls": rejected,
             "excluded_ids": excluded}
 
 
@@ -800,46 +846,103 @@ def usage(events: list[dict], *, terminal_complete: bool, evidence: str) -> dict
 
 
 def probe(value: dict, folder: Path, denied_paths: list[Path], *, metadata_root: Path | None = None) -> dict:
-    """No model/auth requests: execute canaries through the actual shell wrapper."""
-    from .isolation import canary_files, hidden_references, kern_procargs_command, process_environment_observation
+    """No hosted model and no operator credential. A scripted loopback provider makes the pinned pi issue the canary
+    calls in each measurement mode; then the rg and fd wrappers are run on the same canaries without the guard."""
+    from . import pi_audit
+    from .isolation import canary_files, hidden_references
+    from .route_contract import load_profile
     from .settings import CACHE, RUNS
+    from .tool_artifacts import pi_toolchain
     folder.mkdir(parents=True, exist_ok=True)
-    wrapper = shell_wrapper(value, folder)
-    tmp = private_root(folder) / "tmp"
-    (tmp / "truncated-output.txt").write_text("PI_PRIVATE_OUTPUT_CANARY")
-    process_table = ("perl -e '$m=pack(\"i4\",1,14,0,0);$l=pack(\"Q\",0);"
-                     "exit((syscall(202,$m,3,0,$l,0,0)==0 && unpack(\"Q\",$l)>0) ? 0 : 1)'")
+    source, tools = Path(value["source"]).resolve(), pi_toolchain()
+    solver = next(item for item in load_profile()["solver_choices"] if item["provider"] == "openai-codex")
+    output_canary = "PI_PRIVATE_OUTPUT_CANARY"
     boundaries = []
-    with canary_files(Path(value["source"]), folder / "canaries", metadata_root=metadata_root) as (_, targets):
-        cases = [("source", "cat README.md", True), ("rg", "rg --version", True),
-                 ("pi_tmp", 'cat "$TMPDIR/truncated-output.txt"', True),
-                 ("network", "curl --noproxy '*' --max-time 2 http://127.0.0.1:19849", False),
-                 ("source_write", "touch .unauthorized-write", False),
-                 ("lsopen", "open -a Finder", False),
-                 ("appleevent", 'osascript -e \'tell application "Finder" to count windows\'', False),
-                 ("launchctl", "launchctl submit -l codemap-bench-canary-$$ -p /usr/bin/true", False),
-                 ("process_list", "ps -ax", False),
-                 ("process_table", process_table, False),
-                 ("process_environment", shlex.join(kern_procargs_command(os.getpid())), False),
-                 ("signal_outside_sandbox", f"kill -0 {os.getpid()}", False),
-                 ("signal_child", "sleep 5 & child=$!; kill $child; wait $child; test $? -eq 143", True),
-                 ("pipeline_sigpipe", "yes | head -n 1", True),
-                 ("private_paths", 'case "$TMPDIR $HOME $PATH" in *route-preparation*|*campaigns*|*codemap*|*bench*) exit 1;; esac', True),
-                 ("coreutils", "set -e -o pipefail; bash --version; cat README.md | head -n 1 | grep . | sed -n 1p | awk \'{print}\' | wc -l; ls .; find . -maxdepth 1 -type f", True)]
-        cases.extend((name, "cat " + shlex.quote(str(path)), False) for name, path in targets.items())
-        for name, text, allowed in cases:
-            result = subprocess.run([str(wrapper), "-c", text], cwd=value["source"], capture_output=True, timeout=10)
-            boundaries.append({"name": name, "exit_code": result.returncode, "expected_allowed": allowed,
-                               "stderr": result.stderr.decode(errors="replace")})
-            require((result.returncode == 0) == allowed, f"pi bash boundary 실패: {name}")
-            if name == "process_environment":
-                boundaries[-1].update(process_environment_observation(result))
-    result = subprocess.run([str(wrapper), "-c", "env"], cwd=value["source"],
-                            env={**os.environ, TOKEN_ENV: "STUB_SECRET", "PI_PARENT_SECRET": "STUB_SECRET"}, capture_output=True, timeout=10)
-    require(result.returncode == 0 and b"STUB_SECRET" not in result.stdout and b"PI_" not in result.stdout,
-            "pi bash 환경 누출")
-    boundaries.append({"name": "env_allowlist", "stdout": result.stdout.decode()})
-    host = capabilities()
+    canaries = lambda: canary_files(source, folder / "canaries", metadata_root=metadata_root)
+    for mode in ("direct", "codemode"):
+        slot = folder / mode
+        slot.mkdir()
+        cases, canary = [], []
+        with contextlib.ExitStack() as stack:
+            def script():
+                # After the launch: its preflight refuses a source that holds a link to the outside.
+                token, targets = stack.enter_context(canaries())
+                canary.append(token)
+                metadata = targets["metadata"]
+                # Cases: name, tool, arguments, allowed, text the result must contain (allowed only).
+                cases.extend([
+                    ("source", "read", {"path": "README.md"}, True, None),
+                    ("source_absolute", "read", {"path": str(source / "README.md"), "limit": 1}, True, None),
+                    ("source_grep", "grep", {"pattern": ".", "path": "README.md", "limit": 1}, True, "README.md"),
+                    ("source_find", "find", {"pattern": "README.md", "limit": 5}, True, "README.md"),
+                    ("source_ls", "ls", {"limit": 5}, True, None),
+                    # Hidden search from the root is admitted; the wrappers must keep denied folders out of it.
+                    ("root_grep", "grep", {"pattern": token, "literal": True}, True, "No matches found"),
+                    ("root_find", "find", {"pattern": metadata.name}, True, "No files found"),
+                    ("pi_tmp", "read", {"path": str(private_root(slot) / "tmp/truncated-output.txt")}, True, output_canary),
+                    ("parent", "ls", {"path": ".."}, False, None),
+                    ("parent_grep", "grep", {"pattern": token, "path": ".."}, False, None),
+                    ("git", "read", {"path": ".git/HEAD"}, False, None),
+                    ("git_case", "read", {"path": ".GIT/HEAD"}, False, None),
+                    ("git_ls", "ls", {"path": ".git"}, False, None),
+                    ("git_find", "find", {"pattern": ".git/*"}, False, None),
+                    ("git_grep_glob", "grep", {"pattern": "ref", "glob": ".git/**"}, False, None)])
+                for name, path in targets.items():
+                    cases.append((name, "read", {"path": str(path)}, False, None))
+                    cases.append((name + "_grep", "grep", {"pattern": token, "path": str(path), "literal": True}, False, None))
+                    if path.parent != source:  # the symlink canary sits in the source root itself
+                        cases.append((name + "_ls", "ls", {"path": str(path.parent)}, False, None))
+                        cases.append((name + "_find", "find", {"pattern": "*", "path": str(path.parent)}, False, None))
+                keys = [canonical([tool, arguments]) for _, tool, arguments, _, _ in cases]
+                require(len(set(keys)) == len(keys), "pi read-tool probe cases must be distinct")
+                return [[tool, arguments] for _, tool, arguments, _, _ in cases]
+            played = pi_audit.play(slot, {"provider": solver["provider"], "model": solver["model"],
+                                          "reasoning_effort": solver["reasoning_effort"], "measurement_mode": mode,
+                                          "native_agent": value}, script, toolchain=tools,
+                                   client_output={"truncated-output.txt": output_canary})
+        items = {canonical([item["name"], item["input"]]): item for item in tool_items(played["events"])}
+        # The calls name the canary (so do the argument previews a script result keeps); no delivered output may carry it.
+        delivered = [(item.get("result") or {}).get(key) for item in items.values() for key in ("content", "structuredContent")]
+        require(canary[0] not in json.dumps(delivered), f"pi read-tool boundary 실패: canary reached a tool result ({mode})")
+        admissions = {canonical([row["tool"], row["arguments"]]): row for row in played["admissions"]}
+        require(len(played["admissions"]) == len(cases) and read_admission_check(list(items.values()), played["admissions"])["matched"],
+                f"pi read-tool guard/stream call inventories differ ({mode})")
+        for name, tool, arguments, allowed, expected in cases:
+            key = canonical([tool, arguments])
+            row, item = admissions.get(key), items.get(key)
+            require(row is not None and item is not None and item.get("completed"), f"pi read-tool probe call missing: {name} ({mode})")
+            result = item["result"]
+            text = "".join(part.get("text", "") for part in result.get("content") or [] if isinstance(part, dict))
+            boundaries.append({"name": name, "mode": mode, "tool": tool, "expected_allowed": allowed, "status": row["status"],
+                               "scope": row.get("scope"), "is_error": bool(result.get("is_error"))})
+            if allowed:
+                require(row["status"] == "admitted" and not result.get("is_error") and (expected is None or expected in text),
+                        f"pi read-tool boundary 실패: {name} ({mode})")
+            else:
+                require(row["status"] == "rejected" and result.get("is_error") and REJECTION in text,
+                        f"pi read-tool boundary 실패: {name} ({mode})")
+    # Second layer, without the guard: the wrappers pi's grep and find spawn, in their own Seatbelt profile.
+    wrappers = folder / "direct/pi-agent/bin"
+    with canaries() as (token, targets):
+        metadata = targets["metadata"]
+        direct = [("rg_version", [str(wrappers / "rg"), "--version"], True), ("fd_version", [str(wrappers / "fd"), "--version"], True),
+                  ("rg_source", [str(wrappers / "rg"), "--no-config", "--hidden", "--max-count", "1", "--", ".", "README.md"], True),
+                  ("fd_source", [str(wrappers / "fd"), "--glob", "--hidden", "--", "README.md", "."], True),
+                  ("rg_root", [str(wrappers / "rg"), "--no-config", "--hidden", "--no-ignore", "--glob", metadata.parent.name + "/**",
+                               "--fixed-strings", "--", token, "."], False),
+                  ("fd_root", [str(wrappers / "fd"), "--glob", "--hidden", "--no-ignore", "--", metadata.name, "."], False)]
+        for name, path in targets.items():
+            direct.append(("rg_" + name, [str(wrappers / "rg"), "--no-config", "--hidden", "--no-ignore", "--fixed-strings", "--", token, str(path)], False))
+            if path.parent != source:
+                direct.append(("fd_" + name, [str(wrappers / "fd"), "--glob", "--hidden", "--no-ignore", "--", "*", str(path.parent)], False))
+        for name, args, allowed in direct:
+            result = subprocess.run(args, cwd=source, env={**os.environ, TOKEN_ENV: "STUB_SECRET"}, capture_output=True, timeout=30)
+            found = bool(result.stdout.strip())
+            boundaries.append({"name": name, "mode": "wrapper", "exit_code": result.returncode, "expected_allowed": allowed,
+                               "output": found, "stderr": result.stderr.decode(errors="replace")[:400]})
+            require(token.encode() not in result.stdout and (result.returncode == 0 and found) == allowed,
+                    f"pi read-tool wrapper boundary 실패: {name}")
+    host = capabilities(toolchain=tools)
     write_json(folder / "inventory.json", {"backend": BACKEND, "configuration": value, "cli": host})
     write_json(folder / "probe.json", {"boundaries": boundaries, "model_invocations": 0,
         "references": [{"path": str(p), "exists": p.exists(), "kind": "existence_only"} for p in [*denied_paths, *hidden_references(), CACHE / "plans", CACHE / "runs", CACHE / "grading-contract", RUNS]],

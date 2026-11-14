@@ -46,9 +46,10 @@
     "arm": "rg",
     "mode": "native_agent",
     "search_product_mcp": false,
-    "tools": "pi bash only, per-slot Seatbelt shell wrapper; no MCP or in-process filesystem tools",
+    "tools": "pi read, grep, find and ls behind a per-slot path guard; their rg and fd run in a per-slot Seatbelt wrapper; no bash and no MCP",
     "rg_version": "15.2.0",
-    "call_unit": "atomic shell wrapper admission, cross-checked with pi tool_execution_start",
+    "fd_version": "10.5.0",
+    "call_unit": "read-tool guard admission keyed by the pi call id, cross-checked with pi tool_execution_start",
     "source_access": "read-only fixed corpus and minimal runtime; no reference/report access"
   },
   "native_output_policy": {
@@ -79,6 +80,7 @@
   "execution_authorized": false,
   "policy_decisions": {
     "baseline": "plain rg는 검색 제품을 추가하지 않은 기본 코딩 에이전트 환경을 뜻한다",
+    "baseline_tools": "기준군은 에이전트의 기본 읽기 동작(pi read·grep·find·ls)이며 bash 실행이 아니다. 제품 비교군도 MCP 도구와 함께 같은 읽기 도구를 받는다 (2026-11-15)",
     "judgment": "인용 파싱은 보조 정보이며 정확성·근거의 최종 판단은 LLM이 맡는다",
     "zvec_auxiliaries": "공식 후속 grep/rg 안내를 근거로 보조 도구를 추가하지 않는다",
     "tool_access": "가능하면 각 제품의 도구만 제공하고 어쩔수 없다면 rg, read 제공",

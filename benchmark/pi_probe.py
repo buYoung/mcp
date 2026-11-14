@@ -104,21 +104,21 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
             write_json(inventory_path, inventory)
             state = {"source": str(source), "native_inventory": str(inventory_path), "native_inventory_sha256": file_digest(inventory_path),
                      "relay_settings": {"arm": arm, "source": str(source), "rg_binary": str(native_fixture),
-                                        "enabled_tools": [t["name"] for t in inventory_tools], "auxiliaries": []} if arm != "rg" else None}
+                                        "fd_binary": str(native_fixture), "enabled_tools": [t["name"] for t in inventory_tools], "auxiliaries": []} if arm != "rg" else None}
             for mode in ("direct", "codemode"):
                 spec = settings.execution_settings("claude-opus-5-5")
                 spec["measurement_mode"] = mode
                 if arm == "rg":
-                    # Bash env is requested only in direct; no rg invocation is needed.
-                    spec["native_agent"] = pi_client.configuration(source, native_fixture)
+                    # The guard probe reads outside the source only in direct; no rg or fd invocation is needed.
+                    spec["native_agent"] = pi_client.configuration(source, native_fixture, native_fixture)
                 folder = root / f"{arm}-{mode}"
                 env_probe = arm == "rg" and mode == "direct"
                 result = pi_audit.capture(folder, state, spec, "Inspect only supplied source.", toolchain=candidate, port=port,
-                                          bash_env_probe=env_probe)
+                                          guard_probe=env_probe)
                 require(result["passed"], "installed pi first-request/codemode audit failed")
                 actual = bridge_tools(folder)
-                # pi bash/codemode keep the bridge default in every arm; product budgets are unchanged.
-                expected = {name: 52224 if name in {"bash", "codemode"} else 100000 if arm == "codemap-search" else 500000
+                # pi read tools and codemode keep the bridge default in every arm; product budgets are unchanged.
+                expected = {name: 52224 if name in {*pi_client.NATIVE_TOOLS, "codemode"} else 100000 if arm == "codemap-search" else 500000
                             for name in actual}
                 require(actual and all(t.get("_meta", {}).get("anthropic/maxResultSizeChars") == expected[name] for name, t in actual.items()),
                         "installed bridge result-size metadata mismatch")
@@ -132,7 +132,7 @@ def run_behavior_probe(tools: dict, modules: Path, root: Path, *, port: int = 0,
                     "audit_sha256": file_digest(folder / "audit.json"), "tool_list": str(folder / "bridge-tools.jsonl"),
                     "tool_list_sha256": file_digest(folder / "bridge-tools.jsonl"), "request": result["request"],
                     "request_sha256": result["request_sha256"], "nested_catalog": result["nested_catalog"],
-                    "description_delivery": result["description_delivery"], "bash_environment": result["bash_environment"],
+                    "description_delivery": result["description_delivery"], "read_guard": result["read_guard"],
                     "private_home_removed": True}
         require(digest(tool_artifacts.tree_files(modules)) == tree, "installation changed during behavior probe")
         require(implementation_hashes() == record["implementation_hashes"], "harness changed during behavior probe")
@@ -156,8 +156,8 @@ def verify_behavior_proof(pins: dict, actual_tree: str | None = None) -> dict:
     expected = {f"{arm}/{mode}" for arm in ("codemap-search", "codegraph", "graphify", "rg") for mode in ("direct", "codemode")}
     require(set(value.get("conditions", {})) == expected and all(row.get("passed") is True for row in value["conditions"].values()),
             "pi 게시물 행동 검사 조건 누락")
-    require(value["conditions"]["rg/direct"].get("bash_environment") ==
-            {"requests": 2, "tool_succeeded": True, "credential_and_path_absent": True}, "pi provider bash env 검사 증거 누락")
+    require(value["conditions"]["rg/direct"].get("read_guard") ==
+            {"requests": 2, "outside_read_rejected": True, "credential_and_path_absent": True}, "pi provider read guard 검사 증거 누락")
     for row in value["conditions"].values():
         for key in ("audit", "tool_list", "request"):
             require(file_digest(Path(row[key])) == row[key + "_sha256"], "pi 행동 검증 원자료 변경")

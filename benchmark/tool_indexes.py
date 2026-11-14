@@ -406,6 +406,8 @@ def probe_configuration(ident: str, state: dict, artifacts: dict) -> dict:
             from .claude_client import configuration
         elif state.get("agent_backend") == "pi":
             from .pi_client import configuration
+            from .tool_artifacts import fd_binary
+            return configuration(source, Path(artifact["launch"][0]), Path(fd_binary()["path"]))
         return configuration(source, Path(artifact["launch"][0]))
     launch = artifact["launch"]
     client_config = {"transport": "stdio", "launch": launch, "env": env}
@@ -428,10 +430,15 @@ def probe_configuration(ident: str, state: dict, artifacts: dict) -> dict:
         # Preserve the product RPC timeout above Serena's native 240 seconds, independent of solver duration.
         client_config["timeout_seconds"] = 300
     client_config["product_arm"] = ident
+    read_tools = {}
+    if state.get("agent_backend", "pi") == "pi":
+        # pi gives a product arm the same built-in read tools as the baseline; find runs the pinned fd.
+        from .tool_artifacts import fd_binary
+        read_tools["fd_binary"] = fd_binary()["path"]
     return {"schema": "grafana-route-relay-v1", "arm": ident, "source": str(source),
             "policy_state": {key: state[key] for key in ("source", "home", "modes")},
             "client": client_config, "log": "<per-run directory>/relay.jsonl",
-            "rg_binary": artifacts["rg"]["launch"][0], "auxiliaries": []}
+            "rg_binary": artifacts["rg"]["launch"][0], **read_tools, "auxiliaries": []}
 
 
 def probe_inputs(state: dict, artifacts: dict) -> dict:
@@ -479,7 +486,7 @@ def verify_probe(state: dict, artifacts: dict) -> None:
 def probe_output_digest(state: dict) -> str:
     return digest({key: state.get(key) for key in (
         "status", "modes", "relay_settings", "native_agent", "native_inventory_sha256", "probe_log_sha256", "tool_condition",
-        "auxiliary_necessity", "probes", "bash_probe", "cleanup", "reset", "prepared_index_ready", "warmup_policy", "isolation")})
+        "auxiliary_necessity", "probes", "read_probe", "cleanup", "reset", "prepared_index_ready", "warmup_policy", "isolation")})
 
 
 def ready_path(ident: str, backend="pi") -> Path:
@@ -556,9 +563,10 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
                 metadata_root = (Path(state["modes"]["graph_path"]).parent if ident == "graphify"
                                  else Path(state["home"]) if ident == "codebase-memory-mcp"
                                  else Path(state["source"]) / next(iter(SOURCE_METADATA[ident])))
-                observed["bash_probe"] = pi_client.probe(
-                    pi_client.configuration(Path(relay_settings["source"]), Path(relay_settings["rg_binary"])),
-                    probe / "bash-probe", [routes.DATA / "dataset.json", routes.EVIDENCE / "01-contract.json"],
+                observed["read_probe"] = pi_client.probe(
+                    pi_client.configuration(Path(relay_settings["source"]), Path(relay_settings["rg_binary"]),
+                                            Path(relay_settings["fd_binary"])),
+                    probe / "read-probe", [routes.DATA / "dataset.json", routes.EVIDENCE / "01-contract.json"],
                     metadata_root=metadata_root)
         audit = isolation.audit_index_paths(ident, state, read_json(CORPUS))
     except Exception as exc:
@@ -583,8 +591,11 @@ def probe_index(ident: str, emit=print, *, backend="pi") -> dict:
                    cleanup=cleanup, restore=restored, reset=reset)
     receipt["timings"].update(restore_seconds=restore_seconds, cleanup_seconds=cleanup["cleanup_seconds"],
                               reset_seconds=reset["elapsed_seconds"])
+    # The pi read-tool probe keeps one folder per measurement mode: under read-probe for a product, in the probe itself for rg.
+    read_probe = probe / "read-probe" if (probe / "read-probe").is_dir() else probe
     receipt["evidence"] = [{"path": str(p), "sha256": file_digest(p)}
-                            for p in sorted([*probe.iterdir(), *(probe / "bash-probe").glob("*")])
+                            for p in sorted({*probe.iterdir(), *read_probe.glob("*"), *read_probe.glob("direct/*"),
+                                             *read_probe.glob("codemode/*")})
                             if p.is_file() and not p.is_symlink()]
     observed["probe_log_sha256"] = file_digest(Path(observed["probe_log"]))
     result = {**state, **observed, "status": "ready", "cleanup": cleanup, "baseline": baseline, "reset": reset,

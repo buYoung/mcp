@@ -155,6 +155,8 @@ class WarmSession:
             if self.ident == "rg":
                 native = self.state["native_agent"]
                 require(native["search_product_mcp"] is False and file_digest(Path(native["rg_binary"])) == native["rg_sha256"], "native rg binding changed")
+                # pi's find tool runs fd; the other clients' baselines have no such binding.
+                require("fd_binary" not in native or file_digest(Path(native["fd_binary"])) == native["fd_sha256"], "native fd binding changed")
                 gate = {"not_applicable": True, "assertions": ["pinned rg and prepared native permission boundary; no MCP"],
                         "first_usable_at": None, "stable_ready_at": time.monotonic()}
                 initialized_seconds = 0

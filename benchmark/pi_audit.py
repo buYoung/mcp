@@ -171,12 +171,12 @@ def audit_codemode_catalog(body: dict, allowed: set[str], *, product: bool) -> d
 
 
 def model_error_messages() -> list[str]:
-    """Audit all runtime relay/shell error paths, including formatted messages and RPC envelopes."""
+    """Audit all runtime relay/read-guard error paths, including formatted messages and RPC envelopes."""
     from . import isolation, route_transport
     import textwrap
     messages = []
     targets = (isolation.RelayPolicy, isolation.wrap, route_transport.MCPClient, route_transport.NativeRelay,
-               route_transport.source_path, route_transport.auxiliary_call, pi_client.shell_main)
+               route_transport.source_path, route_transport.auxiliary_call)
     for target in targets:
         tree = ast.parse(textwrap.dedent(inspect.getsource(target)))
         module = inspect.getmodule(target)
@@ -198,15 +198,16 @@ def model_error_messages() -> list[str]:
             elif isinstance(node, ast.Dict):
                 messages.extend(value for key, arg in zip(node.keys, node.values)
                                 if isinstance(key, ast.Constant) and key.value in {"message", "text"} and (value := text(arg)))
-    return sorted(set(messages))
+    # The read-tool guard runs inside pi; these are the only texts it returns.
+    return sorted({*messages, pi_client.REJECTION, pi_client.STOPPED})
 
 
 def static_surfaces(folder: Path, source: str) -> dict:
     """Paths revealed only after truncation/errors must also pass before a model can run."""
     root = pi_client.private_root(folder)
-    return {"paths": [source, str(root / "work"), str(root / "home"), str(root / "bin/rg"),
+    return {"paths": [source, str(root / "work"), str(root / "home"), str(root / "bin/rg"), str(root / "bin/fd"),
                        str(root / "tmp/pi-mcp-0000000000000000.txt"),
-                       str(root / "tmp/pi-codemode-000000.txt"), str(root / "tmp/pi-bash-000000.log")],
+                       str(root / "tmp/pi-codemode-000000.txt")],
             "rejection_messages": model_error_messages()}
 
 
@@ -234,9 +235,10 @@ def audit_session(folder: Path, inventory: dict) -> dict:
 
 
 class CaptureProvider:
-    """Loopback first request, optionally followed by one bash env result; no hosted transport."""
+    """Loopback first request. With a script, that request is answered with the scripted read-tool calls
+    ([name, arguments] pairs; one script-tool call in codemode) and a second request ends the turn. No hosted transport."""
     def __init__(self, node: str, *, port: int = 0, expected_auth: str | None = None,
-                 bash_env_probe: bool = False, forbidden_values: tuple[str, ...] = ()):
+                 script: list | None = None, script_mode: str = "direct", forbidden_values: tuple[str, ...] = ()):
         self.requests, self.errors, self.auth_matches = [], [], []
         owner = self
 
@@ -269,7 +271,8 @@ class CaptureProvider:
                         require(expected_auth not in json.dumps(body), "credential leaked into request body")
                     require(all(value not in json.dumps(body) for value in forbidden_values), "private credential/path leaked into request body")
                     owner.requests.append(body)
-                    require(len(owner.requests) <= (2 if bash_env_probe else 1), "unexpected request count in local audit")
+                    require(len(owner.requests) <= (1 if script is None else 2), "unexpected request count in local audit")
+                    calls = script if script and len(owner.requests) == 1 else []
                     self.send_response(200)
                     self.send_header("Content-Type", "text/event-stream")
                     self.end_headers()
@@ -278,26 +281,45 @@ class CaptureProvider:
                         self.wfile.flush()
                     if self.path == "/codex/responses":
                         send("response.created", response={"id": "resp_local", "status": "in_progress"})
-                        item = {"type": "message", "id": "msg_local", "role": "assistant", "content": []}
-                        send("response.output_item.added", output_index=0, item=item)
-                        send("response.output_text.delta", output_index=0, content_index=0, delta="Done.")
-                        item.update(status="completed", content=[{"type": "output_text", "text": "Done.", "annotations": []}])
-                        send("response.output_item.done", output_index=0, item=item)
-                        send("response.completed", response={"id": "resp_local", "status": "completed", "model": body["model"], "output": [item],
+                        items = []
+                        if calls and script_mode == "codemode":
+                            code = ("for (const [name, args] of " + json.dumps(calls) + ") {\n"
+                                    "  try { await tools[name](args); } catch (error) {}\n}\ntext(\"done\");\n")
+                            item = {"type": "custom_tool_call", "id": "ctc_local", "call_id": "call_local", "name": "codemode", "input": ""}
+                            send("response.output_item.added", output_index=0, item=item)
+                            item = {**item, "input": code, "status": "completed"}
+                            send("response.custom_tool_call_input.done", output_index=0, item_id=item["id"], input=code)
+                            send("response.output_item.done", output_index=0, item=item)
+                            items.append(item)
+                        for index, (name, arguments) in enumerate(calls if script_mode != "codemode" else []):
+                            item = {"type": "function_call", "id": f"fc_{index}", "call_id": f"call_{index}", "name": name, "arguments": ""}
+                            send("response.output_item.added", output_index=index, item=item)
+                            item = {**item, "arguments": json.dumps(arguments), "status": "completed"}
+                            send("response.function_call_arguments.done", output_index=index, item_id=item["id"], arguments=item["arguments"])
+                            send("response.output_item.done", output_index=index, item=item)
+                            items.append(item)
+                        if not calls:
+                            item = {"type": "message", "id": "msg_local", "role": "assistant", "content": []}
+                            send("response.output_item.added", output_index=0, item=item)
+                            send("response.output_text.delta", output_index=0, content_index=0, delta="Done.")
+                            item.update(status="completed", content=[{"type": "output_text", "text": "Done.", "annotations": []}])
+                            send("response.output_item.done", output_index=0, item=item)
+                            items.append(item)
+                        send("response.completed", response={"id": "resp_local", "status": "completed", "model": body["model"], "output": items,
                              "usage": {"input_tokens": 100, "output_tokens": 1, "total_tokens": 101}})
                     else:
                         send("message_start", message={"id": "msg_local_" + str(len(owner.requests)), "type": "message", "role": "assistant", "model": body["model"],
                              "content": [], "stop_reason": None, "stop_sequence": None, "usage": {"input_tokens": 100, "output_tokens": 0}})
-                        call_env = bash_env_probe and len(owner.requests) == 1
-                        if call_env:
-                            send("content_block_start", index=0, content_block={"type": "tool_use", "id": "tool_env",
-                                 "name": "mcp__custom-tools__bash", "input": {}})
-                            send("content_block_delta", index=0, delta={"type": "input_json_delta", "partial_json": '{"command":"env"}'})
-                        else:
+                        for index, (name, arguments) in enumerate(calls):
+                            send("content_block_start", index=index, content_block={"type": "tool_use", "id": f"tool_{index}",
+                                 "name": "mcp__custom-tools__" + name, "input": {}})
+                            send("content_block_delta", index=index, delta={"type": "input_json_delta", "partial_json": json.dumps(arguments)})
+                            send("content_block_stop", index=index)
+                        if not calls:
                             send("content_block_start", index=0, content_block={"type": "text", "text": ""})
                             send("content_block_delta", index=0, delta={"type": "text_delta", "text": "Done."})
-                        send("content_block_stop", index=0)
-                        send("message_delta", delta={"stop_reason": "tool_use" if call_env else "end_turn", "stop_sequence": None}, usage={"output_tokens": 1})
+                            send("content_block_stop", index=0)
+                        send("message_delta", delta={"stop_reason": "tool_use" if calls else "end_turn", "stop_sequence": None}, usage={"output_tokens": 1})
                         send("message_stop")
                 except (BrokenPipeError, ConnectionResetError):
                     pass
@@ -336,13 +358,58 @@ def replay(path: Path) -> None:
         print(json.dumps({"jsonrpc": "2.0", "id": request["id"], "result": result}), flush=True)
 
 
+def play(folder: Path, spec: dict, script, *, toolchain: dict, client_output: dict | None = None) -> dict:
+    """Run the pinned pi once against the loopback provider, which answers with the scripted read-tool calls.
+    `script` is called after the launch, so it can place canaries the launch preflight would refuse, and returns
+    the [name, arguments] calls. No hosted request and no operator credential; returns the redacted stream and
+    the guard's admission rows."""
+    from .core import read_jsonl
+    folder.mkdir(parents=True, exist_ok=True)
+    require(not (folder / "events.jsonl").exists(), "scripted probe folder was already used")
+    calls = []
+    provider = CaptureProvider(toolchain["node"], script=calls, script_mode=spec.get("measurement_mode", "direct"))
+    process = cwd = env = None
+    try:
+        args, cwd, env, _ = pi_client.launch(folder, spec, None, local_endpoint=provider.endpoint, toolchain=toolchain)
+        calls.extend(script())
+        require(bool(calls), "scripted probe needs at least one call")
+        for name, text in (client_output or {}).items():
+            (pi_client.private_root(folder) / "tmp" / name).write_text(text)
+        process = subprocess.Popen(args, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, start_new_session=True)
+        try:
+            stdout, stderr = process.communicate(b"Local boundary probe.", timeout=180)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.communicate()
+            raise ValueError("local read-tool probe timed out") from None
+        token = env.get(pi_client.TOKEN_ENV)
+        (folder / "events.jsonl").write_bytes(pi_client.redact(stdout, token))
+        (folder / "stderr.log").write_bytes(pi_client.redact(stderr, token))
+        write_json(folder / "request.json", provider.requests)
+        write_json(folder / "command.json", {"args": args, "cwd": str(cwd)})
+        require(process.returncode == 0 and len(provider.requests) == 2 and not provider.errors, "local read-tool probe failed")
+        return {"events": read_jsonl(folder / "events.jsonl"), "admissions": read_jsonl(folder / pi_client.READ_CALLS)}
+    finally:
+        provider.close()
+        if process is not None:
+            from .runner import cleanup_solver
+            cleanup = cleanup_solver(process, lambda: None)
+            write_json(folder / "capture-cleanup.json", cleanup)
+            require(cleanup["complete"], "local probe process cleanup incomplete")
+        if cwd is not None:
+            cleanup = pi_client.cleanup_private(folder, cwd, spec["provider"], env.get(pi_client.TOKEN_ENV))
+            write_json(folder / "private-cleanup.json", cleanup)
+            require(cleanup["complete"], "private state cleanup validation failed")
+
+
 def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: dict | None = None, port: int = 0,
-            observer: Path | None = None, bash_env_probe: bool = False) -> dict:
+            observer: Path | None = None, guard_probe: bool = False) -> dict:
     from . import claude_settings, tool_artifacts, claude_auth
     import secrets
     import tempfile
-    require(not bash_env_probe or (spec["provider"] == "claude-bridge" and spec.get("native_agent")
-                                  and spec.get("measurement_mode") == "direct"), "bash env probe requires Claude rg/direct")
+    require(not guard_probe or (spec["provider"] == "claude-bridge" and spec.get("native_agent")
+                                and spec.get("measurement_mode") == "direct"), "read guard probe requires Claude rg/direct")
     from .route_transport import READ_TOOL
     folder.mkdir(parents=True, exist_ok=False)
     inventory = read_json(Path(state["native_inventory"]))
@@ -366,14 +433,20 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
         from .pi_probe import tool_list_observer
         observer = tool_list_observer(tools, folder)
     credential = claude_auth.Credential("local-" + secrets.token_urlsafe(24)) if spec["provider"] == "claude-bridge" else None
-    credential_file = tempfile.NamedTemporaryFile(mode="w", dir=folder.parent, prefix=".probe-token-") if bash_env_probe else None
+    credential_file = tempfile.NamedTemporaryFile(mode="w", dir=folder.parent, prefix=".probe-token-") if guard_probe else None
+    canary = tempfile.NamedTemporaryFile(mode="w", dir=folder.parent, prefix=".probe-canary-") if guard_probe else None
+    canary_text = "PI_READ_GUARD_CANARY_" + secrets.token_hex(16)
     if credential_file:
         credential_file.write(credential.token)
         credential_file.flush()
         path = Path(credential_file.name).absolute()
         credential.paths = tuple(dict.fromkeys((str(path), str(path.resolve()))))
+        canary.write(canary_text)
+        canary.flush()
+    # The scripted call asks the bridge to read a file next to the source; its text must never come back in a request.
     provider = CaptureProvider(tools["node"], port=port, expected_auth=credential.token if credential else None,
-                               bash_env_probe=bash_env_probe, forbidden_values=credential.redactions if credential else ())
+                               script=[["read", {"path": str(Path(canary.name).absolute())}]] if guard_probe else None,
+                               forbidden_values=(*(credential.redactions if credential else ()), *((canary_text,) if guard_probe else ())))
     home = claude_auth.home_path(folder) if credential else None
     spec = dict(spec)
     if home:
@@ -403,25 +476,26 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
         (folder / "stderr.log").write_bytes(pi_client.redact(stderr, redactions))
         write_json(folder / "request.json", provider.requests)
         write_json(folder / "command.json", {"args": args, "cwd": str(cwd)})
-        require(process.returncode == 0 and len(provider.requests) == (2 if bash_env_probe else 1) and not provider.errors,
+        require(process.returncode == 0 and len(provider.requests) == (2 if guard_probe else 1) and not provider.errors,
                 "local provider request capture failed (summary/callback-failure behavior is not tested)")
-        bash_environment = None
-        if bash_env_probe:
+        read_guard = None
+        if guard_probe:
             from .core import read_jsonl
             events = read_jsonl(folder / "events.jsonl")
-            calls = [e for e in events if e.get("type") == "tool_execution_start" and e.get("toolName") == "bash"]
-            ends = [e for e in events if e.get("type") == "tool_execution_end" and e.get("toolName") == "bash"]
-            require(len(calls) == len(ends) == 1 and calls[0].get("args") == {"command": "env"}
-                    and not ends[0].get("isError"), "provider probe did not execute bash env successfully")
-            require(any("HOME=" in text and "PATH=" in text for _, text in strings(ends[0].get("result"))), "bash env output missing")
-            bash_environment = {"requests": 2, "tool_succeeded": True, "credential_and_path_absent": True}
+            ends = [e for e in events if e.get("type") == "tool_execution_end" and e.get("toolName") == "read"]
+            rows = read_jsonl(folder / pi_client.READ_CALLS)
+            require(len(ends) == len(rows) == 1 and ends[0].get("isError") is True and rows[0]["status"] == "rejected"
+                    and any(pi_client.REJECTION in text for _, text in strings(ends[0].get("result"))),
+                    "provider probe did not reject the read outside the source")
+            read_guard = {"requests": 2, "outside_read_rejected": True, "credential_and_path_absent": True}
         body = provider.requests[0]
         violations = audit_request(body, inventory)
         env_canary = read_json(replay_path.with_suffix(".environment.json")) if relay else None
         if env_canary and any(value for process in env_canary.values() for value in process.values()):
             violations.append({"kind": "MCP child credential environment leak"})
+        native = set(pi_client.NATIVE_TOOLS)
         expected = ({"codemode"} if spec.get("measurement_mode") == "codemode" else
-                    {"bash", *[pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]]} if relay else {"bash"})
+                    {*native, *[pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]]} if relay else native)
         if relay and spec.get("measurement_mode") != "codemode" and "resources" in inventory["initialize"].get("capabilities", {}):
             expected.update(pi_client.RESOURCE_TOOLS)
         declared = declared_tool_names(body)
@@ -435,7 +509,7 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
             full_body = {"tools": list(full_tools.values())}
         nested = None
         if spec.get("measurement_mode") == "codemode":
-            allowed = {"bash", *[pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]]} if relay else {"bash"}
+            allowed = {*native, *[pi_client.navigation_tool_name(name) for name in relay["enabled_tools"]]} if relay else set(native)
             if relay and "resources" in inventory["initialize"].get("capabilities", {}):
                 allowed.update(pi_client.RESOURCE_TOOLS)
             nested = audit_codemode_catalog(full_body, allowed, product=bool(relay))
@@ -464,7 +538,7 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
                   "request": str(folder / "request.json"), "request_sha256": file_digest(folder / "request.json"),
                   "command": str(folder / "command.json"), "command_sha256": file_digest(folder / "command.json"),
                   "session_audit": session, "declared_tools": sorted(declared), "nested_catalog": nested,
-                  "description_delivery": descriptions, "bash_environment": bash_environment,
+                  "description_delivery": descriptions, "read_guard": read_guard,
                   "oauth_header_matches": provider.auth_matches if credential else None, "mcp_environment_canary": env_canary, "hosted_model_requests": 0}
         write_json(folder / "audit.json", result)
         return result
@@ -472,13 +546,12 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, toolchain: di
         provider.close()
         if credential_file:
             credential_file.close()
+            canary.close()
         if channel:
             channel.close()
         if process is not None:
             from .runner import cleanup_solver
             cleanup = cleanup_solver(process, lambda: None)
-            cleanup["shell_groups"] = pi_client.cleanup_shells(folder, lambda: None)
-            cleanup["complete"] = cleanup["complete"] and cleanup["shell_groups"]["complete"]
             write_json(folder / "capture-cleanup.json", cleanup)
             require(cleanup["complete"], "local capture process cleanup incomplete")
         if cwd is not None:

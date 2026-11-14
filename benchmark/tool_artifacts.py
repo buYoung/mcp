@@ -27,6 +27,12 @@ RELEASE_ASSETS = {
         "sha256": "3750b2e93f37e0c692657da574d7019a101c0084da05a790c83fd335bad973e4",
         "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz"},
 }
+# pi's find tool runs fd and would download the latest release on its own. This is that asset, pinned; it is not a comparison arm.
+FD_ASSET = {"version": "10.5.0", "release_tag": "v10.5.0", "commit": "4f81778774463bf414a184cbe6d5219ad2229646",
+            "file": "fd-v10.5.0-aarch64-apple-darwin.tar.gz",
+            "sha256": "b67e1836c468e42e411984b56e52fa7abec08c2bd22c867398e7cc134aac5e12",
+            "binary_sha256": "cf3bde435da174f41cf9589a2efeaf03804df7c250fc15e8b8a1e9bfc66ebc9a",
+            "url": "https://github.com/sharkdp/fd/releases/download/v10.5.0/fd-v10.5.0-aarch64-apple-darwin.tar.gz"}
 
 
 def clean_environment(extra: dict | None = None) -> dict:
@@ -95,6 +101,20 @@ def extract(archive: Path, destination: Path) -> None:
     destination.mkdir(parents=True, exist_ok=False)
     with tarfile.open(archive) as stream:
         stream.extractall(destination, filter="data")
+
+
+def fd_binary() -> dict:
+    """Official fd release for pi's built-in find tool, verified against the pinned hashes on every use."""
+    require(platform.system() == "Darwin" and platform.machine() == "arm64", "등록한 공식 binary는 darwin-arm64 전용입니다")
+    release = download(FD_ASSET["url"], DOWNLOADS / "fd" / FD_ASSET["commit"] / FD_ASSET["file"], FD_ASSET["sha256"])
+    installation = ARTIFACTS / "fd" / FD_ASSET["commit"] / "release"
+    if not installation.exists():
+        extract(Path(release["path"]), installation)
+    found = [p for p in installation.rglob("fd") if p.is_file()]
+    require(len(found) == 1 and file_digest(found[0]) == FD_ASSET["binary_sha256"], "고정 fd binary 변경")
+    return {"path": str(found[0]), "sha256": FD_ASSET["binary_sha256"], "version": FD_ASSET["version"],
+            "source_association": {"repository": "sharkdp/fd", "commit": FD_ASSET["commit"], "release_tag": FD_ASSET["release_tag"]},
+            "official_release_asset": release}
 
 
 def source_install(arm: dict, output: Path) -> tuple[Path, dict]:
@@ -393,7 +413,7 @@ def publish_artifacts(arms: tuple[str, ...] = routes.ARM_IDS) -> dict:
     return routes.publish_handoff("03-artifacts.json", {
         "status": "verified", "host": {"system": platform.system(), "machine": platform.machine(),
                                           "platform": platform.platform()}, "artifacts": artifacts,
-        "pi_toolchain": pi_toolchain(),
+        "pi_toolchain": pi_toolchain(), "pi_read_tools": {"fd": fd_binary()},
         "verification": {"artifact_hashes": "passed", "source_versions": "passed"},
         "limitations": ["No Grafana index or solver/grader inference was created by artifact preparation."]},
         implementation=["benchmark/tool_artifacts.py", "benchmark/pi_lock.py", "benchmark/pi_probe.py", "benchmark/claude_auth.py", "benchmark/resources.py"], dependencies=["01-contract.json"])
