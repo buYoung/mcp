@@ -28,25 +28,29 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
     from .runner import codex_options, isolated_environment
     limits = output_limits(relay_settings["arm"] if relay_settings else "rg")
     root = private_root(folder)
-    workspace = Path(spec["native_agent"]["source"]) if spec.get("native_agent") else root / "work"
+    from .native_baseline import configuration, options, PROFILE
+    # Product arms get the same default shell as the baseline, in their own source and next to the MCP tools.
+    shell = spec.get("native_agent") or (
+        configuration(Path(relay_settings["source"]), Path(relay_settings["rg_binary"])) if relay_settings else None)
+    workspace = Path(shell["source"]) if shell else root / "work"
     workspace.mkdir(parents=True, exist_ok=True)
     env, home = isolated_environment(root, link_auth=local_endpoint is None)
     env["TMPDIR"] = str(root / "tmp")
     (root / "tmp").mkdir(exist_ok=True)
     args = [executable(), "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json",
-            "-C", str(workspace), "-m", spec["model"], *codex_options(settings=spec),
+            "-C", str(workspace), "-m", spec["model"], *codex_options(settings=spec, auxiliary_shell=bool(relay_settings)),
             "-c", "projects={" + canonical(str(workspace)) + '={trust_level="untrusted"}}',
             "-c", "cloud.skills.enabled=false"]
-    if not spec.get("native_agent"):
-        from .native_baseline import options, PROFILE
+    if not shell:
         args += options({"config": {"default_permissions": PROFILE,
             f"permissions.{PROFILE}.filesystem": {":root": "deny", ":minimal": "read", str(workspace): "read"},
             f"permissions.{PROFILE}.network.enabled": False}})
     else:
-        require(file_digest(Path(spec["native_agent"]["rg_binary"])) == spec["native_agent"]["rg_sha256"], "rg copy drift")
-        from .native_baseline import options, PROFILE
+        require(file_digest(Path(shell["rg_binary"])) == shell["rg_sha256"], "rg copy drift")
+        if relay_settings:
+            args += options(shell)  # codex_options adds these for the baseline only.
         args += options({"config": {f"permissions.{PROFILE}.filesystem": {
-            **spec["native_agent"]["config"][f"permissions.{PROFILE}.filesystem"], str(root / "tmp"): "write", str(root / "home"): "read"},
+            **shell["config"][f"permissions.{PROFILE}.filesystem"], str(root / "tmp"): "write", str(root / "home"): "read"},
             "shell_environment_policy.inherit": "none", "shell_environment_policy.set.HOME": str(root / "home"),
             "shell_environment_policy.set.TMPDIR": str(root / "tmp"), "shell_environment_policy.set.LANG": "en_US.UTF-8"}})
         (root / "home").mkdir(exist_ok=True)
@@ -79,5 +83,9 @@ def launch(folder: Path, spec: dict, relay_settings: dict | None, *, server: dic
         "history_output_token_limit": limits["codex_tokens"],
         "exec_default_max_output_tokens": 10000, "reference_text_bytes": limits["reference_text_bytes"],
         "code_mode": "model default code_mode_only", "operator_auth_linked": local_endpoint is None,
+        "auxiliary_shell": bool(relay_settings),
+        # Codex renders denied permission paths into the model context; the audit exempts exactly these product-state paths.
+        "denied_product_state": sorted(path for path, access in shell["config"][f"permissions.{PROFILE}.filesystem"].items()
+                                       if access == "deny" and path.startswith("/") and Path(path).name != ".git") if relay_settings else [],
         "local_provider": local_endpoint is not None}, exclusive=True)
     return [*args, "-"], workspace, env

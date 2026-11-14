@@ -376,10 +376,12 @@ print(json.dumps({'source_matching_files': len(checked), 'version': dist.version
     return result
 
 
-def load_artifacts(*, verify=True) -> dict:
+def load_artifacts(*, verify=True, arms: tuple[str, ...] = routes.ARM_IDS) -> dict:
     result = {}
     for arm in routes.arm_contracts():
         ident = arm["id"]
+        if ident not in arms:
+            continue
         output = ARTIFACTS / ident
         if ident != "codemap-search":
             output /= arm["commit"]
@@ -396,8 +398,8 @@ def load_artifacts(*, verify=True) -> dict:
     return result
 
 
-def publish_artifacts() -> dict:
-    artifacts = load_artifacts()
+def publish_artifacts(arms: tuple[str, ...] = routes.ARM_IDS) -> dict:
+    artifacts = load_artifacts(arms=arms)
     return routes.publish_handoff("03-artifacts.json", {
         "status": "verified", "host": {"system": platform.system(), "machine": platform.machine(),
                                           "platform": platform.platform()}, "artifacts": artifacts,

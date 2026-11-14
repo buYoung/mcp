@@ -627,6 +627,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 def audit_index_paths(ident: str, state: dict, corpus: dict) -> dict:
     """Read raw path fields, not search results. A missing/unknown index format fails closed."""
+    from . import route_contract as routes
     from .tool_artifacts import load_artifacts
     source, home = Path(state["source"]).resolve(), Path(state["home"]).resolve()
     preflight(source, home)
@@ -721,7 +722,7 @@ def audit_index_paths(ident: str, state: dict, corpus: dict) -> dict:
             data = _IndexUnpickler(io.BytesIO(path.read_bytes())).load()
             compare(str(path.relative_to(source)), list(data["obj"]))
     elif ident in {"codemap-search", "zvec-grep"}:
-        artifact = load_artifacts(verify=False)[ident]
+        artifact = load_artifacts(verify=False, arms=routes.relay_arms(ident))[ident]
         directory = source.parent / "index-audit"
         directory.mkdir(exist_ok=True)
         if ident == "codemap-search":
@@ -769,7 +770,7 @@ try {{ console.log(JSON.stringify(s.listFiles().map(f=>[f.relativePath,f.absolut
 # Claude Code network configuration: https://code.claude.com/docs/en/network-config
 # Nonessential telemetry/update traffic is disabled. No wildcard or arbitrary HTTPS egress.
 CLAUDE_PROXY_HOSTS = frozenset({"api.anthropic.com", "claude.ai", "platform.claude.com"})
-CLAUDE_PROXY_PORT = 19550
+CLAUDE_PROXY_PORT = 19560
 
 
 def claude_baseline_profile(value: dict, folder: Path, *, local_endpoint=None, local_home=None) -> dict:

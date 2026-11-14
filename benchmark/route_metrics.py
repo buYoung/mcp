@@ -84,11 +84,9 @@ def codex_wire_outputs(folder: Path) -> dict | None:
             if item.get("type") in {"custom_tool_call_output", "function_call_output"} and item.get("call_id")}
 
 
-def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
+def native_command_calls(events: list[dict], rollout: list[dict], *, arm: str | None, is_auxiliary: bool) -> list[dict]:
+    """Shell commands the CLI ran, one row per native item ID: the baseline's calls or a product arm's auxiliary shell."""
     from .native_baseline import command_items
-    from .runner import output_blocks, read_live_jsonl
-    events, rollout = read_live_jsonl(folder / "events.jsonl"), read_live_jsonl(folder / "rollout.jsonl")
-    runtime = read_json(folder / "runtime.json") if (folder / "runtime.json").exists() else {}
     calls = []
     durations = collections.defaultdict(list)
     for row in rollout:
@@ -103,7 +101,7 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
     command_counts = collections.Counter(item.get("command") for item in native_items)
     for item in native_items:
         output = item.get("aggregated_output")
-        calls.append({"id": item["id"], "arm": "rg", "tool": "command_execution", "is_auxiliary": False,
+        calls.append({"id": item["id"], "arm": arm, "tool": "command_execution", "is_auxiliary": is_auxiliary,
                       "arguments": {"command": item.get("command")},
                       "status": "incomplete" if not item["completed"] else "success" if item.get("exit_code") == 0 else "error",
                       "completed": item["completed"], "dispatched": True, "native_item": item,
@@ -113,6 +111,14 @@ def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[d
                       "duration_seconds": durations[item.get("command")][0] if len(durations[item.get("command")]) == command_counts[item.get("command")] == 1 else None,
                       "client_delivery": {"status": "unknown", "complete": None,
                                           "reason": "CLI aggregated_output is not proof of what the model saw; preserve native logs."}})
+    return calls
+
+
+def normalize_native_calls(folder: Path, *, write_delivery=True) -> tuple[list[dict], bool, int | None, list[dict]]:
+    from .runner import output_blocks, read_live_jsonl
+    events, rollout = read_live_jsonl(folder / "events.jsonl"), read_live_jsonl(folder / "rollout.jsonl")
+    runtime = read_json(folder / "runtime.json") if (folder / "runtime.json").exists() else {}
+    calls = native_command_calls(events, rollout, arm="rg", is_auxiliary=False)
     payloads = [r.get("payload", {}) for r in rollout if r.get("type") == "response_item"]
     host = [p for p in payloads if p.get("type") in {"function_call", "custom_tool_call"}]
     violations = [{"name": e["item"].get("tool"), "reason": "MCP used in native-agent baseline"}
@@ -230,6 +236,12 @@ def normalize_calls(folder: Path, *, write_delivery=True, probe_only=False) -> t
                       "duration_seconds": (terminal or result)["finished_monotonic"] - request["started_monotonic"]
                           if request.get("dispatched") and (terminal or result or {}).get("finished_monotonic") is not None else None})
     complete = complete and not pending_host
+    if not probe_only:
+        settings_path = folder / "relay-settings.json"
+        shell = native_command_calls(read_live_jsonl(folder / "events.jsonl"), rollout,
+                                     arm=read_json(settings_path)["arm"] if settings_path.exists() else None, is_auxiliary=True)
+        complete = complete and all(call["completed"] for call in shell)
+        calls.extend(shell)
     if write_delivery:
         write_json(folder / "delivery.json", {"actual_model_output_bytes": wire_bytes if wire_outputs is not None else None,
                    "rollout_output_bytes": total_bytes if rollout else None,
@@ -555,14 +567,21 @@ def cli_observations(folder: Path, calls: list[dict], *, call_log_complete: bool
                 attribution_missing = "asynchronous native command cannot be uniquely attributed to a model response"
         else:
             per_turn = [0] * len(model_calls)
+            shell = [call for call in calls if "native_item" in call]
             for call in calls:
-                if call.get("discovery"):
+                if call.get("discovery") or "native_item" in call:
                     continue
                 index = wrapper_turns.get(call.get("metadata", {}).get("itemId"))
                 if index is None:
                     attribution_missing = "relay itemId cannot be joined to a model response"
                 else:
                     per_turn[index] += 1
+            if shell:
+                shell_turns = [native_counts[index] for index in range(len(model_calls))]
+                if sum(shell_turns) != len(shell) or None in native_counts or any("Process running with session ID" in json.dumps(out) or "Script running with cell ID" in json.dumps(out) for out in outputs):
+                    attribution_missing = "asynchronous native command cannot be uniquely attributed to a model response"
+                else:
+                    per_turn = [count + extra for count, extra in zip(per_turn, shell_turns)]
             if attribution_missing:
                 per_turn = None
     durations = [call["duration_seconds"] for call in calls if call.get("dispatched") and call.get("duration_seconds") is not None]
@@ -642,7 +661,7 @@ def quality_counts(judgments: list[dict], questions: list[dict]) -> dict:
         require(len(facts) <= expected, "계획보다 많은 fact 판정")
         counts[level] = {"planned_facts": expected, "graded_facts": len(facts), "dimensions": dimensions,
                          "fact_weighted_fulfilled_rate": sum(f["state"] == "fulfilled" for f in facts) / expected
-                         if len(facts) == expected and all(f["state"] != "indeterminate" for f in facts) else None}
+                         if expected and len(facts) == expected and all(f["state"] != "indeterminate" for f in facts) else None}
     states = [j["core_complete"] for j in judgments]
     counts["core_complete"] = {"true": sum(v is True for v in states), "false": sum(v is False for v in states),
                                 "indeterminate": sum(v == "indeterminate" for v in states), "ungraded": len(questions) - len(states),
@@ -656,7 +675,8 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     dataset = routes.load_dataset()
     questions = {q["id"]: q for q in dataset["questions"]}
     model = manifest.get("models", {}).get("solver", {}).get("model")
-    planned = routes.schedule(model)
+    planned_arms = routes.ordered_arms(manifest.get("prepared", manifest).get("arms", routes.ARM_IDS))
+    planned = routes.schedule(model, planned_arms)
     by_id = {r["id"]: r for r in rows}
     require(len(by_id) == len(rows) and set(by_id) <= {r["id"] for r in planned}, "계획 밖 또는 중복 결과")
     require(set(judgments) <= set(by_id), "실행 기록 없는 채점")
@@ -689,7 +709,7 @@ def report(root: Path, manifest: dict, rows: list[dict], judgments: dict) -> dic
     for mode in routes.solver_measurement_modes(model):
         arms = {}
         mode_rows = [row for row in result_rows if row["mode"] == mode]
-        for arm in routes.ARM_IDS:
+        for arm in planned_arms:
             selected = [r for r in mode_rows if r["arm"] == arm]
             graded = [r["judgment"] for r in selected if r["judgment"] is not None]
             arms[arm] = {"planned": len(selected), "observed": sum(r["cli_launches"] == 1 for r in selected),

@@ -1,0 +1,17 @@
+{
+  "dataset_id": "grafana-routes-v6",
+  "questions": [
+    {
+      "id": "git-sync-job-dispatch",
+      "prompt": "메시지 버스 패턴 중 Git 저장소 동기화 작업이 그 작업을 실행하는 처리기까지 전달되는 구간 다 확인해줘."
+    },
+    {
+      "id": "alertmanager-config-autosync",
+      "prompt": "Kubernetes 방식 API 중 외부 Alertmanager 설정을 가져오는 자동 동기화와 연결되는 구간 다 확인해줘."
+    },
+    {
+      "id": "scope-annotation-filter",
+      "prompt": "스코프 필터 중 대시보드 주석 저장·조회와 연결되는 구간 다 확인해줘."
+    }
+  ]
+}

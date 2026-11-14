@@ -77,7 +77,29 @@ def audit_system(value, inventory: dict) -> list[dict]:
     return errors
 
 
-def audit_request(body: dict, inventory: dict) -> list[dict]:
+def denied_product_state(folder: Path) -> list[str]:
+    policy = folder / "cli-policy.json"
+    return read_json(policy).get("denied_product_state", []) if policy.exists() else []
+
+
+def without_denied_state(value, paths: list[str]):
+    """Codex renders denied permission paths into the model context. A product's own state folder is named by the
+    product, so exactly those paths are replaced; the rest of each path and every other path stay audited."""
+    if not paths:
+        return value
+    if isinstance(value, str):
+        for path in paths:
+            value = re.sub(re.escape(path) + r"(?![\w./-])", str(Path(path).parent / "[product-state]"), value)
+        return value
+    if isinstance(value, dict):
+        return {key: without_denied_state(item, paths) for key, item in value.items()}
+    if isinstance(value, list):
+        return [without_denied_state(item, paths) for item in value]
+    return value
+
+
+def audit_request(body: dict, inventory: dict, denied_state: list[str] | None = None) -> list[dict]:
+    body = without_denied_state(body, denied_state or [])
     errors = private_context_violations(body)
     errors += pi_audit.path_violations(json.dumps(body, ensure_ascii=False), "request")
     errors += audit_system(body.get("instructions", body.get("system", "")), inventory)
@@ -130,7 +152,8 @@ def audit_nested_tools(body: dict, relay: dict | None) -> tuple[list[str], list[
                 continue
             if isinstance(value, list) and all(isinstance(name, str) for name in value):
                 names = value
-    expected = {"mcp__navigation__" + name for name in relay["enabled_tools"]} if relay else {"exec_command", "write_stdin"}
+    # Every solver arm has the default shell; product arms add their MCP tools.
+    expected = {"exec_command", "write_stdin"} | ({"mcp__navigation__" + name for name in relay["enabled_tools"]} if relay else set())
     allowed = expected | {"apply_patch", "update_plan", "clock__curr_time", "request_user_input", "request_user_input_async"}
     allowed |= {"list_mcp_resources", "list_mcp_resource_templates", "read_mcp_resource"}
     if names is None or not expected <= set(names) or set(names) - allowed:
@@ -142,8 +165,10 @@ def audit_session(folder: Path, inventory: dict, backend: str) -> dict:
     from .runner import read_jsonl_prefix
     paths = [folder / "rollout.jsonl"] if backend == "codex" else sorted(folder.glob("claude-session-*.jsonl"))
     errors, files, systems, users, system_skills = [], [], 0, 0, []
+    denied_state = denied_product_state(folder)
     for path in paths:
         rows, state = read_jsonl_prefix(path)
+        rows = without_denied_state(rows, denied_state)
         if not state["complete"]:
             errors.append({"kind": "incomplete_session", "path": str(path)})
         if path.is_file():
@@ -245,7 +270,7 @@ def capture(folder: Path, state: dict, spec: dict, prompt: str, *, port=0) -> di
             cleanup["complete"] = cleanup["complete"] and native_cleanup["complete"]
         write_json(folder / "capture-cleanup.json", cleanup)
         require(cleanup["complete"], "local capture cleanup incomplete")
-        violations = audit_request(provider.requests[0], inventory)
+        violations = audit_request(provider.requests[0], inventory, denied_product_state(folder))
         violations += audit_tools(provider.requests[0], spec, relay, inventory)
         nested = []
         if backend == "codex":

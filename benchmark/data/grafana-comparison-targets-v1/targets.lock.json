@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "lock_id": "grafana-comparison-targets-v1",
-  "revision": 9,
+  "revision": 10,
   "status": "source_identities_frozen",
   "frozen_at": "2026-11-07T00:00:00+00:00",
   "target_release": "1.0.0",
   "scope": "외부 비교 도구 6개의 프로젝트·구현·릴리스·소스 커밋·소스 아카이브를 고정한다. 실행 환경과 제품 평가 빌드는 별도 계약 대상이다.",
   "selection_policy": "2026-10-24 공식 GitHub release/tag와 npm/PyPI stable 배포를 대조했다. zvec-grep 0.2.2는 npm/tag 배포이며 GitHub Release는 없어 관련 필드를 null로 둔다. Graphify v1.0.0은 2026-04-05의 과거 release이고 PyPI에는 없으므로 현재 upstream latest/PyPI의 0.9.95를 선택한다. 준비 중 latest를 다시 해석하지 않는다.",
   "dataset": {
-    "id": "grafana-routes-v4",
-    "manifest_path": "../grafana-routes-v4/manifest.json",
-    "manifest_sha256": "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4",
+    "id": "grafana-routes-v6",
+    "manifest_path": "../grafana-routes-v6/manifest.json",
+    "manifest_sha256": "33fdd791be316fd3912ea5b1a401763357fab73b5ec6078b5cb6fce8d597a2ed",
     "source": {
       "repository": "grafana/grafana",
       "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
@@ -20,8 +20,8 @@
     "id": "codemap-search",
     "target_release": "1.0.0",
     "version": "0.14.2",
-    "git_ref": "2d0fdf01003a32631d7fed586ae558d6528592b6",
-    "commit": "2d0fdf01003a32631d7fed586ae558d6528592b6",
+    "git_ref": "e727d20c6504948c823cf55398a2f68d45337f7c",
+    "commit": "e727d20c6504948c823cf55398a2f68d45337f7c",
     "source_and_binary_pin_status": "release_source_frozen_binary_at_preparation"
   },
   "required_comparison_ids": [
@@ -351,8 +351,8 @@
     "grader_runs": 0
   },
   "provenance_file": "provenance.json",
-  "revision_reason": "평가 제품 codemap-search를 벤치마크 브랜치 머지 커밋 2d0fdf010(0.14.2 이후 변경 포함) 스냅샷으로 전환. 비교 도구·풀이 CLI·채점 toolchain은 개정 8과 같다.",
-  "previous_lock_sha256": "a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0",
+  "revision_reason": "데이터셋을 grafana-routes-v6(3문항)으로, 평가 제품 codemap-search를 벤치마크 브랜치 커밋 e727d20c6(검색 출력 압축 포함) 스냅샷으로 전환. 비교 도구·풀이 CLI·채점 toolchain은 개정 9와 같다.",
+  "previous_lock_sha256": "8a036445611af224d96c4f478cde925e37b3de77e2337707cf851b8ff97fabd3",
   "pi_toolchain": {
     "install_flags": [
       "ci",

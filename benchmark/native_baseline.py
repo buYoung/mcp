@@ -65,8 +65,8 @@ def command_items(events: list[dict]) -> list[dict]:
     return list(items.values())
 
 
-def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
-    """Exercise the exact permissions locally. Never launches Codex exec or an LLM."""
+def boundary(value: dict, folder: Path, denied_paths: list[Path], *, metadata_root: Path | None = None) -> list[dict]:
+    """Exercise the exact shell permissions locally. Never launches Codex exec or an LLM."""
     from .tool_artifacts import clean_environment
     folder.mkdir(parents=True, exist_ok=True)
     codex_home = folder / "codex-home"
@@ -82,7 +82,7 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
     from .isolation import canary_files, hidden_references
     scratch = source / ".benchmark-write-boundary-probe"
     require(not scratch.exists(), "write probe path already exists")
-    canaries = canary_files(source, folder / "boundary", metadata_root=source / ".git")
+    canaries = canary_files(source, folder / "boundary", metadata_root=metadata_root or source / ".git")
     _, targets = canaries.__enter__()
     cases.extend(("canary_" + name, ["/bin/cat", str(path)], False)
                  for name, path in targets.items())
@@ -111,6 +111,13 @@ def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
         result = subprocess.run(base + ["/bin/test", "-e", str(path)], cwd=source, env=env, capture_output=True, timeout=30)
         observations.append({"name": "existence_only", "path": str(path), "exists": result.returncode == 0})
     write_json(folder / "probe.json", observations)
+    return observations
+
+
+def probe(value: dict, folder: Path, denied_paths: list[Path]) -> dict:
+    """The baseline's boundary observations with its inventory record."""
+    from .codex_client import executable
+    observations = boundary(value, folder, denied_paths)
     inventory = {"mode": "native_agent", "codex_version": command([executable(), "--version"]).strip(),
                  "configuration": value, "search_product_mcp": False,
                  "tool_inventory_observation": "No solver was launched; actual model tool inventory is unobserved.",

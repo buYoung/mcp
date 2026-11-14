@@ -1,6 +1,6 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-외부 도구 6개와 풀이·채점 toolchain을 고정한 `grafana-comparison-targets-v1` **개정 9**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. `previous_lock_sha256`은 개정 8의 `a4592c4bed8ffe5a656f0ef4709c11223e6ff119bda57052afc05b40865a07a0`이다. 이번 개정은 평가 제품 codemap-search만 벤치마크 브랜치 머지 커밋 `2d0fdf010` 스냅샷으로 바꾸고, 데이터셋·Grafana commit·비교 도구·풀이 CLI·채점 toolchain은 개정 8과 같다. 개정 8은 풀이를 private Codex CLI 0.164.0 / Claude Code 2.1.311로 바꿨다. GPT는 Codex 제품 기본 code_mode_only(exec/wait), Claude는 direct이며 각각 42슬롯이다. pi toolchain은 Astra 채점용으로 유지한다. 제품 출력 설정은 기본값이고 MCP client guard만 제품 상한 이상으로 맞춘다. Codex exec/wait의 별도 출력 예산은 제품 기본값(미지정 시 10000토큰)을 유지한다.
+외부 도구 6개와 풀이·채점 toolchain을 고정한 `grafana-comparison-targets-v1` **개정 10**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. `previous_lock_sha256`은 개정 9의 `8a036445611af224d96c4f478cde925e37b3de77e2337707cf851b8ff97fabd3`이다. 이번 개정은 데이터셋을 `grafana-routes-v6`(3문항)으로, 평가 제품 codemap-search를 벤치마크 브랜치 커밋 `e727d20c6`(검색 출력 압축 포함) 스냅샷으로 바꾸고, Grafana commit·비교 도구·풀이 CLI·채점 toolchain은 개정 9와 같다. 제품 비교군은 Codex에서 MCP 도구와 함께 기준군과 같은 기본 셸을 받는다. 개정 8은 풀이를 private Codex CLI 0.164.0 / Claude Code 2.1.311로 바꿨다. GPT는 Codex 제품 기본 code_mode_only(exec/wait), Claude는 direct이며 각각 63슬롯이다. 이 개정의 준비는 Codex 풀이만 받는다. pi toolchain은 Astra 채점용으로 유지한다. 제품 출력 설정은 기본값이고 MCP client guard만 제품 상한 이상으로 맞춘다. Codex exec/wait의 별도 출력 예산은 제품 기본값(미지정 시 10000토큰)을 유지한다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -13,11 +13,11 @@
 
 - CodeGraph는 사용자가 선택한 공식 `@colbymchenry/codegraph` Node 구현이다. zvec-grep은 `@zvec/zvec-grep` Node 구현이다. zvec 0.2.2에는 GitHub Release가 없으므로 release URL/ID/시각은 `null`이다. GitHub latest의 오래된 0.2.0 메타데이터를 빌려 쓰지 않는다.
 - Graphify는 공식 `Graphify-Labs/graphify`의 `graphifyy` Python 구현이다. `v1.0.0`은 2026-04-05의 과거 release이며 PyPI에는 없다. 현재 upstream latest와 PyPI가 일치하는 0.9.95를 선택했다.
-- 평가 제품 codemap-search는 작업 트리가 아니라 벤치마크 브랜치 머지 커밋 `2d0fdf010`의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.14.2**(이후 변경 포함)이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
+- 평가 제품 codemap-search는 작업 트리가 아니라 벤치마크 브랜치 커밋 `e727d20c6`의 `git_ref` 스냅샷을 빌드한다. 실제 버전은 **0.14.2**(이후 변경 포함)이며 출시 목표 1.0.0으로 바꿔 표시하지 않는다.
 
 ## 데이터셋 연결
 
-총 7개 비교군은 같은 [Grafana 2문항 데이터셋](../grafana-routes-v4/README.md)을 사용한다. manifest SHA-256은 `0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4`이며 이번 개정에서는 데이터셋과 고정 커밋을 유지했다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
+총 7개 비교군은 같은 [Grafana 3문항 데이터셋](../grafana-routes-v6/README.md)을 사용한다. manifest SHA-256은 `33fdd791be316fd3912ea5b1a401763357fab73b5ec6078b5cb6fce8d597a2ed`이며 pi 하네스가 쓰는 묶음과 바이트 단위로 같다. Grafana 고정 커밋은 유지했다. rg는 검색 제품 MCP를 추가하지 않은 기본 코딩 에이전트 기준군의 실행 파일 핀이다.
 
 ## 설치 조건과 고정 파일
 

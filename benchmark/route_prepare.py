@@ -147,12 +147,13 @@ def verify_readiness(record: dict, *, recapture_context=True) -> None:
         require_operator_auth()
         require(record["host"]["claude"] == capabilities(check_auth=False), "Claude Code 버전 변경")
     require(record["host"].get("cli_toolchain") == tool_artifacts.cli_toolchain(), "solver CLI toolchain 변경")
-    artifacts = tool_artifacts.load_artifacts()
+    arms = routes.ordered_arms(record["arms"])
+    artifacts = tool_artifacts.load_artifacts(arms=arms)
     corpus = read_json(Path(record["source_manifest_path"]))
     require(corpus["source_sha256"] == record["source_sha256"], "source identity 변경")
     require(file_digest(Path(record["source_manifest_path"])) == record["source_manifest_sha256"], "source manifest 변경")
     require(digest(tool_indexes.tracked_manifest(Path(corpus["source"]), corpus["files"])) == corpus["source_sha256"], "고정 checkout 변경")
-    for ident in routes.ARM_IDS:
+    for ident in arms:
         state = record["arms"][ident]
         require(state["agent_backend"] == solver["backend"], "선택한 실행기와 조회 준비 기록 불일치")
         tool_indexes.verify_probe(state, artifacts)
@@ -165,7 +166,7 @@ def verify_readiness(record: dict, *, recapture_context=True) -> None:
                     "복원용 native baseline 변경")
         require(file_digest(Path(state["native_inventory"])) == state["native_inventory_sha256"], "native tools/defaults 기록 변경")
         require(file_digest(Path(state["probe_log"])) == state["probe_log_sha256"], "native 중립 조회 로그 변경")
-    require(record["planned_runs"] == routes.schedule(solver["model"]) and len(record["planned_runs"]) == len(routes.schedule(solver["model"])), "계획 슬롯 변경")
+    require(record["planned_runs"] == routes.schedule(solver["model"], arms) and len(record["planned_runs"]) == len(routes.schedule(solver["model"], arms)), "계획 슬롯 변경")
     require(set(record["solver_inputs"]) == {row["id"] for row in record["planned_runs"]}, "풀이 입력 슬롯 누락")
     for row in record["planned_runs"]:
         item = record["solver_inputs"][row["id"]]
@@ -204,6 +205,7 @@ def _build_plan(emit=print, *, solver_model: str | None = None, offline_commands
     check_handoffs(solver["model"])
     offline_commands = offline_checks(emit) if offline_commands is None else offline_commands
     indexes = read_json(routes.EVIDENCE / tool_indexes.index_handoff(solver["backend"]))
+    arms = routes.ordered_arms(indexes["prepared_states"])
     artifacts = read_json(routes.EVIDENCE / "03-artifacts.json")["artifacts"]
     host = resources.environment(solver["backend"])
     host.update(system=platform.platform(), machine=platform.machine(), processors=__import__("os").cpu_count())
@@ -239,7 +241,7 @@ def _build_plan(emit=print, *, solver_model: str | None = None, offline_commands
     from .cli_audit import prepare_audit
     context_audit = prepare_audit(indexes["prepared_states"], identity["execution_specs"], root / "context-audit")
     solver_inputs = {}
-    for row in routes.schedule(solver["model"]):
+    for row in routes.schedule(solver["model"], arms):
         path = root / "solver-inputs" / f"{row['id']}.txt"
         durable_bytes(path, routes.solver_prompt(row["question_id"], Path(indexes["prepared_states"][row["arm"]]["source"]), row["arm"]).encode(), exclusive=True)
         solver_inputs[row["id"]] = {"path": str(path), "sha256": file_digest(path), "question_id": row["question_id"]}
@@ -251,11 +253,11 @@ def _build_plan(emit=print, *, solver_model: str | None = None, offline_commands
               "input_hashes": routes.contract()["input_hashes"], "source_manifest_sha256": file_digest(tool_indexes.CORPUS),
               "host": host, "models": condition["models"],
               "actual_versions": {ident: artifact["actual_version"] for ident, artifact in artifacts.items()},
-              "arms": indexes["prepared_states"], "planned_runs": routes.schedule(solver["model"]),
+              "arms": indexes["prepared_states"], "planned_runs": routes.schedule(solver["model"], arms),
               "execution_specs": identity["execution_specs"],
               "solver_inputs": solver_inputs,
               "policy_decisions": profile["policy_decisions"],
-              "checks": {"component_evidence": "verified", "planned_slots": len(routes.schedule(solver["model"])), "offline_commands": checks, "model_context_audit": context_audit},
+              "checks": {"component_evidence": "verified", "planned_slots": len(routes.schedule(solver["model"], arms)), "offline_commands": checks, "model_context_audit": context_audit},
               "invalidation_rules": ["frozen inputs", "source bytes", "profile/models/effort/limits", "harness code",
                                      "binaries and installed dependencies", "embedding weights", "native index state",
                                      "native tool schema/default record", "pi/bridge/SDK/Claude binary and host node versions"],
@@ -274,7 +276,7 @@ def _build_plan(emit=print, *, solver_model: str | None = None, offline_commands
         "harness_sha256": condition["harness_sha256"], "spec": spec, "execution_specs": record["execution_specs"],
         "planned_runs": record["planned_runs"]})
     durable_json(readiness_path(solver["model"]), record)
-    emit(f"준비 완료: {len(routes.schedule(solver["model"]))}회 예정. 실제 풀이·채점 0회. plan_id={plan_id}")
+    emit(f"준비 완료: {len(routes.schedule(solver["model"], arms))}회 예정. 실제 풀이·채점 0회. plan_id={plan_id}")
     return readiness_projection(record, root / "readiness.json")
 
 
@@ -286,7 +288,7 @@ def readiness_projection(record: dict, path: Path) -> dict:
             "targets": [{"id": ident, "name": "기본 에이전트 (검색 제품 없음)" if ident == "rg" else ident,
                          "source_sha256": s["source_sha256"], "tool_condition": s["tool_condition"],
                          "actual_version": record["actual_versions"][ident]} for ident, s in record["arms"].items()],
-            "modes": list(routes.solver_measurement_modes(solver["model"])), "questions": len(routes.QUESTION_IDS), "repeats": routes.load_profile()["repetitions"], "runs": len(routes.schedule(solver["model"])), "spec": spec,
+            "modes": list(routes.solver_measurement_modes(solver["model"])), "questions": len(routes.QUESTION_IDS), "repeats": routes.load_profile()["repetitions"], "runs": len(routes.schedule(solver["model"], routes.ordered_arms(record["arms"]))), "spec": spec,
             "agent_version": record["host"].get("claude", {}).get("version", record["host"]["codex_version"]),
             "codex_version": record["host"]["codex_version"], "output_root": str(path.parent),
             "readiness": str(path), "readiness_sha256": file_digest(path),
@@ -298,10 +300,14 @@ def build_plan(emit=print, *, solver_model: str | None = None) -> dict:
         return _build_plan(emit, solver_model=solver_model)
 
 
-def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
-    """Cache-aware local preparation; no implicit start/resume or model launch."""
+def prepare_all(emit=print, *, solver_model: str | None = None, arms: tuple[str, ...] = routes.ARM_IDS) -> dict:
+    """Cache-aware local preparation of the given arms; no implicit start/resume or model launch."""
+    arms = routes.ordered_arms(arms)
     solvers = routes.load_profile()["solver_choices"] if solver_model == "all" else [routes.solver_model(solver_model)]
     settings.require_neutral_cache()
+    # Product arms get the default shell only on Codex in this revision; Claude Code product arms have no Bash yet.
+    require(all(s["backend"] == "codex" for s in solvers),
+            "이 개정은 Codex 풀이(gpt-6.1-sol)만 준비합니다. Claude Code 제품 비교군에는 보조 셸이 아직 없습니다")
     if any(s["backend"] == "claude_code" for s in solvers):
         from .claude_client import capabilities, require_operator_auth
         require_operator_auth()
@@ -314,19 +320,19 @@ def prepare_all(emit=print, *, solver_model: str | None = None) -> dict:
         tool_artifacts.cli_toolchain()
         harness_at_start = settings.harness_identity()
         routes.publish_contract()
-        for ident in routes.ARM_IDS:
+        for ident in arms:
             tool_artifacts.prepare_one(ident, emit)
-        tool_artifacts.publish_artifacts()
+        tool_artifacts.publish_artifacts(arms)
         route_transport.publish_delivery()
         route_grading.publish_grading()
         tool_indexes.prepare_source(emit)
-        for ident in routes.ARM_IDS:
+        for ident in arms:
             tool_indexes.prepare_index(ident, emit)
         for backend in dict.fromkeys(solver["backend"] for solver in solvers):
-            for ident in routes.ARM_IDS:
+            for ident in arms:
                 if not tool_indexes.probe_is_current(ident, backend):
                     tool_indexes.probe_index(ident, emit, backend=backend)
-            tool_indexes.publish_indexes(backend)
+            tool_indexes.publish_indexes(backend, arms)
         route_metrics.publish_metrics()
         require(settings.harness_identity() == harness_at_start,
                 "준비 중 하네스 파일이 변경되었습니다. 현재 코드로 prepare를 다시 수행하세요")
@@ -340,10 +346,12 @@ def main() -> int:
     parser.add_argument("action", choices=["prepare", "finalize", "verify"], nargs="?", default="prepare")
     parser.add_argument("--solver-model", choices=["all", *[item["model"] for item in routes.load_profile()["solver_choices"]]],
                         help="풀이 모델; 생략하면 gpt-6.1-sol, 채점은 항상 gpt-6-astra")
+    parser.add_argument("--arms", type=lambda value: tuple(value.split(",")), default=routes.ARM_IDS,
+                        help="prepare할 비교군(쉼표로 구분, rg 포함); 생략하면 고정 비교군 전부")
     args = parser.parse_args()
     try:
         if args.action == "prepare":
-            value = prepare_all(lambda message: print(message, flush=True), solver_model=args.solver_model)
+            value = prepare_all(lambda message: print(message, flush=True), solver_model=args.solver_model, arms=args.arms)
         elif args.action == "finalize":
             with campaign_lease():
                 models = routes.load_profile()["solver_choices"] if args.solver_model == "all" else [routes.solver_model(args.solver_model)]

@@ -10,13 +10,13 @@ from .core import digest, file_digest, read_json, require, write_json
 
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
-DATASET_MANIFEST_SHA256 = "0739674c1fbb46bc15bcf0f4819c20a50e9f3aa2b5702ce81b21dee657a9ddf4"
-TARGET_LOCK_SHA256 = "8a036445611af224d96c4f478cde925e37b3de77e2337707cf851b8ff97fabd3"
-QUESTION_IDS = ("git-oauth-authorization", "plugin-http-route-bridge")
+DATASET_MANIFEST_SHA256 = "33fdd791be316fd3912ea5b1a401763357fab73b5ec6078b5cb6fce8d597a2ed"
+TARGET_LOCK_SHA256 = "3169d5a1df9238b414b421a0002aab425b6c3eeef5107f666e31a0e644b6157f"
+QUESTION_IDS = ("git-sync-job-dispatch", "alertmanager-config-autosync", "scope-annotation-filter")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")
 ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
-DATA = settings.ROOT / "data/grafana-routes-v4"
+DATA = settings.ROOT / "data/grafana-routes-v6"
 TARGETS = settings.ROOT / "data/grafana-comparison-targets-v1"
 PROFILE_PATH = settings.ROOT / "data/grafana-execution-v1.json"
 EVIDENCE = settings.REPOSITORY / "docs/briefs/evidence/bench-ready"
@@ -90,7 +90,7 @@ def solver_prompt(question_id: str, source: Path, arm: str | None = None) -> str
     prompt = answer_prompt(load_profile(), question)
     if arm == "rg":
         prompt = prompt.replace(
-            "코드 접근은 navigation MCP에 노출된 도구만 사용한다. 다른 파일 접근·셸·네트워크·하위 에이전트는 사용하지 않는다.",
+            "코드 탐색에는 navigation MCP에 노출된 도구를 최대한 사용한다. 그 도구로 할 수 없는 작업에만 bash를 사용한다. 탐색은 제공된 소스 루트 안에서 수행하고 네트워크와 하위 에이전트는 사용하지 않는다.",
             "기본 코딩 에이전트 도구로 제공된 소스를 탐색한다. 사용할 명령과 탐색 방법은 스스로 선택한다. 탐색은 제공된 소스 루트 안에서 수행하고 네트워크와 하위 에이전트는 사용하지 않는다.")
     return prompt + f"\n\n탐색 소스 루트: {source.resolve()}\n"
 
@@ -159,7 +159,21 @@ def solver_measurement_modes(model: str | None = None) -> tuple[str, ...]:
     return (solver_model(model)["measurement_mode"],)
 
 
-def schedule(model: str | None = None) -> list[dict]:
+def ordered_arms(names) -> tuple[str, ...]:
+    """Named arms in contract order; rg stays in every subset because each relay carries its binary."""
+    selected = tuple(arm for arm in ARM_IDS if arm in names)
+    require(len(selected) == len(names) and "rg" in selected, "비교군 선택 오류: 고정 비교군 중에서 rg를 포함해 고릅니다")
+    return selected
+
+
+def relay_arms(ident: str) -> tuple[str, ...]:
+    """The arms whose artifacts one arm's index, probe and relay read: its own and rg's."""
+    return ordered_arms({ident, "rg"})
+
+
+def schedule(model: str | None = None, arms: tuple[str, ...] = ARM_IDS) -> list[dict]:
+    """The full seeded schedule, narrowed to the given arms without reordering the remaining slots."""
+    arms = ordered_arms(arms)
     profile = load_profile()
     modes = solver_measurement_modes(model)
     rng = random.Random(profile["seed"])
@@ -175,7 +189,7 @@ def schedule(model: str | None = None) -> list[dict]:
                          "mode": mode, "attempt": attempt, "status": "planned"} for arm, mode in conditions)
     require(len(rows) == len({r["id"] for r in rows}) == len(QUESTION_IDS) * len(ARM_IDS) * profile["repetitions"] * len(modes),
             "계획 슬롯 오류")
-    return rows
+    return [row for row in rows if row["arm"] in arms]
 
 
 def implementation_hashes(names: list[str]) -> dict:

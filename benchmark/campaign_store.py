@@ -57,7 +57,8 @@ def immutable_copy(source: Path, target: Path) -> str:
 @contextlib.contextmanager
 def campaign_lease():
     # One host-wide lease, not one per cache/model. No probing or killing port owners.
+    # The CLI harness has its own lease and fixed ports, so one CLI campaign can run beside one pi-harness campaign.
     host = Path("/private/tmp" if Path("/private/tmp").is_dir() else "/tmp")
-    with resources.lease(host / f"codemap-bench-ports-{os.getuid()}.lock"):
+    with resources.lease(host / f"codemap-bench-cli-ports-{os.getuid()}.lock"):
         with resources.lease(routes.PREPARATION / ".prepare.lock"):
             yield

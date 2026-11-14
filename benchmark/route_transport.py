@@ -563,7 +563,7 @@ def publish_delivery() -> dict:
     from . import settings
     from .tool_artifacts import load_artifacts
     from . import pi_client
-    artifact = load_artifacts(verify=False)["rg"]
+    artifact = load_artifacts(verify=False, arms=("rg",))["rg"]
     binary = artifact["launch"][0]
     root = routes.PREPARATION / "delivery-probe" / str(time.time_ns())
     root.mkdir(parents=True, exist_ok=True)

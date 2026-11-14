@@ -20,8 +20,8 @@ from .runner import copy_source
 
 CORPUS = routes.PREPARATION / "corpus.json"
 BASELINES = routes.PREPARATION / "baselines"
-ZVEC_PORT = 19700
-CBM_UI_PORT = 19701
+ZVEC_PORT = 19710
+CBM_UI_PORT = 19711
 # Only these product-created roots may exist in an indexed work copy; never in the pinned checkout.
 SOURCE_METADATA = {"codemap-search": {".codemap"}, "codegraph": {".codegraph"}, "zvec-grep": {".zvec-grep"},
                    "serena": {".serena"}, "codebase-memory-mcp": {".codebase-memory"}, "graphify": set(), "rg": set()}
@@ -158,13 +158,13 @@ def product_environment(ident: str, home: Path, source: Path) -> dict:
         env.update(CBM_CACHE_DIR=str(home), CBM_ALLOWED_ROOT=str(source), CBM_RUNTIME_DIR=str(cbm_runtime_dir()))
     elif ident == "serena":
         from .serena_support import environment
-        env.update(environment(home, load_artifacts(verify=False)[ident]))
+        env.update(environment(home, load_artifacts(verify=False, arms=routes.relay_arms(ident))[ident]))
     return env
 
 
 def prepare_index(ident: str, emit=print) -> dict:
     corpus = read_json(CORPUS)
-    artifact = load_artifacts(verify=False)[ident]
+    artifact = load_artifacts(verify=False, arms=routes.relay_arms(ident))[ident]
     source, home = workspace(ident, corpus)
     base = source.parent
     record = base / "prepared-index.json"
@@ -480,7 +480,8 @@ def verify_probe(state: dict, artifacts: dict) -> None:
 def probe_output_digest(state: dict) -> str:
     return digest({key: state.get(key) for key in (
         "status", "modes", "relay_settings", "native_agent", "native_inventory_sha256", "probe_log_sha256", "tool_condition",
-        "auxiliary_necessity", "probes", "cleanup", "reset", "prepared_index_ready", "warmup_policy", "isolation")})
+        "auxiliary_necessity", "probes", "cleanup", "reset", "prepared_index_ready", "warmup_policy", "isolation",
+        "auxiliary_shell")})
 
 
 def ready_path(ident: str, backend="codex") -> Path:
@@ -498,7 +499,7 @@ def probe_is_current(ident: str, backend="codex") -> bool:
     if not path.exists():
         return False
     try:
-        verify_probe(read_json(path), load_artifacts(verify=False))
+        verify_probe(read_json(path), load_artifacts(verify=False, arms=routes.relay_arms(ident)))
         return True
     except (OSError, ValueError, KeyError, TypeError):
         return False
@@ -514,7 +515,7 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
     from . import readiness, isolation
     from .execution import ProcessRegistry
     from .warm_host import prepare_session
-    artifacts = load_artifacts(verify=False)
+    artifacts = load_artifacts(verify=False, arms=routes.relay_arms(ident))
     state = load_index(ident)
     state["agent_backend"] = backend
     if ident == "serena":
@@ -551,6 +552,15 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
                 "tool_condition": "assisted" if relay_settings["auxiliaries"] else "native_only",
                 "auxiliary_necessity": relay_settings["auxiliary_necessity"], "probes": extra["observations"],
                 "probe_log": str(probe / "warmup.jsonl")}
+            if backend == "codex":
+                # The product arm's default shell runs in its own source; its own state folder must stay unreadable.
+                from .native_baseline import boundary, configuration
+                shell = configuration(Path(state["source"]), Path(relay_settings["rg_binary"]))
+                product_state = [Path(state["source"]) / name for name in sorted(SOURCE_METADATA[ident])
+                                 if (Path(state["source"]) / name).exists()]
+                observed["auxiliary_shell"] = {"configuration": shell, "probes": boundary(
+                    shell, probe / "shell", [routes.DATA / "dataset.json", routes.EVIDENCE / "01-contract.json"],
+                    metadata_root=product_state[0] if product_state else None)}
         audit = isolation.audit_index_paths(ident, state, read_json(CORPUS))
     except Exception as exc:
         write_json(probe / "preparation-failure.json", {"error": str(exc)})
@@ -588,12 +598,12 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
     return result
 
 
-def publish_indexes(backend="codex") -> dict:
+def publish_indexes(backend="codex", arms: tuple[str, ...] = routes.ARM_IDS) -> dict:
     corpus = read_json(CORPUS)
     verify_source_inventory(Path(corpus["source"]), corpus["files"])
-    artifacts = load_artifacts(verify=False)
+    artifacts = load_artifacts(verify=False, arms=arms)
     states = {}
-    for ident in routes.ARM_IDS:
+    for ident in arms:
         state = read_json(ready_path(ident, backend))
         require(state["agent_backend"] == backend, "조회 실행기 불일치")
         verify_probe(state, artifacts)

@@ -162,13 +162,13 @@ class BenchChecks(unittest.TestCase):
         profile = routes.load_profile()
         self.assertEqual(routes.solver_measurement_modes(), ("codemode",))
         self.assertEqual(routes.solver_measurement_modes("claude-opus-5-5"), ("direct",))
-        self.assertEqual(len(routes.schedule("claude-opus-5-5")), 42)
-        self.assertEqual(len(routes.schedule()), 42)
+        self.assertEqual(len(routes.schedule("claude-opus-5-5")), 63)
+        self.assertEqual(len(routes.schedule()), 63)
         self.assertEqual([s["backend"] for s in profile["solver_choices"]], ["codex", "claude_code"])
         self.assertEqual(settings.execution_settings()["grader_backend"], "pi")
         self.assertTrue(all("-codemode-" in row["id"] for row in routes.schedule()))
         pins = routes.frozen_inputs()["lock"]
-        self.assertEqual(pins["revision"], 9)
+        self.assertEqual(pins["revision"], 10)
         self.assertEqual(pins["cli_toolchain"]["versions"], {"codex": "0.164.0", "claude_code": "2.1.311"})
         self.assertIn("pi_toolchain", pins)
 
@@ -223,10 +223,17 @@ class BenchChecks(unittest.TestCase):
     def test_cli_launch_uses_private_paths_and_product_only_output_policy(self):
         from . import codex_client, claude_client
         folder = self.root / "launch"; folder.mkdir()
-        relay = {"arm": "codemap-search", "enabled_tools": ["read"]}
+        source = self.root / "product" / "source"
+        (source / ".codemap").mkdir(parents=True)
+        (self.root / "rg").write_bytes(b"rg")
+        relay = {"arm": "codemap-search", "enabled_tools": ["read"], "source": str(source), "rg_binary": str(self.root / "rg")}
         server = {"command": "/usr/bin/false", "args": [], "env": {}, "instructions": "Read source."}
         args, cwd, env = codex_client.launch(folder, self.spec, relay, server=server, local_endpoint="http://127.0.0.1:20651")
-        self.assertNotEqual(cwd, folder / "workspace")
+        # A product arm works in its own source with the baseline's default shell; only its own state folder is exempt in the audit.
+        self.assertEqual(cwd, source.resolve())
+        self.assertFalse(any(arg.startswith(("features.shell_tool=", "features.unified_exec=")) for arg in args))
+        self.assertIn("features.apps=false", args)
+        self.assertEqual(json.loads((folder / "cli-policy.json").read_text())["denied_product_state"], [str(source.resolve() / ".codemap")])
         self.assertIn("agents.enabled=false", args)
         self.assertTrue(any('tools."read".output_token_limit=100000' in arg for arg in args))
         self.assertIn("tool_output_token_limit=100000", args)

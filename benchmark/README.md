@@ -1,27 +1,27 @@
 # codemap-search 1.0.0 벤치마크
 
-고정 Grafana에서 탐색 도구 7개의 답변 품질과 비용을 비교한다. **모델별 2문항 × 7비교군 × 3회 = 42슬롯**, 동시 lifecycle 최대 4개, 같은 비교군은 순차 실행한다. 풀이 시간·호출·누적 토큰 제한은 없다. 운영자 취소와 환경 무결성 오류만 풀이를 중단한다. 채점기 제한 300초는 별도다.
+고정 Grafana에서 탐색 도구 7개의 답변 품질과 비용을 비교한다. **모델별 3문항 × 7비교군 × 3회 = 63슬롯**, 동시 lifecycle 최대 4개, 같은 비교군은 순차 실행한다. 풀이 시간·호출·누적 토큰 제한은 없다. 운영자 취소와 환경 무결성 오류만 풀이를 중단한다. 채점기 제한 300초는 별도다.
 
 ## 고정 조건
 
 | 항목 | 조건 |
 |---|---|
 | 소스 | Grafana main `c0a598f5a49abf2014f67e806075d8ad267c9efb`, 추적 파일 24,115개 |
-| 문항 | `grafana-routes-v4` revision 3. 사용자 지정 Git OAuth 서버 통신(TypeScript→Go), 앱 플러그인 manifest 사용자 정의 route의 HTTP 배포 백엔드 통신(Go) |
+| 문항 | `grafana-routes-v6` revision 1(pi 하네스와 같은 묶음). Git 저장소 동기화 작업 전달, 외부 Alertmanager 설정 자동 동기화, 스코프 필터와 대시보드 주석(모두 TypeScript→Go) |
 | 기본 풀이 | GPT 6.1 Sol / medium, **Codex CLI 0.164.0 `codex exec`** |
 | GPT 모드 | **Codex 제품 기본 `code_mode_only`(exec/wait)**. `codemode` 슬롯 키를 사용하지만 과거 pi codemode와 다른 구현이다 |
 | 선택 풀이 | Claude Opus 5.5 / medium, **Claude Code 2.1.311 `claude -p`**, direct |
 | 채점 | pi 1.4.0의 `openai-codex/gpt-6-astra` / high, 도구·MCP 없음 |
-| 반복 | 선택한 모델의 단일 모드로 42회. 반복 라운드 사이에는 이전 solver lifecycle 완료를 기다린다 |
-| 채점 항목 | 핵심 12개·확장 2개를 분리하고 correct·supported를 각각 판정 |
+| 반복 | 선택한 모델의 단일 모드로 63회. 반복 라운드 사이에는 이전 solver lifecycle 완료를 기다린다 |
+| 채점 항목 | 핵심 21개·확장 15개를 분리하고 correct·supported를 각각 판정 |
 
-학습 기준일 이후(2026-07-01 이후) 코드를 대상으로 선택한 질문·고정 커밋·rubric은 변경하지 않았다. 프롬프트의 두 번째 줄은 제품군의 경우 `navigation MCP`, rg는 `기본 코딩 에이전트 도구`를 안내한다. 모델·모드 결과를 합산하지 않는다. 슬롯 ID는 `<question>-<arm>-<mode>-<attempt>`, spec 키는 `<arm>/<mode>`이며 GPT는 `codemode`, Claude는 `direct`다. 같은 모델도 과거 pi 실행 결과와 동일 조건으로 합산하지 않는다.
+학습 기준일 이후(2026-07-01 이후) 코드를 대상으로 선택한 질문·고정 커밋·rubric은 변경하지 않았다. 프롬프트의 두 번째 줄은 제품군의 경우 `navigation MCP`를 최대한 쓰고 그 도구로 할 수 없는 작업에만 bash를 쓰라고, rg는 `기본 코딩 에이전트 도구`를 쓰라고 안내한다. 풀이 지시문은 pi 하네스와 같다. 모델·모드 결과를 합산하지 않는다. 슬롯 ID는 `<question>-<arm>-<mode>-<attempt>`, spec 키는 `<arm>/<mode>`이며 GPT는 `codemode`, Claude는 `direct`다. 같은 모델도 과거 pi 실행 결과와 동일 조건으로 합산하지 않는다.
 
-Codex 0.164.0의 내장 `models-manager/models.json`은 gpt-6.1-sol에 `tool_mode: code_mode_only`를 지정한다. `core/src/tools/mod.rs::requested_tool_mode`는 이를 feature flag보다 우선한다. **model catalog를 수정하지 않는다.** 하위 에이전트는 `agents.enabled=false`로 차단한다. 제품군의 shell·web·이미지 접근 도구는 exec 내부에서도 비활성화하지만 apply_patch·계획·시계 같은 나머지 기본 도구는 유지하며 쓰기는 OS read-only 권한으로 차단한다. rg는 기본 shell을 exec 안에서 사용하며 검색 제품 MCP가 없다. Claude rg는 Bash·Read·Glob·Grep만 제공한다.
+Codex 0.164.0의 내장 `models-manager/models.json`은 gpt-6.1-sol에 `tool_mode: code_mode_only`를 지정한다. `core/src/tools/mod.rs::requested_tool_mode`는 이를 feature flag보다 우선한다. **model catalog를 수정하지 않는다.** 하위 에이전트는 `agents.enabled=false`로 차단한다. 제품군의 web·이미지 접근 도구는 exec 내부에서도 비활성화하지만 apply_patch·계획·시계 같은 나머지 기본 도구는 유지하며 쓰기는 OS read-only 권한으로 차단한다. **제품군도 rg와 같은 기본 shell을 exec 안에서 받는다**(아래 "제품 비교군 보조 셸"). rg는 검색 제품 MCP가 없다. Claude rg는 Bash·Read·Glob·Grep만 제공한다.
 
 | 비교군 | 고정 버전 |
 |---|---|
-| codemap-search | 0.14.2 이후 변경 포함, 벤치마크 브랜치 머지 커밋 `2d0fdf010` git_ref snapshot |
+| codemap-search | 0.14.2 이후 변경 포함(검색 출력 압축), 벤치마크 브랜치 커밋 `e727d20c6` git_ref snapshot |
 | CodeGraph | 1.6.2 |
 | zvec-grep | 0.2.2 |
 | Graphify | 0.9.95 |
@@ -29,7 +29,7 @@ Codex 0.164.0의 내장 `models-manager/models.json`은 gpt-6.1-sol에 `tool_mod
 | Serena | 2.1.0, `--agent-interface tools` 단일 interface 예외 |
 | 기본 코딩 에이전트(rg) | 추가 검색 제품 없음, rg 15.2.0 |
 
-[실행 계약](data/grafana-execution-v1.json), [데이터셋](data/grafana-routes-v4/README.md), [비교 lock](data/grafana-comparison-targets-v1/README.md)이 정확한 조건이다. lock **개정 9**는 평가 제품을 머지 커밋 스냅샷으로 바꾸며, 개정 8부터 두 solver CLI의 npm integrity·전체 설치 tree·native executable SHA-256을 고정한다. pi toolchain은 채점용으로 유지한다. 시스템 PATH의 Codex/Claude를 대신 사용하지 않는다.
+[실행 계약](data/grafana-execution-v1.json), [데이터셋](data/grafana-routes-v6/README.md), [비교 lock](data/grafana-comparison-targets-v1/README.md)이 정확한 조건이다. lock **개정 10**은 데이터셋을 v6로, 평가 제품을 위 커밋 스냅샷으로 바꾸며, 개정 8부터 두 solver CLI의 npm integrity·전체 설치 tree·native executable SHA-256을 고정한다. pi toolchain은 채점용으로 유지한다. 시스템 PATH의 Codex/Claude를 대신 사용하지 않는다.
 
 ## 준비와 인증
 
@@ -50,9 +50,15 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 pnpm bench:start
 ```
 
-prepare는 설치·색인·semantic readiness·경계 canary·문맥 감사·오프라인 검증과 불변 계획 생성을 수행하며 실제 풀이/채점은 0회다. 각 모델의 `prepared_not_executed` readiness와 42-row ledger를 따로 게시한다. 코드·계약·CLI·도구 schema·source·index가 바뀌면 재준비해야 한다. 제품 artifact·source·환경과 최종 절대 경로가 같은 기존 색인은 재사용하지만 조회·client/context 증거는 새 backend로 다시 만든다. 다른 경로로 옮긴 index를 자동 재인증하지 않는다. Graphify는 hash-pinned requirements/wheel, Serena는 locked dependencies와 local Go/TypeScript LSP를 유지한다.
+일부 비교군만 준비하려면 `--arms`에 쉼표로 구분한 비교군을 준다. 모든 relay가 rg 실행 파일을 쓰므로 rg는 항상 포함한다. 계획에는 선택한 비교군의 슬롯만 들어가고, 슬롯 순서는 전체 계획에서의 순서를 따른다.
 
-CUI는 정확한 모델·CLI 버전·모드·42슬롯·풀이 제한 없음·별도 채점 제한을 표시한다. 실행 확인 기본값은 아니요다. 준비 성공 자체는 실제 실행 승인이나 hosted 인증·모델 품질 검증이 아니다.
+```sh
+python3 -m benchmark.route_prepare prepare --solver-model all --arms codemap-search,rg
+```
+
+prepare는 설치·색인·semantic readiness·경계 canary·문맥 감사·오프라인 검증과 불변 계획 생성을 수행하며 실제 풀이/채점은 0회다. 각 모델의 `prepared_not_executed` readiness와 선택한 비교군의 ledger(7개 모두면 63행)를 따로 게시한다. 코드·계약·CLI·도구 schema·source·index가 바뀌면 재준비해야 한다. 제품 artifact·source·환경과 최종 절대 경로가 같은 기존 색인은 재사용하지만 조회·client/context 증거는 새 backend로 다시 만든다. 다른 경로로 옮긴 index를 자동 재인증하지 않는다. Graphify는 hash-pinned requirements/wheel, Serena는 locked dependencies와 local Go/TypeScript LSP를 유지한다.
+
+CUI는 정확한 모델·CLI 버전·모드·슬롯 수·풀이 제한 없음·별도 채점 제한을 표시한다. 실행 확인 기본값은 아니요다. 준비 성공 자체는 실제 실행 승인이나 hosted 인증·모델 품질 검증이 아니다.
 
 ## 운영자 실행·검토·보고
 
@@ -76,7 +82,7 @@ python3 -m benchmark.cli approve-review < /private/operator/review.json
 python3 -m benchmark.cli report < /private/operator/report.json
 ```
 
-스모크는 같은 `run` 명령과 수명주기를 쓰되 승인 JSON에 `"scope": {"kind": "smoke", "slot_ids": [...]}`를 넣는다. 지정한 슬롯만 실행·채점하고 나머지는 `out_of_scope`로 시작하지 않는다. 결과는 `campaigns/smoke-<campaign_id>/`에 따로 남고 보고서 첫머리에 스모크임을 표시하며 비교 결과로 쓰지 않는다. 범위를 생략하면 42개 슬롯 전체(`{"kind": "full"}`)다.
+스모크는 같은 `run` 명령과 수명주기를 쓰되 승인 JSON에 `"scope": {"kind": "smoke", "slot_ids": [...]}`를 넣는다. 지정한 슬롯만 실행·채점하고 나머지는 `out_of_scope`로 시작하지 않는다. 결과는 `campaigns/smoke-<campaign_id>/`에 따로 남고 보고서 첫머리에 스모크임을 표시하며 비교 결과로 쓰지 않는다. 범위를 생략하면 계획한 슬롯 전체(`{"kind": "full"}`)다.
 
 `RunManifest`와 승인·준비 기록은 불변이다. 실행 결과는 cache의 `route-preparation/campaigns/<campaign_id>/`에 따로 저장한다. `ledger.json`은 fsync·atomic replace로 갱신하며 단일 coordinator만 작성한다. solver/grader launch intent를 먼저 내구 저장한다. intent 이후 crash는 실행 여부가 불확실해도 자동 재실행하지 않는다. 정리가 확인되지 않은 process group/workspace는 `blocked`로 두고 추측으로 종료하거나 복원하지 않는다. 미시작 재개만 명시적 `retry_unstarted`로 허용하고 이전 preflight의 원자료도 보존한다. 모델 호출 확인과 CLI spawn은 별개이며 미관측 provider 호출은 null이다.
 
@@ -96,7 +102,7 @@ ready 실패는 `warmup_failed`로 기록하고 solver를 시작하지 않는다
 
 하네스는 packet당 한 번만 실행한다. 형식·schema 오류, 빈 답변, timeout, nonzero exit를 채점 실패로 보존하고 자동 재채점하지 않는다. grader도 공통 pi final/identity 판정을 사용하여 빈 final, 마지막 aborted settlement, 관측된 upstream 모델 불일치를 적격 답변으로 받지 않는다. pi의 기본 transport retry(최대 3회)는 유지하며 `auto_retry_start/end`와 시도 횟수를 기록한다. compaction은 기본 설정을 바꾸지 않지만 발생하면 packet 문맥 변경으로 조건 무효·미채점 처리한다. assistant `message_end.usage`와 compaction usage의 `input + output + cacheRead + cacheWrite`를 합산하며 오류/중단 시 미관측 비용을 0으로 단정하지 않는다. `grader-result.json`, ledger/report의 `grader_execution`에는 실패 때도 사용량·`token_accounting`·retry/실패 attempt 수·compaction·상태·근거를 solver 비용과 별도로 남긴다.
 
-보고서는 항상 42행이며 launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
+보고서는 항상 계획한 슬롯 수만큼의 행이며(7개 비교군이면 63행) launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
 
 운영자 inspection 증거는 ad-hoc 스크립트 대신 다음 공식 명령으로 재생성한다. 실제 catalog와 검증한 불변 readiness projection으로 실제 CUI 함수를 실행하되 backend 호출을 차단하고 실행 확인은 거절한다. 결과는 `docs/briefs/evidence/bench-ready/07-operator-inspection*.json`이며 모델 0회 경계를 기록한다. 실제 터미널 입력은 기존 PTY checks가 별도로 검증한다.
 
@@ -114,6 +120,18 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 - runner가 `Popen` 직전 t0에서 `session.open_solver_gate(t0)`를 호출한다. product restart나 warm probe 예산 혼입은 금지한다. 결과는 `answer_eligible`을 명시한다.
 - `health().condition_errors`는 조건 열화를 보고하고, `close(reason)`는 bounded cleanup의 `complete`를 반환한다. 독립 그룹은 prompt/attach 허용 전에 `process_registry.register(pid, pgid, owner)`에 등록한다.
 - warm/transport 원자료는 `slot_dir` 바로 아래에 둔다. product home이나 CLI credentials/workspace는 raw seal 대상이 아니다. CLI `process.json`이 없으면 실제 spawn을 인증하지 않는다.
+
+## 제품 비교군 보조 셸
+
+제품 비교군 6개는 Codex에서 제품 MCP 도구와 함께 기준군과 같은 기본 shell(exec 안의 `exec_command`·`write_stdin`)을 받는다. pi 하네스의 v5 조건과 같은 원칙이다. 코드 탐색에는 MCP 도구를 최대한 쓰고 그 도구로 할 수 없는 작업에만 쓴다.
+
+- 작업 위치와 읽기 범위는 각 비교군 자신의 source다. 권한 프로필은 기준군과 같다: source·고정 rg 사본·최소 runtime 읽기, slot tmp 쓰기, network 차단, 셸 환경은 PATH(고정 rg)·HOME·TMPDIR·LANG만.
+- source의 `.git`과 그 제품의 상태 폴더(codemap은 `.codemap`)는 읽기를 거부한다. 준비 단계가 `codex sandbox`로 같은 권한을 실행해 source 읽기·고정 rg·제품 상태 거부·source 쓰기 거부·바깥 canary 거부를 확인한다(모델 호출 없음).
+- Codex는 거부 경로를 모델 문맥(permissions instructions, environment_context)에 그대로 적는다. 제품 상태 폴더 이름은 그 제품이 정한 것이므로, 문맥 감사는 `cli-policy.json`의 `denied_product_state`에 적힌 **정확한 경로만** 예외로 둔다. 그 경로의 나머지 구성요소와 다른 모든 경로는 그대로 감사한다. pi 하네스의 Seatbelt 거부는 모델에 보이지 않으므로 이 점은 클라이언트 차이다.
+- 셸 호출은 `auxiliary:command_execution`으로 세고 탐색 시도 합계에 넣는다. 제품군의 전역 history 한도는 MCP 결과에 맞춰 올린 값이라 보조 셸 출력에도 같은 값이 적용된다(exec/wait 기본 10000토큰은 그대로).
+- Claude Code 제품 비교군에는 아직 Bash가 없다. 그래서 이 개정의 `prepare`는 Codex 풀이(`--solver-model gpt-6.1-sol`)만 받고 `all`·Claude는 거부한다.
+
+호스트 잠금과 고정 포트(zvec 19710, CBM 19711, Claude proxy 19560)는 pi 하네스와 다른 값을 쓴다. CLI 하네스 캠페인 하나와 pi 하네스 캠페인 하나를 같은 호스트에서 함께 돌릴 수 있고, 같은 하네스의 캠페인은 여전히 하나만 돈다.
 
 ## 격리·warm host·출력
 
@@ -172,7 +190,7 @@ Claude launch는 기존 슬롯 HOME을 거부한다. 종료 후 자체 transcrip
 
 ## 문맥 감사와 지표
 
-prepare/verify는 실제 pinned CLI와 loopback fake provider로 첫 instructions/system·tools·input을 캡처한다. Codex code mode는 추가 synthetic `ALL_TOOLS` 이름 조회로 nested 도구도 확인한다(실제 모델/검색 호출 아님). 제품군의 shell/network/subagent 혼입, rg의 검색 MCP 혼입을 거부한다. 모든 문항 프롬프트, 절대 경로 구성요소와 하네스 문구에서 `IDENTIFYING_PATH_WORDS` + 문항 ID + smoke/grafana를 검사한다. 원문 제품 instructions·description·schema·도구 식별자만 provenance-bound 예외이며 절대 경로는 예외가 아니다. 실제 `Path.home()` 문자열·사용자 skill root·`<skills_instructions>`의 사용자 항목도 거부한다. private CODEX_HOME의 `.system` skill만 제품 기본값으로 허용하고 이름·root·파일 목록을 감사 증거에 기록한다(현재 imagegen, openai-docs, skill-creator, skill-installer). 이름 없는 hosted 도구는 `type`으로 선언 목록에 넣어 허용 집합 밖이면 거부한다.
+prepare/verify는 실제 pinned CLI와 loopback fake provider로 첫 instructions/system·tools·input을 캡처한다. Codex code mode는 추가 synthetic `ALL_TOOLS` 이름 조회로 nested 도구도 확인한다(실제 모델/검색 호출 아님). 제품군의 network/subagent 혼입과 기본 shell 누락, rg의 검색 MCP 혼입을 거부한다. 모든 문항 프롬프트, 절대 경로 구성요소와 하네스 문구에서 `IDENTIFYING_PATH_WORDS` + 문항 ID + smoke/grafana를 검사한다. 원문 제품 instructions·description·schema·도구 식별자만 provenance-bound 예외이며 절대 경로는 예외가 아니다. 실제 `Path.home()` 문자열·사용자 skill root·`<skills_instructions>`의 사용자 항목도 거부한다. private CODEX_HOME의 `.system` skill만 제품 기본값으로 허용하고 이름·root·파일 목록을 감사 증거에 기록한다(현재 imagegen, openai-docs, skill-creator, skill-installer). 이름 없는 hosted 도구는 `type`으로 선언 목록에 넣어 허용 집합 밖이면 거부한다.
 
 슬롯 후 Codex rollout의 system/developer/user/turn context와 Claude 자체 transcript의 모든 prompt snapshot·API request shape·system attachment·user 메시지를 다시 검사한다. 제품 tool-result 본문은 질문의 실제 소스이므로 하네스 문구로 취급하지 않는다. 감사 실패/필수 전사본 누락은 조건 무효다. 원자료·hash·위반 목록은 `context-audit.json`에 남는다.
 
