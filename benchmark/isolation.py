@@ -4,10 +4,8 @@ from __future__ import annotations
 import contextlib
 import fnmatch
 import hashlib
-import io
 import json
 import os
-import pickle
 import re
 import shutil
 import sqlite3
@@ -22,7 +20,7 @@ from typing import Callable
 
 from .core import ContractError, canonical, digest, file_digest, read_json, require
 
-METADATA = {".git", ".codemap", ".codegraph", ".codebase-memory", ".zvec-grep", ".serena", ".codex", "graphify-out"}
+METADATA = {".git", ".codemap", ".codegraph", ".codebase-memory", ".zvec-grep", ".codex", "graphify-out"}
 SYSTEM_READ = ("/bin", "/sbin", "/usr", "/System/Library", "/System/Cryptexes", "/Library/Apple",
                "/Library/Preferences", "/private/etc", "/private/var/db", "/dev", "/opt/homebrew")
 
@@ -89,16 +87,14 @@ def runtime_roots(artifact: dict) -> list[Path]:
     return sorted(set(roots))
 
 
-def _profile_text(read_roots, write_roots, *, port=None, unix_roots=(), cbm=False, preparation_network=False) -> str:
+def _profile_text(read_roots, write_roots, *, port=None, unix_roots=(), cbm=False) -> str:
     lines = ["(version 1)", "(allow default)", "(deny file-read-data)", "(deny file-write*)", "(deny network*)",
              '(allow file-read-data (literal "/"))']
     for operation, paths in (("file-read-data", [*SYSTEM_READ, *read_roots]), ("file-write*", write_roots)):
         for path in sorted({str(Path(p).resolve()) for p in paths}):
             lines.append(f"(allow {operation} (subpath {json.dumps(path)}))")
     lines.append('(allow file-write* (literal "/dev/null") (literal "/dev/zero") (subpath "/dev/fd"))')
-    if preparation_network:
-        lines.append("(allow network*)")
-    elif port is not None:
+    if port is not None:
         require(type(port) is int and 1024 <= port <= 65535, "잘못된 예약 포트")
         lines.extend([f'(allow network-bind (local ip "localhost:{port}"))',
                       f'(allow network-inbound (local ip "localhost:{port}"))',
@@ -120,9 +116,6 @@ def product_profile(ident: str, state: dict, artifact: dict, *, slot_tmp: Path) 
     require(ident == artifact["id"] and source != home and not source.is_relative_to(home)
             and not home.is_relative_to(source), "제품 격리 identity/root 불일치")
     env = {**product_environment(ident, home, source), **private_environment(home, slot_tmp)}
-    # Serena's native cache must stay at the prepared path, not a host-user cache.
-    if ident == "serena":
-        env["XDG_CACHE_HOME"] = str(home / "cache")
     preflight(source, home)
     reads = [source, home, *runtime_roots(artifact)]
     writes = [source, home]
@@ -134,10 +127,7 @@ def product_profile(ident: str, state: dict, artifact: dict, *, slot_tmp: Path) 
         reads.append(runtime)
         writes.append(runtime)
         unix.append(runtime)
-    preparation_network = bool(state.get("preparation_network"))
-    require(not preparation_network or ident == "serena", "승인되지 않은 제품 준비 network 예외")
-    text = _profile_text(reads, writes, port=port, unix_roots=unix, cbm=ident == "codebase-memory-mcp",
-                         preparation_network=preparation_network)
+    text = _profile_text(reads, writes, port=port, unix_roots=unix, cbm=ident == "codebase-memory-mcp")
     # Model-facing products cannot read credentials from another process environment via sysctl.
     # Seatbelt target "others" excludes same-group peers; deny all targets and allow self only.
     text += '(deny process-info*)\n(allow process-info* (target self))\n(deny sysctl-read (sysctl-name-prefix "kern.proc"))\n'
@@ -155,7 +145,7 @@ def product_profile(ident: str, state: dict, artifact: dict, *, slot_tmp: Path) 
             "allowed": {"read": sorted({str(p) for p in reads}), "write": sorted({str(p) for p in writes}),
                         "system_read": list(SYSTEM_READ), "unix": [str(p) for p in unix],
                         "cbm_tmp": "/private/tmp/cbm-*" if ident == "codebase-memory-mcp" else None,
-                        "preparation_network": preparation_network, "process_info_others": False}, "port": port}
+                        "process_info_others": False}, "port": port}
 
 
 def wrap(launch: list[str], profile: dict) -> list[str]:
@@ -250,37 +240,6 @@ PINNED_ARGUMENTS = {
         'manage_adr': set('content format mode project section_limit section_offset section_updates'.split()),
         'ingest_traces': set('label project traces'.split()),
     },
-    'serena': {
-        'create_text_file': set('content relative_path'.split()),
-        'replace_content': set('allow_multiple_occurrences mode needle relative_path repl'.split()),
-        'replace_in_files': set('dry_run expected_count max_answer_chars mode needle occurrence_ids paths_exclude_glob paths_include_glob relative_path repl'.split()),
-        'replace_symbol_body': set('body name_path relative_path'.split()),
-        'insert_after_symbol': set('body name_path relative_path'.split()),
-        'insert_before_symbol': set('body name_path relative_path'.split()),
-        'read_file': set('end_line max_answer_chars relative_path start_line'.split()),
-        'list_dir': set('max_answer_chars recursive relative_path skip_ignored_files'.split()),
-        'find_file': set('file_mask relative_path skip_ignored_files'.split()),
-        'search_for_pattern': set('context_lines_after context_lines_before max_answer_chars multiline paths_exclude_glob paths_include_glob relative_path restrict_search_to_code_files skip_ignored_files substring_pattern'.split()),
-        'get_symbols_overview': set('depth max_answer_chars relative_path'.split()),
-        'find_symbol': set('depth exclude_kinds include_body include_info include_kinds max_answer_chars max_matches name_path_pattern relative_path substring_matching'.split()),
-        'find_referencing_symbols': set('exclude_kinds include_kinds max_answer_chars name_path relative_path'.split()),
-        'find_implementations': set('exclude_kinds include_info include_kinds max_answer_chars name_path relative_path'.split()),
-        'find_declaration': set('containing_symbol_name_path include_body include_info regex relative_path'.split()),
-        'get_diagnostics_for_file': set('end_line max_answer_chars min_severity relative_path start_line'.split()),
-        'rename_symbol': set('name_path new_name relative_path'.split()),
-        'safe_delete_symbol': set('name_path_pattern relative_path'.split()),
-        'write_memory': set('content max_chars memory_name'.split()),
-        'read_memory': set('memory_name'.split()),
-        'list_memories': set('topic'.split()),
-        'delete_memory': set('memory_name'.split()),
-        'rename_memory': set('new_name old_name'.split()),
-        'edit_memory': set('allow_multiple_occurrences memory_name mode needle repl'.split()),
-        'execute_shell_command': set('capture_stderr command cwd max_answer_chars'.split()),
-        'activate_project': set('project session'.split()),
-        'get_current_config': set(''.split()),
-        'onboarding': set(''.split()),
-        'initial_instructions': set(''.split()),
-    },
 }
 
 QUERY_TOOLS = {
@@ -288,7 +247,6 @@ QUERY_TOOLS = {
     "codegraph": {"codegraph_explore"}, "zvec-grep": {"zvec_grep_search"},
     "graphify": set("query_graph get_node get_neighbors get_community god_nodes graph_stats shortest_path".split()),
     "codebase-memory-mcp": set("search_graph query_graph trace_path get_code_snippet get_file_outline get_graph_schema compare_graphs get_architecture search_code list_projects index_status check_index_coverage detect_changes".split()),
-    "serena": set("read_file list_dir find_file search_for_pattern get_symbols_overview find_symbol find_referencing_symbols find_implementations find_declaration get_diagnostics_for_file get_current_config initial_instructions".split()),
     "rg": {"rg", "read"},
 }
 PINNED_PROMPTS = {"codebase-memory-mcp": {"explore_codebase": {"project", "question"},
@@ -475,13 +433,6 @@ class RelayPolicy:
                 for value in values if isinstance(values, list) else [values]:
                     self.path(value, file=True)
             require(not any(arguments.get(k) is True for k in ("hidden", "noIgnore", "follow")), "metadata/링크 탐색 bypass 금지")
-        elif self.ident == "serena":
-            if arguments.get("relative_path", "") != "":
-                self.path(arguments["relative_path"], file=name in {"read_file", "get_symbols_overview", "get_diagnostics_for_file"})
-            for key in ("paths_include_glob", "paths_exclude_glob", "file_mask"):
-                if key in arguments:
-                    self.glob(arguments[key])
-            require(arguments.get("skip_ignored_files") is not False, "metadata ignore bypass 금지")
         elif self.ident == "codebase-memory-mcp":
             project = self.state["modes"]["native_readiness"]["project"]
             for key in ("project", "base_project", "target_project"):
@@ -577,7 +528,7 @@ def boundary_canaries(ident: str, call: Callable[[str, dict], dict], state: dict
         inventory = read_json(Path(state["native_inventory"]))["tools"] if state.get("native_inventory") else []
     enabled = state.get("relay_settings", {}).get("enabled_tools", QUERY_TOOLS[ident])
     metadata = {"codemap-search": source / ".codemap", "codegraph": source / ".codegraph",
-                "zvec-grep": source / ".zvec-grep", "serena": source / ".serena",
+                "zvec-grep": source / ".zvec-grep",
                 "codebase-memory-mcp": Path(state["home"]),
                 "graphify": Path(state["modes"]["graph_path"]).parent if ident == "graphify" else source / "graphify-out"}
     with canary_files(source, source.parent / "boundary", metadata_root=metadata.get(ident)) as (token, targets):
@@ -623,10 +574,6 @@ def path_argument_cases(ident: str, inventory: list[dict]) -> list[tuple]:
             if key in {"globs", "ignoreFiles", "insensitiveGlobs"}:
                 cases.append((name, key, {}, True))
     return cases
-
-class _IndexUnpickler(pickle.Unpickler):
-    def find_class(self, module, name):
-        raise pickle.UnpicklingError("index pickle globals 금지")
 
 
 _TANTIVY_PATHS = r'''
@@ -740,12 +687,6 @@ def audit_index_paths(ident: str, state: dict, corpus: dict) -> dict:
                 (reference_paths if import_reference(row) else other_paths).add(row["source_file"])
         compare("nodes", [row.get("source_file") for row in graph["nodes"]],
                 unresolved_references=reference_paths - other_paths)
-    elif ident == "serena":
-        paths = sorted((source / ".serena/cache").rglob("raw_document_symbols.pkl"))
-        require(paths, "Serena raw index 누락")
-        for path in paths:
-            data = _IndexUnpickler(io.BytesIO(path.read_bytes())).load()
-            compare(str(path.relative_to(source)), list(data["obj"]))
     elif ident in {"codemap-search", "zvec-grep"}:
         artifact = load_artifacts(verify=False, arms=routes.relay_arms(ident))[ident]
         directory = source.parent / "index-audit"

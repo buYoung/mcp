@@ -25,7 +25,6 @@ STOPPED = "Exploration call rejected before execution: solver stopped."
 PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-na", "--offline"]
 NAVIGATION_SERVER = "navigation"
 # Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
-# Keep the approved Serena allowance (originally sized for text + structuredContent in adapter 7).
 from .client_delivery import (PRODUCT_TEXT_BYTES as OUTPUT_GUARD_BYTES, DEFAULT_TEXT_BYTES,
                               CLAUDE_RESULT_META, CLAUDE_PRODUCT_CHARS)
 ADAPTER_SETTINGS = {"autoEnableCodemode": False, "maxOutputBytes": DEFAULT_TEXT_BYTES}

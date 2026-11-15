@@ -281,7 +281,7 @@ def source_path(root: Path, value: str, *, must_exist=True) -> Path:
     resolved = (path if path.is_absolute() else root / path).resolve()
     require(resolved.is_relative_to(root.resolve()), "고정 source 밖의 경로")
     relative = resolved.relative_to(root.resolve())
-    require(not any(p in {".git", ".codemap", ".codegraph", ".codebase-memory", ".zvec-grep", ".serena", ".codex", "graphify-out"}
+    require(not any(p in {".git", ".codemap", ".codegraph", ".codebase-memory", ".zvec-grep", ".codex", "graphify-out"}
                     for p in relative.parts), "제품/실행 메타데이터 접근 금지")
     require(not must_exist or resolved.exists(), "source 경로가 없습니다")
     return resolved

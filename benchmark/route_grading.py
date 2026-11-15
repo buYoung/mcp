@@ -69,7 +69,7 @@ REFERENCE = re.compile(r"(?P<path>[^\s`<>\[\]()\"',;]+?\.[A-Za-z0-9]+)(?::L?|#L)
 IDENTITY_MENTION = re.compile(
     r"(?i)(?<![A-Za-z0-9_])(?:mcp[_:.-]+)?(?:codemap[-_\s]*search(?:_[A-Za-z0-9_]+)?|"
     r"codegraph(?:_[A-Za-z0-9_]+)?|zvec[-_\s]*grep(?:_[A-Za-z0-9_]+)?|"
-    r"graphifyy?(?:_[A-Za-z0-9_]+)?|codebase[-_\s]*memory(?:[-_\s]*mcp)?(?:_[A-Za-z0-9_]+)?|serena(?:[-_\s]*agent)?(?:_[A-Za-z0-9_]+)?|plain[-_\s]+rg|ripgrep|rg|"
+    r"graphifyy?(?:_[A-Za-z0-9_]+)?|codebase[-_\s]*memory(?:[-_\s]*mcp)?(?:_[A-Za-z0-9_]+)?|plain[-_\s]+rg|ripgrep|rg|"
     r"(?:I am|I'm|나는|저는)\s+(?:an?\s+)?pi|pi(?:[-_\s]+(?:(?:coding[-_\s]+)?agent|cli))|"
     r"claude[-_\s]*bridge|openai[-_\s]*codex|"
     r"codex(?:[-_\s]*(?:cli|mcp[-_\s]*client))?|openai|anthropic|astra|sol|"

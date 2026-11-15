@@ -173,12 +173,12 @@ class BenchChecks(unittest.TestCase):
 
     def test_pi_audit_native_provenance_never_exempts_user_or_paths(self):
         from . import pi_audit, pi_client
-        native = {"initialize": {"instructions": "Use Serena to inspect source."}, "tools": []}
+        native = {"initialize": {"instructions": "Use CodeGraph to inspect source."}, "tools": []}
         body = {"instructions": pi_client.server_instructions_prompt(native["initialize"]["instructions"]),
                 "input": [{"role": "user", "content": "Inspect source."}]}
         self.assertEqual(pi_audit.audit_request(body, native), [])
-        self.assertTrue(pi_audit.audit_system({"sections": {"preamble": "Use Serena to inspect source."}}, native))
-        body["input"][0]["content"] = "Use Serena to inspect source."
+        self.assertTrue(pi_audit.audit_system({"sections": {"preamble": "Use CodeGraph to inspect source."}}, native))
+        body["input"][0]["content"] = "Use CodeGraph to inspect source."
         self.assertTrue(pi_audit.audit_request(body, native))
         self.assertTrue(pi_audit.audit_text("SMOKE grafana alerting-alertmanager"))
         text = "Source: file:///tmp/%62ench/private.txt"
@@ -289,11 +289,7 @@ class BenchChecks(unittest.TestCase):
     def test_pi_output_guard_covers_native_utf8_budgets(self):
         from .pi_client import adapter_settings
         self.assertGreaterEqual(adapter_settings("codemap-search")["maxOutputBytes"], 100000)
-        text = "😀" * 150000
-        appended = text + "\nstructuredContent:\n" + json.dumps({"result": text}, ensure_ascii=False, indent=2)
-        self.assertGreaterEqual(adapter_settings("serena")["maxOutputBytes"], len(appended.encode()))
-        self.assertNotIn("appendStructuredContent", adapter_settings("serena"))
-        for arm in ("codemap-search", "serena", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp"):
+        for arm in ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp"):
             config = adapter_settings(arm)
             self.assertFalse(config["autoEnableCodemode"])
             self.assertEqual(set(config), {"autoEnableCodemode", "maxOutputBytes"})
@@ -498,9 +494,9 @@ class BenchChecks(unittest.TestCase):
                 isolation.process_environment_observation(subprocess.CompletedProcess([], code, json.dumps(payload).encode()))
         warm = warm_host.WarmSession.__new__(warm_host.WarmSession)
         warm.state = {"source": str(source), "home": str(home)}
-        with patch("benchmark.tool_indexes.product_environment", return_value={}):
-            warm.profile = isolation.product_profile("serena", warm.state, {"id": "serena", "installation": str(install), "launch": [str(rg)]}, slot_tmp=home / "tmp")
-        warm.ident, warm.backend, warm.solver_start, warm.receipt, warm.initialized = "serena", "pi", None, {}, {"capabilities": {}}
+        with patch("benchmark.tool_indexes.product_environment", return_value={"CBM_RUNTIME_DIR": str(home / "runtime")}):
+            warm.profile = isolation.product_profile("codebase-memory-mcp", warm.state, {"id": "codebase-memory-mcp", "installation": str(install), "launch": [str(rg)]}, slot_tmp=home / "tmp")
+        warm.ident, warm.backend, warm.solver_start, warm.receipt, warm.initialized = "codebase-memory-mcp", "pi", None, {}, {"capabilities": {}}
         with patch.object(warm_host.readiness, "probes", return_value=[]), patch.object(isolation, "boundary_canaries", return_value=[]):
             evidence = warm.verify_preparation()["boundary_canaries"]
         self.assertEqual(evidence[0]["errno"], 1)
@@ -716,7 +712,7 @@ console.log(JSON.stringify(out));
         rejected = [["read", {"path": target}] for target in [*denied, str(outside), "link", "../other-source.txt", ".GIT/HEAD"]]
         rejected += [["grep", {"pattern": "x", "path": ".."}], ["grep", {"pattern": "x", "path": ".git"}],
                      ["grep", {"pattern": "x", "glob": ".codemap/**"}], ["grep", {"pattern": "x", "glob": "{pkg,.git}/**"}],
-                     ["grep", {"pattern": "x", "glob": "!.serena"}], ["find", {"pattern": ".git/*"}],
+                     ["grep", {"pattern": "x", "glob": "!.codegraph"}], ["find", {"pattern": ".git/*"}],
                      ["find", {"pattern": "*", "path": str(self.root)}], ["ls", {"path": ".codemap"}], ["ls", {"path": str(self.root)}]]
         calls = [[f"call-{index}", tool, arguments] for index, (tool, arguments) in enumerate([*allowed, *rejected])]
         verdicts = decide(calls)
@@ -949,8 +945,7 @@ console.log(JSON.stringify(out));
                  patch.object(tool_indexes, "freeze_baseline", return_value={}), patch.object(tool_indexes, "restore_baseline", return_value={"elapsed_seconds": 0}), \
                  patch.object(tool_indexes, "probe_inputs", return_value={}), patch.object(tool_indexes, "read_json", return_value={"files": {}}), \
                  patch.object(tool_indexes, "tracked_manifest", return_value={}), patch.object(tool_indexes, "ready_path", return_value=root / "ready.json"), \
-                 patch.object(isolation, "audit_index_paths", return_value={}), patch.object(warm_host, "prepare_session", side_effect=prepare), \
-                 patch("benchmark.serena_support.language_dependencies", return_value={}), patch("benchmark.serena_support.verify_indexing_log"):
+                 patch.object(isolation, "audit_index_paths", return_value={}), patch.object(warm_host, "prepare_session", side_effect=prepare):
                 result = tool_indexes.probe_index(arm, emit=lambda *_: None)
             self.assertEqual(seen["metadata_root"], metadata)
             self.assertEqual(seen["folder"].name, "read-probe")

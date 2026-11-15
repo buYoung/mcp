@@ -1,6 +1,8 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-2026-10-28 **개정 9**다. 외부 비교군 6개의 버전·소스는 개정 8과 같다. 풀이를 pi direct/codemode(모델당 84슬롯)로 되돌리고, 평가 제품을 codemap-search 0.14.2로 고정한다. `previous_lock_sha256`은 Git 이력에 보존된 개정 8을 가리킨다. 새 `@buyong/pi-mcp-adapter`와 child-env API를 넣은 `@buyong/pi-claude-bridge`는 `pi_lock pin`으로 npm 버전·integrity를 고정하며 prepare는 이전 설치물이나 scratch tarball로 우회할 수 없다. 제품 설정은 기본값이다.
+2026-11-15 **개정 10**이다. Serena 2.1.0(`oraios/serena`, `5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc`)을 비교 대상에서 제외했다(사용자 결정). 사유: 색인이 너무 오래 걸린다. Grafana 전체의 Go·TypeScript LSP 색인이 1회에 약 34~70분 걸렸다. 남은 외부 비교군 5개의 버전·소스와 toolchain 고정은 개정 9와 같다. `previous_lock_sha256`은 Git 이력에 보존된 개정 9를 가리키고, 제외 기록은 lock의 `excluded_comparisons`에 있다.
+
+2026-10-28 개정 9(이전 개정)다. 외부 비교군 6개의 버전·소스는 개정 8과 같다. 풀이를 pi direct/codemode(모델당 84슬롯)로 되돌리고, 평가 제품을 codemap-search 0.14.2로 고정한다. `previous_lock_sha256`은 Git 이력에 보존된 개정 8을 가리킨다. 새 `@buyong/pi-mcp-adapter`와 child-env API를 넣은 `@buyong/pi-claude-bridge`는 `pi_lock pin`으로 npm 버전·integrity를 고정하며 prepare는 이전 설치물이나 scratch tarball로 우회할 수 없다. 제품 설정은 기본값이다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -8,7 +10,6 @@
 | zvec-grep | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) | [0.2.2 tag](https://github.com/zvec-ai/zvec-grep/tree/v0.2.2) · npm stable | `b1a9148e26a7bc9bd4a52229ffb7532d3063793d` |
 | Graphify | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) | [0.9.95](https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.95) | `92741d162b2094ffc2fed58cfbd8ee823e9da62c` |
 | codebase-memory-mcp | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) | [0.12.1](https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.12.1) | `a7158ac2f48ca646b4527341b76f930f2aeff87e` |
-| Serena | [oraios/serena](https://github.com/oraios/serena) | [2.1.0](https://github.com/oraios/serena/releases/tag/v2.1.0) | `5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc` |
 | plain rg | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | [15.2.0](https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0) · 유지 | `e89fff89ac9af12e8d4ce9d5fd07beb408ca730f` |
 
 - CodeGraph는 사용자가 선택한 공식 `@colbymchenry/codegraph` Node 구현이다. zvec-grep은 `@zvec/zvec-grep` Node 구현이다. zvec 0.2.2에는 GitHub Release가 없으므로 release URL/ID/시각은 `null`이다. GitHub latest의 오래된 0.2.0 메타데이터를 빌려 쓰지 않는다.
@@ -29,9 +30,9 @@
 | [pi-package.json](pi-package.json) / [pi-package-lock.json](pi-package-lock.json) | pi 1.4.0, SDK 0.3.311 (Claude Code 2.1.311)의 기반 npm integrity lock. 두 미게시 패키지는 targets.lock.json의 publications에서 대기하며 게시 후 전체 의존성을 다시 고정한다. |
 | [SHA256SUMS](SHA256SUMS) | 이 bundle의 모든 고정 파일 SHA-256. |
 
-Graphify upstream `uv.lock`은 루트 버전 0.9.84와 누락된 필수 PyYAML 때문에 0.9.95의 `uv sync --locked`가 실패한다. `--frozen`으로 오류를 숨기지 않고 공식 wheel을 위 requirements로 `uv pip sync --require-hashes --only-binary :all:` 설치한다. 준비 시 의존성을 다시 해석하지 않는다. wheel package 파일을 고정 tag source와 대조하고 Graphify·Serena 모두 `uv pip check`를 수행한다. 원본 `uv.lock`은 source provenance로 보존하며 실제 runtime lock과 구분한다.
+Graphify upstream `uv.lock`은 루트 버전 0.9.84와 누락된 필수 PyYAML 때문에 0.9.95의 `uv sync --locked`가 실패한다. `--frozen`으로 오류를 숨기지 않고 공식 wheel을 위 requirements로 `uv pip sync --require-hashes --only-binary :all:` 설치한다. 준비 시 의존성을 다시 해석하지 않는다. wheel package 파일을 고정 tag source와 대조하고 Graphify는 `uv pip check`를 수행한다. 원본 `uv.lock`은 source provenance로 보존하며 실제 runtime lock과 구분한다.
 
-CBM은 공식 darwin-arm64 asset 0.12.1을 사용한다. Serena는 2.1.0의 기본 REPL 대신 검색 전용 계약을 위해 `--agent-interface tools`를 명시한다. native default와 예외 이유를 prepared state에 기록하며 그 외 기존 검색 전용 설정·출력 기본값은 유지한다.
+CBM은 공식 darwin-arm64 asset 0.12.1을 사용한다.
 
 ## 적용 규칙과 검증 범위
 
