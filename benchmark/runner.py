@@ -343,7 +343,7 @@ def navigation_server(folder: Path, relay_settings: dict, prepared_session=None)
 def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: float | None,
                        final_row: dict | None, start: float, started_unix_seconds: float,
                        wall_deadline: float | None, cutoff: dict | None, conditions_valid: bool,
-                       exited_monotonic: float | None = None) -> dict:
+                       observed_unix_seconds: float | None = None) -> dict:
     deadlines = [value for value in (wall_deadline, cutoff["effective_cutoff_monotonic"] if cutoff else None) if value is not None]
     effective = min(deadlines) if deadlines else None
     reasons = []
@@ -356,18 +356,17 @@ def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: flo
             timestamp = datetime.datetime.fromisoformat(final_row["timestamp"].replace("Z", "+00:00"))
             require(timestamp.tzinfo is not None, "missing rollout timezone")
             final_unix = timestamp.timestamp()
-            # Codex stamps the rollout row after it emits the stdout event the harness observes, so the row can be
-            # later than the observed completion. It cannot be later than the exit of the process that wrote it.
-            written_by = exited_monotonic if exited_monotonic is not None else observed_monotonic
-            require(observed_monotonic is not None and started_unix_seconds <= final_unix
-                    <= started_unix_seconds + (min(effective, written_by) if effective is not None else written_by) - start,
+            # Both bounds are wall-clock readings. Monotonic elapsed time is not added to the wall-clock start:
+            # the system clock can be stepped during a run, which made complete answers look late. The monotonic
+            # check above already rejects a completion observed after the cutoff.
+            require(observed_unix_seconds is not None and started_unix_seconds <= final_unix <= observed_unix_seconds,
                     "rollout final timestamp not bound to observed completion")
         except (AttributeError, KeyError, TypeError, ValueError):
             reasons.append("rollout final timestamp not proven within cutoff")
     if not conditions_valid:
         reasons.append("execution conditions not confirmed")
     return {"eligible": not reasons, "reasons": reasons, "effective_cutoff_monotonic": effective,
-            "observed_final_monotonic": observed_monotonic}
+            "observed_final_monotonic": observed_monotonic, "observed_final_unix_seconds": observed_unix_seconds}
 
 
 def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None, grading=False, output_schema: dict | None = None,
@@ -441,11 +440,13 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
         shell_monitor = ShellMonitor(folder, prepared_session.registry if prepared_session is not None else None)
     model_exited_monotonic = None
     answer_finished_monotonic = None
+    answer_finished_unix = None
     event_parse_failed = False
     with (folder / "events.jsonl").open("wb") as event_file, (folder / "stderr.log").open("wb") as error_file:
         selector = selectors.DefaultSelector()
         def pump():
             nonlocal stdout_scan, stderr_scan, stderr_eof, thread_id, is_stdout_eof, answer_finished_monotonic, event_parse_failed
+            nonlocal answer_finished_unix
             parse_error = None
             for key, _ in selector.select(timeout=.05):
                 while True:
@@ -497,6 +498,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                   or backend == "codex" and event.get("type") == "turn.completed"
                                   or backend == "pi" and event.get("type") == "agent_settled"):
                                 answer_finished_monotonic = read_at
+                                answer_finished_unix = time.time()
                             if event.get("type") in {"tool_execution_end", "agent_settled", "item.started", "item.completed", "turn.completed", "assistant", "user", "result", "stream_event"}:
                                 event_observations.append({"record": len(events), "type": event["type"], "read_monotonic": read_at})
                         except (ValueError, KeyError) as exc:
@@ -786,7 +788,7 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                      started_unix_seconds=started_unix_seconds, wall_deadline=wall_deadline,
                                      cutoff=stop.cutoff if stop else None,
                                      conditions_valid=conditions_valid and (grading or token_measurement["token_accounting"] in {"complete", "lower_bound"}),
-                                     exited_monotonic=model_exited_monotonic)
+                                     observed_unix_seconds=answer_finished_unix)
     answer_eligible = eligibility["eligible"]
     answer = final_text if answer_eligible else ""
     after_cutoff = bool(stop and stop.cutoff)

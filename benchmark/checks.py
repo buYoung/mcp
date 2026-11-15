@@ -759,22 +759,24 @@ assert.throws(() => tool.execute('id', {code:'invalid'}), /native parse error/);
         self.assertTrue(eligibility["eligible"])
         self.assertIsNone(eligibility["effective_cutoff_monotonic"])
 
-    def test_codex_rollout_row_may_follow_observed_completion_until_process_exit(self):
+    def test_codex_rollout_row_is_bound_in_wall_clock_time_despite_a_clock_step(self):
         def stamped(seconds):
             return {"timestamp": datetime.datetime.fromtimestamp(1000 + seconds, datetime.timezone.utc).isoformat().replace("+00:00", "Z")}
 
         def eligible(row_seconds, **overrides):
-            arguments = {"backend": "codex", "completed": True, "observed_monotonic": 500 + 319.82, "final_row": stamped(row_seconds),
+            # The wall clock was stepped by +2.02 s during the run: 171.8 s elapsed on the monotonic clock,
+            # 173.82 s on the wall clock. The row is stamped 10 ms before the completion is observed.
+            arguments = {"backend": "codex", "completed": True, "observed_monotonic": 500 + 171.8, "final_row": stamped(row_seconds),
                          "start": 500, "started_unix_seconds": 1000, "wall_deadline": None, "cutoff": None, "conditions_valid": True,
-                         "exited_monotonic": 500 + 320.3, **overrides}
+                         "observed_unix_seconds": 1000 + 173.82, **overrides}
             return runner.answer_eligibility(**arguments)["eligible"]
-        self.assertTrue(eligible(319.7))
-        self.assertTrue(eligible(319.9))  # stamped 80 ms after the stdout event was observed
-        self.assertFalse(eligible(320.4))  # after the process exit
+        self.assertTrue(eligible(173.81))
+        self.assertTrue(eligible(171.79, observed_unix_seconds=1000 + 171.8))
+        self.assertFalse(eligible(173.83))  # stamped after the completion was observed
         self.assertFalse(eligible(-1))
-        self.assertFalse(eligible(319.9, exited_monotonic=None))
-        self.assertFalse(eligible(319.9, wall_deadline=500 + 319.85))
-        self.assertFalse(eligible(319.7, final_row=None))
+        self.assertFalse(eligible(173.81, observed_unix_seconds=None))
+        self.assertFalse(eligible(173.81, wall_deadline=500 + 171.7))  # completion observed after the cutoff
+        self.assertFalse(eligible(173.81, final_row=None))
 
     def test_native_relay_counts_over_80_calls_and_still_honors_stop(self):
         from .route_transport import NativeRelay, append_jsonl
