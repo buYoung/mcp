@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import datetime
 import json
 import os
 import subprocess
@@ -757,6 +758,23 @@ assert.throws(() => tool.execute('id', {code:'invalid'}), /native parse error/);
             final_row=None, start=0, started_unix_seconds=0, wall_deadline=None, cutoff=None, conditions_valid=True)
         self.assertTrue(eligibility["eligible"])
         self.assertIsNone(eligibility["effective_cutoff_monotonic"])
+
+    def test_codex_rollout_row_may_follow_observed_completion_until_process_exit(self):
+        def stamped(seconds):
+            return {"timestamp": datetime.datetime.fromtimestamp(1000 + seconds, datetime.timezone.utc).isoformat().replace("+00:00", "Z")}
+
+        def eligible(row_seconds, **overrides):
+            arguments = {"backend": "codex", "completed": True, "observed_monotonic": 500 + 319.82, "final_row": stamped(row_seconds),
+                         "start": 500, "started_unix_seconds": 1000, "wall_deadline": None, "cutoff": None, "conditions_valid": True,
+                         "exited_monotonic": 500 + 320.3, **overrides}
+            return runner.answer_eligibility(**arguments)["eligible"]
+        self.assertTrue(eligible(319.7))
+        self.assertTrue(eligible(319.9))  # stamped 80 ms after the stdout event was observed
+        self.assertFalse(eligible(320.4))  # after the process exit
+        self.assertFalse(eligible(-1))
+        self.assertFalse(eligible(319.9, exited_monotonic=None))
+        self.assertFalse(eligible(319.9, wall_deadline=500 + 319.85))
+        self.assertFalse(eligible(319.7, final_row=None))
 
     def test_native_relay_counts_over_80_calls_and_still_honors_stop(self):
         from .route_transport import NativeRelay, append_jsonl

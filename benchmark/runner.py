@@ -342,7 +342,8 @@ def navigation_server(folder: Path, relay_settings: dict, prepared_session=None)
 
 def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: float | None,
                        final_row: dict | None, start: float, started_unix_seconds: float,
-                       wall_deadline: float | None, cutoff: dict | None, conditions_valid: bool) -> dict:
+                       wall_deadline: float | None, cutoff: dict | None, conditions_valid: bool,
+                       exited_monotonic: float | None = None) -> dict:
     deadlines = [value for value in (wall_deadline, cutoff["effective_cutoff_monotonic"] if cutoff else None) if value is not None]
     effective = min(deadlines) if deadlines else None
     reasons = []
@@ -355,8 +356,11 @@ def answer_eligibility(*, backend: str, completed: bool, observed_monotonic: flo
             timestamp = datetime.datetime.fromisoformat(final_row["timestamp"].replace("Z", "+00:00"))
             require(timestamp.tzinfo is not None, "missing rollout timezone")
             final_unix = timestamp.timestamp()
+            # Codex stamps the rollout row after it emits the stdout event the harness observes, so the row can be
+            # later than the observed completion. It cannot be later than the exit of the process that wrote it.
+            written_by = exited_monotonic if exited_monotonic is not None else observed_monotonic
             require(observed_monotonic is not None and started_unix_seconds <= final_unix
-                    <= started_unix_seconds + (min(effective, observed_monotonic) if effective is not None else observed_monotonic) - start,
+                    <= started_unix_seconds + (min(effective, written_by) if effective is not None else written_by) - start,
                     "rollout final timestamp not bound to observed completion")
         except (AttributeError, KeyError, TypeError, ValueError):
             reasons.append("rollout final timestamp not proven within cutoff")
@@ -781,7 +785,8 @@ def _execute_agent(folder: Path, prompt: str, relay_settings: dict | None = None
                                      final_row=final_rows[-1] if final_rows else None, start=start,
                                      started_unix_seconds=started_unix_seconds, wall_deadline=wall_deadline,
                                      cutoff=stop.cutoff if stop else None,
-                                     conditions_valid=conditions_valid and (grading or token_measurement["token_accounting"] in {"complete", "lower_bound"}))
+                                     conditions_valid=conditions_valid and (grading or token_measurement["token_accounting"] in {"complete", "lower_bound"}),
+                                     exited_monotonic=model_exited_monotonic)
     answer_eligible = eligibility["eligible"]
     answer = final_text if answer_eligible else ""
     after_cutoff = bool(stop and stop.cutoff)
