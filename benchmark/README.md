@@ -1,6 +1,6 @@
 # codemap-search 1.0.0 벤치마크
 
-고정 Grafana에서 탐색 도구 7개의 답변 품질과 비용을 비교한다. **모델별 3문항 × 7비교군 × 3회 = 63슬롯**, 동시 lifecycle 최대 4개, 같은 비교군은 순차 실행한다. 풀이 시간·호출·누적 토큰 제한은 없다. 운영자 취소와 환경 무결성 오류만 풀이를 중단한다. 채점기 제한 300초는 별도다.
+고정 Grafana에서 탐색 도구 6개의 답변 품질과 비용을 비교한다. **모델별 3문항 × 6비교군 × 3회 = 54슬롯**, 동시 lifecycle 최대 4개, 같은 비교군은 순차 실행한다. 풀이 시간·호출·누적 토큰 제한은 없다. 운영자 취소와 환경 무결성 오류만 풀이를 중단한다. 채점기 제한 300초는 별도다.
 
 ## 고정 조건
 
@@ -26,14 +26,15 @@ Codex 0.164.0의 내장 `models-manager/models.json`은 gpt-6.1-sol에 `tool_mod
 | zvec-grep | 0.2.2 |
 | Graphify | 0.9.95 |
 | codebase-memory-mcp | 0.12.1 |
-| Serena | 2.1.0, `--agent-interface tools` 단일 interface 예외 |
 | 기본 코딩 에이전트(rg) | 추가 검색 제품 없음, rg 15.2.0 |
+
+Serena 2.1.0(`oraios/serena`)은 2026-11-15에 비교 대상에서 제외했다(사용자 결정). 사유: 색인이 너무 오래 걸린다. Grafana 전체의 Go·TypeScript LSP 색인이 1회에 약 34~70분 걸렸다.
 
 [실행 계약](data/grafana-execution-v1.json), [데이터셋](data/grafana-routes-v6/README.md), [비교 lock](data/grafana-comparison-targets-v1/README.md)이 정확한 조건이다. lock **개정 10**은 데이터셋을 v6로, 평가 제품을 위 커밋 스냅샷으로 바꾸며, 개정 8부터 두 solver CLI의 npm integrity·전체 설치 tree·native executable SHA-256을 고정한다. pi toolchain은 채점용으로 유지한다. 시스템 PATH의 Codex/Claude를 대신 사용하지 않는다.
 
 ## 준비와 인증
 
-macOS arm64, Python 3.12+, Node 22.19+, npm/pnpm, uv, Git, Cargo, Go/gopls가 필요하다. `CODEMAP_BENCH_CACHE`는 제품·하네스 이름 없는 중립 경로여야 한다(`codemap`, `codegraph`, `zvec`, `graphify`, `codebase-memory`, `serena`, `bench`, `route`, `campaign` 금지). 두 CLI는 `<cache>/cli-toolchain`, 채점 pi는 `<cache>/pi-toolchain`에 `npm ci --ignore-scripts --no-audit --no-fund`로 설치하고 매 재사용 때 hash를 검증한다. 개인 설치물·설정·extensions를 변경하지 않는다.
+macOS arm64, Python 3.12+, Node 22.19+, npm/pnpm, uv, Git, Cargo가 필요하다. `CODEMAP_BENCH_CACHE`는 제품·하네스 이름 없는 중립 경로여야 한다(`codemap`, `codegraph`, `zvec`, `graphify`, `codebase-memory`, `bench`, `route`, `campaign` 금지). 두 CLI는 `<cache>/cli-toolchain`, 채점 pi는 `<cache>/pi-toolchain`에 `npm ci --ignore-scripts --no-audit --no-fund`로 설치하고 매 재사용 때 hash를 검증한다. 개인 설치물·설정·extensions를 변경하지 않는다.
 
 - Codex 인증은 CLI가 읽는다. 격리 CODEX_HOME에 운영자의 auth.json을 symlink하고 종료 후 링크만 지운다. **프로세스 HOME도 슬롯 전용 `<cache>/<16hex>/home`**으로 설정하여 실제 HOME의 개인 skills가 유입되지 않게 한다. 하네스는 Codex 자격 파일 내용을 열거나 복사하지 않는다.
 - **모든 Claude 비교군은 슬롯 전용 HOME + 명시적 운영자 OAuth token을 사용한다.** 기존 사용자 로그인·실제 HOME 사용 경로는 없다. `CLAUDE_CODE_OAUTH_TOKEN` 또는 `CODEMAP_BENCH_CLAUDE_TOKEN_FILE` 중 하나만 지정한다. 파일은 운영자 소유의 0600 regular file이어야 하며 symlink/hardlink를 거부한다. 읽기 오류는 경로 없는 메시지로 보고한다. 환경 토큰은 읽은 뒤 부모 환경에서 제거하고 메모리에만 보관해 CLI 환경에 넣는다. 일반 `core.command()` 자식에는 전달하지 않는다.
@@ -56,7 +57,7 @@ pnpm bench:start
 python3 -m benchmark.route_prepare prepare --solver-model all --arms codemap-search,rg
 ```
 
-prepare는 설치·색인·semantic readiness·경계 canary·문맥 감사·오프라인 검증과 불변 계획 생성을 수행하며 실제 풀이/채점은 0회다. 각 모델의 `prepared_not_executed` readiness와 선택한 비교군의 ledger(7개 모두면 63행)를 따로 게시한다. 코드·계약·CLI·도구 schema·source·index가 바뀌면 재준비해야 한다. 제품 artifact·source·환경과 최종 절대 경로가 같은 기존 색인은 재사용하지만 조회·client/context 증거는 새 backend로 다시 만든다. 다른 경로로 옮긴 index를 자동 재인증하지 않는다. Graphify는 hash-pinned requirements/wheel, Serena는 locked dependencies와 local Go/TypeScript LSP를 유지한다.
+prepare는 설치·색인·semantic readiness·경계 canary·문맥 감사·오프라인 검증과 불변 계획 생성을 수행하며 실제 풀이/채점은 0회다. 각 모델의 `prepared_not_executed` readiness와 선택한 비교군의 ledger(6개 모두면 54행)를 따로 게시한다. 코드·계약·CLI·도구 schema·source·index가 바뀌면 재준비해야 한다. 제품 artifact·source·환경과 최종 절대 경로가 같은 기존 색인은 재사용하지만 조회·client/context 증거는 새 backend로 다시 만든다. 다른 경로로 옮긴 index를 자동 재인증하지 않는다. Graphify는 hash-pinned requirements/wheel을 유지한다.
 
 CUI는 정확한 모델·CLI 버전·모드·슬롯 수·풀이 제한 없음·별도 채점 제한을 표시한다. 실행 확인 기본값은 아니요다. 준비 성공 자체는 실제 실행 승인이나 hosted 인증·모델 품질 검증이 아니다.
 
@@ -102,7 +103,7 @@ ready 실패는 `warmup_failed`로 기록하고 solver를 시작하지 않는다
 
 하네스는 packet당 한 번만 실행한다. 형식·schema 오류, 빈 답변, timeout, nonzero exit를 채점 실패로 보존하고 자동 재채점하지 않는다. grader도 공통 pi final/identity 판정을 사용하여 빈 final, 마지막 aborted settlement, 관측된 upstream 모델 불일치를 적격 답변으로 받지 않는다. pi의 기본 transport retry(최대 3회)는 유지하며 `auto_retry_start/end`와 시도 횟수를 기록한다. compaction은 기본 설정을 바꾸지 않지만 발생하면 packet 문맥 변경으로 조건 무효·미채점 처리한다. assistant `message_end.usage`와 compaction usage의 `input + output + cacheRead + cacheWrite`를 합산하며 오류/중단 시 미관측 비용을 0으로 단정하지 않는다. `grader-result.json`, ledger/report의 `grader_execution`에는 실패 때도 사용량·`token_accounting`·retry/실패 attempt 수·compaction·상태·근거를 solver 비용과 별도로 남긴다.
 
-보고서는 항상 계획한 슬롯 수만큼의 행이며(7개 비교군이면 63행) launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
+보고서는 항상 계획한 슬롯 수만큼의 행이며(6개 비교군이면 54행) launch 예약·CLI 시작·provider 미관측·terminal·review/grade·failed/cancelled/not-started를 구분한다. warm/index 비용을 solver 비용과 합치지 않고, core/extended 분모와 macro/fact-weighted를 따로 표시한다. 미채점을 false/0점으로 바꾸지 않는다.
 
 운영자 inspection 증거는 ad-hoc 스크립트 대신 다음 공식 명령으로 재생성한다. 실제 catalog와 검증한 불변 readiness projection으로 실제 CUI 함수를 실행하되 backend 호출을 차단하고 실행 확인은 거절한다. 결과는 `docs/briefs/evidence/bench-ready/07-operator-inspection*.json`이며 모델 0회 경계를 기록한다. 실제 터미널 입력은 기존 PTY checks가 별도로 검증한다.
 
@@ -123,7 +124,7 @@ printf '{}' | python3 -m benchmark.cli inspect-operator --solver-model claude-op
 
 ## 제품 비교군 보조 셸
 
-제품 비교군 6개는 Codex에서 제품 MCP 도구와 함께 기준군과 같은 기본 shell(exec 안의 `exec_command`·`write_stdin`)을 받는다. pi 하네스의 v5 조건과 같은 원칙이다. 코드 탐색에는 MCP 도구를 최대한 쓰고 그 도구로 할 수 없는 작업에만 쓴다.
+제품 비교군 5개는 Codex에서 제품 MCP 도구와 함께 기준군과 같은 기본 shell(exec 안의 `exec_command`·`write_stdin`)을 받는다. pi 하네스의 v5 조건과 같은 원칙이다. 코드 탐색에는 MCP 도구를 최대한 쓰고 그 도구로 할 수 없는 작업에만 쓴다.
 
 - 작업 위치와 읽기 범위는 각 비교군 자신의 source다. 권한 프로필은 기준군과 같다: source·고정 rg 사본·최소 runtime 읽기, slot tmp 쓰기, network 차단, 셸 환경은 PATH(고정 rg)·HOME·TMPDIR·LANG만.
 - source의 `.git`과 그 제품의 상태 폴더(codemap은 `.codemap`)는 읽기를 거부한다. 준비 단계가 `codex sandbox`로 같은 권한을 실행해 source 읽기·고정 rg·제품 상태 거부·source 쓰기 거부·바깥 canary 거부를 확인한다(모델 호출 없음).
@@ -143,7 +144,7 @@ relay는 원본 instructions·description·schema·메타·결과를 보존한�
 
 초기 준비의 MCP clientInfo는 선택 backend를 사용한다. 실제 attach 시에는 **실제 CLI initialize를 그대로 제품에 전달**한다. codemap이 `codex-mcp-client`에서만 주는 Codex 전용 안내를 readiness-probe identity로 누락시키지 않는다. 준비 원문 instructions와 live 원문을 비교한다. Codex 0.164.0은 `code_mode_only`에서 MCP namespace를 deferred로 두므로 namespace 설명에 속한 initialize instructions가 첫 요청에 보이지 않는다(`core/src/tools/spec_plan.rs`의 deferred namespace 분기). 하네스는 첫 요청부터 제품 안내를 제공하기 위해 **중립 머리말 `MCP instructions: navigation`, 빈 줄, 제품 원문, 끝 개행**을 `developer_instructions`로 추가 전달한다. 이것은 Codex 기본 자동 전달이라고 주장하지 않으며 deferred namespace 동작 자체는 바꾸지 않는다. pi adapter에도 원문 안내를 prompt로 추가했고 Claude는 native MCP instructions 경로로 받는 것과 같은 '제품 원문 안내를 모든 비교군에 제공' 원칙이다. 머리말은 Claude Code 형식을 흉내 내지 않는다. 긴 CodeGraph 안내를 Claude가 `… [truncated]` 접두로 렌더링하는 기본 동작은 유지하고, 문맥 감사는 정확한 원문 접두 일치만 예외로 인정한다. 제품 안내 내용을 재구성하거나 제품의 응답 동작을 모방하지 않는다.
 
-Claude 제품군은 기본 `ListMcpResourcesTool`·`ReadMcpResourceTool`을 `--tools`와 `--allowedTools`에 포함한다. 실제 노출은 제품이 `resources` capability를 광고하는 Graphify·Serena에서만 필수이고, 나머지 제품과 rg에서는 미노출을 감사한다. Codex도 exec 내부의 기본 resource 도구를 유지하지만 광고하지 않는 제품에는 읽을 resource가 없으므로 같은 제품 capability 조건이다. relay의 `resources/read`는 탐색 호출, `resources/list`·templates/list는 discovery로 그대로 계수한다.
+Claude 제품군은 기본 `ListMcpResourcesTool`·`ReadMcpResourceTool`을 `--tools`와 `--allowedTools`에 포함한다. 실제 노출은 제품이 `resources` capability를 광고하는 Graphify에서만 필수이고, 나머지 제품과 rg에서는 미노출을 감사한다. Codex도 exec 내부의 기본 resource 도구를 유지하지만 광고하지 않는 제품에는 읽을 resource가 없으므로 같은 제품 capability 조건이다. relay의 `resources/read`는 탐색 호출, `resources/list`·templates/list는 discovery로 그대로 계수한다.
 
 ### Client 출력 기준과 고정 소스 근거
 
@@ -153,7 +154,7 @@ Claude 제품군은 기본 `ListMcpResourcesTool`·`ReadMcpResourceTool`을 `--t
 |---|---|---|
 | 제품 응답 | 제품 기본 상한 유지(codemap은 Codex client에서 기본 100000×3.5 bytes) | codemap 0.14.2 configuration Client delivery budgets |
 | Codex codemap MCP 도구 | `output_token_limit=100000` | 제품 `codex-config --server-name navigation`의 모든 도구 출력과 동일 |
-| Codex 나머지 MCP 도구 | `N=ceil(B/4)` | 원문 UTF-8 text 기준. Serena 312500, 나머지 262144 |
+| Codex 나머지 MCP 도구 | `N=ceil(B/4)` | 원문 UTF-8 text 기준. 262144 |
 | Codex exec/wait | **제품 기본 10000토큰**, 모델 pragma/인자가 지정하면 그 값 | `core/src/unified_exec/mod.rs::DEFAULT_MAX_OUTPUT_TOKENS/resolve_max_tokens`, `tools/code_mode/mod.rs::truncate_code_mode_result` |
 | Codex 전역 history | 제품군만 `tool_output_token_limit`: 같은 비교군의 도구별 N; rg 미설정 | 실제 다음 요청에서 별도 history 절단 확인. exec/wait 기본 10000은 바꾸지 않음 |
 | Claude codemap MCP | 제품 `_meta["anthropic/maxResultSizeChars"]=100000` 그대로 | codemap 0.14.2 configuration Client delivery budgets |
@@ -166,11 +167,10 @@ Claude 제품군은 기본 `ListMcpResourcesTool`·`ReadMcpResourceTool`을 `--t
 | 비교군 | 기준 B (bytes) | Codex 도구별·전역 history N | Claude MAX_MCP_OUTPUT_TOKENS N |
 |---|---:|---:|---:|
 | codemap | 100000 | 100000 (제품 codex-config 그대로) | 50000 |
-| Serena | 1250000 | 312500 | 625000 |
 | CodeGraph·zvec·Graphify·CBM | 1048576 | 262144 | 524288 |
 | rg | 미설정 | 제품 기본 | 제품 기본 |
 
-Codex 고정 소스는 `openai/codex` tag `rust-v0.164.0`이다. `protocol/src/models.rs:2467–2503`은 text의 본문을 그대로 content item으로 바꾸며 wire JSON envelope/escape를 재지 않는다(M=B). structuredContent가 있으면 **그 JSON 직렬화만 선택**하고 text를 동시에 더하지 않는다. Serena의 B는 과거 text+structuredContent 중복까지 고려한 값이므로 더 작은 단일 structured 결과에도 같은 여유를 유지한다. `tools/context.rs:184–213`은 header와 20% history allowance를 적용한다. `protocol.rs:3523–3555`, `utils/string/src/truncate.rs:87–99`에 따라 tokens N의 byte budget은 **4N UTF-8 bytes**, allowance는 **4×ceil(1.2N)** bytes다(10000→48000). `tools/handlers/mcp.rs:274–278`의 per-tool limit은 model/global 기본보다 우선한다.
+Codex 고정 소스는 `openai/codex` tag `rust-v0.164.0`이다. `protocol/src/models.rs:2467–2503`은 text의 본문을 그대로 content item으로 바꾸며 wire JSON envelope/escape를 재지 않는다(M=B). structuredContent가 있으면 **그 JSON 직렬화만 선택**하고 text를 동시에 더하지 않는다. `tools/context.rs:184–213`은 header와 20% history allowance를 적용한다. `protocol.rs:3523–3555`, `utils/string/src/truncate.rs:87–99`에 따라 tokens N의 byte budget은 **4N UTF-8 bytes**, allowance는 **4×ceil(1.2N)** bytes다(10000→48000). `tools/handlers/mcp.rs:274–278`의 per-tool limit은 model/global 기본보다 우선한다.
 
 **제품 응답 → MCP 도구별 budget → exec pragma → 전역 history budget**은 별개다. code-mode nested MCP는 raw 객체를 script에 준다. 모델이 객체/여러 결과를 JSON.stringify하여 출력하면 원문 B보다 커질 수 있으며 별도 exec/history 예산의 절단 대상이다. 임의 envelope 상한을 발명하지 않는다. exec/wait 기본 10000토큰은 바꾸지 않고, 제품군의 전역 history만 위 도구별 N과 같게 올린다. rg 전역 history는 미설정이다. fake wire에서 큰 exec pragma로 1 MiB를 출력해도 기본 history는 약 48000 bytes로 줄었으며, 새 guard와 원문 출력으로 B-1 bytes 전체가 다음 요청에 도달함을 검증한다. raw rollout은 history 절단 전 원문을 저장하므로 `codex_output_truncated=0`은 최종 전달 절단 0의 증명이 아니다. raw exec 표식과 `codex_history_delivery`를 분리하고, 실제 다음 요청이 없는 hosted 슬롯은 history를 미관측/null로 둔다.
 

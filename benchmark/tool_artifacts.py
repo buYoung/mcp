@@ -275,34 +275,29 @@ def prepare_one(ident: str, emit=print) -> dict:
                                        routes.PREPARATION / "model-assets" / revision / filename))
         dependencies = {"package-lock.json": file_digest(source / "package-lock.json")}
         installation = source
-    elif ident in {"graphify", "serena"}:
+    elif ident == "graphify":
         uv = shutil.which("uv")
-        require(uv is not None, f"{ident}의 고정 환경 준비에 uv가 필요합니다")
-        if ident == "graphify":
-            require(arm["version"] == "0.9.95" and platform.system() == "Darwin"
-                    and platform.machine() == "arm64", "Graphify runtime lock 대상 불일치")
-            requirements = routes.TARGETS / "graphifyy-0.9.95-py312-darwin-arm64.requirements.txt"
-            require(file_digest(requirements) == "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
-                    "Graphify runtime dependency lock 변경")
-            commands.append(run_logged([uv, "venv", "--python", "3.12", str(source / ".venv")],
-                                       source, output / "venv.log"))
-            commands.append(run_logged([uv, "pip", "sync", "--python", str(source / ".venv/bin/python"),
-                                        "--require-hashes", "--only-binary", ":all:", str(requirements)],
-                                       source, output / "install.log"))
-        else:
-            commands.append(run_logged([uv, "sync", "--locked", "--no-dev", "--python", "3.12"],
-                                       source, output / "install.log"))
+        require(uv is not None, "graphify의 고정 환경 준비에 uv가 필요합니다")
+        require(arm["version"] == "0.9.95" and platform.system() == "Darwin"
+                and platform.machine() == "arm64", "Graphify runtime lock 대상 불일치")
+        requirements = routes.TARGETS / "graphifyy-0.9.95-py312-darwin-arm64.requirements.txt"
+        require(file_digest(requirements) == "7fbfcf6a069ad0c4861bd7a39efdb160e365f54fb5c4262f38423117c6e87e99",
+                "Graphify runtime dependency lock 변경")
+        commands.append(run_logged([uv, "venv", "--python", "3.12", str(source / ".venv")],
+                                   source, output / "venv.log"))
+        commands.append(run_logged([uv, "pip", "sync", "--python", str(source / ".venv/bin/python"),
+                                    "--require-hashes", "--only-binary", ":all:", str(requirements)],
+                                   source, output / "install.log"))
         python = source / ".venv/bin/python"
         commands.append(run_logged([uv, "pip", "check", "--python", str(python)],
                                    source, output / "dependency-check.log"))
-        launch = [str(python), "-m", "graphify"] if ident == "graphify" else [str(source / ".venv/bin/serena")]
+        launch = [str(python), "-m", "graphify"]
         runtime = {"python": command([str(python), "--version"]).strip(),
                    "python_sha256": file_digest(python), "uv": command([uv, "--version"]).strip()}
         dependencies = {"uv.lock": file_digest(source / "uv.lock")}
-        backend = "tree_sitter_code_only" if ident == "graphify" else "local_lsp_go_typescript"
-        if ident == "graphify":
-            dependencies["runtime_requirements_sha256"] = file_digest(requirements)
-            verify_wheel = """
+        backend = "tree_sitter_code_only"
+        dependencies["runtime_requirements_sha256"] = file_digest(requirements)
+        verify_wheel = """
 import hashlib, json, sys
 from importlib.metadata import distribution
 from pathlib import Path
@@ -318,19 +313,12 @@ for name in dist.files or []:
 assert checked
 print(json.dumps({'source_matching_files': len(checked), 'version': dist.version}))
 """
-            commands.append(run_logged([str(python), "-c", verify_wheel, str(source)],
-                                       source, output / "wheel-source-check.log"))
-            provenance["official_package_wheel"] = {
-                "url": "https://files.pythonhosted.org/packages/79/87/4c0808afdf99568e27f24838595506d6a286aca6f3bbf8fbb2520574f413/graphifyy-0.9.95-py3-none-any.whl",
-                "sha256": "e067c9256e5e762406816e51039c4e775f8d2f39a893ecc0b7095d594f6c3120",
-                "source_verification_log": str(output / "wheel-source-check.log")}
-        if ident == "serena":
-            for name in ("go", "gopls", "node", "npm"):
-                executable = shutil.which(name)
-                require(executable is not None, f"Serena 언어 서버 준비에 {name}가 필요합니다")
-                path = Path(executable).resolve()
-                runtime[name] = {"path": str(path), "sha256": file_digest(path),
-                                 "version": command([str(path), "version" if name in {"go", "gopls"} else "--version"]).strip()}
+        commands.append(run_logged([str(python), "-c", verify_wheel, str(source)],
+                                   source, output / "wheel-source-check.log"))
+        provenance["official_package_wheel"] = {
+            "url": "https://files.pythonhosted.org/packages/79/87/4c0808afdf99568e27f24838595506d6a286aca6f3bbf8fbb2520574f413/graphifyy-0.9.95-py3-none-any.whl",
+            "sha256": "e067c9256e5e762406816e51039c4e775f8d2f39a893ecc0b7095d594f6c3120",
+            "source_verification_log": str(output / "wheel-source-check.log")}
         installation = source
     else:
         require(platform.system() == "Darwin" and platform.machine() == "arm64", "등록한 공식 binary는 darwin-arm64 전용입니다")
@@ -347,13 +335,7 @@ print(json.dumps({'source_matching_files': len(checked), 'version': dist.version
                                             "release_tag": arm["release_tag"]}
         dependencies = {"distribution": "official_release", "asset_sha256": release["sha256"]}
         backend = "official_native_binary"
-    if ident == "serena":
-        # An archive has no .git; do not let its version command discover the harness's parent repository.
-        commands.append(run_logged([*launch, "--version"], source, output / "version.log",
-                                   env=clean_environment({"GIT_CEILING_DIRECTORIES": str(ARTIFACTS)}), timeout=60))
-        observed_version = (output / "version.log").read_text().strip()
-    else:
-        observed_version = command([*launch, "--version"], timeout_seconds=60).strip()
+    observed_version = command([*launch, "--version"], timeout_seconds=60).strip()
     require(arm["version"] in observed_version, f"설치 버전 불일치: {ident}: {observed_version}")
     baseline = read_json(Path(provenance["files_manifest"]))
     for name, metadata in baseline.items():
@@ -364,10 +346,6 @@ print(json.dumps({'source_matching_files': len(checked), 'version': dist.version
         path = Path(arg)
         if path.is_file():
             executables.append({"path": str(path), "sha256": file_digest(path)})
-    if ident == "serena":
-        executables.append({"path": str(python), "sha256": file_digest(python)})
-        executables.extend({"path": runtime[name]["path"], "sha256": runtime[name]["sha256"]}
-                           for name in ("go", "gopls", "node", "npm"))
     result = {"id": ident, "source_pin": arm, "provenance": provenance, "actual_version": observed_version,
               "installation": str(installation), "installation_sha256": digest(tree_files(installation, exclude={"target"})),
               "launch": launch, "executables": executables, "dependencies": dependencies,

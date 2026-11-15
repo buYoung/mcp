@@ -1,6 +1,8 @@
 # Grafana 벤치마크 비교 대상 소스 고정
 
-외부 도구 6개와 풀이·채점 toolchain을 고정한 `grafana-comparison-targets-v1` **개정 10**이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. `previous_lock_sha256`은 개정 9의 `8a036445611af224d96c4f478cde925e37b3de77e2337707cf851b8ff97fabd3`이다. 이번 개정은 데이터셋을 `grafana-routes-v6`(3문항)으로, 평가 제품 codemap-search를 벤치마크 브랜치 커밋 `e727d20c6`(검색 출력 압축 포함) 스냅샷으로 바꾸고, Grafana commit·비교 도구·풀이 CLI·채점 toolchain은 개정 9와 같다. 제품 비교군은 Codex에서 MCP 도구와 함께 기준군과 같은 기본 셸을 받는다. 개정 8은 풀이를 private Codex CLI 0.164.0 / Claude Code 2.1.311로 바꿨다. GPT는 Codex 제품 기본 code_mode_only(exec/wait), Claude는 direct이며 각각 63슬롯이다. 이 개정의 준비는 Codex 풀이만 받는다. pi toolchain은 Astra 채점용으로 유지한다. 제품 출력 설정은 기본값이고 MCP client guard만 제품 상한 이상으로 맞춘다. Codex exec/wait의 별도 출력 예산은 제품 기본값(미지정 시 10000토큰)을 유지한다.
+2026-11-15 **개정 11**이다. Serena 2.1.0(`oraios/serena`, `5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc`)을 비교 대상에서 제외했다(사용자 결정). 사유: 색인이 너무 오래 걸린다. Grafana 전체의 Go·TypeScript LSP 색인이 1회에 약 34~70분 걸렸다. 남은 외부 비교군 5개의 버전·소스와 toolchain 고정은 개정 10와 같다. `previous_lock_sha256`은 Git 이력에 보존된 개정 10를 가리키고, 제외 기록은 lock의 `excluded_comparisons`에 있다.
+
+외부 도구 6개와 풀이·채점 toolchain을 고정한 `grafana-comparison-targets-v1` 개정 10(이전 개정)이다. 정확한 값은 [targets.lock.json](targets.lock.json)을 따른다. `previous_lock_sha256`은 개정 9의 `8a036445611af224d96c4f478cde925e37b3de77e2337707cf851b8ff97fabd3`이다. 이번 개정은 데이터셋을 `grafana-routes-v6`(3문항)으로, 평가 제품 codemap-search를 벤치마크 브랜치 커밋 `e727d20c6`(검색 출력 압축 포함) 스냅샷으로 바꾸고, Grafana commit·비교 도구·풀이 CLI·채점 toolchain은 개정 9와 같다. 제품 비교군은 Codex에서 MCP 도구와 함께 기준군과 같은 기본 셸을 받는다. 개정 8은 풀이를 private Codex CLI 0.164.0 / Claude Code 2.1.311로 바꿨다. GPT는 Codex 제품 기본 code_mode_only(exec/wait), Claude는 direct이며 각각 63슬롯이다. 이 개정의 준비는 Codex 풀이만 받는다. pi toolchain은 Astra 채점용으로 유지한다. 제품 출력 설정은 기본값이고 MCP client guard만 제품 상한 이상으로 맞춘다. Codex exec/wait의 별도 출력 예산은 제품 기본값(미지정 시 10000토큰)을 유지한다.
 
 | 비교 대상 | 공식 저장소 | 고정 버전 | 고정 커밋 |
 | --- | --- | --- | --- |
@@ -8,7 +10,6 @@
 | zvec-grep | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) | [0.2.2 tag](https://github.com/zvec-ai/zvec-grep/tree/v0.2.2) · npm stable | `b1a9148e26a7bc9bd4a52229ffb7532d3063793d` |
 | Graphify | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) | [0.9.95](https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.95) | `92741d162b2094ffc2fed58cfbd8ee823e9da62c` |
 | codebase-memory-mcp | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) | [0.12.1](https://github.com/DeusData/codebase-memory-mcp/releases/tag/v0.12.1) | `a7158ac2f48ca646b4527341b76f930f2aeff87e` |
-| Serena | [oraios/serena](https://github.com/oraios/serena) | [2.1.0](https://github.com/oraios/serena/releases/tag/v2.1.0) | `5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc` |
 | plain rg | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | [15.2.0](https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0) · 유지 | `e89fff89ac9af12e8d4ce9d5fd07beb408ca730f` |
 
 - CodeGraph는 사용자가 선택한 공식 `@colbymchenry/codegraph` Node 구현이다. zvec-grep은 `@zvec/zvec-grep` Node 구현이다. zvec 0.2.2에는 GitHub Release가 없으므로 release URL/ID/시각은 `null`이다. GitHub latest의 오래된 0.2.0 메타데이터를 빌려 쓰지 않는다.
@@ -30,9 +31,9 @@
 | [cli-package.json](cli-package.json) / [cli-package-lock.json](cli-package-lock.json) | Codex CLI 0.164.0·Claude Code 2.1.311 npm integrity lock. native binary SHA-256과 설치 tree hash는 targets.lock.json의 cli_toolchain에 기록. |
 | [SHA256SUMS](SHA256SUMS) | 이 bundle의 모든 고정 파일 SHA-256. |
 
-Graphify upstream `uv.lock`은 루트 버전 0.9.84와 누락된 필수 PyYAML 때문에 0.9.95의 `uv sync --locked`가 실패한다. `--frozen`으로 오류를 숨기지 않고 공식 wheel을 위 requirements로 `uv pip sync --require-hashes --only-binary :all:` 설치한다. 준비 시 의존성을 다시 해석하지 않는다. wheel package 파일을 고정 tag source와 대조하고 Graphify·Serena 모두 `uv pip check`를 수행한다. 원본 `uv.lock`은 source provenance로 보존하며 실제 runtime lock과 구분한다.
+Graphify upstream `uv.lock`은 루트 버전 0.9.84와 누락된 필수 PyYAML 때문에 0.9.95의 `uv sync --locked`가 실패한다. `--frozen`으로 오류를 숨기지 않고 공식 wheel을 위 requirements로 `uv pip sync --require-hashes --only-binary :all:` 설치한다. 준비 시 의존성을 다시 해석하지 않는다. wheel package 파일을 고정 tag source와 대조하고 Graphify는 `uv pip check`를 수행한다. 원본 `uv.lock`은 source provenance로 보존하며 실제 runtime lock과 구분한다.
 
-CBM은 공식 darwin-arm64 asset 0.12.1을 사용한다. Serena는 2.1.0의 기본 REPL 대신 검색 전용 계약을 위해 `--agent-interface tools`를 명시한다. native default와 예외 이유를 prepared state에 기록하며 그 외 기존 검색 전용 설정·출력 기본값은 유지한다.
+CBM은 공식 darwin-arm64 asset 0.12.1을 사용한다.
 
 ## 적용 규칙과 검증 범위
 
@@ -49,4 +50,4 @@ shasum -a 256 -c SHA256SUMS
 
 pi toolchain은 macOS arm64에서 `settings.CACHE/pi-toolchain`에 `npm ci --ignore-scripts --no-audit --no-fund`로 설치한다. tools lock에 npm lock·manifest·전체 node_modules tree SHA-256을 기록하며 재사용 때 전체 파일/모드/symlink와 host Node hash를 검사한다. drift나 미완료 설치는 자동 재설치로 숨기지 않고 중단한다. operator pi 설치와 auth 파일은 설치 검증 대상이 아니다.
 
-Solver CLI는 `settings.CACHE/cli-toolchain`에 같은 npm ci flags로 설치하고 모든 재사용 시 package/lock/tree/binary hash를 확인한다. 시스템 PATH의 다른 CLI로 대체하지 않는다. code-mode의 모델 catalog는 수정하지 않는다. 도구별 Codex output_token_limit은 codemap의 codex-config 값 100000, 나머지 ceil(B/4)(Serena 312500, 그 외 262144)이며 전역 history도 같은 값을 쓴다. Claude token guard는 2×ceil(B/4)다. Claude relay는 native 메타를 보존하고 부재한 maxResultSizeChars만 500000으로 보충한다. 상세한 소스 근거·인증·경계·출력 관측은 상위 README를 따른다.
+Solver CLI는 `settings.CACHE/cli-toolchain`에 같은 npm ci flags로 설치하고 모든 재사용 시 package/lock/tree/binary hash를 확인한다. 시스템 PATH의 다른 CLI로 대체하지 않는다. code-mode의 모델 catalog는 수정하지 않는다. 도구별 Codex output_token_limit은 codemap의 codex-config 값 100000, 나머지 ceil(B/4)(262144)이며 전역 history도 같은 값을 쓴다. Claude token guard는 2×ceil(B/4)다. Claude relay는 native 메타를 보존하고 부재한 maxResultSizeChars만 500000으로 보충한다. 상세한 소스 근거·인증·경계·출력 관측은 상위 README를 따른다.

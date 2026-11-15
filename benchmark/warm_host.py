@@ -25,16 +25,7 @@ CONTENT_METHODS = {"tools/call", "resources/list", "resources/templates/list", "
 def query_configuration(config: dict, inventory: list[dict], ident: str, log: Path) -> dict:
     exclusions = {name: "administration" for name in ("index_repository", "delete_project", "manage_adr", "ingest_traces")}
     exclusions.update({name: "external GitHub PR data outside the fixed corpus" for name in ("list_prs", "get_pr_impact", "triage_prs")})
-    if ident == "serena":
-        exclusions.update({t["name"]: "native editing or shell operation" for t in inventory
-                           if t.get("annotations", {}).get("readOnlyHint") is False})
-        exclusions.update({name: "project control or memory outside source retrieval" for name in (
-            "activate_project", "remove_project", "switch_modes", "onboarding", "read_memory", "list_memories",
-            "query_project", "list_queryable_projects", "open_dashboard")})
     names = [t["name"] for t in inventory if t["name"] not in exclusions]
-    if ident == "serena":
-        require(not {"execute_shell_command", "create_text_file", "replace_symbol_body", "activate_project", "switch_modes",
-                     "write_memory", "serena_repl"} & set(names), "Serena query-only surface changed")
     auxiliaries = ["read"] if ident == "graphify" else []
     necessity = [{"operation": "inspect original source body at a discovered file/line location",
                   "reason": "Native graph tools return metadata and locations, not raw source bodies.",

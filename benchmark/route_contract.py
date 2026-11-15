@@ -11,11 +11,11 @@ from .core import digest, file_digest, read_json, require, write_json
 PROFILE = "grafana-routes"
 SOURCE_COMMIT = "c0a598f5a49abf2014f67e806075d8ad267c9efb"
 DATASET_MANIFEST_SHA256 = "33fdd791be316fd3912ea5b1a401763357fab73b5ec6078b5cb6fce8d597a2ed"
-TARGET_LOCK_SHA256 = "3169d5a1df9238b414b421a0002aab425b6c3eeef5107f666e31a0e644b6157f"
+TARGET_LOCK_SHA256 = "29b62f663ae1679ebe9e98d315f68947aabf0a821ce58ffaffeb3795007bac63"
 QUESTION_IDS = ("git-sync-job-dispatch", "alertmanager-config-autosync", "scope-annotation-filter")
 REPETITIONS = 3
 MEASUREMENT_MODES = ("direct", "codemode")
-ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "serena", "rg")
+ARM_IDS = ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp", "rg")
 DATA = settings.ROOT / "data/grafana-routes-v6"
 TARGETS = settings.ROOT / "data/grafana-comparison-targets-v1"
 PROFILE_PATH = settings.ROOT / "data/grafana-execution-v1.json"

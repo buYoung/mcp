@@ -596,95 +596,6 @@
         "method": "소스 아카이브 전체 바이트 SHA-256·크기를 계산하고, 나열한 루트 파일의 Git blob SHA-1·크기를 gh api Git tree 응답과 대조했다. 전체 Git tree 재구성은 수행하지 않았다."
       }
     },
-    "serena": {
-      "verified_at": "2026-10-24T03:55:15.939507+00:00",
-      "repository": {
-        "query_url": "https://api.github.com/repos/oraios/serena",
-        "response_sha256": "09d96f491abd947641d956fe7625d92cd889e1bc4463838e0d1b4ee3ecfce2b5",
-        "id": 953683578,
-        "full_name": "oraios/serena",
-        "html_url": "https://github.com/oraios/serena",
-        "fork": false,
-        "archived": false,
-        "default_branch_at_observation": "main"
-      },
-      "release": {
-        "selection_query_url": "https://api.github.com/repos/oraios/serena/releases/tags/v2.1.0",
-        "response_sha256": "c7ad42ac1ff81a02f85f35c12d71bc23500bb7b97b4090e236923f3c81c75799",
-        "id": 417559472,
-        "url": "https://api.github.com/repos/oraios/serena/releases/417559472",
-        "html_url": "https://github.com/oraios/serena/releases/tag/v2.1.0",
-        "tag_name": "v2.1.0",
-        "target_commitish": "main",
-        "published_at": "2026-10-19T17:30:43Z",
-        "draft": false,
-        "prerelease": false
-      },
-      "tag_ref": {
-        "query_url": "https://api.github.com/repos/oraios/serena/git/ref/tags/v2.1.0",
-        "response_sha256": "43ec69d7e68116181cd0fbadd5401ca0ba53689814b868490df757515f744520",
-        "ref": "refs/tags/v2.1.0",
-        "object": {
-          "sha": "5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
-          "type": "commit",
-          "url": "https://api.github.com/repos/oraios/serena/git/commits/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc"
-        }
-      },
-      "annotated_tag_objects": [],
-      "commit": {
-        "url": "https://api.github.com/repos/oraios/serena/git/commits/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
-        "response_sha256": "58a827bef831342af903f4755c26d5ae3d66cf532070ba53fae558701bb93c04",
-        "sha": "5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
-        "tree": {
-          "sha": "c85e08bf473cfeefc0312b42056fdbd9a960b5f9",
-          "url": "https://api.github.com/repos/oraios/serena/git/trees/c85e08bf473cfeefc0312b42056fdbd9a960b5f9"
-        },
-        "committed_at": "2026-10-19T17:29:06Z"
-      },
-      "root_tree": {
-        "url": "https://api.github.com/repos/oraios/serena/git/trees/c85e08bf473cfeefc0312b42056fdbd9a960b5f9",
-        "response_sha256": "e0bc31ffd62f713ef4d104f67f5708a548eae93f85f72bdf0d3ffbe1b8822c3a",
-        "sha": "c85e08bf473cfeefc0312b42056fdbd9a960b5f9",
-        "checked_blob_entries": [
-          {
-            "path": "README.md",
-            "mode": "100644",
-            "type": "blob",
-            "sha": "5cc92d57faf8fa44e9fb868ba69852314162888b",
-            "size": 15320,
-            "url": "https://api.github.com/repos/oraios/serena/git/blobs/5cc92d57faf8fa44e9fb868ba69852314162888b"
-          },
-          {
-            "path": "pyproject.toml",
-            "mode": "100644",
-            "type": "blob",
-            "sha": "7d7412a6a2c95d31b27b6df4a459f2141eb2bc6a",
-            "size": 14122,
-            "url": "https://api.github.com/repos/oraios/serena/git/blobs/7d7412a6a2c95d31b27b6df4a459f2141eb2bc6a"
-          },
-          {
-            "path": "uv.lock",
-            "mode": "100644",
-            "type": "blob",
-            "sha": "117078e09d1118b3b4d8730478718cd030617e2f",
-            "size": 527311,
-            "url": "https://api.github.com/repos/oraios/serena/git/blobs/117078e09d1118b3b4d8730478718cd030617e2f"
-          }
-        ]
-      },
-      "archive_verification": {
-        "url": "https://codeload.github.com/oraios/serena/tar.gz/5e4f5cd173c7ff3eed37ee3f1de6c266b937c5dc",
-        "format": "tar.gz",
-        "sha256": "3173dfcc3cba19e4002685768acc563bd2b9b689a4d82fda94f7ee0877cfd0f7",
-        "bytes": 2522657,
-        "verified_source_files": [
-          "README.md",
-          "pyproject.toml",
-          "uv.lock"
-        ],
-        "method": "gh api로 확인한 Git blob SHA-1/크기와 codeload archive 파일 바이트를 대조했다."
-      }
-    },
     "rg": {
       "repository": {
         "query_url": "https://api.github.com/repos/BurntSushi/ripgrep",
@@ -786,16 +697,16 @@
     }
   },
   "verification": {
-    "official_repositories": 6,
-    "stable_releases": 5,
-    "resolved_tag_commits": 6,
-    "downloaded_source_archives": 6,
-    "source_archive_total_bytes": 157098077,
-    "verified_source_files": 16,
+    "official_repositories": 5,
+    "stable_releases": 4,
+    "resolved_tag_commits": 5,
+    "downloaded_source_archives": 5,
+    "source_archive_total_bytes": 154575420,
+    "verified_source_files": 13,
     "source_blob_or_archive_file_mismatches": 0,
     "preserved_dataset_files": 14,
-    "scope": "Phase A 2026-10-24 API·태그·커밋·root blob 및 아카이브 검증 기록을 통합했다. GitHub Release 5개와 npm/tag-only 1개를 구분한다. 전체 Git tree 재구성·바이너리 재현 빌드는 인증하지 않는다. 설치·색인·MCP 검증은 별도 준비 기록에 남긴다.",
-    "stable_distributions": 6,
+    "scope": "Phase A 2026-10-24 API·태그·커밋·root blob 및 아카이브 검증 기록을 통합했다. GitHub Release 4개와 npm/tag-only 1개를 구분한다. 전체 Git tree 재구성·바이너리 재현 빌드는 인증하지 않는다. 설치·색인·MCP 검증은 별도 준비 기록에 남긴다. 2026-11-15 개정에서 제외한 Serena의 기록과 수치는 뺐다(사유: 색인이 너무 오래 걸린다).",
+    "stable_distributions": 5,
     "npm_tag_without_github_release": 1
   }
 }

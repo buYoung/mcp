@@ -39,7 +39,6 @@
     "zvec-grep",
     "graphify",
     "codebase-memory-mcp",
-    "serena",
     "rg"
   ],
   "baseline": {
@@ -73,8 +72,7 @@
     "codemap_jev": false,
     "graphify": "fresh_code_only",
     "zvec_model": "local/potion-code-16m-v2",
-    "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b",
-    "serena": "registered_project_local_lsp_go_typescript_preindexed"
+    "zvec_model_revision": "e9d2a44ca6a05ac6685f3b23709ea57eb7352d5b"
   },
   "execution_authorized": false,
   "policy_decisions": {
@@ -90,7 +88,7 @@
     "repetitions": "같은 조건 1회 결과가 핵심 사실 7개 중 4개·5개로 흔들려 문항·비교군마다 3회 반복한다",
     "grader_selection": "풀이 모델과 관계없이 gpt-6-astra/high 유지",
     "evaluation": "동일 에이전트로 검색 도구별 최종 답변 품질과 탐색 비용을 비교한다. 답변 작성 영향은 공통 사용 조건으로 허용하며 근거 단계별 분리 집계는 필수가 아니다.",
-    "serena": "Serena를 추가하고 같은 Grafana 전체 프로젝트에 Go·TypeScript를 등록·사전 색인한다. 비교군 7개 × 2문항 × 3회 × 모델별 단일 모드 = 42회 예정.",
+    "serena": "Serena 2.1.0은 비교 대상에서 제외한다(2026-11-15 사용자 결정). 사유: 색인이 너무 오래 걸린다. Grafana 전체의 Go·TypeScript LSP 색인이 1회에 약 34~70분 걸렸다.",
     "measurement_modes": "GPT는 Codex 0.164.0 기본 code_mode_only(exec/wait), Claude는 direct. 모델별 단일 모드 42슬롯이며 모델·모드 결과를 합산하지 않는다. pi codemode는 사용하지 않는다."
   },
   "measurement_modes": [

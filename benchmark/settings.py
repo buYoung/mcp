@@ -15,7 +15,7 @@ CACHE = (Path(os.environ["CODEMAP_BENCH_CACHE"]).expanduser().resolve()
          if os.environ.get("CODEMAP_BENCH_CACHE") else ROOT / ".cache")
 RUNS = ROOT / "runs"
 # Solver-visible paths (source, TMPDIR, shell HOME) live under CACHE, so the path must not name a product or the harness.
-IDENTIFYING_PATH_WORDS = ("codemap", "codegraph", "zvec", "graphify", "codebase-memory", "serena", "bench", "route", "campaign")
+IDENTIFYING_PATH_WORDS = ("codemap", "codegraph", "zvec", "graphify", "codebase-memory", "bench", "route", "campaign")
 
 
 def require_neutral_cache() -> None:

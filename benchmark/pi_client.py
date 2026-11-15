@@ -22,7 +22,6 @@ PRIVATE_FLAGS = ["--mode", "json", "-ne", "-ns", "-np", "-nc", "--no-themes", "-
 NAVIGATION_SERVER = "navigation"
 CODEMODE_MAX_OUTPUT_TOKENS = 100000
 # Client delivery must not cut below finite native budgets; uncapped products use 1 MiB.
-# Serena's 150k Unicode characters appear in both text and appended structuredContent.
 from .client_delivery import PRODUCT_TEXT_BYTES as OUTPUT_GUARD_BYTES
 ADAPTER_SETTINGS = {"semanticSearch": False, "allowInstall": False, "allowScriptToolSave": False, "autoAuth": False,
                     "sampling": False, "elicitation": False, "requestTimeoutMs": 300000,

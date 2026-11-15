@@ -2,7 +2,7 @@
 from .core import require
 
 DEFAULT_TEXT_BYTES = 1024 * 1024
-PRODUCT_TEXT_BYTES = {"codemap-search": 100000, "serena": 1250000,
+PRODUCT_TEXT_BYTES = {"codemap-search": 100000,
                       **{arm: DEFAULT_TEXT_BYTES for arm in ("codegraph", "zvec-grep", "graphify", "codebase-memory-mcp")}}
 
 

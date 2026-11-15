@@ -22,7 +22,6 @@ POLICY = {"revision": 1, "poll_seconds": 1, "stable_observations": 2,
               "zvec-grep": "DELETE warm HTTP session; solver initializes fresh session on same server",
               "graphify": "graph_stats only; query_graph checked in disposable preparation",
               "codebase-memory-mcp": "index_status, graph and live-source search/snippet",
-              "serena": "config, Go/TypeScript symbols and references; no initial_instructions",
               "rg": "no search MCP or index warm-up"}}
 
 
@@ -50,7 +49,6 @@ def tool_error(ident: str, result: dict, *, tool: str | None = None) -> str | No
     value = text(result)
     # Some products encode errors as JSON text rather than MCP isError.
     json_envelope = (ident == "graphify" and tool not in {None, "read"}
-                     or ident == "serena" and tool not in {None, "read_file"}
                      or ident == "codebase-memory-mcp" and tool is not None)
     if json_envelope and value.startswith("{"):
         try:
@@ -59,8 +57,6 @@ def tool_error(ident: str, result: dict, *, tool: str | None = None) -> str | No
             native = None
         if isinstance(native, dict) and native.get("error"):
             return "native JSON error envelope"
-    if ident == "serena" and tool and value.split("\n", 1)[0].startswith(("Error executing tool:", "Error:")):
-        return "native Serena tool error"
     return None
 
 
@@ -101,14 +97,6 @@ def index_degradation(ident: str, result: dict, *, tool: str | None = None) -> s
             return first
         if re.fullmatch(r"The project at .+ isn't indexed with codegraph.*", first):
             return first
-    elif ident == "serena":
-        if first.startswith("No active project.") or (first.startswith(("Error executing tool:", "Error:"))
-                                                        and "language server" in first.lower()):
-            return first
-        if tool == "get_current_config":
-            for line in value.splitlines():
-                if line.startswith("Language server status: ") and line != "Language server status: ready":
-                    return line
     elif ident == "graphify" and tool != "read":
         if re.match(r"(?i)^(?:error[^\n]*: )?(?:no graph loaded|graph file not found|failed to load graph)\b", first):
             return first
@@ -164,16 +152,6 @@ def assert_ready(ident: str, name: str, result: dict, state: dict | None = None)
                 check(re.search(rf"(?m)^{metric}: [1-9]\d*$", value), f"empty {metric}")
         elif name == "query_graph":
             check(re.search(r"[1-9]\d* nodes found", value) and "NODE " in value, "empty graph query")
-    elif ident == "serena":
-        if name == "get_current_config":
-            for marker in (f"Active project: {state.get('modes', {}).get('project', 'grafana')}", "Language backend: LSP",
-                           "Language server status: ready", "Agent interface: tools"):
-                check(marker in value, f"missing {marker}")
-        else:
-            symbols = json.loads(value)
-            check(isinstance(symbols, (dict, list)) and bool(symbols), "empty symbols/references")
-            if name == "find_referencing_symbols":
-                check("content_around_reference" in value and "name_path" in value, "no live LSP reference locations")
     elif ident == "codebase-memory-mcp":
         if name == "index_status":
             native = result.get("structuredContent") or json.loads(value)
@@ -213,11 +191,6 @@ def probes(state: dict, *, preparation=False) -> list[tuple[str, dict]]:
                 # Ranked results are capped, so a common phrase can miss GO_FILE; the symbol occurs only there.
                 ("search_code", {"pattern": GO_SYMBOL, "project": project}),
                 ("get_code_snippet", {"project": project, "qualified_name": GO_SYMBOL})]
-    if ident == "serena":
-        return [("get_current_config", {}), ("get_symbols_overview", {"relative_path": GO_FILE}),
-                ("get_symbols_overview", {"relative_path": TS_FILE}),
-                ("find_referencing_symbols", {"name_path": GO_SYMBOL, "relative_path": GO_FILE}),
-                ("find_referencing_symbols", {"name_path": TS_SYMBOL, "relative_path": TS_FILE})]
     require(ident == "rg", "unknown readiness arm")
     return []
 
@@ -272,15 +245,6 @@ def prepared_evidence(state: dict, artifact: dict) -> dict:
     elif ident == "graphify":
         paths = [Path(state["modes"]["graph_path"])]
         require(paths[0].is_relative_to(Path(state["home"])) and paths[0].is_file(), "Graphify final graph missing")
-    elif ident == "serena":
-        modes = state["modes"]
-        require(modes["configuration"]["registered_projects"] == [str(source)]
-                and modes["configuration"]["project"] == str(source / ".serena/project.yml"), "Serena root mismatch")
-        require(modes["failed_files"] == 0 and all(modes["indexed_files_per_language"].get(k, 0) > 0 for k in ("go", "typescript")), "Serena indexing incomplete")
-        for item in modes["symbol_caches"]:
-            path = Path(item["path"])
-            require(file_digest(path) == item["sha256"], "Serena symbol cache changed")
-            paths.append(path)
     elif ident == "codebase-memory-mcp":
         modes = state["modes"]
         require(modes["native_status"]["root_path"] == str(source), "CBM final root mismatch")

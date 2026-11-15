@@ -24,15 +24,12 @@ ZVEC_PORT = 19710
 CBM_UI_PORT = 19711
 # Only these product-created roots may exist in an indexed work copy; never in the pinned checkout.
 SOURCE_METADATA = {"codemap-search": {".codemap"}, "codegraph": {".codegraph"}, "zvec-grep": {".zvec-grep"},
-                   "serena": {".serena"}, "codebase-memory-mcp": {".codebase-memory"}, "graphify": set(), "rg": set()}
+                   "codebase-memory-mcp": {".codebase-memory"}, "graphify": set(), "rg": set()}
 
 
 def workspace_root(ident: str) -> Path:
     require(ident in routes.ARM_IDS, "알려지지 않은 arm")
     root = settings.CACHE.resolve() / digest({"workspace_revision": 2, "arm": ident})[:16]
-    if ident == "serena":
-        require(not any((path / "node_modules").exists() for path in [root, *root.parents]),
-                "Serena에 상위 node_modules와 격리된 CODEMAP_BENCH_CACHE가 필요합니다")
     return root
 
 
@@ -156,9 +153,6 @@ def product_environment(ident: str, home: Path, source: Path) -> dict:
                    ZVEC_GREP_SERVER_URL=f"http://127.0.0.1:{ZVEC_PORT}/mcp")
     elif ident == "codebase-memory-mcp":
         env.update(CBM_CACHE_DIR=str(home), CBM_ALLOWED_ROOT=str(source), CBM_RUNTIME_DIR=str(cbm_runtime_dir()))
-    elif ident == "serena":
-        from .serena_support import environment
-        env.update(environment(home, load_artifacts(verify=False, arms=routes.relay_arms(ident))[ident]))
     return env
 
 
@@ -180,8 +174,7 @@ def prepare_index(ident: str, emit=print) -> dict:
     env_overrides = product_environment(ident, home, source)
     env = clean_environment(env_overrides)
     from .isolation import product_profile, wrap
-    profile = product_profile(ident, {"source": str(source), "home": str(home),
-                                      "preparation_network": ident == "serena"}, artifact, slot_tmp=home / "tmp")
+    profile = product_profile(ident, {"source": str(source), "home": str(home)}, artifact, slot_tmp=home / "tmp")
     env = clean_environment(profile["env"])
     launch = wrap(artifact["launch"], profile) if ident != "rg" else artifact["launch"]
     commands = []
@@ -275,9 +268,6 @@ def prepare_index(ident: str, emit=print) -> dict:
                 "runtime_dir": str(cbm_runtime_dir()),
                 "native_readiness": native["structuredContent"], "native_status": native_status,
                 "native_warnings": sorted(set(diagnostics))}
-    elif ident == "serena":
-        from .serena_support import prepare_index as prepare_serena
-        index_paths, mode, commands = prepare_serena(artifact, source, home, isolation_profile=profile)
     else:
         index_paths = []
         mode = {"index": "none", "output": "native CLI defaults"}
@@ -421,12 +411,6 @@ def probe_configuration(ident: str, state: dict, artifacts: dict) -> dict:
                          "env": state["env"]}
     elif ident == "codebase-memory-mcp":
         client_config["shutdown_command"] = [*launch, "daemon", "stop"]
-    elif ident == "serena":
-        # Serena 2.x defaults to arbitrary-Python REPL, outside the search-only contract.
-        client_config["launch"] = [*launch, "start-mcp-server", "--project", str(source),
-                                   "--agent-interface", "tools"]
-        # Preserve the product RPC timeout above Serena's native 240 seconds, independent of solver duration.
-        client_config["timeout_seconds"] = 300
     client_config["product_arm"] = ident
     return {"schema": "grafana-route-relay-v1", "arm": ident, "source": str(source),
             "policy_state": {key: state[key] for key in ("source", "home", "modes")},
@@ -448,7 +432,7 @@ def probe_inputs(state: dict, artifacts: dict) -> dict:
             "codex_version": None if agent else command([cli_toolchain()["codex"], "--version"]).strip(),
             "implementation_hashes": routes.implementation_hashes([
                 "benchmark/tool_indexes.py", "benchmark/route_transport.py", "benchmark/native_baseline.py",
-                "benchmark/tool_artifacts.py", "benchmark/serena_support.py", "benchmark/route_prepare.py", "benchmark/runner.py",
+                "benchmark/tool_artifacts.py", "benchmark/route_prepare.py", "benchmark/runner.py",
                 "benchmark/responses.py", "benchmark/core.py", "benchmark/settings.py", "benchmark/usage.py", "benchmark/claude_client.py",
                 "benchmark/codex_client.py", "benchmark/cli_shell.py", "benchmark/client_delivery.py",
                 "benchmark/pi_client.py", "benchmark/readiness.py", "benchmark/warm_host.py", "benchmark/stdio_shim.py", "benchmark/isolation.py"])}
@@ -518,9 +502,6 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
     artifacts = load_artifacts(verify=False, arms=routes.relay_arms(ident))
     state = load_index(ident)
     state["agent_backend"] = backend
-    if ident == "serena":
-        from .serena_support import language_dependencies
-        state["modes"]["language_server_dependencies"] = language_dependencies(Path(state["home"]))
     require(state["artifact_sha256"] == digest(artifacts[ident]), "index artifact identity 변경")
     baseline = freeze_baseline(ident, state)
     start = time.monotonic()
@@ -577,9 +558,6 @@ def probe_index(ident: str, emit=print, *, backend="codex") -> dict:
             reset = restore_baseline(ident, state, baseline)
             write_json(probe / "reset.json", reset)
     require(cleanup.get("complete") is True and groups["complete"], f"작업 소유 서버 정리 실패: {ident}")
-    if ident == "serena":
-        from .serena_support import verify_indexing_log
-        verify_indexing_log((probe / "native.stderr.log").read_text())
     receipt.update(kind="prepared_index_ready", boundary_canaries=extra.get("boundary_canaries", []), index_audit=audit,
                    cleanup=cleanup, restore=restored, reset=reset)
     receipt["timings"].update(restore_seconds=restore_seconds, cleanup_seconds=cleanup["cleanup_seconds"],

@@ -162,13 +162,13 @@ class BenchChecks(unittest.TestCase):
         profile = routes.load_profile()
         self.assertEqual(routes.solver_measurement_modes(), ("codemode",))
         self.assertEqual(routes.solver_measurement_modes("claude-opus-5-5"), ("direct",))
-        self.assertEqual(len(routes.schedule("claude-opus-5-5")), 63)
-        self.assertEqual(len(routes.schedule()), 63)
+        self.assertEqual(len(routes.schedule("claude-opus-5-5")), 54)
+        self.assertEqual(len(routes.schedule()), 54)
         self.assertEqual([s["backend"] for s in profile["solver_choices"]], ["codex", "claude_code"])
         self.assertEqual(settings.execution_settings()["grader_backend"], "pi")
         self.assertTrue(all("-codemode-" in row["id"] for row in routes.schedule()))
         pins = routes.frozen_inputs()["lock"]
-        self.assertEqual(pins["revision"], 10)
+        self.assertEqual(pins["revision"], 11)
         self.assertEqual(pins["cli_toolchain"]["versions"], {"codex": "0.164.0", "claude_code": "2.1.311"})
         self.assertIn("pi_toolchain", pins)
 
@@ -179,7 +179,6 @@ class BenchChecks(unittest.TestCase):
     def test_client_delivery_converts_reference_bytes_once_and_leaves_rg_defaults(self):
         from .client_delivery import output_limits
         self.assertEqual(output_limits("codemap-search"), {"reference_text_bytes": 100000, "codex_tokens": 100000, "claude_tokens": 50000})
-        self.assertEqual(output_limits("serena"), {"reference_text_bytes": 1250000, "codex_tokens": 312500, "claude_tokens": 625000})
         for arm in ("codegraph", "zvec-grep", "graphify", "codebase-memory-mcp"):
             self.assertEqual(output_limits(arm), {"reference_text_bytes": 1048576, "codex_tokens": 262144, "claude_tokens": 524288})
         self.assertTrue(all(value is None for value in output_limits("rg").values()))
@@ -498,12 +497,12 @@ class BenchChecks(unittest.TestCase):
 
     def test_pi_audit_native_provenance_never_exempts_user_or_paths(self):
         from . import pi_audit, pi_client
-        native = {"initialize": {"instructions": "Use Serena to inspect source."}, "tools": []}
+        native = {"initialize": {"instructions": "Use CodeGraph to inspect source."}, "tools": []}
         body = {"instructions": pi_client.server_instructions_prompt(native["initialize"]["instructions"]),
                 "input": [{"role": "user", "content": "Inspect source."}]}
         self.assertEqual(pi_audit.audit_request(body, native), [])
-        self.assertTrue(pi_audit.audit_system({"sections": {"preamble": "Use Serena to inspect source."}}, native))
-        body["input"][0]["content"] = "Use Serena to inspect source."
+        self.assertTrue(pi_audit.audit_system({"sections": {"preamble": "Use CodeGraph to inspect source."}}, native))
+        body["input"][0]["content"] = "Use CodeGraph to inspect source."
         self.assertTrue(pi_audit.audit_request(body, native))
         self.assertTrue(pi_audit.audit_text("SMOKE grafana alerting-alertmanager"))
         text = "Source: file:///tmp/%62ench/private.txt"
@@ -609,11 +608,7 @@ class BenchChecks(unittest.TestCase):
     def test_pi_output_guard_covers_native_utf8_budgets(self):
         from .pi_client import adapter_settings
         self.assertGreaterEqual(adapter_settings("codemap-search")["outputGuard"]["maxBytes"], 100000)
-        text = "😀" * 150000
-        appended = text + "\nstructuredContent:\n" + json.dumps({"result": text}, ensure_ascii=False, indent=2)
-        self.assertGreaterEqual(adapter_settings("serena")["outputGuard"]["maxBytes"], len(appended.encode()))
-        self.assertNotIn("appendStructuredContent", adapter_settings("serena"))
-        for arm in ("codemap-search", "serena", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp"):
+        for arm in ("codemap-search", "codegraph", "zvec-grep", "graphify", "codebase-memory-mcp"):
             config = adapter_settings(arm)
             self.assertFalse(config["semanticSearch"])
             self.assertGreater(config["outputGuard"]["maxLines"], config["outputGuard"]["maxBytes"])
