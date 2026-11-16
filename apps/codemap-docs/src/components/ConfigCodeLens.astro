@@ -8,7 +8,7 @@ const isKo = locale === "ko";
 
 const labels = {
     close: isKo ? "닫기 (Esc)" : "Close (Esc)",
-    jumpSection: isKo ? "섹션 위치로 이동 ↘" : "Jump to section ↘",
+    jumpSection: isKo ? "아래 상세 열기 ↘" : "Jump to section ↘",
     openPage: isKo ? "전체 문서 열기 ↗" : "Open full page ↗",
     piiTitle: isKo ? "내장 PII 마스킹 유형 (90종)" : "Built-in PII Redaction Types (90)",
     piiIntro: isKo
@@ -31,7 +31,7 @@ const piiGroups = [
     },
     {
         scope: isKo ? "유럽·영국 (35)" : "Europe & UK (35)",
-        items: "DE_BSNR, DE_FUEHRERSCHEIN, DE_HANDELSREGISTER, DE_HEALTH_INSURANCE, DE_ID_CARD, DE_KFZ, DE_PASSPORT, DE_PLZ, DE_SOCIAL_SECURITY, DE_TAX_ID, DE_TAX_NUMBER, DE_VAT_ID, ES_NIE, ES_NIF, ES_PASSPORT, FI_PERSONAL_IDENTITY_CODE, IT_DRIVER_LICENSE, IT_FISCAL_CODE, IT_IDENTITY_CARD, IT_PASSPORT, IT_VAT_CODE, PL_PESEL, SE_ORGANISATIONSNUMMER, SE_PERSONNUMMER, TR_LICENSE_PLATE, TR_NATIONAL_ID, UK_DRIVING_LICENCE, UK_NHS, UK_NINO, UK_PASSPORT, UK_POSTCODE, UK_VEHICLE_REGISTRATION, DE_LANR",
+        items: "DE_BSNR, DE_FUEHRERSCHEIN, DE_HANDELSREGISTER, DE_HEALTH_INSURANCE, DE_ID_CARD, DE_KFZ, DE_LANR, DE_PASSPORT, DE_PLZ, DE_SOCIAL_SECURITY, DE_TAX_ID, DE_TAX_NUMBER, DE_VAT_ID, ES_NIE, ES_NIF, ES_PASSPORT, FI_PERSONAL_IDENTITY_CODE, IT_DRIVER_LICENSE, IT_FISCAL_CODE, IT_IDENTITY_CARD, IT_PASSPORT, IT_VAT_CODE, PL_PESEL, SE_ORGANISATIONSNUMMER, SE_PERSONNUMMER, TR_LICENSE_PLATE, TR_NATIONAL_ID, UK_DRIVING_LICENCE, UK_NHS, UK_NINO, UK_PASSPORT, UK_POSTCODE, UK_VEHICLE_REGISTRATION",
     },
     {
         scope: isKo ? "아시아·오세아니아·기타 (26)" : "APAC, Americas & Africa (26)",
@@ -78,6 +78,17 @@ pii_entities = ["EMAIL_ADDRESS", "IP_ADDRESS", "KR_RRN"]</code></pre>
             const container = this.closest(".sl-markdown-content");
             if (!container) return;
 
+            // Open matching <details> automatically on URL hash arrival or change
+            const openHashDetails = () => {
+                if (!window.location.hash) return;
+                const id = decodeURIComponent(window.location.hash.slice(1));
+                const target = container.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+                const details = target?.closest("details");
+                if (details) details.open = true;
+            };
+            openHashDetails();
+            window.addEventListener("hashchange", openHashDetails);
+
             const closeLabel = this.dataset.closeLabel ?? "Close (Esc)";
             const jumpLabel = this.dataset.jumpLabel ?? "Jump to section";
             const openPageLabel = this.dataset.openPageLabel ?? "Open full page";
@@ -85,53 +96,56 @@ pii_entities = ["EMAIL_ADDRESS", "IP_ADDRESS", "KR_RRN"]</code></pre>
             const piiHref = this.dataset.piiHref ?? "/configuration/pii-redaction/";
             const piiTemplate = this.querySelector<HTMLTemplateElement>("[data-pii-template]");
 
-            // Enhance reference links inside the Key Reference table into IDE CodeLens triggers
-            const tables = Array.from(container.querySelectorAll("table"));
-            const keyTable = tables.find((tbl) => tbl.querySelectorAll("tbody tr").length >= 50);
-            if (!keyTable) return;
+            // Enhance reference links inside all 5-column Key Reference tables
+            const keyTables = Array.from(container.querySelectorAll("table")).filter(
+                (tbl) => tbl.querySelectorAll("thead th").length === 5,
+            );
 
-            const links = Array.from(keyTable.querySelectorAll<HTMLAnchorElement>("tbody a[href]"));
-            for (const link of links) {
-                const href = link.getAttribute("href") ?? "";
-                const isHash = href.startsWith("#") && href.length > 1;
-                const isPiiPage = href.includes("/configuration/pii-redaction");
-                if (!isHash && !isPiiPage) continue;
+            for (const keyTable of keyTables) {
+                keyTable.classList.add("cfg-key-table");
+                const links = Array.from(keyTable.querySelectorAll<HTMLAnchorElement>("tbody a[href]"));
+                for (const link of links) {
+                    const href = link.getAttribute("href") ?? "";
+                    const isHash = href.startsWith("#") && href.length > 1;
+                    const isPiiPage = href.includes("/configuration/pii-redaction");
+                    if (!isHash && !isPiiPage) continue;
 
-                const labelText = (link.textContent ?? "").trim();
-                if (!labelText) continue;
+                    const labelText = (link.textContent ?? "").trim();
+                    if (!labelText) continue;
 
-                const btn = document.createElement("button");
-                btn.type = "button";
-                btn.className = "codemap-lens-btn";
-                btn.setAttribute("aria-expanded", "false");
-                btn.dataset.peekHref = href;
-                btn.dataset.peekKind = isHash ? "section" : "pii";
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "codemap-lens-btn";
+                    btn.setAttribute("aria-expanded", "false");
+                    btn.dataset.peekHref = href;
+                    btn.dataset.peekKind = isHash ? "section" : "pii";
 
-                const icon = document.createElement("span");
-                icon.className = "codemap-lens-chevron";
-                icon.setAttribute("aria-hidden", "true");
-                icon.textContent = "▸";
+                    const icon = document.createElement("span");
+                    icon.className = "codemap-lens-chevron";
+                    icon.setAttribute("aria-hidden", "true");
+                    icon.textContent = "▸";
 
-                const textSpan = document.createElement("span");
-                textSpan.textContent = labelText;
+                    const textSpan = document.createElement("span");
+                    textSpan.textContent = labelText;
 
-                btn.append(icon, textSpan);
-                link.replaceWith(btn);
+                    btn.append(icon, textSpan);
+                    link.replaceWith(btn);
 
-                btn.addEventListener("click", () => {
-                    if (this.activeBtn === btn) {
-                        this.closePeek(false);
-                        return;
-                    }
-                    this.openPeek(btn, container, {
-                        closeLabel,
-                        jumpLabel,
-                        openPageLabel,
-                        piiTitle,
-                        piiHref,
-                        piiTemplate,
+                    btn.addEventListener("click", () => {
+                        if (this.activeBtn === btn) {
+                            this.closePeek(false);
+                            return;
+                        }
+                        this.openPeek(btn, container, {
+                            closeLabel,
+                            jumpLabel,
+                            openPageLabel,
+                            piiTitle,
+                            piiHref,
+                            piiTemplate,
+                        });
                     });
-                });
+                }
             }
 
             document.addEventListener("keydown", (event) => {
@@ -148,22 +162,52 @@ pii_entities = ["EMAIL_ADDRESS", "IP_ADDRESS", "KR_RRN"]</code></pre>
             }
         }
 
-        private extractSectionNodes(container: Element, hash: string): { title: string; frag: DocumentFragment } | null {
+        private extractTargetNodes(
+            container: Element,
+            hash: string,
+        ): { title: string; frag: DocumentFragment } | null {
             const rawId = decodeURIComponent(hash.slice(1));
-            const heading = container.querySelector<HTMLElement>(`#${CSS.escape(rawId)}`);
-            if (!heading) return null;
-
-            const headingWrapper = heading.closest(".sl-heading-wrapper") ?? heading;
-            const tagMatch = /^H([1-6])$/.exec(heading.tagName);
-            const baseLevel = tagMatch ? Number(tagMatch[1]) : 3;
-            const title = (heading.textContent ?? "").trim();
+            const target = container.querySelector<HTMLElement>(`#${CSS.escape(rawId)}`);
+            if (!target) return null;
 
             const frag = document.createDocumentFragment();
+
+            // Case 1: <details id="..."> disclosure block
+            if (target instanceof HTMLDetailsElement) {
+                const summary = target.querySelector(":scope > summary");
+                const title = (summary?.textContent ?? rawId).trim();
+                for (const child of Array.from(target.children)) {
+                    if (child === summary) continue;
+                    const clone = child.cloneNode(true) as HTMLElement;
+                    this.stripIds(clone);
+                    frag.append(clone);
+                }
+                return { title, frag };
+            }
+
+            // Case 2: nested block inside a <details> (e.g. #openrouter-판정-모델)
+            if (target.hasAttribute("data-peek-block")) {
+                const title = target.getAttribute("data-peek-title") ?? rawId;
+                const clone = target.cloneNode(true) as HTMLElement;
+                clone.removeAttribute("id");
+                this.stripIds(clone);
+                frag.append(clone);
+                return { title, frag };
+            }
+
+            // Case 3: standard heading section
+            const headingWrapper = target.closest(".sl-heading-wrapper") ?? target;
+            const tagMatch = /^H([1-6])$/.exec(target.tagName);
+            const baseLevel = tagMatch ? Number(tagMatch[1]) : 3;
+            const title = (target.textContent ?? "").trim();
+
             let cursor = headingWrapper.nextElementSibling;
             while (cursor) {
                 const innerHeading = cursor.matches("h1, h2, h3, h4, h5, h6")
                     ? cursor
-                    : cursor.querySelector(":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6");
+                    : cursor.querySelector(
+                          ":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6",
+                      );
                 if (innerHeading) {
                     const m = /^H([1-6])$/.exec(innerHeading.tagName);
                     const nextLevel = m ? Number(m[1]) : 6;
@@ -204,7 +248,7 @@ pii_entities = ["EMAIL_ADDRESS", "IP_ADDRESS", "KR_RRN"]</code></pre>
                 title = opts.piiTitle;
                 bodyFrag.append(opts.piiTemplate.content.cloneNode(true));
             } else {
-                const extracted = this.extractSectionNodes(container, href);
+                const extracted = this.extractTargetNodes(container, href);
                 if (!extracted) return;
                 title = extracted.title;
                 bodyFrag.append(extracted.frag);
@@ -237,6 +281,10 @@ pii_entities = ["EMAIL_ADDRESS", "IP_ADDRESS", "KR_RRN"]</code></pre>
             navLink.textContent = kind === "pii" ? opts.openPageLabel : opts.jumpLabel;
             if (kind !== "pii") {
                 navLink.addEventListener("click", () => {
+                    const id = decodeURIComponent(href.slice(1));
+                    const target = container.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+                    const details = target?.closest("details");
+                    if (details) details.open = true;
                     this.closePeek(false);
                 });
             }

@@ -15,7 +15,7 @@ description: Per-tool usage examples on grafana/grafana.
 | `analyze` | Inspect index size or recorded reading activity as JSON | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 | `synonyms` (opt-in) | Look up related English code terms and synonyms | `terms` (`1–16` words or short technical phrases) |
 
-See [Output differences by option](/configuration/#output-differences-by-option) and the [Configuration Playground](/configuration/playground/) to inspect how `config.toml` settings change tool responses.
+See [Output differences by option](/configuration/#output-differences-by-option) and the [Configuration Playground](/playground/) to inspect how `config.toml` settings change tool responses.
 
 ## Tool examples (`grafana/grafana`)
 

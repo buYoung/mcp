@@ -15,7 +15,7 @@ description: grafana/grafana 저장소 기준 도구별 실행 예시를 안내�
 | `analyze` | 색인 용량 및 읽기 이력 JSON 집계 | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 | `synonyms` (선택형) | 관련 영어 코드 용어 및 유의어 조회 | `terms`(`1–16`개 단어 또는 짧은 기술 구절) |
 
-`config.toml` 옵션에 따라 각 도구의 출력이 어떻게 달라지는지는 [설정 옵션에 따른 출력 차이](/ko/configuration/#설정-옵션에-따른-출력-차이)와 [설정 플레이그라운드](/ko/configuration/playground/)에서 확인할 수 있습니다.
+`config.toml` 옵션에 따라 각 도구의 출력이 어떻게 달라지는지는 [설정 옵션에 따른 출력 차이](/ko/configuration/#설정-옵션에-따른-출력-차이)와 [설정 플레이그라운드](/ko/playground/)에서 확인할 수 있습니다.
 
 ## 도구별 사용 예시 (`grafana/grafana`)
 

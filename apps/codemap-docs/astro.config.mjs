@@ -6,6 +6,9 @@ export default defineConfig({
         starlight({
             title: "codemap-search",
             customCss: ["./src/styles/custom.css"],
+            components: {
+                SocialIcons: "./src/components/SocialIcons.astro",
+            },
             defaultLocale: "root",
             locales: {
                 root: {
@@ -70,11 +73,6 @@ export default defineConfig({
                             slug: "configuration",
                             label: "Configuration Reference",
                             translations: { ko: "설정 레퍼런스" },
-                        },
-                        {
-                            slug: "configuration/playground",
-                            label: "Playground",
-                            translations: { ko: "플레이그라운드" },
                         },
                         {
                             slug: "configuration/pii-redaction",

@@ -14,7 +14,7 @@ description: Default credential masking, custom redaction examples, and 90 built
 
 ## Masking examples
 
-You can also toggle these options live in the [Configuration Playground](/configuration/playground/).
+You can also toggle these options live in the [Configuration Playground](/playground/).
 
 ### 1. Default output (`is_redact_enabled = true`, `pii_entities = []`)
 

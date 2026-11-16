@@ -1,36 +1,29 @@
 ---
 title: 설정 레퍼런스
-description: codemap-search의 config.toml 설정 키·허용 값, 옵션별 출력 차이, 제외 규칙, Jev 필터, 이전 키 레퍼런스입니다.
+description: codemap-search의 섹션별 config.toml 키·허용 값, 인라인 상세 규칙, 옵션별 좌우 출력 비교, 이전 키 매핑입니다.
 ---
 
 import ConfigCodeLens from "../../../../components/ConfigCodeLens.astro";
 
-## 설정 파일과 우선순위
+## 파일 위치와 우선순위
 
-바꿀 키만 적으면 되며, 키 단위로 `저장소 > 전역 > 기본값` 순으로 적용됩니다. 설정 조합에 따라 `grafana/grafana`에서 7개 도구 출력이 어떻게 달라지는지 바로 시험하려면 [설정 플레이그라운드](/ko/configuration/playground/)를 열어보세요.
+바꿀 키만 적으면 되며, 키 단위로 `저장소 > 전역 > 기본값` 순으로 덮어씁니다. 실시간 설정 실험은 우측 상단 [플레이그라운드](/ko/playground/)에서 바로 해볼 수 있습니다.
 
-| 범위 | `config.toml` | `auth.toml` (API 키) |
+| 범위 | `config.toml` (동작 설정) | `auth.toml` (API 키) |
 | --- | --- | --- |
 | 저장소 | `<repo>/.codemap/config.toml` | `<repo>/.codemap/auth.toml` |
 | 전역 | `$CODEMAP_HOME/config.toml` (기본 `~/.codemap/config.toml`) | `$CODEMAP_HOME/auth.toml` (기본 `~/.codemap/auth.toml`) |
 
-`.gitignore`, 전역 gitignore, `.git/info/exclude`는 기본으로 적용됩니다. Git에서 추적하는 경로를 색인, `find`, `grep`에서 추가로 빼려면 저장소 루트에 `.codemapignore`(gitignore 문법)를 두세요.
-
-## `config.toml` 예시
+- `.gitignore`, 전역 gitignore, `.git/info/exclude`는 기본 적용됩니다. Git 추적 경로를 색인·`find`·`grep`에서 추가로 빼려면 저장소 루트에 `.codemapignore`를 두세요.
+- 크기(`size`) 키에는 양의 정수 바이트 또는 `"b"`, `"kb"`, `"mb"`, `"gb"` 단위 문자열(1024 거듭제곱, 예: `"50mb"` = `52428800`)을 적습니다.
 
 ```toml
+# .codemap/config.toml 최소 예시
 [output.search]
 max_bytes = "1mb"
 
 [output.redact]
 pii_entities = ["EMAIL_ADDRESS", "CREDIT_CARD"]
-sensitive_fields = ["internalCredential"]
-
-[index]
-mode = "auto" # "auto", "on", "off" (변경 후 재시작 필요)
-
-[index.exclude]
-excluded_directories = [".idea", ".vscode", "node_modules", "target", "dist", "build", "vendor"]
 
 [filesystem_permissions]
 find = "workspace"
@@ -38,191 +31,29 @@ grep = "workspace"
 read = "workspace"
 ```
 
-## 설정 옵션에 따른 출력 차이
+## 섹션별 설정 키
 
-`grafana/grafana` 기준으로 모든 비교는 **기본값 출력**을 먼저 보여준 뒤 옵션을 바꿨을 때의 출력을 이어서 보여줍니다. 실시간 조합 비교는 [설정 플레이그라운드](/ko/configuration/playground/)에서 확인할 수 있습니다.
+표 안의 배지(예: `▸ 디렉터리 제외 규칙`)를 누르면 페이지를 이동하지 않고 해당 행 바로 아래에 세부 규칙을 펼쳐 볼 수 있습니다.
 
-### 1. 호출 관계 문맥 (`[output.context].is_enabled` / `[output.navigation].is_enabled`)
+### 출력 및 클라이언트 한도
 
-`search` 결과 심볼 선언 아래에 호출자(`_callers_`)와 호출 대상(`_calls_`)을 덧붙입니다. `[output.navigation].is_enabled = true`를 켜면 구조·import를 확인한 대상을 `precise`로 표시합니다.
-
-- **기본값 (`[output.context].is_enabled = true`, `[output.navigation].is_enabled = false`)**:
-  ```markdown
-  ## 1. pkg/services/dashboards/service/dashboard_service.go
-  - `method DashboardServiceImpl.SaveDashboard` (L142-153)
-    - _callers (approximate name scan):_
-      - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
-    - _calls (depth 1, approximate):_
-      - `buildSaveDashboardCommand` — `pkg/services/dashboards/service/dashboard_service.go:96`
-  ```
-- **정밀 확인 활성화 (`[output.navigation].is_enabled = true`)**:
-  ```markdown
-  ## 1. pkg/services/dashboards/service/dashboard_service.go
-  - `method DashboardServiceImpl.SaveDashboard` (L142-153)
-    - _callers (tree-sitter precise; import/source resolution confirmed):_
-      - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`, precise)
-    - _calls (depth 1, tree-sitter precise):_
-      - `DashboardServiceImpl.buildSaveDashboardCommand` — `pkg/services/dashboards/service/dashboard_service.go:96` (`precise`)
-  ```
-- **호출 관계 끄기 (`[output.context].is_enabled = false` 또는 호출 시 `caller_context: false`)**:
-  ```markdown
-  ## 1. pkg/services/dashboards/service/dashboard_service.go
-  - `method DashboardServiceImpl.SaveDashboard` (L142-153)
-  ```
-
-### 2. `read` 범위 밖 호출자 표시 (`[output.read].is_outside_callers_enabled`)
-
-`read`(`view="source"`) 응답 끝에 조회한 줄 범위 바깥에서 해당 함수를 호출하거나 import하는 위치를 덧붙입니다.
-
-- **기본값 (`true`)**:
-  ```text
-  142→func (dr *DashboardServiceImpl) SaveDashboard(ctx context.Context, dto *dashboards.SaveDashboardDTO) (*dashboards.Dashboard, error) {
-  ...
-  153→}
-  [Callers from outside this window (static analysis, approximate)]
-  - SaveDashboard L142: pkg/api/dashboard.go:318 (PostDashboard)
-  ```
-- **변경 시 (`false`)**:
-  ```text
-  142→func (dr *DashboardServiceImpl) SaveDashboard(ctx context.Context, dto *dashboards.SaveDashboardDTO) (*dashboards.Dashboard, error) {
-  ...
-  153→}
-  ```
-
-### 3. 호출 관계에 테스트 코드 포함 (`[output.context.exclude].should_include_test_code`)
-
-`search`와 `read`의 자동 호출자 문맥에 `*_test.go`, `*.test.ts` 같은 테스트 파일을 넣을지 결정합니다.
-
-- **기본값 (`false`)**:
-  ```markdown
-  - _callers (approximate name scan):_
-    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
-  ```
-- **변경 시 (`true`)**:
-  ```markdown
-  - _callers (approximate name scan):_
-    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
-    - `pkg/services/dashboards/service/dashboard_service_test.go:88` (`TestSaveDashboard`)
-  ```
-
-### 4. 인증정보·PII 마스킹 (`[output].is_redact_enabled` / `[output.redact]`)
-
-`pkg/services/notifications/mailer.go` 구간을 `read`로 읽었을 때의 마스킹 차이입니다. `10`바이트 이상 비밀값은 `[REDACTED]`로, `10`바이트 미만 비밀값은 원래 길이만큼 `*`로 치환합니다. 더 다양한 예시는 [PII 마스킹](/ko/configuration/pii-redaction/)을 참고하세요.
-
-- **기본값 (`is_redact_enabled = true`, `pii_entities = []`)**:
-  ```go
-  authHeader := "Bearer [REDACTED]"
-  adminPassword := "*****"
-  dsn := "postgres://grafana:********@10.24.8.15:5432/grafana"
-  webhookSigningKey := "whsec_live_98a7bc65d4ef3210"
-  serviceToken := "glsa_8Kp2Lm9Qx4Vz7Rn1Yt6Bc3Df"
-  fromAddr := "alerts@grafana.example.com"
-  ```
-- **PII·민감 필드·사용자 규칙 추가 시 (`pii_entities = ["EMAIL_ADDRESS", "IP_ADDRESS"]`, `sensitive_fields = ["webhookSigningKey"]`, `custom.service-token`)**:
-  ```go
-  authHeader := "Bearer [REDACTED]"
-  adminPassword := "*****"
-  dsn := "postgres://grafana:********@[REDACTED]:5432/grafana"
-  webhookSigningKey := "[REDACTED]"
-  serviceToken := "glsa_[REDACTED]"
-  fromAddr := "[REDACTED]"
-  ```
-- **마스킹 비활성화 시 (`is_redact_enabled = false`)**:
-  ```go
-  authHeader := "Bearer eyJhbGciOiJIUzI1NiJ9.grafana.sig"
-  adminPassword := "admin"
-  dsn := "postgres://grafana:s3cr3tPass!@10.24.8.15:5432/grafana"
-  webhookSigningKey := "whsec_live_98a7bc65d4ef3210"
-  serviceToken := "glsa_8Kp2Lm9Qx4Vz7Rn1Yt6Bc3Df"
-  fromAddr := "alerts@grafana.example.com"
-  ```
-
-### 5. Jev 작업 관련성 필터 (`[output.jev].enabled`)
-
-`initial_instructions`로 현재 작업을 등록한 뒤 `search`를 실행했을 때의 차이입니다([Jev 필터](#jev-필터) 참고).
-
-호출 질의:
-
-```json
-{
-  "name": "initial_instructions",
-  "arguments": { "task": "대시보드 저장 시 버전 충돌 오류가 반환되는 경로 확인" }
-}
-```
-
-```json
-{
-  "name": "search",
-  "arguments": {
-    "query": "DashboardServiceImpl SaveDashboard DeleteDashboard",
-    "workspace_scope": "pkg"
-  }
-}
-```
-
-- **기본값 (`enabled = false`)**:
-  ````markdown
-  ## 1. pkg/services/dashboards/service/dashboard_service.go
-  ### results
-  ```
-  142→func (dr *DashboardServiceImpl) SaveDashboard(ctx context.Context, dto *dashboards.SaveDashboardDTO) (*dashboards.Dashboard, error) {
-  143→    cmd, err := dr.buildSaveDashboardCommand(ctx, dto)
-  144→    if errors.Is(err, dashboards.ErrDashboardVersionMismatch) {
-  145→        return nil, err
-  146→    }
-  ...
-  153→}
-  ```
-  ```
-  210→func (dr *DashboardServiceImpl) DeleteDashboard(ctx context.Context, dashboardId int64, orgId int64) error {
-  211→    return dr.store.DeleteDashboard(ctx, &dashboards.DeleteDashboardCommand{ID: dashboardId, OrgID: orgId})
-  212→}
-  ```
-  ````
-- **변경 시 (`enabled = true`)**:
-  ````markdown
-  ## 1. pkg/services/dashboards/service/dashboard_service.go
-  ### results
-  ```
-  142→func (dr *DashboardServiceImpl) SaveDashboard(ctx context.Context, dto *dashboards.SaveDashboardDTO) (*dashboards.Dashboard, error) {
-  143→    cmd, err := dr.buildSaveDashboardCommand(ctx, dto)
-  144→    if errors.Is(err, dashboards.ErrDashboardVersionMismatch) {
-  145→        return nil, err
-  146→    }
-  ...
-  153→}
-  ```
-  - _omitted body: L210-212 (method DeleteDashboard) Jev found no task match in pkg/services/dashboards/service/dashboard_service.go._
-  ````
-
-### 6. 중복 구간 접기 (`include_seen` 호출 인자)
-
-같은 세션에서 이미 전달했고 파일이 바뀌지 않은 코드 구간을 다시 조회할 때의 차이입니다.
-
-- **기본값 (`include_seen: false` 또는 생략)**:
-  ```text
-  <--removed duplicated-->
-  ```
-- **변경 시 (`include_seen: true`)**:
-  ```text
-  142→func (dr *DashboardServiceImpl) SaveDashboard(ctx context.Context, dto *dashboards.SaveDashboardDTO) (*dashboards.Dashboard, error) {
-  ...
-  153→}
-  ```
-
-## 설정 키
-
-바이트 크기 키에는 양의 정수 바이트 또는 `b`, `kb`, `mb`, `gb` 접미사가 붙은 문자열(1024 거듭제곱 기준, 예: `"50mb"` = `52428800`)을 적습니다. 표 안의 파란 배지(예: `▸ 디렉터리 제외 규칙`)를 누르면 페이지를 이동하지 않고 바로 아래에 상세 규칙을 펼쳐 볼 수 있습니다.
+<div class="cfg-scope-line"><code>[output]</code> <code>[output.client]</code></div>
 
 | 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
 | --- | --- | --- | --- | --- |
-| `[global_instructions].enabled` | bool | `true`, `false` | `false` | 클라이언트 전역 지침 파일에 탐색 안내 한 줄 자동 관리([전역 지침](#전역-지침), 전역 설정 전용) |
 | `[output].is_redact_enabled` | bool | `true`, `false` | `true` | MCP 출력의 인증정보 및 선택 PII 마스킹 |
 | `[output].max_bytes` | 크기 | 미지정, `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | 미지정 | 도구별 `max_bytes`가 없을 때 적용할 공통 응답 상한 |
 | `[output.client].claude_max_result_chars` | 정수(문자) | `1`–`500000` | `100000` | Claude Code 전달 한도(변경 후 MCP 재연결) |
 | `[output.client].codex_output_token_limit` | 정수(토큰) | `>= 1` | `100000` | Codex 출력 토큰 한도(`codemap-search codex-config` 출력을 `~/.codex/config.toml`에 반영) |
 | `[output.client].pi_max_bytes` | 크기 | `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `100000` | `pi`(`@buyong/pi-mcp-adapter`) 전달 한도(변경 후 MCP 재연결) |
 | `[output.client].opencode_max_bytes` | 크기 | `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `100000` | OpenCode 전달 한도(`opencode.json`의 `tool_output.max_bytes`, 기본 `51200`과 일치 권장) |
+
+### 검색·읽기·정규식 출력
+
+<div class="cfg-scope-line"><code>[output.search]</code> <code>[output.read]</code> <code>[output.grep]</code></div>
+
+| 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
 | `[output.search].detail_file_limit` | 정수 | `>= 1` | `24` | 상세 발췌를 표시할 상위 파일 수 |
 | `[output.search].overview_file_limit` | 정수 | `>= 1` | `80` | 간략 순위 목록에 표시할 최대 파일 수 |
 | `[output.search].snippet_max_lines` | 정수 | `>= 1` | `500` | `search`에서 심볼당 최대 발췌 줄 수 |
@@ -235,6 +66,13 @@ read = "workspace"
 | `[output.read].is_outside_callers_enabled` | bool | `true`, `false` | `true` | `read view="source"` 끝에 범위 밖 호출자·import 파일 표시 |
 | `[output.grep].max_columns` | 정수 | `0` (제한 없음) 또는 `>= 1` | `0` | 본문 모드 `grep`의 줄 길이 상한 |
 | `[output.grep].max_bytes` | 크기 | 미지정, `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `[output].max_bytes` | `grep` 응답 크기 상한 |
+
+### 호출 관계·정밀 탐색·테스트 제외
+
+<div class="cfg-scope-line"><code>[output.context]</code> <code>[output.navigation]</code> <code>[output.context.exclude]</code></div>
+
+| 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
 | `[output.context].is_enabled` | bool | `true`, `false` | `true` | `search`에서 `caller_context` 생략 시 기본 호출 관계 표시 여부 |
 | `[output.context].caller_limit` | 정수 | `>= 1` | `1000` | 심볼당 최대 호출자·참조 표시 수 |
 | `[output.context].callee_limit` | 정수 | `>= 1` | `1000` | 심볼당 최대 호출 대상 표시 수 |
@@ -244,76 +82,16 @@ read = "workspace"
 | `[output.navigation].is_enabled` | bool | `true`, `false` | `false` | 호출 위치를 구조적으로 확인해 확정 대상을 `precise`로 표시 |
 | `[output.navigation].callsite_budget` | 정수 | `>= 1` | `1000` | 이름 기반 탐색으로 넘어가기 전 구조적으로 검사할 최대 호출 수 |
 | `[output.navigation].scan_limit` | 정수 | `>= 1` | `16000` | 심볼 이름 간 공유하는 호출자 스캔 상한(이름당 최소 25건) |
-| `[output.redact].pii_entities` | 문자열 배열 | `[]` 또는 내장 PII 유형 배열 ([PII 마스킹](/ko/configuration/pii-redaction/)) | `[]` | 마스킹할 PII 유형 목록 |
-| `[output.redact].sensitive_fields` | 문자열 배열 | `[]` 또는 필드명 배열 | `[]` | 비밀값으로 처리할 추가 필드명(대소문자·구분자 정규화) |
-| `[output.redact].rules` | 인라인 테이블 배열 | `[]` 또는 `{ id = "custom.*", pattern = "..." }` 배열 | `[]` | 사용자 정규식 마스킹 규칙 ([민감값 마스킹](#민감값-마스킹)) |
-| `[output.redact].exceptions` | 인라인 테이블 배열 | `[]` 또는 `{ rule_id, value }` 배열 | `[]` | 마스킹에서 제외할 규칙·값 쌍 ([민감값 마스킹](#민감값-마스킹)) |
-| `[index].mode` | 문자열 | `"auto"`, `"on"`, `"off"` | `"auto"` | 색인 실행 모드(변경 후 재시작 필요): `"auto"`(`auto_max_files` 이하 저장소), `"on"`(항상), `"off"`(비활성) |
-| `[index].auto_max_files` | 정수 | `>= 1` | `50000` | `auto` 모드의 최대 색인 가능 파일 수(변경 후 재시작 필요) |
-| `[index].path` | 문자열 | 비어 있지 않은 상대·절대 경로 | `".codemap/index"` | 색인 저장 경로(변경 후 재시작 필요) |
-| `[index].max_file_bytes` | 크기 | `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `"1mb"` (`1048576`) | 색인 시 건너뛸 파일 크기 기준 |
-| `[index].store_references` | bool | `true`, `false` | `false` | 함수 호출 외 심볼 참조 위치도 색인에 저장 |
-| `[index.refresh].watch` | bool | `true`, `false` | `true` | 백그라운드 파일 변경 감시 사용(변경 후 재시작 필요) |
-| `[index.refresh].watch_debounce_ms` | 정수(ms) | `>= 1` | `500` | 파일 변경 이벤트 묶음 대기 시간(변경 후 재시작 필요) |
-| `[index.refresh].index_staleness_ms` | 정수(ms) | `>= 1` | `5000` | `watch = false`일 때 요청 기반 갱신 확인 간격 |
-| `[index.refresh].indexer_auto_restart` | bool | `true`, `false` | `true` | 백그라운드 색인 스레드 중단 시 자동 재시작 |
-| `[index.language_support].is_document_support_enabled` | bool | `true`, `false` | `false` | `.md`, `.mdx` 파일 색인 포함 |
-| `[index.language_support].is_shell_support_enabled` | bool | `true`, `false` | `false` | `.sh`, `.bash`, `.zsh` 스크립트 색인 포함 |
-| `[index.language_support].is_infrastructure_support_enabled` | bool | `true`, `false` | `false` | HCL/Terraform, Dockerfile, Nix 파일 색인 포함 |
-| `[index.language_support].is_interface_support_enabled` | bool | `true`, `false` | `false` | Protocol Buffers, GraphQL 파일 색인 포함 |
-| `[index.language_support].is_build_support_enabled` | bool | `true`, `false` | `false` | Make, CMake, Bazel 빌드 파일 색인 포함 |
-| `[index.exclude].excluded_directories` | 문자열 배열 | `[]` 또는 상대 디렉터리 glob 배열 | [디렉터리 제외 규칙](#디렉터리-제외-규칙) 참고 | 선택적 디렉터리 제외 glob 목록 |
-| `[index.exclude].use_git_exclude` | bool | `true`, `false` | `true` | `.git/info/exclude` 적용 여부 |
 | `[output.context.exclude].should_include_test_code` | bool | `true`, `false` | `false` | 호출 관계 문맥에 테스트 코드 포함 여부 |
 | `[output.context.exclude].test_file_patterns` | 문자열 배열 | `[]` 또는 파일 경로 glob 배열 | [테스트 코드 문맥](#테스트-코드-문맥) 참고 | 테스트 파일 경로 glob 목록 |
 | `[output.context.exclude].test_attributes` | 언어 테이블 | `rust`, `java`, `kotlin`, `csharp`, `swift`, `php` → 문자열 배열 | [테스트 코드 문맥](#테스트-코드-문맥) 참고 | 언어별 테스트 속성·어노테이션 이름 |
 | `[output.context.exclude].test_decorators` | 언어 테이블 | `python` → 문자열 배열 | [테스트 코드 문맥](#테스트-코드-문맥) 참고 | 언어별 테스트 데코레이터 이름 |
 | `[output.context.exclude].test_calls` | 언어 테이블 | `javascript`, `typescript`, `dart`, `ruby`, `powershell` → 문자열 배열 | [테스트 코드 문맥](#테스트-코드-문맥) 참고 | 언어별 테스트 호출 이름 |
-| `[output.jev].enabled` | bool | `true`, `false` | `false` | [Jev 필터](#jev-필터) 활성화 |
-| `[output.jev].scope` | 문자열 배열 | `[]` 또는 `"search"`, `"read"`, `"grep"` 조합 | `["search", "read", "grep"]` | Jev 활성화 시 필터링할 도구 목록 |
-| `[output.jev].model` | 문자열 | `"jev-1.14.0"` 또는 `<제작사>/<모델>` ([판정 모델](#openrouter-판정-모델)) | `"jev-1.14.0"` | 판정(decision) 모델 ID(`jev-*`는 TypeSafe, `author/slug`는 OpenRouter) |
-| `[output.jev].timeout_ms` | 정수(ms) | `1`–`604800000` (최대 7일) | `45000` | 호출당 Jev 요청 제한 시간 |
-| `[output.jev].max_in_flight_requests` | 정수 | `1`–`8` | `8` | Jev 호출당 최대 동시 HTTP 요청 수 |
-| `[output.jev].request_spacing_ms` | 정수(ms) | `100`–`604800000` | `100` | Jev 배치 요청 간 최소 간격 |
-| `[output.jev].max_batch_bytes` | 크기 | `1`–`168000` 바이트 또는 크기 문자열 | `168000` | Jev 배치당 최대 페이로드 크기 |
-| `[output.jev].pool_idle_timeout_ms` | 정수(ms) | `1`–`604800000` (최대 7일) | `30000` | 유휴 HTTPS 연결 유지 시간 |
-| `[output.jev].search_filter_min_unrelated_probability` | 실수 | `0.5 < 값 <= 1.0` | `0.70` | 무관한 코드로 판정해 생략하는 최소 확률 |
-| `[filesystem_permissions].find` | 문자열 | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | `find` 파일 접근 범위 |
-| `[filesystem_permissions].grep` | 문자열 | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | `grep` 파일 접근 범위 |
-| `[filesystem_permissions].read` | 문자열 | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | `read` 파일 접근 범위 |
-| `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` 또는 상대·절대 디렉터리 경로 배열 | `[]` | 접근 범위가 `"allowed_roots"`일 때 허용할 외부 경로 |
-| `[related_terms].enabled` | bool | `true`, `false` | `false` | `synonyms` 도구 활성화 |
-| `[related_terms].dataset_path` | 문자열 | 미지정 또는 비어 있지 않은 파일 경로 | 미지정 | 다운로드 대신 사용할 로컬 뜻 사전 파일 경로 |
-| `[update].config_auto_update` | bool | `true`, `false` | `true` | `mcp` 시작 시 빠진 저장소 `config.toml`/`auth.toml` 템플릿 생성 |
 
-## 주요 설정 상세
+<details class="cfg-details" id="테스트-코드-문맥">
+<summary>기본 테스트 제외 패턴 (`[output.context.exclude]`)</summary>
 
-### 전역 지침
-
-감지된 클라이언트의 전역 지침 파일 경로입니다. `[global_instructions].enabled`를 바꾼 뒤에는 새 에이전트 세션을 여세요.
-
-| 클라이언트 | 기본 파일 | 경로 변경 환경 변수 |
-| --- | --- | --- |
-| Codex (`codex-mcp-client`) | `~/.codex/AGENTS.md` (비어 있지 않은 `AGENTS.override.md` 우선) | `CODEX_HOME` |
-| Claude Code (`claude-code`) | `~/.claude/CLAUDE.md` | `CLAUDE_CONFIG_DIR` |
-| `pi` | `~/.pi/agent/AGENTS.md` | `PI_CODING_AGENT_DIR` |
-| OpenCode (`opencode`) | `~/.config/opencode/AGENTS.md` | `OPENCODE_CONFIG_DIR` |
-
-### 디렉터리 제외 규칙
-
-`[index.exclude].excluded_directories` 기본 목록은 `[".idea", ".vscode", ".vs", "node_modules", ".yarn", "target", "dist", "build", "vendor"]`입니다. 기본 제외를 모두 끄려면 `[]`로 설정하세요. VCS 폴더와 `.codemap`은 설정과 관계없이 항상 제외됩니다.
-
-| 패턴 | 일치 범위 |
-| --- | --- |
-| `build` 또는 `**/build` | 모든 깊이의 `build` |
-| `./build` | 저장소 루트의 `build`만 |
-| `apps/web/build` | 해당 디렉터리와 하위 전체 |
-| `apps/api/**/__pycache__` | `apps/api` 아래 모든 깊이의 `__pycache__` |
-| `apps/native/cmake-build-*` | `apps/native` 아래 와일드카드 디렉터리 |
-
-### 테스트 코드 문맥
-
-`[output.context.exclude].should_include_test_code = false`일 때 호출 관계 문맥에서 제외하는 기본 테스트 패턴입니다.
+`should_include_test_code = false`일 때 자동 호출자 문맥에서 제외하는 기본 패턴입니다.
 
 ```toml
 [output.context.exclude]
@@ -336,23 +114,12 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 ```
 
-### 민감값 마스킹
+</details>
 
-`[output.redact].rules`의 규칙 `id`는 `custom.`으로 시작해야 합니다. 정규식에 `(?P<secret>...)` 캡처 그룹을 쓰면 해당 부분만 마스킹합니다.
+<details class="cfg-details" id="매크로-확장과-이벤트-규칙">
+<summary>C/C++/어셈블리 매크로 확장 및 이벤트 버스 규칙 (`[output.macro_expansion]`, `[output.event_navigation]`)</summary>
 
-```toml
-[output.redact]
-pii_entities = ["EMAIL_ADDRESS", "CREDIT_CARD"]
-sensitive_fields = ["internalCredential"]
-rules = [{ id = "custom.acme", pattern = 'ACME_(?P<secret>[A-Z0-9]+)' }]
-exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
-```
-
-내장 PII 유형 90종 목록과 상세 마스킹 예시는 [PII 마스킹](/ko/configuration/pii-redaction/)을 참고하세요.
-
-### 매크로 확장과 이벤트 규칙
-
-C/C++/어셈블리 매크로 전처리(`clang` / `nasm`)와 사용자 이벤트 버스 규칙(`typescript`, `javascript`, `rust`) 설정 예시입니다.
+설치된 `clang` / `nasm` 전처리와 사용자 이벤트 버스 규칙(`typescript`, `javascript`, `rust`) 설정 예시입니다.
 
 ```toml
 [output.macro_expansion]
@@ -374,9 +141,92 @@ rules = [
 ]
 ```
 
-### Jev 필터
+</details>
 
-Jev는 판정 모델로 `search`, `read`, `grep` 결과에서 작업과 무관한 코드 블록을 생략합니다. `auth.toml`(또는 `TYPESAFE_API_KEY` / `OPENROUTER_API_KEY` 환경 변수)에 API 키를 넣고 `config.toml`에서 `[output.jev]`를 켜세요.
+### 인증정보·PII 마스킹
+
+<div class="cfg-scope-line"><code>[output.redact]</code></div>
+
+| 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
+| `[output.redact].pii_entities` | 문자열 배열 | `[]` 또는 내장 PII 유형 배열 ([PII 마스킹](/ko/configuration/pii-redaction/)) | `[]` | 마스킹할 PII 유형 목록 |
+| `[output.redact].sensitive_fields` | 문자열 배열 | `[]` 또는 필드명 배열 | `[]` | 비밀값으로 처리할 추가 필드명(대소문자·구분자 정규화) |
+| `[output.redact].rules` | 인라인 테이블 배열 | `[]` 또는 `{ id = "custom.*", pattern = "..." }` 배열 | `[]` | 사용자 정규식 마스킹 규칙 ([민감값 마스킹](#민감값-마스킹)) |
+| `[output.redact].exceptions` | 인라인 테이블 배열 | `[]` 또는 `{ rule_id, value }` 배열 | `[]` | 마스킹에서 제외할 규칙·값 쌍 ([민감값 마스킹](#민감값-마스킹)) |
+
+<details class="cfg-details" id="민감값-마스킹">
+<summary>사용자 정규식·예외 규칙 예시 (`[output.redact]`)</summary>
+
+`rules`의 `id`는 `custom.`으로 시작해야 하며, 정규식에 `(?P<secret>...)` 캡처 그룹을 넣으면 해당 부분만 마스킹합니다. 전체 90종 목록과 출력 예시는 [PII 마스킹](/ko/configuration/pii-redaction/)을 참고하세요.
+
+```toml
+[output.redact]
+pii_entities = ["EMAIL_ADDRESS", "CREDIT_CARD"]
+sensitive_fields = ["internalCredential"]
+rules = [{ id = "custom.acme", pattern = 'ACME_(?P<secret>[A-Z0-9]+)' }]
+exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
+```
+
+</details>
+
+### 색인·지원 언어·경로 제외
+
+<div class="cfg-scope-line"><code>[index]</code> <code>[index.refresh]</code> <code>[index.language_support]</code> <code>[index.exclude]</code></div>
+
+| 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
+| `[index].mode` | 문자열 | `"auto"`, `"on"`, `"off"` | `"auto"` | 색인 실행 모드(재시작 필요): `"auto"`(`auto_max_files` 이하 저장소), `"on"`(항상), `"off"`(비활성) |
+| `[index].auto_max_files` | 정수 | `>= 1` | `50000` | `auto` 모드의 최대 색인 가능 파일 수(재시작 필요) |
+| `[index].path` | 문자열 | 비어 있지 않은 상대·절대 경로 | `".codemap/index"` | 색인 저장 경로(재시작 필요) |
+| `[index].max_file_bytes` | 크기 | `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `"1mb"` (`1048576`) | 색인 시 건너뛸 파일 크기 기준 |
+| `[index].store_references` | bool | `true`, `false` | `false` | 함수 호출 외 심볼 참조 위치도 색인에 저장 |
+| `[index.refresh].watch` | bool | `true`, `false` | `true` | 백그라운드 파일 변경 감시 사용(재시작 필요) |
+| `[index.refresh].watch_debounce_ms` | 정수(ms) | `>= 1` | `500` | 파일 변경 이벤트 묶음 대기 시간(재시작 필요) |
+| `[index.refresh].index_staleness_ms` | 정수(ms) | `>= 1` | `5000` | `watch = false`일 때 요청 기반 갱신 확인 간격 |
+| `[index.refresh].indexer_auto_restart` | bool | `true`, `false` | `true` | 백그라운드 색인 스레드 중단 시 자동 재시작 |
+| `[index.language_support].is_document_support_enabled` | bool | `true`, `false` | `false` | `.md`, `.mdx` 파일 색인 포함 |
+| `[index.language_support].is_shell_support_enabled` | bool | `true`, `false` | `false` | `.sh`, `.bash`, `.zsh` 스크립트 색인 포함 |
+| `[index.language_support].is_infrastructure_support_enabled` | bool | `true`, `false` | `false` | HCL/Terraform, Dockerfile, Nix 파일 색인 포함 |
+| `[index.language_support].is_interface_support_enabled` | bool | `true`, `false` | `false` | Protocol Buffers, GraphQL 파일 색인 포함 |
+| `[index.language_support].is_build_support_enabled` | bool | `true`, `false` | `false` | Make, CMake, Bazel 빌드 파일 색인 포함 |
+| `[index.exclude].excluded_directories` | 문자열 배열 | `[]` 또는 상대 디렉터리 glob 배열 | [디렉터리 제외 규칙](#디렉터리-제외-규칙) 참고 | 선택적 디렉터리 제외 glob 목록 |
+| `[index.exclude].use_git_exclude` | bool | `true`, `false` | `true` | `.git/info/exclude` 적용 여부 |
+
+<details class="cfg-details" id="디렉터리-제외-규칙">
+<summary>디렉터리 제외 기본값 및 glob 패턴 규칙 (`[index.exclude].excluded_directories`)</summary>
+
+기본 제외 목록은 `[".idea", ".vscode", ".vs", "node_modules", ".yarn", "target", "dist", "build", "vendor"]`이며, 모두 해제하려면 `[]`로 설정하세요. VCS 폴더와 `.codemap`은 항상 제외됩니다.
+
+| 패턴 | 일치 범위 |
+| --- | --- |
+| `build` 또는 `**/build` | 모든 깊이의 `build` |
+| `./build` | 저장소 루트의 `build`만 |
+| `apps/web/build` | 해당 디렉터리와 하위 전체 |
+| `apps/api/**/__pycache__` | `apps/api` 아래 모든 깊이의 `__pycache__` |
+| `apps/native/cmake-build-*` | `apps/native` 아래 와일드카드 디렉터리 |
+
+</details>
+
+### Jev 작업 관련성 필터
+
+<div class="cfg-scope-line"><code>[output.jev]</code></div>
+
+| 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
+| `[output.jev].enabled` | bool | `true`, `false` | `false` | [Jev 필터](#jev-필터) 활성화 |
+| `[output.jev].scope` | 문자열 배열 | `[]` 또는 `"search"`, `"read"`, `"grep"` 조합 | `["search", "read", "grep"]` | Jev 활성화 시 필터링할 도구 목록 |
+| `[output.jev].model` | 문자열 | `"jev-1.14.0"` 또는 `<제작사>/<모델>` ([판정 모델](#openrouter-판정-모델)) | `"jev-1.14.0"` | 판정 모델 ID(`jev-*`는 TypeSafe, `author/slug`는 OpenRouter) |
+| `[output.jev].timeout_ms` | 정수(ms) | `1`–`604800000` (최대 7일) | `45000` | 호출당 Jev 요청 제한 시간 |
+| `[output.jev].max_in_flight_requests` | 정수 | `1`–`8` | `8` | Jev 호출당 최대 동시 HTTP 요청 수 |
+| `[output.jev].request_spacing_ms` | 정수(ms) | `100`–`604800000` | `100` | Jev 배치 요청 간 최소 간격 |
+| `[output.jev].max_batch_bytes` | 크기 | `1`–`168000` 바이트 또는 크기 문자열 | `168000` | Jev 배치당 최대 페이로드 크기 |
+| `[output.jev].pool_idle_timeout_ms` | 정수(ms) | `1`–`604800000` (최대 7일) | `30000` | 유휴 HTTPS 연결 유지 시간 |
+| `[output.jev].search_filter_min_unrelated_probability` | 실수 | `0.5 < 값 <= 1.0` | `0.70` | 무관한 코드로 판정해 생략하는 최소 확률 |
+
+<details class="cfg-details" id="jev-필터">
+<summary>Jev `auth.toml` 설정 및 OpenRouter 판정 모델 15종</summary>
+
+`auth.toml`(또는 `TYPESAFE_API_KEY` / `OPENROUTER_API_KEY` 환경 변수)에 API 키를 저장하고 `config.toml`에서 `[output.jev]`를 활성화합니다.
 
 ```toml
 # .codemap/auth.toml
@@ -391,10 +241,10 @@ api_key = "[REDACTED]"
 [output.jev]
 enabled = true
 scope = ["search", "read", "grep"]
-model = "jev-1.14.0" # 또는 아래 OpenRouter 모델 ID
+model = "jev-1.14.0"
 ```
 
-#### OpenRouter 판정 모델
+<div id="openrouter-판정-모델" data-peek-block data-peek-title="OpenRouter 판정 모델">
 
 | 제작사 | 모델 ID |
 | --- | --- |
@@ -408,9 +258,258 @@ model = "jev-1.14.0" # 또는 아래 OpenRouter 모델 ID
 | Liquid AI | `liquid/d1` |
 | Inception | `inception/mercury-decide` |
 
+</div>
+
+</details>
+
+### 파일 권한·전역 지침·기타
+
+<div class="cfg-scope-line"><code>[filesystem_permissions]</code> <code>[global_instructions]</code> <code>[related_terms]</code> <code>[update]</code></div>
+
+| 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
+| `[filesystem_permissions].find` | 문자열 | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | `find` 파일 접근 범위 |
+| `[filesystem_permissions].grep` | 문자열 | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | `grep` 파일 접근 범위 |
+| `[filesystem_permissions].read` | 문자열 | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | `read` 파일 접근 범위 |
+| `[filesystem_permissions].allowed_roots` | 문자열 배열 | `[]` 또는 상대·절대 디렉터리 경로 배열 | `[]` | 접근 범위가 `"allowed_roots"`일 때 허용할 외부 경로 |
+| `[global_instructions].enabled` | bool | `true`, `false` | `false` | 클라이언트 전역 지침 파일에 탐색 안내 자동 관리([전역 지침](#전역-지침), 전역 설정 전용) |
+| `[related_terms].enabled` | bool | `true`, `false` | `false` | `synonyms` 도구 활성화 |
+| `[related_terms].dataset_path` | 문자열 | 미지정 또는 비어 있지 않은 파일 경로 | 미지정 | 다운로드 대신 사용할 로컬 뜻 사전 파일 경로 |
+| `[update].config_auto_update` | bool | `true`, `false` | `true` | `mcp` 시작 시 빠진 저장소 `config.toml`/`auth.toml` 템플릿 생성 |
+
+<details class="cfg-details" id="전역-지침">
+<summary>클라이언트별 전역 지침 파일 경로 (`[global_instructions].enabled`)</summary>
+
+변경 후 새 에이전트 세션부터 반영됩니다.
+
+| 클라이언트 | 기본 파일 | 경로 변경 환경 변수 |
+| --- | --- | --- |
+| Codex (`codex-mcp-client`) | `~/.codex/AGENTS.md` (비어 있지 않은 `AGENTS.override.md` 우선) | `CODEX_HOME` |
+| Claude Code (`claude-code`) | `~/.claude/CLAUDE.md` | `CLAUDE_CONFIG_DIR` |
+| `pi` | `~/.pi/agent/AGENTS.md` | `PI_CODING_AGENT_DIR` |
+| OpenCode (`opencode`) | `~/.config/opencode/AGENTS.md` | `OPENCODE_CONFIG_DIR` |
+
+</details>
+
+## 설정 옵션에 따른 출력 차이
+
+`grafana/grafana` 기준으로 왼쪽에 **기본값 출력**, 오른쪽에 **변경 시 출력**을 나란히 배치했습니다. 여러 옵션을 동시에 조합한 결과는 [플레이그라운드](/ko/playground/)에서 확인할 수 있습니다.
+
+<div class="cfg-diff-list">
+
+<div class="cfg-diff-card">
+<div class="cfg-diff-hdr">
+<strong>1. 호출 관계 및 정밀 확인</strong>
+<code>[output.context].is_enabled</code> · <code>[output.navigation].is_enabled</code>
+</div>
+<div class="cfg-diff-grid">
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-default">기본값 (context = true, navigation = false)</span>
+
+```markdown
+## 1. pkg/services/dashboards/service/dashboard_service.go
+- `method DashboardServiceImpl.SaveDashboard` (L142-153)
+  - _callers (approximate name scan):_
+    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
+  - _calls (depth 1, approximate):_
+    - `buildSaveDashboardCommand` — `.../dashboard_service.go:96`
+```
+
+</div>
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-alt">변경 시 (navigation = true / context = false)</span>
+
+```markdown
+# navigation.is_enabled = true (import·구조 정밀 확인)
+  - _callers (tree-sitter precise; import/source confirmed):_
+    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`, precise)
+
+# context.is_enabled = false (호출 관계 생략)
+- `method DashboardServiceImpl.SaveDashboard` (L142-153)
+```
+
+</div>
+</div>
+</div>
+
+<div class="cfg-diff-card">
+<div class="cfg-diff-hdr">
+<strong>2. read 범위 밖 호출자 표시</strong>
+<code>[output.read].is_outside_callers_enabled</code>
+</div>
+<div class="cfg-diff-grid">
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-default">기본값 (true)</span>
+
+```text
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+...
+153→}
+[Callers from outside this window (static analysis, approximate)]
+- SaveDashboard L142: pkg/api/dashboard.go:318 (PostDashboard)
+```
+
+</div>
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-alt">변경 시 (false)</span>
+
+```text
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+...
+153→}
+```
+
+</div>
+</div>
+</div>
+
+<div class="cfg-diff-card">
+<div class="cfg-diff-hdr">
+<strong>3. 호출 관계에 테스트 코드 포함</strong>
+<code>[output.context.exclude].should_include_test_code</code>
+</div>
+<div class="cfg-diff-grid">
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-default">기본값 (false)</span>
+
+```markdown
+- _callers (approximate name scan):_
+  - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
+```
+
+</div>
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-alt">변경 시 (true)</span>
+
+```markdown
+- _callers (approximate name scan):_
+  - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
+  - `pkg/services/dashboards/service/dashboard_service_test.go:88` (`TestSaveDashboard`)
+```
+
+</div>
+</div>
+</div>
+
+<div class="cfg-diff-card">
+<div class="cfg-diff-hdr">
+<strong>4. 인증정보·PII 마스킹 (`pkg/services/notifications/mailer.go`)</strong>
+<code>[output].is_redact_enabled</code> · <code>[output.redact]</code>
+</div>
+<div class="cfg-diff-grid">
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-default">기본값 (is_redact_enabled = true, pii_entities = [])</span>
+
+```go
+authHeader := "Bearer [REDACTED]"
+adminPassword := "*****"
+dsn := "postgres://grafana:********@10.24.8.15:5432/grafana"
+webhookSigningKey := "whsec_live_98a7bc65d4ef3210"
+serviceToken := "glsa_8Kp2Lm9Qx4Vz7Rn1Yt6Bc3Df"
+fromAddr := "alerts@grafana.example.com"
+```
+
+</div>
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-alt">변경 시 (PII·민감 필드·사용자 정규식 활성화)</span>
+
+```go
+authHeader := "Bearer [REDACTED]"
+adminPassword := "*****"
+dsn := "postgres://grafana:********@[REDACTED]:5432/grafana"
+webhookSigningKey := "[REDACTED]"
+serviceToken := "glsa_[REDACTED]"
+fromAddr := "[REDACTED]"
+```
+
+</div>
+</div>
+</div>
+
+<div class="cfg-diff-card">
+<div class="cfg-diff-hdr">
+<strong>5. Jev 작업 관련성 필터</strong>
+<code>[output.jev].enabled</code>
+</div>
+<div class="cfg-diff-query">
+
+```json
+{ "name": "initial_instructions", "arguments": { "task": "대시보드 저장 시 버전 충돌 오류가 반환되는 경로 확인" } }
+{ "name": "search", "arguments": { "query": "DashboardServiceImpl SaveDashboard DeleteDashboard", "workspace_scope": "pkg" } }
+```
+
+</div>
+<div class="cfg-diff-grid">
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-default">기본값 (enabled = false)</span>
+
+````markdown
+### results
+```
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+144→    if errors.Is(err, dashboards.ErrDashboardVersionMismatch) { ... }
+153→}
+```
+```
+210→func (dr *DashboardServiceImpl) DeleteDashboard(...) error {
+211→    return dr.store.DeleteDashboard(...)
+212→}
+```
+````
+
+</div>
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-alt">변경 시 (enabled = true)</span>
+
+````markdown
+### results
+```
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+144→    if errors.Is(err, dashboards.ErrDashboardVersionMismatch) { ... }
+153→}
+```
+- _omitted body: L210-212 (method DeleteDashboard) Jev found no task match in pkg/services/dashboards/service/dashboard_service.go._
+````
+
+</div>
+</div>
+</div>
+
+<div class="cfg-diff-card">
+<div class="cfg-diff-hdr">
+<strong>6. 중복 구간 접기</strong>
+<code>include_seen</code>
+</div>
+<div class="cfg-diff-grid">
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-default">기본값 (include_seen: false 또는 생략)</span>
+
+```text
+<--removed duplicated-->
+```
+
+</div>
+<div class="cfg-diff-col">
+<span class="cfg-col-tag is-alt">변경 시 (include_seen: true)</span>
+
+```text
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+...
+153→}
+```
+
+</div>
+</div>
+</div>
+
+</div>
+
 ## 이전 설정 키
 
-이전 키도 계속 인식되며, 같은 파일에 두 키가 모두 있으면 현재 키가 우선합니다.
+이전 키도 계속 인식되며, 같은 파일에 두 키가 함께 있으면 현재 키가 우선합니다.
+
+<details class="cfg-details">
+<summary>이전 설정 키 38개 매핑 표 열기</summary>
 
 | 이전 키 | 현재 키 |
 | --- | --- |
@@ -452,5 +551,7 @@ model = "jev-1.14.0" # 또는 아래 OpenRouter 모델 ID
 | `analysis.navigation.*` | `output.navigation.*` |
 | `analysis.macro_expansion.*` | `output.macro_expansion.*` |
 | `analysis.event_navigation.*` | `output.event_navigation.*` |
+
+</details>
 
 <ConfigCodeLens locale="ko" />

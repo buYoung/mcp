@@ -14,7 +14,7 @@ description: 기본 인증정보 마스킹 동작, 커스텀 규칙별 출력 �
 
 ## 마스킹 출력 예시
 
-실시간 설정 변경은 [설정 플레이그라운드](/ko/configuration/playground/)에서도 바로 시험할 수 있습니다.
+실시간 설정 변경은 [설정 플레이그라운드](/ko/playground/)에서도 바로 시험할 수 있습니다.
 
 ### 1. 기본 설정 출력 (`is_redact_enabled = true`, `pii_entities = []`)
 
