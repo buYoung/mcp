@@ -1,0 +1,107 @@
+.cm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cm-gap-xs);
+    border: 1px solid transparent;
+    font-family: var(--sl-font);
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition:
+        background-color var(--cm-transition-fast),
+        border-color var(--cm-transition-fast),
+        color var(--cm-transition-fast),
+        opacity var(--cm-transition-fast);
+}
+
+.cm-btn--xs {
+    min-block-size: var(--cm-h-xs);
+    min-inline-size: var(--cm-h-xs);
+    padding-inline: var(--cm-px-xs);
+    border-radius: var(--cm-radius-xs);
+    font-size: var(--cm-fs-xs);
+}
+
+.cm-btn--sm {
+    min-block-size: var(--cm-h-sm);
+    min-inline-size: var(--cm-h-sm);
+    padding-inline: var(--cm-px-sm);
+    border-radius: var(--cm-radius-sm);
+    font-size: var(--cm-fs-xs);
+}
+
+.cm-btn--md {
+    min-block-size: var(--cm-h-md);
+    min-inline-size: var(--cm-h-md);
+    padding-inline: var(--cm-px-md);
+    gap: var(--cm-gap-sm);
+    border-radius: var(--cm-radius-md);
+    font-size: var(--cm-fs-sm);
+}
+
+.cm-btn--pill {
+    border-radius: var(--cm-radius-pill);
+}
+
+.cm-btn--primary {
+    border-color: var(--cm-accent-solid);
+    background: var(--cm-accent-solid);
+    color: var(--cm-accent-contrast);
+    font-weight: 600;
+    box-shadow: var(--cm-shadow-xs);
+}
+
+.cm-btn--secondary {
+    border-color: var(--cm-border);
+    background: var(--cm-bg-elevated);
+    color: var(--cm-fg);
+}
+
+.cm-btn--ghost {
+    border-color: transparent;
+    background: transparent;
+    color: var(--cm-fg-muted);
+}
+
+.cm-btn--subtle {
+    border-color: var(--cm-border);
+    background: var(--cm-bg-subtle);
+    color: var(--cm-fg);
+}
+
+.cm-btn:focus-visible {
+    outline: 2px solid var(--cm-accent-fg);
+    outline-offset: 2px;
+}
+
+.cm-btn--primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--cm-accent-solid) 88%, var(--cm-fg));
+    border-color: color-mix(in srgb, var(--cm-accent-solid) 88%, var(--cm-fg));
+}
+
+.cm-btn--secondary:hover:not(:disabled),
+.cm-btn--subtle:hover:not(:disabled) {
+    border-color: var(--cm-border-strong);
+    background: var(--cm-bg-hover);
+    color: var(--cm-fg);
+}
+
+.cm-btn--ghost:hover:not(:disabled) {
+    background: var(--cm-bg-hover);
+    color: var(--cm-fg);
+}
+
+.cm-btn:is(.is-active, [aria-pressed="true"], [aria-expanded="true"], [aria-current="page"]) {
+    border-color: var(--cm-accent-border);
+    background: var(--cm-accent-soft);
+    color: var(--cm-accent-fg);
+    font-weight: 600;
+}
+
+.cm-btn[aria-current="page"] {
+    box-shadow: inset 0 -2px 0 var(--cm-accent-fg);
+}

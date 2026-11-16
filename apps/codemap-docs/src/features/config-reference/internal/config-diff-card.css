@@ -1,0 +1,84 @@
+.cfg-diff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-block: 1rem 1.75rem;
+}
+
+.cfg-diff-card {
+    border: 1px solid var(--cm-border);
+    border-radius: var(--cm-radius-lg);
+    background: var(--cm-bg-surface);
+    overflow: hidden;
+}
+
+.cfg-diff-hdr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cm-gap-sm);
+    padding: 0.6rem 0.95rem;
+    border-block-end: 1px solid var(--cm-border);
+    background: var(--cm-bg-canvas);
+}
+
+.cfg-diff-hdr strong {
+    font-size: var(--sl-text-sm);
+    color: var(--cm-fg);
+}
+
+.cfg-diff-keys {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: var(--cm-fs-xs);
+}
+
+.cfg-diff-query {
+    padding: 0.65rem 0.95rem 0;
+}
+
+.cfg-diff-query .expressive-code {
+    margin: 0;
+}
+
+.cfg-diff-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 58rem) {
+    .cfg-diff-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.cfg-diff-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-inline-size: 0;
+    padding: 0.75rem 0.95rem 0.95rem;
+}
+
+.cfg-diff-col:first-child {
+    border-inline-end: 1px solid var(--cm-border);
+}
+
+@media (max-width: 58rem) {
+    .cfg-diff-col:first-child {
+        border-inline-end: 0;
+        border-block-end: 1px solid var(--cm-border);
+    }
+}
+
+.cfg-diff-col .expressive-code {
+    margin: 0;
+}
+
+.cfg-diff-badge-wrap {
+    display: flex;
+    align-items: center;
+}

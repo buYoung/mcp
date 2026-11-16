@@ -1,0 +1,36 @@
+---
+import "./tab-bar.css";
+import type { TabItemSpec } from "./types";
+
+interface Props {
+    ariaLabel: string;
+    dataAttr: string;
+    mono?: boolean;
+    compact?: boolean;
+    items: TabItemSpec[];
+}
+
+const { ariaLabel, dataAttr, mono = false, compact = false, items } = Astro.props;
+---
+
+<div
+    class:list={["cm-tabs", mono && "cm-tabs--mono", compact && "cm-tabs--compact"]}
+    role="tablist"
+    aria-label={ariaLabel}
+>
+    {
+        items.map((item) => (
+            <button
+                type="button"
+                role="tab"
+                class="cm-tabs__tab"
+                aria-selected={item.selected ? "true" : "false"}
+                tabindex={item.selected ? undefined : -1}
+                {...{ [dataAttr]: item.id }}
+            >
+                <span {...(item.labelAttr ? { [item.labelAttr]: "" } : {})}>{item.label}</span>
+                {item.hasIndicator && <span class="cm-tabs__dot" aria-hidden="true" />}
+            </button>
+        ))
+    }
+</div>

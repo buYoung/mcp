@@ -1,0 +1,125 @@
+---
+import { CHART_GEOMETRY, computePlotY } from "./series-data";
+import type { BenchmarkSeries } from "./types";
+
+interface Props {
+    panelId: "acc" | "tok";
+    title: string;
+    ticks: number[];
+    minV: number;
+    maxV: number;
+    envs: string[];
+    xCoords: number[];
+    series: BenchmarkSeries[];
+}
+
+const { panelId, title, ticks, minV, maxV, envs, xCoords, series } = Astro.props;
+const { svgW, svgH, padLeft, padRight, padTop, padBottom } = CHART_GEOMETRY;
+const plotH = svgH - padTop - padBottom;
+---
+
+<div class="bench-chart-card" data-chart-panel={panelId}>
+    <p class="bench-chart-title">{title}</p>
+    <div class="bench-svg-stage">
+        <svg class="bench-chart-svg" viewBox={`0 0 ${svgW} ${svgH}`} aria-hidden="true">
+            <g data-grid-group={panelId}>
+                {
+                    ticks.map((t, idx) => {
+                        const y = computePlotY(t, minV, maxV);
+                        const lbl =
+                            panelId === "acc"
+                                ? `${t}%`
+                                : t === 0
+                                  ? "0"
+                                  : `${t.toLocaleString("en-US")}k`;
+                        return (
+                            <g>
+                                <line
+                                    class={idx === 0 ? "axis-line" : "grid-line"}
+                                    x1={padLeft}
+                                    y1={y.toFixed(1)}
+                                    x2={svgW - padRight}
+                                    y2={y.toFixed(1)}
+                                />
+                                <text
+                                    class="axis-label"
+                                    x={padLeft - 8}
+                                    y={(y + 3.5).toFixed(1)}
+                                    text-anchor="end"
+                                >
+                                    {lbl}
+                                </text>
+                            </g>
+                        );
+                    })
+                }
+            </g>
+            {
+                envs.map((env, ei) => (
+                    <text
+                        class="axis-label env-label"
+                        x={xCoords[ei].toFixed(1)}
+                        y={svgH - 10}
+                        text-anchor="middle"
+                    >
+                        {env}
+                    </text>
+                ))
+            }
+            <line
+                class="hover-guide"
+                data-hover-line
+                x1={xCoords[0]}
+                y1={padTop}
+                x2={xCoords[0]}
+                y2={padTop + plotH}></line>
+            <g data-lines-group={panelId}>
+                {
+                    series.map((s) => {
+                        const values = panelId === "acc" ? s.acc : s.tok;
+                        const pts = values
+                            .map((v, i) => `${xCoords[i].toFixed(1)},${computePlotY(v, minV, maxV).toFixed(1)}`)
+                            .join(" ");
+                        return (
+                            <g class="series-group" data-series-id={s.id}>
+                                <polyline
+                                    class="series-line"
+                                    points={pts}
+                                    fill="none"
+                                    stroke={s.color}
+                                    stroke-width={s.width}
+                                    stroke-dasharray={s.dash || undefined}
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                                {values.map((v, ei) => (
+                                    <circle
+                                        class="series-point"
+                                        data-env-idx={ei}
+                                        cx={xCoords[ei].toFixed(1)}
+                                        cy={computePlotY(v, minV, maxV).toFixed(1)}
+                                        r={s.primary ? "4.2" : "3.4"}
+                                        fill={s.color}
+                                    />
+                                ))}
+                            </g>
+                        );
+                    })
+                }
+            </g>
+        </svg>
+        <div class="env-hit-grid">
+            {
+                envs.map((env, ei) => (
+                    <button
+                        type="button"
+                        class="env-hit-btn"
+                        data-env-band={ei}
+                        aria-label={`${title}: ${env}`}
+                    />
+                ))
+            }
+        </div>
+        <div class="bench-tooltip" data-tooltip hidden></div>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+.wb-toml-dock {
+    display: flex;
+    flex-direction: column;
+    block-size: 12.5rem;
+    flex: none;
+    border-block-start: 1px solid var(--cm-border);
+    background: var(--cm-bg-surface);
+}
+
+.wb-toml-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cm-gap-sm);
+    min-block-size: 2.375rem;
+    padding: 0.3rem 0.85rem;
+    border-block-end: 1px solid var(--cm-border);
+    flex: none;
+}
+
+.wb-toml-file {
+    font-family: var(--sl-font-mono);
+    font-size: var(--cm-fs-xs);
+    font-weight: 600;
+    color: var(--cm-fg);
+}
+
+.wb-toml-ctrls {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cm-gap-xs);
+}
+
+.wb-toml-pre {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 0.45rem 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: var(--cm-bg-canvas);
+    font-family: var(--sl-font-mono);
+    font-size: var(--cm-fs-xs);
+    line-height: 1.5;
+}
+
+.wb-toml-line {
+    display: flex;
+    padding-inline-end: 0.75rem;
+}
+
+.wb-gutter {
+    flex: none;
+    inline-size: 2.35rem;
+    padding-inline-end: 0.55rem;
+    text-align: end;
+    color: var(--cm-fg-faint);
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+}
+
+.wb-toml-code {
+    white-space: pre;
+    color: var(--cm-fg);
+}
+
+.tk-sec {
+    color: var(--cm-accent-fg);
+    font-weight: 600;
+}
+
+.tk-key {
+    color: var(--cm-fg);
+}
+
+.tk-val {
+    color: var(--cm-syntax-val);
+}
+
+.tk-cmt {
+    color: var(--cm-fg-faint);
+}

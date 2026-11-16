@@ -1,0 +1,44 @@
+---
+import "./playground-inspector.css";
+import { Button, SegmentedControl, TabBar, type TabItemSpec } from "@shared/ui";
+import type { PgUiLabels } from "./types";
+
+interface Props {
+    ui: PgUiLabels;
+}
+
+const { ui } = Astro.props;
+
+const toolTabs: TabItemSpec[] = [
+    { id: "all", label: ui.tabAll, selected: true, labelAttr: "data-all-tab-label" },
+    { id: "search", label: "search", hasIndicator: true },
+    { id: "read", label: "read", hasIndicator: true },
+    { id: "grep", label: "grep", hasIndicator: true },
+    { id: "find", label: "find", hasIndicator: true },
+    { id: "initial_instructions", label: "initial_instructions", hasIndicator: true },
+    { id: "analyze", label: "analyze", hasIndicator: true },
+    { id: "synonyms", label: "synonyms", hasIndicator: true },
+];
+---
+
+<div class="wb-insp-bar">
+    <TabBar ariaLabel={ui.outLabel} dataAttr="data-tool-tab" mono items={toolTabs} />
+
+    <div class="wb-insp-opts">
+        <SegmentedControl
+            mode="button"
+            ariaLabel="Inspector view"
+            dataAttr="data-view-mode"
+            options={[
+                { value: "output", label: ui.modeOutput, selected: true },
+                { value: "diff", label: ui.modeDiff },
+            ]}
+        />
+        <Button variant="secondary" size="sm" data-changed-only aria-pressed="false">
+            {ui.changedOnly}
+        </Button>
+    </div>
+</div>
+
+<div class="wb-stream cm-scroll-pane" role="tabpanel" aria-label={ui.outLabel} data-outputs-panel>
+</div>

@@ -1,0 +1,52 @@
+.cm-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cm-gap-xs);
+}
+
+.cm-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--cm-h-sm);
+    padding-inline: var(--cm-px-sm);
+    border: 1px solid var(--cm-border);
+    border-radius: var(--cm-radius-sm);
+    background: var(--cm-bg-elevated);
+    color: var(--cm-fg-muted);
+    font-family: var(--sl-font-mono);
+    font-size: var(--cm-fs-xs);
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    transition:
+        background-color var(--cm-transition-fast),
+        border-color var(--cm-transition-fast),
+        color var(--cm-transition-fast);
+}
+
+.cm-chip__input {
+    position: absolute;
+    clip-path: inset(50%);
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+}
+
+.cm-chip:hover {
+    border-color: var(--cm-border-strong);
+    color: var(--cm-fg);
+}
+
+.cm-chip:has(.cm-chip__input:checked) {
+    border-color: var(--cm-accent-border);
+    background: var(--cm-accent-soft);
+    color: var(--cm-accent-fg);
+    font-weight: 600;
+}
+
+.cm-chip:has(.cm-chip__input:focus-visible) {
+    outline: 2px solid var(--cm-accent-fg);
+    outline-offset: 2px;
+}

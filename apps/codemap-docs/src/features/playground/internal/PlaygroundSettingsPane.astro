@@ -1,0 +1,91 @@
+---
+import "./playground-settings.css";
+import {
+    ChipGroup,
+    SearchInput,
+    SegmentedControl,
+    SelectField,
+    Switch,
+    TabBar,
+    type TabItemSpec,
+} from "@shared/ui";
+import type { PgUiLabels, SettingGroupSpec } from "./types";
+
+interface Props {
+    ui: PgUiLabels;
+    groups: SettingGroupSpec[];
+}
+
+const { ui, groups } = Astro.props;
+
+const categoryTabs: TabItemSpec[] = [
+    { id: "all", label: ui.catAll, selected: true },
+    { id: "context", label: ui.catContext },
+    { id: "limits", label: ui.catLimits },
+    { id: "redact", label: ui.catRedact },
+    { id: "jev", label: ui.catJev },
+    { id: "index", label: ui.catIndex },
+];
+---
+
+<div class="wb-subbar">
+    <SearchInput placeholder={ui.filterPlaceholder} data-key-filter />
+    <TabBar ariaLabel="Setting categories" dataAttr="data-cat-btn" compact items={categoryTabs} />
+</div>
+
+<form class="wb-settings cm-scroll-pane" data-pg-form>
+    {
+        groups.map((group) => (
+            <div class="wb-group" data-cat-group={group.id}>
+                <div class="wb-group-hdr">{group.title}</div>
+                {group.items.map((item) => {
+                    const ctrl = item.control;
+                    return (
+                        <div
+                            class:list={["wb-row", item.stacked && "wb-row--stack"]}
+                            data-setting={item.settingKey}
+                            data-keywords={item.keywords}
+                        >
+                            {ctrl.kind === "switch" || ctrl.kind === "select" ? (
+                                <label class="wb-row-info" for={ctrl.id}>
+                                    <span class="wb-row-title">{item.title}</span>
+                                    <code class="wb-row-key">{item.tomlKey}</code>
+                                </label>
+                            ) : (
+                                <div class="wb-row-info" id={ctrl.labelId}>
+                                    <span class="wb-row-title">{item.title}</span>
+                                    <code class="wb-row-key">{item.tomlKey}</code>
+                                </div>
+                            )}
+
+                            {ctrl.kind === "switch" && (
+                                <Switch id={ctrl.id} name={ctrl.name} checked={ctrl.checked} />
+                            )}
+                            {ctrl.kind === "segment" && (
+                                <SegmentedControl
+                                    mode="radio"
+                                    name={ctrl.name}
+                                    labelledBy={ctrl.labelId}
+                                    mono={ctrl.mono}
+                                    options={ctrl.options}
+                                />
+                            )}
+                            {ctrl.kind === "chips" && (
+                                <ChipGroup labelledBy={ctrl.labelId} options={ctrl.options} />
+                            )}
+                            {ctrl.kind === "select" && (
+                                <SelectField
+                                    id={ctrl.id}
+                                    name={ctrl.name}
+                                    options={ctrl.options}
+                                />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        ))
+    }
+
+    <p class="wb-empty-filter" data-empty-filter hidden>{ui.noFilterMatch}</p>
+</form>

@@ -1,0 +1,45 @@
+.cm-switch {
+    appearance: none;
+    position: relative;
+    flex: none;
+    inline-size: 2.25rem;
+    block-size: 1.25rem;
+    margin: 0;
+    border: 1px solid var(--cm-border-strong);
+    border-radius: var(--cm-radius-pill);
+    background: var(--cm-bg-inset);
+    cursor: pointer;
+    transition:
+        background-color var(--cm-transition-fast),
+        border-color var(--cm-transition-fast);
+}
+
+.cm-switch::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-start: 2px;
+    inline-size: 0.875rem;
+    block-size: 0.875rem;
+    border-radius: 50%;
+    background: var(--cm-fg);
+    box-shadow: var(--cm-shadow-xs);
+    transition:
+        translate var(--cm-transition-fast),
+        background-color var(--cm-transition-fast);
+}
+
+.cm-switch:checked {
+    border-color: var(--cm-accent-solid);
+    background: var(--cm-accent-solid);
+}
+
+.cm-switch:checked::before {
+    translate: 1rem 0;
+    background: var(--cm-accent-contrast);
+}
+
+.cm-switch:focus-visible {
+    outline: 2px solid var(--cm-accent-fg);
+    outline-offset: 2px;
+}

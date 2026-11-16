@@ -3,7 +3,7 @@ title: Configuration Reference
 description: Categorized config.toml keys and allowed values, inline section peeks, side-by-side option comparisons, and legacy key mappings.
 ---
 
-import ConfigCodeLens from "../../../components/ConfigCodeLens.astro";
+import { ConfigCodeLens, ConfigDiffCard } from "@features/config-reference";
 
 ## Files and precedence
 
@@ -297,14 +297,13 @@ On `grafana/grafana`, each card places the **default output** on the left and th
 
 <div class="cfg-diff-list">
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>1. Call context and precision</strong>
-<code>[output.context].is_enabled</code> · <code>[output.navigation].is_enabled</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">Default (context = true, navigation = false)</span>
+<ConfigDiffCard
+    title="1. Call context and precision"
+    keys={["[output.context].is_enabled", "[output.navigation].is_enabled"]}
+    defaultLabel="Default (context = true, navigation = false)"
+    changedLabel="Changed (navigation = true / context = false)"
+>
+<Fragment slot="default">
 
 ```markdown
 ## 1. pkg/services/dashboards/service/dashboard_service.go
@@ -315,9 +314,8 @@ On `grafana/grafana`, each card places the **default output** on the left and th
     - `buildSaveDashboardCommand` — `.../dashboard_service.go:96`
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">Changed (navigation = true / context = false)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```markdown
 # navigation.is_enabled = true (structural import check)
@@ -328,18 +326,16 @@ On `grafana/grafana`, each card places the **default output** on the left and th
 - `method DashboardServiceImpl.SaveDashboard` (L142-153)
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>2. Outside callers in read</strong>
-<code>[output.read].is_outside_callers_enabled</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">Default (true)</span>
+<ConfigDiffCard
+    title="2. Outside callers in read"
+    keys={["[output.read].is_outside_callers_enabled"]}
+    defaultLabel="Default (true)"
+    changedLabel="Changed (false)"
+>
+<Fragment slot="default">
 
 ```text
 142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
@@ -349,9 +345,8 @@ On `grafana/grafana`, each card places the **default output** on the left and th
 - SaveDashboard L142: pkg/api/dashboard.go:318 (PostDashboard)
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">Changed (false)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```text
 142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
@@ -359,27 +354,24 @@ On `grafana/grafana`, each card places the **default output** on the left and th
 153→}
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>3. Test code in call context</strong>
-<code>[output.context.exclude].should_include_test_code</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">Default (false)</span>
+<ConfigDiffCard
+    title="3. Test code in call context"
+    keys={["[output.context.exclude].should_include_test_code"]}
+    defaultLabel="Default (false)"
+    changedLabel="Changed (true)"
+>
+<Fragment slot="default">
 
 ```markdown
 - _callers (approximate name scan):_
   - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">Changed (true)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```markdown
 - _callers (approximate name scan):_
@@ -387,18 +379,16 @@ On `grafana/grafana`, each card places the **default output** on the left and th
   - `pkg/services/dashboards/service/dashboard_service_test.go:88` (`TestSaveDashboard`)
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>4. Credential and PII masking (`pkg/services/notifications/mailer.go`)</strong>
-<code>[output].is_redact_enabled</code> · <code>[output.redact]</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">Default (is_redact_enabled = true, pii_entities = [])</span>
+<ConfigDiffCard
+    title="4. Credential and PII masking (pkg/services/notifications/mailer.go)"
+    keys={["[output].is_redact_enabled", "[output.redact]"]}
+    defaultLabel="Default (is_redact_enabled = true, pii_entities = [])"
+    changedLabel="Changed (PII, sensitive field, and custom regex enabled)"
+>
+<Fragment slot="default">
 
 ```go
 authHeader := "Bearer [REDACTED]"
@@ -409,9 +399,8 @@ serviceToken := "glsa_8Kp2Lm9Qx4Vz7Rn1Yt6Bc3Df"
 fromAddr := "alerts@grafana.example.com"
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">Changed (PII, sensitive field, and custom regex enabled)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```go
 authHeader := "Bearer [REDACTED]"
@@ -422,26 +411,24 @@ serviceToken := "glsa_[REDACTED]"
 fromAddr := "[REDACTED]"
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>5. Jev task-relevance filter</strong>
-<code>[output.jev].enabled</code>
-</div>
-<div class="cfg-diff-query">
+<ConfigDiffCard
+    title="5. Jev task-relevance filter"
+    keys={["[output.jev].enabled"]}
+    defaultLabel="Default (enabled = false)"
+    changedLabel="Changed (enabled = true)"
+>
+<Fragment slot="query">
 
 ```json
 { "name": "initial_instructions", "arguments": { "task": "Trace how dashboard save returns a version mismatch error" } }
 { "name": "search", "arguments": { "query": "DashboardServiceImpl SaveDashboard DeleteDashboard", "workspace_scope": "pkg" } }
 ```
 
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">Default (enabled = false)</span>
+</Fragment>
+<Fragment slot="default">
 
 ````markdown
 ### results
@@ -457,9 +444,8 @@ fromAddr := "[REDACTED]"
 ```
 ````
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">Changed (enabled = true)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ````markdown
 ### results
@@ -471,26 +457,23 @@ fromAddr := "[REDACTED]"
 - _omitted body: L210-212 (method DeleteDashboard) Jev found no task match in pkg/services/dashboards/service/dashboard_service.go._
 ````
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>6. Duplicate folding</strong>
-<code>include_seen</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">Default (include_seen: false or omitted)</span>
+<ConfigDiffCard
+    title="6. Duplicate folding"
+    keys={["include_seen"]}
+    defaultLabel="Default (include_seen: false or omitted)"
+    changedLabel="Changed (include_seen: true)"
+>
+<Fragment slot="default">
 
 ```text
 <--removed duplicated-->
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">Changed (include_seen: true)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```text
 142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
@@ -498,9 +481,8 @@ fromAddr := "[REDACTED]"
 153→}
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
 </div>
 

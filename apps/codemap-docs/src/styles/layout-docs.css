@@ -1,0 +1,42 @@
+:root,
+html:not([data-has-sidebar]) {
+    --sl-content-width: 100%;
+    --sl-sidebar-width: 13.5rem;
+    --sl-content-pad-x: 2rem;
+}
+
+.lg\:sl-flex {
+    --sl-sidebar-width: 12rem;
+}
+
+.main-pane {
+    min-inline-size: 0;
+}
+
+.content-panel {
+    padding-inline: max(24px, var(--sl-content-pad-x));
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+    padding-inline: 0.5rem;
+    word-break: keep-all;
+}
+
+.sl-markdown-content :is(th:first-child, td:first-child):not(:where(.not-content *)) {
+    padding-inline-start: 0;
+}
+
+.sl-markdown-content :is(th:last-child, td:last-child):not(:where(.not-content *)) {
+    padding-inline-end: 0;
+}
+
+starlight-theme-select select,
+starlight-lang-select select {
+    appearance: none;
+    white-space: nowrap;
+}
+
+/* Overrides Starlight's inline --sl-select-width: 6.25em so Korean theme labels stay single-line */
+starlight-theme-select select {
+    inline-size: 8.75rem;
+}

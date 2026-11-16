@@ -1,0 +1,48 @@
+---
+import "./config-tables.css";
+import "./config-peek.css";
+import { Button } from "@shared/ui";
+import { getConfigPeekModel } from "./pii-catalog";
+
+interface Props {
+    locale: "en" | "ko";
+}
+
+const { locale } = Astro.props;
+const model = getConfigPeekModel(locale);
+void Button;
+---
+
+<codemap-config-peek
+    class="not-content"
+    data-close-label={model.closeLabel}
+    data-jump-label={model.jumpSectionLabel}
+    data-open-page-label={model.openPageLabel}
+    data-pii-title={model.piiTitle}
+    data-pii-href={model.piiHref}
+>
+    <template data-pii-template>
+        <p class="codemap-peek-lead">{model.piiIntro}</p>
+        <pre
+            class="codemap-peek-pre"><code>[output.redact]
+pii_entities = ["EMAIL_ADDRESS", "IP_ADDRESS", "KR_RRN"]</code></pre>
+        <div class="codemap-peek-pii-grid">
+            {
+                model.piiGroups.map((g) => (
+                    <div class="codemap-peek-pii-card">
+                        <strong>{g.scope}</strong>
+                        <p>
+                            <code>{g.items}</code>
+                        </p>
+                    </div>
+                ))
+            }
+        </div>
+    </template>
+</codemap-config-peek>
+
+<script>
+    import { mountConfigPeek } from "./peek-element";
+
+    mountConfigPeek();
+</script>

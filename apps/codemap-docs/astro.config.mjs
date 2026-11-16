@@ -5,7 +5,7 @@ export default defineConfig({
     integrations: [
         starlight({
             title: "codemap-search",
-            customCss: ["./src/styles/custom.css"],
+            customCss: ["./src/styles/tokens.css", "./src/styles/layout-docs.css"],
             components: {
                 SocialIcons: "./src/components/SocialIcons.astro",
             },

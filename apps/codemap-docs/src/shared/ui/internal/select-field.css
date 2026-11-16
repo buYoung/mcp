@@ -1,0 +1,37 @@
+.cm-select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    inline-size: 100%;
+}
+
+.cm-select {
+    appearance: none;
+    inline-size: 100%;
+    min-block-size: var(--cm-h-md);
+    padding-inline: var(--cm-px-sm) 2rem;
+    border: 1px solid var(--cm-border);
+    border-radius: var(--cm-radius-md);
+    background: var(--cm-bg-elevated);
+    color: var(--cm-fg);
+    font-family: var(--sl-font-mono);
+    font-size: var(--cm-fs-xs);
+    cursor: pointer;
+    transition: border-color var(--cm-transition-fast);
+}
+
+.cm-select__caret {
+    position: absolute;
+    inset-inline-end: 0.625rem;
+    color: var(--cm-fg-muted);
+    pointer-events: none;
+}
+
+.cm-select:hover {
+    border-color: var(--cm-border-strong);
+}
+
+.cm-select:focus-visible {
+    outline: 2px solid var(--cm-accent-fg);
+    outline-offset: 2px;
+}

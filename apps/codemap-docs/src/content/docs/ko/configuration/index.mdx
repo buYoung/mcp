@@ -3,7 +3,7 @@ title: 설정 레퍼런스
 description: codemap-search의 섹션별 config.toml 키·허용 값, 인라인 상세 규칙, 옵션별 좌우 출력 비교, 이전 키 매핑입니다.
 ---
 
-import ConfigCodeLens from "../../../../components/ConfigCodeLens.astro";
+import { ConfigCodeLens, ConfigDiffCard } from "@features/config-reference";
 
 ## 파일 위치와 우선순위
 
@@ -297,14 +297,13 @@ model = "jev-1.14.0"
 
 <div class="cfg-diff-list">
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>1. 호출 관계 및 정밀 확인</strong>
-<code>[output.context].is_enabled</code> · <code>[output.navigation].is_enabled</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">기본값 (context = true, navigation = false)</span>
+<ConfigDiffCard
+    title="1. 호출 관계 및 정밀 확인"
+    keys={["[output.context].is_enabled", "[output.navigation].is_enabled"]}
+    defaultLabel="기본값 (context = true, navigation = false)"
+    changedLabel="변경 시 (navigation = true / context = false)"
+>
+<Fragment slot="default">
 
 ```markdown
 ## 1. pkg/services/dashboards/service/dashboard_service.go
@@ -315,9 +314,8 @@ model = "jev-1.14.0"
     - `buildSaveDashboardCommand` — `.../dashboard_service.go:96`
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">변경 시 (navigation = true / context = false)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```markdown
 # navigation.is_enabled = true (import·구조 정밀 확인)
@@ -328,18 +326,16 @@ model = "jev-1.14.0"
 - `method DashboardServiceImpl.SaveDashboard` (L142-153)
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>2. read 범위 밖 호출자 표시</strong>
-<code>[output.read].is_outside_callers_enabled</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">기본값 (true)</span>
+<ConfigDiffCard
+    title="2. read 범위 밖 호출자 표시"
+    keys={["[output.read].is_outside_callers_enabled"]}
+    defaultLabel="기본값 (true)"
+    changedLabel="변경 시 (false)"
+>
+<Fragment slot="default">
 
 ```text
 142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
@@ -349,9 +345,8 @@ model = "jev-1.14.0"
 - SaveDashboard L142: pkg/api/dashboard.go:318 (PostDashboard)
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">변경 시 (false)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```text
 142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
@@ -359,27 +354,24 @@ model = "jev-1.14.0"
 153→}
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>3. 호출 관계에 테스트 코드 포함</strong>
-<code>[output.context.exclude].should_include_test_code</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">기본값 (false)</span>
+<ConfigDiffCard
+    title="3. 호출 관계에 테스트 코드 포함"
+    keys={["[output.context.exclude].should_include_test_code"]}
+    defaultLabel="기본값 (false)"
+    changedLabel="변경 시 (true)"
+>
+<Fragment slot="default">
 
 ```markdown
 - _callers (approximate name scan):_
   - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">변경 시 (true)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```markdown
 - _callers (approximate name scan):_
@@ -387,18 +379,16 @@ model = "jev-1.14.0"
   - `pkg/services/dashboards/service/dashboard_service_test.go:88` (`TestSaveDashboard`)
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>4. 인증정보·PII 마스킹 (`pkg/services/notifications/mailer.go`)</strong>
-<code>[output].is_redact_enabled</code> · <code>[output.redact]</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">기본값 (is_redact_enabled = true, pii_entities = [])</span>
+<ConfigDiffCard
+    title="4. 인증정보·PII 마스킹 (pkg/services/notifications/mailer.go)"
+    keys={["[output].is_redact_enabled", "[output.redact]"]}
+    defaultLabel="기본값 (is_redact_enabled = true, pii_entities = [])"
+    changedLabel="변경 시 (PII·민감 필드·사용자 정규식 활성화)"
+>
+<Fragment slot="default">
 
 ```go
 authHeader := "Bearer [REDACTED]"
@@ -409,9 +399,8 @@ serviceToken := "glsa_8Kp2Lm9Qx4Vz7Rn1Yt6Bc3Df"
 fromAddr := "alerts@grafana.example.com"
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">변경 시 (PII·민감 필드·사용자 정규식 활성화)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```go
 authHeader := "Bearer [REDACTED]"
@@ -422,26 +411,24 @@ serviceToken := "glsa_[REDACTED]"
 fromAddr := "[REDACTED]"
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>5. Jev 작업 관련성 필터</strong>
-<code>[output.jev].enabled</code>
-</div>
-<div class="cfg-diff-query">
+<ConfigDiffCard
+    title="5. Jev 작업 관련성 필터"
+    keys={["[output.jev].enabled"]}
+    defaultLabel="기본값 (enabled = false)"
+    changedLabel="변경 시 (enabled = true)"
+>
+<Fragment slot="query">
 
 ```json
 { "name": "initial_instructions", "arguments": { "task": "대시보드 저장 시 버전 충돌 오류가 반환되는 경로 확인" } }
 { "name": "search", "arguments": { "query": "DashboardServiceImpl SaveDashboard DeleteDashboard", "workspace_scope": "pkg" } }
 ```
 
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">기본값 (enabled = false)</span>
+</Fragment>
+<Fragment slot="default">
 
 ````markdown
 ### results
@@ -457,9 +444,8 @@ fromAddr := "[REDACTED]"
 ```
 ````
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">변경 시 (enabled = true)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ````markdown
 ### results
@@ -471,26 +457,23 @@ fromAddr := "[REDACTED]"
 - _omitted body: L210-212 (method DeleteDashboard) Jev found no task match in pkg/services/dashboards/service/dashboard_service.go._
 ````
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
-<div class="cfg-diff-card">
-<div class="cfg-diff-hdr">
-<strong>6. 중복 구간 접기</strong>
-<code>include_seen</code>
-</div>
-<div class="cfg-diff-grid">
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-default">기본값 (include_seen: false 또는 생략)</span>
+<ConfigDiffCard
+    title="6. 중복 구간 접기"
+    keys={["include_seen"]}
+    defaultLabel="기본값 (include_seen: false 또는 생략)"
+    changedLabel="변경 시 (include_seen: true)"
+>
+<Fragment slot="default">
 
 ```text
 <--removed duplicated-->
 ```
 
-</div>
-<div class="cfg-diff-col">
-<span class="cfg-col-tag is-alt">변경 시 (include_seen: true)</span>
+</Fragment>
+<Fragment slot="changed">
 
 ```text
 142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
@@ -498,9 +481,8 @@ fromAddr := "[REDACTED]"
 153→}
 ```
 
-</div>
-</div>
-</div>
+</Fragment>
+</ConfigDiffCard>
 
 </div>
 

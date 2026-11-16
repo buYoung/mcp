@@ -1,0 +1,66 @@
+---
+import "./segmented-control.css";
+import type { SegmentOption } from "./types";
+
+interface Props {
+    mode?: "radio" | "button";
+    name?: string;
+    labelledBy?: string;
+    ariaLabel?: string;
+    dataAttr?: string;
+    mono?: boolean;
+    options: SegmentOption[];
+}
+
+const {
+    mode = "radio",
+    name = "",
+    labelledBy,
+    ariaLabel,
+    dataAttr,
+    mono = false,
+    options,
+} = Astro.props;
+---
+
+{
+    mode === "radio" ? (
+        <div
+            class:list={["cm-seg", mono && "cm-seg--mono"]}
+            role="radiogroup"
+            aria-labelledby={labelledBy}
+            aria-label={ariaLabel}
+        >
+            {options.map((opt) => (
+                <label class="cm-seg__item">
+                    <input
+                        type="radio"
+                        class="cm-seg__input"
+                        name={name}
+                        value={opt.value}
+                        checked={opt.selected}
+                    />
+                    <span>{opt.label}</span>
+                </label>
+            ))}
+        </div>
+    ) : (
+        <div
+            class:list={["cm-seg", mono && "cm-seg--mono"]}
+            role="group"
+            aria-labelledby={labelledBy}
+            aria-label={ariaLabel}
+        >
+            {options.map((opt) => (
+                <button
+                    type="button"
+                    class="cm-seg__item"
+                    aria-pressed={opt.selected ? "true" : "false"}
+                    {...(dataAttr ? { [dataAttr]: opt.value } : {})}
+                >
+                    {opt.label}
+                </button>
+            ))}
+        </div>
+    )
+}

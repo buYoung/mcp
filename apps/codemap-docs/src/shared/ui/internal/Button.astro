@@ -1,0 +1,48 @@
+---
+import "./button.css";
+import type { HTMLAttributes } from "astro/types";
+import type { ButtonVariant, ControlSize } from "./types";
+
+interface BaseProps {
+    variant?: ButtonVariant;
+    size?: ControlSize;
+    pill?: boolean;
+    active?: boolean;
+    href?: string;
+    class?: string;
+}
+
+type Props = BaseProps & HTMLAttributes<"button"> & HTMLAttributes<"a">;
+
+const {
+    variant = "secondary",
+    size = "md",
+    pill = false,
+    active = false,
+    href,
+    class: className,
+    type = "button",
+    ...rest
+} = Astro.props;
+
+const classes = [
+    "cm-btn",
+    `cm-btn--${variant}`,
+    `cm-btn--${size}`,
+    pill && "cm-btn--pill",
+    active && "is-active",
+    className,
+];
+---
+
+{
+    href ? (
+        <a href={href} class:list={classes} {...rest}>
+            <slot />
+        </a>
+    ) : (
+        <button type={type} class:list={classes} {...rest}>
+            <slot />
+        </button>
+    )
+}
