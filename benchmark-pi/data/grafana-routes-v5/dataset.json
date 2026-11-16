@@ -1,0 +1,613 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v5",
+  "revision": 2,
+  "status": "content_frozen",
+  "supersedes": "grafana-routes-v4",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
+  },
+  "target_release": "1.0.0",
+  "evidence_file": "evidence.json",
+  "grading_file": "grading.json",
+  "solver_questions_file": "questions.json",
+  "question_order": [
+    "app-resource-admission",
+    "app-legacy-storage",
+    "user-browser-unified-index"
+  ],
+  "is_difficulty_empirically_validated": false,
+  "questions": [
+    {
+      "id": "app-resource-admission",
+      "languages": [
+        "go"
+      ],
+      "cross_language_binding": null,
+      "scope": "앱 플랫폼 자원의 create 요청과 앱 입력 검증 콜백 사이의 배선이다. admission chain의 서버 연결, manifest의 종류·작업별 선택, 앱 요청 변환, provider와 반환 앱의 대응, 앱이 등록한 검증 콜백까지 포함한다. generic REST strategy의 빈 검증과 설치/기동 시점 설명은 필수 아님. shorturl은 콜백 연결의 한 구체 예이며 그 이름·검사 조건은 필수 아님. 다른 실제 앱의 동등한 콜백 증명도 허용한다. 인증·인가, 저장·응답, mutate, 모든 앱의 개별 검증 규칙 열거는 범위 밖이다.",
+      "facts": [
+        {
+          "id": "A1",
+          "level": "core",
+          "statement": "앱별 admission factory를 수집한 chain이 serverConfig.AdmissionControl에 연결되어 앱 검증 인계 위치가 된다. generic create strategy가 앱 입력을 자체 검사하지 않는다는 것은 역할 구분을 위한 설명이며 그 미언급을 감점하지 않는다.",
+          "required_links": [
+            "RegisterAdmission이 반환한 chain → serverConfig.AdmissionControl 연결",
+            "앱 installer의 admission factory → RegisterAdmission의 chain 구성"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: service.go:493-496의 반환값 대입 또는 같은 chain이 서버 admission으로 소비되는 위치로 입증하면 된다. generic store/빈 Validate 인용은 요구하지 않는다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: factory 등록 또는 chain 소비부로 앱 admission이 묶이는 연결을 입증할 수 있다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A01",
+            "A10"
+          ]
+        },
+        {
+          "id": "A2",
+          "level": "core",
+          "statement": "installer가 manifest의 admission 기능을 보고 factory를 만들며, appAdmission은 group/version/kind 키로 해당 종류의 검증 기능을 찾아 적용한다.",
+          "required_links": [
+            "manifest admission 선언 → appAdmission의 종류별 capability map",
+            "요청의 group/version/kind → 해당 map의 검증 기능 선택"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: factory 생성 또는 newAppAdmission의 map 작성으로 같은 등록을 설명해도 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: getAdmissionInfo의 조회 또는 Validate의 소비로 선택을 입증할 수 있다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A02",
+            "A03",
+            "A05",
+            "A04"
+          ]
+        },
+        {
+          "id": "A3",
+          "level": "core",
+          "statement": "검증 admission은 요청 속성을 앱 AdmissionRequest로 변환하고, 그 요청 작업이 선언된 검증 작업에 해당할 때 앱 검증 쪽으로 넘긴다.",
+          "required_links": [
+            "admission.Attributes → translateAdmissionAttributes의 앱 요청",
+            "선언된 검증 작업 → 해당 앱 요청의 Validate 인계"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 변환 호출과 반환 요청의 소비로 입증하면 되며 모든 변환 필드를 열거할 필요는 없다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: operation match 루프 또는 매칭 후 adApp.Validate 호출로 연결을 입증할 수 있다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A04"
+          ]
+        },
+        {
+          "id": "A4",
+          "level": "core",
+          "statement": "admission은 appGetter 콜백을 통해 현재 앱 인스턴스를 받는다. installer의 InitializeApp이 provider.NewApp 결과를 저장하므로 생성 시점의 빈 앱을 영구히 캡처하지 않는다.",
+          "required_links": [
+            "provider.NewApp 결과 → installer에 저장된 앱",
+            "appGetter 콜백 → 저장된 앱의 Validate 호출"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: provider 생성부와 appGetter 반환 앱의 대응으로도 충족한다. 예: register.go:48-55의 shorturlapp.New provider와 app.go:129의 simple.NewApp 및 getter 반환 앱을 연결하면 된다. InitializeApp/post-start hook의 기동 시점 인용은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: getter 등록부 또는 getter 호출부와 provider가 만드는 앱의 대응으로 입증할 수 있다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A02",
+            "A04",
+            "A11",
+            "A12"
+          ]
+        },
+        {
+          "id": "A5",
+          "level": "core",
+          "statement": "앱 Validate 경계는 앱이 종류별로 등록한 검증 콜백에 연결된다. 구체 예로 shorturl은 ManagedKinds의 Validator.ValidateFunc에서 입력 객체를 꺼내 validateRelativePath에 넘긴다.",
+          "required_links": [
+            "앱 Validate 계약 → 종류별 등록 Validator의 검증 콜백",
+            "검증 콜백의 입력 객체 → 실제 입력 검사 함수"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: admission.go:118 호출 + apps/shorturl/pkg/app/app.go:62-73 등록 + pkg/registry/apps/shorturl/register.go:48 provider 연결을 함께 인용하면 충족한다. app.go:129의 simple.NewApp이 같은 등록을 소비한다. SDK 내부 인용은 요구하지 않는다. 같은 로컬 계약을 보이는 다른 실제 앱도 허용한다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: shorturl의 validateRelativePath 또는 동등한 실제 앱 검사 함수 인계를 설명하면 된다. shorturl 이름과 URL 조건 목록 자체는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "A04",
+            "A08",
+            "A09",
+            "A11",
+            "A12"
+          ]
+        }
+      ],
+      "limitations": [
+        "정적 등록·호출 계약 검토이며 Kubernetes 및 grafana-app-sdk 내부 디스패치를 실행하지 않았다.",
+        "외부 SDK의 app.Validate와 등록 Validator 콜백 사이 구현 내부는 고정 Grafana 소스 밖이다. 로컬 등록·호출 경계까지만 채점한다."
+      ],
+      "wrong_claims": [
+        "generic REST strategy의 Validate가 모든 앱 입력 검증을 직접 수행한다.",
+        "모든 앱 요청이 kind나 operation 선택 없이 shorturl 검사기로 전달된다.",
+        "admission factory가 생성 당시의 nil 앱 값을 고정 캡처한다."
+      ],
+      "context_notes": [
+        {
+          "id": "A-generic-strategy-background",
+          "is_required": false,
+          "related_fact_ids": [
+            "A1"
+          ],
+          "statement": "generic store의 create strategy는 앱 입력을 자체 검사하지 않는다. 이 부정 사실과 store→strategy 배선은 설명이며 미언급을 감점하지 않는다.",
+          "evidence_ids": [
+            "A06",
+            "A07"
+          ]
+        },
+        {
+          "id": "A-legacy-validation-interpretation",
+          "is_required": false,
+          "related_fact_ids": [
+            "A5"
+          ],
+          "statement": "입력 검증기를 legacy 생성 서비스의 createValidation 또는 중복 validateRelativePath 검사로 해석해 함께 언급해도 감점하거나 admission 경로의 모순으로 보지 않는다. 그 설명의 재현은 추가 필수가 아니다.",
+          "evidence_ids": [
+            "A09",
+            "A13",
+            "A14",
+            "A15"
+          ]
+        },
+        {
+          "id": "app-resource-admission-boundary",
+          "is_required": false,
+          "related_fact_ids": [
+            "A1",
+            "A2",
+            "A3",
+            "A4",
+            "A5"
+          ],
+          "statement": "앱 플랫폼 자원의 create 요청과 앱 입력 검증 콜백 사이의 배선이다. admission chain의 서버 연결, manifest의 종류·작업별 선택, 앱 요청 변환, provider와 반환 앱의 대응, 앱이 등록한 검증 콜백까지 포함한다. generic REST strategy의 빈 검증과 설치/기동 시점 설명은 필수 아님. shorturl은 콜백 연결의 한 구체 예이며 그 이름·검사 조건은 필수 아님. 다른 실제 앱의 동등한 콜백 증명도 허용한다. 인증·인가, 저장·응답, mutate, 모든 앱의 개별 검증 규칙 열거는 범위 밖이다. 정적 등록·호출 계약 검토이며 Kubernetes 및 grafana-app-sdk 내부 디스패치를 실행하지 않았다. 외부 SDK의 app.Validate와 등록 Validator 콜백 사이 구현 내부는 고정 Grafana 소스 밖이다. 로컬 등록·호출 경계까지만 채점한다.",
+          "evidence_ids": [
+            "A01",
+            "A02",
+            "A03",
+            "A04",
+            "A05",
+            "A08",
+            "A09",
+            "A10",
+            "A11",
+            "A12"
+          ]
+        }
+      ],
+      "prompt": "앱 자원 생성 구조 중 입력 검증기와 연결되는 구간 다 확인해줘.",
+      "core_fact_count": 5,
+      "extended_fact_count": 0,
+      "difficulty_status": "structural_not_empirical",
+      "evidence_ids": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15"
+      ]
+    },
+    {
+      "id": "app-legacy-storage",
+      "languages": [
+        "go"
+      ],
+      "cross_language_binding": null,
+      "scope": "앱 자원의 읽기와 기존 저장소 구현 사이 배선이다. installer별 legacy provider 선택, 자원별 저장 모드에 따른 연결, dualWriter.Get의 요청별 읽기 선택, 선택된 legacy adapter의 조회와 기존 서비스/SQL store 인계를 포함한다. kind별 generic store 설치는 비채점 배경이며 필수 아님. unified sqlkv의 compatibility/compat mode 계층을 묻는 것이 아니다. shorturl은 기존 저장 구현의 구체 증명 예이며 이름은 필수 아님. 동등한 앱의 기존 조회 adapter를 허용한다. 마이그레이션 실행·데이터 복사, 모든 앱 목록, 쓰기·상태 subresource·응답 필드 나열은 범위 밖이다.",
+      "facts": [
+        {
+          "id": "L1",
+          "level": "core",
+          "statement": "dualWriter를 경유하는 조회는 Get에서 요청마다 getMode를 호출해 읽을 저장소를 고른다. readUnified면 unified.Get으로 보내고, 아니면 legacy.Get을 먼저 수행한다. 후속 unified 검증 읽기의 전경/배경 처리 방식은 설명이다.",
+          "required_links": [
+            "dualWriter.Get의 요청별 getMode 호출 → 현재 읽기 저장소 선택",
+            "선택 결과 → readUnified이면 unified.Get, 아니면 legacy.Get 우선 조회"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: Get의 getMode 소비부 또는 storage_service.go:65-70의 요청별 모드 콜백과 그 소비를 연결하면 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: dualwriter.go:61-75의 분기와 두 저장 구현 호출을 설명하면 된다. 나머지 후속 읽기·오류 처리 전체를 열거할 필요는 없다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "L04",
+            "L08"
+          ]
+        },
+        {
+          "id": "L2",
+          "level": "core",
+          "statement": "server wrapper는 LegacyStorageProvider를 구현한 installer에 설치 중인 자원의 GVR을 넘겨 해당 자원의 기존 adapter를 받는다. shorturl provider는 자기 GVR을 확인하고 기존 서비스를 넣은 legacyStorage를 반환한다.",
+          "required_links": [
+            "설치 중인 자원의 GVR → installer의 GetLegacyStorage 선택",
+            "선택한 provider → 기존 서비스를 가진 legacy adapter"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: provider 인터페이스 소비 또는 동등한 앱의 GVR 검사/반환으로 대응을 설명할 수 있다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: shorturl 외의 실제 앱 provider가 기존 서비스를 adapter에 주입하는 동등한 배선도 허용한다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "L03",
+            "L05"
+          ]
+        },
+        {
+          "id": "L3",
+          "level": "core",
+          "statement": "wrapper는 legacy와 unified 저장 구현을 dual-write 서비스에 넘긴다. 서비스는 자원별 모드에 따라 기존 구현, unified 구현, 또는 두 구현과 동적 모드 콜백을 보관하는 dualWriter를 반환한다.",
+          "required_links": [
+            "legacy·unified 저장 구현 → dualWriteService.NewStorage",
+            "자원별 저장 모드 → 반환 저장 구현 선택"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: NewStorage 호출부 또는 생성자의 두 저장 구현 소비로 입증할 수 있다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: 생성자의 mode switch 또는 동일 mode reader와 소비부로 입증할 수 있다. 모드 번호 전체 나열·마이그레이션 내부는 필요 없다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "L03",
+            "L04"
+          ]
+        },
+        {
+          "id": "L4",
+          "level": "core",
+          "statement": "기존 adapter의 Get은 Kubernetes 조회 문맥에서 requester와 이름을 받아 기존 서비스의 조회 메서드로 전달한다. shorturl에서는 GetShortURLByUID가 그 경계다.",
+          "required_links": [
+            "선택된 legacy adapter의 Get → requester·이름을 받는 기존 서비스 조회"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 같은 계약의 다른 앱 legacy Get과 기존 서비스 조회를 연결해도 된다. 변환된 응답 형식·예외 코드가 추가 필수는 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "L05",
+            "L06"
+          ]
+        },
+        {
+          "id": "L5",
+          "level": "core",
+          "statement": "기존 서비스 조회가 실제 저장 abstraction으로 이어진다. shorturl의 GetShortURLByUID는 SQLStore.Get에 문맥·requester·UID를 그대로 인계한다.",
+          "required_links": [
+            "기존 서비스 조회 → 주입된 SQLStore.Get"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: pkg/services/shorturls/shorturlimpl/shorturl.go:30 한 줄 인용과 기존 서비스가 SQLStore.Get으로 인계한다는 설명만으로 RL1을 충족한다. 동등한 기존 앱 서비스의 저장 abstraction 호출도 허용한다. SQL 문법과 DB 드라이버 내부는 요구하지 않는다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "L07"
+          ]
+        }
+      ],
+      "limitations": [
+        "G3 예외(25.00%), 사전 스모크 비교 자료용, 최종 선정 대상은 기억 측정 통과 시에만",
+        "저장 모드에 따른 정적 가능 연결이며 모든 배포가 dualWriter를 경유한다는 뜻은 아니다.",
+        "기존 저장소가 없는 앱에는 이 legacy 경로가 없다. 개별 앱의 저장 정책 전체를 열거하지 않는다."
+      ],
+      "wrong_claims": [
+        "모든 앱은 설정과 무관하게 반드시 legacy와 unified 두 저장소를 읽는다.",
+        "GetLegacyStorage는 GVR과 무관하게 모든 요청에 같은 shorturl adapter를 준다.",
+        "기존 adapter가 기존 서비스를 우회하고 직접 unified RPC만 호출한다."
+      ],
+      "context_notes": [
+        {
+          "id": "L-generic-store-installation",
+          "is_required": false,
+          "related_fact_ids": [
+            "L1",
+            "L2",
+            "L3"
+          ],
+          "statement": "이전 L1의 kind별 generic store 생성과 plural 자원 키 등록은 설치 배경이다. 이 연결을 생략해도 감점하지 않으며, r2의 핵심 L1은 dualWriter.Get의 요청별 읽기 선택이다.",
+          "evidence_ids": [
+            "L01",
+            "L02"
+          ]
+        },
+        {
+          "id": "app-legacy-storage-boundary",
+          "is_required": false,
+          "related_fact_ids": [
+            "L1",
+            "L2",
+            "L3",
+            "L4",
+            "L5"
+          ],
+          "statement": "앱 자원의 읽기와 기존 저장소 구현 사이 배선이다. installer별 legacy provider 선택, 자원별 저장 모드에 따른 연결, dualWriter.Get의 요청별 읽기 선택, 선택된 legacy adapter의 조회와 기존 서비스/SQL store 인계를 포함한다. kind별 generic store 설치는 비채점 배경이며 필수 아님. unified sqlkv의 compatibility/compat mode 계층을 묻는 것이 아니다. shorturl은 기존 저장 구현의 구체 증명 예이며 이름은 필수 아님. 동등한 앱의 기존 조회 adapter를 허용한다. 마이그레이션 실행·데이터 복사, 모든 앱 목록, 쓰기·상태 subresource·응답 필드 나열은 범위 밖이다. G3 예외(25.00%), 사전 스모크 비교 자료용, 최종 선정 대상은 기억 측정 통과 시에만 저장 모드에 따른 정적 가능 연결이며 모든 배포가 dualWriter를 경유한다는 뜻은 아니다. 기존 저장소가 없는 앱에는 이 legacy 경로가 없다. 개별 앱의 저장 정책 전체를 열거하지 않는다.",
+          "evidence_ids": [
+            "L03",
+            "L04",
+            "L05",
+            "L06",
+            "L07",
+            "L08"
+          ]
+        }
+      ],
+      "prompt": "앱 자원 조회 구조 중 기존 저장소와 연결되는 구간 다 확인해줘.",
+      "core_fact_count": 5,
+      "extended_fact_count": 0,
+      "difficulty_status": "structural_not_empirical",
+      "evidence_ids": [
+        "L01",
+        "L02",
+        "L03",
+        "L04",
+        "L05",
+        "L06",
+        "L07",
+        "L08"
+      ]
+    },
+    {
+      "id": "user-browser-unified-index",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "cross_language_binding": "실제 사용자 계정 검색의 대체 진입점은 loadUsers의 GET /api/org/users/search → SearchOrgUsersWithPaging, 관리자 fetchUsers의 GET /api/users/search → SearchUsersWithPaging/SearchUser, UserPicker의 GET /api/org/users/lookup → GetOrgUsersForCurrentOrgLookup이다. 어느 한 TS 호출자와 같은 URL의 Go handler 쌍으로 충족한다. 공통 userService.Search의 Kubernetes 선택 이후 namespaced searchUsers와 unified read backend에 연결된다. /api·/org 접두사 등록도 근거에 포함했다. 미사용 생성 hook export는 근거가 아니다.",
+      "scope": "브라우저의 실제 사용자 계정 검색 요청이 통합 색인 조회로 이어지는 조건부 경로다. 조직 사용자 목록·관리자 사용자 목록·UserPicker 중 어느 한 진입점을 통해 기존 HTTP API → Kubernetes 사용자 서비스의 namespaced searchUsers → runtime read-mode 선택 → unified Search 요청 → 사용자 자원 색인까지 설명하면 된다. 모든 진입점을 열거할 의무는 없다. 일반 브라우저 사용자가 수행하는 대시보드 검색을 묻는 것이 아니다. 질문이 통합 색인을 지목하므로 그 경로가 활성화된 배포가 대상이며 기본 경로라고 요구하지 않는다. 검색 응답 UI 표시·권한 메타데이터 부가 호출·색인 생성/갱신·전체 저장소 마이그레이션은 필수 아님. 생성 hook export는 실제 UI 소비가 없어 핵심에서 제외했다.",
+      "facts": [
+        {
+          "id": "U1",
+          "level": "core",
+          "statement": "실제 브라우저 사용자 계정 검색 요청은 기존 HTTP API에 검색 인자를 넘기고, 대응하는 Go handler 또는 사용자 서비스의 Kubernetes 선택을 통해 공통 계정 검색 경로로 이어진다. 조직 사용자 목록·관리자 사용자 목록·UserPicker는 대체 진입점이며 전부 설명할 필요는 없다.",
+          "required_links": [
+            "실제 TS 사용자 계정 검색 GET 경로·인자 → 대응하는 Go HTTP handler",
+            "handler 또는 사용자 서비스의 Kubernetes 선택 → Kubernetes 기반 계정 검색 인계"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 다음 중 어느 한 실제 TS 호출자와 Go handler 쌍을 허용한다: loadUsers → /api/org/users/search → SearchOrgUsersWithPaging, UserListAdminPage/fetchUsers → /api/users/search → SearchUsersWithPaging/SearchUser, UserPicker → /api/org/users/lookup → GetOrgUsersForCurrentOrgLookup. 서로 다른 경로의 양단을 섞지는 않는다. 미사용 hook export로 대신할 수 없다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: 각 진입점의 k8s 선택을 허용한다: org_users.go:305-309의 redirect, userimpl/user.go:213-214의 공통 사용자 서비스 선택, org_users.go:164-165의 lookup 분기. 어느 한 유효한 경로로 충족하며 기본 활성이라고 단정하지 않는다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "U01",
+            "U02",
+            "U03",
+            "U04",
+            "U07",
+            "U26",
+            "U27",
+            "U28",
+            "U29",
+            "U30",
+            "U31",
+            "U32",
+            "U33",
+            "U34",
+            "U35",
+            "U36",
+            "U37",
+            "U38",
+            "U39"
+          ]
+        },
+        {
+          "id": "U2",
+          "level": "core",
+          "statement": "userService.Search를 호출하는 handler 또는 helper가 공통 사용자 서비스를 거쳐 Kubernetes Search 구현으로 이어진다. 그 구현은 요청 namespace를 대응시켜 namespaced searchUsers HTTP 요청으로 검색어와 페이지 정보를 전달한다.",
+          "required_links": [
+            "userService.Search를 호출하는 handler/helper → 선택된 Kubernetes user service Search 구현",
+            "Kubernetes Search 구현 → namespace별 searchUsers 요청"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 조직 목록의 org_users.go:469, 관리자 목록의 searchusers.go:104, UserPicker lookup의 org_users.go:406 중 어느 handler/helper에서 userService.Search를 호출하는지와 userimpl/user.go:212-214의 선택 또는 k8s Search 구현을 연결하면 된다. 모든 handler·fallback 조건의 열거는 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: REST 요청 생성 및 실행 호출로 URL·검색 인계가 입증되면 된다. 모든 query parameter 나열은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "U05",
+            "U06",
+            "U07",
+            "U08",
+            "U09",
+            "U10",
+            "U31",
+            "U32",
+            "U33",
+            "U36",
+            "U37",
+            "U38",
+            "U39"
+          ]
+        },
+        {
+          "id": "U3",
+          "level": "core",
+          "statement": "IAM의 namespaced searchUsers 라우트는 DoSearch에 연결된다. handler는 사용자 자원의 runtime read-mode selector로 backend를 고르고, unified read인 경우 주입된 unifiedSearchClient.Search를 호출한다.",
+          "required_links": [
+            "namespaced searchUsers 등록 → SearchHandler.DoSearch",
+            "사용자 자원의 runtime read-mode selector → unifiedSearchClient.Search"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: GetAPIRoutes의 route/handler 대응 또는 등록 소비부로 입증할 수 있다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: selector의 Resolve 또는 NewSelector에 두 구현을 주입하는 위치와 handler 소비를 대응시켜도 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "U11",
+            "U12",
+            "U13",
+            "U14",
+            "U15",
+            "U16",
+            "U17",
+            "U18"
+          ]
+        },
+        {
+          "id": "U4",
+          "level": "core",
+          "statement": "unified 사용자 backend는 namespace와 users group/resource를 색인 요청 키로 구성하고 검색 문자열을 title·email·login 대상 질의로 만든 뒤 색인 client의 Search에 넘긴다.",
+          "required_links": [
+            "사용자 검색 요청 → users 자원 키·문자열 검색 필드를 가진 ResourceSearchRequest",
+            "ResourceSearchRequest → 색인 client Search 호출"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 동일 키와 검색 대상 대응을 보여주면 되며 필드 상수 이름을 그대로 쓰지 않아도 된다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: 요청을 소비하는 Search 호출이나 동일 RPC 계약의 수신부로 연결해도 된다. 숨김 사용자 조건·응답 형태는 추가 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "U19",
+            "U20",
+            "U21"
+          ]
+        },
+        {
+          "id": "U5",
+          "level": "core",
+          "statement": "색인 서버 Search는 요청 namespace/group/resource로 NamespacedResource를 만들고 해당 색인을 구해 그 ResourceIndex.Search로 조회를 전달한다. 사용자 검색이 전체 자원 전역 검색으로 바뀌는 것은 아니다.",
+          "required_links": [
+            "색인 Search 요청의 자원 키 → namespaced 자원 색인 선택",
+            "선택된 ResourceIndex → 실제 Search 요청 인계"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: searchWithIndex/searchIndex 또는 같은 키의 getOrCreateIndex 소비로 대응을 입증할 수 있다. 필드·조건·오류 문구의 전체 나열은 필수 아님.",
+            "RL2 대체: idx.Search 호출 또는 동일 ResourceIndex 구현의 소비부로 입증할 수 있다. 색인 구축·내부 랭킹은 필수가 아니다. 필드·조건·오류 문구의 전체 나열은 필수 아님."
+          ],
+          "evidence_ids": [
+            "U22",
+            "U23",
+            "U24",
+            "U25"
+          ]
+        }
+      ],
+      "limitations": [
+        "G3 예외 유지(수정 후 38.89%, 최초 승인 46.92%), TS→Go 다양성 확보 목적. 감독자 승인 사전 스모크 후보이며 일반 관문 통과로 표시하지 않는다.",
+        "users redirect·Kubernetes user service·unified read 모드가 함께 선택되는 조건부 연결이다. 실제 배포나 요청 실행을 관측하지 않았다.",
+        "namespaced searchUsers는 single-org 설정이고 UsersAPI가 켜진 경우에만 등록된다(iam/register.go:1105,1111-1113,1391-1393). lookup의 single-org guard와도 구분하며 이 조건들을 모든 배포의 기본값으로 가정하지 않는다."
+      ],
+      "wrong_claims": [
+        "현재 UI가 useGetSearchUsersQuery를 직접 소비하므로 기존 API는 건너지 않는다.",
+        "모든 배포에서 /api/org/users/search가 무조건 통합 색인을 읽는다.",
+        "사용자 검색은 namespace/users 키 없이 전역 전체 자원 색인을 조회한다."
+      ],
+      "context_notes": [
+        {
+          "id": "U-search-route-availability",
+          "is_required": false,
+          "related_fact_ids": [
+            "U3"
+          ],
+          "statement": "searchUsers 라우트 등록은 single-org와 UsersAPI 활성 조건을 따른다. 모든 배포에서 등록된다고 단정하지 않는다. 조건 값 전체를 답변에 나열할 의무는 없다.",
+          "evidence_ids": [
+            "U40",
+            "U41"
+          ]
+        },
+        {
+          "id": "user-browser-unified-index-boundary",
+          "is_required": false,
+          "related_fact_ids": [
+            "U1",
+            "U2",
+            "U3",
+            "U4",
+            "U5"
+          ],
+          "statement": "브라우저의 실제 사용자 계정 검색 요청이 통합 색인 조회로 이어지는 조건부 경로다. 조직 사용자 목록·관리자 사용자 목록·UserPicker 중 어느 한 진입점을 통해 기존 HTTP API → Kubernetes 사용자 서비스의 namespaced searchUsers → runtime read-mode 선택 → unified Search 요청 → 사용자 자원 색인까지 설명하면 된다. 모든 진입점을 열거할 의무는 없다. 일반 브라우저 사용자가 수행하는 대시보드 검색을 묻는 것이 아니다. 질문이 통합 색인을 지목하므로 그 경로가 활성화된 배포가 대상이며 기본 경로라고 요구하지 않는다. 검색 응답 UI 표시·권한 메타데이터 부가 호출·색인 생성/갱신·전체 저장소 마이그레이션은 필수 아님. 생성 hook export는 실제 UI 소비가 없어 핵심에서 제외했다. G3 예외 유지(수정 후 38.89%, 최초 승인 46.92%), TS→Go 다양성 확보 목적. 감독자 승인 사전 스모크 후보이며 일반 관문 통과로 표시하지 않는다. users redirect·Kubernetes user service·unified read 모드가 함께 선택되는 조건부 연결이다. 실제 배포나 요청 실행을 관측하지 않았다. namespaced searchUsers는 single-org 설정이고 UsersAPI가 켜진 경우에만 등록된다(iam/register.go:1105,1111-1113,1391-1393). lookup의 single-org guard와도 구분하며 이 조건들을 모든 배포의 기본값으로 가정하지 않는다.",
+          "evidence_ids": [
+            "U01",
+            "U02",
+            "U03",
+            "U04",
+            "U05",
+            "U06",
+            "U07",
+            "U08",
+            "U09",
+            "U10",
+            "U11",
+            "U12",
+            "U13",
+            "U14",
+            "U15",
+            "U16",
+            "U17",
+            "U18",
+            "U19",
+            "U20",
+            "U21",
+            "U22",
+            "U23",
+            "U24",
+            "U25",
+            "U26",
+            "U27",
+            "U28",
+            "U29",
+            "U30",
+            "U31",
+            "U32",
+            "U33",
+            "U34",
+            "U35",
+            "U36",
+            "U37",
+            "U38",
+            "U39"
+          ]
+        }
+      ],
+      "prompt": "통합 색인 조회 구조 중 브라우저의 사용자 계정 검색 요청과 연결되는 구간 다 확인해줘.",
+      "core_fact_count": 5,
+      "extended_fact_count": 0,
+      "difficulty_status": "structural_not_empirical",
+      "evidence_ids": [
+        "U01",
+        "U02",
+        "U03",
+        "U04",
+        "U05",
+        "U06",
+        "U07",
+        "U08",
+        "U09",
+        "U10",
+        "U11",
+        "U12",
+        "U13",
+        "U14",
+        "U15",
+        "U16",
+        "U17",
+        "U18",
+        "U19",
+        "U20",
+        "U21",
+        "U22",
+        "U23",
+        "U24",
+        "U25",
+        "U26",
+        "U27",
+        "U28",
+        "U29",
+        "U30",
+        "U31",
+        "U32",
+        "U33",
+        "U34",
+        "U35",
+        "U36",
+        "U37",
+        "U38",
+        "U39",
+        "U40",
+        "U41"
+      ]
+    }
+  ]
+}

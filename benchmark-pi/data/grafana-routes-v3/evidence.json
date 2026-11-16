@@ -1,0 +1,1582 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+  },
+  "hash_encoding": {
+    "source_sha256": "SHA-256 of original file bytes",
+    "git_blob_sha1": "SHA-1 of Git blob header plus original file bytes",
+    "excerpt_sha256": "SHA-256 of UTF-8 text: selected splitlines() joined with LF, without trailing LF"
+  },
+  "source_manifest": {
+    "packages/grafana-data/src/types/live.ts": {
+      "git_blob_sha1": "f8959e58b312f6040598ca6a240088641d2ccd51",
+      "sha256": "6761d21be267025cb5825c15e11fc24db83c03ca8d5a52907ada97ee8bc8d392",
+      "bytes": 5544,
+      "lines": 210
+    },
+    "packages/grafana-runtime/src/services/live.ts": {
+      "git_blob_sha1": "e51a51bc91f080535f3a46ba6664444aca5a97ae",
+      "sha256": "5e81917a1bd084b297916a676256068e0170a2c89984365bb2c1949c40d531fb",
+      "bytes": 2619,
+      "lines": 108
+    },
+    "pkg/api/api.go": {
+      "git_blob_sha1": "bf858cde0029d31f66afbdfaf5ad642787e1e6c2",
+      "sha256": "38e7fcd5688c74042b1c6912fd14a1164ae3ed69872613a3b3019091cd92e99c",
+      "bytes": 40506,
+      "lines": 632
+    },
+    "pkg/api/bootdata.go": {
+      "git_blob_sha1": "bf8b57f307b08f74629133d8249bf4fa48cdf7a8",
+      "sha256": "a5fcdb1cafc089fa41ba82527a38aad3ecbccf8266e2c2acaf616482c5b5d9fb",
+      "bytes": 21449,
+      "lines": 686
+    },
+    "pkg/api/frontendsettings/frontendsettings.go": {
+      "git_blob_sha1": "e6e8d4571e5f4da44d9b6aff4ded50074d515367",
+      "sha256": "bfa7b80dd13808c22d278a38285c0a9e03ec84373611fa8ad30cab27e5fb892e",
+      "bytes": 13271,
+      "lines": 254
+    },
+    "pkg/plugins/backendplugin/coreplugin/core_plugin.go": {
+      "git_blob_sha1": "05f8f7a2e1bdf3749e1830fcd67acb75159f2fc0",
+      "sha256": "e2827ed80bec7caf79f27a9d270b77ff492aa4bb9d2cbc4b9a2d70ee9d8ba1c5",
+      "bytes": 6157,
+      "lines": 184
+    },
+    "pkg/plugins/backendplugin/grpcplugin/client_v2.go": {
+      "git_blob_sha1": "b8985789ddfdf9214da615673afce00d8c3bfdcc",
+      "sha256": "bf282d4cd2992fa8f20f75e1af22d664de63b69dc94b0c414dfa3ac0391df3c1",
+      "bytes": 12810,
+      "lines": 441
+    },
+    "pkg/plugins/manager/client/client.go": {
+      "git_blob_sha1": "5acd96e873595481025484d38ebd33d164b9d8c1",
+      "sha256": "d2050ed04e369ca2714135167e1d6b67c66f54bbbc1bb952fbafcff0098d1aa9",
+      "bytes": 11281,
+      "lines": 399
+    },
+    "pkg/plugins/plugins.go": {
+      "git_blob_sha1": "aacc1b381d8368c8aa0c0c328e5d98a5c7d6165a",
+      "sha256": "fa231f26fbe4421db885a4e6912f8957125db373b2d6162171dce33ec469b5d1",
+      "bytes": 13885,
+      "lines": 552
+    },
+    "pkg/services/authn/authnimpl/sync/namespace.go": {
+      "git_blob_sha1": "7064771988299f245eea5661b829bce5c08319bd",
+      "sha256": "09ad10597fe25591a2bfec976cf2308116a06f3063e30595a2969f46b3221ff0",
+      "bytes": 593,
+      "lines": 28
+    },
+    "pkg/services/live/features/plugin.go": {
+      "git_blob_sha1": "7bc04c727660b7853e52fcaa721a503dfd52bd87",
+      "sha256": "72908c51cf573ffda2f8e9766b584c43d66a4d64af38053af319fcce6e1c1c45",
+      "bytes": 5098,
+      "lines": 135
+    },
+    "pkg/services/live/live.go": {
+      "git_blob_sha1": "f81653919b8d74a5b04925e03c03ee72ed61011e",
+      "sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "bytes": 56131,
+      "lines": 1536
+    },
+    "pkg/services/live/liveplugin/plugin.go": {
+      "git_blob_sha1": "95b95688aab3860595ec6e073608dd7b89c64af4",
+      "sha256": "ed0feaa7342ddfd7b9d0ceabc0c0ff103f193e91b8dd20369e69683144545849",
+      "bytes": 2666,
+      "lines": 86
+    },
+    "pkg/services/live/model/model.go": {
+      "git_blob_sha1": "15ffa409d40c140299010987adf3ce09bd55fa61",
+      "sha256": "a4f05b5eba349c465bfa92fd6abfcc3d179bf722f15a7d3945e2554db66c034e",
+      "bytes": 2328,
+      "lines": 75
+    },
+    "pkg/services/live/orgchannel/orgchannel.go": {
+      "git_blob_sha1": "db2aedd9ed55823a39e3e48d875c63f099aad803",
+      "sha256": "cb21faa77a675d46180797e5528d1ac7bd96b075da02bcfd397d05fb4bf29fd4",
+      "bytes": 1214,
+      "lines": 40
+    },
+    "pkg/services/live/runstream/manager.go": {
+      "git_blob_sha1": "7fcb6d34a606f267fbecea3234de547de232e1f2",
+      "sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "bytes": 14284,
+      "lines": 468
+    },
+    "pkg/services/ngalert/evaluation_runner.go": {
+      "git_blob_sha1": "c6bd499c37af802e8dcb66000f7f39b3fc01e3ee",
+      "sha256": "2018b1528b1b4ceca86dc60db4a65f3589d6ea6ad8265847b024427ee539c0ad",
+      "bytes": 3917,
+      "lines": 131
+    },
+    "pkg/services/ngalert/ngalert.go": {
+      "git_blob_sha1": "c7fe4031ad79acfe2853d41372c5a51d09c896e0",
+      "sha256": "26763109f379dc41540a7e0d7a456e3c891fb162d40894525533d4d721e1ceb3",
+      "bytes": 38200,
+      "lines": 954
+    },
+    "pkg/services/ngalert/notifier/alertmanager.go": {
+      "git_blob_sha1": "7adadc594a346226890c1064624cc12ef9e503bb",
+      "sha256": "e50d1cefefab167c23dbe302b1daecc0fc89ceb99c8034878e3d18e8424b5977",
+      "bytes": 11982,
+      "lines": 345
+    },
+    "pkg/services/ngalert/notifier/multiorg_alertmanager.go": {
+      "git_blob_sha1": "9e7104a820861ec61f0eeb93e237e390cad24f8b",
+      "sha256": "cc008a3115d0faba464675e6499e2a4e008d7e05eb01f80edc354e8aa4ed6dcb",
+      "bytes": 31422,
+      "lines": 790
+    },
+    "pkg/services/ngalert/remote/alertmanager.go": {
+      "git_blob_sha1": "3ecd27c4eb3145f98201512bfb3cbe3cb2a63598",
+      "sha256": "81885c7116a4ddb9bc9304fb17896c9fe97a82f2e33b309536e4fe01f112c98d",
+      "bytes": 26496,
+      "lines": 759
+    },
+    "pkg/services/ngalert/remote/remote_primary_forked_alertmanager.go": {
+      "git_blob_sha1": "b87668cfc1107fe74f1065c32f1016acfcbca093",
+      "sha256": "16313891fa90e88e6a5779f4b44684c6c1dfdc6e5ad3f79d0519171302e95ad9",
+      "bytes": 5657,
+      "lines": 142
+    },
+    "pkg/services/ngalert/remote/remote_secondary_forked_alertmanager.go": {
+      "git_blob_sha1": "843b39fbb7d92ebddb8d6eb01e29f94e8dd8f06c",
+      "sha256": "4cc9ea4a1f3f4a5429c8b1f4a55eb8c9b18a7679e639d8d638f69eb3845b2ed7",
+      "bytes": 9867,
+      "lines": 254
+    },
+    "pkg/services/ngalert/schedule/alert_rule.go": {
+      "git_blob_sha1": "394b3eeecdbd0f200e401d29cdd0104e5c36feae",
+      "sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "bytes": 19445,
+      "lines": 568
+    },
+    "pkg/services/ngalert/schedule/registry.go": {
+      "git_blob_sha1": "118cf9bf5a0ee3844c67af5e36bd34fa63922160",
+      "sha256": "c92e14c469d94a23bee4ce57ddf5f2c7718d6371fe9743768eabb0407309f6b2",
+      "bytes": 9544,
+      "lines": 355
+    },
+    "pkg/services/ngalert/schedule/schedule.go": {
+      "git_blob_sha1": "00d9183e0d6e75f564606c01dd8846eece072635",
+      "sha256": "7de42c541d78a89e9bfdfa54d84b2636e261646349d6be343bca7d90621a41f1",
+      "bytes": 17734,
+      "lines": 460
+    },
+    "pkg/services/ngalert/sender/notifier.go": {
+      "git_blob_sha1": "9fcdfa6b638664e78fa5be27a69e0abcc36572a5",
+      "sha256": "0d879591fcb5607e2d6197462a379a174b0f4a5c2cdf6ec1623b69289a14d51a",
+      "bytes": 14446,
+      "lines": 554
+    },
+    "pkg/services/ngalert/sender/notifier_ext.go": {
+      "git_blob_sha1": "853a72af77453db286de61662927f264f62b242f",
+      "sha256": "ad0a030aaf8efc4facf397d6b99420128e976db96bd3b5cff75af2df109821ac",
+      "bytes": 13422,
+      "lines": 440
+    },
+    "pkg/services/ngalert/sender/router.go": {
+      "git_blob_sha1": "e7f2a99c71e79d291bfd1b15a98bebf1868448df",
+      "sha256": "30e2c1202ddc1d683a2d0f8597ee230d4eccd4f3bc7b184cac2efba49c3aefd7",
+      "bytes": 15948,
+      "lines": 460
+    },
+    "pkg/services/ngalert/sender/sender.go": {
+      "git_blob_sha1": "68b1ad2489410f6d9a4a4abe75fda6aa0627da16",
+      "sha256": "b4792e99e70a3d31effbf90a4883a7f1d32ceba08d5e0402aaa89ab32361e601",
+      "bytes": 16917,
+      "lines": 542
+    },
+    "pkg/services/ngalert/state/manager.go": {
+      "git_blob_sha1": "c0b39f16496961578fce58b6d3cf71d7017c4c0f",
+      "sha256": "b63d398f19398d0c186b763f7f57c02f920b4747bc0d95f40717dd4951d34580",
+      "bytes": 22834,
+      "lines": 650
+    },
+    "pkg/services/pluginsintegration/pluginsintegration.go": {
+      "git_blob_sha1": "af09d2bbd165491eec5448b9c02859e289c0b365",
+      "sha256": "89d4daed057b0185a3f4dcb7f6da639aab4bee50f1033530ea035f648c527e53",
+      "bytes": 11374,
+      "lines": 228
+    },
+    "public/app/app.ts": {
+      "git_blob_sha1": "3b5014396d71671c86b2f4cf515bd7643dbb3a08",
+      "sha256": "77d3bd5f8cd69aff59ad8ecab0c37e128bad2856d1b99eb65deb3a95befa0063",
+      "bytes": 16983,
+      "lines": 397
+    },
+    "public/app/features/live/centrifuge/LiveDataStream.ts": {
+      "git_blob_sha1": "ccf10b54643206e02109ca6cb515b3a4c0bda97f",
+      "sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "bytes": 11754,
+      "lines": 391
+    },
+    "public/app/features/live/centrifuge/channel.ts": {
+      "git_blob_sha1": "4dc250a0ae406839519b82e9dd8f0854b47676a3",
+      "sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "bytes": 6017,
+      "lines": 212
+    },
+    "public/app/features/live/centrifuge/service.ts": {
+      "git_blob_sha1": "32f32db046987876b9ebb3581a18f18623b6306f",
+      "sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "bytes": 10286,
+      "lines": 302
+    },
+    "public/app/features/live/index.ts": {
+      "git_blob_sha1": "2e9061672ee88317e4eef0fe1789b5bed6bed633",
+      "sha256": "51cc1fa684db1d4d64b80775ce0bd22ba717e4787a42d1348585cc07f87a0e4a",
+      "bytes": 964,
+      "lines": 28
+    },
+    "public/app/features/live/live.ts": {
+      "git_blob_sha1": "4ae092de7d1d2cb4d5d2beef8726bbd6a7d45ddf",
+      "sha256": "d4f34b14a1d0b7e8794126640213dbcb942767780f5a0f59a5a1f0151885581b",
+      "bytes": 2622,
+      "lines": 91
+    },
+    "public/app/plugins/datasource/grafana-testdata-datasource/datasource.ts": {
+      "git_blob_sha1": "7e3f11e4868c7a478871f77d64761dc2bfecb95c",
+      "sha256": "e9ef22ebd6f24e6e4b2f708b38c2d78005da7b9fa6605687f489d3fb4b6736d8",
+      "bytes": 17288,
+      "lines": 523
+    }
+  },
+  "evidence": {
+    "l-address-fields": {
+      "path": "packages/grafana-data/src/types/live.ts",
+      "start_line": 139,
+      "end_line": 153,
+      "excerpt_sha256": "c208dc680765af80e3ba91058969f4f2cadf86b999f067020337a78085a714e0",
+      "source_sha256": "6761d21be267025cb5825c15e11fc24db83c03ca8d5a52907ada97ee8bc8d392",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/packages/grafana-data/src/types/live.ts#L139-L153",
+      "text": "export interface LiveChannelAddress {\n  scope: LiveChannelScope;\n  stream: string; // depends on the scope\n  path: string;\n\n  /** @deprecated use 'stream' instead.  */\n  namespace?: string;\n\n  /**\n   * Additional metadata passed to a channel.  The backend will propagate this JSON object to\n   * each OnSubscribe and RunStream calls.  This value should be constant across multiple requests\n   * to the same channel path\n   */\n  data?: unknown;\n}"
+    },
+    "l-channel-id": {
+      "path": "packages/grafana-data/src/types/live.ts",
+      "start_line": 192,
+      "end_line": 210,
+      "excerpt_sha256": "d97e911f7e00ab66da000667d39e4fc04e8151341aed10c03e85fb3ab34e0040",
+      "source_sha256": "6761d21be267025cb5825c15e11fc24db83c03ca8d5a52907ada97ee8bc8d392",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/packages/grafana-data/src/types/live.ts#L192-L210",
+      "text": "export function toLiveChannelId(addr: LiveChannelAddress): LiveChannelId {\n  let { scope, stream, path, namespace } = addr;\n  if (!stream && namespace) {\n    stream = namespace;\n  }\n\n  if (!scope?.length) {\n    return '';\n  }\n  let id: string = scope;\n  if (!stream?.length) {\n    return id;\n  }\n  id += '/' + stream; // or namespace\n  if (!path?.length) {\n    return id;\n  }\n  return id + '/' + path;\n}"
+    },
+    "l-runtime-singleton": {
+      "path": "packages/grafana-runtime/src/services/live.ts",
+      "start_line": 90,
+      "end_line": 108,
+      "excerpt_sha256": "e980bda4dcacd1f586ff3a6796f7fb054e2609c4a1b514efc46d7aa236e763e4",
+      "source_sha256": "5e81917a1bd084b297916a676256068e0170a2c89984365bb2c1949c40d531fb",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/packages/grafana-runtime/src/services/live.ts#L90-L108",
+      "text": "let singletonInstance: GrafanaLiveSrv;\n\n/**\n * Used during startup by Grafana to set the GrafanaLiveSrv so it is available\n * via the {@link getGrafanaLiveSrv} to the rest of the application.\n *\n * @internal\n */\nexport const setGrafanaLiveSrv = (instance: GrafanaLiveSrv) => {\n  singletonInstance = instance;\n};\n\n/**\n * Used to retrieve the GrafanaLiveSrv that allows you to subscribe to\n * server side events and streams\n *\n * @alpha -- experimental\n */\nexport const getGrafanaLiveSrv = (): GrafanaLiveSrv => singletonInstance;"
+    },
+    "l-api-prefix": {
+      "path": "pkg/api/api.go",
+      "start_line": 288,
+      "end_line": 293,
+      "excerpt_sha256": "3a0adcab5e214d7ce77bd5f420d6df0f6a852a9242eaa55a5b6462f2b19a7360",
+      "source_sha256": "38e7fcd5688c74042b1c6912fd14a1164ae3ed69872613a3b3019091cd92e99c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/api/api.go#L288-L293",
+      "text": "\t// authed api\n\tr.Group(\"/api\", func(apiRoute routing.RouteRegister) {\n\t\t// user (signed in)\n\t\tapiRoute.Group(\"/user\", func(userRoute routing.RouteRegister) {\n\t\t\tuserRoute.Get(\"/\", routing.Wrap(hs.GetSignedInUser))\n\t\t\tuserRoute.Put(\"/\", routing.Wrap(hs.UpdateSignedInUser))"
+    },
+    "l-http-route": {
+      "path": "pkg/api/api.go",
+      "start_line": 537,
+      "end_line": 543,
+      "excerpt_sha256": "894bb1feff5dbe6f7cded7f6876308dbeaa3533102a46970b4b57b61e93a1c0d",
+      "source_sha256": "38e7fcd5688c74042b1c6912fd14a1164ae3ed69872613a3b3019091cd92e99c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/api/api.go#L537-L543",
+      "text": "\t\tapiRoute.Group(\"/live\", func(liveRoute routing.RouteRegister) {\n\t\t\t// Note: push and publish do not use the same auth.\n\t\t\t// Publish is channel-based and uses per-channel PublishAuth from pipeline rules,\n\t\t\t// and Push is a single managed-stream endpoint where RBAC is used.\n\n\t\t\t// the channel path is in the name\n\t\t\tliveRoute.Post(\"/publish\", routing.Wrap(hs.Live.HandleHTTPPublish))"
+    },
+    "l-frontend-namespace": {
+      "path": "pkg/api/bootdata.go",
+      "start_line": 212,
+      "end_line": 212,
+      "excerpt_sha256": "99cd21c30bd2151e362b8f70a30e14467f3954813e5f1b7e7765bec6a0231a73",
+      "source_sha256": "a5fcdb1cafc089fa41ba82527a38aad3ecbccf8266e2c2acaf616482c5b5d9fb",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/api/bootdata.go#L212-L212",
+      "text": "\tfrontendSettings.Namespace = hs.namespacer(c.OrgID)"
+    },
+    "l-namespaced-setting": {
+      "path": "pkg/api/frontendsettings/frontendsettings.go",
+      "start_line": 43,
+      "end_line": 49,
+      "excerpt_sha256": "02e2542a827ac3bcbabfa16ac4f88742146874f992182f1ec58ea2c96ef231dc",
+      "source_sha256": "bfa7b80dd13808c22d278a38285c0a9e03ec84373611fa8ad30cab27e5fb892e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/api/frontendsettings/frontendsettings.go#L43-L49",
+      "text": "\t\tJwtHeaderName:                        cfg.JWTAuth.HeaderName,\n\t\tJwtUrlLogin:                          cfg.JWTAuth.URLLogin,\n\t\tLiveEnabled:                          cfg.LiveMaxConnections != 0,\n\t\tLiveMessageSizeLimit:                 cfg.LiveMessageSizeLimit,\n\t\tLiveNamespaced:                       true, // frontend will select a namespaced channel vs orgId channel\n\t\tAutoAssignOrg:                        cfg.AutoAssignOrg,\n\t\tVerifyEmailEnabled:                   cfg.VerifyEmailEnabled,"
+    },
+    "l-core-stream-handler": {
+      "path": "pkg/plugins/backendplugin/coreplugin/core_plugin.go",
+      "start_line": 138,
+      "end_line": 160,
+      "excerpt_sha256": "03a0970b851870650b8f9b28979e73be14f3d8cc5e37a0f827aab38980f9b101",
+      "source_sha256": "e2827ed80bec7caf79f27a9d270b77ff492aa4bb9d2cbc4b9a2d70ee9d8ba1c5",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/backendplugin/coreplugin/core_plugin.go#L138-L160",
+      "text": "func (cp *corePlugin) SubscribeStream(ctx context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {\n\tif cp.StreamHandler != nil {\n\t\tctx = config.WithGrafanaConfig(ctx, req.PluginContext.GrafanaConfig)\n\t\treturn cp.StreamHandler.SubscribeStream(ctx, req)\n\t}\n\treturn nil, plugins.ErrMethodNotImplemented\n}\n\nfunc (cp *corePlugin) PublishStream(ctx context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {\n\tif cp.StreamHandler != nil {\n\t\tctx = config.WithGrafanaConfig(ctx, req.PluginContext.GrafanaConfig)\n\t\treturn cp.StreamHandler.PublishStream(ctx, req)\n\t}\n\treturn nil, plugins.ErrMethodNotImplemented\n}\n\nfunc (cp *corePlugin) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {\n\tif cp.StreamHandler != nil {\n\t\tctx = config.WithGrafanaConfig(ctx, req.PluginContext.GrafanaConfig)\n\t\treturn cp.StreamHandler.RunStream(ctx, req, sender)\n\t}\n\treturn plugins.ErrMethodNotImplemented\n}"
+    },
+    "l-grpc-subscribe-publish": {
+      "path": "pkg/plugins/backendplugin/grpcplugin/client_v2.go",
+      "start_line": 310,
+      "end_line": 330,
+      "excerpt_sha256": "95c193ed5bf319a8e75c2fe8b776c033aa2043803a9ecfc0856de030edb0ed2f",
+      "source_sha256": "bf282d4cd2992fa8f20f75e1af22d664de63b69dc94b0c414dfa3ac0391df3c1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/backendplugin/grpcplugin/client_v2.go#L310-L330",
+      "text": "func (c *ClientV2) SubscribeStream(ctx context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {\n\tif c.StreamClient == nil {\n\t\treturn nil, plugins.ErrMethodNotImplemented\n\t}\n\tprotoResp, err := c.StreamClient.SubscribeStream(ctx, backend.ToProto().SubscribeStreamRequest(req))\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\treturn backend.FromProto().SubscribeStreamResponse(protoResp), nil\n}\n\nfunc (c *ClientV2) PublishStream(ctx context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {\n\tif c.StreamClient == nil {\n\t\treturn nil, plugins.ErrMethodNotImplemented\n\t}\n\tprotoResp, err := c.StreamClient.PublishStream(ctx, backend.ToProto().PublishStreamRequest(req))\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\treturn backend.FromProto().PublishStreamResponse(protoResp), nil\n}"
+    },
+    "l-grpc-run": {
+      "path": "pkg/plugins/backendplugin/grpcplugin/client_v2.go",
+      "start_line": 332,
+      "end_line": 347,
+      "excerpt_sha256": "dca113204658962e98c8c3db2c37f0211229feaa735c04d698ed2b79f90c0c78",
+      "source_sha256": "bf282d4cd2992fa8f20f75e1af22d664de63b69dc94b0c414dfa3ac0391df3c1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/backendplugin/grpcplugin/client_v2.go#L332-L347",
+      "text": "func (c *ClientV2) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {\n\tif c.StreamClient == nil {\n\t\treturn plugins.ErrMethodNotImplemented\n\t}\n\n\tprotoReq := backend.ToProto().RunStreamRequest(req)\n\tprotoStream, err := c.StreamClient.RunStream(ctx, protoReq)\n\tif err != nil {\n\t\tif status.Code(err) == codes.Unimplemented {\n\t\t\treturn plugins.ErrMethodNotImplemented\n\t\t}\n\t\treturn fmt.Errorf(\"%v: %w\", \"Failed to call resource\", err)\n\t}\n\n\tfor {\n\t\tp, err := protoStream.Recv()"
+    },
+    "l-grpc-packet": {
+      "path": "pkg/plugins/backendplugin/grpcplugin/client_v2.go",
+      "start_line": 357,
+      "end_line": 361,
+      "excerpt_sha256": "c33c2a31497dfc15835346a1d36f2a66c061a3200b5554864c098606345a7832",
+      "source_sha256": "bf282d4cd2992fa8f20f75e1af22d664de63b69dc94b0c414dfa3ac0391df3c1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/backendplugin/grpcplugin/client_v2.go#L357-L361",
+      "text": "\t\t// From GRPC connection we receive already prepared JSON.\n\t\terr = sender.SendJSON(p.Data)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}"
+    },
+    "l-client-subscribe-publish": {
+      "path": "pkg/plugins/manager/client/client.go",
+      "start_line": 216,
+      "end_line": 240,
+      "excerpt_sha256": "b5b7fabf7e0f8195e280c6eecb1d4634cea10cdd3343ec3fc2d74c44df71b194",
+      "source_sha256": "d2050ed04e369ca2714135167e1d6b67c66f54bbbc1bb952fbafcff0098d1aa9",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/manager/client/client.go#L216-L240",
+      "text": "func (s *Service) SubscribeStream(ctx context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {\n\tif req == nil {\n\t\treturn nil, errNilRequest\n\t}\n\n\tplugin, exists := s.plugin(ctx, req.PluginContext.PluginID, req.PluginContext.PluginVersion)\n\tif !exists {\n\t\treturn nil, plugins.ErrPluginNotRegistered\n\t}\n\n\treturn plugin.SubscribeStream(ctx, req)\n}\n\nfunc (s *Service) PublishStream(ctx context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {\n\tif req == nil {\n\t\treturn nil, errNilRequest\n\t}\n\n\tplugin, exists := s.plugin(ctx, req.PluginContext.PluginID, req.PluginContext.PluginVersion)\n\tif !exists {\n\t\treturn nil, plugins.ErrPluginNotRegistered\n\t}\n\n\treturn plugin.PublishStream(ctx, req)\n}"
+    },
+    "l-client-run": {
+      "path": "pkg/plugins/manager/client/client.go",
+      "start_line": 242,
+      "end_line": 257,
+      "excerpt_sha256": "aea4d749a5ce0cd1684a92cc9c165e9dcddf8bf622d65d9b519e950701737515",
+      "source_sha256": "d2050ed04e369ca2714135167e1d6b67c66f54bbbc1bb952fbafcff0098d1aa9",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/manager/client/client.go#L242-L257",
+      "text": "func (s *Service) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {\n\tif req == nil {\n\t\treturn errNilRequest\n\t}\n\n\tif sender == nil {\n\t\treturn errNilSender\n\t}\n\n\tplugin, exists := s.plugin(ctx, req.PluginContext.PluginID, req.PluginContext.PluginVersion)\n\tif !exists {\n\t\treturn plugins.ErrPluginNotRegistered\n\t}\n\n\treturn plugin.RunStream(ctx, req, sender)\n}"
+    },
+    "l-client-registry": {
+      "path": "pkg/plugins/manager/client/client.go",
+      "start_line": 306,
+      "end_line": 317,
+      "excerpt_sha256": "46e00a16b6f8810e181ac22a31c31a8538cb0d917b571cffff5261ef7917c7e9",
+      "source_sha256": "d2050ed04e369ca2714135167e1d6b67c66f54bbbc1bb952fbafcff0098d1aa9",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/manager/client/client.go#L306-L317",
+      "text": "func (s *Service) plugin(ctx context.Context, pluginID, pluginVersion string) (*plugins.Plugin, bool) {\n\tp, exists := s.pluginRegistry.Plugin(ctx, pluginID, pluginVersion)\n\tif !exists {\n\t\treturn nil, false\n\t}\n\n\tif p.IsDecommissioned() {\n\t\treturn nil, false\n\t}\n\n\treturn p, true\n}"
+    },
+    "l-plugin-dispatch": {
+      "path": "pkg/plugins/plugins.go",
+      "start_line": 372,
+      "end_line": 394,
+      "excerpt_sha256": "e6d41654db2943cdee4dec6f23a20bb15526ce27ccf21bd4987f9361a2cfae95",
+      "source_sha256": "fa231f26fbe4421db885a4e6912f8957125db373b2d6162171dce33ec469b5d1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/plugins/plugins.go#L372-L394",
+      "text": "func (p *Plugin) SubscribeStream(ctx context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {\n\tpluginClient, ok := p.Client()\n\tif !ok {\n\t\treturn nil, ErrPluginUnavailable\n\t}\n\treturn pluginClient.SubscribeStream(ctx, req)\n}\n\nfunc (p *Plugin) PublishStream(ctx context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {\n\tpluginClient, ok := p.Client()\n\tif !ok {\n\t\treturn nil, ErrPluginUnavailable\n\t}\n\treturn pluginClient.PublishStream(ctx, req)\n}\n\nfunc (p *Plugin) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {\n\tpluginClient, ok := p.Client()\n\tif !ok {\n\t\treturn ErrPluginUnavailable\n\t}\n\treturn pluginClient.RunStream(ctx, req, sender)\n}"
+    },
+    "l-identity-namespace": {
+      "path": "pkg/services/authn/authnimpl/sync/namespace.go",
+      "start_line": 11,
+      "end_line": 28,
+      "excerpt_sha256": "7ef4bed398725358d9d75643cbe349ac55ffe39d72a21b11dfa3e8b8234306c3",
+      "source_sha256": "09ad10597fe25591a2bfec976cf2308116a06f3063e30595a2969f46b3221ff0",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/authn/authnimpl/sync/namespace.go#L11-L28",
+      "text": "func ProvideNamespaceSync(cfg *setting.Cfg) *NamespaceSync {\n\treturn &NamespaceSync{\n\t\tmapper: request.GetNamespaceMapper(cfg),\n\t}\n}\n\ntype NamespaceSync struct {\n\tmapper request.NamespaceMapper\n}\n\nfunc (s *NamespaceSync) SyncNamespace(ctx context.Context, id *authn.Identity, _ *authn.Request) error {\n\tif id.Namespace != \"\" {\n\t\treturn nil\n\t}\n\n\tid.Namespace = s.mapper(id.OrgID)\n\treturn nil\n}"
+    },
+    "l-plugin-runner": {
+      "path": "pkg/services/live/features/plugin.go",
+      "start_line": 35,
+      "end_line": 55,
+      "excerpt_sha256": "2473c10753fe832560a4977be41520e352c7e1ddbab9e0760db4d667a77f07fb",
+      "source_sha256": "72908c51cf573ffda2f8e9766b584c43d66a4d64af38053af319fcce6e1c1c45",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/features/plugin.go#L35-L55",
+      "text": "func NewPluginRunner(pluginID string, datasourceUID string, runStreamManager *runstream.Manager, pluginContextGetter PluginContextGetter, handler backend.StreamHandler) *PluginRunner {\n\treturn &PluginRunner{\n\t\tpluginID:            pluginID,\n\t\tdatasourceUID:       datasourceUID,\n\t\tpluginContextGetter: pluginContextGetter,\n\t\thandler:             handler,\n\t\trunStreamManager:    runStreamManager,\n\t}\n}\n\n// GetHandlerForPath gets the handler for a path.\nfunc (m *PluginRunner) GetHandlerForPath(path string) (model.ChannelHandler, error) {\n\treturn &PluginPathRunner{\n\t\tpath:                path,\n\t\tpluginID:            m.pluginID,\n\t\tdatasourceUID:       m.datasourceUID,\n\t\trunStreamManager:    m.runStreamManager,\n\t\thandler:             m.handler,\n\t\tpluginContextGetter: m.pluginContextGetter,\n\t}, nil\n}"
+    },
+    "l-plugin-subscribe": {
+      "path": "pkg/services/live/features/plugin.go",
+      "start_line": 68,
+      "end_line": 89,
+      "excerpt_sha256": "3034369a024c37312d7d55b01f17d0d96f1541593d715fa4f906bef9178c774d",
+      "source_sha256": "72908c51cf573ffda2f8e9766b584c43d66a4d64af38053af319fcce6e1c1c45",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/features/plugin.go#L68-L89",
+      "text": "func (r *PluginPathRunner) OnSubscribe(ctx context.Context, user identity.Requester, e model.SubscribeEvent) (model.SubscribeReply, backend.SubscribeStreamStatus, error) {\n\tpCtx, err := r.pluginContextGetter.GetPluginContext(ctx, user, r.pluginID, r.datasourceUID, false)\n\tif err != nil {\n\t\tif errors.Is(err, plugins.ErrPluginNotRegistered) {\n\t\t\tlogger.Error(\"Plugin context not found\", \"path\", r.path)\n\t\t\treturn model.SubscribeReply{}, 0, centrifuge.ErrorInternal\n\t\t}\n\t\tlogger.Error(\"Get plugin context error\", \"error\", err, \"path\", r.path)\n\t\treturn model.SubscribeReply{}, 0, err\n\t}\n\tresp, err := r.handler.SubscribeStream(ctx, &backend.SubscribeStreamRequest{\n\t\tPluginContext: pCtx,\n\t\tPath:          r.path,\n\t\tData:          e.Data,\n\t})\n\tif err != nil {\n\t\tlogger.Error(\"Plugin OnSubscribe call error\", \"error\", err, \"path\", r.path)\n\t\treturn model.SubscribeReply{}, 0, err\n\t}\n\tif resp.Status != backend.SubscribeStreamStatusOK {\n\t\treturn model.SubscribeReply{}, resp.Status, nil\n\t}"
+    },
+    "l-plugin-submit": {
+      "path": "pkg/services/live/features/plugin.go",
+      "start_line": 91,
+      "end_line": 108,
+      "excerpt_sha256": "65e69f37b5cf270de03b5b93e073316a113511ee4a4c672bc3cdd7663d09e3d5",
+      "source_sha256": "72908c51cf573ffda2f8e9766b584c43d66a4d64af38053af319fcce6e1c1c45",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/features/plugin.go#L91-L108",
+      "text": "\tsubmitResult, err := r.runStreamManager.SubmitStream(ctx, user, orgchannel.PrependK8sNamespace(user.GetNamespace(), e.Channel), r.path, e.Data, pCtx, r.handler, false)\n\tif err != nil {\n\t\tlogger.Error(\"Error submitting stream to manager\", \"error\", err, \"path\", r.path)\n\t\treturn model.SubscribeReply{}, 0, centrifuge.ErrorInternal\n\t}\n\tif submitResult.StreamExists {\n\t\tlogger.Debug(\"Skip running new stream (already exists)\", \"path\", r.path)\n\t} else {\n\t\tlogger.Debug(\"Running a new unidirectional stream\", \"path\", r.path)\n\t}\n\n\treply := model.SubscribeReply{\n\t\tPresence: true,\n\t}\n\tif resp.InitialData != nil {\n\t\treply.Data = resp.InitialData.Data()\n\t}\n\treturn reply, backend.SubscribeStreamStatusOK, nil"
+    },
+    "l-plugin-publish": {
+      "path": "pkg/services/live/features/plugin.go",
+      "start_line": 112,
+      "end_line": 135,
+      "excerpt_sha256": "387a19f5d1350b9329df99cfa3de5394c89d5626cddf24410235fef5e44b1abb",
+      "source_sha256": "72908c51cf573ffda2f8e9766b584c43d66a4d64af38053af319fcce6e1c1c45",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/features/plugin.go#L112-L135",
+      "text": "func (r *PluginPathRunner) OnPublish(ctx context.Context, user identity.Requester, e model.PublishEvent) (model.PublishReply, backend.PublishStreamStatus, error) {\n\tpCtx, err := r.pluginContextGetter.GetPluginContext(ctx, user, r.pluginID, r.datasourceUID, false)\n\tif err != nil {\n\t\tif errors.Is(err, plugins.ErrPluginNotRegistered) {\n\t\t\tlogger.Error(\"Plugin context not found\", \"path\", r.path)\n\t\t\treturn model.PublishReply{}, 0, centrifuge.ErrorInternal\n\t\t}\n\t\tlogger.Error(\"Get plugin context error\", \"error\", err, \"path\", r.path)\n\t\treturn model.PublishReply{}, 0, err\n\t}\n\tresp, err := r.handler.PublishStream(ctx, &backend.PublishStreamRequest{\n\t\tPluginContext: pCtx,\n\t\tPath:          r.path,\n\t\tData:          e.Data,\n\t})\n\tif err != nil {\n\t\tlogger.Error(\"Plugin OnPublish call error\", \"error\", err, \"path\", r.path)\n\t\treturn model.PublishReply{}, 0, err\n\t}\n\tif resp.Status != backend.PublishStreamStatusOK {\n\t\treturn model.PublishReply{}, resp.Status, nil\n\t}\n\treturn model.PublishReply{Data: resp.Data}, backend.PublishStreamStatusOK, nil\n}"
+    },
+    "l-plugin-client-binding": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 72,
+      "end_line": 84,
+      "excerpt_sha256": "8fe6a5c3a892a64269260cf6969486ad7ade4d1081f00131a400d5f7fe4b0456",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L72-L84",
+      "text": "func ProvideService(cfg *setting.Cfg, routeRegister routing.RouteRegister, plugCtxProvider *plugincontext.Provider,\n\tpluginStore pluginstore.Store, pluginClient plugins.Client, dataSourceCache datasources.CacheService,\n\tusageStatsService usagestats.Service, toggles featuremgmt.FeatureToggles,\n\tdashboardService dashboards.DashboardAccessService,\n\tconfigProvider apiserver.RestConfigProvider) (*GrafanaLive, error) {\n\tg := &GrafanaLive{\n\t\tCfg:                   cfg,\n\t\tFeatures:              toggles,\n\t\tPluginContextProvider: plugCtxProvider,\n\t\tpluginStore:           pluginStore,\n\t\tpluginClient:          pluginClient,\n\t\tDataSourceCache:       dataSourceCache,\n\t\tchannels:              make(map[string]model.ChannelHandler),"
+    },
+    "l-manager-publisher-binding": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 175,
+      "end_line": 178,
+      "excerpt_sha256": "0b1a66c9b1e74664e89294164cda20c590e7e99afe39efd2818109c41dfe66ab",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L175-L178",
+      "text": "\tg.contextGetter = liveplugin.NewContextGetter(g.PluginContextProvider, g.DataSourceCache)\n\tpipelinedChannelLocalPublisher := liveplugin.NewChannelLocalPublisher(node, g.Pipeline)\n\tnumLocalSubscribersGetter := liveplugin.NewNumLocalSubscribersGetter(node)\n\tg.runStreamManager = runstream.NewManager(pipelinedChannelLocalPublisher, numLocalSubscribersGetter, g.contextGetter)"
+    },
+    "l-on-connect": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 196,
+      "end_line": 205,
+      "excerpt_sha256": "e27d78c9a00562a2d0db2d6b1f28b486f506a847e0d36f530ac264540070e043",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L196-L205",
+      "text": "\t// Set ConnectHandler called when client successfully connected to Node. Your code\n\t// inside handler must be synchronized since it will be called concurrently from\n\t// different goroutines (belonging to different client connections). This is also\n\t// true for other event handlers.\n\tnode.OnConnect(func(client *centrifuge.Client) {\n\t\t_, connectSpan := tracer.Start(client.Context(), \"live.OnConnect\")\n\t\tdefer connectSpan.End()\n\t\tconnectSpan.SetAttributes(\n\t\t\tattribute.String(\"user\", client.UserID()),\n\t\t\tattribute.String(\"client\", client.ID()),"
+    },
+    "l-on-subscribe": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 254,
+      "end_line": 280,
+      "excerpt_sha256": "9c5e4758a82948356519da14a30faabd8367449ed0b430ba52108ae0b78820a7",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L254-L280",
+      "text": "\t\t// Called when client subscribes to the channel.\n\t\tclient.OnSubscribe(func(e centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {\n\t\t\tctx, span := tracer.Start(client.Context(), \"live.OnSubscribe\")\n\t\t\t// We finish span when calling callback, which can be done on a separate goroutine.\n\n\t\t\tspan.SetAttributes(\n\t\t\t\tattribute.String(\"channel\", e.Channel),\n\t\t\t\tattribute.String(\"data\", string(e.Data)),\n\t\t\t)\n\n\t\t\tcbWithSpan := func(resp centrifuge.SubscribeReply, err error) {\n\t\t\t\tdefer span.End()\n\t\t\t\tif err != nil {\n\t\t\t\t\tspan.SetStatus(codes.Error, err.Error())\n\t\t\t\t} else {\n\t\t\t\t\tspan.SetStatus(codes.Ok, \"\")\n\t\t\t\t}\n\t\t\t\tcb(resp, err)\n\t\t\t}\n\n\t\t\terr := runConcurrentlyIfNeeded(ctx, semaphore, func() {\n\t\t\t\tcbWithSpan(g.handleOnSubscribe(ctx, client, e))\n\t\t\t})\n\t\t\tif err != nil {\n\t\t\t\tcbWithSpan(centrifuge.SubscribeReply{}, err)\n\t\t\t}\n\t\t})"
+    },
+    "l-on-publish": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 282,
+      "end_line": 306,
+      "excerpt_sha256": "665771a578e263d4bcebb5f84622eb06083f5c25c919b5cbb49a80f2009eb00d",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L282-L306",
+      "text": "\t\t// Called when a client publishes to the channel.\n\t\t// In general, we should prefer writing to the HTTP API, but this\n\t\t// allows some simple prototypes to work quickly.\n\t\tclient.OnPublish(func(e centrifuge.PublishEvent, cb centrifuge.PublishCallback) {\n\t\t\tctx, span := tracer.Start(client.Context(), \"live.OnPublish\")\n\t\t\t// We finish span when calling callback, which can be done on a separate goroutine.\n\n\t\t\tspan.SetAttributes(\n\t\t\t\tattribute.String(\"channel\", e.Channel),\n\t\t\t\tattribute.String(\"data\", string(e.Data)),\n\t\t\t)\n\n\t\t\tcbWithSpan := func(resp centrifuge.PublishReply, err error) {\n\t\t\t\tdefer span.End()\n\t\t\t\tif err != nil {\n\t\t\t\t\tspan.SetStatus(codes.Error, err.Error())\n\t\t\t\t} else {\n\t\t\t\t\tspan.SetStatus(codes.Ok, \"\")\n\t\t\t\t}\n\t\t\t\tcb(resp, err)\n\t\t\t}\n\n\t\t\terr := runConcurrentlyIfNeeded(ctx, semaphore, func() {\n\t\t\t\tcbWithSpan(g.handleOnPublish(ctx, client, e))\n\t\t\t})"
+    },
+    "l-websocket-create": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 350,
+      "end_line": 355,
+      "excerpt_sha256": "5f918426916a744a2d3f767283602f450dc289857467d89056ec7f4703b32c61",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L350-L355",
+      "text": "\t\tWriteBufferSize:  1024,\n\t\tCheckOrigin:      checkOrigin,\n\t\tMessageSizeLimit: cfg.LiveMessageSizeLimit,\n\t}\n\t// Use a pure websocket transport.\n\twsHandler := centrifuge.NewWebsocketHandler(node, wsCfg)"
+    },
+    "l-websocket-handler": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 369,
+      "end_line": 380,
+      "excerpt_sha256": "fd427b2a19547608c14005fb357a8424270f5d4de3ff2898031d954c808fdb45",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L369-L380",
+      "text": "\tg.websocketHandler = func(ctx *contextmodel.ReqContext) {\n\t\tuser := ctx.SignedInUser\n\t\tid, _ := user.GetInternalID()\n\t\t// Centrifuge expects Credentials in context with a current user ID.\n\t\tcred := &centrifuge.Credentials{\n\t\t\tUserID: strconv.FormatInt(id, 10),\n\t\t}\n\t\tnewCtx := centrifuge.SetCredentials(ctx.Req.Context(), cred)\n\t\tnewCtx = identity.WithRequester(newCtx, user)\n\t\tr := ctx.Req.WithContext(newCtx)\n\t\twsHandler.ServeHTTP(ctx.Resp, r)\n\t}"
+    },
+    "l-websocket-route": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 398,
+      "end_line": 400,
+      "excerpt_sha256": "0c66f2dd3da2486d237d44ba59689ecacf1297b0e5bddb3aa02199d9fd46abc4",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L398-L400",
+      "text": "\trouteRegister.Group(\"/api/live\", func(group routing.RouteRegister) {\n\t\tgroup.Get(\"/ws\", g.websocketHandler)\n\t}, middleware.ReqSignedIn, requestmeta.SetSLOGroup(requestmeta.SLOGroupNone))"
+    },
+    "l-plugin-support": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 546,
+      "end_line": 555,
+      "excerpt_sha256": "fe2c73f27cb33899267e064f868fca2f066034b43d5d04568710c7a6ca395cf8",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L546-L555",
+      "text": "func (g *GrafanaLive) getStreamPlugin(ctx context.Context, pluginID string) (backend.StreamHandler, error) {\n\tplugin, exists := g.pluginStore.Plugin(ctx, pluginID)\n\tif !exists {\n\t\treturn nil, fmt.Errorf(\"plugin not found: %s\", pluginID)\n\t}\n\tif plugin.SupportsStreaming() {\n\t\treturn g.pluginClient, nil\n\t}\n\treturn nil, fmt.Errorf(\"%s plugin does not implement StreamHandler: %#v\", pluginID, plugin)\n}"
+    },
+    "l-manager-run": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 574,
+      "end_line": 579,
+      "excerpt_sha256": "cf096e1ea1a679c8eafc94538c7fdaf043566d07a738c347a15504fa5e57e4bd",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L574-L579",
+      "text": "\tif g.runStreamManager != nil {\n\t\t// Only run stream manager if GrafanaLive properly initialized.\n\t\teGroup.Go(func() error {\n\t\t\treturn g.runStreamManager.Run(eCtx)\n\t\t})\n\t}"
+    },
+    "l-subscribe-header": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 723,
+      "end_line": 724,
+      "excerpt_sha256": "a027bb793a94591a0e41e23b4af7c9d45fa50d069c8e3bea29b9e8c044eb2091",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L723-L724",
+      "text": "func (g *GrafanaLive) handleOnSubscribe(clientContextWithSpan context.Context, client *centrifuge.Client, e centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {\n\tlogger.Debug(\"Client wants to subscribe\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)"
+    },
+    "l-subscribe-namespace": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 737,
+      "end_line": 748,
+      "excerpt_sha256": "fe83d563084e4fbb9ba2e99de235132f4281938cf97768da99bae95b14c970d9",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L737-L748",
+      "text": "\t// See a detailed comment for StripK8sNamespace about orgID management in Live.\n\tinfo, channel, err := orgchannel.StripK8sNamespace(e.Channel)\n\tif err != nil {\n\t\tlogger.Error(\"Error parsing channel\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t}\n\n\tns := user.GetNamespace()\n\tif ns != info.Value {\n\t\tlogger.Info(\"Error subscribing: wrong orgId\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied\n\t}"
+    },
+    "l-subscribe-pipeline-guard": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 750,
+      "end_line": 761,
+      "excerpt_sha256": "2c49c6c753f8fc6f2688ceaacc138a16b951f07430eb4c69108c36f252a33b28",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L750-L761",
+      "text": "\tvar reply model.SubscribeReply\n\tvar status backend.SubscribeStreamStatus\n\tvar ruleFound bool\n\n\tif g.Pipeline != nil {\n\t\trule, ok, err := g.Pipeline.Get(ns, channel)\n\t\tif err != nil {\n\t\t\tlogger.Error(\"Error getting channel rule\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t\t}\n\t\truleFound = ok\n\t\tif ok {"
+    },
+    "l-subscribe-dispatch": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 792,
+      "end_line": 806,
+      "excerpt_sha256": "bcf4ad8afd19169d92d5f4710df3995adbc53fb0bb16af44e701ee341bb61338",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L792-L806",
+      "text": "\tif !ruleFound {\n\t\thandler, addr, err := g.GetChannelHandler(clientContextWithSpan, user, channel)\n\t\tif err != nil {\n\t\t\tif errors.Is(err, live.ErrInvalidChannelID) {\n\t\t\t\tlogger.Info(\"Invalid channel ID\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\t\t\t\treturn centrifuge.SubscribeReply{}, &centrifuge.Error{Code: uint32(http.StatusBadRequest), Message: \"invalid channel ID\"}\n\t\t\t}\n\t\t\tlogger.Error(\"Error getting channel handler\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\t\treturn centrifuge.SubscribeReply{}, centrifuge.ErrorInternal\n\t\t}\n\t\treply, status, err = handler.OnSubscribe(clientContextWithSpan, user, model.SubscribeEvent{\n\t\t\tChannel: channel,\n\t\t\tPath:    addr.Path,\n\t\t\tData:    e.Data,\n\t\t})"
+    },
+    "l-publish-header": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 833,
+      "end_line": 834,
+      "excerpt_sha256": "12f35afffe059e4b0344d15fc14f236e01fa5bf3dc77032211643ac5381c1124",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L833-L834",
+      "text": "func (g *GrafanaLive) handleOnPublish(clientCtxWithSpan context.Context, client *centrifuge.Client, e centrifuge.PublishEvent) (centrifuge.PublishReply, error) {\n\tlogger.Debug(\"Client wants to publish\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)"
+    },
+    "l-publish-namespace": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 847,
+      "end_line": 857,
+      "excerpt_sha256": "d2a2a209ceae1be7ad6ed5a1a25e1c55cb85178dff6bae6002dc773ea25d91bc",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L847-L857",
+      "text": "\t// See a detailed comment for StripK8sNamespace about orgID management in Live.\n\tns, channel, err := orgchannel.StripK8sNamespace(e.Channel)\n\tif err != nil {\n\t\tlogger.Error(\"Error parsing channel\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\treturn centrifuge.PublishReply{}, centrifuge.ErrorInternal\n\t}\n\n\tif user.GetNamespace() != ns.Value {\n\t\tlogger.Info(\"Error subscribing: wrong namespace\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\t\treturn centrifuge.PublishReply{}, centrifuge.ErrorPermissionDenied\n\t}"
+    },
+    "l-ws-publish-dispatch": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 895,
+      "end_line": 908,
+      "excerpt_sha256": "dfeb72a75357935d5c5062bce052938edc408ea94d862576352b84ddee340bf9",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L895-L908",
+      "text": "\thandler, addr, err := g.GetChannelHandler(clientCtxWithSpan, user, channel)\n\tif err != nil {\n\t\tif errors.Is(err, live.ErrInvalidChannelID) {\n\t\t\tlogger.Info(\"Invalid channel ID\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel)\n\t\t\treturn centrifuge.PublishReply{}, &centrifuge.Error{Code: uint32(http.StatusBadRequest), Message: \"invalid channel ID\"}\n\t\t}\n\t\tlogger.Error(\"Error getting channel handler\", \"user\", client.UserID(), \"client\", client.ID(), \"channel\", e.Channel, \"error\", err)\n\t\treturn centrifuge.PublishReply{}, centrifuge.ErrorInternal\n\t}\n\treply, status, err := handler.OnPublish(client.Context(), user, model.PublishEvent{\n\t\tChannel: channel,\n\t\tPath:    addr.Path,\n\t\tData:    e.Data,\n\t})"
+    },
+    "l-channel-handler": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 976,
+      "end_line": 981,
+      "excerpt_sha256": "c2b5c4b1b4fa87a37e53c3d6d13152193b160dd0b1b015121482f8ab0ea232f7",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L976-L981",
+      "text": "func (g *GrafanaLive) GetChannelHandler(ctx context.Context, user identity.Requester, channel string) (model.ChannelHandler, live.Channel, error) {\n\t// Parse the identifier ${scope}/${namespace}/${path}\n\taddr, err := live.ParseChannel(channel)\n\tif err != nil {\n\t\treturn nil, live.Channel{}, err\n\t}"
+    },
+    "l-channel-handler-path": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 999,
+      "end_line": 1005,
+      "excerpt_sha256": "c395452dd57a68306f4d9df2ef623ed44e54309d0eebafb10c04f2076151c2d3",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L999-L1005",
+      "text": "\tgetter, err := g.GetChannelHandlerFactory(ctx, user, addr.Scope, addr.Namespace)\n\tif err != nil {\n\t\treturn nil, addr, fmt.Errorf(\"error getting channel handler factory: %w\", err)\n\t}\n\n\t// First access will initialize.\n\tc, err = getter.GetHandlerForPath(addr.Path)"
+    },
+    "l-scope-switch": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 1017,
+      "end_line": 1031,
+      "excerpt_sha256": "5dbf27b7d706588e4ec2752b21f3ae35f524974c92a4fed7d2a430132c862cef",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L1017-L1031",
+      "text": "func (g *GrafanaLive) GetChannelHandlerFactory(ctx context.Context, user identity.Requester, scope string, namespace string) (model.ChannelHandlerFactory, error) {\n\tswitch scope {\n\tcase live.ScopeGrafana:\n\t\treturn g.handleGrafanaScope(user, namespace)\n\tcase live.ScopeWatch:\n\t\treturn g.handleWatchScope()\n\tcase live.ScopePlugin:\n\t\treturn g.handlePluginScope(ctx, user, namespace)\n\tcase live.ScopeDatasource:\n\t\treturn g.handleDatasourceScope(ctx, user, namespace)\n\tcase live.ScopeStream:\n\t\treturn g.handleStreamScope(user, namespace)\n\tdefault:\n\t\treturn nil, fmt.Errorf(\"invalid scope: %q\", scope)\n\t}"
+    },
+    "l-plugin-scope": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 1048,
+      "end_line": 1060,
+      "excerpt_sha256": "7ffee5ca80c0f1d6e1c2f8322d8cd33e9f971c09de3d730d498a4a1f694f5855",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L1048-L1060",
+      "text": "func (g *GrafanaLive) handlePluginScope(ctx context.Context, _ identity.Requester, namespace string) (model.ChannelHandlerFactory, error) {\n\tstreamHandler, err := g.getStreamPlugin(ctx, namespace)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"can't find stream plugin: %s\", namespace)\n\t}\n\treturn features.NewPluginRunner(\n\t\tnamespace,\n\t\t\"\", // No instance uid for non-datasource plugins.\n\t\tg.runStreamManager,\n\t\tg.contextGetter,\n\t\tstreamHandler,\n\t), nil\n}"
+    },
+    "l-datasource-scope": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 1066,
+      "end_line": 1082,
+      "excerpt_sha256": "d48dc44e817631fb145963c0c90623b7704b0eb4ee0a7b2ee29c466d46bda016",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L1066-L1082",
+      "text": "func (g *GrafanaLive) handleDatasourceScope(ctx context.Context, user identity.Requester, namespace string) (model.ChannelHandlerFactory, error) {\n\tds, err := g.DataSourceCache.GetDatasourceByUID(ctx, namespace, user, false)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"error getting datasource: %w\", err)\n\t}\n\tstreamHandler, err := g.getStreamPlugin(ctx, ds.Type)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"can't find stream plugin: %s\", ds.Type)\n\t}\n\treturn features.NewPluginRunner(\n\t\tds.Type,\n\t\tds.UID,\n\t\tg.runStreamManager,\n\t\tg.contextGetter,\n\t\tstreamHandler,\n\t), nil\n}"
+    },
+    "l-http-bind": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 1099,
+      "end_line": 1115,
+      "excerpt_sha256": "87466fdf9bc8b24e1b34b4f175e4565a6c412d92b726d3fbad64174e02eb0d57",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L1099-L1115",
+      "text": "func (g *GrafanaLive) HandleHTTPPublish(ctx *contextmodel.ReqContext) response.Response {\n\tcmd := model.LivePublishCmd{}\n\tif err := web.Bind(ctx.Req, &cmd); err != nil {\n\t\treturn response.Error(http.StatusBadRequest, \"bad request data\", err)\n\t}\n\taddr, err := live.ParseChannel(cmd.Channel)\n\tif err != nil {\n\t\treturn response.Error(http.StatusBadRequest, \"invalid channel ID\", nil)\n\t}\n\n\tlogger.Debug(\"Publish API cmd\", \"identity\", ctx.GetUsername(), \"channel\", cmd.Channel)\n\tuser := ctx.SignedInUser\n\tchannel := cmd.Channel\n\tns := user.GetNamespace()\n\n\tif g.Pipeline != nil {\n\t\trule, ok, err := g.Pipeline.Get(ns, channel)"
+    },
+    "l-http-publish-dispatch": {
+      "path": "pkg/services/live/live.go",
+      "start_line": 1144,
+      "end_line": 1150,
+      "excerpt_sha256": "94bb849993b48283726f0cf737ef78b971ec46be3dc2be299d0bea11161ed740",
+      "source_sha256": "6b82843739c8f07b0c30aff6c1fba7d91dd724b0d70581ebad9b45cc3b12796c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/live.go#L1144-L1150",
+      "text": "\tchannelHandler, addr, err := g.GetChannelHandler(ctx.Req.Context(), ctx.SignedInUser, cmd.Channel)\n\tif err != nil {\n\t\tlogger.Error(\"Error getting channels handler\", \"error\", err, \"channel\", cmd.Channel)\n\t\treturn response.Error(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), nil)\n\t}\n\n\treply, status, err := channelHandler.OnPublish(ctx.Req.Context(), ctx.SignedInUser, model.PublishEvent{Channel: cmd.Channel, Path: addr.Path, Data: cmd.Data})"
+    },
+    "l-local-publisher": {
+      "path": "pkg/services/live/liveplugin/plugin.go",
+      "start_line": 23,
+      "end_line": 50,
+      "excerpt_sha256": "46facd0868f56a74c479aeffedbb1eac48dee1d9f8c0811edecab36fe269b803",
+      "source_sha256": "ed0feaa7342ddfd7b9d0ceabc0c0ff103f193e91b8dd20369e69683144545849",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/liveplugin/plugin.go#L23-L50",
+      "text": "func NewChannelLocalPublisher(node *centrifuge.Node, pipeline *pipeline.Pipeline) *ChannelLocalPublisher {\n\treturn &ChannelLocalPublisher{node: node, pipeline: pipeline}\n}\n\nfunc (p *ChannelLocalPublisher) PublishLocal(channel string, data []byte) error {\n\tif p.pipeline != nil {\n\t\tns, channelID, err := orgchannel.StripK8sNamespace(channel)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t\tok, err := p.pipeline.ProcessInput(context.Background(), ns.Value, channelID, data)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t\tif ok {\n\t\t\t// if rule found – we are done here. If not - fall through and process as usual.\n\t\t\treturn nil\n\t\t}\n\t}\n\tpub := &centrifuge.Publication{\n\t\tData: data,\n\t}\n\terr := p.node.Hub().BroadcastPublication(channel, pub, centrifuge.StreamPosition{})\n\tif err != nil {\n\t\treturn fmt.Errorf(\"error publishing %s: %w\", string(data), err)\n\t}\n\treturn nil\n}"
+    },
+    "l-local-subscriber-count": {
+      "path": "pkg/services/live/liveplugin/plugin.go",
+      "start_line": 56,
+      "end_line": 62,
+      "excerpt_sha256": "75616485a930fad41803e663d6b72e022cbce18ea99ce25cdf17a11d75724e0e",
+      "source_sha256": "ed0feaa7342ddfd7b9d0ceabc0c0ff103f193e91b8dd20369e69683144545849",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/liveplugin/plugin.go#L56-L62",
+      "text": "func NewNumLocalSubscribersGetter(node *centrifuge.Node) *NumLocalSubscribersGetter {\n\treturn &NumLocalSubscribersGetter{node: node}\n}\n\nfunc (p *NumLocalSubscribersGetter) GetNumLocalSubscribers(channelID string) (int, error) {\n\treturn p.node.Hub().NumSubscribers(channelID), nil\n}"
+    },
+    "l-context-getter": {
+      "path": "pkg/services/live/liveplugin/plugin.go",
+      "start_line": 69,
+      "end_line": 86,
+      "excerpt_sha256": "4517f3390890f179cdbddffc8f4b0c11523db13dce43a99b542f4edff211b091",
+      "source_sha256": "ed0feaa7342ddfd7b9d0ceabc0c0ff103f193e91b8dd20369e69683144545849",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/liveplugin/plugin.go#L69-L86",
+      "text": "func NewContextGetter(pluginContextProvider *plugincontext.Provider, dataSourceCache datasources.CacheService) *ContextGetter {\n\treturn &ContextGetter{\n\t\tpluginContextProvider: pluginContextProvider,\n\t\tdataSourceCache:       dataSourceCache,\n\t}\n}\n\nfunc (g *ContextGetter) GetPluginContext(ctx context.Context, user identity.Requester, pluginID string, datasourceUID string, skipCache bool) (backend.PluginContext, error) {\n\tif datasourceUID == \"\" {\n\t\treturn g.pluginContextProvider.Get(ctx, pluginID, user, user.GetOrgID())\n\t}\n\n\tds, err := g.dataSourceCache.GetDatasourceByUID(ctx, datasourceUID, user, skipCache)\n\tif err != nil {\n\t\treturn backend.PluginContext{}, fmt.Errorf(\"%v: %w\", \"Failed to get datasource\", err)\n\t}\n\treturn g.pluginContextProvider.GetWithDataSource(ctx, pluginID, user, ds)\n}"
+    },
+    "l-http-payload": {
+      "path": "pkg/services/live/model/model.go",
+      "start_line": 70,
+      "end_line": 75,
+      "excerpt_sha256": "3d10922cf6d39c269fd87dd3b04a20c771a93d58abff1a62114e13a555878e87",
+      "source_sha256": "a4f05b5eba349c465bfa92fd6abfcc3d179bf722f15a7d3945e2554db66c034e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/model/model.go#L70-L75",
+      "text": "type LivePublishCmd struct {\n\tChannel string          `json:\"channel\"`\n\tData    json.RawMessage `json:\"data,omitempty\"`\n}\n\ntype LivePublishResponse struct{}"
+    },
+    "l-namespace-prefix": {
+      "path": "pkg/services/live/orgchannel/orgchannel.go",
+      "start_line": 11,
+      "end_line": 40,
+      "excerpt_sha256": "89029e2f057807bb35392969ce8c8b4306bb83076baf7858d848acfef5c6743c",
+      "source_sha256": "cb21faa77a675d46180797e5528d1ac7bd96b075da02bcfd397d05fb4bf29fd4",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/orgchannel/orgchannel.go#L11-L40",
+      "text": "// Prefix the k8s namespace to the channel.\nfunc PrependK8sNamespace(ns string, channel string) string {\n\treturn ns + \"/\" + channel\n}\n\n// StripK8sNamespace strips k8s namespace from the full channel ID.\n// We use the k8s namespace for multi-tenancy across orgs and stacks.\n// For backwards compatibility, bare numeric org IDs (e.g. \"1\") are also accepted.\nfunc StripK8sNamespace(channel string) (authlib.NamespaceInfo, string, error) {\n\tparts := strings.SplitN(channel, \"/\", 2)\n\tif len(parts) != 2 {\n\t\treturn authlib.NamespaceInfo{}, \"\", fmt.Errorf(\"malformed channel: %s\", channel)\n\t}\n\tns, err := authlib.ParseNamespace(parts[0])\n\tif err == nil && ns.OrgID < 1 {\n\t\t// Legacy format: bare numeric org ID. Normalize to canonical k8s namespace.\n\t\torgID, numErr := strconv.ParseInt(parts[0], 10, 64)\n\t\tif numErr == nil && orgID > 0 {\n\t\t\tns.OrgID = orgID\n\t\t\tif orgID == 1 {\n\t\t\t\tns.Value = \"default\"\n\t\t\t} else {\n\t\t\t\tns.Value = fmt.Sprintf(\"org-%d\", orgID)\n\t\t\t}\n\t\t\treturn ns, parts[1], nil\n\t\t}\n\t\treturn ns, \"\", fmt.Errorf(\"namespace does not reference a valid org ID: %s\", parts[0])\n\t}\n\treturn ns, parts[1], err\n}"
+    },
+    "l-packet-sender": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 38,
+      "end_line": 49,
+      "excerpt_sha256": "80860dcf93768502752b2c5af468f09db3821146de1cdf901abaf8b748232757",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L38-L49",
+      "text": "type StreamRunner interface {\n\tRunStream(ctx context.Context, request *backend.RunStreamRequest, sender *backend.StreamSender) error\n}\n\ntype packetSender struct {\n\tchannelLocalPublisher ChannelLocalPublisher\n\tchannel               string\n}\n\nfunc (p *packetSender) Send(packet *backend.StreamPacket) error {\n\treturn p.channelLocalPublisher.PublishLocal(p.channel, packet.Data)\n}"
+    },
+    "l-manager-binding": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 84,
+      "end_line": 104,
+      "excerpt_sha256": "8499090869ff7134e5ddafbeaa1ce420c609f3e6cee948403ccdb9eaf7e875d3",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L84-L104",
+      "text": "// NewManager creates new Manager.\nfunc NewManager(channelSender ChannelLocalPublisher, presenceGetter NumLocalSubscribersGetter, pluginContextGetter PluginContextGetter, opts ...ManagerOption) *Manager {\n\tsm := &Manager{\n\t\tstreams:                 make(map[string]streamContext),\n\t\tdatasourceStreams:       map[string]map[string]struct{}{},\n\t\tchannelSender:           channelSender,\n\t\tpresenceGetter:          presenceGetter,\n\t\tpluginContextGetter:     pluginContextGetter,\n\t\tregisterCh:              make(chan submitRequest),\n\t\tclosedCh:                make(chan struct{}),\n\t\tcheckInterval:           defaultCheckInterval,\n\t\tmaxChecks:               defaultMaxChecks,\n\t\tdatasourceCheckInterval: defaultDatasourceCheckInterval,\n\t}\n\tfor _, opt := range opts {\n\t\topt(sm)\n\t}\n\treturn sm\n}\n\nfunc (s *Manager) HandleDatasourceDelete(orgID int64, dsUID string) error {"
+    },
+    "l-stream-stop": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 160,
+      "end_line": 176,
+      "excerpt_sha256": "60cf1c36b9f6ec7ea14b26de1ef86614d3bd34f1ebbf650e73b77f5b47468ab5",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L160-L176",
+      "text": "func (s *Manager) stopStream(sr streamRequest, cancelFn func()) {\n\ts.mu.Lock()\n\tdefer s.mu.Unlock()\n\tstreamCtx, ok := s.streams[sr.Channel]\n\tif !ok {\n\t\treturn\n\t}\n\tcloseCh := streamCtx.CloseCh\n\tdelete(s.streams, sr.Channel)\n\tif sr.PluginContext.DataSourceInstanceSettings != nil {\n\t\tdsUID := sr.PluginContext.DataSourceInstanceSettings.UID\n\t\tdsKey := datasourceKey(sr.PluginContext.OrgID, dsUID) // nolint:staticcheck\n\t\tdelete(s.datasourceStreams[dsKey], sr.Channel)\n\t}\n\tcancelFn()\n\tclose(closeCh)\n}"
+    },
+    "l-stream-watch-header": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 178,
+      "end_line": 179,
+      "excerpt_sha256": "b15e83a7afc939b0fc731ae9f33c832428559aaec2a326361b66af011187f968",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L178-L179",
+      "text": "func (s *Manager) watchStream(ctx context.Context, cancelFn func(), sr streamRequest) {\n\tnumNoSubscribersChecks := 0"
+    },
+    "l-stream-watch": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 210,
+      "end_line": 229,
+      "excerpt_sha256": "658be2b706c6e55e4635fe5267fa45427dff0cf0729552c4a0cdfee4c431605d",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L210-L229",
+      "text": "\t\tcase <-presenceTicker.C:\n\t\t\tnumSubscribers, err := s.presenceGetter.GetNumLocalSubscribers(sr.Channel)\n\t\t\tif err != nil {\n\t\t\t\tlogger.Error(\"Error checking num subscribers\", \"channel\", sr.Channel, \"path\", sr.Path, \"error\", err)\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tif numSubscribers > 0 {\n\t\t\t\t// reset counter since channel has active subscribers.\n\t\t\t\tnumNoSubscribersChecks = 0\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tnumNoSubscribersChecks++\n\t\t\tif numNoSubscribersChecks >= s.maxChecks {\n\t\t\t\tlogger.Debug(\"Stop stream since no active subscribers\", \"channel\", sr.Channel, \"path\", sr.Path)\n\t\t\t\ts.stopStream(sr, cancelFn)\n\t\t\t\treturn\n\t\t\t}\n\t\t}\n\t}\n}"
+    },
+    "l-run-stream-header": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 247,
+      "end_line": 248,
+      "excerpt_sha256": "0527afc1368f18bcd0db6118790bbc01003d188a6b880b37a8da986208550cb1",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L247-L248",
+      "text": "func (s *Manager) runStream(ctx context.Context, cancelFn func(), sr streamRequest) {\n\tctx = identity.WithRequester(ctx, sr.user)"
+    },
+    "l-run-stream": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 307,
+      "end_line": 315,
+      "excerpt_sha256": "38e95c8de53d35db17cc6ee6ca46ce912d4e29d967a66614755fdc2e054d6a93",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L307-L315",
+      "text": "\t\terr := sr.StreamRunner.RunStream(\n\t\t\tctx,\n\t\t\t&backend.RunStreamRequest{\n\t\t\t\tPluginContext: pluginCtx,\n\t\t\t\tPath:          sr.Path,\n\t\t\t\tData:          sr.Data,\n\t\t\t},\n\t\t\tbackend.NewStreamSender(&packetSender{channelLocalPublisher: s.channelSender, channel: sr.Channel}),\n\t\t)"
+    },
+    "l-stream-register": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 338,
+      "end_line": 365,
+      "excerpt_sha256": "0a13369705da75b989f7c407c57a4c835cd3ff247403ed81d9f7f910dd4c8d0b",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L338-L365",
+      "text": "func (s *Manager) registerStream(ctx context.Context, sr submitRequest) {\n\ts.mu.Lock()\n\tif streamCtx, ok := s.streams[sr.streamRequest.Channel]; ok {\n\t\ts.mu.Unlock()\n\t\tsr.responseCh <- submitResponse{Result: submitResult{StreamExists: true, CloseNotify: streamCtx.CloseCh}}\n\t\treturn\n\t}\n\tctx, cancel := context.WithCancel(ctx)\n\tdefer cancel()\n\tcloseCh := make(chan struct{})\n\ts.streams[sr.streamRequest.Channel] = streamContext{\n\t\tCloseCh:       closeCh,\n\t\tcancelFn:      cancel,\n\t\tstreamRequest: sr.streamRequest,\n\t}\n\tif sr.streamRequest.PluginContext.DataSourceInstanceSettings != nil {\n\t\tdsUID := sr.streamRequest.PluginContext.DataSourceInstanceSettings.UID\n\t\tdsKey := datasourceKey(sr.streamRequest.PluginContext.OrgID, dsUID) // nolint:staticcheck\n\t\tif _, ok := s.datasourceStreams[dsKey]; !ok {\n\t\t\ts.datasourceStreams[dsKey] = map[string]struct{}{}\n\t\t}\n\t\ts.datasourceStreams[dsKey][sr.streamRequest.Channel] = struct{}{}\n\t}\n\ts.mu.Unlock()\n\tsr.responseCh <- submitResponse{Result: submitResult{StreamExists: false, CloseNotify: closeCh}}\n\tgo s.watchStream(ctx, cancel, sr.streamRequest)\n\ts.runStream(ctx, cancel, sr.streamRequest)\n}"
+    },
+    "l-manager-loop": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 367,
+      "end_line": 384,
+      "excerpt_sha256": "e2ec9acdad56d69505e2fc35f2bde8f6e01aeeb88d50ce0d5918e1fac5e57424",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L367-L384",
+      "text": "// Run Manager till context canceled.\nfunc (s *Manager) Run(ctx context.Context) error {\n\t// The provided context is the long-lived background-service context, which\n\t// carries the process-lifetime server startup span. Streams started from it\n\t// would all join that single trace, so every streaming query in the process\n\t// would share one trace ID. Detach the span context so that each stream run\n\t// starts a trace of its own.\n\tctx = trace.ContextWithSpanContext(ctx, trace.SpanContext{})\n\ts.baseCtx = ctx\n\tfor {\n\t\tselect {\n\t\tcase sr := <-s.registerCh:\n\t\t\tgo s.registerStream(ctx, sr)\n\t\tcase <-ctx.Done():\n\t\t\tclose(s.closedCh)\n\t\t\treturn ctx.Err()\n\t\t}\n\t}"
+    },
+    "l-stream-submit-header": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 417,
+      "end_line": 418,
+      "excerpt_sha256": "d92f4959468a46bf0b1390dba1a3eeeda96d61d2ab1a2c8823d1ac0bc7ef1d66",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L417-L418",
+      "text": "func (s *Manager) SubmitStream(ctx context.Context, user identity.Requester, channel string, path string, data []byte, pCtx backend.PluginContext, streamRunner StreamRunner, isResubmit bool) (*submitResult, error) {\n\tif isResubmit {"
+    },
+    "l-stream-submit": {
+      "path": "pkg/services/live/runstream/manager.go",
+      "start_line": 434,
+      "end_line": 462,
+      "excerpt_sha256": "332c8d9d0021eec666b076aa22ddf6d519a8df652ba9ae293a1968e7efb863a5",
+      "source_sha256": "d56929953ff8097cb4fd21804d4a179d7161b01bb9da07ddec599b9037f95acc",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/live/runstream/manager.go#L434-L462",
+      "text": "\treq := submitRequest{\n\t\tresponseCh: make(chan submitResponse, 1),\n\t\tstreamRequest: streamRequest{\n\t\t\tuser:          user,\n\t\t\tChannel:       channel,\n\t\t\tPath:          path,\n\t\t\tPluginContext: pCtx,\n\t\t\tStreamRunner:  streamRunner,\n\t\t\tData:          data,\n\t\t},\n\t}\n\n\t// Send submit request.\n\tselect {\n\tcase s.registerCh <- req:\n\tcase <-s.closedCh:\n\t\tclose(s.registerCh)\n\t\treturn nil, errClosed\n\tcase <-ctx.Done():\n\t\treturn nil, ctx.Err()\n\t}\n\n\t// Wait for submit response.\n\tselect {\n\tcase resp := <-req.responseCh:\n\t\tif resp.Error != nil {\n\t\t\treturn nil, resp.Error\n\t\t}\n\t\treturn &resp.Result, nil"
+    },
+    "a-ha-scheduler-construction": {
+      "path": "pkg/services/ngalert/evaluation_runner.go",
+      "start_line": 45,
+      "end_line": 48,
+      "excerpt_sha256": "e7de69f4905d13e66e23eb98198e9b0d9eeb1b98ea0e6c0b529f4efe873d1aa0",
+      "source_sha256": "2018b1528b1b4ceca86dc60db4a65f3589d6ea6ad8265847b024427ee539c0ad",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/evaluation_runner.go#L45-L48",
+      "text": "\tr.ng.stateManager.Warm(ctx, r.ng.store, r.ng.store, r.ng.StartupInstanceReader)\n\tif r.ng.schedule == nil {\n\t\tr.ng.schedule = schedule.NewScheduler(r.ng.schedCfg, r.ng.stateManager)\n\t}"
+    },
+    "a-router-construction": {
+      "path": "pkg/services/ngalert/ngalert.go",
+      "start_line": 375,
+      "end_line": 379,
+      "excerpt_sha256": "ec8b5d63b2a06830fba8cca34cccfc9aef0b6a5ca5014d5b977acfc13bdf518e",
+      "source_sha256": "26763109f379dc41540a7e0d7a456e3c891fb162d40894525533d4d721e1ceb3",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/ngalert.go#L375-L379",
+      "text": "\tclk := clock.New()\n\n\talertsRouter := sender.NewAlertsRouter(ng.MultiOrgAlertmanager, ng.store, clk, appUrl, ng.Cfg.UnifiedAlerting.DisabledOrgs,\n\t\tng.Cfg.UnifiedAlerting.AdminConfigPollInterval, ng.DataSourceService, ng.SecretsService, ng.FeatureToggles,\n\t\tng.Cfg.UnifiedAlerting.HASingleNodeEvaluation, ng.Metrics.GetSenderMetrics())"
+    },
+    "a-scheduler-config": {
+      "path": "pkg/services/ngalert/ngalert.go",
+      "start_line": 397,
+      "end_line": 420,
+      "excerpt_sha256": "ed7328fed71fd62dbec07fd35ffb2b81544ff70c5bfde59f9321ecac071f4f4d",
+      "source_sha256": "26763109f379dc41540a7e0d7a456e3c891fb162d40894525533d4d721e1ceb3",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/ngalert.go#L397-L420",
+      "text": "\tng.schedCfg = schedule.SchedulerCfg{\n\t\tRetryConfig: schedule.RetryConfig{\n\t\t\tMaxAttempts:         ng.Cfg.UnifiedAlerting.MaxAttempts,\n\t\t\tInitialRetryDelay:   ng.Cfg.UnifiedAlerting.InitialRetryDelay,\n\t\t\tMaxRetryDelay:       ng.Cfg.UnifiedAlerting.MaxRetryDelay,\n\t\t\tRandomizationFactor: ng.Cfg.UnifiedAlerting.RandomizationFactor,\n\t\t},\n\t\tC:                    clk,\n\t\tBaseInterval:         ng.Cfg.UnifiedAlerting.BaseInterval,\n\t\tMinRuleInterval:      ng.Cfg.UnifiedAlerting.MinInterval,\n\t\tDisableGrafanaFolder: ng.Cfg.UnifiedAlerting.ReservedLabels.IsReservedLabelDisabled(models.FolderTitleLabel),\n\t\tJitterEvaluations:    schedule.JitterStrategyFrom(ng.Cfg.UnifiedAlerting, ng.FeatureToggles),\n\t\tAppURL:               appUrl,\n\t\tEvaluatorFactory:     evalFactory,\n\t\tRuleStore:            ng.store,\n\t\tRuleSequenceStore:    ng.newRuleSequenceStore(),\n\t\tRecordingRulesCfg:    ng.Cfg.UnifiedAlerting.RecordingRules,\n\t\tMetrics:              ng.Metrics.GetSchedulerMetrics(),\n\t\tAlertSender:          alertsRouter,\n\t\tTracer:               ng.tracer,\n\t\tLog:                  log.New(\"ngalert.scheduler\"),\n\t\tRecordingWriter:      ng.RecordingWriter,\n\t\tFeatureToggles:       ng.FeatureToggles,\n\t}"
+    },
+    "a-scheduler-construction": {
+      "path": "pkg/services/ngalert/ngalert.go",
+      "start_line": 491,
+      "end_line": 494,
+      "excerpt_sha256": "2c01e813e0d01a240e2560ef8ba67067bd799a3b85b4e948514e29598323d458",
+      "source_sha256": "26763109f379dc41540a7e0d7a456e3c891fb162d40894525533d4d721e1ceb3",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/ngalert.go#L491-L494",
+      "text": "\t\t// Use in-memory state/scheduler for API calls\n\t\tapiStateManager = ng.stateManager\n\t\tng.schedule = schedule.NewScheduler(ng.schedCfg, ng.stateManager)\n\t\truleMutator = apiprometheus.NewInMemoryRuleMutator(ng.schedule, ng.stateManager)"
+    },
+    "a-remote-mode": {
+      "path": "pkg/services/ngalert/ngalert.go",
+      "start_line": 240,
+      "end_line": 247,
+      "excerpt_sha256": "8f63ee3f928698a4af325226d9a68b666f484681b0e1869d06a5bc805e659a88",
+      "source_sha256": "26763109f379dc41540a7e0d7a456e3c891fb162d40894525533d4d721e1ceb3",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/ngalert.go#L240-L247",
+      "text": "\t//nolint:staticcheck // not yet migrated to OpenFeature\n\tremotePrimary := ng.FeatureToggles.IsEnabled(initCtx, featuremgmt.FlagAlertmanagerRemotePrimary)\n\t//nolint:staticcheck // not yet migrated to OpenFeature\n\tremoteSecondary := ng.FeatureToggles.IsEnabled(initCtx, featuremgmt.FlagAlertmanagerRemoteSecondary)\n\t//nolint:staticcheck // not yet migrated to OpenFeature\n\tremoteSecondaryWithRemoteState := ng.FeatureToggles.IsEnabled(initCtx, featuremgmt.FlagAlertmanagerRemoteSecondaryWithRemoteState)\n\tif remotePrimary || remoteSecondary || remoteSecondaryWithRemoteState {\n\t\tm := ng.Metrics.GetRemoteAlertmanagerMetrics()"
+    },
+    "a-remote-override": {
+      "path": "pkg/services/ngalert/ngalert.go",
+      "start_line": 274,
+      "end_line": 298,
+      "excerpt_sha256": "82ae709a75ef04609338d9ce7c788abbefb7bb7039e403f5685a63bf77670269",
+      "source_sha256": "26763109f379dc41540a7e0d7a456e3c891fb162d40894525533d4d721e1ceb3",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/ngalert.go#L274-L298",
+      "text": "\t\t// This function will be used by the MOA to create new Alertmanagers.\n\t\tvar override func(notifier.OrgAlertmanagerFactory) notifier.OrgAlertmanagerFactory\n\n\t\tif remotePrimary {\n\t\t\tng.Log.Debug(\"Starting Grafana with remote primary mode enabled\")\n\t\t\tm.Info.WithLabelValues(metrics.ModeRemotePrimary).Set(1)\n\t\t\toverride = remote.NewRemotePrimaryFactory(cfg, ng.KVStore, crypto, m, ng.tracer, ng.FeatureToggles)\n\t\t\tskipClustering = true\n\t\t} else {\n\t\t\tng.Log.Debug(\"Starting Grafana with remote secondary mode enabled\")\n\t\t\tm.Info.WithLabelValues(metrics.ModeRemoteSecondary).Set(1)\n\t\t\toverride = remote.NewRemoteSecondaryFactory(cfg,\n\t\t\t\tng.KVStore,\n\t\t\t\tng.store,\n\t\t\t\tng.Cfg.UnifiedAlerting.RemoteAlertmanager.SyncInterval,\n\t\t\t\tcrypto,\n\t\t\t\tm,\n\t\t\t\tng.tracer,\n\t\t\t\tremoteSecondaryWithRemoteState,\n\t\t\t\tng.FeatureToggles,\n\t\t\t)\n\t\t}\n\n\t\topts = append(opts, notifier.WithAlertmanagerOverride(override))\n\t}"
+    },
+    "a-moa-construction": {
+      "path": "pkg/services/ngalert/ngalert.go",
+      "start_line": 334,
+      "end_line": 356,
+      "excerpt_sha256": "276de6fa5e160ff2e47bc9bdda9613a78a3e81b15bb41a08d0e297f63240e067",
+      "source_sha256": "26763109f379dc41540a7e0d7a456e3c891fb162d40894525533d4d721e1ceb3",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/ngalert.go#L334-L356",
+      "text": "\tmoa, err := notifier.NewMultiOrgAlertmanager(\n\t\tng.Cfg,\n\t\tng.store,\n\t\tng.store,\n\t\tng.KVStore,\n\t\tng.store,\n\t\tdecryptFn,\n\t\tmultiOrgMetrics,\n\t\tng.NotificationService,\n\t\tng.ResourcePermissions,\n\t\tng.RouteResourcePermissions,\n\t\tmoaLogger,\n\t\tng.SecretsService,\n\t\tng.FeatureToggles,\n\t\tnotificationHistorian,\n\t\tskipClustering,\n\t\texternalAMSyncer,\n\t\topts...,\n\t)\n\tif err != nil {\n\t\treturn err\n\t}\n\tng.MultiOrgAlertmanager = moa"
+    },
+    "a-base-import": {
+      "path": "pkg/services/ngalert/notifier/alertmanager.go",
+      "start_line": 5,
+      "end_line": 12,
+      "excerpt_sha256": "2a55a84f327c7ff66de50d615f093dbaed90fb1efdb368f9cf815047f21b8ac0",
+      "source_sha256": "e50d1cefefab167c23dbe302b1daecc0fc89ceb99c8034878e3d18e8424b5977",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/notifier/alertmanager.go#L5-L12",
+      "text": "\t\"encoding/json\"\n\t\"fmt\"\n\t\"strconv\"\n\t\"time\"\n\n\talertingNotify \"github.com/grafana/alerting/notify\"\n\t\"github.com/grafana/alerting/notify/nfstatus\"\n\talertingTemplates \"github.com/grafana/alerting/templates\""
+    },
+    "a-base-type": {
+      "path": "pkg/services/ngalert/notifier/alertmanager.go",
+      "start_line": 51,
+      "end_line": 56,
+      "excerpt_sha256": "368a6596e0792db7b1a91b6c00ceb88e24ba970486cec49f29dff1b236badaa8",
+      "source_sha256": "e50d1cefefab167c23dbe302b1daecc0fc89ceb99c8034878e3d18e8424b5977",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/notifier/alertmanager.go#L51-L56",
+      "text": "type alertmanager struct {\n\tBase   *alertingNotify.GrafanaAlertmanager\n\tlogger log.Logger\n\n\tConfigMetrics        *metrics.AlertmanagerConfigMetrics\n\tStore                AlertingStore"
+    },
+    "a-base-put": {
+      "path": "pkg/services/ngalert/notifier/alertmanager.go",
+      "start_line": 298,
+      "end_line": 310,
+      "excerpt_sha256": "105f506cf0c7c5a34ca17e773dd20fd090451969b3635d4e5e61d202984cd623",
+      "source_sha256": "e50d1cefefab167c23dbe302b1daecc0fc89ceb99c8034878e3d18e8424b5977",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/notifier/alertmanager.go#L298-L310",
+      "text": "func (am *alertmanager) PutAlerts(_ context.Context, postableAlerts apimodels.PostableAlerts) error {\n\talerts := make(alertingNotify.PostableAlerts, 0, len(postableAlerts.PostableAlerts))\n\tfor _, pa := range postableAlerts.PostableAlerts {\n\t\talerts = append(alerts, &alertingNotify.PostableAlert{\n\t\t\tAnnotations: pa.Annotations,\n\t\t\tEndsAt:      pa.EndsAt,\n\t\t\tStartsAt:    pa.StartsAt,\n\t\t\tAlert:       pa.Alert,\n\t\t})\n\t}\n\n\treturn am.Base.PutAlerts(alerts)\n}"
+    },
+    "a-org-override": {
+      "path": "pkg/services/ngalert/notifier/multiorg_alertmanager.go",
+      "start_line": 134,
+      "end_line": 142,
+      "excerpt_sha256": "ff16a864e6ca052b02bc21b95a06a851f44e717feab595d4c97a4b9f839ff881",
+      "source_sha256": "cc008a3115d0faba464675e6499e2a4e008d7e05eb01f80edc354e8aa4ed6dcb",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/notifier/multiorg_alertmanager.go#L134-L142",
+      "text": "type OrgAlertmanagerFactory func(ctx context.Context, orgID int64) (Alertmanager, error)\n\ntype Option func(*MultiOrgAlertmanager)\n\nfunc WithAlertmanagerOverride(f func(OrgAlertmanagerFactory) OrgAlertmanagerFactory) Option {\n\treturn func(moa *MultiOrgAlertmanager) {\n\t\tmoa.factory = f(moa.factory)\n\t}\n}"
+    },
+    "a-org-default-factory": {
+      "path": "pkg/services/ngalert/notifier/multiorg_alertmanager.go",
+      "start_line": 205,
+      "end_line": 214,
+      "excerpt_sha256": "44a059da95debe497312fccf4887986e9ea8640e2c952b8cf6081bdd34e085ae",
+      "source_sha256": "cc008a3115d0faba464675e6499e2a4e008d7e05eb01f80edc354e8aa4ed6dcb",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/notifier/multiorg_alertmanager.go#L205-L214",
+      "text": "\t// Set up the default per tenant Alertmanager factory.\n\tmoa.factory = func(ctx context.Context, orgID int64) (Alertmanager, error) {\n\t\tm := metrics.NewAlertmanagerMetrics(moa.metrics.GetOrCreateOrgRegistry(orgID), l)\n\t\tstateStore := NewFileStore(orgID, kvStore)\n\t\treturn NewAlertmanager(ctx, orgID, moa.settings, moa.configStore, stateStore, moa.peer, moa.decryptFn, moa.ns, m, featureManager, moa.Crypto, notificationHistorian)\n\t}\n\n\tfor _, opt := range opts {\n\t\topt(moa)\n\t}"
+    },
+    "a-org-create": {
+      "path": "pkg/services/ngalert/notifier/multiorg_alertmanager.go",
+      "start_line": 480,
+      "end_line": 493,
+      "excerpt_sha256": "7c245c2ccb650beefaeca2825b6dd308df8836c25a60004a2eea8e48ebaf8c9e",
+      "source_sha256": "cc008a3115d0faba464675e6499e2a4e008d7e05eb01f80edc354e8aa4ed6dcb",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/notifier/multiorg_alertmanager.go#L480-L493",
+      "text": "\t\talertmanager, found := moa.alertmanagers[orgID]\n\n\t\tif !found {\n\t\t\t// These metrics are not exported by Grafana and are mostly a placeholder.\n\t\t\t// To export them, we need to translate the metrics from each individual registry and,\n\t\t\t// then aggregate them on the main registry.\n\t\t\tam, err := moa.factory(ctx, orgID)\n\t\t\tif err != nil {\n\t\t\t\tmoa.logger.Error(\"Unable to create Alertmanager for org\", \"org\", orgID, \"error\", err)\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tmoa.alertmanagers[orgID] = am\n\t\t\talertmanager = am\n\t\t}"
+    },
+    "a-org-lookup": {
+      "path": "pkg/services/ngalert/notifier/multiorg_alertmanager.go",
+      "start_line": 614,
+      "end_line": 628,
+      "excerpt_sha256": "ee7164f2b1a114db8be30008799ff471106017c3c02de953d98f6d4e941e717b",
+      "source_sha256": "cc008a3115d0faba464675e6499e2a4e008d7e05eb01f80edc354e8aa4ed6dcb",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/notifier/multiorg_alertmanager.go#L614-L628",
+      "text": "func (moa *MultiOrgAlertmanager) AlertmanagerFor(orgID int64) (Alertmanager, error) {\n\tmoa.alertmanagersMtx.RLock()\n\tdefer moa.alertmanagersMtx.RUnlock()\n\n\torgAM, existing := moa.alertmanagers[orgID]\n\tif !existing {\n\t\treturn nil, ErrNoAlertmanagerForOrg\n\t}\n\n\tif !orgAM.Ready() {\n\t\treturn orgAM, ErrAlertmanagerNotReady\n\t}\n\n\treturn orgAM, nil\n}"
+    },
+    "a-remote-sender-binding": {
+      "path": "pkg/services/ngalert/remote/alertmanager.go",
+      "start_line": 181,
+      "end_line": 218,
+      "excerpt_sha256": "8b3b25209cf857c7473b0d6b98b9175724fa34e70a01042080c351bea165f7e1",
+      "source_sha256": "81885c7116a4ddb9bc9304fb17896c9fe97a82f2e33b309536e4fe01f112c98d",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/remote/alertmanager.go#L181-L218",
+      "text": "\t// Configure and start the components that sends alerts.\n\tc := amc.GetAuthedClient()\n\tdoFunc := func(ctx context.Context, _ *http.Client, req *http.Request) (*http.Response, error) {\n\t\treturn c.Do(req.WithContext(ctx))\n\t}\n\tsenderLogger := log.New(\"ngalert.sender.external-alertmanager\")\n\tsenderOpts := []sender.Option{\n\t\tsender.WithDoFunc(doFunc),\n\t\tsender.WithUTF8Labels(),\n\t}\n\tif cfg.MaxLabelStringSize > 0 {\n\t\tsenderOpts = append(senderOpts, sender.WithMaxLabelStringSize(cfg.MaxLabelStringSize))\n\t}\n\ts, err := sender.NewExternalAlertmanagerSender(\n\t\tsenderLogger,\n\t\tprometheus.NewRegistry(),\n\t\tsenderOpts...,\n\t)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\ts.Run()\n\terr = s.ApplyConfig(cfg.OrgID, 0, []sender.ExternalAMcfg{{URL: cfg.URL + \"/alertmanager\", Timeout: cfg.Timeout}})\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\n\tam := &Alertmanager{\n\t\tamClient:      amc,\n\t\tcrypto:        crypto,\n\t\tdefaultConfig: cfg.DefaultConfig,\n\n\t\tlog:          logger,\n\t\tmetrics:      metrics,\n\t\tmimirClient:  mc,\n\t\torgID:        cfg.OrgID,\n\t\tstate:        store,\n\t\tsender:       s,"
+    },
+    "a-remote-put": {
+      "path": "pkg/services/ngalert/remote/alertmanager.go",
+      "start_line": 579,
+      "end_line": 593,
+      "excerpt_sha256": "27fa3502772f201721942d0819d04849164700cfc05be94fe8f6c27329318abb",
+      "source_sha256": "81885c7116a4ddb9bc9304fb17896c9fe97a82f2e33b309536e4fe01f112c98d",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/remote/alertmanager.go#L579-L593",
+      "text": "func (am *Alertmanager) PutAlerts(ctx context.Context, alerts apimodels.PostableAlerts) error {\n\tfor _, a := range alerts.PostableAlerts {\n\t\tfor k, v := range a.Labels {\n\t\t\t// The Grafana Alertmanager skips empty-name, empty-value, and namespace UID labels.\n\t\t\t// To get the same alert fingerprint we need to remove these labels too.\n\t\t\t// https://github.com/grafana/alerting/blob/d7fe949135639051472a18db58b764467fa8859b/notify/grafana_alertmanager.go#L966-L968\n\t\t\tif len(k) == 0 || len(v) == 0 || k == alertingModels.NamespaceUIDLabel {\n\t\t\t\tdelete(a.Labels, k)\n\t\t\t}\n\t\t}\n\t}\n\tam.log.Debug(\"Sending alerts to a remote alertmanager\", \"url\", am.url, \"alerts\", len(alerts.PostableAlerts))\n\tam.sender.SendAlerts(alerts)\n\treturn nil\n}"
+    },
+    "a-remote-primary-factory": {
+      "path": "pkg/services/ngalert/remote/remote_primary_forked_alertmanager.go",
+      "start_line": 28,
+      "end_line": 56,
+      "excerpt_sha256": "009b3256f77514fd8f66cf33ce564be609b8fffa7c62a640f3f8432cf1856d30",
+      "source_sha256": "16313891fa90e88e6a5779f4b44684c6c1dfdc6e5ad3f79d0519171302e95ad9",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/remote/remote_primary_forked_alertmanager.go#L28-L56",
+      "text": "func NewRemotePrimaryFactory(\n\tcfg AlertmanagerConfig,\n\tstore kvstore.KVStore,\n\tcrypto Crypto,\n\tm *metrics.RemoteAlertmanager,\n\tt tracing.Tracer,\n\tfeatures featuremgmt.FeatureToggles,\n) func(notifier.OrgAlertmanagerFactory) notifier.OrgAlertmanagerFactory {\n\treturn func(factoryFn notifier.OrgAlertmanagerFactory) notifier.OrgAlertmanagerFactory {\n\t\treturn func(ctx context.Context, orgID int64) (notifier.Alertmanager, error) {\n\t\t\t// Create the internal Alertmanager.\n\t\t\tinternalAM, err := factoryFn(ctx, orgID)\n\t\t\tif err != nil {\n\t\t\t\treturn nil, err\n\t\t\t}\n\n\t\t\t// Create the remote Alertmanager.\n\t\t\tcfg.OrgID = orgID\n\t\t\tcfg.PromoteConfig = true\n\t\t\tl := log.New(\"ngalert.forked-alertmanager.remote-primary\")\n\t\t\tremoteAM, err := NewAlertmanager(ctx, cfg, notifier.NewFileStore(cfg.OrgID, store), crypto, m, t, features)\n\t\t\tif err != nil {\n\t\t\t\tl.Error(\"Failed to create remote Alertmanager, falling back to using only the internal one\", \"err\", err)\n\t\t\t\treturn internalAM, nil\n\t\t\t}\n\n\t\t\t// Use both implementations in the forked Alertmanager.\n\t\t\treturn newRemotePrimaryForkedAlertmanager(l, internalAM, remoteAM), nil\n\t\t}"
+    },
+    "a-remote-primary-put": {
+      "path": "pkg/services/ngalert/remote/remote_primary_forked_alertmanager.go",
+      "start_line": 111,
+      "end_line": 113,
+      "excerpt_sha256": "24a48c636f3a2de17583d649f195924337009ee5fe26ddbdec7b5f6c5f557e7f",
+      "source_sha256": "16313891fa90e88e6a5779f4b44684c6c1dfdc6e5ad3f79d0519171302e95ad9",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/remote/remote_primary_forked_alertmanager.go#L111-L113",
+      "text": "func (fam *RemotePrimaryForkedAlertmanager) PutAlerts(ctx context.Context, alerts apimodels.PostableAlerts) error {\n\treturn fam.remote.PutAlerts(ctx, alerts)\n}"
+    },
+    "a-remote-secondary-put": {
+      "path": "pkg/services/ngalert/remote/remote_secondary_forked_alertmanager.go",
+      "start_line": 217,
+      "end_line": 219,
+      "excerpt_sha256": "e10cc1d1bb8d4663f7de8ef20cf00ef31ddcf0c455601c1ab3092b60d5e99a22",
+      "source_sha256": "4cc9ea4a1f3f4a5429c8b1f4a55eb8c9b18a7679e639d8d638f69eb3845b2ed7",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/remote/remote_secondary_forked_alertmanager.go#L217-L219",
+      "text": "func (fam *RemoteSecondaryForkedAlertmanager) PutAlerts(ctx context.Context, alerts apimodels.PostableAlerts) error {\n\treturn fam.internal.PutAlerts(ctx, alerts)\n}"
+    },
+    "a-rule-factory-header": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 56,
+      "end_line": 60,
+      "excerpt_sha256": "a68cd57e5e4adb14d81336c6e9ad9da7bfd9cf6015c1e09efde1af9249ed3784",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L56-L60",
+      "text": "func newRuleFactory(\n\tappURL *url.URL,\n\tdisableGrafanaFolder bool,\n\tretryConfig RetryConfig,\n\tsender AlertsSender,"
+    },
+    "a-rule-sender": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 90,
+      "end_line": 106,
+      "excerpt_sha256": "42df19e4c8739a09b18b73d39c10c5e2bdb9098f87c6896a8660121248f899b4",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L90-L106",
+      "text": "\t\treturn newAlertRule(\n\t\t\tctx,\n\t\t\trf,\n\t\t\tappURL,\n\t\t\tdisableGrafanaFolder,\n\t\t\tretryConfig,\n\t\t\tsender,\n\t\t\tstateManager,\n\t\t\tevalFactory,\n\t\t\tclock,\n\t\t\tmet,\n\t\t\tlogger,\n\t\t\ttracer,\n\t\t\tfeatureToggles,\n\t\t\tevalAppliedHook,\n\t\t\tstopAppliedHook,\n\t\t)"
+    },
+    "a-rule-constructor-header": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 141,
+      "end_line": 142,
+      "excerpt_sha256": "86036504763319af65d4092e2751e0d03cd5856426aac71d36aa6b311f29ba2d",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L141-L142",
+      "text": "func newAlertRule(\n\tparent context.Context,"
+    },
+    "a-rule-sender-parameter": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 147,
+      "end_line": 147,
+      "excerpt_sha256": "b6ca7ba3dafc59c3d0182d9e94a861d9e0a3100d542f0e73a46beb6a6fae1f87",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L147-L147",
+      "text": "\tsender AlertsSender,"
+    },
+    "a-rule-deps": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 162,
+      "end_line": 184,
+      "excerpt_sha256": "f4ddbb74f21fa518055cecd11bd5c10354e10681ee2a3816106a3a7e44d090b8",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L162-L184",
+      "text": "\ta := &alertRule{\n\t\tkey:                  key,\n\t\tcurrentFingerprint:   initialFingerprint,\n\t\tevalCh:               make(chan *Evaluation),\n\t\tupdateCh:             make(chan *Evaluation),\n\t\tctx:                  ctx,\n\t\tstopFn:               stop,\n\t\tappURL:               appURL,\n\t\tdisableGrafanaFolder: disableGrafanaFolder,\n\t\tretryConfig:          retryConfig,\n\t\tclock:                clock,\n\t\tsender:               sender,\n\t\tstateManager:         stateManager,\n\t\tevalFactory:          evalFactory,\n\t\tevalAppliedHook:      evalAppliedHook,\n\t\tstopAppliedHook:      stopAppliedHook,\n\t\tmetrics:              met,\n\t\tlogger:               logger.FromContext(ctx),\n\t\ttracer:               tracer,\n\t\tfeatureToggles:       featureToggles,\n\t}\n\n\treturn a"
+    },
+    "a-evaluation-channel-send": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 206,
+      "end_line": 224,
+      "excerpt_sha256": "a01335f4c6a4b42426b8c9e44e82a0386cfeec80e63ab9c2a550461bf2d129e0",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L206-L224",
+      "text": "func (a *alertRule) Eval(eval *Evaluation) (bool, *Evaluation) {\n\tif a.key.AlertRuleKey != eval.rule.GetKey() {\n\t\t// Make sure that rule has the same key. This should not happen\n\t\tpanic(fmt.Sprintf(\"Invalid rule sent for evaluating. Expected rule key %s, got %s\", a.key.AlertRuleKey, eval.rule.GetKey()))\n\t}\n\t// read the channel in unblocking manner to make sure that there is no concurrent send operation.\n\tvar droppedMsg *Evaluation\n\tselect {\n\tcase droppedMsg = <-a.evalCh:\n\tdefault:\n\t}\n\n\tselect {\n\tcase a.evalCh <- eval:\n\t\treturn true, droppedMsg\n\tcase <-a.ctx.Done():\n\t\treturn false, droppedMsg\n\t}\n}"
+    },
+    "a-evaluation-channel-receive": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 251,
+      "end_line": 280,
+      "excerpt_sha256": "3948f9ee6dc70e6edd650811bea835184a855621f5b2ecea0234a1af222405ba",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L251-L280",
+      "text": "func (a *alertRule) Run() error {\n\tgrafanaCtx := a.ctx\n\ta.logger.Debug(\"Alert rule routine started\")\n\n\tfirstEvalDone := false\n\n\tdefer a.stopApplied()\n\tfor {\n\t\tselect {\n\t\t// used by external services (API) to notify that rule is updated.\n\t\tcase ctx := <-a.updateCh:\n\t\t\tfp := ctx.Fingerprint()\n\t\t\tif a.currentFingerprint == fp {\n\t\t\t\ta.logger.Info(\"Rule's fingerprint has not changed. Skip resetting the state\", \"currentFingerprint\", a.currentFingerprint)\n\t\t\t\tcontinue\n\t\t\t}\n\n\t\t\ta.logger.Info(\"Clearing the state of the rule because it was updated\", \"isPaused\", ctx.rule.IsPaused, \"fingerprint\", fp)\n\t\t\t// clear the state. So the next evaluation will start from the scratch.\n\t\t\ta.resetState(grafanaCtx, ctx.rule, ctx.rule.IsPaused)\n\t\t\ta.currentFingerprint = fp\n\t\t// evalCh - used by the scheduler to signal that evaluation is needed.\n\t\tcase ctx, ok := <-a.evalCh:\n\t\t\tif !ok {\n\t\t\t\ta.logger.Debug(\"Evaluation channel has been closed. Exiting\")\n\t\t\t\treturn nil\n\t\t\t}\n\t\t\tf := ctx.Fingerprint()\n\t\t\tlogger := a.logger.New(\"version\", ctx.rule.Version, \"fingerprint\", f, \"now\", ctx.scheduledAt)\n\t\t\tlogger.Debug(\"Processing tick\")"
+    },
+    "a-evaluate-call": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 348,
+      "end_line": 354,
+      "excerpt_sha256": "926556d836b08f157d3f0a51f97c65d2192ee2b6e24bcaeb11b0bd6ec58d85ea",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L348-L354",
+      "text": "\t\t\t\t\tnextDelay := retryer.NextAttemptIn()\n\t\t\t\t\tshouldRetry := nextDelay != retryStop\n\t\t\t\t\terr := a.evaluate(tracingCtx, ctx, span, shouldRetry, logger)\n\t\t\t\t\t// This is extremely confusing - when we exhaust all retry attempts, or we have no retryable errors\n\t\t\t\t\t// we return nil - so technically, this is meaningless to know whether the evaluation has errors or not.\n\t\t\t\t\tspan.End()\n\t\t\t\t\tif err == nil {"
+    },
+    "a-evaluator-header": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 399,
+      "end_line": 400,
+      "excerpt_sha256": "1eb3a09dc74cd601d5353e0bde9a829ecb8fd65d32d962da1c746c65a0db5fb9",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L399-L400",
+      "text": "func (a *alertRule) evaluate(ctx context.Context, e *Evaluation, span trace.Span, retry bool, logger log.Logger) error {\n\torgID := fmt.Sprint(a.key.OrgID)"
+    },
+    "a-evaluator": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 409,
+      "end_line": 418,
+      "excerpt_sha256": "8488bbcf98112a6acaebf22b9a6d9aace10a93106c8445d6645580f92cbc2b44",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L409-L418",
+      "text": "\tevalCtx := eval.NewContextWithPreviousResults(ctx, SchedulerUserFor(e.rule.OrgID), a.newLoadedMetricsReader(e.rule))\n\truleEval, err := a.evalFactory.Create(evalCtx, e.rule.GetEvalCondition().WithSource(\"scheduler\").WithFolder(e.folderTitle))\n\tvar results eval.Results\n\tvar dur time.Duration\n\tif err != nil {\n\t\tdur = a.clock.Now().Sub(start)\n\t\tlogger.Error(\"Failed to build rule evaluator\", \"error\", err)\n\t} else {\n\t\tresults, err = ruleEval.Evaluate(ctx, e.scheduledAt)\n\t\tdur = a.clock.Now().Sub(start)"
+    },
+    "a-state-callback": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 475,
+      "end_line": 495,
+      "excerpt_sha256": "fa7907d21cd15b85959507c60cef408b5d48e920ea8d9e84d4a9a34896268838",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L475-L495",
+      "text": "\tstart = a.clock.Now()\n\t_, procErr := a.stateManager.ProcessEvalResults(\n\t\tctx,\n\t\te.scheduledAt,\n\t\te.rule,\n\t\tresults,\n\t\tstate.GetRuleExtraLabels(logger, e.rule, e.folderTitle, !a.disableGrafanaFolder, a.featureToggles),\n\t\tfunc(ctx context.Context, statesToSend state.StateTransitions) {\n\t\t\tstart := a.clock.Now()\n\t\t\talerts := a.send(ctx, logger, statesToSend)\n\t\t\tspan.AddEvent(\"results sent\", trace.WithAttributes(\n\t\t\t\tattribute.Int64(\"alerts_sent\", int64(len(alerts.PostableAlerts))),\n\t\t\t))\n\t\t\tsendDuration.Observe(a.clock.Now().Sub(start).Seconds())\n\t\t},\n\t)\n\tif errors.Is(procErr, state.ErrNotReady) {\n\t\tlogger.Warn(\"Skip processing evaluation results because the state cache is not ready\")\n\t\ta.metrics.EvaluationMissed.WithLabelValues(fmt.Sprint(a.key.OrgID), e.rule.Title, \"state_not_warmed\").Inc()\n\t\treturn nil\n\t}"
+    },
+    "a-postable-send": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 501,
+      "end_line": 512,
+      "excerpt_sha256": "07a220c67a2349cfb52ff598488871974b3880e886c04c17c41693c4c54f7de1",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L501-L512",
+      "text": "// send sends alerts for the given state transitions.\nfunc (a *alertRule) send(ctx context.Context, logger log.Logger, states state.StateTransitions) definitions.PostableAlerts {\n\talerts := definitions.PostableAlerts{PostableAlerts: make([]models.PostableAlert, 0, len(states))}\n\tfor _, alertState := range states {\n\t\talerts.PostableAlerts = append(alerts.PostableAlerts, *state.StateToPostableAlert(alertState, a.appURL))\n\t}\n\n\tif len(alerts.PostableAlerts) > 0 {\n\t\tlogger.Debug(\"Sending transitions to notifier\", \"transitions\", len(alerts.PostableAlerts))\n\t\ta.sender.Send(ctx, a.key.AlertRuleKey, alerts)\n\t}\n\treturn alerts"
+    },
+    "a-delete-send": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 385,
+      "end_line": 390,
+      "excerpt_sha256": "f917621bc1ef0ac654b9c402d26709c3d5e268e42e7d2b87a99f51091d0e449a",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L385-L390",
+      "text": "\t\t\tif errors.Is(reason, errRuleDeleted) {\n\t\t\t\t// Clean up the state and send resolved notifications for firing alerts only if the reason for stopping\n\t\t\t\t// the evaluation loop is that the rule was deleted.\n\t\t\t\tstateTransitions := a.stateManager.DeleteStateByRuleUID(ngmodels.WithRuleKey(ctx, a.key.AlertRuleKey), a.key, ngmodels.StateReasonRuleDeleted)\n\t\t\t\ta.expireAndSend(grafanaCtx, stateTransitions)\n\t\t\t\treturn nil"
+    },
+    "a-expire-reset-send": {
+      "path": "pkg/services/ngalert/schedule/alert_rule.go",
+      "start_line": 516,
+      "end_line": 529,
+      "excerpt_sha256": "02f46947fabbdb39a3be2737a599622f1660567aae686d6b2435f8feb3874c17",
+      "source_sha256": "7094dccb29935922dbce59e20a952fca6f1f39d6aa636d9d0337ed8bbc74532e",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/alert_rule.go#L516-L529",
+      "text": "func (a *alertRule) expireAndSend(ctx context.Context, states []state.StateTransition) {\n\texpiredAlerts := state.FromAlertsStateToStoppedAlert(states, a.appURL, a.clock)\n\tif len(expiredAlerts.PostableAlerts) > 0 {\n\t\ta.sender.Send(ctx, a.key.AlertRuleKey, expiredAlerts)\n\t}\n}\n\nfunc (a *alertRule) resetState(ctx context.Context, rule *ngmodels.AlertRule, isPaused bool) {\n\treason := ngmodels.StateReasonUpdated\n\tif isPaused {\n\t\treason = ngmodels.StateReasonPaused\n\t}\n\tstates := a.stateManager.ResetStateByRuleUID(ctx, rule, reason)\n\ta.expireAndSend(ctx, states)"
+    },
+    "a-rule-registry": {
+      "path": "pkg/services/ngalert/schedule/registry.go",
+      "start_line": 36,
+      "end_line": 49,
+      "excerpt_sha256": "49457fe9be2d08cf771e107da331620a7eb440f9342500dab1a037de8ebbd518",
+      "source_sha256": "c92e14c469d94a23bee4ce57ddf5f2c7718d6371fe9743768eabb0407309f6b2",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/registry.go#L36-L49",
+      "text": "// getOrCreate gets a rule routine from registry for the provided rule. If it does not exist, it creates a new one.\n// Returns a pointer to the rule routine and a flag that indicates whether it is a new struct or not.\nfunc (r *ruleRegistry) getOrCreate(context context.Context, rf ruleWithFolder, factory ruleFactory) (Rule, bool) {\n\tr.mu.Lock()\n\tdefer r.mu.Unlock()\n\n\tkey := rf.rule.GetKey()\n\trule, ok := r.rules[key]\n\tif !ok {\n\t\trule = factory.new(context, rf)\n\t\tr.rules[key] = rule\n\t}\n\treturn rule, !ok\n}"
+    },
+    "a-sender-interface": {
+      "path": "pkg/services/ngalert/schedule/schedule.go",
+      "start_line": 36,
+      "end_line": 41,
+      "excerpt_sha256": "c54a195f07ced6a01d2afdf9eaa03141ae2080804063067630ca1a8fb46cf9dd",
+      "source_sha256": "7de42c541d78a89e9bfdfa54d84b2636e261646349d6be343bca7d90621a41f1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/schedule.go#L36-L41",
+      "text": "// AlertsSender is an interface for a service that is responsible for sending notifications to the end-user.\n//\n//go:generate mockery --name AlertsSender --structname AlertsSenderMock --inpackage --filename alerts_sender_mock.go --with-expecter\ntype AlertsSender interface {\n\tSend(ctx context.Context, key ngmodels.AlertRuleKey, alerts definitions.PostableAlerts)\n}"
+    },
+    "a-scheduler-header": {
+      "path": "pkg/services/ngalert/schedule/schedule.go",
+      "start_line": 146,
+      "end_line": 147,
+      "excerpt_sha256": "8a6f1f900334a82ba06463e537b4812ede7e3e473062e7a9745eb1a94efa379b",
+      "source_sha256": "7de42c541d78a89e9bfdfa54d84b2636e261646349d6be343bca7d90621a41f1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/schedule.go#L146-L147",
+      "text": "func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager) *schedule {\n\tconst minMaxAttempts = int64(1)"
+    },
+    "a-sender-binding": {
+      "path": "pkg/services/ngalert/schedule/schedule.go",
+      "start_line": 169,
+      "end_line": 176,
+      "excerpt_sha256": "fdfb006ffa7ae557a67a508e90960f38260eeb675131348f1697cd89e938172d",
+      "source_sha256": "7de42c541d78a89e9bfdfa54d84b2636e261646349d6be343bca7d90621a41f1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/schedule.go#L169-L176",
+      "text": "\t\trrCfg:                  cfg.RecordingRulesCfg,\n\t\tstateManager:           stateManager,\n\t\tminRuleInterval:        cfg.MinRuleInterval,\n\t\tschedulableAlertRules:  alertRulesRegistry{rules: make(map[ngmodels.AlertRuleKey]*ngmodels.AlertRule)},\n\t\talertsSender:           cfg.AlertSender,\n\t\ttracer:                 cfg.Tracer,\n\t\trecordingWriter:        cfg.RecordingWriter,\n\t\truleStopReasonProvider: cfg.RuleStopReasonProvider,"
+    },
+    "a-rule-factory": {
+      "path": "pkg/services/ngalert/schedule/schedule.go",
+      "start_line": 314,
+      "end_line": 330,
+      "excerpt_sha256": "1b6a15367c8c5525d442b6e82e586d64d609106fbaf16c54a3c26e2a04b9eb71",
+      "source_sha256": "7de42c541d78a89e9bfdfa54d84b2636e261646349d6be343bca7d90621a41f1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/schedule.go#L314-L330",
+      "text": "\truleFactory := newRuleFactory(\n\t\tsch.appURL,\n\t\tsch.disableGrafanaFolder,\n\t\tsch.retryConfig,\n\t\tsch.alertsSender,\n\t\tsch.stateManager,\n\t\tsch.evaluatorFactory,\n\t\tsch.clock,\n\t\tsch.rrCfg,\n\t\tsch.metrics,\n\t\tsch.log,\n\t\tsch.tracer,\n\t\tsch.featureToggles,\n\t\tsch.recordingWriter,\n\t\tsch.evalAppliedFunc,\n\t\tsch.stopAppliedFunc,\n\t)"
+    },
+    "a-rule-registry-call": {
+      "path": "pkg/services/ngalert/schedule/schedule.go",
+      "start_line": 345,
+      "end_line": 346,
+      "excerpt_sha256": "5f610d409ce306460685fd85009225ed6436109b5934dc59ea0741d592a72a6d",
+      "source_sha256": "7de42c541d78a89e9bfdfa54d84b2636e261646349d6be343bca7d90621a41f1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/schedule.go#L345-L346",
+      "text": "\t\trf := ruleWithFolder{rule: item, folderTitle: folderTitle}\n\t\truleRoutine, newRoutine := sch.registry.getOrCreate(ctx, rf, ruleFactory)"
+    },
+    "a-rule-goroutine": {
+      "path": "pkg/services/ngalert/schedule/schedule.go",
+      "start_line": 364,
+      "end_line": 368,
+      "excerpt_sha256": "361f3260546a9a4c24e653e7d3083d20a9fbb14afa6ec68be1c776ff499ba606",
+      "source_sha256": "7de42c541d78a89e9bfdfa54d84b2636e261646349d6be343bca7d90621a41f1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/schedule.go#L364-L368",
+      "text": "\t\tif newRoutine && !invalidInterval {\n\t\t\tdispatcherGroup.Go(func() error {\n\t\t\t\treturn ruleRoutine.Run()\n\t\t\t})\n\t\t}"
+    },
+    "a-evaluation-job": {
+      "path": "pkg/services/ngalert/schedule/schedule.go",
+      "start_line": 436,
+      "end_line": 444,
+      "excerpt_sha256": "c5882e3bcab94c0a2717ee38750cbaffa1911cf1fac46abbdc2c58c9ef45ce17",
+      "source_sha256": "7de42c541d78a89e9bfdfa54d84b2636e261646349d6be343bca7d90621a41f1",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/schedule/schedule.go#L436-L444",
+      "text": "// runJobFn sends the scheduled evaluation to the evaluation routine, optionally with a previous item to log the trigger source.\nfunc (sch *schedule) runJobFn(next readyToRunItem, prev ...readyToRunItem) func() {\n\treturn func() {\n\t\tif len(prev) > 0 {\n\t\t\tsch.log.Debug(\"Rule evaluation triggered by previous rule\", append(next.rule.GetKey().LogContext(), \"previousRule\", prev[0].rule.UID)...)\n\t\t}\n\t\tkey := next.rule.GetKey()\n\t\tsuccess, dropped := next.ruleRoutine.Eval(&next.Evaluation)\n\t\tif !success {"
+    },
+    "a-http-default": {
+      "path": "pkg/services/ngalert/sender/notifier.go",
+      "start_line": 145,
+      "end_line": 166,
+      "excerpt_sha256": "480c23e6ef2ff3d75a01ef4ec12fee7877ff78209a27fc718cdcc9d75bf9d32e",
+      "source_sha256": "0d879591fcb5607e2d6197462a379a174b0f4a5c2cdf6ec1623b69289a14d51a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier.go#L145-L166",
+      "text": "// NewManager is the manager constructor.\nfunc NewManager(o *Options, logger *slog.Logger) *Manager {\n\tif o.Do == nil {\n\t\to.Do = do\n\t}\n\t// Set default MaxBatchSize if not provided.\n\tif o.MaxBatchSize <= 0 {\n\t\to.MaxBatchSize = DefaultMaxBatchSize\n\t}\n\tif logger == nil {\n\t\tlogger = promslog.NewNopLogger()\n\t}\n\n\tn := &Manager{\n\t\tqueue:         make([]*Alert, 0, o.QueueCapacity),\n\t\tmore:          make(chan struct{}, 1),\n\t\tstopRequested: make(chan struct{}),\n\t\tstopOnce:      &sync.Once{},\n\t\topts:          o,\n\t\tlogger:        logger,\n\t}\n"
+    },
+    "a-send-goroutine": {
+      "path": "pkg/services/ngalert/sender/notifier.go",
+      "start_line": 209,
+      "end_line": 226,
+      "excerpt_sha256": "d38ec20971fcf3702dd857e7a56f907ac39ba8bd8efcb0e32955fb6f50da3252",
+      "source_sha256": "0d879591fcb5607e2d6197462a379a174b0f4a5c2cdf6ec1623b69289a14d51a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier.go#L209-L226",
+      "text": "func (n *Manager) Run(tsets <-chan map[string][]*targetgroup.Group) {\n\twg := sync.WaitGroup{}\n\twg.Add(2)\n\n\tgo func() {\n\t\tdefer wg.Done()\n\t\tn.targetUpdateLoop(tsets)\n\t}()\n\n\tgo func() {\n\t\tdefer wg.Done()\n\t\tn.sendLoop()\n\t\tn.drainQueue()\n\t}()\n\n\twg.Wait()\n\tn.logger.Info(\"Notification manager stopped\")\n}"
+    },
+    "a-send-loop": {
+      "path": "pkg/services/ngalert/sender/notifier.go",
+      "start_line": 228,
+      "end_line": 251,
+      "excerpt_sha256": "581c1dbe8d19a9e1f53a8042b13793339e032b195cd90e886877233e6480a571",
+      "source_sha256": "0d879591fcb5607e2d6197462a379a174b0f4a5c2cdf6ec1623b69289a14d51a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier.go#L228-L251",
+      "text": "// sendLoop continuously consumes the notifications queue and sends alerts to\n// the configured Alertmanagers.\nfunc (n *Manager) sendLoop() {\n\tfor {\n\t\t// If we've been asked to stop, that takes priority over sending any further notifications.\n\t\tselect {\n\t\tcase <-n.stopRequested:\n\t\t\treturn\n\t\tdefault:\n\t\t\tselect {\n\t\t\tcase <-n.stopRequested:\n\t\t\t\treturn\n\n\t\t\tcase <-n.more:\n\t\t\t\tn.sendOneBatch()\n\n\t\t\t\t// If the queue still has items left, kick off the next iteration.\n\t\t\t\tif n.queueLen() > 0 {\n\t\t\t\t\tn.setMore()\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}"
+    },
+    "a-send-batch": {
+      "path": "pkg/services/ngalert/sender/notifier.go",
+      "start_line": 271,
+      "end_line": 277,
+      "excerpt_sha256": "069d563626e2b3b8ab366b3074ea1c5831d8ddd14a35b70861612c769fe4046d",
+      "source_sha256": "0d879591fcb5607e2d6197462a379a174b0f4a5c2cdf6ec1623b69289a14d51a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier.go#L271-L277",
+      "text": "func (n *Manager) sendOneBatch() {\n\talerts := n.nextBatch()\n\n\tif !n.sendAll(alerts...) {\n\t\tn.metrics.dropped.Add(float64(len(alerts)))\n\t}\n}"
+    },
+    "a-send-queue": {
+      "path": "pkg/services/ngalert/sender/notifier.go",
+      "start_line": 312,
+      "end_line": 344,
+      "excerpt_sha256": "a8142602040b621881bfa353fb5207f94093715be2470e48aae1a67eda9b8d13",
+      "source_sha256": "0d879591fcb5607e2d6197462a379a174b0f4a5c2cdf6ec1623b69289a14d51a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier.go#L312-L344",
+      "text": "// Send queues the given notification requests for processing.\n// Panics if called on a handler that is not running.\nfunc (n *Manager) Send(alerts ...*Alert) {\n\tn.mtx.Lock()\n\tdefer n.mtx.Unlock()\n\n\talerts = relabelAlerts(n.opts.RelabelConfigs, n.opts.ExternalLabels, alerts)\n\tif len(alerts) == 0 {\n\t\treturn\n\t}\n\n\t// Queue capacity should be significantly larger than a single alert\n\t// batch could be.\n\tif d := len(alerts) - n.opts.QueueCapacity; d > 0 {\n\t\talerts = alerts[d:]\n\n\t\tn.logger.Warn(\"Alert batch larger than queue capacity, dropping alerts\", \"num_dropped\", d)\n\t\tn.metrics.dropped.Add(float64(d))\n\t}\n\n\t// If the queue is full, remove the oldest alerts in favor\n\t// of newer ones.\n\tif d := (len(n.queue) + len(alerts)) - n.opts.QueueCapacity; d > 0 {\n\t\tn.queue = n.queue[d:]\n\n\t\tn.logger.Warn(\"Alert notification queue full, dropping alerts\", \"num_dropped\", d)\n\t\tn.metrics.dropped.Add(float64(d))\n\t}\n\tn.queue = append(n.queue, alerts...)\n\n\t// Notify sending goroutine that there are alerts to be processed.\n\tn.setMore()\n}"
+    },
+    "a-queue-signal": {
+      "path": "pkg/services/ngalert/sender/notifier.go",
+      "start_line": 368,
+      "end_line": 376,
+      "excerpt_sha256": "56abb48ce5f9f9704f403324977a73b9a1adefe77b780d97e4574e12f10e7c4b",
+      "source_sha256": "0d879591fcb5607e2d6197462a379a174b0f4a5c2cdf6ec1623b69289a14d51a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier.go#L368-L376",
+      "text": "// setMore signals that the alert queue has items.\nfunc (n *Manager) setMore() {\n\t// If we cannot send on the channel, it means the signal already exists\n\t// and has not been consumed yet.\n\tselect {\n\tcase n.more <- struct{}{}:\n\tdefault:\n\t}\n}"
+    },
+    "a-http-do": {
+      "path": "pkg/services/ngalert/sender/notifier_ext.go",
+      "start_line": 136,
+      "end_line": 141,
+      "excerpt_sha256": "5d8722d666abac6e9c078fecd57049d50ac8e9487358004b957b5fac8ee6bc37",
+      "source_sha256": "ad0a030aaf8efc4facf397d6b99420128e976db96bd3b5cff75af2df109821ac",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier_ext.go#L136-L141",
+      "text": "func do(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {\n\tif client == nil {\n\t\tclient = httpclient.New()\n\t}\n\treturn client.Do(req.WithContext(ctx))\n}"
+    },
+    "a-send-all-header": {
+      "path": "pkg/services/ngalert/sender/notifier_ext.go",
+      "start_line": 231,
+      "end_line": 232,
+      "excerpt_sha256": "d5c79eb69cb646e65a5f3ea1e059d7e969f57cdc844400d9bb119777f6b987ca",
+      "source_sha256": "ad0a030aaf8efc4facf397d6b99420128e976db96bd3b5cff75af2df109821ac",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier_ext.go#L231-L232",
+      "text": "func (n *Manager) sendAll(alerts ...*Alert) bool {\n\tif len(alerts) == 0 {"
+    },
+    "a-send-all": {
+      "path": "pkg/services/ngalert/sender/notifier_ext.go",
+      "start_line": 307,
+      "end_line": 330,
+      "excerpt_sha256": "23b1cb09da348853b7680707f992d4dea4ac4781b84c31ac08fb351298f75052",
+      "source_sha256": "ad0a030aaf8efc4facf397d6b99420128e976db96bd3b5cff75af2df109821ac",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier_ext.go#L307-L330",
+      "text": "\t\t// Being here means len(ams.ams) > 0\n\t\tamSetCovered.Store(k, false)\n\t\tfor _, am := range ams.ams {\n\t\t\twg.Add(1)\n\n\t\t\tctx, cancel := context.WithTimeout(context.Background(), time.Duration(ams.cfg.Timeout))\n\t\t\tdefer cancel()\n\n\t\t\t// Extension: added headers and dataSourceUID parameters/labels.\n\t\t\tgo func(ctx context.Context, k string, client *http.Client, url string, payload []byte, count int, headers http.Header, dsUID string) {\n\t\t\t\terr := n.sendOne(ctx, client, url, payload, headers)\n\t\t\t\tif err != nil {\n\t\t\t\t\tn.logger.Error(\"Error sending alerts\", \"alertmanager\", url, \"data_source_uid\", dsUID, \"count\", count, \"err\", err)\n\t\t\t\t\tn.metrics.errors.WithLabelValues(url, dsUID).Add(float64(count))\n\t\t\t\t} else {\n\t\t\t\t\tamSetCovered.CompareAndSwap(k, false, true)\n\t\t\t\t}\n\n\t\t\t\tn.metrics.latency.WithLabelValues(url, dsUID).Observe(time.Since(begin).Seconds())\n\t\t\t\tn.metrics.sent.WithLabelValues(url, dsUID).Add(float64(count))\n\n\t\t\t\twg.Done()\n\t\t\t}(ctx, k, ams.client, am.url().String(), payload, len(amAlerts), ams.headers, ams.dataSourceUID)\n\t\t}"
+    },
+    "a-http-post": {
+      "path": "pkg/services/ngalert/sender/notifier_ext.go",
+      "start_line": 352,
+      "end_line": 365,
+      "excerpt_sha256": "df064f17c2c8c868e69e3340f42c16f2f6653abdba5ff2f3f907257d9e7ff40d",
+      "source_sha256": "ad0a030aaf8efc4facf397d6b99420128e976db96bd3b5cff75af2df109821ac",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/notifier_ext.go#L352-L365",
+      "text": "func (n *Manager) sendOne(ctx context.Context, c *http.Client, url string, b []byte, headers http.Header) error {\n\treq, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))\n\tif err != nil {\n\t\treturn err\n\t}\n\treq.Header.Set(\"User-Agent\", userAgent)\n\treq.Header.Set(\"Content-Type\", contentTypeJSON)\n\t// Extension: set headers.\n\tfor k, v := range headers {\n\t\tfor _, vv := range v {\n\t\t\treq.Header.Set(k, vv)\n\t\t}\n\t}\n\tresp, err := n.opts.Do(ctx, c, req)"
+    },
+    "a-router-sender-construction": {
+      "path": "pkg/services/ngalert/sender/router.go",
+      "start_line": 182,
+      "end_line": 190,
+      "excerpt_sha256": "3b98afd810d3eeedb454489c55695c2a5955a44722f6e1da6c1f9c9337530c83",
+      "source_sha256": "30e2c1202ddc1d683a2d0f8597ee230d4eccd4f3bc7b184cac2efba49c3aefd7",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/router.go#L182-L190",
+      "text": "\t\td.logger.Info(\"Creating new sender for the external alertmanagers\", \"org\", cfg.OrgID, \"alertmanagers\", redactedAMs)\n\t\tsenderLogger := log.New(\"ngalert.sender.external-alertmanager\")\n\t\ts, err := NewExternalAlertmanagerSender(senderLogger, d.senderMetrics.GetOrCreateOrgRegistry(cfg.OrgID))\n\t\tif err != nil {\n\t\t\td.adminConfigMtx.Unlock()\n\t\t\treturn err\n\t\t}\n\t\td.externalAlertmanagers[cfg.OrgID] = s\n\t\ts.Run()"
+    },
+    "a-router-internal": {
+      "path": "pkg/services/ngalert/sender/router.go",
+      "start_line": 365,
+      "end_line": 388,
+      "excerpt_sha256": "070ef41bef2b0626b06c505f5462f22f2702630128a1e15d1d4a5f7f6eef7be2",
+      "source_sha256": "30e2c1202ddc1d683a2d0f8597ee230d4eccd4f3bc7b184cac2efba49c3aefd7",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/router.go#L365-L388",
+      "text": "func (d *AlertsRouter) Send(ctx context.Context, key models.AlertRuleKey, alerts definitions.PostableAlerts) {\n\tlogger := d.logger.New(key.LogContext()...)\n\tif len(alerts.PostableAlerts) == 0 {\n\t\tlogger.Info(\"No alerts to notify about\")\n\t\treturn\n\t}\n\t// Send alerts to local notifier if they need to be handled internally\n\t// or if no external AMs have been discovered yet.\n\td.adminConfigMtx.RLock()\n\tdefer d.adminConfigMtx.RUnlock()\n\tvar localNotifierExist, externalNotifierExist bool\n\tif d.sendAlertsTo[key.OrgID] == models.ExternalAlertmanagers && len(d.alertmanagersFor(key.OrgID)) > 0 {\n\t\tlogger.Debug(\"All alerts for the given org should be routed to external notifiers only. skipping the internal notifier.\")\n\t} else {\n\t\tlogger.Info(\"Sending alerts to local notifier\", \"count\", len(alerts.PostableAlerts))\n\t\tn, err := d.multiOrgNotifier.AlertmanagerFor(key.OrgID)\n\t\tif err == nil {\n\t\t\tlocalNotifierExist = true\n\t\t\tif err := n.PutAlerts(ctx, alerts); err != nil {\n\t\t\t\tlogger.Error(\"Failed to put alerts in the local notifier\", \"count\", len(alerts.PostableAlerts), \"error\", err)\n\t\t\t}\n\t\t\tif d.broadcastAlerts {\n\t\t\t\td.multiOrgNotifier.BroadcastAlerts(key.OrgID, alerts)\n\t\t\t}"
+    },
+    "a-router-external": {
+      "path": "pkg/services/ngalert/sender/router.go",
+      "start_line": 398,
+      "end_line": 410,
+      "excerpt_sha256": "2001d5e15683c9fcf76b9565a30bbf9e4db5943fbc1150a703c5841089453193",
+      "source_sha256": "30e2c1202ddc1d683a2d0f8597ee230d4eccd4f3bc7b184cac2efba49c3aefd7",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/router.go#L398-L410",
+      "text": "\t// Send alerts to external Alertmanager(s) if we have a sender for this organization\n\t// and alerts are not being handled just internally.\n\ts, ok := d.externalAlertmanagers[key.OrgID]\n\tif ok && d.sendAlertsTo[key.OrgID] != models.InternalAlertmanager {\n\t\tlogger.Info(\"Sending alerts to external notifier\", \"count\", len(alerts.PostableAlerts))\n\t\ts.SendAlerts(alerts)\n\t\texternalNotifierExist = true\n\t}\n\n\tif !localNotifierExist && !externalNotifierExist {\n\t\tlogger.Error(\"No external or internal notifier - alerts not delivered\", \"count\", len(alerts.PostableAlerts))\n\t}\n}"
+    },
+    "a-do-option": {
+      "path": "pkg/services/ngalert/sender/sender.go",
+      "start_line": 81,
+      "end_line": 85,
+      "excerpt_sha256": "66376f36b47740e2d055690085f7544ea3c6008aa94f9eff4f10ae0833af381a",
+      "source_sha256": "b4792e99e70a3d31effbf90a4883a7f1d32ceba08d5e0402aaa89ab32361e601",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/sender.go#L81-L85",
+      "text": "func WithDoFunc(doFunc doFunc) Option {\n\treturn func(opts *ExternalAMOptions) {\n\t\topts.Do = doFunc\n\t}\n}"
+    },
+    "a-external-manager-binding": {
+      "path": "pkg/services/ngalert/sender/sender.go",
+      "start_line": 180,
+      "end_line": 189,
+      "excerpt_sha256": "c453eff429cbc9bcb897c460a59b10d8bfcf28a0ba563492cd018a6326432547",
+      "source_sha256": "b4792e99e70a3d31effbf90a4883a7f1d32ceba08d5e0402aaa89ab32361e601",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/sender.go#L180-L189",
+      "text": "\tif options.sanitizeLabelSetFn == nil {\n\t\toptions.sanitizeLabelSetFn = s.sanitizeLabelSet\n\t}\n\n\ts.manager = NewManager(\n\t\t// Injecting a new registry here means these metrics are not exported.\n\t\t// Once we fix the individual Alertmanager metrics we should fix this scenario too.\n\t\t&options.Options,\n\t\ttoSlogLogger(s.logger),\n\t)"
+    },
+    "a-external-manager-run": {
+      "path": "pkg/services/ngalert/sender/sender.go",
+      "start_line": 228,
+      "end_line": 245,
+      "excerpt_sha256": "76afb2eb4df48389428e480a5c3fa593c76fb8f0cad62354f2c6ec88b7ca27d9",
+      "source_sha256": "b4792e99e70a3d31effbf90a4883a7f1d32ceba08d5e0402aaa89ab32361e601",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/sender.go#L228-L245",
+      "text": "func (s *ExternalAlertmanager) Run() {\n\tlogger := s.logger\n\ts.wg.Add(2)\n\n\tgo func() {\n\t\tlogger.Info(\"Initiating communication with a group of external Alertmanagers\")\n\n\t\tif err := s.sdManager.Run(); err != nil {\n\t\t\tlogger.Error(\"Failed to start the sender service discovery manager\", \"error\", err)\n\t\t}\n\t\ts.wg.Done()\n\t}()\n\n\tgo func() {\n\t\ts.manager.Run(s.sdManager.SyncCh())\n\t\ts.wg.Done()\n\t}()\n}"
+    },
+    "a-external-send": {
+      "path": "pkg/services/ngalert/sender/sender.go",
+      "start_line": 248,
+      "end_line": 268,
+      "excerpt_sha256": "d33a24151484863f53d7a5bf3789eff68623f7d90a2c62cd1975f8b500f16d5e",
+      "source_sha256": "b4792e99e70a3d31effbf90a4883a7f1d32ceba08d5e0402aaa89ab32361e601",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/sender/sender.go#L248-L268",
+      "text": "func (s *ExternalAlertmanager) SendAlerts(alerts apimodels.PostableAlerts) {\n\tif len(alerts.PostableAlerts) == 0 {\n\t\treturn\n\t}\n\tas := make([]*Alert, 0, len(alerts.PostableAlerts))\n\tfor _, a := range alerts.PostableAlerts {\n\t\tna := s.alertToNotifierAlert(a)\n\t\tas = append(as, na)\n\n\t\ts.logger.Debug(\n\t\t\t\"Sending alert\",\n\t\t\t\"alert\",\n\t\t\tna.String(),\n\t\t\t\"starts_at\",\n\t\t\tna.StartsAt,\n\t\t\t\"ends_at\",\n\t\t\tna.EndsAt)\n\t}\n\n\ts.manager.Send(as...)\n}"
+    },
+    "a-state-readiness": {
+      "path": "pkg/services/ngalert/state/manager.go",
+      "start_line": 343,
+      "end_line": 361,
+      "excerpt_sha256": "03fc835e3056f773dde07b616a445649adb3b116bbbf7727c87f4f6c1014e774",
+      "source_sha256": "b63d398f19398d0c186b763f7f57c02f920b4747bc0d95f40717dd4951d34580",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/state/manager.go#L343-L361",
+      "text": "func (st *Manager) ProcessEvalResults(\n\tctx context.Context,\n\tevaluatedAt time.Time,\n\talertRule *ngModels.AlertRule,\n\tresults eval.Results,\n\textraLabels data.Labels,\n\tsend Sender,\n) (StateTransitions, error) {\n\tlogger := st.log.FromContext(ctx)\n\n\t// Don't apply results to a cold cache, or we write spurious transitions to state history.\n\tswitch st.readiness.Ready() {\n\tcase Ready:\n\t\t// Cache is warm (or gating is disabled) — process normally.\n\tcase NotReady:\n\t\treturn nil, ErrNotReady\n\tcase TimedOut:\n\t\tlogger.Warn(\"Processing evaluation results before the state cache is ready; readiness grace period elapsed\")\n\t}"
+    },
+    "a-state-selection-callback": {
+      "path": "pkg/services/ngalert/state/manager.go",
+      "start_line": 396,
+      "end_line": 425,
+      "excerpt_sha256": "8c5d9e606363e71d4806d6a23fe3d87412ab4bf7d4bbbb951598094cfe811df9",
+      "source_sha256": "b63d398f19398d0c186b763f7f57c02f920b4747bc0d95f40717dd4951d34580",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/ngalert/state/manager.go#L396-L425",
+      "text": "\tlogger.Debug(\"State manager processing evaluation results\", \"resultCount\", len(results))\n\tstates := st.setNextStateForRule(ctx, alertRule, results, extraLabels, logger, fn, evaluatedAt)\n\n\tmissingSeriesStates, staleCount := st.processMissingSeriesStates(logger, evaluatedAt, alertRule, fn)\n\tspan.AddEvent(\"results processed\", trace.WithAttributes(\n\t\tattribute.Int(\"state_transitions\", len(states)),\n\t\tattribute.Int(\"stale_states\", staleCount),\n\t))\n\n\tallChanges := StateTransitions(append(states, missingSeriesStates...))\n\n\t// It's important that this is done *before* we sync the states to the persister. Otherwise, we will not persist\n\t// the LastSentAt field to the store.\n\tvar statesToSend StateTransitions\n\tif send != nil {\n\t\tstatesToSend = st.updateLastSentAt(allChanges, evaluatedAt)\n\t}\n\n\tst.persister.Sync(ctx, span, alertRule.GetKeyWithGroup(), allChanges)\n\tif st.historian != nil {\n\t\tst.historian.Record(ctx, history_model.NewRuleMeta(alertRule, logger), allChanges)\n\t}\n\n\t// Optional callback intended for sending the states to an alertmanager.\n\t// Some uses ,such as backtesting or the testing api, do not send.\n\tif send != nil {\n\t\tsend(ctx, statesToSend)\n\t}\n\n\treturn allChanges, nil"
+    },
+    "l-client-wire": {
+      "path": "pkg/services/pluginsintegration/pluginsintegration.go",
+      "start_line": 145,
+      "end_line": 153,
+      "excerpt_sha256": "1c9212ea2df535497e61b4b1ca69ffbee1eb318b19c8d8b7a513e4dab8c28f33",
+      "source_sha256": "89d4daed057b0185a3f4dcb7f6da639aab4bee50f1033530ea035f648c527e53",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/pluginsintegration/pluginsintegration.go#L145-L153",
+      "text": "// WireExtensionSet provides a wire.ProviderSet of plugin providers that can be\n// extended.\nvar WireExtensionSet = wire.NewSet(\n\tcoreplugin.ProvideCoreProvider,\n\tsignature.ProvideOSSAuthorizer,\n\twire.Bind(new(plugins.PluginLoaderAuthorizer), new(*signature.UnsignedPluginAuthorizer)),\n\tProvideClientWithMiddlewares,\n\twire.Bind(new(plugins.Client), new(*backend.MiddlewareHandler)),\n\tmanagedplugins.NewNoop,"
+    },
+    "l-client-middlewares": {
+      "path": "pkg/services/pluginsintegration/pluginsintegration.go",
+      "start_line": 166,
+      "end_line": 187,
+      "excerpt_sha256": "1cffa635b57b8065a6c1453bd6999680e6b69269c5121511f29783869cb84646",
+      "source_sha256": "89d4daed057b0185a3f4dcb7f6da639aab4bee50f1033530ea035f648c527e53",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/pkg/services/pluginsintegration/pluginsintegration.go#L166-L187",
+      "text": "func ProvideClientWithMiddlewares(\n\tcfg *setting.Cfg,\n\tpluginRegistry registry.Service,\n\toAuthTokenService oauthtoken.OAuthTokenService,\n\ttracer tracing.Tracer,\n\tcachingServiceClient *caching.CachingServiceClient,\n\tfeatures featuremgmt.FeatureToggles,\n\tpromRegisterer prometheus.Registerer,\n) (*backend.MiddlewareHandler, error) {\n\treturn NewMiddlewareHandler(cfg, pluginRegistry, oAuthTokenService, tracer, cachingServiceClient, features, promRegisterer, pluginRegistry)\n}\n\nfunc NewMiddlewareHandler(\n\tcfg *setting.Cfg,\n\tpluginRegistry registry.Service, oAuthTokenService oauthtoken.OAuthTokenService,\n\ttracer tracing.Tracer, cachingServiceClient *caching.CachingServiceClient, features featuremgmt.FeatureToggles,\n\tpromRegisterer prometheus.Registerer, registry registry.Service,\n) (*backend.MiddlewareHandler, error) {\n\tc := client.ProvideService(pluginRegistry)\n\tmiddlewares := CreateMiddlewares(cfg, oAuthTokenService, tracer, cachingServiceClient, features, promRegisterer, registry)\n\treturn backend.HandlerFromMiddlewares(c, middlewares...)\n}"
+    },
+    "l-app-init": {
+      "path": "public/app/app.ts",
+      "start_line": 231,
+      "end_line": 236,
+      "excerpt_sha256": "8c105aefe5da1440b18cf6201685b29a04866bad54e7e7f446ed0b3a49f3fd2c",
+      "source_sha256": "77d3bd5f8cd69aff59ad8ecab0c37e128bad2856d1b99eb65deb3a95befa0063",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/app.ts#L231-L236",
+      "text": "      setCorrelationsService(new CorrelationsService());\n      setPanelScreenshotService(new PanelScreenshotServiceImpl());\n      setEmbeddedDashboard(EmbeddedDashboardLazy);\n      setTimeZoneResolver(() => contextSrv.user.timezone);\n      initGrafanaLive();\n      setCurrentUser(contextSrv.user);"
+    },
+    "l-data-stream-subscribe": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 129,
+      "end_line": 142,
+      "excerpt_sha256": "fd7a414e699d1f7ee5a122c7285a94420594c8ce1490a60fb3e4aaa0f19071c4",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L129-L142",
+      "text": "export class LiveDataStream<T = unknown> {\n  private frameBuffer: StreamingDataFrame;\n  private liveEventsSubscription: Subscription;\n  private stream: Subject<InternalStreamMessage> = new ReplaySubject(1);\n  private shutdownTimeoutId: ReturnType<typeof setTimeout> | undefined;\n\n  constructor(private deps: DataStreamHandlerDeps<T>) {\n    this.frameBuffer = StreamingDataFrame.empty(deps.defaultStreamingFrameOptions);\n    this.liveEventsSubscription = deps.liveEventsObservable.subscribe({\n      error: this.onError,\n      complete: this.onComplete,\n      next: this.onNext,\n    });\n  }"
+    },
+    "l-data-stream-shutdown": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 144,
+      "end_line": 154,
+      "excerpt_sha256": "2b64111b1fd7628f52a8ca369f9e5145ae816abb09a4f37cd690a347873f2d43",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L144-L154",
+      "text": "  private shutdown = () => {\n    this.stream.complete();\n    this.liveEventsSubscription.unsubscribe();\n    this.deps.onShutdown();\n  };\n\n  private shutdownIfNoSubscribers = () => {\n    if (!this.stream.observed) {\n      this.shutdown();\n    }\n  };"
+    },
+    "l-data-stream-message": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 170,
+      "end_line": 174,
+      "excerpt_sha256": "657f7e04e6070bb5391998bab6f82d7217fcc352b09961134283139e83a7bbcb",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L170-L174",
+      "text": "  private onNext = (evt: LiveChannelEvent) => {\n    if (isLiveChannelMessageEvent(evt)) {\n      this.process(evt.message);\n      return;\n    }"
+    },
+    "l-data-stream-buffer": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 197,
+      "end_line": 210,
+      "excerpt_sha256": "a1311fd475687f2e129bc96a4ddfab7a322b36f26ca3024ba9c36c04afaafd13",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L197-L210",
+      "text": "  private process = (msg: DataFrameJSON) => {\n    const packetInfo = this.frameBuffer.push(msg);\n\n    if (packetInfo.schemaChanged) {\n      this.stream.next({\n        type: InternalStreamMessageType.ChangedSchema,\n      });\n    } else {\n      this.stream.next({\n        type: InternalStreamMessageType.NewValuesSameSchema,\n        values: this.frameBuffer.getValuesFromLastPacket(),\n      });\n    }\n  };"
+    },
+    "l-data-stream-reuse": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 225,
+      "end_line": 237,
+      "excerpt_sha256": "7f4f35d818158d9db0e8af4acd583d4e340f2ca3fe31aae414389fa88d76a6eb",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L225-L237",
+      "text": "  private clearShutdownTimeout = () => {\n    if (this.shutdownTimeoutId) {\n      clearTimeout(this.shutdownTimeoutId);\n      this.shutdownTimeoutId = undefined;\n    }\n  };\n\n  get = (options: LiveDataStreamOptions, subKey: DataStreamSubscriptionKey): Observable<StreamingDataQueryResponse> => {\n    this.clearShutdownTimeout();\n    const buffer = getStreamingFrameOptions(options.buffer);\n\n    this.resizeBuffer(buffer);\n    this.prepareInternalStreamForNewSubscription(options);"
+    },
+    "l-data-stream-transform": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 337,
+      "end_line": 345,
+      "excerpt_sha256": "3a3138c06ac4b1c46c10906d2b405b7b40dad1bb0b96952fc6b5087ad3046d73",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L337-L345",
+      "text": "    const transformedInternalStream = this.stream.pipe(\n      bufferIfNot(this.deps.subscriberReadiness),\n      map((messages, i) => {\n        const errors = filterMessages(messages, InternalStreamMessageType.Error);\n        const lastError = errors.length ? errors[errors.length - 1].error : undefined;\n\n        if (shouldSendFullFrame) {\n          shouldSendFullFrame = false;\n          return getFullFrameResponseData(messages, lastError);"
+    },
+    "l-data-stream-observable": {
+      "path": "public/app/features/live/centrifuge/LiveDataStream.ts",
+      "start_line": 368,
+      "end_line": 389,
+      "excerpt_sha256": "45da0d00f4a5c458edf7ca775429e53dda4fab80583c9bde4bfdaa1685811fe6",
+      "source_sha256": "bcf951d1f5c4f41989b6486acc1a6d2004f4981b2e9224e2a91075685844062c",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/LiveDataStream.ts#L368-L389",
+      "text": "    return new Observable<StreamingDataQueryResponse>((subscriber) => {\n      const sub = transformedInternalStream.subscribe({\n        next: (n) => {\n          subscriber.next(n);\n        },\n        error: (err) => {\n          subscriber.error(err);\n        },\n        complete: () => {\n          subscriber.complete();\n        },\n      });\n\n      return () => {\n        // TODO: potentially resize (downsize) the buffer on unsubscribe\n        sub.unsubscribe();\n        if (!this.stream.observed) {\n          this.clearShutdownTimeout();\n          this.shutdownTimeoutId = setTimeout(this.shutdownIfNoSubscribers, this.deps.shutdownDelayInMs);\n        }\n      };\n    });"
+    },
+    "l-publication-event": {
+      "path": "public/app/features/live/centrifuge/channel.ts",
+      "start_line": 57,
+      "end_line": 75,
+      "excerpt_sha256": "3c1aedda9dc1a64a58e7c74bb66fad37eca4659b437edd3c2d3290ad510bf4f2",
+      "source_sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/channel.ts#L57-L75",
+      "text": "  // This should only be called when centrifuge is connected\n  initalize(): void {\n    if (this.initalized) {\n      throw new Error('Channel already initalized: ' + this.id);\n    }\n    this.initalized = true;\n\n    this.subscription!.on('publication', (ctx: PublicationContext) => {\n      try {\n        if (ctx.data) {\n          if (ctx.data.schema) {\n            this.lastMessageWithSchema = ctx.data;\n          }\n\n          this.stream.next({\n            type: LiveChannelEventType.Message,\n            message: ctx.data,\n          });\n        }"
+    },
+    "l-channel-no-listeners": {
+      "path": "public/app/features/live/centrifuge/channel.ts",
+      "start_line": 134,
+      "end_line": 140,
+      "excerpt_sha256": "3c5ba5ce7975d515c7e3e18a84d890c9fc51c36e9c443c1ad3c38d65ff47bbe1",
+      "source_sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/channel.ts#L134-L140",
+      "text": "  disconnectIfNoListeners = () => {\n    const count = this.stream.observers.length;\n    if (count === 0) {\n      this.disconnect();\n    }\n  };\n"
+    },
+    "l-channel-observable": {
+      "path": "public/app/features/live/centrifuge/channel.ts",
+      "start_line": 144,
+      "end_line": 165,
+      "excerpt_sha256": "ca53ced2ecb7dcad4990055080617b6921a0c49320d818a92bdf0b7e7461b00f",
+      "source_sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/channel.ts#L144-L165",
+      "text": "  getStream() {\n    return new Observable<LiveChannelEvent<T>>((subscriber) => {\n      const initialMessage = { ...this.currentStatus };\n      if (this.lastMessageWithSchema?.schema) {\n        // send just schema instead of schema+data to avoid having data gaps\n        initialMessage.message = { schema: this.lastMessageWithSchema?.schema };\n      }\n\n      subscriber.next({ ...this.currentStatus, message: this.lastMessageWithSchema });\n\n      const sub = this.stream.subscribe(subscriber);\n      return () => {\n        sub.unsubscribe();\n        const count = this.stream.observers.length;\n\n        // Wait 1/4 second to fully disconnect\n        if (count === 0) {\n          setTimeout(this.disconnectIfNoListeners, 250);\n        }\n      };\n    });\n  }"
+    },
+    "l-subscription-publish": {
+      "path": "public/app/features/live/centrifuge/channel.ts",
+      "start_line": 182,
+      "end_line": 182,
+      "excerpt_sha256": "38f83f02ed66301be5f396ba9f90bca83c0d2587f300b8b5c3346334fa3f1cca",
+      "source_sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/channel.ts#L182-L182",
+      "text": "  publish = (data: unknown) => this.subscription?.publish(data);"
+    },
+    "l-channel-disconnect": {
+      "path": "public/app/features/live/centrifuge/channel.ts",
+      "start_line": 187,
+      "end_line": 205,
+      "excerpt_sha256": "6de43e9a1a7f3a2c47c4e3d817aece3282330253076c392fc31cd8987b516ab0",
+      "source_sha256": "5b064def27c0d228cbeca023ba1fe246575521e2d5aca4996fce2f19aa18f72a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/channel.ts#L187-L205",
+      "text": "  disconnect() {\n    this.currentStatus.state = LiveChannelConnectionState.Shutdown;\n    this.currentStatus.timestamp = Date.now();\n\n    if (this.subscription) {\n      this.subscription.unsubscribe();\n      this.subscription.removeAllListeners(); // they keep all listeners attached after unsubscribe\n      this.subscription = undefined;\n    }\n\n    this.stream.complete();\n\n    this.stream.next({ ...this.currentStatus });\n    this.stream.complete();\n\n    if (this.shutdownCallback) {\n      this.shutdownCallback();\n    }\n  }"
+    },
+    "l-browser-ws": {
+      "path": "public/app/features/live/centrifuge/service.ts",
+      "start_line": 79,
+      "end_line": 95,
+      "excerpt_sha256": "d41246d6302b0e16d7025c89921c0e5819cc2b12d939019ed2964d45244bebd0",
+      "source_sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/service.ts#L79-L95",
+      "text": "  constructor(private deps: CentrifugeSrvDeps) {\n    this.dataStreamSubscriberReadiness = deps.dataStreamSubscriberReadiness.pipe(share(), startWith(true));\n\n    let liveUrl = `${deps.appUrl.replace(/^http/, 'ws')}/api/live/ws`;\n\n    const token = deps.grafanaAuthToken;\n    if (token !== null && token !== '') {\n      liveUrl += '?auth_token=' + token;\n    }\n\n    this.centrifuge = new Centrifuge(liveUrl, {\n      timeout: 30000,\n    });\n    // orgRole is set when logged in *or* anonymous users can use grafana\n    if (deps.liveEnabled && deps.orgRole !== '') {\n      this.centrifuge.connect(); // do connection\n    }"
+    },
+    "l-channel-registry": {
+      "path": "public/app/features/live/centrifuge/service.ts",
+      "start_line": 157,
+      "end_line": 170,
+      "excerpt_sha256": "07d0402555b45c0bb7ec06997ff6a7804c2eb7dbfcc90671f615c57246b9681d",
+      "source_sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/service.ts#L157-L170",
+      "text": "  private getChannel<TMessage>(addr: LiveChannelAddress): CentrifugeLiveChannel<TMessage> {\n    // Use toLiveChannelId so addresses from plugins still using the legacy\n    // `namespace` field (pre-rename) resolve to the same channel id as ones\n    // using `stream`. Without this, subscriptions get an id with `undefined`\n    // in place of the stream segment and silently never receive data.\n    const id = `${this.deps.namespace}/${toLiveChannelId(addr)}`;\n    let channel = this.open.get(id);\n    if (channel != null) {\n      return channel;\n    }\n\n    channel = new CentrifugeLiveChannel(id, addr);\n    if (channel.currentStatus.state === LiveChannelConnectionState.Invalid) {\n      return channel;"
+    },
+    "l-channel-shutdown-binding": {
+      "path": "public/app/features/live/centrifuge/service.ts",
+      "start_line": 179,
+      "end_line": 188,
+      "excerpt_sha256": "17aec7d04de1f49bbba36a3a3d0783089dbe611e2e7aab657b9de56a7241e522",
+      "source_sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/service.ts#L179-L188",
+      "text": "    channel.shutdownCallback = () => {\n      this.open.delete(id);\n\n      // without a call to `removeSubscription`, the subscription will remain in centrifuge's internal registry\n      this.centrifuge.removeSubscription(this.centrifuge.getSubscription(id));\n    };\n    this.open.set(id, channel);\n\n    // Initialize the channel in the background\n    this.initChannel(channel).catch((err) => {"
+    },
+    "l-subscription": {
+      "path": "public/app/features/live/centrifuge/service.ts",
+      "start_line": 200,
+      "end_line": 218,
+      "excerpt_sha256": "34967eef05b9d6af03b475a69db0bd3e15b9327c6d99acbba0e83094255c18bb",
+      "source_sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/service.ts#L200-L218",
+      "text": "  private async initChannel(channel: CentrifugeLiveChannel): Promise<void> {\n    if (this.centrifuge.state !== State.Connected) {\n      // Wait for centrifuge to connect, but bail out after the timeout\n      // so the channel can fall back to polling instead of hanging forever.\n      await Promise.race([\n        this.connectionBlocker,\n        new Promise<never>((_, reject) =>\n          setTimeout(() => reject('Grafana Live connection timeout'), CentrifugeService.CONNECTION_TIMEOUT_MS)\n        ),\n      ]);\n    }\n    const subscription = this.centrifuge.newSubscription(channel.id, {\n      data: channel.addr.data,\n    });\n    channel.subscription = subscription;\n    channel.initalize();\n    subscription.subscribe();\n    return;\n  }"
+    },
+    "l-data-stream-binding": {
+      "path": "public/app/features/live/centrifuge/service.ts",
+      "start_line": 241,
+      "end_line": 270,
+      "excerpt_sha256": "b37f6496a2dc79beb6aba7a2f38160abeb49a828efeeaf786fda56a15f13573e",
+      "source_sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/service.ts#L241-L270",
+      "text": "  private getLiveDataStream = (options: LiveDataStreamOptions): LiveDataStream => {\n    const channelId = toLiveChannelId(options.addr);\n    const existingStream = this.liveDataStreamByChannelId[channelId];\n\n    if (existingStream) {\n      return existingStream;\n    }\n\n    const channel = this.getChannel(options.addr);\n    this.liveDataStreamByChannelId[channelId] = new LiveDataStream({\n      channelId,\n      onShutdown: () => {\n        delete this.liveDataStreamByChannelId[channelId];\n      },\n      liveEventsObservable: channel.getStream(),\n      subscriberReadiness: this.dataStreamSubscriberReadiness,\n      defaultStreamingFrameOptions,\n      shutdownDelayInMs: dataStreamShutdownDelayInMs,\n    });\n    return this.liveDataStreamByChannelId[channelId];\n  };\n  /**\n   * Connect to a channel and return results as DataFrames\n   */\n  getDataStream: CentrifugeSrv['getDataStream'] = (options) => {\n    const subscriptionKey = this.createSubscriptionKey(options);\n\n    const stream = this.getLiveDataStream(options);\n    return stream.get(options, subscriptionKey);\n  };"
+    },
+    "l-transport-publish": {
+      "path": "public/app/features/live/centrifuge/service.ts",
+      "start_line": 293,
+      "end_line": 298,
+      "excerpt_sha256": "9ed00b75bda3a255723121fe8d5a81a4aabc36e7df5f304072e73d76e1d36b85",
+      "source_sha256": "8c270045769be405170d16f4b65ef5627c9390315460ea16705a6acd660af218",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/centrifuge/service.ts#L293-L298",
+      "text": "  /**\n   * Publish into a channel.\n   */\n  publish = async (address: LiveChannelAddress, data: unknown, options?: LivePublishOptions) => {\n    return this.getChannel(address).publish(data);\n  };"
+    },
+    "l-runtime-init": {
+      "path": "public/app/features/live/index.ts",
+      "start_line": 10,
+      "end_line": 28,
+      "excerpt_sha256": "53e3444b30f2fcaf3d90c0d39d71b7ba6778db386ae4fe73f8fa5e5e6f2c827a",
+      "source_sha256": "51cc1fa684db1d4d64b80775ce0bd22ba717e4787a42d1348585cc07f87a0e4a",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/index.ts#L10-L28",
+      "text": "export function initGrafanaLive() {\n  const centrifugeServiceDeps = {\n    appUrl: `${window.location.origin}${config.appSubUrl}`,\n    namespace: config.liveNamespaced ? config.namespace : `${contextSrv.user.orgId}`,\n    orgRole: contextSrv.user.orgRole,\n    liveEnabled: config.liveEnabled,\n    dataStreamSubscriberReadiness: liveTimer.ok.asObservable(),\n    grafanaAuthToken: loadUrlToken(),\n  };\n\n  const centrifugeSrv = new CentrifugeService(centrifugeServiceDeps);\n\n  setGrafanaLiveSrv(\n    new GrafanaLiveService({\n      centrifugeSrv,\n      backendSrv: getBackendSrv(),\n    })\n  );\n}"
+    },
+    "l-service-deps": {
+      "path": "public/app/features/live/live.ts",
+      "start_line": 9,
+      "end_line": 15,
+      "excerpt_sha256": "c831ffc859f0de5208a2ae7cca87391100c7620d516ae22b27d1afe91e60da32",
+      "source_sha256": "d4f34b14a1d0b7e8794126640213dbcb942767780f5a0f59a5a1f0151885581b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/live.ts#L9-L15",
+      "text": "type GrafanaLiveServiceDeps = {\n  centrifugeSrv: CentrifugeSrv;\n  backendSrv: BackendSrv;\n};\n\nexport class GrafanaLiveService implements GrafanaLiveSrv {\n  constructor(private deps: GrafanaLiveServiceDeps) {}"
+    },
+    "l-data-stream-entry": {
+      "path": "public/app/features/live/live.ts",
+      "start_line": 27,
+      "end_line": 28,
+      "excerpt_sha256": "4e739eed0662e30fd5478016c691401f480aa6ca2091cf3d6ec60e3251151f13",
+      "source_sha256": "d4f34b14a1d0b7e8794126640213dbcb942767780f5a0f59a5a1f0151885581b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/live.ts#L27-L28",
+      "text": "  getDataStream: GrafanaLiveSrv['getDataStream'] = (options) => {\n    let buffer: StreamingDataFrame;"
+    },
+    "l-frame-conversion": {
+      "path": "public/app/features/live/live.ts",
+      "start_line": 49,
+      "end_line": 57,
+      "excerpt_sha256": "8619849560a63b4fdb7b8ffb91b6d8b99fed28fb075fdb85d62fa66fa04eefa1",
+      "source_sha256": "d4f34b14a1d0b7e8794126640213dbcb942767780f5a0f59a5a1f0151885581b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/live.ts#L49-L57",
+      "text": "    return this.deps.centrifugeSrv.getDataStream(options).pipe(\n      map((next) => {\n        updateBuffer(next);\n        return {\n          ...next,\n          data: [buffer ?? StreamingDataFrame.empty()],\n        };\n      })\n    );"
+    },
+    "l-service-raw-stream": {
+      "path": "public/app/features/live/live.ts",
+      "start_line": 60,
+      "end_line": 65,
+      "excerpt_sha256": "cac0109a60ef06b6197de50bb687a1ea201a91211a44757238c6abea86b27cc2",
+      "source_sha256": "d4f34b14a1d0b7e8794126640213dbcb942767780f5a0f59a5a1f0151885581b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/live.ts#L60-L65",
+      "text": "  /**\n   * Watch for messages in a channel\n   */\n  getStream: GrafanaLiveSrv['getStream'] = (address) => {\n    return this.deps.centrifugeSrv.getStream(address);\n  };"
+    },
+    "l-browser-publish": {
+      "path": "public/app/features/live/live.ts",
+      "start_line": 72,
+      "end_line": 81,
+      "excerpt_sha256": "65fd42b3d3104ba18adaf7a673bdef0e4623b3df49be795bab308c5a346f2b6e",
+      "source_sha256": "d4f34b14a1d0b7e8794126640213dbcb942767780f5a0f59a5a1f0151885581b",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/features/live/live.ts#L72-L81",
+      "text": "  publish: GrafanaLiveSrv['publish'] = async (address, data, options) => {\n    if (options?.useSocket) {\n      return this.deps.centrifugeSrv.publish(address, data);\n    }\n\n    return this.deps.backendSrv.post(`api/live/publish`, {\n      channel: toLiveChannelId(address), // orgId is from user\n      data,\n    });\n  };"
+    },
+    "l-caller-example": {
+      "path": "public/app/plugins/datasource/grafana-testdata-datasource/datasource.ts",
+      "start_line": 508,
+      "end_line": 523,
+      "excerpt_sha256": "2f3799ed5111cf57fd03684c1547438625e5327841ecd568de6dbe98c6cefedf",
+      "source_sha256": "e9ef22ebd6f24e6e4b2f708b38c2d78005da7b9fa6605687f489d3fb4b6736d8",
+      "url": "https://github.com/grafana/grafana/blob/c6fad8695a96577eb466d425e6ac4a759ca30f47/public/app/plugins/datasource/grafana-testdata-datasource/datasource.ts#L508-L523",
+      "text": "function runGrafanaLiveQuery(\n  target: TestDataDataQuery,\n  req: DataQueryRequest<TestDataDataQuery>\n): Observable<DataQueryResponse> {\n  if (!target.channel) {\n    throw new Error(`Missing channel config`);\n  }\n  return getGrafanaLiveSrv().getDataStream({\n    addr: {\n      scope: LiveChannelScope.Plugin,\n      stream: 'testdata',\n      path: target.channel,\n    },\n    key: `testStream.${liveQueryCounter++}`,\n  });\n}"
+    }
+  }
+}

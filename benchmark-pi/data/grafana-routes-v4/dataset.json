@@ -1,0 +1,604 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v4",
+  "revision": 3,
+  "status": "content_frozen",
+  "supersedes": "grafana-routes-v3",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c0a598f5a49abf2014f67e806075d8ad267c9efb"
+  },
+  "target_release": "1.0.0",
+  "evidence_file": "evidence.json",
+  "grading_file": "grading.json",
+  "solver_questions_file": "questions.json",
+  "question_order": [
+    "git-oauth-authorization",
+    "plugin-http-route-bridge"
+  ],
+  "is_difficulty_empirically_validated": false,
+  "questions": [
+    {
+      "id": "git-oauth-authorization",
+      "languages": [
+        "typescript",
+        "go"
+      ],
+      "scope": "브라우저 인가 이동과 서버측 토큰 교환을 포함한 사용자 지정 OAuth 서버와의 통신(인가 요청·callback·code 교환·결과 반환)이 핵심이다. 사용자 지정 authURL/tokenURL의 gitOAuth 연결에서 namespaced authorize, provider 선택, 서버측 Exchange 및 교환 결과의 secure token 저장·authorized 응답까지가 필수다. 탭 간 BroadcastChannel 완료 통지(O6)와 사용자 지정 tokenURL의 서버측 토큰 갱신(O7)은 extended이며 핵심 완전 충족에는 필요하지 않다. 연결 생성/저장 UI·서버 기동·GitHub App 설치·로그인 generic_oauth·Git clone/sync·저장소 열거는 범위 밖이며 필수 아님. OAuth 라이브러리/서버·비밀 저장소 암호화 내부는 요구하지 않는다.",
+      "cross_language_binding": "TS completeOAuthAuthorization의 POST /apis/provisioning.grafana.app/v0alpha1/namespaces/{namespace}/connections/{name}/authorize 및 ConnectionAuthorizeRequest.spec.code/spec.redirectURI가 Go ConnectionResourceInfo의 authorize 등록, POST Connect handler, 동일 JSON 필드와 대응한다. Go는 교환 토큰을 저장한 뒤 code를 지우고 status.authorized를 반환하며 토큰은 브라우저로 반환하지 않는다. TS는 응답 본문의 authorized를 읽는 것이 아니라 POST의 성공/실패를 처리한다. authURL로의 브라우저 이동과 tokenURL에 대한 서버측 Exchange를 모두 포함하되 탭 간 완료 통지(O6)와 서버측 TokenSource의 토큰 갱신(O7)은 extended다.",
+      "limitations": [
+        "정적 연결 검토이며 실제 OAuth 서버·브라우저·토큰 저장은 실행하지 않았다.",
+        "golang.org/x/oauth2.Config.Exchange와 확장 O7의 Config.TokenSource(...).Token() 호출까지가 외부 의존성 경계다. 활성 연결 타입과 UI 기능 가드는 배포별이다. gitOAuth는 connection_types의 기본값 github에 포함되지 않으므로 기본 비활성이다.",
+        "교환 결과 저장은 authorized 응답의 전제라는 연결까지만 핵심이다. 저장소 암호화/patch 내부는 제외하고 탭 간 완료 통지와 서버측 토큰 갱신은 extended로 분리한다.",
+        "기억 측정 문구·근거 분모와 재측정 결과 출처는 manifest에 보존한다. 통과가 전체 학습 데이터 부재나 실제 탐색 난도를 보장하지 않는다."
+      ],
+      "facts": [
+        {
+          "id": "O1",
+          "level": "core",
+          "statement": "인가 훅은 사용자 지정 authURL에 code 인가 파라미터를 붙여 별도 탭을 이동시킨다. client_id·redirect_uri·response_type=code·state를 붙이고, 설정된 scopes가 있으면 scope도 더한다. state와 연결 정보의 저장/회수 대응은 O2에서 채점한다.",
+          "required_links": [
+            "buildOAuthAuthorizeUrl의 gitOAuth 분기 → 사용자 지정 authURL 기반 인가 URL",
+            "인가 URL → useOAuthAuthorization의 별도 탭 location 이동"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: URL 생성부의 gitOAuth 분기와 사용자 지정 인가 주소의 대응으로 입증해도 된다. UUID 함수명·TTL·scope 전체 값은 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: 훅 호출자 또는 탭 이동 소비부로 생성 URL과 별도 탭 이동을 연결해도 된다. 연결 생성/저장 UI 기동 순서는 설명이다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "o-state-channel",
+            "o-authorize-url",
+            "o-authorize-endpoint",
+            "o-callback-uri",
+            "o-hook-completion",
+            "o-open-tab",
+            "o-tab"
+          ]
+        },
+        {
+          "id": "O2",
+          "level": "core",
+          "statement": "OAuth callback 페이지가 code/state를 받아 completeOAuthAuthorization에 넘긴다. localStorage의 state로 연결 이름과 redirectUri를 대응시키며, 회수한 연결의 namespaced authorize에 code/redirectURI를 POST한다. state 삭제는 설명이다.",
+          "required_links": [
+            "OAuth callback의 code/state → completeOAuthAuthorization 호출",
+            "OAuth state → 같은 연결 이름·redirectUri의 localStorage 대응",
+            "대응한 연결 이름·redirectUri → namespaced connections/{name}/authorize POST의 spec.code/spec.redirectURI"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: callback URL 등록 또는 callback 페이지의 code/state 소비로 같은 진입과 completeOAuthAuthorization 인계를 입증하면 된다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: state 저장 측 또는 회수 측 중 한쪽으로 같은 연결 이름·redirectUri 대응을 입증하면 된다. 양쪽을 모두 요구하지 않으며 O1에서 다시 채점하지 않는다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL3 대체: 회수한 연결과 authorize URL/payload의 대응을 보이면 된다. state 삭제·appSubUrl 계산·오류 번역문·탭 닫기는 추가 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "o-state-channel",
+            "o-authorize-url",
+            "o-callback-uri",
+            "o-routes-header",
+            "o-callback-route",
+            "o-callback",
+            "o-backend-request"
+          ]
+        },
+        {
+          "id": "O3",
+          "level": "core",
+          "statement": "TS authorize URL과 ConnectionAuthorizeRequest는 Go의 connections/authorize POST Connect handler에 대응한다. handler는 본문을 읽고 이름으로 조회한 연결을 OAuthConnection으로 확인하여 code와 redirectURI를 ExchangeAuthorizationCode로 넘긴다.",
+          "required_links": [
+            "TS authorize URL·ConnectionAuthorizeRequest → Go connections/authorize POST Connect handler의 동일 payload",
+            "조회한 OAuthConnection → ExchangeAuthorizationCode(code, redirectURI)"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: subresource 등록 또는 동일 endpoint의 Connect 소비부로 TS↔Go 경계를 입증해도 된다. 양쪽 URL/payload 대응은 필요하다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: 연결별 OAuth 인터페이스의 코드 교환 인계를 설명하면 된다. 모든 guard·store 조회 내부·API 서버 기동은 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "o-backend-request",
+            "o-api-version",
+            "o-api-resource",
+            "o-request-type",
+            "o-request-spec",
+            "o-register-header",
+            "o-register",
+            "o-post-method",
+            "o-handler-header",
+            "o-handler-body",
+            "o-handler-lookup",
+            "o-lookup"
+          ]
+        },
+        {
+          "id": "O4a",
+          "level": "core",
+          "statement": "gitOAuth 타입은 사용자 지정 Endpoint provider를 생성하는 공통 OAuth extra로 선택된다. provider는 연결 설정의 authURL/tokenURL을 oauth2.Endpoint로 보관하고 공통 OAuth 연결에 제공한다. 타입의 Build는 connection_types 활성 조건을 따른다.",
+          "required_links": [
+            "gitOAuth 연결 타입 → 사용자 지정 provider를 생성하는 공통 OAuth extra 선택",
+            "연결의 사용자 지정 OAuth 서버 설정 → 공통 연결에 제공되는 provider Endpoint"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 타입별 extra 등록 또는 factory의 타입별 조회·Build 소비로 같은 구현 선택을 설명해도 된다. 등록과 조회를 둘 다 요구하지 않는다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: newProvider의 설정 반영 또는 공통 연결이 소비하는 Endpoint로 사용자 지정 서버와의 대응을 입증하면 된다. 연결 활성 조건의 미언급은 감점하지 않는다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "o-extra-registration",
+            "o-enabled-types",
+            "o-factory-header",
+            "o-factory",
+            "o-extra-constructor",
+            "o-extra-type",
+            "o-extra",
+            "o-extra-build",
+            "o-git-provider",
+            "o-endpoint",
+            "o-connection",
+            "o-lookup",
+            "o-as-connection"
+          ]
+        },
+        {
+          "id": "O4b",
+          "level": "core",
+          "statement": "공통 OAuth 연결은 서버에서 복호화한 client secret과 사용자 지정 provider Endpoint로 oauth2.Config를 구성하고 Exchange로 코드를 교환한다. Config에는 client ID와 redirectURI도 들어가며, tokenURL에 대한 실제 HTTP 인코딩은 외부 OAuth 라이브러리 경계다.",
+          "required_links": [
+            "서버측 복호화 client secret과 사용자 지정 provider Endpoint → oauth2.Config 구성",
+            "oauth2.Config의 Exchange(code) → 설정 tokenURL의 서버측 토큰 교환 경계"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 사용자 지정 값과의 대응은 O4a RL2에서 채점하며, 여기서는 provider Endpoint와 서버측 client 자격 증명이 교환 Config에 들어간다는 연결로 충족한다. 비밀 복호화 알고리즘은 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: Config.Exchange 호출과 provider의 token endpoint 대응까지 입증하면 된다. 외부 라이브러리의 HTTP 인코딩/서버 내부는 필수가 아니며 브라우저의 직접 토큰 교환으로 설명하면 안 된다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "o-extra",
+            "o-extra-build",
+            "o-connection",
+            "o-git-provider",
+            "o-endpoint",
+            "o-exchange"
+          ]
+        },
+        {
+          "id": "O5",
+          "level": "core",
+          "statement": "서버측 교환 결과는 authorize handler의 secure/token에 저장되며 저장 성공 뒤 code를 지운 status.authorized 응답으로 반환된다. 토큰은 브라우저로 돌아가지 않는다. JSON secure value 변환과 token status patch의 내부는 설명이다.",
+          "required_links": [
+            "교환한 토큰 → authorize handler의 secure token 저장",
+            "저장 성공 → 토큰 없이 인가 완료를 알리는 authorize 응답"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 교환 결과와 secure/token의 create 값 대응을 보이면 된다. marshalToken 이름·JSON 직렬화·patcher/암호화 내부는 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: 저장 성공 뒤 브라우저에 토큰 자체 대신 인가 완료를 반환하는 결과 경계를 설명하면 된다. code 제거·authorized 필드명은 설명이다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "o-exchange",
+            "o-token-json",
+            "o-handler-header",
+            "o-handler-lookup",
+            "o-persist",
+            "o-request-type",
+            "o-request-spec",
+            "o-response-status"
+          ]
+        },
+        {
+          "id": "O6",
+          "level": "extended",
+          "statement": "backend POST 성공/실패 및 저장 state를 회수할 수 있는 제공자 오류는 연결 이름과 오류를 BroadcastChannel로 통지한다. 원래 훅은 대기 중인 같은 이름의 메시지를 받아 pending을 끝내고 완료 콜백을 부른다. 이 탭 간 통지는 extended 진단이다.",
+          "required_links": [
+            "completeOAuthAuthorization의 backend POST 결과 → 원래 탭 훅의 이름 일치 완료 콜백(BroadcastChannel 경유)",
+            "state를 회수한 failOAuthAuthorization의 제공자 오류 → 같은 완료 통지 경로"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: 채널 송신부(broadcastCompletion) 또는 구독/이름 매칭부(onOAuthAuthorizationComplete) 중 한쪽 근거와 원래 탭 완료 콜백의 대응으로 충족한다. 송수신 양쪽을 각각 요구하지 않는다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: state를 회수한 제공자 오류가 성공/실패의 같은 통지 경로를 이용한다는 대응이면 된다. state가 없거나 만료된 모든 오류도 반드시 통지된다고 단정하면 안 된다. 탭 닫기·navigate·COOP·구독 해제는 설명이다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "o-state-channel",
+            "o-callback",
+            "o-backend-request",
+            "o-broadcast",
+            "o-fail",
+            "o-listen",
+            "o-hook-completion"
+          ]
+        },
+        {
+          "id": "O7",
+          "level": "extended",
+          "statement": "connection controller는 만료 임박 등으로 갱신이 필요하다고 판단한 TokenConnection에 GenerateConnectionToken을 호출한다. 공통 OAuth 연결은 저장된 refresh token과 서버측 client 자격 증명·provider Endpoint로 Config.TokenSource(...).Token()을 호출하여 사용자 지정 tokenURL에서 새 토큰을 받는다. 유효하고 만료 시각이 없는 토큰은 controller가 갱신하지 않으며, refresh token이 없으면 OAuth 구현은 오류를 반환한다. 갱신 시점 계산·metrics·patch 내부는 설명이고 이 서버측 갱신은 extended 진단이다.",
+          "required_links": [
+            "connection controller의 TokenConnection 갱신 인계 → GenerateConnectionToken 호출",
+            "공통 OAuth 연결의 저장 refresh token·provider Endpoint → Config.TokenSource(...).Token()의 서버측 tokenURL 갱신 경계"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: controller 호출부 또는 TokenConnection 구현인 GenerateConnectionToken 중 한쪽 근거로 같은 갱신 인계를 설명해도 된다. 갱신 시점 계산·resync/고루틴 기동·metrics·patch는 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: 저장 refresh token을 provider Endpoint와 함께 TokenSource에 넘겨 Token()으로 서버측 갱신한다는 연결이면 된다. 사용자 지정 값과의 대응은 O4a RL2의 설명을 재사용해도 된다. 외부 OAuth 라이브러리의 HTTP 인코딩·서버 내부·토큰 직렬화는 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "o-controller-process-header",
+            "o-controller-refresh-check",
+            "o-controller-refresh-call",
+            "o-refresh-decision-header",
+            "o-refresh-decision-validation",
+            "o-refresh-decision-expiry",
+            "o-controller-generate",
+            "o-refresh",
+            "o-connection",
+            "o-git-provider",
+            "o-endpoint"
+          ]
+        }
+      ],
+      "wrong_claims": [
+        "브라우저가 client secret을 포함하여 tokenURL로 직접 토큰 교환을 요청한다.",
+        "이 callback은 sessionStorage에서만 state를 읽고 window.opener.postMessage로만 결과를 전달한다.",
+        "사용자 지정 Git OAuth의 tokenURL도 GitHub 고정 URL이다.",
+        "authorize 응답으로 access token과 refresh token을 브라우저에 돌려준다.",
+        "이 Git 연결 인가의 callback/코드 교환 endpoint는 로그인 generic_oauth의 /login/generic_oauth이며 connections/{name}/authorize는 쓰지 않는다."
+      ],
+      "context_notes": [
+        {
+          "id": "O-boundary",
+          "is_required": false,
+          "related_fact_ids": [
+            "O1",
+            "O2",
+            "O3",
+            "O4a",
+            "O4b",
+            "O5",
+            "O6",
+            "O7"
+          ],
+          "statement": "질문은 브라우저 authURL 인가 이동과 서버측 tokenURL 교환·갱신을 모두 포함한다. 외부 경계는 golang.org/x/oauth2.Config.Exchange 및 확장 O7의 Config.TokenSource(...).Token() 호출까지이며 라이브러리 HTTP 인코딩·OAuth 서버 내부는 필수가 아니다. 교환 결과 저장은 authorized 응답의 전제라는 연결까지만 핵심이며 secret store 암호화/patch 내부는 제외한다. O6의 BroadcastChannel 탭 간 완료 통지와 O7의 서버측 토큰 갱신은 extended로, 이 확장만의 누락·오류·보류로 core_complete를 실패시키지 않는다. background refresh는 질문 범위 안의 별도 서버측 통신이며 O7로 진단한다. 연결 생성 UI·서버 기동은 범위 밖이다. O2 callback 등록에는 provisioningEnabled와 checkRequiredFeatures 가드가 있다. gitOAuth는 [provisioning] connection_types에 포함될 때만 Build되며 기본값은 github이므로 기본 비활성이다. required_links에 없는 활성 조건의 미언급은 감점하지 않지만 항상 활성이라고 단정하면 그 절이 틀린 것이다. state 미회수 오류의 통지 부재는 회수 가능한 실패 통지와 모순되지 않는다.",
+          "evidence_ids": [
+            "o-routes-header",
+            "o-enabled-types",
+            "o-factory-header",
+            "o-factory",
+            "o-backend-request",
+            "o-fail",
+            "o-exchange",
+            "o-handler-lookup",
+            "o-persist",
+            "o-controller-generate",
+            "o-refresh"
+          ]
+        },
+        {
+          "id": "O-login-confusion",
+          "is_required": false,
+          "related_fact_ids": [
+            "O1",
+            "O2",
+            "O3",
+            "O4a",
+            "O4b"
+          ],
+          "statement": "로그인 generic_oauth만 설명한 답은 이 문항의 각 required_links를 대체하지 못하므로 누락된 해당 사실 correct=false다. 로그인 경로를 별개라고 정확히 구분한 보충 설명은 오답 주장이 아니다. wrong_claims는 실제 대체/동일시 주장에만 적용한다. 이는 required_links 규칙의 재확인이며 새 요구가 아니다.",
+          "evidence_ids": [
+            "o-callback-uri",
+            "o-callback-route",
+            "o-register",
+            "o-exchange"
+          ]
+        }
+      ],
+      "prompt": "Git 저장소 연결 인증 구조 중 사용자 지정 OAuth 서버와 통신하는 구간 다 확인해줘.",
+      "core_fact_count": 6,
+      "extended_fact_count": 2,
+      "difficulty_status": "structural_not_empirical",
+      "evidence_ids": [
+        "o-api-resource",
+        "o-api-version",
+        "o-as-connection",
+        "o-authorize-endpoint",
+        "o-authorize-url",
+        "o-backend-request",
+        "o-broadcast",
+        "o-callback",
+        "o-callback-route",
+        "o-callback-uri",
+        "o-connection",
+        "o-controller-generate",
+        "o-controller-process-header",
+        "o-controller-refresh-call",
+        "o-controller-refresh-check",
+        "o-enabled-types",
+        "o-endpoint",
+        "o-exchange",
+        "o-extra",
+        "o-extra-build",
+        "o-extra-constructor",
+        "o-extra-registration",
+        "o-extra-type",
+        "o-factory",
+        "o-factory-header",
+        "o-fail",
+        "o-git-provider",
+        "o-handler-body",
+        "o-handler-header",
+        "o-handler-lookup",
+        "o-hook-completion",
+        "o-listen",
+        "o-lookup",
+        "o-open-tab",
+        "o-persist",
+        "o-post-method",
+        "o-refresh",
+        "o-refresh-decision-expiry",
+        "o-refresh-decision-header",
+        "o-refresh-decision-validation",
+        "o-register",
+        "o-register-header",
+        "o-request-spec",
+        "o-request-type",
+        "o-response-status",
+        "o-routes-header",
+        "o-state-channel",
+        "o-tab",
+        "o-token-json"
+      ]
+    },
+    {
+      "id": "plugin-http-route-bridge",
+      "languages": [
+        "go"
+      ],
+      "cross_language_binding": null,
+      "scope": "앱 플러그인 app manifest의 custom API route가 HTTP(S) deployment host의 backend에 도달하고 응답하는 경로가 필수다: v3 HTTP client 선택·주입, manifest route와 adapter, 접근 검사 context에 따른 credentials, 요청 변환, HTTP 실행·redirect 거절, v3 response stream. plugin.json routes의 pluginproxy/dataproxy와 앱 설정 API의 appsettings proxy subresource(apppluginsHandleProxyRequests)도 명시적으로 범위 밖이다. admission/conversion webhook·표준 리소스 CRUD 저장·plugin v2 resource API·gRPC 내부·서버 discovery/poll/기동은 필수 아님. 외부 app-sdk httpadapter 내부도 요구하지 않는다.",
+      "limitations": [
+        "실제 HTTP backend 또는 플러그인 서버를 실행하지 않은 정적 경로다.",
+        "app-sdk httpadapter는 로컬 HandlerFunc(ClientV3) 호출과 ClientV3 CallRoute 반환 계약까지만 확인한다. 외부 serialization/flush 구현은 채점하지 않는다.",
+        "baasbridge는 deprecated transition path다. HTTP(S) host가 선택될 때의 조건부 경로이며 모든 plugin deployment가 HTTP라는 뜻이 아니다. routes.go:395-397의 token exchange 주석은 gRPC 경로 기준이다.",
+        "기억 측정은 manifest를 추가하기 전 초안 질문으로 수행됐다. 최종 문구의 기억 측정/난도 검증은 이 빌드에서 실행하지 않았다."
+      ],
+      "facts": [
+        {
+          "id": "B1",
+          "level": "core",
+          "statement": "HTTP(S) deployment host이면 pluginClients가 baasbridge.NewClient를 v3 client로 선택하고 loadManifest가 breaker를 경유해 pluginroute.ClientV3로 주입한다. gRPC용 token exchange 인증은 bridge에 덧씌우지 않는다. 이 우회와 poll/load 기동 자체는 설명이다.",
+          "required_links": [
+            "HTTP(S) deployment host → baasbridge.NewClient 선택",
+            "선택한 v3 client → pluginroute Options.ClientV3 주입"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: host 분기 또는 NewClient의 HTTP(S) host 소비로 같은 HTTP 구현 선택을 입증해도 된다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: client provider 등록 또는 load/opts.ClientV3 소비부로 같은 주입을 입증해도 된다. 등록과 조회를 둘 다 요구하지 않는다. manifest watch·poll·cache·서버 기동·breaker 내부 알고리즘·token exchange 우회의 미언급은 감점하지 않는다. 인증 wrapper 우회는 모든 wrapper 우회라는 뜻이 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "b-poll-header",
+            "b-client-registration",
+            "b-select",
+            "b-deprecated",
+            "b-host-kind",
+            "b-new-client",
+            "b-is-client",
+            "b-client-consumer",
+            "b-load-dispatch",
+            "b-load",
+            "b-breaker-type",
+            "b-breaker-call",
+            "b-handler-options",
+            "b-builder-assignment"
+          ]
+        },
+        {
+          "id": "B2",
+          "level": "core",
+          "statement": "manifest의 served version custom route를 /apis/{group}/{version}/ 아래 routeMux에 등록한다. routeHandler는 RouteInfo와 필요시 parent를 담은 context로 httpadapter.HandlerFunc(b.clientV3)에 요청을 넘기며, breaker를 경유하는 선택된 HTTP client의 CallRoute 계약에 연결된다. appsettings proxy는 별개의 plugin.json routes 경로다.",
+          "required_links": [
+            "manifest version custom route → /apis/{group}/{version}/ 아래 routeHandler 등록",
+            "routeHandler의 RouteInfo context 요청 → httpadapter.HandlerFunc(b.clientV3)",
+            "adapter의 주입된 ClientV3 계약 → 선택된 HTTP bridge의 CallRoute"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: route 등록 또는 routeHandler가 소비하는 manifest route 정보로 같은 배선을 설명해도 된다. manifest의 API 경로와 handler 대응은 필요하다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: RouteInfo를 담은 요청의 forward.ServeHTTP 소비로 v3 adapter 인계를 설명해도 된다. parent 필드·복호화 내부·HEAD 세부는 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL3 대체: 로컬 adapter 호출부와 주입된 ClientV3 구현의 CallRoute 계약으로 경계를 연결하면 된다. 외부 app-sdk serialization/flush·breaker 내부는 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "b-manifest-routes",
+            "b-route-mux-header",
+            "b-route-mount",
+            "b-route",
+            "b-route-parent",
+            "b-route-forward",
+            "b-handler-options",
+            "b-builder-assignment",
+            "b-load",
+            "b-breaker-type",
+            "b-breaker-call",
+            "b-call",
+            "b-settings-proxy",
+            "b-appsettings-proxy",
+            "b-appsettings-policy"
+          ]
+        },
+        {
+          "id": "B3",
+          "level": "core",
+          "statement": "route가 선언한 접근 검사를 성공하면 context에 checked 표시를 둔다. HTTP credentials callback은 requester의 ID token이 있으면 X-Grafana-Id를 넣고, checked가 없을 때만 존재하는 access token을 X-Access-Token으로 넣는다.",
+          "required_links": [
+            "선언된 접근 검사 통과 표시 → 표시가 없을 때만 requester access token을 HTTP 자격 증명 헤더로 전달",
+            "requester의 ID token → forwardRouteCredentials의 HTTP 식별 토큰 헤더"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: WithDeclaredAccessChecked setter 또는 DeclaredAccessChecked getter 중 한쪽과 credentials 소비부의 대응으로 충족한다. 검사를 통과한 경우 access token을 생략한다는 반대 방향 설명도 인정하며 setter와 getter를 각각 요구하지 않는다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: credentials callback 등록 또는 소비부와 ID token 헤더 전달의 대응으로 충족한다. ID/access token 존재 guard는 보존하되 일반 RBAC 알고리즘·검사 실패 처리는 추가 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "b-route",
+            "b-route-access",
+            "b-route-forward",
+            "b-context",
+            "b-forward-credentials",
+            "b-select",
+            "b-new-client",
+            "b-call",
+            "b-credentials-call"
+          ]
+        },
+        {
+          "id": "B4",
+          "level": "core",
+          "statement": "CallRoute는 v3 URL의 escaped path와 query를 backend base URL에 결합하고 method/body/headers를 HTTP 요청으로 바꾼다. 원래 credential 및 hop-by-hop headers를 제거한 뒤 서버의 RouteCredentials callback으로 자격 증명을 재구성한다.",
+          "required_links": [
+            "v3 route URL·method/body → backend base URL을 사용한 HTTP 요청",
+            "입력 HTTP headers → credential·hop-by-hop headers 제거",
+            "정리된 요청 → RouteCredentials callback으로 자격 증명 재구성"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: backend URL 구성부 또는 HTTP 요청 생성 소비부로 v3 URL/method/body 대응을 입증해도 된다. URL escaping 알고리즘은 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: CallRoute의 제거 호출 또는 deleteHeaders 소비부로 원래 credentials와 hop-by-hop header를 그대로 전달하지 않음을 입증하면 된다. prefix 제거 루프는 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL3 대체: callback 등록 또는 setCredentials 소비부로 제거 후 credentials 재구성 연결을 입증해도 된다. 어떤 token을 넣는지는 B3에서 채점한다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "b-call",
+            "b-new-client",
+            "b-header-policy",
+            "b-credentials-call",
+            "b-select"
+          ]
+        },
+        {
+          "id": "B5",
+          "level": "core",
+          "statement": "bridge의 구성 HTTP client가 CallRoute에서 Do를 실행하고 redirect를 자동 follow하지 않는다. Location을 가진 3xx 응답은 body를 닫고 BadGateway 오류로 돌려준다. 이 값과 body close는 설명이다.",
+          "required_links": [
+            "구성 HTTP client → CallRoute의 Do(req) 실행",
+            "CheckRedirect 정책 → 자동 follow 없는 원래 HTTP 응답",
+            "redirect 응답 → 전달하지 않고 오류로 거절"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: HTTP client 구성 또는 CallRoute의 Do 소비로 같은 요청 실행을 입증하면 된다. HTTP transport 내부는 필수가 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: CheckRedirect 설정 또는 follow되지 않은 응답을 검사하는 소비부로 정책을 설명할 수 있다. 자동 follow하지 않는 관계는 필요하다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL3 대체: redirect를 응답 그대로 전달하지 않고 오류로 반환하는 연결이면 된다. body close·오류 문구·breaker 집계는 필수가 아니며 Location 없는 응답까지 모두 redirect 오류라고 단정하지 않는다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "b-new-client",
+            "b-call",
+            "b-do",
+            "b-redirect"
+          ]
+        },
+        {
+          "id": "B6",
+          "level": "core",
+          "statement": "일반 HTTP 응답은 newHTTPRouteStream으로 돌아온다. httpRouteStream.Recv는 상태/header와 body chunk를 v3 CallRouteResponse로 반환한다. header가 먼저이고 body가 후속이라는 내부 순서와 끝에서 HTTP body를 닫는 처리는 설명이다.",
+          "required_links": [
+            "HTTP 응답 → newHTTPRouteStream 반환",
+            "httpRouteStream.Recv → 상태/header와 body chunk의 v3 CallRouteResponse 반환"
+          ],
+          "accepted_alternatives": [
+            "RL1 대체: CallRoute의 stream 반환 또는 HTTP 응답을 받는 stream 생성부로 같은 반환 경계를 입증하면 된다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님.",
+            "RL2 대체: Recv가 HTTP 응답의 상태/header와 body를 v3 응답으로 변환한다는 연결이면 된다. header 먼저/body 후속 순서·chunk 크기·buffer·EOF 분기·외부 adapter flush는 필수가 아니다. v3 인터페이스 반환은 gRPC 네트워크 호출을 추가한다는 뜻이 아니다. 파라미터·필드·헤더 이름의 전체 나열·상태 코드 번호는 필수 아님."
+          ],
+          "evidence_ids": [
+            "b-call",
+            "b-do",
+            "b-stream-new",
+            "b-stream-recv",
+            "b-header-policy"
+          ]
+        }
+      ],
+      "wrong_claims": [
+        "HTTP(S) deployment host에도 반드시 gRPC dial 후 v3 token exchange wrapper로 호출한다.",
+        "HTTP bridge가 입력 Authorization/Cookie/X-Access-Token을 그대로 신뢰하여 복사한다.",
+        "manifest 접근 검사를 통과한 route에도 항상 caller access token을 전달한다.",
+        "backend redirect를 따라가면서 caller 자격 증명을 전달한다.",
+        "HTTP 응답 전체를 버퍼링한 뒤 하나의 v3 body 응답으로만 반환한다.",
+        "이 app manifest custom route는 plugin.json routes[].url을 해석하는 /api/plugin-proxy 또는 dataproxy 경로이며 ClientV3/CallRoute는 쓰지 않는다."
+      ],
+      "context_notes": [
+        {
+          "id": "B-manifest-not-plugin-json",
+          "is_required": false,
+          "related_fact_ids": [
+            "B1",
+            "B2",
+            "B3",
+            "B4",
+            "B5",
+            "B6"
+          ],
+          "statement": "질문의 manifest는 app manifest custom route다. plugin.json routes(pluginproxy/dataproxy)와 앱 설정 API의 proxy subresource(appsettings, apppluginsHandleProxyRequests)도 plugin.json routes 경로이므로 범위 밖이다. 그 경로로만 답해 required_links를 대신한 경우 누락/잘못 연결된 해당 사실 correct=false다. 별개 경로라고 언급한 것만으로 일괄 감점하지 않으며 supported는 독립 판정한다. 이는 required_links 규칙의 재확인이며 새 요구가 아니다.",
+          "evidence_ids": [
+            "b-manifest-routes",
+            "b-route-mount",
+            "b-route",
+            "b-load",
+            "b-call",
+            "b-settings-proxy",
+            "b-appsettings-proxy",
+            "b-appsettings-policy"
+          ]
+        },
+        {
+          "id": "B-boundary",
+          "is_required": false,
+          "related_fact_ids": [
+            "B1",
+            "B2",
+            "B3",
+            "B5",
+            "B6"
+          ],
+          "statement": "poll/watch·서버 기동은 수명주기 설명이며 core 요구가 아니다. HTTP client 선택과 요청/응답 변환은 범위 안 실제 연결이다. 외부 app-sdk httpadapter는 로컬 HandlerFunc(ClientV3) 호출과 ClientV3 CallRoute 반환 계약까지만 확인하며 serialization/flush 내부는 필수가 아니다. admission/conversion webhook·transport/breaker 내부도 필수가 아니다. baasbridge는 deprecated transition path이며 HTTP(S) deployment host 조건에서 선택된다. 모든 배포가 HTTP라는 뜻도 실제 실행 관측도 아니다. pluginroute/routes.go:395-397의 token exchange 주석은 gRPC v3 경로 기준이며 baasbridge에는 적용되지 않는다. HTTP 경로는 requester ID token과 조건부 access token을 credentials callback에서 헤더로 구성한다.",
+          "evidence_ids": [
+            "b-deprecated",
+            "b-select",
+            "b-load",
+            "b-breaker-type",
+            "b-breaker-call",
+            "b-route",
+            "b-route-forward",
+            "b-forward-credentials",
+            "b-context",
+            "b-call",
+            "b-do",
+            "b-stream-recv"
+          ]
+        }
+      ],
+      "prompt": "앱 플러그인 manifest의 사용자 정의 API 라우팅 구조 중 HTTP로 배포된 백엔드와 통신하는 구간 다 확인해줘.",
+      "core_fact_count": 6,
+      "extended_fact_count": 0,
+      "difficulty_status": "structural_not_empirical",
+      "evidence_ids": [
+        "b-appsettings-policy",
+        "b-appsettings-proxy",
+        "b-breaker-call",
+        "b-breaker-type",
+        "b-builder-assignment",
+        "b-call",
+        "b-client-consumer",
+        "b-client-registration",
+        "b-context",
+        "b-credentials-call",
+        "b-deprecated",
+        "b-do",
+        "b-forward-credentials",
+        "b-handler-options",
+        "b-header-policy",
+        "b-host-kind",
+        "b-is-client",
+        "b-load",
+        "b-load-dispatch",
+        "b-manifest-routes",
+        "b-new-client",
+        "b-poll-header",
+        "b-redirect",
+        "b-route",
+        "b-route-access",
+        "b-route-forward",
+        "b-route-mount",
+        "b-route-mux-header",
+        "b-route-parent",
+        "b-select",
+        "b-settings-proxy",
+        "b-stream-new",
+        "b-stream-recv"
+      ]
+    }
+  ]
+}

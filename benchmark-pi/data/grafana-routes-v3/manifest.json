@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "dataset_id": "grafana-routes-v3",
+  "revision": 3,
+  "status": "content_frozen",
+  "supersedes": "grafana-routes-v2",
+  "approval": {
+    "request": "진행해줘",
+    "scope": "기존 grafana-routes-v2의 3문항을 확정된 2문항으로 대체하는 데이터 패키지 작성. 하네스 수정·모델 실행 제외.",
+    "revision_2": {
+      "direction": "dataset-v3-revision2-task.md",
+      "reason": "독립 검토 review-opus.md의 M1·m1–m9·r6 반영. A2 core 유지·필수 연결 축소와 Live 근거 축소는 진행자 결정에 따른다."
+    },
+    "revision_3": {
+      "direction": "dataset-v3-revision3-task.md",
+      "reason": "독립 재검토 review-opus-r2.md의 n1(a)·n2(required_links 의도)·n3–n6·p1·p3·p4·p6 반영. 사실 ID·level·개수와 wrong_claims를 유지한다."
+    }
+  },
+  "target_release": "1.0.0",
+  "source": {
+    "repository": "grafana/grafana",
+    "commit": "c6fad8695a96577eb466d425e6ac4a759ca30f47"
+  },
+  "question_order": [
+    "alerting-alertmanager",
+    "live-plugin-stream"
+  ],
+  "counts": {
+    "questions": 2,
+    "core_facts": 16,
+    "extended_facts": 1,
+    "source_files": 39,
+    "source_files_with_excerpts": 39,
+    "evidence_ranges": 148,
+    "non_scoring_notes": 3
+  },
+  "files": {
+    "README.md": {
+      "sha256": "88a6b6cb75451930625723cc0102910b984ca4d9fea0691cad2d9323e94072ed",
+      "bytes": 8948
+    },
+    "dataset.json": {
+      "sha256": "11e578539a749baf3b618f206a064ce8cbfa24a618f570a86f0ad1e2d893d7a3",
+      "bytes": 39790
+    },
+    "evidence.json": {
+      "sha256": "1b618dd21a11f279a865ff7de38b83412af34e7faf161d91f094e4725a236cdb",
+      "bytes": 158876
+    },
+    "grading.json": {
+      "sha256": "c334afb58c4696f33701770c0c45b5e90daef0b1678f96fd6a1f4ae59e41c6b4",
+      "bytes": 7379
+    },
+    "questions.json": {
+      "sha256": "ddfb4138daa86db2b892bd5305b2837677c4eec59382ad05157f25cfd7e2e0c7",
+      "bytes": 468
+    }
+  },
+  "provenance": {
+    "source_identity": "git rev-parse HEAD:<path> plus original-byte Git blob SHA-1 and SHA-256",
+    "questions_checked": 2,
+    "core_facts_checked": 16,
+    "extended_facts_checked": 1,
+    "broken_evidence_references": 0,
+    "unused_evidence_ranges": 0,
+    "duplicate_fact_ids": 0,
+    "fact_count_mismatches": 0,
+    "solver_question_mismatches": 0,
+    "cross_language_facts_with_both_languages": 4,
+    "facts_with_valid_required_links": 17,
+    "required_links_checked": 43,
+    "wrong_claims_checked": 14,
+    "source_files_checked": 39,
+    "evidence_ranges_checked": 148,
+    "source_mismatches": 0,
+    "invalid_ranges_or_excerpt_hashes": 0,
+    "answerless_evidence_size_estimates": {
+      "alerting-alertmanager": {
+        "evidence_ranges": 60,
+        "excerpt_lines": 796,
+        "evidence_entries_bytes": 54541
+      },
+      "live-plugin-stream": {
+        "evidence_ranges": 88,
+        "excerpt_lines": 1191,
+        "evidence_entries_bytes": 81078
+      }
+    },
+    "verification_boundary": "로컬 고정 checkout의 인용 파일과 발췌를 대조했다. 원본 전체·외부 라이브러리·실행 결과는 패키지에 포함하지 않는다.",
+    "selection": "question-selection/final.md; qs2-opus §4.1 + qs2-astra §7; qs3-astra §6 + qs3-opus §3.3–3.4",
+    "independent_review": "revision 1·2 독립 검토 완료, revision 3은 r2 검토 수정안 반영(diff 확인 대상)",
+    "revision_2_reason": "독립 검토 review-opus.md를 반영하여 required_links 우선 채점, 사실 표현·대체 정답, 근거, 실제 하네스 연결 상태를 보완했다.",
+    "revision_3_reason": "review-opus-r2.md와 진행자 결정에 따라 A5·A2의 required_links/대체 설명을 정렬하고 채점 문구·L8 URL 연결·함수 헤더·namespace 근거·A7 표현을 보완했다. 운영 상태는 생성 시점 스냅샷으로 manifest에만 둔다.",
+    "previous_manifest_revision": 2,
+    "previous_manifest_sha256": "7398aaf8a564851510cc4a521cb42ee2cc8de8f865132c9e26fdf8cb363ca2d3",
+    "previous_manifest_harness_bound_as_of_build": false,
+    "revision_1_manifest_sha256": "780bf647401fbcfc569f202296833bbe41cd85c83cc1ae5ca8f68767980685a0"
+  },
+  "evaluation_status": {
+    "status_as_of_build": {
+      "source_review": "completed",
+      "is_difficulty_empirically_validated": false,
+      "grader_calibration_runs": 0,
+      "solver_runs": 0
+    }
+  },
+  "execution_contract": {
+    "status": "not_frozen",
+    "binding_rule": "benchmark/route_contract.py DATASET_MANIFEST_SHA256 == sha256(manifest.json)",
+    "status_as_of_build": {
+      "harness_adapter_status": "bound_to_revision_1",
+      "dataset_manifest_binding": "not_bound",
+      "execution_authorized": false,
+      "solver_runs": 0,
+      "grader_runs": 0,
+      "runtime_scenarios_executed": 0
+    },
+    "planned_questions": 2,
+    "planned_arms": 7,
+    "repetitions": 3,
+    "planned_solver_slots": 42,
+    "snapshot_rule": "status_as_of_build는 revision 3 생성 시점의 사실이며 후속 결합·승인에 맞춰 수정하지 않는다. 결합 사실·실행 승인은 하네스 이력에서 별도로 기록한다."
+  },
+  "preservation": "의미 변경은 별도 revision으로 기록한다. v2와 v3 결과를 동일 점수로 혼합하지 않는다."
+}

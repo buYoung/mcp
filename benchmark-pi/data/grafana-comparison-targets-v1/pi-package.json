@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.311",
+    "@buyong/pi-claude-bridge": "0.14.0",
+    "@buyong/pi-mcp-adapter": "0.1.2",
+    "@earendil-works/pi-coding-agent": "1.4.0"
+  },
+  "name": "codemap-bench-pi-toolchain",
+  "overrides": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.311"
+  },
+  "private": true,
+  "version": "1.0.0"
+}
