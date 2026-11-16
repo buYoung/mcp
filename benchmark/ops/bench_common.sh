@@ -1,6 +1,6 @@
 # Common environment of the bench_* scripts. Source it with the cache folder name; it is not run on its own.
 # BENCH_CLIENT picks the harness: pi (benchmark/pi) or codex (benchmark/codex).
-# Usage: BENCH_CLIENT=<pi|codex> . bench_common.sh <cache name under /Volumes/Samsung_990_PRO, e.g. wsk10>
+# Usage: BENCH_CLIENT=<pi|codex> . bench_common.sh <cache name under /Volumes/Samsung_990_PRO, e.g. wsk16>
 BENCH_ROOT=/Volumes/Samsung_990_PRO
 BENCH_OPS=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 # The harness is the one in the checkout that holds these scripts; the harness hides that checkout from solvers.
@@ -15,8 +15,8 @@ esac
 BENCH_PACKAGE=benchmark.$BENCH_CLIENT
 BENCH_PY=/opt/homebrew/bin/python3
 case "${1:-}" in
-  ''|*/*|wsv4|wst6b|wst6a1)
-    echo "cache name is missing, is a path, or is a protected folder: '${1:-}'" >&2
+  ''|*/*)
+    echo "cache name is missing or is a path: '${1:-}'" >&2
     return 1 2>/dev/null || exit 1;;
 esac
 export BENCH_CLIENT

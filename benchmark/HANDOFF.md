@@ -10,7 +10,9 @@ GPT-6.1 Sol 측정은 끝났고 Claude 측정이 남았다. 이 문서는 Claude
 - **GPT-6.1 Sol**: 도구 6개(codemap-search, rg, CodeGraph, zvec-grep, Graphify, codebase-memory-mcp)를 pi direct, pi codemode, Codex code mode 세 칸에서 쟀다. 칸·도구마다 답변 9개(문항 3개 × 3회)다.
 - **Claude**: 한 번도 재지 않았다.
 - **Serena**: 비교 대상에서 뺐다. 색인이 1회에 34~70분 걸리기 때문이다(사용자 결정). 하네스 코드에서도 지웠다.
-- **준비된 계획이 없다.** 11/16에 폴더 구조를 바꾸면서 두 하네스의 파일이 바뀌어 그전 계획이 모두 무효가 됐다. Claude 측정은 새 캐시를 준비하는 데서 시작한다(사용자 결정).
+- **준비된 계획도 캐시도 없다.** 11/16에 폴더 구조를 바꾸면서 두 하네스의 파일이 바뀌어 그전 계획이 모두 무효가 됐고, 그 뒤 SSD의 캐시를 모두 지웠다. Claude 측정은 새 캐시를 준비하는 데서 시작한다(사용자 결정).
+- **GPT 원자료도 지웠다**(사용자 결정). 개별 답변, 채점 기록, 실행 로그는 다시 볼 수 없다. 남은 것은 `results/`의 집계 2개와 공개 문서다.
+- SSD에 남은 벤치마크 자료는 데이터셋 출처 자료뿐이다(`/Volumes/Samsung_990_PRO/codemap-bench-work/`, 54 MB). 하네스의 데이터셋 manifest가 이 경로를 가리킨다.
 - **새 구조에서 확인한 것은 모델을 부르지 않는 검사까지다.** 오프라인 검사(pi 60개, Codex 57개)와 pi 행동 검사(절차 1)가 통과했다. 준비(`prepare`)와 실제 실행은 새 구조에서 해 보지 않았다. 처음 돌릴 때 경로 문제가 나올 수 있다.
 
 ## 폴더 구조
@@ -91,6 +93,7 @@ export BENCH_CLIENT=pi
    - 평가 대상은 codemap-search 0.14.2(`e727d20c6`, 태그 `trial-bench-merge-compact-output`)다.
    - 끝나면 `ops/logs/`의 출력 파일에 `prepare exit 0`과 `verify exit 0`이 남는다.
    - 준비는 한 번에 하나만 돌린다. codebase-memory-mcp 임시 파일이 겹친다.
+   - Grafana 소스(`c0a598f5a`)는 준비가 GitHub에서 받는다. GPT 때는 지금은 지운 캐시에서 복제했으므로, 받는 경로는 최근에 돌려 보지 않았다.
    - GPT 때 도구 4개 + rg 준비에 pi 39분, Codex 26분이 걸렸다.
 3. **Claude 토큰 파일을 확인한다.** `bench_common.sh`가 `/Users/buyong/.config/op-secrets/claude-oauth-token`을 경로로 넘긴다. 운영자 소유의 0600 파일이어야 한다. 내용은 읽거나 출력하지 않는다.
 4. **실행 승인 입력을 만든다.** 출력에 계획 ID와 슬롯 수가 나온다.
@@ -144,7 +147,7 @@ Claude로는 재지 않았다.
 - **지금 단계가 스모크인지 벤치마크인지 매번 밝힌다.**
 - **토큰·인증 파일은 읽거나 출력하지 않는다.**
 - **push와 병합은 요청이 있을 때만 한다.**
-- 캐시는 `/Volumes/Samsung_990_PRO/<중립 이름>`에 만든다. 보호 캐시 `wsv4`, `wst6b`, `wst6a1`은 스크립트가 거부한다.
+- 캐시는 `/Volumes/Samsung_990_PRO/<중립 이름>`에 만든다.
 
 ## 함정
 
@@ -161,6 +164,7 @@ Claude로는 재지 않았다.
 ## 확인하지 않은 것
 
 - 새 폴더 구조에서의 준비와 실행. 오프라인 검사와 pi 행동 검사만 통과했다.
+- 준비가 Grafana 소스를 GitHub에서 받는 경로.
 - Claude를 지금 pi 하네스로 실제로 돌린 적이 없다. flag 규칙과 인용 형식이 Claude 답변에 그대로 통하는지 모른다.
 - Claude 토큰이 유효한지, 계정에서 `claude-opus-5-5`와 `gpt-6-astra`를 쓸 수 있는지.
 - zvec-grep 서버가 죽은 원인.

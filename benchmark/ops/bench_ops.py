@@ -24,7 +24,7 @@
       A campaign folder may be an absolute path, so campaigns of another cache can be pooled; that comparison crosses
       batches and must be reported as such.
 
-The cache is a folder name under /Volumes/Samsung_990_PRO (protected folders are refused). pin and inputs work on
+The cache is a folder name under /Volumes/Samsung_990_PRO. pin and inputs work on
 the harness BENCH_CLIENT names (pi or codex) in the checkout that holds this file. BENCH_MODELS (space separated)
 limits inputs and report to those solver models; the default is both."""
 import hashlib
@@ -41,7 +41,6 @@ REPO = Path(__file__).resolve().parents[2]
 OUT = REPO / 'benchmark/results'
 POINTERS = {'gpt-6.1-sol': '07-readiness.json', 'claude-opus-5-5': '07-readiness-claude-opus-5-5.json'}
 MODELS = [model for model in POINTERS if model in (os.environ.get('BENCH_MODELS') or ' '.join(POINTERS)).split()]
-PROTECTED = {'wsv4', 'wst6b', 'wst6a1'}
 SUBJECT = 'codemap-search'
 BASELINE = 'rg'
 CITE = re.compile(r'([A-Za-z0-9_.@\-]+(?:/[A-Za-z0-9_.@\-]+)+\.[A-Za-z0-9]+):(\d+)(?:-(\d+))?')
@@ -72,8 +71,8 @@ def harness():
 
 
 def cache_path(name):
-    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', name) or name in PROTECTED:
-        stop(f'cache must be a plain folder name and not a protected folder: {name!r}')
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', name):
+        stop(f'cache must be a plain folder name: {name!r}')
     return ROOT / name
 
 

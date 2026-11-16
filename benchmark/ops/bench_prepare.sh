@@ -16,11 +16,6 @@ ref=${pinned%% *} commit=${pinned##* }
 [ "$commit" = "$expected" ] || { echo "harness pins $ref $commit, expected $expected (move the pin: bench_ops.py pin)"; exit 1; }
 [ "$(git rev-parse "$ref^{commit}" 2>/dev/null)" = "$expected" ] || { echo "tag $ref does not resolve to $expected"; exit 1; }
 mkdir -p "$CODEMAP_BENCH_CACHE"
-if [ ! -e "$CODEMAP_BENCH_CACHE/grafana" ] && [ -e "$BENCH_ROOT/wst6a1/grafana" ]; then
-  # Reuse the pinned Grafana checkout of wst6a1 as an APFS clone when it exists; otherwise preparation fetches it.
-  # Preparation verifies the checkout either way.
-  cp -c -R "$BENCH_ROOT/wst6a1/grafana" "$CODEMAP_BENCH_CACHE/grafana" || exit 1
-fi
 echo "client $BENCH_CLIENT cache $CODEMAP_BENCH_CACHE arms $arms solver $model subject $ref $commit node $(node --version) harness $(git rev-parse --short HEAD) start $(date '+%F %T') load $(sysctl -n vm.loadavg)"
 if [ "$arms" = all ]; then
   "$BENCH_PY" -m "$BENCH_PACKAGE.route_prepare" prepare --solver-model "$model"
