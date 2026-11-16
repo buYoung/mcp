@@ -5,7 +5,7 @@ description: Standalone Rust MCP stdio server and CLI for mapping repositories, 
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-`codemap-search` maps repositories, searches symbols with BM25, and reads live source files over MCP stdio or the CLI. It compiles Tree-sitter, Tantivy, and ripgrep into one binary with no external runtime, language server, API key, or default network requests.
+`codemap-search` maps repositories, searches symbols with BM25, and reads live source files over MCP stdio or the CLI.
 
 ## Quick Start
 
@@ -15,8 +15,8 @@ Install via `install.sh` (macOS/Linux), `install.ps1` (Windows), or `cargo insta
 # macOS / Linux
 curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
 
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex
+# Windows (CMD / PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
 
 # Cargo (crates.io)
 cargo install codemap-search
@@ -51,7 +51,7 @@ For Claude Code `project`/`local` scopes, Codex `config.toml`, `pi`, and `OpenCo
     />
     <LinkCard
         title="MCP Tools"
-        description="Use initial_instructions, search, grep, find, read, and analyze."
+        description="initial_instructions, search, grep, find, read, and analyze."
         href="/usage/tools/"
     />
     <LinkCard

@@ -11,47 +11,47 @@ Install `codemap-search` using `install.sh` (macOS/Linux), `install.ps1` (Window
 
 <Tabs>
     <TabItem label="install.sh (macOS / Linux)">
-        Downloads a prebuilt binary for macOS or Linux, verifies its `.sha256` checksum before unpacking, and installs it to `~/.local/bin` by default. Requires a POSIX shell, `curl` or `wget`, `tar`, and `sha256sum` or `shasum`.
+        Downloads a prebuilt binary for macOS or Linux, verifies its `.sha256` checksum before unpacking, installs it to `~/.local/bin` by default, and registers that directory in your shell profile (`PATH`). Requires a POSIX shell (`sh` or `bash`), `curl` or `wget`, `tar`, and `sha256sum` or `shasum`.
 
         ```sh
         curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
         ```
 
-        - Pass `INSTALL_DIR` to use another writable install path.
-        - Pass `--version` to pin a release tag (for example, `codemap-v0.1.6`).
+        Example with a custom install path or pinned version:
 
         ```sh
         curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | INSTALL_DIR=/usr/local/bin sh
-        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh -s -- --version codemap-v0.1.6
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh -s -- --version 0.14.2
         ```
 
         | Option / Env var | Meaning |
         |---|---|
-        | `INSTALL_DIR` | Install path; default `~/.local/bin` |
-        | `--version` / `CODEMAP_VERSION` | Exact release tag; `--version` takes precedence |
+        | `--install-dir` / `INSTALL_DIR` | Install path (`--install-dir` takes precedence); default `~/.local/bin` |
+        | `--version` / `CODEMAP_VERSION` | Version or tag (`0.14.2`, `v0.14.2`, `codemap-v0.14.2`, or `latest`); `--version` takes precedence |
+        | `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH` | Set flag or `1`/`true`/`yes` to skip updating the shell profile `PATH` |
         | `CODEMAP_LINUX_LIBC` | `musl` (static binary, no `glibc` needed) by default; `gnu` for Linux x86_64 only |
-        | `--print-target` | Print the resolved target, download URLs, and install path without downloading |
+        | `--print-target` | Print the resolved target, version, download URLs, and install path without downloading |
     </TabItem>
     <TabItem label="install.ps1 (Windows)">
-        Downloads a prebuilt Windows `.zip` archive, verifies its `.sha256` checksum before extracting, and installs `codemap-search.exe` to `$HOME\.local\bin` by default.
+        Downloads a prebuilt Windows `.zip` archive, verifies its `.sha256` checksum before extracting, installs `codemap-search.exe` to `$HOME\.local\bin` by default, and adds that directory to User `Path`. Works from both Command Prompt (`cmd.exe`) and PowerShell.
 
         ```powershell
-        irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex
+        powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
         ```
 
-        - Pass `-InstallDir` to use another writable install path.
-        - Pass `-Version` to pin a release tag (for example, `codemap-v0.1.6`).
+        Example with a custom install path or pinned version:
 
         ```powershell
-        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1))) -InstallDir "C:\Tools\bin"
-        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1))) -Version codemap-v0.1.6
+        powershell -ExecutionPolicy ByPass -c "$env:INSTALL_DIR='C:\Tools\bin'; irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+        powershell -ExecutionPolicy ByPass -c "$env:CODEMAP_VERSION='0.14.2'; irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
         ```
 
         | Option / Env var | Meaning |
         |---|---|
-        | `-InstallDir` / `INSTALL_DIR` | Install path; `-InstallDir` takes precedence; default `$HOME\.local\bin` |
-        | `-Version` / `CODEMAP_VERSION` | Exact release tag; `-Version` takes precedence |
-        | `-PrintTarget` | Print the resolved target, download URLs, and install path without downloading |
+        | `-InstallDir` / `--install-dir` / `INSTALL_DIR` | Install path (flag takes precedence); default `$HOME\.local\bin` |
+        | `-Version` / `--version` / `CODEMAP_VERSION` | Version or tag (`0.14.2`, `v0.14.2`, `codemap-v0.14.2`, or `latest`); flag takes precedence |
+        | `-NoModifyPath` / `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH` | Set flag or `1`/`true`/`yes` to skip updating User `Path` |
+        | `-PrintTarget` / `--print-target` | Print the resolved target, version, download URLs, and install path without downloading |
     </TabItem>
     <TabItem label="Cargo (crates.io & source)">
         Requires Rust and a C compiler toolchain.
@@ -74,12 +74,12 @@ Install `codemap-search` using `install.sh` (macOS/Linux), `install.ps1` (Window
 
 ## Verify and `PATH`
 
-Run `codemap-search --version` to confirm the binary works.
+Open a new terminal and run `codemap-search --version`. By default, `install.sh` updates your shell profile (`~/.zshrc`, `~/.bash_profile`, `~/.bashrc`, `~/.config/fish/conf.d/codemap-search.fish`, or `~/.profile`) and `install.ps1` updates Windows User `Path`, unless you pass `--no-modify-path` (`-NoModifyPath` or `CODEMAP_NO_MODIFY_PATH=1`).
 
-If your shell or MCP client cannot find `codemap-search`, add its install path to `PATH` (GUI clients often do not load `~/.zshrc` or `~/.bashrc`):
+If a shell or GUI MCP client still cannot find `codemap-search` (GUI clients often do not load `~/.zshrc` or `~/.bashrc`), verify that the install path is on `PATH`:
 
 - **`install.sh` (macOS / Linux)**: `~/.local/bin` (or custom `INSTALL_DIR`)
-- **`install.ps1` (Windows)**: `$HOME\.local\bin` (or custom `INSTALL_DIR`; open a new terminal after updating User `Path`)
+- **`install.ps1` (Windows)**: `$HOME\.local\bin` (or custom `INSTALL_DIR`)
 - **`Cargo`**: `~/.cargo/bin` (`%USERPROFILE%\.cargo\bin` on Windows)
 
 Once verified, continue to [MCP Client Setup](/getting-started/client-setup/).

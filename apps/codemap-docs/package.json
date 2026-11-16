@@ -4,6 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "sync-installers": "node -e \"import('node:fs').then(fs=>{fs.mkdirSync('public',{recursive:true});for(const f of['install.sh','install.ps1'])fs.copyFileSync('../codemap-search/'+f,'public/'+f)})\"",
+        "predev": "pnpm run sync-installers",
+        "prebuild": "pnpm run sync-installers",
         "dev": "astro dev",
         "build": "astro build",
         "preview": "astro preview",

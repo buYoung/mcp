@@ -1,22 +1,22 @@
 ---
 title: codemap-search
-description: 저장소 구조 매핑, BM25 심볼 검색, 원문 읽기를 제공하는 단일 Rust MCP stdio 서버 및 CLI.
+description: 저장소 구조 매핑, BM25 심볼 검색, 소스 원문 읽기용 Rust MCP stdio 서버 및 CLI.
 ---
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-`codemap-search`는 저장소 구조를 매핑하고 BM25로 심볼을 검색하며 소스 원문을 읽는 MCP stdio 서버이자 CLI입니다. Tree-sitter, Tantivy, ripgrep을 단일 Rust 바이너리에 담아 별도 런타임, 언어 서버, API 키 없이 동작하며 기본 설정에서는 네트워크 요청을 보내지 않습니다.
+`codemap-search`는 저장소 구조를 매핑하고 BM25로 심볼을 검색하며 소스 원문을 읽는 MCP stdio 서버이자 CLI입니다.
 
 ## 빠른 시작
 
-`install.sh`(macOS·Linux), `install.ps1`(Windows), 또는 `cargo install`로 설치합니다. 설치 옵션, 로컬 소스 빌드, `PATH` 설정은 [설치](/ko/getting-started/installation/)에서 설명합니다.
+`install.sh`(macOS·Linux), `install.ps1`(Windows), 또는 `cargo install` 중 하나로 설치하세요. 설치 옵션, 로컬 소스 빌드, `PATH` 설정은 [설치](/ko/getting-started/installation/)에서 설명합니다.
 
 ```sh
 # macOS / Linux
 curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
 
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex
+# Windows (CMD / PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
 
 # Cargo (crates.io)
 cargo install codemap-search
@@ -24,7 +24,7 @@ cargo install codemap-search
 codemap-search --version
 ```
 
-사용하는 MCP 클라이언트에 `codemap-search mcp`를 등록합니다.
+사용하는 MCP 클라이언트에 `codemap-search mcp`를 등록하세요.
 
 ```sh
 # Claude Code (여러 프로젝트용 사용자 범위)
