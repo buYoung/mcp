@@ -9,6 +9,18 @@ import BenchmarkLineCharts from "../../../components/BenchmarkLineCharts.astro";
 
 On a read-only [grafana/grafana](https://github.com/grafana/grafana) TypeScript and Go checkout, `gpt-6.1-sol` (`medium`) answered `3` multi-hop architecture questions `3` times per tool in each of `3` client environments, and a blind grader checked each answer against `12` required facts (`7` `Core` + `5` `Extended`).
 
+### Questions and expected routes
+
+- **`git-sync-job-dispatch`**
+  - **Question**: "Trace every segment of the message-bus path from creating a Git repository sync job to dispatching it to the worker that runs it."
+  - **Expected route (`Core` `7` · `Extended` `5`)**: Sync requests from the UI, controller, or webhook persist a job resource on the API server rather than queuing in memory; after KV commit, a NATS watch notification triggers the job informer queue-group subscription, enqueues the job in the driver queue, claims it, and dispatches it to the sync worker. Extended facts cover degraded start with relist fallback, dual host wiring, ignoring live update notifications, best-effort publish failures, and claim retry/cooldown handling.
+- **`alertmanager-config-autosync`**
+  - **Question**: "Trace every segment connecting the Kubernetes-style API to automatic syncing of external Alertmanager configuration."
+  - **Expected route (`Core` `7` · `Extended` `5`)**: The settings UI reads and JSON-patches the singleton configuration resource, admission validation checks the target datasource, periodic polling pre-processing fetches external Alertmanager configuration over datasource proxy HTTP, persists it, and writes sync conditions back to resource status for the UI. Extended facts cover hash-based deduplication, disable cleanup, blocking manual imports (`409`) while active, management-mode branching, and failure reason / `404` classification.
+- **`scope-annotation-filter`**
+  - **Question**: "Trace every segment connecting dashboard scope filters to saving and querying dashboard annotations."
+  - **Expected route (`Core` `7` · `Extended` `5`)**: Scope names extracted from the scope-filter toggle and dashboard scope variable flow through three entry points—datasource queries, panel-context create/update, and the annotation list panel—into the Kubernetes-style annotation client's query parameters and request body, reaching the annotation app's custom search route and store-backend filtering. Extended facts cover legacy REST omission and per-backend rejection or ignore behavior when scopes are unsupported.
+
 ### Compared tools and pinned versions
 
 | Tool & version | Upstream project / package | Pinned commit | Tools used |

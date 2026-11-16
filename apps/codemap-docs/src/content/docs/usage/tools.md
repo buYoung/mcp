@@ -1,6 +1,6 @@
 ---
 title: MCP Tools
-description: Per-tool usage examples and configuration toggle comparisons on grafana/grafana.
+description: Per-tool usage examples on grafana/grafana.
 ---
 
 ## Tools summary
@@ -14,6 +14,8 @@ description: Per-tool usage examples and configuration toggle comparisons on gra
 | `read` | Read live file windows or list declarations | `file_path`, `offset`, `limit`, `ranges`, `view`, `expand`, `include_seen` |
 | `analyze` | Inspect index size or recorded reading activity as JSON | `target`, `limit`, `offset`, `sort`, `filter`, `view`, `days`, `tool` |
 | `synonyms` (opt-in) | Look up related English code terms and synonyms | `terms` (`1–16` words or short technical phrases) |
+
+See [Output differences by option](/configuration/#output-differences-by-option) and the [Configuration Playground](/configuration/playground/) to inspect how `config.toml` settings change tool responses.
 
 ## Tool examples (`grafana/grafana`)
 
@@ -54,10 +56,10 @@ _Workspace scope: `pkg`. Pass `workspace_scope: "all"` for repo-wide search._
 
 ## 1. pkg/services/dashboards/service/dashboard_service.go
 - `method DashboardServiceImpl.SaveDashboard` (L142-178)
-  - _callers (tree-sitter precise; import/source resolution confirmed):_
+  - _callers (approximate name scan):_
     - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
-  - _calls (depth 1, tree-sitter precise where marked; fallback approximate):_
-    - `DashboardServiceImpl.buildSaveDashboardCommand` (`L96`, precise)
+  - _calls (depth 1, approximate):_
+    - `buildSaveDashboardCommand` — `pkg/services/dashboards/service/dashboard_service.go:96`
 
 ### results
 ```
@@ -167,123 +169,3 @@ Pass `target: "index"` for index size or `target: "reads"` for recorded reading 
 ### Resource Allocation ("quota")
 Direct (showing 3 of 3; 3 in code): "allowance", "limit", "threshold"
 ```
-
-## Output differences by option (`ON` vs `OFF`)
-
-### 1. Caller and callee context (`[output.context].is_enabled`, `search` argument `caller_context`)
-
-`[output.context].is_enabled` attaches static caller and callee links above `### results` in `search` output.
-
-- **ON (`true`, default)**:
-  ```markdown
-  ## 1. pkg/services/dashboards/service/dashboard_service.go
-  - `method DashboardServiceImpl.SaveDashboard` (L142-178)
-    - _callers (tree-sitter precise; import/source resolution confirmed):_
-      - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
-    - _calls (depth 1, tree-sitter precise where marked; fallback approximate):_
-      - `DashboardServiceImpl.buildSaveDashboardCommand` (`L96`, precise)
-  ```
-- **OFF (`false`, or per-call `caller_context: false`)**:
-  ```markdown
-  ## 1. pkg/services/dashboards/service/dashboard_service.go
-  - `method DashboardServiceImpl.SaveDashboard` (L142-178)
-  ```
-
-### 2. Outside callers on `read` (`[output.read].is_outside_callers_enabled`)
-
-`[output.read].is_outside_callers_enabled` appends a trailer in `read` (`view="source"`) listing callers outside the requested line range.
-
-- **ON (`true`, default)**:
-  ```text
-  142→func (dr *DashboardServiceImpl) SaveDashboard(ctx context.Context, dto *dashboards.SaveDashboardDTO, allowUiUpdate bool) (*dashboards.Dashboard, error) {
-  ...
-  148→}
-  [Callers from outside this window (static analysis, approximate)]
-  - SaveDashboard L142: pkg/api/dashboard.go:318 (PostDashboard)
-  ```
-- **OFF (`false`)**:
-  ```text
-  142→func (dr *DashboardServiceImpl) SaveDashboard(ctx context.Context, dto *dashboards.SaveDashboardDTO, allowUiUpdate bool) (*dashboards.Dashboard, error) {
-  ...
-  148→}
-  ```
-
-### 3. Test callers in context (`[output.context.exclude].should_include_test_code`)
-
-`[output.context.exclude].should_include_test_code` includes `*_test.go` and `*.test.ts` callers in `search` and `read` caller context.
-
-- **ON (`true`)**:
-  ```markdown
-  - _callers (tree-sitter precise; import/source resolution confirmed):_
-    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
-    - `pkg/services/dashboards/service/dashboard_service_test.go:88` (`TestSaveDashboard`)
-  ```
-- **OFF (`false`, default)**:
-  ```markdown
-  - _callers (tree-sitter precise; import/source resolution confirmed):_
-    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
-  ```
-
-### 4. Credential and PII redaction (`[output].is_redact_enabled`, `[output.redact].pii_entities`)
-
-`[output].is_redact_enabled` and `[output.redact].pii_entities` mask secrets and selected PII types in MCP output (`conf/defaults.ini` example):
-
-- **ON (`is_redact_enabled = true`, default `pii_entities = []`)**:
-  ```ini
-  admin_password = [REDACTED]
-  from_address = admin@grafana.localhost
-  ```
-- **ON (`is_redact_enabled = true`, `pii_entities = ["EMAIL_ADDRESS"]`)**:
-  ```ini
-  admin_password = [REDACTED]
-  from_address = [REDACTED]
-  ```
-- **OFF (`is_redact_enabled = false`)**:
-  ```ini
-  admin_password = admin
-  from_address = admin@grafana.localhost
-  ```
-
-### 5. Jev task-relevance filter (`[output.jev].enabled`)
-
-When enabled, `codemap-search` collapses unrelated callable bodies in `search` output into one-line omission notes. Register the user request first via the `task` argument of `initial_instructions` (see [Jev filter](/configuration/#jev-filter)).
-
-- **ON (`true`)**:
-  ````markdown
-  ### results
-  ```
-  142→func (dr *DashboardServiceImpl) SaveDashboard(...) (*dashboards.Dashboard, error) {
-  ...
-  148→}
-  ```
-  - _omitted body: L210-248 (method DeleteDashboard) Jev found no task match in pkg/services/dashboards/service/dashboard_service.go._
-  ````
-- **OFF (`false`, default)**:
-  ````markdown
-  ### results
-  ```
-  142→func (dr *DashboardServiceImpl) SaveDashboard(...) (*dashboards.Dashboard, error) {
-  ...
-  148→}
-  ```
-  ```
-  210→func (dr *DashboardServiceImpl) DeleteDashboard(...) error {
-  ...
-  248→}
-  ```
-  ````
-
-### 6. Repeat seen lines (tool argument `include_seen`)
-
-By default, `search`, `read`, and `grep` fold unchanged source lines already returned in the same session into `<--removed duplicated-->`.
-
-- **ON (`include_seen: true`)**:
-  ```text
-  142→func (dr *DashboardServiceImpl) SaveDashboard(...) (*dashboards.Dashboard, error) {
-  ...
-  148→}
-  ```
-- **OFF (`include_seen: false`, default)**:
-  ```text
-  <--removed duplicated-->
-  ```

@@ -72,6 +72,11 @@ export default defineConfig({
                             translations: { ko: "설정 레퍼런스" },
                         },
                         {
+                            slug: "configuration/playground",
+                            label: "Playground",
+                            translations: { ko: "플레이그라운드" },
+                        },
+                        {
                             slug: "configuration/pii-redaction",
                             label: "PII Redaction",
                             translations: { ko: "PII 마스킹" },
