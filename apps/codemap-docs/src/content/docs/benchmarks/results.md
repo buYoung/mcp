@@ -1,12 +1,20 @@
-# Code navigation benchmark results
+---
+title: Results
+description: Quantitative Grafana benchmark results for codemap-search 0.14.2, rg 15.2.0, and four external MCP servers across pi direct, pi codemode, and Codex code mode.
+---
 
-[한국어](./benchmarks.ko.md) | English
+This page reports the quantitative results from evaluating `codemap-search 0.14.2` against a built-in-tools baseline (`rg 15.2.0`) and four open-source MCP code-navigation servers (`Graphify 0.9.95`, `zvec-grep 0.2.2`, `codebase-memory-mcp 0.12.1`, and `CodeGraph 1.6.2`) on **Grafana** (`24,115` tracked files, TypeScript + Go). Using `gpt-6.1-sol` (`medium`) as the solver and `gpt-6-astra` (`high`) as a blind grader with no tools or repository access, each tool answered `3` multi-hop architecture questions `3` times (`9` answers / `108` line-cited required facts per tool and environment; `7` answers / `84` facts for `zvec-grep 0.2.2` in `pi codemode` due to two server crashes), for **`160` validated answers and `1,920` graded facts** in total.
 
-To measure how code-navigation tools affect coding-agent answer accuracy and token cost on a large real-world codebase, we tested `codemap-search 0.14.2` against a built-in-tools baseline (`rg 15.2.0`) and four open-source MCP code-navigation servers on **Grafana** (`24,115` tracked files, TypeScript + Go). Using `gpt-6.1-sol` (`medium`) as the solver and `gpt-6-astra` (`high`) as a blind grader with no tools or repository access, each tool answered 3 multi-hop architecture questions 3 times (`9` answers, `108` line-cited facts) in each of 3 agent environments.
+In tables with `·`-separated triples (for example, `5/9 · 6/9 · 6/9` or `3·3·2`), values always follow the order **`pi direct` · `pi codemode` · `Codex code mode`**. The three environments are reported side-by-side and **never pooled** because each client differs in built-in fallback tools, output truncation caps, and prompt/token accounting (for example, Codex includes a larger per-turn developer and code-mode preamble, driving higher total cached input tokens).
+
+- [Methodology](/benchmarks/methodology/) — compared tools, pinned commits and versions, client execution environments, sandbox boundaries, and pre-built Grafana index footprints.
+- [Metrics](/benchmarks/metrics/) — definitions of `Fulfilled`, `Core`/`Extended`, token and call columns, client output caps, and exact permutation `p`-values.
+- [What Changed Because of Benchmarks](/benchmarks/what-changed/) — product changes informed by this run and remaining GPT token tradeoffs.
+- [Limits](/benchmarks/limits/) — scope boundaries, sample-size resolution, reruns, server crashes, and transient errors.
 
 ## Summary
 
-The three agent environments (`pi direct`, `pi codemode`, `Codex code mode`) are reported side-by-side and never pooled because each client differs in built-in fallback tools, output truncation caps, and prompt/token accounting (for example, Codex includes a larger per-turn developer and code-mode preamble, driving higher total cached input tokens; `zvec-grep 0.2.2` in `pi codemode` has `7` answers / `84` facts due to two server crashes).
+The three agent environments (`pi direct`, `pi codemode`, `Codex code mode`) are reported side-by-side and never pooled (`zvec-grep 0.2.2` in `pi codemode` has `7` answers / `84` facts due to two server crashes).
 
 | Tool | `pi direct` | `pi codemode` | `Codex code mode` | All-core (7/7) answers (3 envs) | Mean total tokens / answer | Mean uncached tokens / answer | Mean tool calls / answer | Built-in / fallback calls / answer | Answers citing test/generated files |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -17,66 +25,18 @@ The three agent environments (`pi direct`, `pi codemode`, `Codex code mode`) are
 | `rg 15.2.0` | 86/108 | 87/108 | 89/108 | 3/9 · 1/9 · 5/9 | 555k · 505k · 866k | 68k · 76k · 104k | 63.7 · 66.6 · 20.3 | 63.7 · 66.6 · 20.3 | 6 · 6 · 5 |
 | `CodeGraph 1.6.2` | 78/108 | 85/108 | 86/108 | 2/9 · 3/9 · 3/9 | 1.73M · 1.72M · 3.31M | 132k · 142k · 194k | 24.7 · 26.3 · 36.3 | 2.8 · 4.6 · 3.4 | 5 · 5 · 4 |
 
+`Mean tool calls / answer` corresponds to `Total calls / ans` (`Dispatched + Rejected`, including sandbox-blocked calls; see the call-outcomes table below).
+
+Observations below reflect this Grafana repository snapshot, this 3-question task set, and the pinned `gpt-6.1-sol` (`medium`) and client/index configurations:
+
 - **vs `rg 15.2.0` (built-in-tools baseline)**: `codemap-search 0.14.2` fulfilled `+1.00` to `+1.11` more cited facts per answer across all three environments (`p = 0.0250`, `0.0300`, `0.0280`, unadjusted), at `1.54×`–`1.71×` total tokens (`1.27×`–`1.45×` uncached tokens).
 - **vs `CodeGraph 1.6.2` and `codebase-memory-mcp 0.12.1`**: `codemap-search 0.14.2` fulfilled `+1.00` to `+2.00` more facts per answer across all three environments (all 6 comparisons `p < 0.05`, unadjusted) while using `0.40×`–`0.73×` total tokens (`0.68×`–`1.10×` uncached; in `pi direct`, `codemap-search` used `1.10×` uncached tokens vs `codebase-memory-mcp 0.12.1`, `98,081` vs `89,291`).
-- **vs `Graphify 0.9.95` and `zvec-grep 0.2.2`**: `codemap-search 0.14.2` scored `+0.33` to `+1.22` higher in all three environments, reaching `p < 0.05` in one environment each (`pi codemode` `p = 0.0180` vs `Graphify 0.9.95`; `Codex` `p = 0.0100` vs `zvec-grep 0.2.2`; treated as inconclusive at `n = 9`). On raw `Factually correct` counts without citation checks, `Graphify 0.9.95` scored `96` vs `codemap-search 0.14.2`'s `98` in `pi direct`, `96` vs `100` in `pi codemode`, and `95` vs `99` in `Codex code mode`.
-- **Self-contained execution & comparison MCPs vs `rg 15.2.0`**: `codemap-search 0.14.2` made `0` built-in/shell fallback calls (bundling its own `read`, `grep`, and `find` tools inside the MCP server) and `0` test/generated-file citations across all `27` answers; none of the other four MCP servers outperformed `rg 15.2.0` at `p < 0.05` in any environment despite using `1.00×`–`3.82×` total tokens (`0.92×`–`1.94×` uncached).
-
-## Compared tools, versions, and environments
-
-### Compared tools and pinned versions
-
-| Tool & version | Upstream project / package | Pinned commit | Navigation approach & exposed tools |
-| --- | --- | --- | --- |
-| `codemap-search 0.14.2` | [buYoung/mcp](https://github.com/buYoung/mcp) (`codemap-search`) | `e727d20c6` | Single Rust binary (6 exposed MCP tools): Tree-sitter symbol/caller extraction + Tantivy BM25 `search` + embedded `read`, `find`, `grep`, `initial_instructions`, and `analyze` (unused by solvers); optional Jev LLM relevance filter off (see [Optional Jev decision stages](./configuration.md#optional-jev-decision-stages)) |
-| `Graphify 0.9.95` | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) (PyPI `graphifyy`, `v0.9.95`) | `92741d16` | Python code-graph MCP (7 graph tools); paired with a read-only MCP `read` helper because Graphify's graph tools return entity metadata and locations without raw source bodies |
-| `zvec-grep 0.2.2` | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) (npm `@zvec/zvec-grep`, `v0.2.2`) | `b1a9148e` | Node.js local vector/semantic search MCP (`zvec_grep_search`, embedding model `local/potion-code-16m-v2`); no `read` helper attached because `zvec_grep_search` returns bounded source snippets alongside matches |
-| `codebase-memory-mcp 0.12.1` | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) (`v0.12.1`) | `a7158ac2` | Codebase graph, code search, and snippet-retrieval MCP (13 tools) |
-| `rg 15.2.0` (baseline) | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) (`15.2.0`) | `e89fff89` | No MCP server attached; the agent relies solely on its built-in file/search or read-only shell tools |
-| `CodeGraph 1.6.2` | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) (npm `@colbymchenry/codegraph`, `v1.6.2`) | `6560052a` | Node.js code-graph exploration MCP (`codegraph_explore`) |
-| `Serena 2.1.0` (excluded) | [oraios/serena](https://github.com/oraios/serena) (PyPI `serena-agent`, `v2.1.0`) | `5e4f5cd1` | Go + TypeScript LSP-backed MCP; excluded prior to running because full LSP indexing of Grafana took ~34–70 min per run |
-
-### Agent clients, models, and execution environments
-
-| Component / Environment | Pinned version & details |
-| --- | --- |
-| Target codebase | [grafana/grafana](https://github.com/grafana/grafana) commit `c0a598f5a49abf2014f67e806075d8ad267c9efb` (`2026-10-26`, `24,115` tracked files, TypeScript + Go; includes commits after the solver's training cutoff) |
-| Solver model | `gpt-6.1-sol` (reasoning effort `medium`, `3` independent runs per question per tool/environment) |
-| Blind grader model | `gpt-6-astra` (reasoning effort `high`, no tools or repository access; checks each answer against `12` required facts per question) |
-| `pi direct` | `pi 1.4.0` (`--provider openai-codex --thinking medium`) + `@buyong/pi-mcp-adapter 0.1.2`. Standard tool-calling mode: calls MCP tools directly turn by turn, alongside read-only built-in `read`, `grep`, `find`, `ls` (no `bash`) confined to the repository |
-| `pi codemode` | Same `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2` + `pi`'s built-in `codemode` extension (`@earendil-works/pi-coding-agent 1.4.0`, QuickJS sandbox). Scripted mode: the model writes JavaScript that batches/chains MCP or built-in calls and filters outputs before returning to context (default `10,000`-token script output cap) |
-| `Codex code mode` | `Codex CLI 0.164.0` (`codex exec --json`, default `code_mode_only`). Executes JavaScript `exec`/`wait` cells that invoke MCP tools and a read-only shell (`exec_command`) confined to the repository, batching multiple tool or shell calls per turn (`10,000`-token default `exec` output cap unless overridden; `codemap-search` instructs `// @exec: {"max_output_tokens": 100000}`) |
-
-**Sandbox & isolation rules**: Every run operated on an isolated read-only checkout of the pinned Grafana snapshot with external network access disabled (`no subagents`, no source edits). Both clients blocked access to `.git` and pre-built tool index/state folders (`.codemap`, `.codegraph`, `.zvec-grep`, `.codebase-memory`, `graphify-out`, `.pi`, `.codex`). In `pi`, a pre-execution `tool_call` guard enforced those path boundaries on built-in `read`, `grep`, `find`, and `ls` (both direct and inside `codemode` scripts) while `grep`/`find` binaries ran inside macOS Seatbelt; in `Codex CLI`, `permissions.local_read` denied out-of-workspace reads and blocked folders while MCP servers ran under local macOS Seatbelt isolation.
-
-### How to read the metrics
-
-1. **Fulfilled (`correct` + `supported`, primary accuracy score)**: Each answer is graded against `12` required facts (`108` across `9` answers). A fact counts as **Fulfilled** only if the explanation is accurate (`correct=true`) **and** proven by the `path:start-end` line ranges cited in the answer (`supported=true`). All tools—including `rg 15.2.0`—received the identical line-range citation instruction.
-2. **Core (`63`) vs Extended (`45`) & All-core (7/7)**: Each question has `7` **Core** facts (essential end-to-end hops from entry point to handler/storage) and `5` **Extended** facts (secondary branches, configuration guards, or conditions). **All-core (7/7)** counts answers that fulfilled every Core fact without missing a link.
-3. **Factually correct, Correct, weak citation, & Incorrect / missed**: **Correct, weak citation** counts facts where the model described the right behavior, but the cited line ranges failed to establish that claim (`correct=true, supported=false`). **Incorrect / missed** equals `total graded facts − Factually correct` (`108 − Factually correct`, or `84 − Factually correct` at `n = 7`), so `Fulfilled + Correct, weak citation + Incorrect / missed = total graded facts` (e.g., `96 + 2 + 10 = 108`).
-4. **Total tokens vs Uncached tokens**: Multi-turn agents re-send prior context on every turn (`~86–94%` served from prompt cache). **Total tokens** is all input (cached + uncached) plus output tokens per answer; **Uncached tokens** is cache-miss input plus output tokens. Codex totals run `~1.4–1.9×` higher than `pi` largely because Codex includes a larger per-turn system/tool/code-mode preamble (e.g., `9,748` first-turn input tokens on `codemap-search` vs `5,118` in `pi direct` and `4,338` in `pi codemode`) that is re-sent and mostly cached every turn.
-5. **Built-in / fallback calls**: All MCP arms received the same instruction to prefer MCP tools and use built-in tools or the shell only when the MCP server could not perform the task. `0.0` means every run completed using only the MCP server's own tools (`codemap-search 0.14.2` bundles `read`, `grep`, and `find` inside the MCP server). For `rg 15.2.0` (which has no MCP server), this column equals all built-in file/search or read-only shell calls.
-6. **Statistical test (`p`) & Token ratios**: Pairwise `p`-values come from an exact question-stratified permutation test (`p < 0.05` threshold, unadjusted across `24` external-MCP comparisons and `27` total rows). **Two-sided `p`** tests whether the two tools differ in either direction; **One-sided `p`** tests whether the first tool (`A` in `A − B`) fulfilled strictly more facts per answer than the second (`B`), which is why negative differences yield high one-sided `p`-values near `1.0`. At `n = 9` answers per cell, differences of roughly `1.0+` facts/answer are separable, whereas `0.3–0.8` gaps lie within run-to-run noise. Token ratios (`×1.71`, `×0.55`) divide the first tool's mean tokens by the second's.
-
-## Index footprint and build time on Grafana
-
-Measured once per batch when indexing the pinned `24,115`-file Grafana checkout prior to read-only solver runs. Build times report `timings.index_build_seconds` uniformly across all five indexed tools (covering the full index-preparation step in `pi` / `Codex` setup, including pre/post status or ready checks).
-
-| Tool | Indexed files / graph entities | Index disk size | Index build time (`pi` / `Codex` prep) |
-| --- | --- | --- | --- |
-| `codemap-search 0.14.2` | `19,757` files | `136.5–138.3 MiB` | `12.96 s` / `16.18 s` |
-| `codebase-memory-mcp 0.12.1` | `21,430` tracked files (`525,952` nodes; `1,562,241` `pi` / `1,562,181` `Codex` edges) | `1,915.9–1,916.9 MiB` | `34.35 s` / `56.95 s` |
-| `CodeGraph 1.6.2` | `17,094` files (`314,436` nodes, `1,035,428` edges) | `1,194.3 MiB` (`+ 1.9 MiB` state) | `88.82 s` / `101.00 s` |
-| `zvec-grep 0.2.2` | `22,642` files (`175,403` entities) | `961.9 MiB` (`+ 32.0 MiB` model cache) | `147.68 s` / `154.22 s` |
-| `Graphify 0.9.95` | `19,823` AST-scanned code files (`160,008` nodes, `867,900` edges) | `626.8 MiB` | `311.73 s` / `366.08 s` |
-| `rg 15.2.0` (baseline) | None (live disk search) | `0 MiB` | `0 s` |
-| `Serena 2.1.0` (excluded) | Go + TypeScript LSP | — | `~34–70 min` (excluded before run) |
-
-Main indexing CLI step alone (excluding pre/post scaffold, status, and ready-check commands of `0.2–8.9 s`): `codemap-search 0.14.2` `12.7 s` / `15.9 s`, `codebase-memory-mcp 0.12.1` `31.9 s` / `55.8 s`, `CodeGraph 1.6.2` `86.8 s` / `99.0 s`, `zvec-grep 0.2.2` `138.8 s` / `145.4 s`, `Graphify 0.9.95` `311.7 s` / `366.1 s`.
+- **vs `Graphify 0.9.95` and `zvec-grep 0.2.2`**: `codemap-search 0.14.2` fulfilled `+0.33` to `+1.22` more facts per answer across the three environments, reaching `p < 0.05` in one environment each (`pi codemode` `p = 0.0180` vs `Graphify 0.9.95`; `Codex` `p = 0.0100` vs `zvec-grep 0.2.2`; treated as inconclusive at `n = 9`). On raw `Factually correct` counts without citation checks, `Graphify 0.9.95` scored `96` vs `codemap-search 0.14.2`'s `98` in `pi direct`, `96` vs `100` in `pi codemode`, and `95` vs `99` in `Codex code mode`.
+- **Self-contained execution & comparison MCPs vs `rg 15.2.0`**: `codemap-search 0.14.2` made `0` built-in/shell fallback calls (bundling its own `read`, `grep`, and `find` tools inside the MCP server) and `0` test/generated-file citations across all `27` answers; none of the other four MCP servers achieved more fulfilled facts than `rg 15.2.0` at `p < 0.05` in any environment despite using `1.00×`–`3.82×` total tokens (`0.92×`–`1.94×` uncached).
 
 ## Detailed results by environment
 
-Ordered within each environment by fulfilled rate (`9` answers per tool except `zvec-grep 0.2.2` in `pi codemode`).
+Ordered within each environment by fulfilled rate (`9` answers per tool except `zvec-grep 0.2.2` in `pi codemode`). See [Metrics](/benchmarks/metrics/) for column definitions and exact permutation-test details.
 
 ### `pi direct`
 
@@ -317,7 +277,7 @@ Cell format: fulfilled runs in `pi direct · pi codemode · Codex code mode` (ea
 - **Dispatched, Rejected, and Errors**: `Total calls = Dispatched + Rejected` (`Total calls / ans` and `Dispatched / ans` are per-answer means; `Rejected (sum)` and `Errors (sum)` are totals across all answers in that cell). `Rejected` counts calls blocked before execution by the benchmark's read-only path sandbox (such as targeting `.git` or a path outside the source checkout). `Errors ⊂ Dispatched` counts dispatched calls that returned an error (such as a nonexistent path or failing query).
 - **Helper `read` (`Graphify 0.9.95`) vs `zvec-grep 0.2.2`**: `Graphify`'s 7 native graph tools return graph entities and locations without raw source bodies, so the harness attached a read-only MCP `read` helper. `zvec-grep 0.2.2` did not receive a `read` helper because `zvec_grep_search` already returns bounded source snippets alongside matches; it used built-in tools or the shell when reading broader files.
 - **Client output-cap hits, script truncations, and adapter truncations**: `Built-in/CLI cap hits (answers)` counts how often outputs hit client caps (in `pi`: built-in `read` `2,000` lines / `50 KiB`, `grep` `100` matches, `find` `1,000` entries, `ls` `500` entries; in `Codex code mode`: `Codex CLI 0.164.0` `Warning: truncated output` across both shell `exec_command` calls and `exec` code-mode cells, which default to a `10,000`-token output cap unless overridden via `// @exec: {"max_output_tokens": ...}`). `Script truncations` (`pi codemode`) counts `codemode` script responses clipped at the extension's `10,000`-token default. `Adapter truncations` (`pi`) counts direct MCP responses clipped by `@buyong/pi-mcp-adapter 0.1.2` (`20 KiB` default unless overridden by `_meta["pi/maxOutputBytes"]`, which `codemap-search 0.14.2` sets to `100,000` bytes).
-- **Citation counts**: Recomputed directly from the normalized review citation index across all `160` eligible slots. `Range citations` counts multi-line `path:start-end` citations (`end > start`), `Single-line` counts 1-line citations (`path:line` or `start == end`), and `Cited test/gen` counts answers citing at least one test or generated file.
+- **Citation counts**: Recomputed directly from the normalized review citation index (the citation index extracted uniformly from final answer text across all `160` validated runs). `Range citations` counts multi-line `path:start-end` citations (`end > start`), `Single-line` counts 1-line citations (`path:line` or `start == end`), and `Cited test/gen` counts answers citing at least one test or generated file.
 
 ### Call outcomes and per-subtool calls (per answer)
 
@@ -364,21 +324,3 @@ Cell format: fulfilled runs in `pi direct · pi codemode · Codex code mode` (ea
 |  | `zvec-grep 0.2.2` | 63.4 (571) | 15.9 | 1.3 (12) | 9,314 | 4 | 17 (5) | — | — |
 |  | `CodeGraph 1.6.2` | 61.0 (549) | 16.9 | 0.8 (7) | 9,338 | 4 | 17 (9) | — | — |
 |  | `codebase-memory-mcp 0.12.1` | 54.9 (494) | 19.4 | 1.9 (17) | 8,366 | 6 | 5 (5) | — | — |
-
-## Product changes informed by this benchmark
-
-- **Compact ranked `search` output near client limits (`e727d20c6`)**: Ranked `search` pages render one compact entry per listed file with matching-line previews and replace lower-priority whole function bodies with exact `read` ranges near configured client output budgets instead of truncating mid-response (`0` client/built-in/adapter output-cap hits across all `27` `codemap-search` answers).
-- **Line-range citation and hand-written implementation guidance (`87e36d849`, `f33203c88`, `a7c083ae6`)**: Server instructions ask agents to cite evidence as `path:start-end` line ranges covering the supporting lines and to avoid reading or citing test or generated files unless requested, tracing hand-written implementations instead (`0/27` answers citing test or generated files vs `2–9/9` across comparison tools; causal contribution of the guidance alone was not isolated in this run).
-- **`_meta["pi/maxOutputBytes"]` delivery metadata (`0.14.2`)**: Every tool advertises `output.client.pi_max_bytes` (`100,000` bytes by default) via `_meta["pi/maxOutputBytes"]` in `tools/list`, allowing `@buyong/pi-mcp-adapter` to apply `codemap-search`'s delivery budget ahead of its `20 KiB` default without manual `mcp.json` configuration (`0` adapter truncations).
-
-On `gpt-6.1-sol`, higher accuracy over `rg 15.2.0` (`+1.00` to `+1.11` facts/answer) still came with `1.54×`–`1.71×` total tokens (`1.27×`–`1.45×` uncached); reducing GPT token overhead relative to `rg` remains an open tradeoff.
-
-## Scope and reproducibility notes
-
-- **Sample size & unadjusted `p`-values**: With `9` answers per tool and environment (`7` for `zvec-grep 0.2.2` in `pi codemode`), exact permutation tests reliably separate differences of roughly `1` fact/answer or larger; `0.3–0.8` gaps are inconclusive. Reported `p`-values are unadjusted across `24` external-MCP comparisons (`27` total pairwise rows).
-- **Single repository and 3-question / single-question-driven limit**: Only one repository (`Grafana`) and `3` questions were tested; `alertmanager-config-autosync` scored `28–30/36` across almost all tools (`CodeGraph 1.6.2` `pi direct` `24/36`), so most tool separation came from `scope-annotation-filter`.
-- **Single solver model**: Only `gpt-6.1-sol` (`medium`) was evaluated here; token ratios and scores can differ on other model families.
-- **Hardware, cache, index state, and client-version sensitivity**: Measurements reflect the specific host hardware, cache state, pinned pre-built index snapshots, and pinned client/adapter versions (`pi 1.4.0`, `@buyong/pi-mcp-adapter 0.1.2`, `Codex CLI 0.164.0`); changing any of these can shift token counts and truncation rates.
-- **Two same-day batches**: `codemap-search 0.14.2` + `rg 15.2.0` and the four external MCP servers ran in two same-day batches on the same host, so wall-clock answer durations are omitted.
-- **Reruns and crashes**: Four `Codex` `scope-annotation-filter` run-2 slots in the second batch were rerun after fixing a harness wall-clock timestamp check triggered by a host clock adjustment (`CodeGraph 1.6.2` `10/12`, `Graphify 0.9.95` `11/12`, `zvec-grep 0.2.2` `10/12`, `codebase-memory-mcp 0.12.1` `8/12`). Two `pi codemode` `zvec-grep 0.2.2` runs ended on server `SIGSEGV`.
-- **Transient concurrent-cleanup errors**: Two `pi` `codebase-memory-mcp 0.12.1` answers (`9/12`, `10/12`) hit one tool failure each from shared temporary state cleanup from another concurrent run; excluding both gives `78/96` (`+0.92`, `p = 0.0350`) in `pi direct` and `74/96` (`+1.53`, `p = 0.0025`) in `pi codemode`, with unchanged conclusions.

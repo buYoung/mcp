@@ -1,0 +1,23 @@
+{
+    "name": "@buyong-mcp/codemap-docs",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "astro dev",
+        "build": "astro build",
+        "preview": "astro preview",
+        "check-types": "astro sync && astro check"
+    },
+    "dependencies": {
+        "@astrojs/starlight": "^0.43.1",
+        "astro": "^7.4.12"
+    },
+    "devDependencies": {
+        "@astrojs/check": "^0.9.12",
+        "typescript": "6.0.3"
+    },
+    "engines": {
+        "node": ">=22.12.0"
+    }
+}
