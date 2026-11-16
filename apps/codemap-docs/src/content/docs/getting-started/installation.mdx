@@ -1,0 +1,147 @@
+---
+title: Installation
+description: Install codemap-search on macOS, Linux, or Windows via the install script, Cargo, Homebrew, WinGet, or GitHub release archives.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+Install `codemap-search` from source with Cargo or download a prebuilt binary for your OS. It compiles Tree-sitter grammars, Tantivy, and ripgrep into a single Rust binary, so you do not need system `rg`, a language server, an external runtime, or an API key. By default, it makes no network requests.
+
+After installing, run `codemap-search --version` to verify and continue to [MCP Client Setup](/getting-started/client-setup/).
+
+## Installation channels
+
+| System | Source build | Prebuilt installation |
+|---|---|---|
+| Linux | Cargo (`crates.io` or local source) | Install script (`install.sh`) or GitHub release archive |
+| macOS | Cargo (`crates.io` or local source) | Install script (`install.sh`), Homebrew, or GitHub release archive |
+| Windows | Cargo (`crates.io` or local source) | WinGet or manual archive installation |
+
+Cargo builds require Rust and a native C toolchain. The macOS/Linux install script needs standard POSIX tools, `curl` or `wget`, `tar`, and `sha256sum` or `shasum`, and installs into `~/.local/bin` by default. Homebrew and WinGet manage their own installation directories.
+
+## Install
+
+<Tabs>
+    <TabItem label="Install script (macOS / Linux)">
+        Downloads a prebuilt `codemap-search` binary for your OS and architecture, verifies its `.sha256` checksum before unpacking, and installs to `~/.local/bin` by default. For Windows, use the **Windows (WinGet & archive)** tab.
+
+        **Prerequisites:** A POSIX shell, standard system utilities, `curl` or `wget`, `tar`, and `sha256sum` or `shasum`.
+
+        ```sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+        ```
+
+        Check the install with `codemap-search --version`. If the command is not found, add the printed `export PATH` line to `~/.zshrc` or `~/.bashrc` so your shell picks up `~/.local/bin`.
+
+        The release tag you install must contain both the archive and its `.sha256` file on [GitHub Releases](https://github.com/buYoung/mcp/releases).
+
+        **Custom directory and version**
+
+        Pass `INSTALL_DIR` to change the target folder (the directory must be writable; the default user path needs no `sudo`):
+
+        ```sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | INSTALL_DIR=/usr/local/bin sh
+        ```
+
+        Pass `--version` to pin a specific release tag (`codemap-v0.1.6` is an example tag; pick a release that carries the required files):
+
+        ```sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh -s -- --version codemap-v0.1.6
+        ```
+
+        | Option | Meaning |
+        |---|---|
+        | `INSTALL_DIR` | Installation directory; default `$HOME/.local/bin` |
+        | `--version` / `CODEMAP_VERSION` | Exact release tag; `--version` takes precedence |
+        | `CODEMAP_LINUX_LIBC` | `musl` by default; `gnu` for Linux x86_64 only |
+        | `--print-target` | Show the selected target, download URLs, and installation path without downloading |
+
+        Without a tag, the script fetches `releases/latest/download/<asset>`, which resolves to the monorepo's latest release and may belong to another product. Pin a tag for repeatable installs. Installer variables do not configure the MCP server itself.
+
+        **Supported systems**
+
+        | System | Architecture | Archive |
+        |---|---|---|
+        | macOS | arm64 / aarch64 | `codemap-search-aarch64-apple-darwin.tar.gz` |
+        | macOS | x86_64 / amd64 | `codemap-search-x86_64-apple-darwin.tar.gz` |
+        | Linux | x86_64 / amd64, default musl | `codemap-search-x86_64-unknown-linux-musl.tar.gz` |
+        | Linux | x86_64 / amd64, `CODEMAP_LINUX_LIBC=gnu` | `codemap-search-x86_64-unknown-linux-gnu.tar.gz` |
+        | Linux | arm64 / aarch64, musl only | `codemap-search-aarch64-unknown-linux-musl.tar.gz` |
+
+        Linux defaults to `musl` with no `glibc` dependency. To pick the x86_64 GNU build, pass `CODEMAP_LINUX_LIBC=gnu` to `sh` just like `INSTALL_DIR`. Linux arm64 supports `musl` only.
+    </TabItem>
+    <TabItem label="Cargo (crates.io & source)">
+        Build and install `codemap-search` with Rust/Cargo and a native C toolchain for the bundled parsers. Keep Cargo's binary directory (`~/.cargo/bin`) on `PATH`.
+
+        ```sh
+        cargo install codemap-search
+        codemap-search --version
+        ```
+
+        Check published versions on the [crates.io package page](https://crates.io/crates/codemap-search) and pass Cargo's `--version` flag to pin a release. If a version is not published on `crates.io` yet, build from the local source tree instead.
+
+        From the monorepo root:
+
+        ```sh
+        cargo install --path apps/codemap-search
+        # Or build without installing:
+        cargo build --release --manifest-path apps/codemap-search/Cargo.toml
+        # Output binary: apps/codemap-search/target/release/codemap-search
+        ```
+    </TabItem>
+    <TabItem label="Homebrew (macOS)">
+        The Homebrew formula targets Apple Silicon and Intel Macs using prebuilt release archives. On Linux, use **Cargo** or the **Install script** tab.
+
+        Check the [official formula directory](https://formulae.brew.sh/formula/codemap-search) and install with:
+
+        ```sh
+        brew install codemap-search
+        ```
+
+        Verify with `codemap-search --version` and make sure Homebrew's binary directory is on your MCP client's `PATH`. If Homebrew does not carry the release you need yet, install with `install.sh`, `cargo install`, or a macOS archive from [GitHub Releases](https://github.com/buYoung/mcp/releases).
+    </TabItem>
+    <TabItem label="Windows (WinGet & archive)">
+        Install on Windows using WinGet (`com.livteam.codemap-search`) or a manual release archive (`install.sh` supports macOS and Linux only).
+
+        Check the [official WinGet repository](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/com/livteam/codemap-search) and install with:
+
+        ```powershell
+        winget install com.livteam.codemap-search
+        ```
+
+        WinGet registers the `codemap-search` command alias automatically. Open a new terminal, run `codemap-search --version`, and verify that your MCP client sees it on `PATH`.
+
+        If WinGet does not carry the release yet, download the archive for your architecture and its `.sha256` file from [GitHub Releases](https://github.com/buYoung/mcp/releases), verify the checksum, extract `codemap-search.exe`, and place it in a folder on `PATH`. Or build from source with `cargo install`.
+
+        | Architecture | Archive |
+        |---|---|
+        | x64 | `codemap-search-x86_64-pc-windows-msvc.zip` |
+        | arm64 | `codemap-search-aarch64-pc-windows-msvc.zip` |
+
+        Confirm that your chosen release tag on [GitHub Releases](https://github.com/buYoung/mcp/releases) includes the Windows archive you need.
+    </TabItem>
+</Tabs>
+
+## Release archive names
+
+Confirm which archives are attached to your chosen tag on [GitHub Releases](https://github.com/buYoung/mcp/releases).
+
+| System | Architecture | Archive |
+|---|---|---|
+| Linux | x86_64, default musl | `codemap-search-x86_64-unknown-linux-musl.tar.gz` |
+| Linux | x86_64, GNU | `codemap-search-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux | arm64, musl | `codemap-search-aarch64-unknown-linux-musl.tar.gz` |
+| macOS | Apple Silicon | `codemap-search-aarch64-apple-darwin.tar.gz` |
+| macOS | Intel | `codemap-search-x86_64-apple-darwin.tar.gz` |
+| Windows | x64 | `codemap-search-x86_64-pc-windows-msvc.zip` |
+| Windows | arm64 | `codemap-search-aarch64-pc-windows-msvc.zip` |
+
+Linux uses `musl` by default without requiring `glibc`; `gnu` is an explicit x86_64 option only (Linux arm64 GNU is not configured).
+
+## Troubleshooting
+
+- **Command not found**: Check both your shell's `PATH` and your MCP client's `PATH` (`~/.local/bin` for `install.sh`, `~/.cargo/bin` for Cargo, Homebrew's bin folder, or the directory holding `codemap-search.exe`).
+- **Download error**: Verify the release tag, archive name, `.sha256` checksum file, and network connection. Missing files stop `install.sh`.
+- **Checksum mismatch**: `install.sh` halts before extracting or creating the target directory. Download the files again and compare against the release's `.sha256` file rather than bypassing verification.
+- **Write error**: Pass a writable `INSTALL_DIR` to `install.sh` (the default `$HOME/.local/bin` needs no `sudo`).
+- **Cargo build or registry errors**: Confirm the version on [crates.io](https://crates.io/crates/codemap-search) and your network connection, or build from a local source checkout. Compiler or linker errors indicate a missing Rust or native C toolchain.

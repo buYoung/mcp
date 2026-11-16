@@ -1,0 +1,105 @@
+---
+title: MCP Client Setup
+description: Register codemap-search with Claude Code, Codex, pi, or OpenCode, verify the first connection, and optionally enable global instructions.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+Register `codemap-search mcp` so your client launches it with the target repository folder as its working directory. A user-wide registration reuses one binary across projects as long as the client starts it inside the repo you want to inspect. Launching directly in your home directory (`~`) is refused, while subprojects such as `~/work/project` work normally.
+
+If you have not installed the binary yet, start with [Installation](/getting-started/installation/).
+
+## Register with an MCP client
+
+<Tabs>
+    <TabItem label="Claude Code">
+        Register `codemap-search` across projects for your user account:
+
+        ```sh
+        claude mcp add --scope user codemap-search -- codemap-search mcp
+        ```
+
+        For a team-shared `.mcp.json` entry, run from that project directory:
+
+        ```sh
+        claude mcp add --scope project codemap-search -- codemap-search mcp
+        ```
+
+        Without `--scope`, Claude Code defaults to `local`: private to you in the current project and stored under its path in `~/.claude.json`, rather than the shared `project` scope. See [Claude Code's MCP scope reference](https://code.claude.com/docs/en/mcp).
+    </TabItem>
+    <TabItem label="Codex">
+        Register with the Codex CLI:
+
+        ```sh
+        codex mcp add codemap-search -- codemap-search mcp
+        ```
+
+        Or add the same server entry to `~/.codex/config.toml`:
+
+        ```toml
+        [mcp_servers.codemap-search]
+        command = "codemap-search"
+        args = ["mcp"]
+        ```
+    </TabItem>
+    <TabItem label="pi">
+        Until pi's built-in MCP support forwards tool `_meta`, install [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter). `pi` 1.4.0 ignores that metadata and truncates model-facing MCP results at 20 KB.
+
+        ```sh
+        pi install npm:@buyong/pi-mcp-adapter
+        ```
+
+        Disable built-in MCP by adding `-builtin:mcp` to `extensions` in `~/.pi/agent/settings.json`, or turn off `mcp` under **Built-in** in `pi config`. Restart `pi` or run `/reload`.
+
+        Add the server to `~/.pi/agent/mcp.json` or a trusted project's `.pi/mcp.json`:
+
+        ```json
+        {
+          "mcpServers": {
+            "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
+          }
+        }
+        ```
+
+        Launch `pi` inside the repository you want to inspect. The adapter applies `codemap-search`'s output limit automatically without requiring `maxOutputBytes` in `mcp.json`; see [client delivery budgets](/configuration/#client-delivery-budgets).
+    </TabItem>
+    <TabItem label="OpenCode">
+        Add the server to global `~/.config/opencode/opencode.json` or a project `opencode.json`:
+
+        ```json
+        {
+          "$schema": "https://opencode.ai/config.json",
+          "mcp": {
+            "codemap-search": {
+              "type": "local",
+              "command": ["codemap-search", "mcp"],
+              "enabled": true
+            }
+          }
+        }
+        ```
+
+        This matches the [OpenCode MCP guide](https://opencode.ai/docs/mcp-servers/). Check your client version's documentation if you use a different config schema.
+    </TabItem>
+</Tabs>
+
+## Verify the first connection
+
+1. Ask the client to call `initial_instructions` once. It returns navigation guidance, and in monorepos it lists selectable scopes and languages. Leave arguments empty when Jev is off; if you enabled the optional [Jev relevance filter](/configuration/#optional-jev-decision-stages), pass the user's complete request as `task`.
+2. Confirm that the returned paths belong to your target repository. If you see a warming notice, indexing is still in progress; retry once it completes.
+3. Find a known source file with `find`, read it with `read`, and search for a known symbol with `search` to verify that the same file is indexed.
+
+If the client cannot find the binary, check its `PATH`. If the wrong repository appears, fix its working directory. Startup and config errors go to `stderr`; `stdout` is reserved for MCP JSON-RPC frames.
+
+## Optional global instructions
+
+To keep a navigation reminder in your client's global instruction file, add this to `~/.codemap/config.toml` (or `$CODEMAP_HOME/config.toml`):
+
+```toml
+[global_instructions]
+enabled = true
+```
+
+This defaults to `false`. On initialization, the server checks `initialize.clientInfo.name` to select the right file for Codex, Claude Code, pi, or OpenCode automatically. It adds one managed line asking the agent to call `initial_instructions` first; switching back to `enabled = false` removes only that managed line and leaves your own instructions intact. This preference is global-only, so repo configs cannot override it.
+
+Sync runs on MCP initialization or on the next request after reloading the config, and takes effect when you start a new agent session. See [Global instructions](/configuration/#global-instructions) for per-client paths, file precedence, and removal limits.

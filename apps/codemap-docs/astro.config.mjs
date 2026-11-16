@@ -25,45 +25,62 @@ export default defineConfig({
             ],
             sidebar: [
                 {
-                    label: "Benchmarks",
-                    translations: { ko: "벤치마크" },
+                    label: "Getting Started",
+                    translations: { ko: "시작하기" },
                     items: [
                         {
-                            slug: "benchmarks/why-benchmark",
-                            label: "Why Benchmark",
-                            translations: { ko: "왜 측정했는가" },
+                            slug: "getting-started/installation",
+                            label: "Installation",
+                            translations: { ko: "설치" },
                         },
                         {
-                            slug: "benchmarks/methodology",
-                            label: "Methodology",
-                            translations: { ko: "측정 방법" },
-                        },
-                        {
-                            slug: "benchmarks/metrics",
-                            label: "Metrics",
-                            translations: { ko: "측정 지표" },
-                        },
-                        {
-                            slug: "benchmarks/results",
-                            label: "Results",
-                            translations: { ko: "측정 결과" },
-                        },
-                        {
-                            slug: "benchmarks/what-changed",
-                            label: "What Changed Because of Benchmarks",
-                            translations: { ko: "벤치마크로 바뀐 것" },
-                        },
-                        {
-                            slug: "benchmarks/limits",
-                            label: "Limits",
-                            translations: { ko: "한계와 비주장 범위" },
-                        },
-                        {
-                            slug: "benchmarks/reproduction-notes",
-                            label: "Reproduction Notes",
-                            translations: { ko: "재현 조건과 참고 사항" },
+                            slug: "getting-started/client-setup",
+                            label: "MCP Client Setup",
+                            translations: { ko: "MCP 클라이언트 등록" },
                         },
                     ],
+                },
+                {
+                    label: "Usage",
+                    translations: { ko: "사용 방법" },
+                    items: [
+                        {
+                            slug: "usage/tools",
+                            label: "MCP Tools",
+                            translations: { ko: "탐색 도구 사용" },
+                        },
+                        {
+                            slug: "usage/cli-and-analysis",
+                            label: "CLI & Analysis",
+                            translations: { ko: "CLI 및 색인·읽기 분석" },
+                        },
+                        {
+                            slug: "usage/languages",
+                            label: "Supported Languages & Indexing",
+                            translations: { ko: "지원 언어 및 색인 규칙" },
+                        },
+                    ],
+                },
+                {
+                    label: "Configuration",
+                    translations: { ko: "설정" },
+                    items: [
+                        {
+                            slug: "configuration",
+                            label: "Configuration Reference",
+                            translations: { ko: "설정 레퍼런스" },
+                        },
+                        {
+                            slug: "configuration/pii-redaction",
+                            label: "PII Redaction",
+                            translations: { ko: "PII 마스킹" },
+                        },
+                    ],
+                },
+                {
+                    slug: "benchmarks",
+                    label: "Benchmarks",
+                    translations: { ko: "벤치마크" },
                 },
             ],
         }),

@@ -1,54 +1,64 @@
 ---
 title: codemap-search
-description: Self-contained Rust MCP stdio server and CLI for repository mapping, BM25 symbol search, and source inspection.
+description: Standalone Rust MCP stdio server and CLI for mapping repositories, searching symbols with BM25, and reading live source files.
 ---
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-`codemap-search` is a self-contained Rust MCP stdio server and CLI that maps a repository, searches extracted symbols, documentation, and literals with BM25, and confirms source with embedded `read`, `find`, and `grep`.
+`codemap-search` is a standalone Rust MCP stdio server and CLI for mapping repositories, running BM25 symbol searches, and reading live source files. It compiles Tree-sitter, Tantivy, and ripgrep into one binary, so it needs no external runtime, language server, or API key, and makes no network requests by default.
 
-## Workflow: `initial_instructions` → `search` / `grep` → `read`
+## Quick Start
 
-1. **`initial_instructions`**: Load navigation guidance and, in monorepos, list selectable `workspace_scope` targets and languages.
-2. **`search` / `grep`**: Locate unknown implementations and concepts with ranked `search`, or enumerate exact identifiers and literals with `grep` (and `find` for file paths).
-3. **`read`**: Inspect bounded live source windows (`offset`/`limit` or batched `ranges`) alongside enclosing declarations and caller context.
+Install from crates.io with Cargo to get started. For macOS/Linux `install.sh` and local source builds, see [Installation](/getting-started/installation/).
 
-## Benchmarks
+```sh
+cargo install codemap-search
+codemap-search --version
+```
+
+Register `codemap-search mcp` so your client launches it with the target project as its working directory:
+
+```sh
+# Claude Code (user scope across projects)
+claude mcp add --scope user codemap-search -- codemap-search mcp
+
+# Codex
+codex mcp add codemap-search -- codemap-search mcp
+```
+
+For prebuilt binaries see [Installation](/getting-started/installation/). For Claude Code `project`/`local` scopes, Codex `config.toml`, `pi`, and `OpenCode`, see [MCP Client Setup](/getting-started/client-setup/).
+
+## Documentation
 
 <CardGrid>
     <LinkCard
-        title="Why Benchmark"
-        description="Why multi-hop Grafana architecture questions requiring line-range citations were evaluated instead of isolated lookup micro-benchmarks."
-        href="/benchmarks/why-benchmark/"
+        title="Installation"
+        description="Install with Cargo, install.sh, local source builds, or release archives."
+        href="/getting-started/installation/"
     />
     <LinkCard
-        title="Methodology"
-        description="Compared tools, pinned commits, three execution environments, sandbox isolation rules, and pre-built Grafana index footprints."
-        href="/benchmarks/methodology/"
+        title="MCP Client Setup"
+        description="Register codemap-search mcp in Claude Code, Codex, pi, and OpenCode."
+        href="/getting-started/client-setup/"
     />
     <LinkCard
-        title="Metrics"
-        description="Definitions of fulfilled facts, token accounting, tool-call outcomes, citation format, output caps, and permutation tests."
-        href="/benchmarks/metrics/"
+        title="MCP Tools"
+        description="Navigate code with initial_instructions, search, grep, find, and read."
+        href="/usage/tools/"
     />
     <LinkCard
-        title="Results"
-        description="Cross-environment summary, detailed tables, per-question breakdowns, 36-fact fulfillment matrices, and subtool logs."
-        href="/benchmarks/results/"
+        title="CLI & Analysis"
+        description="Run CLI commands and inspect index footprint and read-activity reports."
+        href="/usage/cli-and-analysis/"
     />
     <LinkCard
-        title="What Changed Because of Benchmarks"
-        description="Compact search delivery, pi metadata limits, citation guidance, and the remaining GPT token overhead tradeoff."
-        href="/benchmarks/what-changed/"
+        title="Configuration Reference"
+        description="Configure config.toml, delivery budgets, exclusions, Jev filters, and PII masking."
+        href="/configuration/"
     />
     <LinkCard
-        title="Limits"
-        description="Sample size, single-repository scope, tool-boundary differences, crashes, transient errors, and non-claims."
-        href="/benchmarks/limits/"
-    />
-    <LinkCard
-        title="Reproduction Notes"
-        description="Pinned versions, execution batches, reruns, environment sensitivity, and committed versus private benchmark artifacts."
-        href="/benchmarks/reproduction-notes/"
+        title="Benchmarks"
+        description="Grafana results comparing codemap-search 0.14.2, rg 15.2.0, and four MCP servers."
+        href="/benchmarks/"
     />
 </CardGrid>

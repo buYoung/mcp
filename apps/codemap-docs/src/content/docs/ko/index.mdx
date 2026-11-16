@@ -1,54 +1,64 @@
 ---
 title: codemap-search
-description: 저장소 색인, BM25 심볼 검색, 내장 원문 읽기를 제공하는 독립 실행형 Rust MCP stdio 서버 및 CLI 문서입니다.
+description: 저장소 구조를 매핑하고 BM25 심볼 검색과 내장 파일 읽기를 제공하는 단일 바이너리 Rust MCP stdio 서버 및 CLI 문서입니다.
 ---
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-`codemap-search`는 저장소를 색인해 추출한 심볼·문서·리터럴을 BM25로 검색하고 내장 `read`, `find`, `grep`으로 원문을 확인하는 단일 Rust 바이너리 MCP stdio 서버이자 CLI입니다.
+`codemap-search`는 저장소 구조를 매핑하고 심볼과 문서를 BM25로 검색한 뒤 내장 `read`, `find`, `grep`으로 소스 원문을 확인하는 단일 Rust MCP stdio 서버이자 CLI입니다. Tree-sitter와 Tantivy, ripgrep을 바이너리 하나에 모두 담아 별도 런타임이나 언어 서버, API 키가 필요 없고 기본 설정에서는 네트워크 요청도 하지 않습니다.
 
-## 탐색 흐름: `initial_instructions` → `search` / `grep` → `read`
+## 빠른 시작
 
-1. **`initial_instructions`**: 탐색 안내를 불러오고, 모노레포에서는 선택 가능한 `workspace_scope` 범위와 언어를 확인합니다.
-2. **`search` / `grep`**: 순위 기반 `search`로 낯선 구현과 개념을 찾고, `grep`으로 정확한 식별자와 리터럴을 전수 검색합니다(경로 탐색은 `find` 사용).
-3. **`read`**: 필요한 줄 범위(`offset`/`limit` 또는 일괄 `ranges`)의 실제 파일 원문과 감싸는 선언·호출 관계 문맥을 읽습니다.
+Cargo로 설치해 바로 시작하세요. macOS/Linux `install.sh`와 로컬 소스 빌드는 [설치](/ko/getting-started/installation/)에서 안내합니다.
 
-## 벤치마크
+```sh
+cargo install codemap-search
+codemap-search --version
+```
+
+탐색할 프로젝트 폴더를 작업 디렉터리로 두고 `codemap-search mcp`가 실행되도록 등록합니다.
+
+```sh
+# Claude Code (여러 프로젝트용 사용자 범위)
+claude mcp add --scope user codemap-search -- codemap-search mcp
+
+# Codex
+codex mcp add codemap-search -- codemap-search mcp
+```
+
+사전 빌드 바이너리는 [설치](/ko/getting-started/installation/)에서, Claude Code의 `project`와 `local` 범위 및 Codex `config.toml`, `pi`, `OpenCode` 설정은 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)에서 확인하세요.
+
+## 문서 안내
 
 <CardGrid>
     <LinkCard
-        title="왜 측정했는가"
-        description="단일 조회 마이크로 벤치마크 대신 Grafana에서 행 범위 인용을 요구하는 다단계 종단간 문항을 측정한 이유입니다."
-        href="/ko/benchmarks/why-benchmark/"
+        title="설치"
+        description="Cargo, install.sh, 로컬 소스 빌드, 릴리스 파일 설치 방법을 안내합니다."
+        href="/ko/getting-started/installation/"
     />
     <LinkCard
-        title="측정 방법"
-        description="비교 도구, 고정 커밋, 세 가지 실행 환경, 샌드박스 격리 규칙과 사전 구축 Grafana 색인 규모입니다."
-        href="/ko/benchmarks/methodology/"
+        title="MCP 클라이언트 등록"
+        description="Claude Code, Codex, pi, OpenCode에 서버를 등록하고 연결을 확인합니다."
+        href="/ko/getting-started/client-setup/"
     />
     <LinkCard
-        title="측정 지표"
-        description="충족 사실, 토큰 집계, 도구 호출 결과, 인용 형식, 클라이언트 출력 한도와 순열 검정의 정의입니다."
-        href="/ko/benchmarks/metrics/"
+        title="탐색 도구 사용"
+        description="initial_instructions, search, grep, find, read 활용법을 정리했습니다."
+        href="/ko/usage/tools/"
     />
     <LinkCard
-        title="측정 결과"
-        description="환경별 요약, 상세 결과표, 문항·회차별 점수, 36개 항목 충족표와 하위 도구 호출 기록입니다."
-        href="/ko/benchmarks/results/"
+        title="CLI 및 색인·읽기 분석"
+        description="CLI 명령어와 색인 크기, 읽기 이력 분석 리포트 사용법을 다룹니다."
+        href="/ko/usage/cli-and-analysis/"
     />
     <LinkCard
-        title="벤치마크로 바뀐 것"
-        description="검색 출력 압축, pi 메타데이터 한도, 인용 안내와 남아 있는 GPT 토큰 오버헤드 트레이드오프입니다."
-        href="/ko/benchmarks/what-changed/"
+        title="설정 레퍼런스"
+        description="config.toml, 출력 한도, 제외 규칙, Jev 필터, PII 마스킹을 설정합니다."
+        href="/ko/configuration/"
     />
     <LinkCard
-        title="한계와 비주장 범위"
-        description="표본 크기, 단일 저장소 범위, 도구 경계 차이, 서버 중단, 일시적 오류와 이 측정이 주장하지 않는 범위입니다."
-        href="/ko/benchmarks/limits/"
-    />
-    <LinkCard
-        title="재현 조건과 참고 사항"
-        description="고정 버전, 실행 배치, 재실행 내역, 환경 민감도와 커밋된 자료·비공개 기준 데이터의 범위입니다."
-        href="/ko/benchmarks/reproduction-notes/"
+        title="벤치마크"
+        description="Grafana에서 codemap-search 0.14.2, rg 15.2.0, MCP 서버 4종을 비교한 결과입니다."
+        href="/ko/benchmarks/"
     />
 </CardGrid>
