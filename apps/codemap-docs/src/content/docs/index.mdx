@@ -9,7 +9,7 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 ## Quick Start
 
-Install via `install.sh` (macOS/Linux), `install.ps1` (Windows), or `cargo install` (see [Installation](/getting-started/installation/) for options, local source builds, and `PATH` setup):
+Install `codemap-search`:
 
 ```sh
 # macOS / Linux
@@ -27,31 +27,29 @@ codemap-search --version
 Register `codemap-search mcp` in your MCP client:
 
 ```sh
-# Claude Code (user scope across projects)
+# Claude Code
 claude mcp add --scope user codemap-search -- codemap-search mcp
 
 # Codex
 codex mcp add codemap-search -- codemap-search mcp
 ```
 
-For Claude Code `project`/`local` scopes, Codex `config.toml`, `pi`, and `OpenCode`, see [MCP Client Setup](/getting-started/client-setup/).
-
 ## Documentation
 
 <CardGrid>
     <LinkCard
         title="Installation"
-        description="Install via install.sh, install.ps1, or Cargo (crates.io and local source)."
+        description="Installer options, release archives, and source builds."
         href="/getting-started/installation/"
     />
     <LinkCard
         title="MCP Client Setup"
-        description="Register codemap-search mcp in Claude Code, Codex, pi, or OpenCode."
+        description="Setup for Claude Code, Codex, pi, and OpenCode, including project-scoped configs."
         href="/getting-started/client-setup/"
     />
     <LinkCard
         title="MCP Tools"
-        description="initial_instructions, search, grep, find, read, and analyze."
+        description="Arguments, output modes, and usage for each MCP tool."
         href="/usage/tools/"
     />
     <LinkCard
@@ -61,12 +59,12 @@ For Claude Code `project`/`local` scopes, Codex `config.toml`, `pi`, and `OpenCo
     />
     <LinkCard
         title="Configuration Reference"
-        description="config.toml options, output limits, path exclusions, relevance filters, and PII masking."
+        description="config.toml keys, output limits, path exclusions, and PII redaction."
         href="/configuration/"
     />
     <LinkCard
         title="Benchmarks"
-        description="Benchmark on the grafana/grafana repository comparing codemap-search, ripgrep, and four MCP servers."
+        description="Benchmark against ripgrep and four other MCP servers on the Grafana repository."
         href="/benchmarks/"
     />
 </CardGrid>

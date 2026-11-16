@@ -9,7 +9,7 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 ## 빠른 시작
 
-`install.sh`(macOS·Linux), `install.ps1`(Windows), 또는 `cargo install` 중 하나로 설치하세요. 설치 옵션, 로컬 소스 빌드, `PATH` 설정은 [설치](/ko/getting-started/installation/)에서 설명합니다.
+운영체제에 맞는 명령으로 `codemap-search`를 설치하세요.
 
 ```sh
 # macOS / Linux
@@ -27,31 +27,29 @@ codemap-search --version
 사용하는 MCP 클라이언트에 `codemap-search mcp`를 등록하세요.
 
 ```sh
-# Claude Code (여러 프로젝트용 사용자 범위)
+# Claude Code
 claude mcp add --scope user codemap-search -- codemap-search mcp
 
 # Codex
 codex mcp add codemap-search -- codemap-search mcp
 ```
 
-Claude Code의 `project`·`local` 범위, Codex `config.toml`, `pi`, `OpenCode` 설정은 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)에서 설명합니다.
-
 ## 문서 안내
 
 <CardGrid>
     <LinkCard
         title="설치"
-        description="install.sh, install.ps1, Cargo(crates.io·로컬 소스) 설치 안내"
+        description="설치 옵션, 릴리스 아카이브, 로컬 소스 빌드"
         href="/ko/getting-started/installation/"
     />
     <LinkCard
         title="MCP 클라이언트 등록"
-        description="Claude Code, Codex, pi, OpenCode 등록과 첫 연결 확인"
+        description="Claude Code, Codex, pi, OpenCode 전역·저장소 단위 등록"
         href="/ko/getting-started/client-setup/"
     />
     <LinkCard
         title="탐색 도구 사용"
-        description="initial_instructions, search, grep, find, read, analyze 사용법"
+        description="각 MCP 도구의 인자, 출력 형식, 사용 기준"
         href="/ko/usage/tools/"
     />
     <LinkCard
@@ -61,12 +59,12 @@ Claude Code의 `project`·`local` 범위, Codex `config.toml`, `pi`, `OpenCode` 
     />
     <LinkCard
         title="설정 레퍼런스"
-        description="config.toml 옵션, 출력 한도, 제외 규칙, 관련성 필터, PII 마스킹"
+        description="config.toml 키, 출력 한도, 제외 규칙, PII 마스킹"
         href="/ko/configuration/"
     />
     <LinkCard
         title="벤치마크"
-        description="grafana/grafana 저장소에서 codemap-search, ripgrep, MCP 서버 4종 비교"
+        description="grafana/grafana 저장소에서 ripgrep 및 오픈소스 MCP 서버 4종과 비교"
         href="/ko/benchmarks/"
     />
 </CardGrid>

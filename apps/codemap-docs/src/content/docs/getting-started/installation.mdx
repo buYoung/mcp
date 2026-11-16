@@ -1,92 +1,100 @@
 ---
 title: Installation
-description: Install codemap-search via install.sh, install.ps1, or Cargo (crates.io and local source).
+description: Install codemap-search via install.sh, install.ps1, or Cargo.
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
-
-Install `codemap-search` using `install.sh` (macOS/Linux), `install.ps1` (Windows), or `cargo install` (`crates.io` or local source).
 
 ## Install
 
 <Tabs>
     <TabItem label="install.sh (macOS / Linux)">
-        Downloads a prebuilt binary for macOS or Linux, verifies its `.sha256` checksum before unpacking, installs it to `~/.local/bin` by default, and registers that directory in your shell profile (`PATH`). Requires a POSIX shell (`sh` or `bash`), `curl` or `wget`, `tar`, and `sha256sum` or `shasum`.
-
         ```sh
         curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
         ```
 
-        Example with a custom install path or pinned version:
+        Custom install directory or version:
 
         ```sh
         curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | INSTALL_DIR=/usr/local/bin sh
         curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh -s -- --version 0.14.2
         ```
 
-        | Option / Env var | Meaning |
+        | Option / Env var | Description |
         |---|---|
-        | `--install-dir` / `INSTALL_DIR` | Install path (`--install-dir` takes precedence); default `~/.local/bin` |
-        | `--version` / `CODEMAP_VERSION` | Version or tag (`0.14.2`, `v0.14.2`, `codemap-v0.14.2`, or `latest`); `--version` takes precedence |
-        | `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH` | Set flag or `1`/`true`/`yes` to skip updating the shell profile `PATH` |
-        | `CODEMAP_LINUX_LIBC` | `musl` (static binary, no `glibc` needed) by default; `gnu` for Linux x86_64 only |
-        | `--print-target` | Print the resolved target, version, download URLs, and install path without downloading |
+        | `--install-dir` / `INSTALL_DIR` | Install path (default `~/.local/bin`) |
+        | `--version` / `CODEMAP_VERSION` | Version or tag to install (e.g. `0.14.2`; default latest) |
+        | `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH=1` | Skip adding the install path to your shell profile |
+        | `CODEMAP_LINUX_LIBC` | Use `gnu` on Linux `x86_64` (default `musl`) |
+        | `--print-target` | Print detected target and URLs without downloading |
     </TabItem>
     <TabItem label="install.ps1 (Windows)">
-        Downloads a prebuilt Windows `.zip` archive, verifies its `.sha256` checksum before extracting, installs `codemap-search.exe` to `$HOME\.local\bin` by default, and adds that directory to User `Path`. Works from both Command Prompt (`cmd.exe`) and PowerShell.
+        Run in PowerShell or Command Prompt (`cmd.exe`):
 
         ```powershell
         powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
         ```
 
-        Example with a custom install path or pinned version:
+        Custom install directory or version:
 
         ```powershell
         powershell -ExecutionPolicy ByPass -c "$env:INSTALL_DIR='C:\Tools\bin'; irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
         powershell -ExecutionPolicy ByPass -c "$env:CODEMAP_VERSION='0.14.2'; irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
         ```
 
-        | Option / Env var | Meaning |
+        | Option / Env var | Description |
         |---|---|
-        | `-InstallDir` / `--install-dir` / `INSTALL_DIR` | Install path (flag takes precedence); default `$HOME\.local\bin` |
-        | `-Version` / `--version` / `CODEMAP_VERSION` | Version or tag (`0.14.2`, `v0.14.2`, `codemap-v0.14.2`, or `latest`); flag takes precedence |
-        | `-NoModifyPath` / `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH` | Set flag or `1`/`true`/`yes` to skip updating User `Path` |
-        | `-PrintTarget` / `--print-target` | Print the resolved target, version, download URLs, and install path without downloading |
+        | `-InstallDir` / `--install-dir` / `INSTALL_DIR` | Install path (default `$HOME\.local\bin`) |
+        | `-Version` / `--version` / `CODEMAP_VERSION` | Version or tag to install (e.g. `0.14.2`; default latest) |
+        | `-NoModifyPath` / `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH=1` | Skip adding the install path to User `Path` |
+        | `-PrintTarget` / `--print-target` | Print detected target and URLs without downloading |
     </TabItem>
     <TabItem label="Cargo (crates.io & source)">
-        Requires Rust and a C compiler toolchain.
+        Install from [crates.io](https://crates.io/crates/codemap-search):
 
         ```sh
         cargo install codemap-search
         ```
 
-        To pin a version from [crates.io](https://crates.io/crates/codemap-search), pass `--version`.
-
-        To build from a local checkout, run from the repository root:
+        Or build from a local checkout (run from the repository root):
 
         ```sh
         cargo install --path apps/codemap-search
-        # Build without installing (output: apps/codemap-search/target/release/codemap-search):
-        cargo build --release --manifest-path apps/codemap-search/Cargo.toml
         ```
     </TabItem>
 </Tabs>
 
-## Verify and `PATH`
+## Verify
 
-Open a new terminal and run `codemap-search --version`. By default, `install.sh` updates your shell profile (`~/.zshrc`, `~/.bash_profile`, `~/.bashrc`, `~/.config/fish/conf.d/codemap-search.fish`, or `~/.profile`) and `install.ps1` updates Windows User `Path`, unless you pass `--no-modify-path` (`-NoModifyPath` or `CODEMAP_NO_MODIFY_PATH=1`).
+Open a new terminal and check the installed version:
 
-If a shell or GUI MCP client still cannot find `codemap-search` (GUI clients often do not load `~/.zshrc` or `~/.bashrc`), verify that the install path is on `PATH`:
+```sh
+codemap-search --version
+```
 
-- **`install.sh` (macOS / Linux)**: `~/.local/bin` (or custom `INSTALL_DIR`)
-- **`install.ps1` (Windows)**: `$HOME\.local\bin` (or custom `INSTALL_DIR`)
-- **`Cargo`**: `~/.cargo/bin` (`%USERPROFILE%\.cargo\bin` on Windows)
+If the command is not found, see [Troubleshooting](#troubleshooting). Otherwise, continue to [MCP Client Setup](/getting-started/client-setup/).
 
-Once verified, continue to [MCP Client Setup](/getting-started/client-setup/).
+## Troubleshooting
+
+If your terminal reports `codemap-search: command not found`, add the install directory (`~/.local/bin`, or `~/.cargo/bin` when installed via Cargo) to your shell profile or Windows User `Path`:
+
+```sh
+# zsh (macOS / Linux)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+
+# bash (Linux / macOS)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+```powershell
+# Windows PowerShell (open a new terminal afterward)
+$p = [Environment]::GetEnvironmentVariable("Path", "User")
+[Environment]::SetEnvironmentVariable("Path", "$HOME\.local\bin;$p", "User")
+```
 
 ## Release archives
 
-Prebuilt archives and matching `.sha256` files are published on [GitHub Releases](https://github.com/buYoung/mcp/releases):
+Prebuilt archives and `.sha256` checksums are available on [GitHub Releases](https://github.com/buYoung/mcp/releases):
 
 | System | Architecture / libc | Archive |
 |---|---|---|
@@ -97,10 +105,3 @@ Prebuilt archives and matching `.sha256` files are published on [GitHub Releases
 | macOS | Intel | `codemap-search-x86_64-apple-darwin.tar.gz` |
 | Windows | `x86_64` | `codemap-search-x86_64-pc-windows-msvc.zip` |
 | Windows | `arm64` | `codemap-search-aarch64-pc-windows-msvc.zip` |
-
-## Troubleshooting
-
-- **Download error**: Verify that the release tag includes both the archive and its `.sha256` file on [GitHub Releases](https://github.com/buYoung/mcp/releases).
-- **Checksum mismatch**: Re-download the archive and `.sha256` file and compare hashes rather than bypassing verification.
-- **Write error**: Pass a writable install path via `INSTALL_DIR` or `-InstallDir`.
-- **Cargo build error**: Confirm the requested version exists on [crates.io](https://crates.io/crates/codemap-search), and ensure `rustc`, `cargo`, and a C compiler toolchain are available.

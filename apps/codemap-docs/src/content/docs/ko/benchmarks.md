@@ -1,23 +1,23 @@
 ---
 title: 벤치마크
-description: pi direct, pi codemode, Codex code mode 세 환경에서 codemap-search 0.14.2, rg 15.2.0, 외부 MCP 서버 4종을 Grafana에서 비교 측정한 결과입니다.
+description: pi direct, pi codemode, Codex code mode 세 환경에서 codemap-search 0.14.2, rg 15.2.0, 오픈소스 MCP 서버 4종을 Grafana에서 비교 측정한 결과입니다.
 ---
 
-## 측정 조건과 진행 방식
+## 측정 조건
 
-읽기 전용 [grafana/grafana](https://github.com/grafana/grafana) TypeScript/Go 저장소에서 `gpt-6.1-sol`(`medium`)으로 다단계 아키텍처 질문 `3`개를 세 클라이언트 환경마다 도구별로 `3`회씩 풀고, 블라인드 채점기가 답변당 필수 사실 `12`개(`path:시작-끝` 인용 포함)를 대조해 채점했습니다. 세 환경은 보조 도구, 출력 한도, 토큰 계산 방식이 달라 합산하지 않고 따로 집계했습니다.
+읽기 전용 [grafana/grafana](https://github.com/grafana/grafana) TypeScript/Go 저장소에서 `gpt-6.1-sol`(`medium`)으로 다단계 아키텍처 질문 `3`개를 세 클라이언트 환경마다 도구별로 `3`회씩 풀고, 블라인드 채점기가 답변당 필수 사실 `12`개(`path:시작-끝` 인용 포함)를 대조해 채점했습니다.
 
 ### 비교 도구와 고정 버전
 
 | 도구·버전 | 공식 프로젝트·패키지 | 고정 커밋 | 탐색 방식과 노출 도구 |
 | --- | --- | --- | --- |
-| `codemap-search 0.14.2` | [buYoung/mcp](https://github.com/buYoung/mcp) (`codemap-search`) | `e727d20c6` | 단일 Rust 바이너리(도구 6종: Tree-sitter + Tantivy BM25 `search`, `read`, `find`, `grep`, `initial_instructions`, `analyze`), [선택적 Jev 판단 단계](/ko/configuration/#선택적-jev-판단-단계) 비활성 |
-| `Graphify 0.9.95` | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) (PyPI `graphifyy`) | `92741d16` | Python 코드 그래프 MCP(7종) + 읽기 전용 `read` 보조 도구(그래프 도구가 원문 줄을 반환하지 않아 추가) |
-| `zvec-grep 0.2.2` | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) (npm `@zvec/zvec-grep`) | `b1a9148e` | Node.js 로컬 벡터 검색(`zvec_grep_search`, `local/potion-code-16m-v2`), 발췌 본문을 함께 반환해 `read` 보조 도구 없음 |
+| `codemap-search 0.14.2` | [buYoung/mcp](https://github.com/buYoung/mcp) (`codemap-search`) | `e727d20c6` | 단일 Rust 바이너리(도구 6종: Tree-sitter + Tantivy BM25 `search`, `read`, `find`, `grep`, `initial_instructions`, `analyze`), [Jev 필터](/ko/configuration/#jev-필터) 비활성 |
+| `Graphify 0.9.95` | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) (PyPI `graphifyy`) | `92741d16` | Python 코드 그래프 MCP(7종) + 읽기 전용 `read` 보조 도구 |
+| `zvec-grep 0.2.2` | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) (npm `@zvec/zvec-grep`) | `b1a9148e` | Node.js 로컬 벡터 검색 MCP(`zvec_grep_search`, `local/potion-code-16m-v2`) |
 | `codebase-memory-mcp 0.12.1` | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) | `a7158ac2` | 코드베이스 그래프·검색·조각 조회 MCP(13종) |
 | `rg 15.2.0` (기준군) | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | `e89fff89` | MCP 서버 없이 기본 파일·검색 도구나 읽기 전용 셸만 사용 |
 | `CodeGraph 1.6.2` | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) (npm `@colbymchenry/codegraph`) | `6560052a` | Node.js 코드 그래프 탐색 MCP(`codegraph_explore`) |
-| `Serena 2.1.0` (제외) | [oraios/serena](https://github.com/oraios/serena) (PyPI `serena-agent`) | `5e4f5cd1` | Go/TypeScript LSP MCP, Grafana 색인이 약 34~70분 걸려 사전 제외 |
+| `Serena 2.1.0` (제외) | [oraios/serena](https://github.com/oraios/serena) (PyPI `serena-agent`) | `5e4f5cd1` | Go/TypeScript LSP MCP |
 
 ### 에이전트 클라이언트, 모델, 실행 환경
 
@@ -27,12 +27,10 @@ description: pi direct, pi codemode, Codex code mode 세 환경에서 codemap-se
 | 풀이 모델 | `gpt-6.1-sol` (`medium`), 환경·도구·문항당 독립 `3`회 실행 |
 | 블라인드 채점 모델 | `gpt-6-astra` (`high`), 도구·저장소 접근 없이 문항당 필수 사실 `12`개 채점 |
 | `pi direct` | `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2`; 턴마다 MCP 도구를 직접 호출하며 저장소 내 `read`, `grep`, `find`, `ls`만 병행(`bash` 없음) |
-| `pi codemode` | `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2` + QuickJS `codemode`; JS로 호출을 묶고 출력을 추려 반환(`10k`토큰 기본 상한) |
-| `Codex code mode` | `Codex CLI 0.164.0`; JS `exec`·`wait` 셀에서 MCP 도구와 저장소 내 읽기 전용 셸 실행(`10k`토큰 기본 상한, `codemap-search 0.14.2`는 `100k`토큰 상한) |
+| `pi codemode` | `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2` + QuickJS `codemode`; JS로 호출을 묶고 출력을 추려 반환(호출당 출력 상한 `10k`토큰) |
+| `Codex code mode` | `Codex CLI 0.164.0`; JS `exec`·`wait` 셀에서 MCP 도구와 저장소 내 읽기 전용 셸 실행(호출당 출력 상한 기본 `10k`토큰, `codemap-search 0.14.2`는 `100k`토큰) |
 
 ### Grafana 색인 규모와 구축 시간
-
-풀이 실행 전 배치마다 한 번씩 색인하며 측정한 크기와 시간입니다. 구축 시간에는 사전·사후 상태 확인이 포함됩니다.
 
 | 도구 | 색인 파일·그래프 엔티티 수 | 색인 디스크 크기 | 색인 구축 시간 (`pi` 두 환경 / `Codex code mode` 준비) |
 | --- | --- | --- | --- |
@@ -44,16 +42,14 @@ description: pi direct, pi codemode, Codex code mode 세 환경에서 codemap-se
 | `rg 15.2.0` (기준군) | 없음 (실시간 디스크 검색) | `0 MiB` | `0 s` |
 | `Serena 2.1.0` (제외) | Go + TypeScript LSP | — | `~34–70 min` (사전 제외) |
 
-### 표 읽는 법
-
-- **토큰 단위 (`1k = 1,000토큰`)**: **총 토큰**은 매 턴 반복 전송되는 캐시 입력(`~86–94%` 적중)까지 합산한 값이고, **비캐시 합계**는 캐시에 걸리지 않은 신규 입력과 출력의 합계입니다. `Codex code mode` 총 토큰이 `pi` 두 환경(`pi direct`·`pi codemode`)보다 `~1.4–1.9×` 많은 이유는 매 턴 더 큰 시스템·도구 프롬프트를 다시 보내기 때문입니다.
-- **충족 (`Core` + `Extended`)**: 답변당 필수 사실 `12`개(`7`개 `Core` 핵심 경로와 `5`개 `Extended` 분기·설정; `9`개 답변 `108`개, `7`개 답변 `84`개) 기준 주 정확도입니다. 설명이 맞고 인용한 `path:시작-끝` 행 범위가 그 내용을 입증해야 충족으로 인정합니다. **Core 완결 (7/7)**은 `Core` `7`개를 모두 충족한 답변 수입니다.
-- **내용 맞음, 인용 부족, 오답·누락**: **내용 맞음·인용 부족**은 설명은 맞았으나 인용한 행 범위가 주장을 입증하지 못한 건수입니다. **오답·누락**은 `전체 사실 수 − 내용 맞음`이므로 `충족 + 내용 맞음·인용 부족 + 오답·누락 = 전체 사실 수`가 됩니다. **테스트·생성 인용**은 테스트나 생성 파일을 한 번 이상 인용한 답변 수입니다.
-- **호출 수와 기본·보조 도구 호출**: `답변당 평균 호출`은 전체 호출(`전달 + 거절`)의 평균입니다. **답변당 기본·보조 도구 호출**이 `0.0`이면 내장 도구나 셸 없이 MCP 도구만으로 풀이를 마쳤다는 뜻입니다(`codemap-search 0.14.2`는 `read`, `grep`, `find`를 내장). MCP 서버가 없는 `rg 15.2.0`은 모든 호출이 여기에 포함됩니다.
-- **`·` 구분 순서**: 요약표와 세부 항목 표의 세 값은 항상 `pi direct` · `pi codemode` · `Codex code mode` 순서입니다.
-- **쌍별 `p` 값과 토큰 비율**: `p` 값은 문항 층화 정확 순열 검정 결과로, 보정 없이 `p < 0.05` 기준으로 봅니다. **양측 `p`**는 양방향 차이를, **단측 `p`**는 `A − B`에서 `A`가 앞섰는지를 검정합니다. `n = 9` 표본에서는 답변당 약 `1.0`개 이상 차이부터 통계적으로 구분되며, `0.3–0.8` 차이는 시행 간 오차 범위에 속합니다. 토큰 비율은 `A` 평균 토큰을 `B` 평균 토큰으로 나눈 값입니다.
-
 ## 요약 결과
+
+### 지표 안내
+
+- **충족 (`Core` + `Extended`)**: 답변당 필수 사실 `12`개(`Core` 핵심 경로 `7` + `Extended` 분기·설정 `5`) 중 설명이 맞고 `path:시작-끝` 인용으로 입증된 건수입니다(`내용 맞음`은 `내용 맞음·인용 부족`을 포함하며, `Core 완결 (7/7)`은 `Core` `7`개를 모두 충족한 답변 수).
+- **토큰**: `총 토큰`은 턴마다 재전송되는 캐시 입력을 포함한 합계이고, `비캐시 합계`는 신규 입력과 출력 토큰의 합계입니다.
+- **기본·보조 도구 호출과 테스트·생성 인용**: `기본·보조 도구 호출`은 MCP 외 내장 도구·셸의 답변당 평균 호출 수(`0.0`이면 MCP 도구만 사용)이고, `테스트·생성 인용`은 테스트나 생성 파일을 1회 이상 인용한 답변 수입니다.
+- **`·` 구분 순서와 `p` 값**: 세 값은 `pi direct` · `pi codemode` · `Codex code mode` 순서이며, 쌍별 `p` 값은 문항 층화 순열 검정 결과(`p < 0.05`, `단측 p`는 `A > B` 검정)입니다.
 
 | 도구 | `pi direct` | `pi codemode` | `Codex code mode` | Core 완결 (7/7) 답변 (3개 환경) | 답변당 평균 총 토큰 | 답변당 평균 비캐시 합계 | 답변당 평균 호출 | 답변당 기본·보조 도구 호출 | 테스트·생성 인용 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -64,16 +60,10 @@ description: pi direct, pi codemode, Codex code mode 세 환경에서 codemap-se
 | `rg 15.2.0` | 86/108 | 87/108 | 89/108 | 3/9 · 1/9 · 5/9 | 555k · 505k · 866k | 68k · 76k · 104k | 63.7 · 66.6 · 20.3 | 63.7 · 66.6 · 20.3 | 6 · 6 · 5 |
 | `CodeGraph 1.6.2` | 78/108 | 85/108 | 86/108 | 2/9 · 3/9 · 3/9 | 1,727k · 1,724k · 3,309k | 132k · 142k · 194k | 24.7 · 26.3 · 36.3 | 2.8 · 4.6 · 3.4 | 5 · 5 · 4 |
 
-- **`codemap-search 0.14.2`가 보조 호출 없이 인용 정확도 최고를 기록했습니다**:
-  - 전체 `27`개 답변에서 `96/108`(`pi direct`), `97/108`(`pi codemode`), `98/108`(`Codex code mode`)을 기록했고, 기본·셸 보조 호출과 `테스트·생성 인용`이 모두 `0`건이었습니다.
-  - `rg 15.2.0` 대비 답변당 `+1.00`~`+1.11`개 많은 사실을 충족했습니다(`p = 0.0250`, `0.0300`, `0.0280`; 총 토큰 `1.54×`~`1.71×`, 비캐시 합계 `1.27×`~`1.45×`).
-  - `CodeGraph 1.6.2`·`codebase-memory-mcp 0.12.1` 대비로도 답변당 `+1.00`~`+2.00`개 앞서며(`6`개 비교 모두 `p < 0.05`) 총 토큰은 `0.40×`~`0.73×`만 썼습니다(비캐시 합계 `0.68×`~`1.10×`; `pi direct`에서 `codebase-memory-mcp 0.12.1` 대비 비캐시 합계는 `98k` 대 `89k`).
-- **기준군 `rg 15.2.0`을 `p < 0.05`로 앞선 외부 MCP 서버는 없었습니다**: 색인 크기(`0 MiB`)와 구축 시간(`0 s`)이 없고 토큰 소모도 가장 적은(`505k–866k`) `rg 15.2.0`에 비해, 외부 MCP 서버 4종은 총 토큰을 `1.00×`~`3.82×`(비캐시 합계 `0.92×`~`1.94×`) 쓰면서도 어느 환경에서든 통계적으로 앞서지 못했습니다.
-- **`Graphify 0.9.95`와 `zvec-grep 0.2.2` 비교**: `codemap-search 0.14.2`가 세 환경 모두에서 답변당 `+0.33`~`+1.22`개 앞섰으나 각 한 환경씩만 `p < 0.05`를 넘었습니다(`pi codemode`에서 `Graphify 0.9.95` 대비 `p = 0.0180`, `Codex code mode`에서 `zvec-grep 0.2.2` 대비 `p = 0.0100`). 인용 입증을 제외한 `내용 맞음` 기준으로는 `Graphify 0.9.95`가 `96`, `96`, `95`점을 기록해 `codemap-search 0.14.2`(`98`, `100`, `99`)에 가까웠고, `pi codemode`의 `zvec-grep 0.2.2`는 서버 `SIGSEGV` 중단 `2`건으로 `9`회 중 `7`회(`71/84`)만 집계했습니다.
+- 세 환경 모두에서 `codemap-search 0.14.2`는 `rg 15.2.0`·`CodeGraph 1.6.2`·`codebase-memory-mcp 0.12.1`보다 유의하게 높았고(`p < 0.05`; `Graphify 0.9.95`는 `pi codemode`, `zvec-grep 0.2.2`는 `Codex code mode`에서 `p < 0.05`), 나머지 MCP 서버 4종은 어느 환경에서도 `rg 15.2.0`을 유의하게 앞서지 못했습니다(`p >= 0.05`).
+- `pi codemode`의 `zvec-grep 0.2.2`는 `scope-annotation-filter`에서 서버 `SIGSEGV` 중단이 두 번 발생해 `9`회 중 답변 `7`개(`71/84`)만 완료했습니다.
 
-## 실행 환경별 상세 결과
-
-각 환경 표는 충족률 순입니다(`pi codemode`의 `zvec-grep 0.2.2`만 답변 `7`개, 나머지는 모두 `9`개).
+## 환경별 결과
 
 ### `pi direct`
 
@@ -138,8 +128,6 @@ description: pi direct, pi codemode, Codex code mode 세 환경에서 codemap-se
 | `Graphify 0.9.95` − `rg 15.2.0` | +0.11 | 1.0000 | 0.5000 | ×1.48 | ×1.23 |
 | `CodeGraph 1.6.2` − `rg 15.2.0` | -0.22 | 0.8080 | 0.7765 | ×3.41 | ×1.87 |
 | `codebase-memory-mcp 0.12.1` − `rg 15.2.0` | -0.33 | 0.5625 | 0.8825 | ×2.36 | ×1.49 |
-
-`pi codemode`의 `zvec-grep 0.2.2`는 `scope-annotation-filter` 2회분이 서버 `SIGSEGV`로 중단되어 답변 `7`개(`84`개 사실)만 집계했습니다.
 
 ### `Codex code mode`
 
@@ -252,11 +240,9 @@ Kubernetes 방식 API가 외부 Alertmanager 설정을 가져오는 자동 동�
 |  | `CodeGraph 1.6.2` | 26/36 | 16/21 | 10/15 | 27 | 8 (5+3) · 10 (6+4) · 8 (5+3) | 2,314k | 158k | 34.7 |
 |  | `codebase-memory-mcp 0.12.1` | 27/36 | 16/21 | 11/15 | 28 | 10 (6+4) · 8 (5+3) · 9 (5+4) | 1,552k | 172k | 83.0 |
 
-### 36개 세부 채점 항목별 충족 현황
+### 세부 채점 항목별 충족 (`36`개)
 
-`A1–AE5`, `G1–GE5`, `B1–BE5` 36개 세부 항목 중 `A7`, `AE4`, `BE5`는 모든 도구가 `0`건(`0/9`, `zvec-grep 0.2.2`의 `BE5`는 `0/7`)이었지만, `scope-annotation-filter`의 `Core` 항목 `B6`은 `codemap-search 0.14.2`가 `9/9`를 기록한 반면 나머지 도구는 `0–3/9`(`zvec-grep 0.2.2`는 `1/7`)에 그쳤습니다.
-
-각 셀은 `pi direct · pi codemode · Codex code mode` 순서로 각 `3`회 중 충족 횟수와 전체 합계(`sum/9`)를 적었습니다. `pi codemode`에서 `3`회 중 `2`회가 중단된 `zvec-grep 0.2.2`의 `B*`/`BE*` 행은 가운데 값을 `1/1` 또는 `0/1`로, 합계를 `sum/7`로 표기했습니다.
+블라인드 채점표 항목 코드(`A1–AE5`, `G1–GE5`, `B1–BE5`)별 `pi direct · pi codemode · Codex code mode` 충족 횟수와 합계(`sum/9`; `zvec-grep 0.2.2`의 `B*`·`BE*`는 `pi codemode` 완료 `1/1` 또는 `0/1` 기준 `sum/7`)입니다.
 
 #### `alertmanager-config-autosync` (`A1–AE5`)
 
@@ -311,9 +297,7 @@ Kubernetes 방식 API가 외부 Alertmanager 설정을 가져오는 자동 동�
 
 ## 하위 도구 호출, 인용 및 출력 잘림
 
-- **전달, 거절, 오류**: `총 호출 = 전달 호출 + 거절`이며 호출 수는 답변당 평균, 거절과 오류는 해당 행의 합계입니다. `거절`은 읽기 전용 샌드박스가 실행 전에 막은 호출이고, `오류`는 실행된 호출 중 오류로 끝난 횟수입니다.
-- **클라이언트 출력 한도와 잘림**: **기본·CLI 한도 도달 (답변 수)**는 클라이언트 기본 도구나 셸 출력 상한에 걸린 총 횟수와 괄호 안 해당 답변 수입니다(`pi` 두 환경 기본 `read`·`grep`·`find`·`ls` 한도, `Codex code mode` 기본 `10k`토큰 상한 및 `codemap-search 0.14.2`의 `100k`토큰 상한). **스크립트 잘림**은 `pi codemode`의 `10k`토큰 상한에 걸린 횟수, **어댑터 잘림**은 `@buyong/pi-mcp-adapter 0.1.2`가 개별 MCP 응답을 자른 횟수입니다(기본 `20 KiB`, `codemap-search 0.14.2`는 `100,000`바이트).
-- **인용 형식**: **범위 인용**은 여러 줄(`end > start`) `path:시작-끝` 인용, **한 줄 인용**은 1줄 인용입니다.
+`거절`은 읽기 전용 경로 샌드박스가 실행 전에 차단한 호출(`오류`는 실행 후 실패한 호출)이며, `범위 인용`은 다줄 `path:시작-끝` 인용(`한 줄 인용`은 `path:줄` 인용), `기본·CLI 한도 도달`·`스크립트 잘림`·`어댑터 잘림`은 각 클라이언트 계층 출력 상한에 걸린 횟수입니다.
 
 ### 호출 결과 및 하위 도구별 평균 호출 수 (답변당)
 
