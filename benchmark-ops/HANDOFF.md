@@ -50,7 +50,8 @@ GPT-6.1 Sol 측정은 끝났고 Claude 측정이 남았다. 이 문서는 Claude
 |---|---|
 | `bench-out/` | 운영 스크립트가 쓰는 로그(`logs/`)와 집계 파일(`bench_report-*.json`). GPT 집계 4개가 들어 있다. 하네스가 이 작업 폴더를 풀이 모델에게 숨기므로(`isolation.hidden_references`) 로그를 여기에 둔다 |
 | `decisions.md` | 사전 등록과 판단의 기록. 덧붙이기만 한다 |
-| 그 밖 | 데이터셋 출처 자료(`v4/`, `v5/`, `v6/`, `dataset-v*/`)와 이전 작업의 임시 폴더. 이 측정에는 쓰지 않는다 |
+| 데이터셋 출처 자료 | `v4/`, `v5/`, `v6/`, `dataset-v*/`, `question-selection/`, `dataset-v3-revision*-task.md`. 저장소의 데이터셋 manifest와 README가 경로나 파일 이름으로 가리키므로 지우지 않는다 |
+| 그 밖 | 이전 작업의 임시 폴더(`scratch/`, `target-variants-release/`). 이 측정에는 쓰지 않는다 |
 
 ## GPT 결과를 읽은 규칙
 
