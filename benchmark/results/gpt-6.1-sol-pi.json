@@ -1,0 +1,1579 @@
+{
+ "gpt-6.1-sol direct": {
+  "codebase-memory-mcp": {
+   "campaigns": [
+    "smoke-eae6f5a598494135800bb99039e8091a"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 87,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 54,
+   "extended": 45,
+   "extended_fulfilled": 33,
+   "zero_core": 0,
+   "total": 11981345,
+   "uncached": 803617,
+   "calls": 665,
+   "shell": 45,
+   "citing_test_or_generated": 7,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 30,
+     "core": 18,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 27,
+     "core": 15,
+     "facts": 36,
+     "max": 9,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       9
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 30,
+     "core": 21,
+     "facts": 36,
+     "max": 11,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       11
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "git-sync-job-dispatch",
+     9
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ]
+   ],
+   "vs_baseline": {
+    "mean_difference": 0.11111111111111072,
+    "p_two_sided": 1.0,
+    "p_one_sided_better": 0.5,
+    "token_ratio": 2.4004938692098094
+   }
+  },
+  "zvec-grep": {
+   "campaigns": [
+    "smoke-eae6f5a598494135800bb99039e8091a"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 89,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 55,
+   "extended": 45,
+   "extended_fulfilled": 34,
+   "zero_core": 0,
+   "total": 7056466,
+   "uncached": 691538,
+   "calls": 410,
+   "shell": 347,
+   "citing_test_or_generated": 4,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 30,
+     "core": 18,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 26,
+     "core": 16,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       8
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       8
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 33,
+     "core": 21,
+     "facts": 36,
+     "max": 12,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       12
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       11
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ]
+   ],
+   "vs_baseline": {
+    "mean_difference": 0.3333333333333339,
+    "p_two_sided": 0.57,
+    "p_one_sided_better": 0.285,
+    "token_ratio": 1.413781455361436
+   }
+  },
+  "codegraph": {
+   "campaigns": [
+    "smoke-eae6f5a598494135800bb99039e8091a"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 78,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 50,
+   "extended": 45,
+   "extended_fulfilled": 28,
+   "zero_core": 0,
+   "total": 15544279,
+   "uncached": 1185879,
+   "calls": 222,
+   "shell": 25,
+   "citing_test_or_generated": 5,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 24,
+     "core": 14,
+     "facts": 36,
+     "max": 9,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       8
+      ],
+      [
+       2,
+       7
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 24,
+     "core": 16,
+     "facts": 36,
+     "max": 8,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       8
+      ],
+      [
+       2,
+       8
+      ],
+      [
+       3,
+       8
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 30,
+     "core": 20,
+     "facts": 36,
+     "max": 11,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       11
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     8
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "alertmanager-config-autosync",
+     7
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "git-sync-job-dispatch",
+     9
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "alertmanager-config-autosync",
+     9
+    ]
+   ],
+   "vs_baseline": {
+    "mean_difference": -0.8888888888888893,
+    "p_two_sided": 0.06,
+    "p_one_sided_better": 0.994,
+    "token_ratio": 3.1143370331783937
+   }
+  },
+  "graphify": {
+   "campaigns": [
+    "smoke-eae6f5a598494135800bb99039e8091a"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 93,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 56,
+   "extended": 45,
+   "extended_fulfilled": 37,
+   "zero_core": 0,
+   "total": 9068944,
+   "uncached": 841232,
+   "calls": 502,
+   "shell": 151,
+   "citing_test_or_generated": 8,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 30,
+     "core": 18,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 31,
+     "core": 19,
+     "facts": 36,
+     "max": 11,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       11
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 32,
+     "core": 19,
+     "facts": 36,
+     "max": 12,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       12
+      ],
+      [
+       2,
+       11
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "scope-annotation-filter",
+     11
+    ],
+    [
+     "git-sync-job-dispatch",
+     9
+    ],
+    [
+     "scope-annotation-filter",
+     10
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ]
+   ],
+   "vs_baseline": {
+    "mean_difference": 0.7777777777777786,
+    "p_two_sided": 0.1475,
+    "p_one_sided_better": 0.07375,
+    "token_ratio": 1.8169866965859915
+   }
+  },
+  "codemap-search": {
+   "campaigns": [
+    "882f05d31f8643919d9e709b8dc3ce86"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 96,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 59,
+   "extended": 45,
+   "extended_fulfilled": 37,
+   "zero_core": 0,
+   "total": 8510378,
+   "uncached": 882730,
+   "calls": 406,
+   "shell": 0,
+   "citing_test_or_generated": 0,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 30,
+     "core": 18,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 33,
+     "core": 21,
+     "facts": 36,
+     "max": 11,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       11
+      ],
+      [
+       2,
+       11
+      ],
+      [
+       3,
+       11
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 33,
+     "core": 20,
+     "facts": 36,
+     "max": 12,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       12
+      ],
+      [
+       2,
+       11
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     11
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ],
+    [
+     "scope-annotation-filter",
+     11
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     11
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ]
+   ],
+   "vs": {
+    "codebase-memory-mcp": {
+     "mean_difference": 1.0,
+     "p_two_sided": 0.025,
+     "p_one_sided_better": 0.0125,
+     "token_ratio": 0.7103023909252258
+    },
+    "zvec-grep": {
+     "mean_difference": 0.7777777777777768,
+     "p_two_sided": 0.16,
+     "p_one_sided_better": 0.08,
+     "token_ratio": 1.2060396804859543
+    },
+    "codegraph": {
+     "mean_difference": 2.0,
+     "p_two_sided": 0.002,
+     "p_one_sided_better": 0.001,
+     "token_ratio": 0.5474926177019854
+    },
+    "graphify": {
+     "mean_difference": 0.33333333333333215,
+     "p_two_sided": 0.54,
+     "p_one_sided_better": 0.27,
+     "token_ratio": 0.9384089261109121
+    },
+    "rg": {
+     "mean_difference": 1.1111111111111107,
+     "p_two_sided": 0.025,
+     "p_one_sided_better": 0.0125,
+     "token_ratio": 1.705076534701074
+    }
+   }
+  },
+  "rg": {
+   "campaigns": [
+    "882f05d31f8643919d9e709b8dc3ce86"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 86,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 53,
+   "extended": 45,
+   "extended_fulfilled": 33,
+   "zero_core": 0,
+   "total": 4991200,
+   "uncached": 609760,
+   "calls": 573,
+   "shell": 573,
+   "citing_test_or_generated": 6,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 28,
+     "core": 17,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       8
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 26,
+     "core": 15,
+     "facts": 36,
+     "max": 9,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       8
+      ],
+      [
+       2,
+       9
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 32,
+     "core": 21,
+     "facts": 36,
+     "max": 11,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       11
+      ],
+      [
+       3,
+       11
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     8
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ]
+   ]
+  }
+ },
+ "gpt-6.1-sol codemode": {
+  "zvec-grep": {
+   "campaigns": [
+    "smoke-eae6f5a598494135800bb99039e8091a"
+   ],
+   "answers": 7,
+   "ungraded": [
+    [
+     "smoke-eae6f5a598494135800bb99039e8091a",
+     "scope-annotation-filter-zvec-grep-codemode-1",
+     "not_eligible",
+     "environment_error"
+    ],
+    [
+     "smoke-eae6f5a598494135800bb99039e8091a",
+     "scope-annotation-filter-zvec-grep-codemode-2",
+     "not_eligible",
+     "environment_error"
+    ]
+   ],
+   "fulfilled": 71,
+   "facts": 84,
+   "core": 49,
+   "core_fulfilled": 44,
+   "extended": 35,
+   "extended_fulfilled": 27,
+   "zero_core": 0,
+   "total": 4254433,
+   "uncached": 555617,
+   "calls": 389,
+   "shell": 339,
+   "citing_test_or_generated": 2,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 29,
+     "core": 17,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 32,
+     "core": 21,
+     "facts": 36,
+     "max": 12,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       11
+      ],
+      [
+       3,
+       12
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 10,
+     "core": 6,
+     "facts": 12,
+     "max": 10,
+     "answers": 1,
+     "runs": [
+      [
+       3,
+       10
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     9
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ],
+    [
+     "scope-annotation-filter",
+     10
+    ],
+    [
+     "alertmanager-config-autosync",
+     9
+    ]
+   ],
+   "vs_baseline": {
+    "mean_difference": 0.4761904761904763,
+    "p_two_sided": 0.5375,
+    "p_one_sided_better": 0.45625,
+    "token_ratio": 1.203823566464397
+   }
+  },
+  "graphify": {
+   "campaigns": [
+    "smoke-eae6f5a598494135800bb99039e8091a"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 88,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 54,
+   "extended": 45,
+   "extended_fulfilled": 34,
+   "zero_core": 0,
+   "total": 6710589,
+   "uncached": 836669,
+   "calls": 594,
+   "shell": 206,
+   "citing_test_or_generated": 9,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 28,
+     "core": 16,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       9
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 28,
+     "core": 18,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       9
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 32,
+     "core": 20,
+     "facts": 36,
+     "max": 12,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       12
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "alertmanager-config-autosync",
+     9
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ],
+    [
+     "scope-annotation-filter",
+     10
+    ],
+    [
+     "alertmanager-config-autosync",
+     9
+    ]
+   ],
+   "vs_baseline": {
+    "mean_difference": 0.11111111111111249,
+    "p_two_sided": 1.0,
+    "p_one_sided_better": 0.5,
+    "token_ratio": 1.476853183527688
+   }
+  },
+  "codebase-memory-mcp": {
+   "campaigns": [
+    "smoke-eae6f5a598494135800bb99039e8091a"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 84,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 55,
+   "extended": 45,
+   "extended_fulfilled": 29,
+   "zero_core": 0,
+   "total": 10706023,
+   "uncached": 1016807,
+   "calls": 847,
+   "shell": 57,
+   "citing_test_or_generated": 9,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 29,
+     "core": 18,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 26,
+     "core": 16,
+     "facts": 36,
+     "max": 9,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       9
+      ],
+      [
+       2,
+       8
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 29,
+     "core": 21,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       9
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     9
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     9
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     9
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ]
+   ],
+   "vs_baseline": {
+    "mean_difference": -0.33333333333333215,
+    "p_two_sided": 0.5625,
+    "p_one_sided_better": 0.8825,
+    "token_ratio": 2.356160413112865
+   }
+  },
+  "codegraph": {
+   "campaigns": [
+    "smoke-eae6f5a598494135800bb99039e8091a"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 85,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 51,
+   "extended": 45,
+   "extended_fulfilled": 34,
+   "zero_core": 0,
+   "total": 15516066,
+   "uncached": 1277730,
+   "calls": 237,
+   "shell": 41,
+   "citing_test_or_generated": 5,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 28,
+     "core": 16,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       9
+      ],
+      [
+       3,
+       9
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 22,
+     "core": 14,
+     "facts": 36,
+     "max": 8,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       8
+      ],
+      [
+       2,
+       7
+      ],
+      [
+       3,
+       7
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 35,
+     "core": 21,
+     "facts": 36,
+     "max": 12,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       12
+      ],
+      [
+       2,
+       11
+      ],
+      [
+       3,
+       12
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ],
+    [
+     "alertmanager-config-autosync",
+     9
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "scope-annotation-filter",
+     7
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ],
+    [
+     "scope-annotation-filter",
+     7
+    ],
+    [
+     "alertmanager-config-autosync",
+     9
+    ]
+   ],
+   "vs_baseline": {
+    "mean_difference": -0.22222222222222143,
+    "p_two_sided": 0.808,
+    "p_one_sided_better": 0.7765,
+    "token_ratio": 3.414745183757449
+   }
+  },
+  "codemap-search": {
+   "campaigns": [
+    "882f05d31f8643919d9e709b8dc3ce86"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 97,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 60,
+   "extended": 45,
+   "extended_fulfilled": 37,
+   "zero_core": 0,
+   "total": 7460223,
+   "uncached": 911231,
+   "calls": 353,
+   "shell": 0,
+   "citing_test_or_generated": 0,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 30,
+     "core": 18,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 32,
+     "core": 21,
+     "facts": 36,
+     "max": 11,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       11
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       11
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 35,
+     "core": 21,
+     "facts": 36,
+     "max": 12,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       11
+      ],
+      [
+       2,
+       12
+      ],
+      [
+       3,
+       12
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     11
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "scope-annotation-filter",
+     10
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     11
+    ],
+    [
+     "git-sync-job-dispatch",
+     12
+    ]
+   ],
+   "vs": {
+    "zvec-grep": {
+     "mean_difference": 0.6349206349206362,
+     "p_two_sided": 0.225,
+     "p_one_sided_better": 0.1125,
+     "token_ratio": 1.3638469959843453
+    },
+    "graphify": {
+     "mean_difference": 1.0,
+     "p_two_sided": 0.018,
+     "p_one_sided_better": 0.009,
+     "token_ratio": 1.1117091212112677
+    },
+    "codebase-memory-mcp": {
+     "mean_difference": 1.4444444444444446,
+     "p_two_sided": 0.0025,
+     "p_one_sided_better": 0.00125,
+     "token_ratio": 0.6968248620426091
+    },
+    "codegraph": {
+     "mean_difference": 1.333333333333334,
+     "p_two_sided": 0.028,
+     "p_one_sided_better": 0.014,
+     "token_ratio": 0.4808063461446993
+    },
+    "rg": {
+     "mean_difference": 1.1111111111111125,
+     "p_two_sided": 0.03,
+     "p_one_sided_better": 0.015,
+     "token_ratio": 1.641831154817629
+    }
+   }
+  },
+  "rg": {
+   "campaigns": [
+    "882f05d31f8643919d9e709b8dc3ce86"
+   ],
+   "answers": 9,
+   "ungraded": [],
+   "fulfilled": 87,
+   "facts": 108,
+   "core": 63,
+   "core_fulfilled": 53,
+   "extended": 45,
+   "extended_fulfilled": 34,
+   "zero_core": 0,
+   "total": 4543843,
+   "uncached": 682339,
+   "calls": 599,
+   "shell": 599,
+   "citing_test_or_generated": 6,
+   "per_question": {
+    "alertmanager-config-autosync": {
+     "fulfilled": 30,
+     "core": 18,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       10
+      ]
+     ]
+    },
+    "scope-annotation-filter": {
+     "fulfilled": 25,
+     "core": 16,
+     "facts": 36,
+     "max": 10,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       10
+      ],
+      [
+       2,
+       8
+      ],
+      [
+       3,
+       7
+      ]
+     ]
+    },
+    "git-sync-job-dispatch": {
+     "fulfilled": 32,
+     "core": 19,
+     "facts": 36,
+     "max": 11,
+     "answers": 3,
+     "runs": [
+      [
+       1,
+       11
+      ],
+      [
+       2,
+       10
+      ],
+      [
+       3,
+       11
+      ]
+     ]
+    }
+   },
+   "scores": [
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ],
+    [
+     "scope-annotation-filter",
+     8
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "git-sync-job-dispatch",
+     10
+    ],
+    [
+     "alertmanager-config-autosync",
+     10
+    ],
+    [
+     "scope-annotation-filter",
+     7
+    ],
+    [
+     "git-sync-job-dispatch",
+     11
+    ]
+   ]
+  }
+ }
+}
