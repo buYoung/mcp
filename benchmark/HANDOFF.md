@@ -2,7 +2,7 @@
 
 GPT-6.1 Sol 측정은 끝났고 Claude 측정이 남았다. 이 문서는 Claude 측정을 시작하는 사람이 지금 상태를 파악하고, 먼저 정할 것과 고칠 것을 알고, pi 하네스로 측정을 돌릴 수 있게 쓴다. 2026-11-16 기준이다.
 
-- GPT 결과: [`apps/codemap-docs/src/content/docs/ko/benchmarks.mdx`](../apps/codemap-docs/src/content/docs/ko/benchmarks.mdx)(영문은 [`apps/codemap-docs/src/content/docs/benchmarks.mdx`](../apps/codemap-docs/src/content/docs/benchmarks.mdx))
+- GPT 결과: [`apps/codemap-docs/src/content/docs/ko/benchmarks/index.mdx`](../apps/codemap-docs/src/content/docs/ko/benchmarks/index.mdx)(영문은 [`apps/codemap-docs/src/content/docs/benchmarks/index.mdx`](../apps/codemap-docs/src/content/docs/benchmarks/index.mdx))
 - 하네스 설명: [`pi/README.md`](pi/README.md), [`codex/README.md`](codex/README.md)
 
 ## 지금 상태
