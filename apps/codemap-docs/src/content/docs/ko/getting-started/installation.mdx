@@ -1,47 +1,55 @@
 ---
 title: 설치
-description: macOS, Linux, Windows에서 install.sh, Cargo, Homebrew, WinGet 또는 GitHub 릴리스 압축 파일로 codemap-search를 설치합니다.
+description: install.sh, install.ps1, Cargo(crates.io 및 로컬 소스)로 codemap-search를 설치합니다.
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 
-운영체제에 맞는 사전 빌드 바이너리를 설치하거나 Cargo로 소스에서 직접 빌드하세요.
-
-## 설치 채널
-
-| 운영체제 | 소스 빌드 | 사전 빌드 설치 |
-|---|---|---|
-| Linux | Cargo (`crates.io` 또는 로컬 소스) | `install.sh` 또는 GitHub 릴리스 압축 파일 |
-| macOS | Cargo (`crates.io` 또는 로컬 소스) | `install.sh`, Homebrew 또는 GitHub 릴리스 압축 파일 |
-| Windows | Cargo (`crates.io` 또는 로컬 소스) | WinGet 또는 GitHub 릴리스 압축 파일 |
-
 ## 설치
 
 <Tabs>
-    <TabItem label="설치 스크립트 (macOS / Linux)">
-        OS와 아키텍처에 맞는 바이너리를 내려받아 `.sha256` 체크섬을 검증한 뒤 기본 경로 `~/.local/bin`에 설치합니다. POSIX 셸, `curl` 또는 `wget`, `tar`, `sha256sum` 또는 `shasum`이 필요합니다.
+    <TabItem label="install.sh (macOS / Linux)">
+        macOS·Linux용 사전 빌드 바이너리를 내려받아 `.sha256` 체크섬을 검증한 뒤 기본 설치 경로 `~/.local/bin`에 설치합니다. POSIX 셸, `curl` 또는 `wget`, `tar`, `sha256sum` 또는 `shasum`이 필요합니다.
 
         ```sh
         curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
         ```
 
-        설치 폴더를 바꾸려면 쓰기 권한이 있는 경로를 `INSTALL_DIR`에 지정하세요(기본 사용자 경로는 `sudo` 불필요). 특정 릴리스 태그(예: `codemap-v0.1.6`)를 고정하려면 `--version`을 넘깁니다.
+        다음은 설치 경로(`INSTALL_DIR`)나 버전(`--version`)을 지정하는 예시입니다.
 
         ```sh
         curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | INSTALL_DIR=/usr/local/bin sh
         curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh -s -- --version codemap-v0.1.6
         ```
 
-        | 옵션 | 의미 |
+        | 옵션 / 환경 변수 | 의미 |
         |---|---|
-        | `INSTALL_DIR` | 설치 디렉터리(기본값: `~/.local/bin`) |
+        | `INSTALL_DIR` | 설치 경로(기본값: `~/.local/bin`) |
         | `--version` / `CODEMAP_VERSION` | 정확한 릴리스 태그. `--version`이 우선 |
-        | `CODEMAP_LINUX_LIBC` | 기본값 `musl`. Linux x86_64에서만 `gnu` 선택 가능 |
-        | `--print-target` | 다운로드 없이 대상, URL, 설치 경로만 출력 |
-
-        정적 `musl` 빌드는 `glibc` 의존성이 없습니다. 지원 대상은 [릴리스 압축 파일 이름](#릴리스-압축-파일-이름)을 참고하세요.
+        | `CODEMAP_LINUX_LIBC` | 기본값 `musl`(정적 빌드, `glibc` 불필요). Linux x86_64에서만 `gnu` 선택 가능 |
+        | `--print-target` | 다운로드 없이 플랫폼 타깃, 다운로드 URL, 설치 경로만 출력 |
     </TabItem>
-    <TabItem label="Cargo (crates.io 및 소스 빌드)">
+    <TabItem label="install.ps1 (Windows)">
+        Windows용 `.zip` 아카이브를 내려받아 `.sha256` 체크섬을 검증한 뒤 `codemap-search.exe`를 기본 설치 경로 `$HOME\.local\bin`에 설치합니다.
+
+        ```powershell
+        irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex
+        ```
+
+        다음은 설치 경로(`-InstallDir`)나 버전(`-Version`)을 지정하는 예시입니다.
+
+        ```powershell
+        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1))) -InstallDir "C:\Tools\bin"
+        & ([scriptblock]::Create((irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1))) -Version codemap-v0.1.6
+        ```
+
+        | 옵션 / 환경 변수 | 의미 |
+        |---|---|
+        | `-InstallDir` / `INSTALL_DIR` | 설치 경로(`-InstallDir` 우선, 기본값: `$HOME\.local\bin`) |
+        | `-Version` / `CODEMAP_VERSION` | 정확한 릴리스 태그(`-Version` 우선) |
+        | `-PrintTarget` | 다운로드 없이 플랫폼 타깃, 다운로드 URL, 설치 경로만 출력 |
+    </TabItem>
+    <TabItem label="Cargo (crates.io 및 로컬 소스)">
         Rust와 C 컴파일러 도구 모음이 필요합니다.
 
         ```sh
@@ -58,54 +66,37 @@ import { Tabs, TabItem } from "@astrojs/starlight/components";
         cargo build --release --manifest-path apps/codemap-search/Cargo.toml
         ```
     </TabItem>
-    <TabItem label="Homebrew (macOS)">
-        Apple Silicon과 Intel Mac용 사전 빌드 바이너리를 설치합니다([Homebrew 포뮬러](https://formulae.brew.sh/formula/codemap-search)).
-
-        ```sh
-        brew install codemap-search
-        ```
-
-        새 릴리스가 아직 Homebrew에 반영되지 않았다면 `install.sh`, `cargo install`, 또는 [GitHub Releases](https://github.com/buYoung/mcp/releases)의 macOS 압축 파일을 사용하세요.
-    </TabItem>
-    <TabItem label="Windows (WinGet 및 GitHub 릴리스 압축 파일)">
-        WinGet([패키지 매니페스트](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/com/livteam/codemap-search))으로 설치합니다.
-
-        ```powershell
-        winget install com.livteam.codemap-search
-        ```
-
-        수동 설치 시에는 [GitHub Releases](https://github.com/buYoung/mcp/releases)에서 Windows `.zip` 파일과 `.sha256` 파일을 내려받아 체크섬을 검증한 뒤 `codemap-search.exe`를 `PATH` 폴더에 넣으세요([릴리스 압축 파일 이름](#릴리스-압축-파일-이름) 참고).
-    </TabItem>
 </Tabs>
 
 ## 설치 확인과 `PATH`
 
-`codemap-search --version`으로 설치를 확인한 뒤 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)으로 이동하세요.
+`codemap-search --version`으로 실행 여부를 확인하세요.
 
 터미널이나 MCP 클라이언트가 `codemap-search`를 찾지 못하면 아래 설치 경로가 `PATH`에 포함되었는지 확인하세요(GUI 클라이언트는 `~/.zshrc`나 `~/.bashrc`를 읽지 않을 수 있습니다).
 
-- **`install.sh`**: `~/.local/bin` (기본 `INSTALL_DIR`)
-- **Cargo**: `~/.cargo/bin`
-- **Homebrew**: Homebrew의 `bin` 디렉터리
-- **Windows**: WinGet 별칭 반영을 위해 새 터미널을 열거나, `codemap-search.exe`가 있는 폴더 추가
+- **`install.sh` (macOS / Linux)**: `~/.local/bin` (또는 지정한 `INSTALL_DIR`)
+- **`install.ps1` (Windows)**: `$HOME\.local\bin` (또는 지정한 `INSTALL_DIR`) — 사용자 `Path`를 바꾼 뒤에는 새 터미널을 여세요.
+- **`Cargo`**: `~/.cargo/bin` (Windows는 `%USERPROFILE%\.cargo\bin`)
 
-## 릴리스 압축 파일 이름
+확인이 끝나면 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)으로 이동하세요.
+
+## 릴리스 아카이브
 
 사전 빌드 파일과 대응하는 `.sha256` 파일은 [GitHub Releases](https://github.com/buYoung/mcp/releases)에 게시됩니다.
 
-| 운영체제 | 아키텍처 | 설치 파일 |
+| 운영체제 | 아키텍처 / libc | 아카이브 파일 |
 |---|---|---|
-| Linux | x86_64, 기본 `musl` | `codemap-search-x86_64-unknown-linux-musl.tar.gz` |
-| Linux | x86_64, `gnu` | `codemap-search-x86_64-unknown-linux-gnu.tar.gz` |
-| Linux | arm64, `musl` 전용 | `codemap-search-aarch64-unknown-linux-musl.tar.gz` |
+| Linux | `x86_64` (`musl`) | `codemap-search-x86_64-unknown-linux-musl.tar.gz` |
+| Linux | `x86_64` (`gnu`) | `codemap-search-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux | `arm64` (`musl`) | `codemap-search-aarch64-unknown-linux-musl.tar.gz` |
 | macOS | Apple Silicon | `codemap-search-aarch64-apple-darwin.tar.gz` |
 | macOS | Intel | `codemap-search-x86_64-apple-darwin.tar.gz` |
-| Windows | x86_64 | `codemap-search-x86_64-pc-windows-msvc.zip` |
-| Windows | arm64 | `codemap-search-aarch64-pc-windows-msvc.zip` |
+| Windows | `x86_64` | `codemap-search-x86_64-pc-windows-msvc.zip` |
+| Windows | `arm64` | `codemap-search-aarch64-pc-windows-msvc.zip` |
 
 ## 문제 해결
 
-- **다운로드 오류**: 선택한 릴리스 태그에 압축 파일과 `.sha256` 파일이 모두 있는지 [GitHub Releases](https://github.com/buYoung/mcp/releases)에서 확인하세요. 파일이 없으면 `install.sh`는 중단됩니다.
-- **체크섬 불일치**: `install.sh`는 디렉터리를 만들거나 압축을 풀기 전에 중단합니다. 검증을 건너뛰지 말고 파일을 다시 받아 `.sha256` 값과 대조하세요.
-- **쓰기 오류**: 쓰기 권한이 있는 폴더를 `INSTALL_DIR`로 지정하세요.
-- **Cargo 빌드 오류**: [crates.io](https://crates.io/crates/codemap-search)에서 버전 존재 여부를 확인하고 `rustc`, `cargo`, C 컴파일러·링커 설치 상태를 점검하세요.
+- **다운로드 오류**: 선택한 릴리스 태그에 아카이브 파일과 `.sha256` 파일이 모두 있는지 [GitHub Releases](https://github.com/buYoung/mcp/releases)에서 확인하세요.
+- **체크섬 불일치**: 검증을 건너뛰지 말고 아카이브와 `.sha256` 파일을 다시 받아 값을 비교하세요.
+- **쓰기 오류**: 쓰기 권한이 있는 설치 경로를 `INSTALL_DIR` 또는 `-InstallDir`로 지정하세요.
+- **Cargo 빌드 오류**: [crates.io](https://crates.io/crates/codemap-search)에서 버전 존재 여부를 확인하고 `rustc`, `cargo`, C 컴파일러 도구 모음 설치 상태를 점검하세요.

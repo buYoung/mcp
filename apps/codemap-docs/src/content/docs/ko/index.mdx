@@ -9,14 +9,22 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 ## 빠른 시작
 
-Cargo로 바로 설치하거나, `install.sh`·Homebrew·WinGet·소스 빌드는 [설치](/ko/getting-started/installation/)를 참고하세요.
+`install.sh`(macOS·Linux), `install.ps1`(Windows), 또는 `cargo install`로 설치합니다. 설치 옵션, 로컬 소스 빌드, `PATH` 설정은 [설치](/ko/getting-started/installation/)에서 설명합니다.
 
 ```sh
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex
+
+# Cargo (crates.io)
 cargo install codemap-search
+
 codemap-search --version
 ```
 
-클라이언트가 `codemap-search mcp`를 실행할 때 작업 디렉터리가 탐색할 프로젝트 폴더가 되도록 등록합니다.
+사용하는 MCP 클라이언트에 `codemap-search mcp`를 등록합니다.
 
 ```sh
 # Claude Code (여러 프로젝트용 사용자 범위)
@@ -26,14 +34,14 @@ claude mcp add --scope user codemap-search -- codemap-search mcp
 codex mcp add codemap-search -- codemap-search mcp
 ```
 
-Claude Code의 `project`·`local` 범위, Codex `config.toml`, `pi`, `OpenCode` 설정은 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)을 확인하세요.
+Claude Code의 `project`·`local` 범위, Codex `config.toml`, `pi`, `OpenCode` 설정은 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)에서 설명합니다.
 
 ## 문서 안내
 
 <CardGrid>
     <LinkCard
         title="설치"
-        description="Cargo, install.sh, Homebrew, WinGet, 릴리스 파일 설치 방법"
+        description="install.sh, install.ps1, Cargo(crates.io·로컬 소스) 설치 안내"
         href="/ko/getting-started/installation/"
     />
     <LinkCard

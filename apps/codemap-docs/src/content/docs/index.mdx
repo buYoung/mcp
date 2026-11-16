@@ -9,10 +9,18 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 ## Quick Start
 
-Install from crates.io with Cargo, or see [Installation](/getting-started/installation/) for `install.sh`, Homebrew, WinGet, and local builds.
+Install via `install.sh` (macOS/Linux), `install.ps1` (Windows), or `cargo install` (see [Installation](/getting-started/installation/) for options, local source builds, and `PATH` setup):
 
 ```sh
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex
+
+# Cargo (crates.io)
 cargo install codemap-search
+
 codemap-search --version
 ```
 
@@ -33,7 +41,7 @@ For Claude Code `project`/`local` scopes, Codex `config.toml`, `pi`, and `OpenCo
 <CardGrid>
     <LinkCard
         title="Installation"
-        description="Install via Cargo, install.sh, Homebrew, WinGet, or release archives."
+        description="Install via install.sh, install.ps1, or Cargo (crates.io and local source)."
         href="/getting-started/installation/"
     />
     <LinkCard
