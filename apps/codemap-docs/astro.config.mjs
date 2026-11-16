@@ -5,6 +5,7 @@ export default defineConfig({
     integrations: [
         starlight({
             title: "codemap-search",
+            customCss: ["./src/styles/custom.css"],
             defaultLocale: "root",
             locales: {
                 root: {

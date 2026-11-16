@@ -5,38 +5,36 @@ description: Grafana benchmark comparing codemap-search 0.14.2 against rg 15.2.0
 
 ## Test Setup
 
-All runs used a read-only checkout of [grafana/grafana](https://github.com/grafana/grafana) (`24,115` tracked TypeScript and Go files, commit `c0a598f5a49abf2014f67e806075d8ad267c9efb`), which includes commits after the solver's training cutoff. Using `gpt-6.1-sol` (`medium`), each tool answered `3` multi-hop architecture questions `3` times across `3` client environments, yielding `160` validated answers and `1,920` graded facts (`zvec-grep 0.2.2` completed `7` of `9` runs in `pi codemode` due to two server crashes). A blind `gpt-6-astra` (`high`) grader without tools or repository access scored each answer against `12` required facts, requiring valid `path:start-end` line-range citations. All tools received identical citation instructions, and all MCP arms received identical MCP-preference rules, but the three client environments are reported separately because their fallback tools, output caps, and prompt accounting differ.
+On a read-only [grafana/grafana](https://github.com/grafana/grafana) TypeScript/Go checkout, `gpt-6.1-sol` (`medium`) answered `3` multi-hop architecture questions `3` times per tool in each of `3` client environments, and a blind grader checked each answer against `12` required `path:start-end` facts. The three environments are reported separately rather than pooled because their fallback tools, output caps, and prompt accounting differ.
 
 ### Compared tools and pinned versions
 
 | Tool & version | Upstream project / package | Pinned commit | Navigation approach & exposed tools |
 | --- | --- | --- | --- |
-| `codemap-search 0.14.2` | [buYoung/mcp](https://github.com/buYoung/mcp) (`codemap-search`) | `e727d20c6` | Single Rust binary exposing 6 MCP tools: Tree-sitter symbol/caller index, Tantivy BM25 `search`, plus built-in `read`, `find`, `grep`, `initial_instructions`, and `analyze` (unused by solvers). Optional [Jev LLM filter](/configuration/#optional-jev-decision-stages) off. |
-| `Graphify 0.9.95` | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) (PyPI `graphifyy`, `v0.9.95`) | `92741d16` | Python code-graph MCP with 7 graph tools. Paired with a read-only `read` helper because graph tools return metadata without source lines. |
-| `zvec-grep 0.2.2` | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) (npm `@zvec/zvec-grep`, `v0.2.2`) | `b1a9148e` | Node.js local vector search MCP (`zvec_grep_search`, embedding `local/potion-code-16m-v2`). Returns bounded snippets alongside matches, so no `read` helper attached. |
-| `codebase-memory-mcp 0.12.1` | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) (`v0.12.1`) | `a7158ac2` | Codebase graph, code search, and snippet-retrieval MCP with 13 tools. |
-| `rg 15.2.0` (baseline) | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) (`15.2.0`) | `e89fff89` | Baseline with no MCP server; uses built-in file/search tools or read-only shell only. |
-| `CodeGraph 1.6.2` | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) (npm `@colbymchenry/codegraph`, `v1.6.2`) | `6560052a` | Node.js code-graph exploration MCP (`codegraph_explore`). |
-| `Serena 2.1.0` (excluded) | [oraios/serena](https://github.com/oraios/serena) (PyPI `serena-agent`, `v2.1.0`) | `5e4f5cd1` | Go and TypeScript LSP MCP. Excluded before running because Grafana indexing took ~34–70 min per run. |
+| `codemap-search 0.14.2` | [buYoung/mcp](https://github.com/buYoung/mcp) (`codemap-search`) | `e727d20c6` | Single Rust binary (6 tools: Tree-sitter + Tantivy BM25 `search`, `read`, `find`, `grep`, `initial_instructions`, `analyze`); [optional Jev filter](/configuration/#optional-jev-decision-stages) off |
+| `Graphify 0.9.95` | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) (PyPI `graphifyy`) | `92741d16` | Python code-graph MCP (7 tools) plus a read-only `read` helper (graph tools omit raw source lines) |
+| `zvec-grep 0.2.2` | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) (npm `@zvec/zvec-grep`) | `b1a9148e` | Node.js local vector search (`zvec_grep_search`, `local/potion-code-16m-v2`); returns snippets, no `read` helper |
+| `codebase-memory-mcp 0.12.1` | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) | `a7158ac2` | Codebase graph, code search, and snippet MCP (13 tools) |
+| `rg 15.2.0` (baseline) | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | `e89fff89` | No MCP server; built-in file/search tools or read-only shell only |
+| `CodeGraph 1.6.2` | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) (npm `@colbymchenry/codegraph`) | `6560052a` | Node.js code-graph exploration MCP (`codegraph_explore`) |
+| `Serena 2.1.0` (excluded) | [oraios/serena](https://github.com/oraios/serena) (PyPI `serena-agent`) | `5e4f5cd1` | Go/TypeScript LSP MCP; excluded before runs (~34–70 min Grafana indexing) |
 
 ### Agent clients, models, and execution environments
 
 | Component / Environment | Pinned version & details |
 | --- | --- |
-| Target codebase | [grafana/grafana](https://github.com/grafana/grafana) commit `c0a598f5a49abf2014f67e806075d8ad267c9efb`, `2026-10-26`, `24,115` tracked TypeScript and Go files. |
-| Solver model | `gpt-6.1-sol`, reasoning effort `medium`, `3` independent runs per question per tool/environment. |
-| Blind grader model | `gpt-6-astra`, reasoning effort `high`, no tools or repository access; checks `12` required facts per question. |
-| `pi direct` | `pi 1.4.0` (`--provider openai-codex --thinking medium`) + `@buyong/pi-mcp-adapter 0.1.2`. Calls MCP tools turn by turn alongside repo-confined `read`, `grep`, `find`, and `ls` without `bash`. |
-| `pi codemode` | `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2` + `codemode` (`@earendil-works/pi-coding-agent 1.4.0`, QuickJS sandbox). Model writes JavaScript to batch and filter calls (`10,000`-token default script output cap). |
-| `Codex code mode` | `Codex CLI 0.164.0` (`codex exec --json`, `code_mode_only`). Runs JavaScript `exec` and `wait` cells calling MCP tools and a repo-confined `exec_command` shell (`10,000`-token default cap; `codemap-search` sets `// @exec: {"max_output_tokens": 100000}`). |
-
-Every run used an isolated read-only Grafana checkout with network access, subagents, and source edits disabled. Both clients blocked `.git` and pre-built tool state folders (`.codemap`, `.codegraph`, `.zvec-grep`, `.codebase-memory`, `graphify-out`, `.pi`, `.codex`). In `pi`, a pre-execution `tool_call` guard enforced path boundaries on `read`, `grep`, `find`, and `ls`, while `grep` and `find` binaries ran inside macOS Seatbelt. In `Codex CLI`, `permissions.local_read` blocked out-of-workspace reads and MCP servers ran under macOS Seatbelt.
+| Target codebase | [grafana/grafana](https://github.com/grafana/grafana) commit `c0a598f5a49abf2014f67e806075d8ad267c9efb`, `2026-10-26`, `24,115` tracked TypeScript and Go files |
+| Solver model | `gpt-6.1-sol` (`medium`), `3` independent runs per question per tool/environment |
+| Blind grader model | `gpt-6-astra` (`high`), no tools or repository access; checks `12` required facts per question |
+| `pi direct` | `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2`; turn-by-turn MCP calls plus repo-confined `read`, `grep`, `find`, `ls` (no `bash`) |
+| `pi codemode` | `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2` + QuickJS `codemode`; runs JS to batch and filter calls (`10k`-token default cap) |
+| `Codex code mode` | `Codex CLI 0.164.0`; runs JS `exec`/`wait` cells calling MCP tools and a repo-confined read-only shell (`10k`-token default cap; `codemap-search 0.14.2` uses a `100k`-token cap) |
 
 ### Grafana index footprint and build time
 
-Measured once per batch on the `24,115`-file Grafana checkout before solver runs. Build times report `timings.index_build_seconds` uniformly across all five indexed tools, including pre- and post-index status checks.
+Measured once per batch before solver runs; build times include pre- and post-index status checks.
 
-| Tool | Indexed files / graph entities | Index disk size | Index build time (`pi` / `Codex` prep) |
+| Tool | Indexed files / graph entities | Index disk size | Index build time (`pi` envs / `Codex code mode` prep) |
 | --- | --- | --- | --- |
 | `codemap-search 0.14.2` | `19,757` files | `136.5–138.3 MiB` | `12.96 s` / `16.18 s` |
 | `codebase-memory-mcp 0.12.1` | `21,430` tracked files (`525,952` nodes; `1,562,241` `pi` / `1,562,181` `Codex` edges) | `1,915.9–1,916.9 MiB` | `34.35 s` / `56.95 s` |
@@ -46,32 +44,32 @@ Measured once per batch on the `24,115`-file Grafana checkout before solver runs
 | `rg 15.2.0` (baseline) | None (live disk search) | `0 MiB` | `0 s` |
 | `Serena 2.1.0` (excluded) | Go + TypeScript LSP | — | `~34–70 min` (excluded before run) |
 
-Excluding `0.2–8.9 s` of status and ready checks, the main indexing CLI step alone took `12.7 s` / `15.9 s` (`codemap-search 0.14.2`), `31.9 s` / `55.8 s` (`codebase-memory-mcp 0.12.1`), `86.8 s` / `99.0 s` (`CodeGraph 1.6.2`), `138.8 s` / `145.4 s` (`zvec-grep 0.2.2`), and `311.7 s` / `366.1 s` (`Graphify 0.9.95`).
-
 ### How to read the tables
 
-- **Fulfilled (`correct` + `supported`)**: Primary accuracy score out of `12` facts per answer (`108` for `9` answers, `84` for `7`). A fact counts only when the explanation is right (`correct=true`) and proven by cited `path:start-end` line ranges (`supported=true`).
-- **Core (`63`), Extended (`45`), and All-core (`7/7`)**: Each question checks `7` Core end-to-end hops and `5` Extended branches or config conditions. **All-core (7/7)** counts answers that fulfilled every Core fact.
-- **Factually correct, weak citation, and missed**: **Correct, weak citation** counts right explanations whose cited lines failed to prove the claim (`correct=true, supported=false`). **Incorrect / missed** equals `total graded facts − Factually correct`, so `Fulfilled + Correct, weak citation + Incorrect / missed = total graded facts`.
-- **Total vs Uncached tokens**: Multi-turn sessions re-send context every turn, hitting prompt cache `~86–94%` of the time. **Total tokens** includes cached input, uncached input, and output; **Uncached tokens** counts only cache-miss input plus output. Codex totals run `~1.4–1.9×` higher than `pi` because Codex re-sends a larger per-turn preamble (`9,748` first-turn input tokens on `codemap-search` vs `5,118` in `pi direct` and `4,338` in `pi codemode`).
-- **Tool calls and fallback calls**: `Mean tool calls / answer` matches `Total calls / ans` (`Dispatched + Rejected`). A `0.0` built-in/fallback score means every answer finished solely with MCP tools (`codemap-search 0.14.2` bundles `read`, `grep`, and `find`). For `rg 15.2.0`, this column equals all built-in or shell calls.
-- **`·`-separated order**: Triples in summary and matrix cells always list `pi direct` · `pi codemode` · `Codex code mode`.
-- **Permutation `p`-values and token ratios**: Pairwise `p`-values use an exact question-stratified permutation test (`8,000` permutations for `9 vs 9`, `1,600` for `7 vs 9`), reported unadjusted at a `p < 0.05` threshold across `24` external-MCP comparisons (`27` rows total). **Two-sided `p`** tests any difference; **One-sided `p`** tests whether tool `A` in `A − B` outperformed `B`. At `n = 9`, gaps of `~1.0+` facts/answer are separable while `0.3–0.8` gaps sit within run-to-run noise. Token ratios divide `A`'s mean tokens by `B`'s.
+- **Token units (`1k = 1,000 tokens`)**: **Total tokens** includes cached input (`~86–94%` cache hit rate), uncached input, and output across turns. **Uncached total** counts only cache-miss input plus output. `Codex code mode` totals run `~1.4–1.9×` higher than both `pi` environments (`pi direct` and `pi codemode`) because `Codex code mode` re-sends a larger per-turn preamble.
+- **Fulfilled (`Core` + `Extended`)**: Primary score out of `12` required facts per answer (`7` `Core` end-to-end hops and `5` `Extended` branch/config facts; `108` across `9` answers, `84` across `7`). A fact counts only when the explanation is right and proven by cited `path:start-end` lines. **All-core (7/7)** counts answers that fulfilled every `Core` fact.
+- **Factually correct vs Incorrect / missed**: **Correct, weak citation** counts right explanations whose cited lines failed to prove the claim. **Incorrect / missed** equals `total graded facts − Factually correct`, so `Fulfilled + Correct, weak citation + Incorrect / missed = total graded facts`. **Cited test/gen** counts answers citing at least one test or generated file.
+- **Tool calls and fallback calls**: `Mean tool calls / answer` counts every call (`Dispatched + Rejected`). A `0.0` value in `Built-in / fallback calls / answer` (`Built-in / fallback calls / ans` in detail tables) means every answer finished using only MCP tools (`codemap-search 0.14.2` bundles `read`, `grep`, and `find`). For `rg 15.2.0`, all calls are built-in or shell calls.
+- **`·`-separated order**: Triples in summary and per-fact cells always list `pi direct` · `pi codemode` · `Codex code mode`.
+- **Pairwise `p`-values and token ratios**: Pairwise `p`-values use an exact question-stratified permutation test reported unadjusted against `p < 0.05`. **Two-sided `p`** tests any difference; **One-sided `p`** tests whether `A` outperformed `B` in `A − B`. At `n = 9`, gaps of `~1.0+` facts/answer are separable while `0.3–0.8` gaps sit within run-to-run noise. Token ratios divide `A`'s mean tokens by `B`'s.
 
 ## Summary
 
-| Tool | `pi direct` | `pi codemode` | `Codex code mode` | All-core (7/7) answers (3 envs) | Mean total tokens / answer | Mean uncached tokens / answer | Mean tool calls / answer | Built-in / fallback calls / answer | Answers citing test/generated files |
+| Tool | `pi direct` | `pi codemode` | `Codex code mode` | All-core (7/7) answers (3 envs) | Mean total tokens / answer | Mean uncached total / answer | Mean tool calls / answer | Built-in / fallback calls / answer | Cited test/gen |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `codemap-search 0.14.2` | 96/108 | 97/108 | 98/108 | 5/9 · 6/9 · 6/9 | 946k · 829k · 1.33M | 98k · 101k · 133k | 45.1 · 39.2 · 50.4 | 0.0 · 0.0 · 0.0 | 0 · 0 · 0 |
-| `Graphify 0.9.95` | 93/108 | 88/108 | 94/108 | 3/9 · 2/9 · 5/9 | 1.01M · 746k · 1.18M | 93k · 93k · 108k | 55.8 · 66.0 · 70.6 | 16.8 · 22.9 · 11.2 | 8 · 9 · 8 |
+| `codemap-search 0.14.2` | 96/108 | 97/108 | 98/108 | 5/9 · 6/9 · 6/9 | 946k · 829k · 1,333k | 98k · 101k · 133k | 45.1 · 39.2 · 50.4 | 0.0 · 0.0 · 0.0 | 0 · 0 · 0 |
+| `Graphify 0.9.95` | 93/108 | 88/108 | 94/108 | 3/9 · 2/9 · 5/9 | 1,008k · 746k · 1,183k | 93k · 93k · 108k | 55.8 · 66.0 · 70.6 | 16.8 · 22.9 · 11.2 | 8 · 9 · 8 |
 | `zvec-grep 0.2.2` | 89/108 | 71/84 (7 ans) | 87/108 | 3/9 · 3/7 · 4/9 | 784k · 608k · 869k | 77k · 79k · 96k | 45.6 · 55.6 · 20.9 | 38.6 · 48.4 · 15.7 | 4 · 2 · 4 |
-| `codebase-memory-mcp 0.12.1` | 87/108 | 84/108 | 85/108 | 3/9 · 3/9 · 2/9 | 1.33M · 1.19M · 1.83M | 89k · 113k · 144k | 73.9 · 94.1 · 103.1 | 5.0 · 6.3 · 2.1 | 7 · 9 · 6 |
+| `codebase-memory-mcp 0.12.1` | 87/108 | 84/108 | 85/108 | 3/9 · 3/9 · 2/9 | 1,331k · 1,190k · 1,827k | 89k · 113k · 144k | 73.9 · 94.1 · 103.1 | 5.0 · 6.3 · 2.1 | 7 · 9 · 6 |
 | `rg 15.2.0` | 86/108 | 87/108 | 89/108 | 3/9 · 1/9 · 5/9 | 555k · 505k · 866k | 68k · 76k · 104k | 63.7 · 66.6 · 20.3 | 63.7 · 66.6 · 20.3 | 6 · 6 · 5 |
-| `CodeGraph 1.6.2` | 78/108 | 85/108 | 86/108 | 2/9 · 3/9 · 3/9 | 1.73M · 1.72M · 3.31M | 132k · 142k · 194k | 24.7 · 26.3 · 36.3 | 2.8 · 4.6 · 3.4 | 5 · 5 · 4 |
+| `CodeGraph 1.6.2` | 78/108 | 85/108 | 86/108 | 2/9 · 3/9 · 3/9 | 1,727k · 1,724k · 3,309k | 132k · 142k · 194k | 24.7 · 26.3 · 36.3 | 2.8 · 4.6 · 3.4 | 5 · 5 · 4 |
 
-- **`codemap-search 0.14.2` led on cited facts with zero fallback calls**: It scored `96/108` (`pi direct`), `97/108` (`pi codemode`), and `98/108` (`Codex code mode`), with `0` built-in/shell fallback calls and `0` test/generated-file citations across all `27` answers. It fulfilled `+1.00` to `+1.11` more facts/answer than `rg 15.2.0` (`p = 0.0250`, `0.0300`, `0.0280`) at `1.54×–1.71×` total tokens (`1.27×–1.45×` uncached). Against `CodeGraph 1.6.2` and `codebase-memory-mcp 0.12.1`, it fulfilled `+1.00` to `+2.00` more facts/answer (all `6` comparisons `p < 0.05`) using `0.40×–0.73×` total tokens (`0.68×–1.10×` uncached; `98,081` vs `89,291` uncached against `codebase-memory-mcp 0.12.1` in `pi direct`).
-- **Plain `rg 15.2.0` baseline held up surprisingly well**: With `0 MiB` index footprint, `0 s` build time, and the lowest token consumption (`505k–866k` total tokens/answer), none of the four external MCP servers outperformed `rg 15.2.0` at `p < 0.05` in any environment despite using `1.00×–3.82×` total tokens (`0.92×–1.94×` uncached).
-- **`Graphify 0.9.95` and `zvec-grep 0.2.2`**: `codemap-search 0.14.2` led by `+0.33` to `+1.22` facts/answer across all three environments, reaching `p < 0.05` in one environment each (`pi codemode` `p = 0.0180` vs `Graphify 0.9.95`; `Codex` `p = 0.0100` vs `zvec-grep 0.2.2`). Without citation checks (`Factually correct`), `Graphify 0.9.95` scored `96`, `96`, and `95` vs `codemap-search 0.14.2`'s `98`, `100`, and `99`; `zvec-grep 0.2.2` completed `7` of `9` runs (`71/84`) in `pi codemode` due to `2` `SIGSEGV` crashes.
+- **`codemap-search 0.14.2` led on cited facts with zero fallback calls**:
+  - Across all `27` answers, it scored `96/108` (`pi direct`), `97/108` (`pi codemode`), and `98/108` (`Codex code mode`), with `0` built-in/shell fallback calls and `0` `Cited test/gen` answers.
+  - Against `rg 15.2.0`, it fulfilled `+1.00` to `+1.11` more facts/answer (`p = 0.0250`, `0.0300`, `0.0280`) at `1.54×–1.71×` total tokens (`1.27×–1.45×` uncached total).
+  - Against `CodeGraph 1.6.2` and `codebase-memory-mcp 0.12.1`, it fulfilled `+1.00` to `+2.00` more facts/answer (all `6` comparisons `p < 0.05`) using `0.40×–0.73×` total tokens (`0.68×–1.10×` uncached total; `98k` vs `89k` uncached total against `codebase-memory-mcp 0.12.1` in `pi direct`).
+- **No external MCP server outperformed `rg 15.2.0` at `p < 0.05`**: With `0 MiB` index footprint, `0 s` build time, and the lowest token use (`505k–866k` total tokens/answer), `rg 15.2.0` was not beaten at `p < 0.05` by any of the four external MCP servers in any environment despite their `1.00×–3.82×` total tokens (`0.92×–1.94×` uncached total).
+- **`Graphify 0.9.95` and `zvec-grep 0.2.2`**: `codemap-search 0.14.2` led by `+0.33` to `+1.22` facts/answer across all three environments, reaching `p < 0.05` in one environment each (`pi codemode` `p = 0.0180` vs `Graphify 0.9.95`; `Codex code mode` `p = 0.0100` vs `zvec-grep 0.2.2`). Without citation checks (`Factually correct`), `Graphify 0.9.95` scored `96`, `96`, and `95` vs `codemap-search 0.14.2`'s `98`, `100`, and `99`; `zvec-grep 0.2.2` completed `7` of `9` runs (`71/84`) in `pi codemode` due to `2` `SIGSEGV` crashes.
 
 ## Results by Environment
 
@@ -90,14 +88,14 @@ Ordered within each environment by fulfilled rate (`9` answers per tool except `
 
 | Tool | Total tokens (mean) | Median | Min–Max | Input tokens (mean) | Cached input (mean, %) | Uncached input (mean) | Output tokens (mean) | Uncached total (mean) | Turns (mean, min–max) |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `codemap-search 0.14.2` | 945,598 | 967,031 | 573,594–1,254,646 | 938,400 | 847,516 (90.3%) | 90,884 | 7,197 | 98,081 | 18.4 (13–25) |
-| `Graphify 0.9.95` | 1,007,660 | 779,617 | 540,216–2,505,552 | 1,001,707 | 914,190 (91.3%) | 87,517 | 5,953 | 93,470 | 25.7 (18–45) |
-| `zvec-grep 0.2.2` | 784,052 | 669,022 | 342,436–1,349,405 | 777,753 | 707,214 (90.9%) | 70,539 | 6,299 | 76,838 | 23.3 (14–38) |
-| `codebase-memory-mcp 0.12.1` | 1,331,261 | 1,134,777 | 823,755–2,465,320 | 1,322,159 | 1,241,970 (93.9%) | 80,189 | 9,102 | 89,291 | 34.6 (23–57) |
-| `rg 15.2.0` | 554,578 | 410,872 | 320,828–1,337,174 | 549,030 | 486,827 (88.7%) | 62,204 | 5,547 | 67,751 | 20.9 (14–35) |
-| `CodeGraph 1.6.2` | 1,727,142 | 1,609,990 | 741,011–2,654,991 | 1,722,726 | 1,595,378 (92.6%) | 127,348 | 4,416 | 131,764 | 25.4 (16–33) |
+| `codemap-search 0.14.2` | 946k | 967k | 574k–1,255k | 938k | 848k (90.3%) | 91k | 7.2k | 98k | 18.4 (13–25) |
+| `Graphify 0.9.95` | 1,008k | 780k | 540k–2,506k | 1,002k | 914k (91.3%) | 88k | 6.0k | 93k | 25.7 (18–45) |
+| `zvec-grep 0.2.2` | 784k | 669k | 342k–1,349k | 778k | 707k (90.9%) | 71k | 6.3k | 77k | 23.3 (14–38) |
+| `codebase-memory-mcp 0.12.1` | 1,331k | 1,135k | 824k–2,465k | 1,322k | 1,242k (93.9%) | 80k | 9.1k | 89k | 34.6 (23–57) |
+| `rg 15.2.0` | 555k | 411k | 321k–1,337k | 549k | 487k (88.7%) | 62k | 5.5k | 68k | 20.9 (14–35) |
+| `CodeGraph 1.6.2` | 1,727k | 1,610k | 741k–2,655k | 1,723k | 1,595k (92.6%) | 127k | 4.4k | 132k | 25.4 (16–33) |
 
-| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached token ratio |
+| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached total ratio |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` − `Graphify 0.9.95` | +0.33 | 0.5400 | 0.2700 | ×0.94 | ×1.05 |
 | `codemap-search 0.14.2` − `zvec-grep 0.2.2` | +0.78 | 0.1600 | 0.0800 | ×1.21 | ×1.28 |
@@ -122,14 +120,14 @@ Ordered within each environment by fulfilled rate (`9` answers per tool except `
 
 | Tool | Total tokens (mean) | Median | Min–Max | Input tokens (mean) | Cached input (mean, %) | Uncached input (mean) | Output tokens (mean) | Uncached total (mean) | Turns (mean, min–max) |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `codemap-search 0.14.2` | 828,914 | 761,345 | 599,493–1,361,409 | 822,432 | 727,666 (88.5%) | 94,766 | 6,482 | 101,248 | 16.1 (14–24) |
-| `zvec-grep 0.2.2` | 607,776 | 679,388 | 419,837–800,319 | 601,837 | 528,402 (87.8%) | 73,435 | 5,939 | 79,374 | 15.9 (13–19) |
-| `Graphify 0.9.95` | 745,621 | 730,311 | 388,492–1,307,038 | 739,715 | 652,658 (88.2%) | 87,057 | 5,906 | 92,963 | 17.1 (13–24) |
-| `rg 15.2.0` | 504,871 | 493,749 | 218,026–809,725 | 499,493 | 429,056 (85.9%) | 70,437 | 5,379 | 75,815 | 13.9 (11–18) |
-| `CodeGraph 1.6.2` | 1,724,007 | 1,476,736 | 756,656–3,147,915 | 1,719,458 | 1,582,037 (92.0%) | 137,421 | 4,549 | 141,970 | 22.6 (15–32) |
-| `codebase-memory-mcp 0.12.1` | 1,189,558 | 1,186,285 | 773,994–1,608,332 | 1,181,898 | 1,076,580 (91.1%) | 105,319 | 7,660 | 112,979 | 22.6 (18–26) |
+| `codemap-search 0.14.2` | 829k | 761k | 599k–1,361k | 822k | 728k (88.5%) | 95k | 6.5k | 101k | 16.1 (14–24) |
+| `zvec-grep 0.2.2` | 608k | 679k | 420k–800k | 602k | 528k (87.8%) | 73k | 5.9k | 79k | 15.9 (13–19) |
+| `Graphify 0.9.95` | 746k | 730k | 388k–1,307k | 740k | 653k (88.2%) | 87k | 5.9k | 93k | 17.1 (13–24) |
+| `rg 15.2.0` | 505k | 494k | 218k–810k | 499k | 429k (85.9%) | 70k | 5.4k | 76k | 13.9 (11–18) |
+| `CodeGraph 1.6.2` | 1,724k | 1,477k | 757k–3,148k | 1,719k | 1,582k (92.0%) | 137k | 4.5k | 142k | 22.6 (15–32) |
+| `codebase-memory-mcp 0.12.1` | 1,190k | 1,186k | 774k–1,608k | 1,182k | 1,077k (91.1%) | 105k | 7.7k | 113k | 22.6 (18–26) |
 
-| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached token ratio |
+| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached total ratio |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` − `zvec-grep 0.2.2` | +0.63 | 0.2250 | 0.1125 | ×1.36 | ×1.28 |
 | `codemap-search 0.14.2` − `Graphify 0.9.95` | +1.00 | 0.0180 | 0.0090 | ×1.11 | ×1.09 |
@@ -141,7 +139,7 @@ Ordered within each environment by fulfilled rate (`9` answers per tool except `
 | `CodeGraph 1.6.2` − `rg 15.2.0` | -0.22 | 0.8080 | 0.7765 | ×3.41 | ×1.87 |
 | `codebase-memory-mcp 0.12.1` − `rg 15.2.0` | -0.33 | 0.5625 | 0.8825 | ×2.36 | ×1.49 |
 
-In `pi codemode`, two `zvec-grep 0.2.2` runs on `scope-annotation-filter` terminated when the `zvec-grep` server crashed with `SIGSEGV` (`7` answers / `84` facts total).
+In `pi codemode`, two `zvec-grep 0.2.2` runs on `scope-annotation-filter` crashed with `SIGSEGV`, leaving `7` answers (`84` facts).
 
 ### `Codex code mode`
 
@@ -156,14 +154,14 @@ In `pi codemode`, two `zvec-grep 0.2.2` runs on `scope-annotation-filter` termin
 
 | Tool | Total tokens (mean) | Median | Min–Max | Input tokens (mean) | Cached input (mean, %) | Uncached input (mean) | Output tokens (mean) | Uncached total (mean) | Turns (mean, min–max) |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `codemap-search 0.14.2` | 1,333,026 | 1,294,144 | 876,991–1,856,795 | 1,324,497 | 1,200,412 (90.6%) | 124,085 | 8,529 | 132,614 | 18.9 (15–23) |
-| `Graphify 0.9.95` | 1,183,030 | 995,489 | 766,935–1,622,245 | 1,176,013 | 1,074,702 (91.4%) | 101,311 | 7,017 | 108,328 | 19.9 (16–26) |
-| `rg 15.2.0` | 865,511 | 671,568 | 579,926–1,657,964 | 858,947 | 761,017 (88.6%) | 97,931 | 6,564 | 104,494 | 16.4 (13–25) |
-| `zvec-grep 0.2.2` | 869,358 | 894,667 | 555,350–1,123,862 | 862,418 | 773,504 (89.7%) | 88,914 | 6,940 | 95,854 | 18.0 (14–21) |
-| `CodeGraph 1.6.2` | 3,308,912 | 3,219,962 | 1,650,687–5,495,578 | 3,302,442 | 3,115,236 (94.3%) | 187,206 | 6,470 | 193,677 | 31.3 (21–43) |
-| `codebase-memory-mcp 0.12.1` | 1,827,391 | 1,686,510 | 1,266,007–3,294,229 | 1,818,397 | 1,683,598 (92.6%) | 134,799 | 8,994 | 143,793 | 29.9 (25–40) |
+| `codemap-search 0.14.2` | 1,333k | 1,294k | 877k–1,857k | 1,324k | 1,200k (90.6%) | 124k | 8.5k | 133k | 18.9 (15–23) |
+| `Graphify 0.9.95` | 1,183k | 995k | 767k–1,622k | 1,176k | 1,075k (91.4%) | 101k | 7.0k | 108k | 19.9 (16–26) |
+| `rg 15.2.0` | 866k | 672k | 580k–1,658k | 859k | 761k (88.6%) | 98k | 6.6k | 104k | 16.4 (13–25) |
+| `zvec-grep 0.2.2` | 869k | 895k | 555k–1,124k | 862k | 774k (89.7%) | 89k | 6.9k | 96k | 18.0 (14–21) |
+| `CodeGraph 1.6.2` | 3,309k | 3,220k | 1,651k–5,496k | 3,302k | 3,115k (94.3%) | 187k | 6.5k | 194k | 31.3 (21–43) |
+| `codebase-memory-mcp 0.12.1` | 1,827k | 1,687k | 1,266k–3,294k | 1,818k | 1,684k (92.6%) | 135k | 9.0k | 144k | 29.9 (25–40) |
 
-| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached token ratio |
+| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached total ratio |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` − `Graphify 0.9.95` | +0.44 | 0.2600 | 0.1300 | ×1.13 | ×1.22 |
 | `codemap-search 0.14.2` − `rg 15.2.0` | +1.00 | 0.0280 | 0.0140 | ×1.54 | ×1.27 |
@@ -177,86 +175,86 @@ In `pi codemode`, two `zvec-grep 0.2.2` runs on `scope-annotation-filter` termin
 
 ## Results by Question and Repetition
 
-Each question has `12` required facts per answer (`7` Core + `5` Extended; `36` facts across `3` runs per tool/environment).
+Each question has `12` required facts per answer (`7` `Core` + `5` `Extended`; `36` facts across `3` runs per tool/environment).
 
 ### `alertmanager-config-autosync`
 
 Traces how the Kubernetes-style API connects to automatic syncing of external Alertmanager configurations.
 
-| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached tokens | Mean calls |
+| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached total | Mean calls |
 | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
-| `pi direct` | `codemap-search 0.14.2` | 30/36 | 18/21 | 12/15 | 31 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 929,699 | 93,902 | 34.7 |
-|  | `Graphify 0.9.95` | 30/36 | 18/21 | 12/15 | 31 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 873,702 | 97,638 | 57.3 |
-|  | `zvec-grep 0.2.2` | 30/36 | 18/21 | 12/15 | 30 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 677,822 | 66,152 | 38.0 |
-|  | `codebase-memory-mcp 0.12.1` | 30/36 | 18/21 | 12/15 | 31 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 987,358 | 87,774 | 71.7 |
-|  | `rg 15.2.0` | 28/36 | 17/21 | 11/15 | 31 | 8 (5+3) · 10 (6+4) · 10 (6+4) | 460,328 | 60,115 | 55.7 |
-|  | `CodeGraph 1.6.2` | 24/36 | 14/21 | 10/15 | 25 | 8 (5+3) · 7 (4+3) · 9 (5+4) | 1,191,822 | 110,648 | 19.3 |
-| `pi codemode` | `codemap-search 0.14.2` | 30/36 | 18/21 | 12/15 | 32 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 814,705 | 109,083 | 34.3 |
-|  | `zvec-grep 0.2.2` | 29/36 | 17/21 | 12/15 | 30 | 10 (6+4) · 10 (6+4) · 9 (5+4) | 508,009 | 76,308 | 42.7 |
-|  | `Graphify 0.9.95` | 28/36 | 16/21 | 12/15 | 33 | 10 (6+4) · 9 (5+4) · 9 (5+4) | 699,135 | 94,719 | 59.3 |
-|  | `rg 15.2.0` | 30/36 | 18/21 | 12/15 | 33 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 500,342 | 81,185 | 64.7 |
-|  | `CodeGraph 1.6.2` | 28/36 | 16/21 | 12/15 | 29 | 10 (6+4) · 9 (5+4) · 9 (5+4) | 1,061,231 | 117,274 | 19.7 |
-|  | `codebase-memory-mcp 0.12.1` | 29/36 | 18/21 | 11/15 | 29 | 9 (6+3) · 10 (6+4) · 10 (6+4) | 1,142,482 | 110,247 | 102.3 |
-| `Codex code mode` | `codemap-search 0.14.2` | 29/36 | 17/21 | 12/15 | 30 | 9 (5+4) · 10 (6+4) · 10 (6+4) | 1,306,111 | 133,417 | 43.0 |
-|  | `Graphify 0.9.95` | 29/36 | 17/21 | 12/15 | 30 | 10 (6+4) · 9 (5+4) · 10 (6+4) | 1,148,878 | 106,019 | 69.3 |
-|  | `rg 15.2.0` | 29/36 | 17/21 | 12/15 | 32 | 9 (5+4) · 10 (6+4) · 10 (6+4) | 891,082 | 102,389 | 20.3 |
-|  | `zvec-grep 0.2.2` | 29/36 | 17/21 | 12/15 | 32 | 10 (6+4) · 9 (5+4) · 10 (6+4) | 730,925 | 90,114 | 18.7 |
-|  | `CodeGraph 1.6.2` | 29/36 | 17/21 | 12/15 | 31 | 10 (6+4) · 9 (5+4) · 10 (6+4) | 3,455,409 | 185,820 | 32.7 |
-|  | `codebase-memory-mcp 0.12.1` | 29/36 | 17/21 | 12/15 | 30 | 10 (6+4) · 9 (5+4) · 10 (6+4) | 1,493,129 | 109,535 | 114.3 |
+| `pi direct` | `codemap-search 0.14.2` | 30/36 | 18/21 | 12/15 | 31 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 930k | 94k | 34.7 |
+|  | `Graphify 0.9.95` | 30/36 | 18/21 | 12/15 | 31 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 874k | 98k | 57.3 |
+|  | `zvec-grep 0.2.2` | 30/36 | 18/21 | 12/15 | 30 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 678k | 66k | 38.0 |
+|  | `codebase-memory-mcp 0.12.1` | 30/36 | 18/21 | 12/15 | 31 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 987k | 88k | 71.7 |
+|  | `rg 15.2.0` | 28/36 | 17/21 | 11/15 | 31 | 8 (5+3) · 10 (6+4) · 10 (6+4) | 460k | 60k | 55.7 |
+|  | `CodeGraph 1.6.2` | 24/36 | 14/21 | 10/15 | 25 | 8 (5+3) · 7 (4+3) · 9 (5+4) | 1,192k | 111k | 19.3 |
+| `pi codemode` | `codemap-search 0.14.2` | 30/36 | 18/21 | 12/15 | 32 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 815k | 109k | 34.3 |
+|  | `zvec-grep 0.2.2` | 29/36 | 17/21 | 12/15 | 30 | 10 (6+4) · 10 (6+4) · 9 (5+4) | 508k | 76k | 42.7 |
+|  | `Graphify 0.9.95` | 28/36 | 16/21 | 12/15 | 33 | 10 (6+4) · 9 (5+4) · 9 (5+4) | 699k | 95k | 59.3 |
+|  | `rg 15.2.0` | 30/36 | 18/21 | 12/15 | 33 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 500k | 81k | 64.7 |
+|  | `CodeGraph 1.6.2` | 28/36 | 16/21 | 12/15 | 29 | 10 (6+4) · 9 (5+4) · 9 (5+4) | 1,061k | 117k | 19.7 |
+|  | `codebase-memory-mcp 0.12.1` | 29/36 | 18/21 | 11/15 | 29 | 9 (6+3) · 10 (6+4) · 10 (6+4) | 1,142k | 110k | 102.3 |
+| `Codex code mode` | `codemap-search 0.14.2` | 29/36 | 17/21 | 12/15 | 30 | 9 (5+4) · 10 (6+4) · 10 (6+4) | 1,306k | 133k | 43.0 |
+|  | `Graphify 0.9.95` | 29/36 | 17/21 | 12/15 | 30 | 10 (6+4) · 9 (5+4) · 10 (6+4) | 1,149k | 106k | 69.3 |
+|  | `rg 15.2.0` | 29/36 | 17/21 | 12/15 | 32 | 9 (5+4) · 10 (6+4) · 10 (6+4) | 891k | 102k | 20.3 |
+|  | `zvec-grep 0.2.2` | 29/36 | 17/21 | 12/15 | 32 | 10 (6+4) · 9 (5+4) · 10 (6+4) | 731k | 90k | 18.7 |
+|  | `CodeGraph 1.6.2` | 29/36 | 17/21 | 12/15 | 31 | 10 (6+4) · 9 (5+4) · 10 (6+4) | 3,455k | 186k | 32.7 |
+|  | `codebase-memory-mcp 0.12.1` | 29/36 | 17/21 | 12/15 | 30 | 10 (6+4) · 9 (5+4) · 10 (6+4) | 1,493k | 110k | 114.3 |
 
 ### `git-sync-job-dispatch`
 
 Traces how Git repository sync jobs are dispatched across the message bus to the executing job handler.
 
-| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached tokens | Mean calls |
+| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached total | Mean calls |
 | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
-| `pi direct` | `codemap-search 0.14.2` | 33/36 | 20/21 | 13/15 | 34 | 12 (7+5) · 11 (7+4) · 10 (6+4) | 1,027,200 | 106,795 | 52.3 |
-|  | `Graphify 0.9.95` | 32/36 | 19/21 | 13/15 | 34 | 12 (7+5) · 11 (7+4) · 9 (5+4) | 1,552,796 | 100,422 | 59.3 |
-|  | `zvec-grep 0.2.2` | 33/36 | 21/21 | 12/15 | 33 | 12 (7+5) · 10 (7+3) · 11 (7+4) | 1,137,786 | 101,242 | 56.0 |
-|  | `codebase-memory-mcp 0.12.1` | 30/36 | 21/21 | 9/15 | 30 | 9 (7+2) · 10 (7+3) · 11 (7+4) | 2,074,625 | 94,422 | 86.7 |
-|  | `rg 15.2.0` | 32/36 | 21/21 | 11/15 | 32 | 10 (7+3) · 11 (7+4) · 11 (7+4) | 826,434 | 87,874 | 74.7 |
-|  | `CodeGraph 1.6.2` | 30/36 | 20/21 | 10/15 | 30 | 10 (7+3) · 11 (7+4) · 9 (6+3) | 2,331,725 | 159,479 | 29.0 |
-| `pi codemode` | `codemap-search 0.14.2` | 35/36 | 21/21 | 14/15 | 35 | 11 (7+4) · 12 (7+5) · 12 (7+5) | 982,222 | 107,043 | 45.7 |
-|  | `zvec-grep 0.2.2` | 32/36 | 21/21 | 11/15 | 32 | 9 (7+2) · 11 (7+4) · 12 (7+5) | 643,362 | 79,394 | 63.3 |
-|  | `Graphify 0.9.95` | 32/36 | 20/21 | 12/15 | 34 | 10 (7+3) · 10 (6+4) · 12 (7+5) | 1,064,101 | 115,066 | 83.7 |
-|  | `rg 15.2.0` | 32/36 | 19/21 | 13/15 | 34 | 11 (7+4) · 10 (6+4) · 11 (6+5) | 704,707 | 85,827 | 73.0 |
-|  | `CodeGraph 1.6.2` | 35/36 | 21/21 | 14/15 | 35 | 12 (7+5) · 11 (7+4) · 12 (7+5) | 2,722,023 | 179,047 | 30.3 |
-|  | `codebase-memory-mcp 0.12.1` | 29/36 | 21/21 | 8/15 | 31 | 10 (7+3) · 9 (7+2) · 10 (7+3) | 1,426,901 | 126,080 | 104.3 |
-| `Codex code mode` | `codemap-search 0.14.2` | 36/36 | 21/21 | 15/15 | 36 | 12 (7+5) · 12 (7+5) · 12 (7+5) | 1,559,975 | 143,655 | 56.0 |
-|  | `Graphify 0.9.95` | 33/36 | 21/21 | 12/15 | 33 | 11 (7+4) · 10 (7+3) · 12 (7+5) | 1,560,296 | 125,416 | 81.7 |
-|  | `rg 15.2.0` | 29/36 | 21/21 | 8/15 | 29 | 10 (7+3) · 9 (7+2) · 10 (7+3) | 1,096,712 | 109,192 | 23.7 |
-|  | `zvec-grep 0.2.2` | 31/36 | 21/21 | 10/15 | 31 | 11 (7+4) · 10 (7+3) · 10 (7+3) | 1,046,671 | 106,938 | 22.0 |
-|  | `CodeGraph 1.6.2` | 31/36 | 21/21 | 10/15 | 31 | 11 (7+4) · 9 (7+2) · 11 (7+4) | 4,157,775 | 237,434 | 41.7 |
-|  | `codebase-memory-mcp 0.12.1` | 29/36 | 20/21 | 9/15 | 30 | 10 (7+3) · 9 (6+3) · 10 (7+3) | 2,437,177 | 149,390 | 112.0 |
+| `pi direct` | `codemap-search 0.14.2` | 33/36 | 20/21 | 13/15 | 34 | 12 (7+5) · 11 (7+4) · 10 (6+4) | 1,027k | 107k | 52.3 |
+|  | `Graphify 0.9.95` | 32/36 | 19/21 | 13/15 | 34 | 12 (7+5) · 11 (7+4) · 9 (5+4) | 1,553k | 100k | 59.3 |
+|  | `zvec-grep 0.2.2` | 33/36 | 21/21 | 12/15 | 33 | 12 (7+5) · 10 (7+3) · 11 (7+4) | 1,138k | 101k | 56.0 |
+|  | `codebase-memory-mcp 0.12.1` | 30/36 | 21/21 | 9/15 | 30 | 9 (7+2) · 10 (7+3) · 11 (7+4) | 2,075k | 94k | 86.7 |
+|  | `rg 15.2.0` | 32/36 | 21/21 | 11/15 | 32 | 10 (7+3) · 11 (7+4) · 11 (7+4) | 826k | 88k | 74.7 |
+|  | `CodeGraph 1.6.2` | 30/36 | 20/21 | 10/15 | 30 | 10 (7+3) · 11 (7+4) · 9 (6+3) | 2,332k | 159k | 29.0 |
+| `pi codemode` | `codemap-search 0.14.2` | 35/36 | 21/21 | 14/15 | 35 | 11 (7+4) · 12 (7+5) · 12 (7+5) | 982k | 107k | 45.7 |
+|  | `zvec-grep 0.2.2` | 32/36 | 21/21 | 11/15 | 32 | 9 (7+2) · 11 (7+4) · 12 (7+5) | 643k | 79k | 63.3 |
+|  | `Graphify 0.9.95` | 32/36 | 20/21 | 12/15 | 34 | 10 (7+3) · 10 (6+4) · 12 (7+5) | 1,064k | 115k | 83.7 |
+|  | `rg 15.2.0` | 32/36 | 19/21 | 13/15 | 34 | 11 (7+4) · 10 (6+4) · 11 (6+5) | 705k | 86k | 73.0 |
+|  | `CodeGraph 1.6.2` | 35/36 | 21/21 | 14/15 | 35 | 12 (7+5) · 11 (7+4) · 12 (7+5) | 2,722k | 179k | 30.3 |
+|  | `codebase-memory-mcp 0.12.1` | 29/36 | 21/21 | 8/15 | 31 | 10 (7+3) · 9 (7+2) · 10 (7+3) | 1,427k | 126k | 104.3 |
+| `Codex code mode` | `codemap-search 0.14.2` | 36/36 | 21/21 | 15/15 | 36 | 12 (7+5) · 12 (7+5) · 12 (7+5) | 1,560k | 144k | 56.0 |
+|  | `Graphify 0.9.95` | 33/36 | 21/21 | 12/15 | 33 | 11 (7+4) · 10 (7+3) · 12 (7+5) | 1,560k | 125k | 81.7 |
+|  | `rg 15.2.0` | 29/36 | 21/21 | 8/15 | 29 | 10 (7+3) · 9 (7+2) · 10 (7+3) | 1,097k | 109k | 23.7 |
+|  | `zvec-grep 0.2.2` | 31/36 | 21/21 | 10/15 | 31 | 11 (7+4) · 10 (7+3) · 10 (7+3) | 1,047k | 107k | 22.0 |
+|  | `CodeGraph 1.6.2` | 31/36 | 21/21 | 10/15 | 31 | 11 (7+4) · 9 (7+2) · 11 (7+4) | 4,158k | 237k | 41.7 |
+|  | `codebase-memory-mcp 0.12.1` | 29/36 | 20/21 | 9/15 | 30 | 10 (7+3) · 9 (6+3) · 10 (7+3) | 2,437k | 149k | 112.0 |
 
 ### `scope-annotation-filter`
 
 Traces how dashboard scope filters connect to annotation storage and querying.
 
-| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached tokens | Mean calls |
+| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached total | Mean calls |
 | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
-| `pi direct` | `codemap-search 0.14.2` | 33/36 | 21/21 | 12/15 | 33 | 11 (7+4) · 11 (7+4) · 11 (7+4) | 879,894 | 93,547 | 48.3 |
-|  | `Graphify 0.9.95` | 31/36 | 19/21 | 12/15 | 31 | 10 (6+4) · 11 (7+4) · 10 (6+4) | 596,484 | 82,350 | 50.7 |
-|  | `zvec-grep 0.2.2` | 26/36 | 16/21 | 10/15 | 27 | 8 (5+3) · 10 (6+4) · 8 (5+3) | 536,548 | 63,118 | 42.7 |
-|  | `codebase-memory-mcp 0.12.1` | 27/36 | 15/21 | 12/15 | 27 | 9 (5+4) · 9 (5+4) · 9 (5+4) | 931,799 | 85,677 | 63.3 |
-|  | `rg 15.2.0` | 26/36 | 15/21 | 11/15 | 27 | 8 (5+3) · 9 (5+4) · 9 (5+4) | 376,971 | 55,264 | 60.7 |
-|  | `CodeGraph 1.6.2` | 24/36 | 16/21 | 8/15 | 25 | 8 (6+2) · 8 (5+3) · 8 (5+3) | 1,657,880 | 125,165 | 25.7 |
-| `pi codemode` | `codemap-search 0.14.2` | 32/36 | 21/21 | 11/15 | 33 | 11 (7+4) · 10 (7+3) · 11 (7+4) | 689,815 | 87,617 | 37.7 |
-|  | `zvec-grep 0.2.2` | 10/12 | 6/7 | 4/5 | 10 | — · — · 10 (6+4) | 800,319 | 88,511 | 71.0 |
-|  | `Graphify 0.9.95` | 28/36 | 18/21 | 10/15 | 29 | 9 (6+3) · 9 (6+3) · 10 (6+4) | 473,627 | 69,104 | 55.0 |
-|  | `rg 15.2.0` | 25/36 | 16/21 | 9/15 | 26 | 10 (6+4) · 8 (5+3) · 7 (5+2) | 309,565 | 60,435 | 62.0 |
-|  | `CodeGraph 1.6.2` | 22/36 | 14/21 | 8/15 | 23 | 8 (5+3) · 7 (5+2) · 7 (4+3) | 1,388,768 | 129,589 | 29.0 |
-|  | `codebase-memory-mcp 0.12.1` | 26/36 | 16/21 | 10/15 | 27 | 9 (5+4) · 8 (5+3) · 9 (6+3) | 999,291 | 102,609 | 75.7 |
-| `Codex code mode` | `codemap-search 0.14.2` | 33/36 | 21/21 | 12/15 | 33 | 11 (7+4) · 11 (7+4) · 11 (7+4) | 1,132,993 | 120,769 | 52.3 |
-|  | `Graphify 0.9.95` | 32/36 | 20/21 | 12/15 | 32 | 10 (6+4) · 11 (7+4) · 11 (7+4) | 839,915 | 93,547 | 60.7 |
-|  | `rg 15.2.0` | 31/36 | 20/21 | 11/15 | 32 | 10 (6+4) · 11 (7+4) · 10 (7+3) | 608,739 | 101,902 | 17.0 |
-|  | `zvec-grep 0.2.2` | 27/36 | 17/21 | 10/15 | 28 | 8 (5+3) · 10 (7+3) · 9 (5+4) | 830,478 | 90,510 | 22.0 |
-|  | `CodeGraph 1.6.2` | 26/36 | 16/21 | 10/15 | 27 | 8 (5+3) · 10 (6+4) · 8 (5+3) | 2,313,552 | 157,776 | 34.7 |
-|  | `codebase-memory-mcp 0.12.1` | 27/36 | 16/21 | 11/15 | 28 | 10 (6+4) · 8 (5+3) · 9 (5+4) | 1,551,868 | 172,455 | 83.0 |
+| `pi direct` | `codemap-search 0.14.2` | 33/36 | 21/21 | 12/15 | 33 | 11 (7+4) · 11 (7+4) · 11 (7+4) | 880k | 94k | 48.3 |
+|  | `Graphify 0.9.95` | 31/36 | 19/21 | 12/15 | 31 | 10 (6+4) · 11 (7+4) · 10 (6+4) | 596k | 82k | 50.7 |
+|  | `zvec-grep 0.2.2` | 26/36 | 16/21 | 10/15 | 27 | 8 (5+3) · 10 (6+4) · 8 (5+3) | 537k | 63k | 42.7 |
+|  | `codebase-memory-mcp 0.12.1` | 27/36 | 15/21 | 12/15 | 27 | 9 (5+4) · 9 (5+4) · 9 (5+4) | 932k | 86k | 63.3 |
+|  | `rg 15.2.0` | 26/36 | 15/21 | 11/15 | 27 | 8 (5+3) · 9 (5+4) · 9 (5+4) | 377k | 55k | 60.7 |
+|  | `CodeGraph 1.6.2` | 24/36 | 16/21 | 8/15 | 25 | 8 (6+2) · 8 (5+3) · 8 (5+3) | 1,658k | 125k | 25.7 |
+| `pi codemode` | `codemap-search 0.14.2` | 32/36 | 21/21 | 11/15 | 33 | 11 (7+4) · 10 (7+3) · 11 (7+4) | 690k | 88k | 37.7 |
+|  | `zvec-grep 0.2.2` | 10/12 | 6/7 | 4/5 | 10 | — · — · 10 (6+4) | 800k | 89k | 71.0 |
+|  | `Graphify 0.9.95` | 28/36 | 18/21 | 10/15 | 29 | 9 (6+3) · 9 (6+3) · 10 (6+4) | 474k | 69k | 55.0 |
+|  | `rg 15.2.0` | 25/36 | 16/21 | 9/15 | 26 | 10 (6+4) · 8 (5+3) · 7 (5+2) | 310k | 60k | 62.0 |
+|  | `CodeGraph 1.6.2` | 22/36 | 14/21 | 8/15 | 23 | 8 (5+3) · 7 (5+2) · 7 (4+3) | 1,389k | 130k | 29.0 |
+|  | `codebase-memory-mcp 0.12.1` | 26/36 | 16/21 | 10/15 | 27 | 9 (5+4) · 8 (5+3) · 9 (6+3) | 999k | 103k | 75.7 |
+| `Codex code mode` | `codemap-search 0.14.2` | 33/36 | 21/21 | 12/15 | 33 | 11 (7+4) · 11 (7+4) · 11 (7+4) | 1,133k | 121k | 52.3 |
+|  | `Graphify 0.9.95` | 32/36 | 20/21 | 12/15 | 32 | 10 (6+4) · 11 (7+4) · 11 (7+4) | 840k | 94k | 60.7 |
+|  | `rg 15.2.0` | 31/36 | 20/21 | 11/15 | 32 | 10 (6+4) · 11 (7+4) · 10 (7+3) | 609k | 102k | 17.0 |
+|  | `zvec-grep 0.2.2` | 27/36 | 17/21 | 10/15 | 28 | 8 (5+3) · 10 (7+3) · 9 (5+4) | 830k | 91k | 22.0 |
+|  | `CodeGraph 1.6.2` | 26/36 | 16/21 | 10/15 | 27 | 8 (5+3) · 10 (6+4) · 8 (5+3) | 2,314k | 158k | 34.7 |
+|  | `codebase-memory-mcp 0.12.1` | 27/36 | 16/21 | 11/15 | 28 | 10 (6+4) · 8 (5+3) · 9 (5+4) | 1,552k | 172k | 83.0 |
 
 ### Per-fact fulfillment across all 36 rubric items
 
-Rubric text and expected file paths stay private to avoid contaminating future runs. Even with opaque IDs (`A1–AE5`, `G1–GE5`, `B1–BE5`), the tables show where tools agreed or diverged: `A7`, `AE4`, and `BE5` scored `0` across every run of every tool (`0/9`, or `0/7` for `zvec-grep 0.2.2` on `BE5`), whereas on `scope-annotation-filter` core hop `B6`, `codemap-search 0.14.2` succeeded `9/9` times versus `0–3/9` for the other tools (`1/7` for `zvec-grep 0.2.2`).
+The tables below report fulfillment by rubric item ID (`A1–AE5`, `G1–GE5`, `B1–BE5`): `A7`, `AE4`, and `BE5` scored `0` in every run (`0/9`, or `0/7` for `zvec-grep 0.2.2` on `BE5`), whereas on `scope-annotation-filter` `Core` hop `B6`, `codemap-search 0.14.2` succeeded `9/9` times versus `0–3/9` for the rest (`1/7` for `zvec-grep 0.2.2`).
 
 Each cell lists fulfilled runs in `pi direct · pi codemode · Codex code mode` order out of `3` runs, followed by the combined total (`sum/9`). For `zvec-grep 0.2.2` on `B*`/`BE*` where `2` of `3` `pi codemode` runs crashed, the middle value appears as `1/1` or `0/1` and the total as `sum/7`.
 
@@ -264,63 +262,62 @@ Each cell lists fulfilled runs in `pi direct · pi codemode · Codex code mode` 
 
 | Fact ID | Level | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `A1` | core | 3·3·2 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 2·3·3 (8/9) | 0·1·2 (3/9) |
-| `A2` | core | 3·3·3 (9/9) | 3·1·2 (6/9) | 3·2·2 (7/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 2·3·3 (8/9) |
-| `A3` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `A4` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `A5` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `A6` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `A7` | core | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) |
-| `AE1` | extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `AE2` | extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·2·3 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `AE3` | extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 2·3·3 (8/9) | 1·3·3 (7/9) |
-| `AE4` | extended | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) |
-| `AE5` | extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `A1` | Core | 3·3·2 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 2·3·3 (8/9) | 0·1·2 (3/9) |
+| `A2` | Core | 3·3·3 (9/9) | 3·1·2 (6/9) | 3·2·2 (7/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 2·3·3 (8/9) |
+| `A3` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `A4` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `A5` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `A6` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `A7` | Core | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) |
+| `AE1` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `AE2` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·2·3 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `AE3` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 2·3·3 (8/9) | 1·3·3 (7/9) |
+| `AE4` | Extended | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) |
+| `AE5` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
 
 #### `git-sync-job-dispatch` (`G1–GE5`)
 
 | Fact ID | Level | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `G1` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `G2` | core | 3·3·3 (9/9) | 2·3·3 (8/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `G3` | core | 2·3·3 (8/9) | 3·2·3 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `G4` | core | 3·3·3 (9/9) | 2·3·3 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·2·3 (8/9) | 2·3·3 (8/9) |
-| `G5` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `G6` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·2·3 (8/9) | 3·3·3 (9/9) |
-| `G7` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `GE1` | extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `GE2` | extended | 3·3·3 (9/9) | 2·1·3 (6/9) | 2·1·2 (5/9) | 2·1·2 (5/9) | 0·2·1 (3/9) | 3·2·2 (7/9) |
-| `GE3` | extended | 1·3·3 (7/9) | 2·2·1 (5/9) | 1·2·0 (3/9) | 1·1·2 (4/9) | 3·2·1 (6/9) | 0·3·1 (4/9) |
-| `GE4` | extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 0·0·0 (0/9) | 3·3·3 (9/9) | 2·3·2 (7/9) |
-| `GE5` | extended | 3·2·3 (8/9) | 3·3·2 (8/9) | 3·2·2 (7/9) | 3·3·2 (8/9) | 2·3·0 (5/9) | 2·3·2 (7/9) |
+| `G1` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `G2` | Core | 3·3·3 (9/9) | 2·3·3 (8/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `G3` | Core | 2·3·3 (8/9) | 3·2·3 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `G4` | Core | 3·3·3 (9/9) | 2·3·3 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·2·3 (8/9) | 2·3·3 (8/9) |
+| `G5` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `G6` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·2·3 (8/9) | 3·3·3 (9/9) |
+| `G7` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `GE1` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `GE2` | Extended | 3·3·3 (9/9) | 2·1·3 (6/9) | 2·1·2 (5/9) | 2·1·2 (5/9) | 0·2·1 (3/9) | 3·2·2 (7/9) |
+| `GE3` | Extended | 1·3·3 (7/9) | 2·2·1 (5/9) | 1·2·0 (3/9) | 1·1·2 (4/9) | 3·2·1 (6/9) | 0·3·1 (4/9) |
+| `GE4` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 0·0·0 (0/9) | 3·3·3 (9/9) | 2·3·2 (7/9) |
+| `GE5` | Extended | 3·2·3 (8/9) | 3·3·2 (8/9) | 3·2·2 (7/9) | 3·3·2 (8/9) | 2·3·0 (5/9) | 2·3·2 (7/9) |
 
 #### `scope-annotation-filter` (`B1–BE5`)
 
 | Fact ID | Level | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `B1` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 2·3·3 (8/9) |
-| `B2` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `B3` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 1·1/1·1 (3/7) | 0·1·0 (1/9) | 0·0·3 (3/9) | 2·0·1 (3/9) |
-| `B4` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `B5` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `B6` | core | 3·3·3 (9/9) | 1·0·2 (3/9) | 0·0/1·1 (1/7) | 0·0·1 (1/9) | 0·1·2 (3/9) | 0·0·0 (0/9) |
-| `B7` | core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·2·3 (8/9) |
-| `BE1` | extended | 3·2·3 (8/9) | 3·2·3 (8/9) | 2·1/1·2 (5/7) | 3·2·2 (7/9) | 2·2·2 (6/9) | 0·2·2 (4/9) |
-| `BE2` | extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `BE3` | extended | 3·3·3 (9/9) | 3·2·3 (8/9) | 2·1/1·2 (5/7) | 3·2·3 (8/9) | 3·1·3 (7/9) | 2·0·2 (4/9) |
-| `BE4` | extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
-| `BE5` | extended | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0/1·0 (0/7) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) |
+| `B1` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 2·3·3 (8/9) |
+| `B2` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `B3` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 1·1/1·1 (3/7) | 0·1·0 (1/9) | 0·0·3 (3/9) | 2·0·1 (3/9) |
+| `B4` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `B5` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `B6` | Core | 3·3·3 (9/9) | 1·0·2 (3/9) | 0·0/1·1 (1/7) | 0·0·1 (1/9) | 0·1·2 (3/9) | 0·0·0 (0/9) |
+| `B7` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·2·3 (8/9) |
+| `BE1` | Extended | 3·2·3 (8/9) | 3·2·3 (8/9) | 2·1/1·2 (5/7) | 3·2·2 (7/9) | 2·2·2 (6/9) | 0·2·2 (4/9) |
+| `BE2` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `BE3` | Extended | 3·3·3 (9/9) | 3·2·3 (8/9) | 2·1/1·2 (5/7) | 3·2·3 (8/9) | 3·1·3 (7/9) | 2·0·2 (4/9) |
+| `BE4` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
+| `BE5` | Extended | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0/1·0 (0/7) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) |
 
 ## Tool Calls, Citations, and Output Caps
 
-- **Dispatched, Rejected, and Errors**: `Total calls = Dispatched + Rejected`, with per-answer means for calls and cell totals for rejections and errors. `Rejected` counts calls blocked before execution by the read-only path sandbox (such as `.git` or out-of-repo paths); `Errors` (`⊂ Dispatched`) counts executed calls that returned an error.
-- **Helper `read` (`Graphify 0.9.95`) vs `zvec-grep 0.2.2`**: `Graphify`'s 7 graph tools return metadata without raw source lines, so the harness attached a read-only MCP `read` helper. `zvec-grep 0.2.2` already returns bounded snippets with matches, so it received no `read` helper and fell back to built-in tools or the shell for wider reads.
-- **Client output-cap hits and truncations**: `Built-in/CLI cap hits (answers)` counts outputs hitting client limits: in `pi`, built-in `read` (`2,000` lines / `50 KiB`), `grep` (`100` matches), `find` (`1,000` entries), and `ls` (`500` entries); in `Codex code mode`, `Warning: truncated output` across `exec_command` calls and `exec` cells (default `10,000`-token cap unless overridden via `// @exec: {"max_output_tokens": ...}`). `Script truncations` counts `pi codemode` responses clipped at `10,000` tokens; `Adapter truncations` counts individual MCP responses clipped by `@buyong/pi-mcp-adapter 0.1.2` (`20 KiB` default unless overridden by `_meta["pi/maxOutputBytes"]`, which `codemap-search 0.14.2` sets to `100,000` bytes).
-- **Citation counts**: Recomputed from normalized `path:start-end` citations across all `160` validated answers. `Range citations` counts multi-line spans (`end > start`), `Single-line` counts 1-line citations (`path:line` or `start == end`), and `Cited test/gen` counts answers citing at least one test or generated file.
+- **Dispatched, Rejected, and Errors**: `Total calls = Dispatched + Rejected` (per-answer means for calls; row totals for rejections and errors). `Rejected` counts calls blocked before execution by the read-only path sandbox; `Errors` counts dispatched calls that returned an error.
+- **Client output-cap hits and truncations**: **Built-in/CLI cap hits (answers)** lists total outputs clipped by client built-in or shell limits, with affected answers in parentheses (built-in `read`, `grep`, `find`, `ls` caps in both `pi` environments; `Codex code mode` `10k`-token default cap vs `100k` for `codemap-search 0.14.2`). **Script truncations** counts `pi codemode` responses clipped at `10k` tokens; **Adapter truncations** counts individual MCP responses clipped by `@buyong/pi-mcp-adapter 0.1.2` (`20 KiB` default; `codemap-search 0.14.2` sets `100,000` bytes).
+- **Citations**: **Range citations** counts multi-line `path:start-end` citations; **Single-line** counts 1-line citations.
 
 ### Call outcomes and per-subtool calls (per answer)
 
-| Environment | Tool | Total calls / ans | Dispatched / ans | Rejected (sum) | Errors (sum) | Built-in / shell / ans | Per-subtool calls / ans |
+| Environment | Tool | Total calls / ans | Dispatched / ans | Rejected (sum) | Errors (sum) | Built-in / fallback calls / ans | Per-subtool calls / ans |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | `pi direct` | `codemap-search 0.14.2` | 45.1 | 44.6 | 5 | 0 | 0.0 | `read` 20.7, `grep` 17.6, `find` 3.6, `search` 1.8, `initial_instructions` 1.0 |
 |  | `Graphify 0.9.95` | 55.8 | 54.2 | 14 | 7 | 16.8 | helper `read` 30.6, grep (built-in) 14.9, `query_graph` 4.7, find (built-in) 1.4, `get_neighbors` 1.1, `get_node` 1.0, ls (built-in) 0.4, `graph_stats` 0.1 |

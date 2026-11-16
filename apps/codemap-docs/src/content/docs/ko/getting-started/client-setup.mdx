@@ -5,9 +5,9 @@ description: Claude Code, Codex, pi, OpenCode에 codemap-search를 등록하고 
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 
-탐색할 프로젝트 폴더를 작업 디렉터리로 두고 `codemap-search mcp`가 실행되도록 등록합니다. 사용자 전역으로 등록해 두면 하나의 바이너리를 여러 프로젝트에서 쓸 수 있지만, 클라이언트가 실제로 해당 저장소 폴더에서 서버를 띄우는지 확인해야 합니다. 홈 디렉터리 자체(`~`)에서는 실행을 거부하며, `~/work/project` 같은 하위 프로젝트 폴더는 정상 동작합니다.
+클라이언트가 탐색할 저장소 폴더를 작업 디렉터리로 열어 `codemap-search mcp`를 실행하도록 등록합니다. 홈 디렉터리(`~`) 자체에서는 실행이 거부되며, `~/work/project` 같은 하위 폴더는 정상 동작합니다.
 
-바이너리를 아직 설치하지 않았다면 먼저 [설치 안내](/ko/getting-started/installation/)를 진행하세요.
+아직 설치하지 않았다면 먼저 [설치](/ko/getting-started/installation/)를 진행하세요.
 
 ## MCP 클라이언트 등록
 
@@ -19,13 +19,13 @@ import { Tabs, TabItem } from "@astrojs/starlight/components";
         claude mcp add --scope user codemap-search -- codemap-search mcp
         ```
 
-        팀과 공유할 `.mcp.json`에 넣으려면 해당 프로젝트 폴더에서 실행하세요.
+        팀과 공유할 `.mcp.json`에 등록하려면 해당 프로젝트 폴더에서 실행하세요.
 
         ```sh
         claude mcp add --scope project codemap-search -- codemap-search mcp
         ```
 
-        `--scope`를 빼면 기본값 `local`로 저장됩니다. 현재 프로젝트에서 본인에게만 적용되며 `~/.claude.json`의 해당 프로젝트 경로 아래에 기록되므로 공유용 `project` 범위와 다릅니다. 자세한 내용은 [Claude Code MCP 공식 안내](https://code.claude.com/docs/en/mcp)를 참고하세요.
+        `--scope`를 생략하면 공유용 `project`가 아니라 현재 프로젝트의 개인용 `local` 범위(`~/.claude.json`)로 저장됩니다. 자세한 내용은 [Claude Code MCP 안내](https://code.claude.com/docs/en/mcp)를 참고하세요.
     </TabItem>
     <TabItem label="Codex">
         Codex CLI로 등록합니다.
@@ -43,15 +43,15 @@ import { Tabs, TabItem } from "@astrojs/starlight/components";
         ```
     </TabItem>
     <TabItem label="pi">
-        pi 기본 MCP가 도구 `_meta`를 전달하기 전까지는 [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)를 사용하세요. `pi` 1.4.0은 이 메타데이터를 무시하고 모델에 넘기는 MCP 결과를 20KB로 자릅니다.
+        `pi` 1.4.0의 기본 MCP는 결과를 20 KB에서 자르므로, `codemap-search`의 출력 한도를 그대로 쓰려면 [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)를 설치하세요.
 
         ```sh
         pi install npm:@buyong/pi-mcp-adapter
         ```
 
-        `~/.pi/agent/settings.json`의 `extensions`에 `-builtin:mcp`를 넣거나 `pi config`의 **Built-in** 메뉴에서 `mcp`를 꺼서 기본 MCP를 비활성화하세요. 그다음 pi를 다시 시작하거나 `/reload`를 실행합니다.
+        `~/.pi/agent/settings.json`의 `extensions`에 `-builtin:mcp`를 추가하거나 `pi config`의 **Built-in**에서 `mcp`를 꺼서 기본 MCP를 비활성화하세요.
 
-        `~/.pi/agent/mcp.json` 또는 신뢰한 프로젝트의 `.pi/mcp.json`에 서버를 등록합니다.
+        `~/.pi/agent/mcp.json` 또는 신뢰하는 프로젝트의 `.pi/mcp.json`에 서버를 등록합니다.
 
         ```json
         {
@@ -61,7 +61,7 @@ import { Tabs, TabItem } from "@astrojs/starlight/components";
         }
         ```
 
-        탐색할 저장소 폴더에서 pi를 실행하세요. 어댑터가 `mcp.json`에 `maxOutputBytes`를 따로 적지 않아도 codemap-search의 출력 한도를 적용합니다. 자세한 내용은 [클라이언트 전달 한도](/ko/configuration/#클라이언트-전달-한도)를 참고하세요.
+        설정을 마쳤으면 탐색할 저장소 폴더에서 `pi`를 시작하거나 `/reload`를 실행하세요. 어댑터가 `codemap-search`의 출력 한도를 자동으로 적용하므로 `mcp.json`에 `maxOutputBytes`를 따로 적지 않아도 됩니다. 자세한 내용은 [클라이언트 전달 한도](/ko/configuration/#클라이언트-전달-한도)를 참고하세요.
     </TabItem>
     <TabItem label="OpenCode">
         전역 `~/.config/opencode/opencode.json`이나 프로젝트의 `opencode.json`에 추가합니다.
@@ -79,17 +79,18 @@ import { Tabs, TabItem } from "@astrojs/starlight/components";
         }
         ```
 
-        [OpenCode MCP 안내](https://opencode.ai/docs/mcp-servers/)의 설정 형식입니다. 다른 스키마를 쓰는 버전이라면 해당 클라이언트 버전의 문서를 확인하세요.
+        스키마에 관한 자세한 내용은 [OpenCode MCP 안내](https://opencode.ai/docs/mcp-servers/)를 참고하세요.
     </TabItem>
 </Tabs>
 
 ## 첫 연결 확인
 
-1. 클라이언트에서 `initial_instructions`를 한 번 호출합니다. 탐색 안내와 함께 모노레포라면 선택 가능한 범위와 언어 목록을 돌려줍니다. 선택적 [Jev 관련성 필터](/ko/configuration/#선택적-jev-판단-단계)를 켠 경우에만 사용자 요청 원문을 `task`에 전달하고, 꺼져 있으면 인자를 비워 둡니다.
-2. 돌아온 경로가 탐색하려는 저장소인지 확인합니다. 색인 준비 중 안내가 나오면 완료될 때까지 기다렸다가 다시 호출하세요.
-3. 알고 있는 소스 파일을 `find`로 찾고 `read`로 읽은 뒤, 색인이 끝나면 알려진 심볼을 `search`로 검색해 같은 파일이 잡히는지 확인합니다.
+1. 클라이언트에서 `initial_instructions`를 호출해 탐색 안내(모노레포라면 선택 가능한 범위와 언어 목록 포함)가 출력되는지 확인합니다.
+   - 선택적 [Jev 관련성 필터](/ko/configuration/#선택적-jev-판단-단계)를 켠 경우에만 사용자 요청 원문을 `task`에 전달하고, 꺼져 있으면 인자를 비워 둡니다.
+2. 출력된 경로가 탐색할 저장소와 일치하는지 확인하세요. 색인 준비 중 안내가 나오면 완료된 뒤 다시 호출하세요.
+3. 알고 있는 파일과 심볼을 `find`, `read`, `search`로 차례로 조회해 정상 동작을 확인합니다.
 
-바이너리를 찾지 못하면 클라이언트의 `PATH`를 확인하고, 엉뚱한 저장소가 나오면 작업 디렉터리 설정을 바로잡으세요. 시작 오류와 설정 오류는 `stderr`에 기록되며 `stdout`은 MCP JSON-RPC 통신 전용입니다.
+바이너리를 찾지 못하면 클라이언트의 `PATH`를 확인하고, 다른 저장소가 잡히면 작업 디렉터리 설정을 수정하세요. 시작·설정 오류는 `stderr`에 기록됩니다.
 
 ## 선택적 전역 지침
 
@@ -100,6 +101,6 @@ import { Tabs, TabItem } from "@astrojs/starlight/components";
 enabled = true
 ```
 
-기본값은 `false`입니다. 서버가 MCP `initialize.clientInfo.name`을 보고 Codex, Claude Code, pi, OpenCode 중 알맞은 파일을 자동으로 선택합니다. 켜 두면 `initial_instructions`를 먼저 호출하라는 관리 문구 한 줄을 추가하며, `enabled = false`로 되돌리면 직접 적은 지침은 남기고 서버가 추가한 줄만 지웁니다. 이 설정은 사용자 전역 전용이므로 저장소 설정으로 덮어쓸 수 없습니다.
+기본값은 `false`입니다. 서버가 Codex, Claude Code, pi, OpenCode 중 알맞은 전역 지침 파일을 자동으로 찾아 `initial_instructions`를 먼저 호출하라는 문구 한 줄을 추가합니다. `enabled = false`로 되돌리면 직접 적은 지침은 남기고 서버가 추가한 줄만 지웁니다. 이 설정은 전역 전용이라 저장소 설정으로 덮어쓸 수 없습니다.
 
-동기화는 MCP 초기화 시점이나 설정을 다시 읽은 뒤 다음 요청에서 실행되며, 새 에이전트 세션을 열면 갱신된 지침이 반영됩니다. 클라이언트별 파일 경로, 우선순위, 제거 제한은 [전역 지침 설정](/ko/configuration/#전역-지침)을 참고하세요.
+새 에이전트 세션을 열면 변경된 지침이 반영됩니다. 클라이언트별 파일 경로, 우선순위, 제거 제한은 [전역 지침 설정](/ko/configuration/#전역-지침)을 참고하세요.

@@ -1,22 +1,22 @@
 ---
 title: codemap-search
-description: 저장소 구조를 매핑하고 BM25 심볼 검색과 내장 파일 읽기를 제공하는 단일 바이너리 Rust MCP stdio 서버 및 CLI 문서입니다.
+description: 저장소 구조 매핑, BM25 심볼 검색, 원문 읽기를 제공하는 단일 Rust MCP stdio 서버 및 CLI.
 ---
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-`codemap-search`는 저장소 구조를 매핑하고 심볼과 문서를 BM25로 검색한 뒤 내장 `read`, `find`, `grep`으로 소스 원문을 확인하는 단일 Rust MCP stdio 서버이자 CLI입니다. Tree-sitter와 Tantivy, ripgrep을 바이너리 하나에 모두 담아 별도 런타임이나 언어 서버, API 키가 필요 없고 기본 설정에서는 네트워크 요청도 하지 않습니다.
+`codemap-search`는 저장소 구조를 매핑하고 BM25로 심볼을 검색하며 소스 원문을 읽는 MCP stdio 서버이자 CLI입니다. Tree-sitter, Tantivy, ripgrep을 단일 Rust 바이너리에 담아 별도 런타임, 언어 서버, API 키 없이 동작하며 기본 설정에서는 네트워크 요청을 보내지 않습니다.
 
 ## 빠른 시작
 
-Cargo로 설치해 바로 시작하세요. macOS/Linux `install.sh`와 로컬 소스 빌드는 [설치](/ko/getting-started/installation/)에서 안내합니다.
+Cargo로 바로 설치하거나, `install.sh`·Homebrew·WinGet·소스 빌드는 [설치](/ko/getting-started/installation/)를 참고하세요.
 
 ```sh
 cargo install codemap-search
 codemap-search --version
 ```
 
-탐색할 프로젝트 폴더를 작업 디렉터리로 두고 `codemap-search mcp`가 실행되도록 등록합니다.
+클라이언트가 `codemap-search mcp`를 실행할 때 작업 디렉터리가 탐색할 프로젝트 폴더가 되도록 등록합니다.
 
 ```sh
 # Claude Code (여러 프로젝트용 사용자 범위)
@@ -26,39 +26,39 @@ claude mcp add --scope user codemap-search -- codemap-search mcp
 codex mcp add codemap-search -- codemap-search mcp
 ```
 
-사전 빌드 바이너리는 [설치](/ko/getting-started/installation/)에서, Claude Code의 `project`와 `local` 범위 및 Codex `config.toml`, `pi`, `OpenCode` 설정은 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)에서 확인하세요.
+Claude Code의 `project`·`local` 범위, Codex `config.toml`, `pi`, `OpenCode` 설정은 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)을 확인하세요.
 
 ## 문서 안내
 
 <CardGrid>
     <LinkCard
         title="설치"
-        description="Cargo, install.sh, 로컬 소스 빌드, 릴리스 파일 설치 방법을 안내합니다."
+        description="Cargo, install.sh, Homebrew, WinGet, 릴리스 파일 설치 방법"
         href="/ko/getting-started/installation/"
     />
     <LinkCard
         title="MCP 클라이언트 등록"
-        description="Claude Code, Codex, pi, OpenCode에 서버를 등록하고 연결을 확인합니다."
+        description="Claude Code, Codex, pi, OpenCode 등록과 첫 연결 확인"
         href="/ko/getting-started/client-setup/"
     />
     <LinkCard
         title="탐색 도구 사용"
-        description="initial_instructions, search, grep, find, read 활용법을 정리했습니다."
+        description="initial_instructions, search, grep, find, read, analyze 사용법"
         href="/ko/usage/tools/"
     />
     <LinkCard
         title="CLI 및 색인·읽기 분석"
-        description="CLI 명령어와 색인 크기, 읽기 이력 분석 리포트 사용법을 다룹니다."
+        description="CLI 명령과 색인 용량·읽기 이력 분석"
         href="/ko/usage/cli-and-analysis/"
     />
     <LinkCard
         title="설정 레퍼런스"
-        description="config.toml, 출력 한도, 제외 규칙, Jev 필터, PII 마스킹을 설정합니다."
+        description="config.toml 옵션, 출력 한도, 제외 규칙, 관련성 필터, PII 마스킹"
         href="/ko/configuration/"
     />
     <LinkCard
         title="벤치마크"
-        description="Grafana에서 codemap-search 0.14.2, rg 15.2.0, MCP 서버 4종을 비교한 결과입니다."
+        description="grafana/grafana 저장소에서 codemap-search, ripgrep, MCP 서버 4종 비교"
         href="/ko/benchmarks/"
     />
 </CardGrid>

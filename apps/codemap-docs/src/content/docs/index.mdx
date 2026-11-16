@@ -1,22 +1,22 @@
 ---
 title: codemap-search
-description: Standalone Rust MCP stdio server and CLI for mapping repositories, searching symbols with BM25, and reading live source files.
+description: Standalone Rust MCP stdio server and CLI for mapping repositories, BM25 symbol search, and live source reading.
 ---
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-`codemap-search` is a standalone Rust MCP stdio server and CLI for mapping repositories, running BM25 symbol searches, and reading live source files. It compiles Tree-sitter, Tantivy, and ripgrep into one binary, so it needs no external runtime, language server, or API key, and makes no network requests by default.
+`codemap-search` maps repositories, searches symbols with BM25, and reads live source files over MCP stdio or the CLI. It compiles Tree-sitter, Tantivy, and ripgrep into one binary with no external runtime, language server, API key, or default network requests.
 
 ## Quick Start
 
-Install from crates.io with Cargo to get started. For macOS/Linux `install.sh` and local source builds, see [Installation](/getting-started/installation/).
+Install from crates.io with Cargo, or see [Installation](/getting-started/installation/) for `install.sh`, Homebrew, WinGet, and local builds.
 
 ```sh
 cargo install codemap-search
 codemap-search --version
 ```
 
-Register `codemap-search mcp` so your client launches it with the target project as its working directory:
+Register `codemap-search mcp` in your MCP client:
 
 ```sh
 # Claude Code (user scope across projects)
@@ -26,39 +26,39 @@ claude mcp add --scope user codemap-search -- codemap-search mcp
 codex mcp add codemap-search -- codemap-search mcp
 ```
 
-For prebuilt binaries see [Installation](/getting-started/installation/). For Claude Code `project`/`local` scopes, Codex `config.toml`, `pi`, and `OpenCode`, see [MCP Client Setup](/getting-started/client-setup/).
+For Claude Code `project`/`local` scopes, Codex `config.toml`, `pi`, and `OpenCode`, see [MCP Client Setup](/getting-started/client-setup/).
 
 ## Documentation
 
 <CardGrid>
     <LinkCard
         title="Installation"
-        description="Install with Cargo, install.sh, local source builds, or release archives."
+        description="Install via Cargo, install.sh, Homebrew, WinGet, or release archives."
         href="/getting-started/installation/"
     />
     <LinkCard
         title="MCP Client Setup"
-        description="Register codemap-search mcp in Claude Code, Codex, pi, and OpenCode."
+        description="Register codemap-search mcp in Claude Code, Codex, pi, or OpenCode."
         href="/getting-started/client-setup/"
     />
     <LinkCard
         title="MCP Tools"
-        description="Navigate code with initial_instructions, search, grep, find, and read."
+        description="Use initial_instructions, search, grep, find, read, and analyze."
         href="/usage/tools/"
     />
     <LinkCard
         title="CLI & Analysis"
-        description="Run CLI commands and inspect index footprint and read-activity reports."
+        description="CLI commands, index footprint reports, and read-activity logs."
         href="/usage/cli-and-analysis/"
     />
     <LinkCard
         title="Configuration Reference"
-        description="Configure config.toml, delivery budgets, exclusions, Jev filters, and PII masking."
+        description="config.toml options, output limits, path exclusions, relevance filters, and PII masking."
         href="/configuration/"
     />
     <LinkCard
         title="Benchmarks"
-        description="Grafana results comparing codemap-search 0.14.2, rg 15.2.0, and four MCP servers."
+        description="Benchmark on the grafana/grafana repository comparing codemap-search, ripgrep, and four MCP servers."
         href="/benchmarks/"
     />
 </CardGrid>

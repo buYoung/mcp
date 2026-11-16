@@ -1,0 +1,27 @@
+:root,
+html:not([data-has-sidebar]) {
+    --sl-content-width: 100%;
+    --sl-sidebar-width: 13.5rem;
+    --sl-content-pad-x: 1rem;
+}
+
+.lg\:sl-flex {
+    --sl-sidebar-width: 12rem;
+}
+
+.main-pane {
+    min-inline-size: 0;
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+    padding-inline: 0.5rem;
+    word-break: keep-all;
+}
+
+.sl-markdown-content :is(th:first-child, td:first-child):not(:where(.not-content *)) {
+    padding-inline-start: 0;
+}
+
+.sl-markdown-content :is(th:last-child, td:last-child):not(:where(.not-content *)) {
+    padding-inline-end: 0;
+}
