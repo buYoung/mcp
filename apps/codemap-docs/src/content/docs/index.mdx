@@ -9,28 +9,45 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 ## Quick Start
 
-Install `codemap-search`:
+### 1. Install
+
+macOS / Linux:
 
 ```sh
-# macOS / Linux
 curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+```
 
-# Windows (CMD / PowerShell)
+Windows (CMD / PowerShell):
+
+```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+```
 
-# Cargo (crates.io)
+Cargo (crates.io):
+
+```sh
 cargo install codemap-search
+```
 
+Verify the binary:
+
+```sh
 codemap-search --version
 ```
 
-Register `codemap-search mcp` in your MCP client:
+### 2. Connect or run
+
+Run commands from the terminal ([CLI Usage](/usage/cli-and-analysis/)) or set up an [MCP Connection](/getting-started/client-setup/) in your client:
+
+Claude Code:
 
 ```sh
-# Claude Code
 claude mcp add --scope user codemap-search -- codemap-search mcp
+```
 
-# Codex
+Codex:
+
+```sh
 codex mcp add codemap-search -- codemap-search mcp
 ```
 
@@ -49,7 +66,7 @@ codex mcp add codemap-search -- codemap-search mcp
     />
     <LinkCard
         title="MCP Tools"
-        description="Arguments, output modes, and usage for each MCP tool."
+        description="Per-tool examples and configuration toggle diffs on grafana/grafana."
         href="/usage/tools/"
     />
     <LinkCard
@@ -64,7 +81,7 @@ codex mcp add codemap-search -- codemap-search mcp
     />
     <LinkCard
         title="Benchmarks"
-        description="Benchmark against ripgrep and four other MCP servers on the Grafana repository."
+        description="Summary charts and detailed tables against ripgrep and four MCP servers on Grafana."
         href="/benchmarks/"
     />
 </CardGrid>

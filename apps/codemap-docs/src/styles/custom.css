@@ -2,7 +2,7 @@
 html:not([data-has-sidebar]) {
     --sl-content-width: 100%;
     --sl-sidebar-width: 13.5rem;
-    --sl-content-pad-x: 1rem;
+    --sl-content-pad-x: 2rem;
 }
 
 .lg\:sl-flex {
@@ -11,6 +11,10 @@ html:not([data-has-sidebar]) {
 
 .main-pane {
     min-inline-size: 0;
+}
+
+.content-panel {
+    padding-inline: max(24px, var(--sl-content-pad-x));
 }
 
 .sl-markdown-content :is(th, td):not(:where(.not-content *)) {
@@ -24,4 +28,124 @@ html:not([data-has-sidebar]) {
 
 .sl-markdown-content :is(th:last-child, td:last-child):not(:where(.not-content *)) {
     padding-inline-end: 0;
+}
+
+.bench-charts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-block: 1.25rem 1.5rem;
+}
+
+@media (max-width: 64rem) {
+    .bench-charts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.bench-chart-card {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--sl-color-bg-nav);
+}
+
+.bench-chart-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin-block-end: 0.75rem;
+}
+
+.bench-chart-title {
+    font-size: var(--sl-text-base);
+    font-weight: 600;
+    color: var(--sl-color-white);
+    margin: 0;
+}
+
+.bench-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-2);
+}
+
+.bench-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.bench-swatch {
+    display: inline-block;
+    inline-size: 0.65rem;
+    block-size: 0.65rem;
+    border-radius: 2px;
+}
+
+.bench-swatch-e1 {
+    background: var(--sl-color-text-accent);
+}
+
+.bench-swatch-e2 {
+    background: var(--sl-color-gray-2);
+}
+
+.bench-swatch-e3 {
+    background: var(--sl-color-gray-4);
+}
+
+.bench-chart-svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    font-family: var(--sl-font);
+}
+
+.bench-chart-svg .axis-line {
+    stroke: var(--sl-color-gray-5);
+    stroke-width: 1;
+}
+
+.bench-chart-svg .grid-line {
+    stroke: var(--sl-color-gray-6);
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+}
+
+.bench-chart-svg .tool-label {
+    fill: var(--sl-color-white);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.bench-chart-svg .tool-label-primary {
+    font-weight: 700;
+}
+
+.bench-chart-svg .val-label {
+    fill: var(--sl-color-gray-2);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.bench-chart-svg .axis-label {
+    fill: var(--sl-color-gray-3);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.bench-chart-svg .bar-e1 {
+    fill: var(--sl-color-text-accent);
+}
+
+.bench-chart-svg .bar-e2 {
+    fill: var(--sl-color-gray-2);
+}
+
+.bench-chart-svg .bar-e3 {
+    fill: var(--sl-color-gray-4);
 }

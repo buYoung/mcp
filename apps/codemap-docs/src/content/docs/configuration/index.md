@@ -12,7 +12,7 @@ Specify only the keys you want to override; settings merge per key as `repo > gl
 | Repo | `<repo>/.codemap/config.toml` | `<repo>/.codemap/auth.toml` |
 | Global | `$CODEMAP_HOME/config.toml` (default `~/.codemap/config.toml`) | `$CODEMAP_HOME/auth.toml` (default `~/.codemap/auth.toml`) |
 
-Add `.codemapignore` at the repository root (gitignore syntax) to exclude extra paths from indexing, `find`, and `grep`.
+`.gitignore`, global gitignore, and `.git/info/exclude` are respected automatically. Add `.codemapignore` at the repository root (gitignore syntax) to skip extra Git-tracked paths in indexing, `find`, and `grep`.
 
 ## Example `config.toml`
 

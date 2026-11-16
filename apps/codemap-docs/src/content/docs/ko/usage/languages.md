@@ -69,7 +69,7 @@ JSON5와 SCSS는 색인하지 않습니다.
 | 축소 파일(Minified) | `*.min.js`, `*.min.mjs`, `*.min.cjs`, `*.min.css`, `*.min.html` |
 | 번들 | `*.bundle.js`, `*.bundle.mjs`, `*.bundle.cjs`, `*.bundle.css` |
 
-- 저장소별 제외 경로는 `.codemapignore`에 gitignore 문법으로 적으세요. 제외된 파일도 `find`와 `grep`에서 `include_ignored: true`로 조회할 수 있습니다.
+- `.gitignore`, 전역 gitignore, `.git/info/exclude`(`[index.exclude].use_git_exclude = true` 기본값) 규칙은 자동으로 적용됩니다. Git에서 추적하지만 `codemap-search`에서만 추가로 빼고 싶은 경로가 있을 때만 `.codemapignore`(gitignore 문법)에 적으세요. 제외된 파일도 `find`와 `grep`에서 `include_ignored: true`로 조회할 수 있습니다.
 - 기본값인 `[index].mode = "auto"`에서는 색인 가능 파일이 `50,000`개 이하인 저장소(`.git`, `.hg`, `.jj`)만 자동으로 색인합니다. `50,000`개를 넘는 저장소는 `.codemap/config.toml`에서 `[index].mode = "on"`으로 설정하세요.
 - `[index].max_file_bytes`(기본 `1 MiB`)를 넘는 파일은 색인에서 건너뜁니다.
 - `RUST_LOG=debug`로 실행하면 상세 진단 로그가 `stderr`로 출력됩니다.

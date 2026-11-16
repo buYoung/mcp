@@ -79,9 +79,20 @@ export default defineConfig({
                     ],
                 },
                 {
-                    slug: "benchmarks",
                     label: "Benchmarks",
                     translations: { ko: "벤치마크" },
+                    items: [
+                        {
+                            slug: "benchmarks",
+                            label: "Summary",
+                            translations: { ko: "요약" },
+                        },
+                        {
+                            slug: "benchmarks/details",
+                            label: "Detailed Results",
+                            translations: { ko: "상세 결과" },
+                        },
+                    ],
                 },
             ],
         }),

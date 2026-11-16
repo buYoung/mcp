@@ -12,7 +12,7 @@ description: codemap-search의 config.toml 설정 키, auth.toml 인증정보, �
 | 저장소 | `<repo>/.codemap/config.toml` | `<repo>/.codemap/auth.toml` |
 | 전역 | `$CODEMAP_HOME/config.toml` (기본 `~/.codemap/config.toml`) | `$CODEMAP_HOME/auth.toml` (기본 `~/.codemap/auth.toml`) |
 
-저장소 루트에 `.codemapignore`(gitignore 문법)를 두면 색인, `find`, `grep`에서 제외할 경로를 추가할 수 있습니다.
+`.gitignore`, 전역 gitignore, `.git/info/exclude`는 기본으로 적용됩니다. Git에서 추적하는 경로를 색인, `find`, `grep`에서 추가로 빼려면 저장소 루트에 `.codemapignore`(gitignore 문법)를 두세요.
 
 ## `config.toml` 예시
 

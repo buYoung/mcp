@@ -69,7 +69,7 @@ The following extensions and patterns are always skipped during indexing:
 | Minified files | `*.min.js`, `*.min.mjs`, `*.min.cjs`, `*.min.css`, `*.min.html` |
 | Bundles | `*.bundle.js`, `*.bundle.mjs`, `*.bundle.cjs`, `*.bundle.css` |
 
-- Add repository-specific exclusions in `.codemapignore` using gitignore syntax. Ignored files can still be queried in `find` and `grep` with `include_ignored: true`.
+- `.gitignore`, global gitignore, and `.git/info/exclude` (when `[index.exclude].use_git_exclude = true`, the default) are respected automatically. Use `.codemapignore` (gitignore syntax) only for extra paths tracked by Git that you still want `codemap-search` to skip. Pass `include_ignored: true` in `find` or `grep` to query ignored files.
 - By default (`[index].mode = "auto"`), `codemap-search` automatically indexes repositories (`.git`, `.hg`, `.jj`) with up to `50,000` indexable files. For larger repositories, set `[index].mode = "on"` in `.codemap/config.toml`.
 - Files larger than `[index].max_file_bytes` (default `1 MiB`) are skipped during indexing.
 - Run with `RUST_LOG=debug` to write verbose diagnostics to `stderr`:

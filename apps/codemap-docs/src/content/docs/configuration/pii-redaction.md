@@ -1,24 +1,45 @@
 ---
 title: PII Redaction
-description: Opt-in PII redaction settings and 90 supported entity types for MCP output.
+description: Default credential masking, custom redaction rules, and 90 built-in PII entity types for MCP output.
 ---
 
-Credential redaction is enabled by default, while PII redaction is opt-in (`[output.redact].pii_entities` defaults to `[]`). List only the entity types your repository needs in `.codemap/config.toml` or `~/.codemap/config.toml`:
+## Default settings
+
+`[output].is_redact_enabled` defaults to `true`. Out of the box, `codemap-search` automatically replaces the following secrets with `[REDACTED]` in MCP responses:
+
+- **API keys and tokens**: AWS (`AKIA*`, `ASIA*`), GitHub (`ghp_*`, `github_pat_*`), OpenAI (`sk-*`), Google (`AIza*`), Slack (`xox*`), Stripe, GitLab, npm, SendGrid, and JWTs (`eyJ*`)
+- **Auth headers, URLs, and private keys**: `Authorization` / `Bearer` / `Basic` headers, URL passwords (`scheme://user:password@host`), webhook URLs, and PEM private keys
+- **Sensitive fields**: config or code fields ending in `api_key`, `token`, `password`, `passwd`, `pwd`, `secret`, `secret_key`, `private_key`, `access_key`, or `access_key_id` (case- and separator-insensitive)
+- **General PII (`[output.redact].pii_entities`)**: defaults to `[]` (off), so emails, credit cards, and national IDs remain visible unless you opt in below.
+
+## Customizing redaction
+
+Override `[output]` and `[output.redact]` in `.codemap/config.toml` (repository) or `~/.codemap/config.toml` (global):
 
 ```toml
 [output]
-is_redact_enabled = true
+is_redact_enabled = true # set false to disable all credential and PII redaction
 
 [output.redact]
-pii_entities = ["CREDIT_CARD", "EMAIL_ADDRESS", "IBAN_CODE", "US_SSN"]
-exceptions = [{ rule_id = "pii.email-address", value = "info@example.com" }]
+# 1. Opt in to built-in PII entity types (a repo list replaces the global list; [] clears inheritance)
+pii_entities = ["EMAIL_ADDRESS", "CREDIT_CARD", "KR_RRN"]
+
+# 2. Treat additional field names as secrets
+sensitive_fields = ["internalCredential", "webhookSigningKey"]
+
+# 3. Add custom regex rules (id must start with custom.; optional (?P<secret>...) masks only that group)
+rules = [
+  { id = "custom.service-token", pattern = 'glsa_(?P<secret>[A-Za-z0-9_]{32,})' }
+]
+
+# 4. Exempt known test or placeholder values (PII rule IDs use pii.<lowercase-hyphenated-name>)
+exceptions = [
+  { rule_id = "pii.email-address", value = "admin@grafana.localhost" },
+  { rule_id = "custom.service-token", value = "00000000000000000000000000000000" }
+]
 ```
 
-- A repository `pii_entities` list replaces the global list (`[]` clears inherited entity types).
-- Set `[output].is_redact_enabled = false` to disable both credential and PII redaction.
-- To exempt a known safe value, add `{ rule_id, value }` to `exceptions` using `pii.<lowercase-hyphenated-name>` (for example, `pii.credit-card`) and the exact matched string (excluding surrounding quotes in source code).
-
-## Supported entity types
+## Built-in PII entity types
 
 | Scope | Entity types |
 | --- | --- |

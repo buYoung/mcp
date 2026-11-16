@@ -9,28 +9,45 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 ## 빠른 시작
 
-운영체제에 맞는 명령으로 `codemap-search`를 설치하세요.
+### 1. 설치
+
+macOS / Linux:
 
 ```sh
-# macOS / Linux
 curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+```
 
-# Windows (CMD / PowerShell)
+Windows (CMD / PowerShell):
+
+```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+```
 
-# Cargo (crates.io)
+Cargo (crates.io):
+
+```sh
 cargo install codemap-search
+```
 
+버전 확인:
+
+```sh
 codemap-search --version
 ```
 
-사용하는 MCP 클라이언트에 `codemap-search mcp`를 등록하세요.
+### 2. 실행 및 연결
+
+터미널에서 바로 실행하려면 [CLI 사용법](/ko/usage/cli-and-analysis/)을, 에이전트에 등록하려면 [MCP 연결](/ko/getting-started/client-setup/)을 참고하세요.
+
+Claude Code:
 
 ```sh
-# Claude Code
 claude mcp add --scope user codemap-search -- codemap-search mcp
+```
 
-# Codex
+Codex:
+
+```sh
 codex mcp add codemap-search -- codemap-search mcp
 ```
 
@@ -49,7 +66,7 @@ codex mcp add codemap-search -- codemap-search mcp
     />
     <LinkCard
         title="탐색 도구 사용"
-        description="각 MCP 도구의 인자, 출력 형식, 사용 기준"
+        description="grafana/grafana 기준 도구별 실행 예시와 설정 옵션별 출력 차이"
         href="/ko/usage/tools/"
     />
     <LinkCard
@@ -64,7 +81,7 @@ codex mcp add codemap-search -- codemap-search mcp
     />
     <LinkCard
         title="벤치마크"
-        description="grafana/grafana 저장소에서 ripgrep 및 오픈소스 MCP 서버 4종과 비교"
+        description="grafana/grafana 저장소에서 ripgrep 및 오픈소스 MCP 서버 4종과 비교한 요약·상세 결과"
         href="/ko/benchmarks/"
     />
 </CardGrid>

@@ -1,24 +1,45 @@
 ---
 title: PII 마스킹
-description: MCP 출력의 선택적 PII 마스킹 설정과 90종 지원 유형 목록입니다.
+description: 기본 인증정보 마스킹 동작, 커스텀 규칙 추가 방법, 내장 PII 유형 90종 목록입니다.
 ---
 
-인증정보 마스킹은 기본으로 켜져 있고 개인정보(PII) 마스킹은 선택 사항입니다(`[output.redact].pii_entities` 기본값 `[]`). 필요한 유형만 `.codemap/config.toml`이나 `~/.codemap/config.toml`에 지정하세요.
+## 기본 설정
+
+`[output].is_redact_enabled`의 기본값은 `true`이며, 별도 설정을 하지 않아도 MCP 출력에서 다음 민감값을 자동으로 `[REDACTED]` 처리합니다.
+
+- **API 키·토큰**: AWS(`AKIA*`, `ASIA*`), GitHub(`ghp_*`, `github_pat_*`), OpenAI(`sk-*`), Google(`AIza*`), Slack(`xox*`), Stripe, GitLab, npm, SendGrid, JWT(`eyJ*`)
+- **인증 헤더·URL·개인키**: `Authorization` / `Bearer` / `Basic` 헤더, URL 내 비밀번호(`scheme://user:password@host`), 웹훅 URL, PEM 개인키 블록
+- **민감 필드 값**: `api_key`, `token`, `password`, `passwd`, `pwd`, `secret`, `secret_key`, `private_key`, `access_key`, `access_key_id`로 끝나는 설정·코드 키(대소문자·구분자 무관)
+- **개인정보(`[output.redact].pii_entities`)**: 기본값은 `[]`(비활성)이므로 이메일·카드번호·주민등록번호 같은 일반 PII는 아래처럼 필요한 유형을 추가했을 때만 가립니다.
+
+## 커스텀 설정
+
+저장소의 `.codemap/config.toml`이나 전역 `~/.codemap/config.toml`에서 마스킹 대상과 예외를 추가할 수 있습니다.
 
 ```toml
 [output]
-is_redact_enabled = true
+is_redact_enabled = true # false로 바꾸면 인증정보·PII 마스킹 전체 비활성화
 
 [output.redact]
-pii_entities = ["CREDIT_CARD", "EMAIL_ADDRESS", "IBAN_CODE", "US_SSN"]
-exceptions = [{ rule_id = "pii.email-address", value = "info@example.com" }]
+# 1. 내장 PII 유형 선택 활성화 (저장소 목록은 전역 목록을 덮어쓰며, []는 상속 해제)
+pii_entities = ["EMAIL_ADDRESS", "CREDIT_CARD", "KR_RRN"]
+
+# 2. 비밀값으로 취급할 필드 이름 추가
+sensitive_fields = ["internalCredential", "webhookSigningKey"]
+
+# 3. 사용자 정규식 규칙 추가 (id는 custom.으로 시작, (?P<secret>...) 그룹 지정 시 해당 부분만 마스킹)
+rules = [
+  { id = "custom.service-token", pattern = 'glsa_(?P<secret>[A-Za-z0-9_]{32,})' }
+]
+
+# 4. 테스트·예시용 안전 값 예외 지정 (PII 규칙 ID는 pii.<소문자-하이픈-이름>)
+exceptions = [
+  { rule_id = "pii.email-address", value = "admin@grafana.localhost" },
+  { rule_id = "custom.service-token", value = "00000000000000000000000000000000" }
+]
 ```
 
-- 저장소의 `pii_entities` 목록은 전역 목록을 덮어쓰며, `[]`로 비우면 전역에 설정한 유형도 해제됩니다.
-- `[output].is_redact_enabled = false`로 설정하면 인증정보와 PII 마스킹을 모두 끕니다.
-- 예외로 남길 값은 `exceptions`에 `rule_id`(`pii.<소문자-하이픈-이름>`, 예: `pii.credit-card`)와 `value`(소스 코드 리터럴의 바깥 따옴표를 제외한 값)를 함께 적으세요.
-
-## 지원 유형
+## 내장 PII 유형
 
 | 범위 | 유형 이름 |
 | --- | --- |
