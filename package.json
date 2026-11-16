@@ -2,7 +2,7 @@
     "name": "buyong-mcp",
     "private": true,
     "scripts": {
-        "bench:ready": "python3 -m benchmark.ready",
+        "bench:ready": "python3 -m benchmark.codex.ready",
         "build": "turbo run build",
         "dev": "turbo run dev",
         "lint": "biome check .",
@@ -10,7 +10,7 @@
         "check-types": "turbo run check-types",
         "prepare": "husky",
         "release": "release-it",
-        "bench:start": "node benchmark/start.mjs"
+        "bench:start": "node benchmark/codex/start.mjs"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.5.15",
