@@ -12,5 +12,20 @@
     "arguments": {"file_path": "_codemap_language_regressions/EndsWithMemberAnnotation.kt", "view": "definitions"},
     "contains": ["size [property", "stays ["],
     "category": "parser_termination"
+  },
+  {
+    "id": "regression:next-line-constructor:nested",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/NextLineConstructor.kt", "view": "definitions"},
+    "contains": ["Builder [class, exported] — L6-13", "build [method, exported] — L12-12", "Cache [class, exported] — L15-21", "capacity [method, exported] — L20-20", "describe [method, exported] — L26-26"],
+    "excludes": ["build [function"],
+    "category": "declarations"
+  },
+  {
+    "id": "regression:next-line-constructor:top-level",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/NextLineConstructor.kt", "view": "definitions"},
+    "contains": ["Session [class, exported] — L29-35", "owner [method, exported] — L34-34", "Audit [class, exported] — L37-42", "afterSession [function, exported] — L44-44"],
+    "category": "declarations"
   }
 ]

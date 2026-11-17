@@ -61,6 +61,28 @@ static bool scan_words(TSLexer *lexer, const char words[MAX_WORDS][MAX_WORD_SIZE
     return false;
 }
 
+// Skips one annotation up to the whitespace after it. An argument list may hold whitespace, and a string
+// in it may hold parentheses.
+static void skip_annotation(TSLexer *lexer) {
+    uint32_t depth = 0;
+    while (!lexer->eof(lexer) && (depth > 0 || !iswspace(lexer->lookahead))) {
+        if (lexer->lookahead == '(') {
+            depth++;
+        } else if (lexer->lookahead == ')' && depth > 0) {
+            depth--;
+        } else if (lexer->lookahead == '"') {
+            skip(lexer);
+            while (!lexer->eof(lexer) && lexer->lookahead != '"') {
+                if (lexer->lookahead == '\\') {
+                    skip(lexer);
+                }
+                skip(lexer);
+            }
+        }
+        skip(lexer);
+    }
+}
+
 void *tree_sitter_kotlin_external_scanner_create() { return NULL; }
 
 void tree_sitter_kotlin_external_scanner_destroy(void *payload) {}
@@ -261,7 +283,12 @@ bool tree_sitter_kotlin_external_scanner_scan(void *payload, TSLexer *lexer, con
                     while (iswspace(lexer->lookahead)) {
                         skip(lexer);
                     }
-                    if (valid_symbols[CLASS_MEMBER_SEMI] || lexer->lookahead == '.' || lexer->lookahead == '=') {
+                    // A nested class header that has no primary constructor yet accepts `constructor` itself, and
+                    // Kotlin gives a constructor on the next line to that class. `SEMI` is valid here only during
+                    // error recovery, which keeps its previous behavior.
+                    bool continues_class_header = valid_symbols[CONSTRUCTOR] && !valid_symbols[SEMI];
+                    if ((valid_symbols[CLASS_MEMBER_SEMI] && !continues_class_header) || lexer->lookahead == '.' ||
+                        lexer->lookahead == '=') {
                         return true;
                     }
                 }
@@ -314,21 +341,23 @@ bool tree_sitter_kotlin_external_scanner_scan(void *payload, TSLexer *lexer, con
                 return true;
             case '@':
                 if (valid_symbols[CONSTRUCTOR]) {
-                    // The end of the file is not whitespace: a file that ends in an annotation must stop the loop.
-                    while (!iswspace(lexer->lookahead) && !lexer->eof(lexer)) {
-                        skip(lexer);
-                    }
-                    while (iswspace(lexer->lookahead)) {
-                        skip(lexer);
-                    }
-                    char ctor[12] = "constructor";
-                    for (uint8_t i = 0; i < 11; i++) {
-                        if (lexer->lookahead != ctor[i]) {
-                            return true;
+                    // Annotations and modifiers, in any order, may come before the `constructor` of a primary
+                    // constructor that starts on the line after the class header.
+                    for (;;) {
+                        if (lexer->lookahead == '@') {
+                            skip_annotation(lexer);
+                        } else if (scan_words(lexer,
+                                              (const char[16][16]){"public", "private", "protected", "internal"},
+                                              scanned_word, NULL)) {
+                            memset(scanned_word, 0, MAX_WORD_SIZE);
+                        } else {
+                            break;
                         }
-                        skip(lexer);
+                        while (iswspace(lexer->lookahead)) {
+                            skip(lexer);
+                        }
                     }
-                    return false;
+                    return strncmp(scanned_word, "constructor", MAX_WORD_SIZE) != 0;
                 }
                 if (valid_symbols[GET] || valid_symbols[SET]) {
                     bool saw_paren = false;

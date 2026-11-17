@@ -499,7 +499,9 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
 // v43 compresses stored payloads with zstd, stores event source digests instead of their text,
 // drops stored flow summaries and unread stored fields, and adds fast fields for paths, mtimes
 // and content and payload hashes.
-const EXTRACTION_FORMAT_VERSION: &str = "v43-compact-store";
+// v44 re-extracts Kotlin files: a primary constructor that starts on the line after the class
+// name no longer ends the class at its name.
+const EXTRACTION_FORMAT_VERSION: &str = "v44-kotlin-constructors";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -2564,7 +2566,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v43-compact-store");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v44-kotlin-constructors");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
