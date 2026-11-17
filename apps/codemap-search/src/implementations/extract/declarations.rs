@@ -136,6 +136,7 @@ pub(super) fn type_declaration(
             || node.kind() == "abstract_class_declaration",
         is_final: modifier(node, "final", source) || modifier(node, "sealed", source),
         is_complete: !node.has_error(),
+        is_partial: modifier(node, "partial", source),
         conditions: conditions(node, source),
     };
     let mut candidates = base_nodes(node);

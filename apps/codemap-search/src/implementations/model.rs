@@ -61,6 +61,9 @@ pub struct TypeDeclaration {
     pub is_abstract: bool,
     pub is_final: bool,
     pub is_complete: bool,
+    /// Declared as one of several parts of a type, as C# `partial` declarations are.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_partial: bool,
     pub conditions: Vec<String>,
 }
 

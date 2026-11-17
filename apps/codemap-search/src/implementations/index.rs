@@ -14,6 +14,8 @@ pub(super) struct TypeNode {
     pub unit: usize,
     pub declaration: usize,
     pub methods: Vec<usize>,
+    /// The file, unit and declaration of each further part of a type declared in parts.
+    pub parts: Vec<(usize, usize, usize)>,
 }
 #[derive(Clone, Debug)]
 pub(super) struct MethodNode {
@@ -130,6 +132,13 @@ impl ImplementationIndex {
                 files.iter().map(|file| file.file_path.as_str()),
             ),
         };
+        // The first indexed part of each type that is declared in parts.
+        let mut partial: HashMap<(&str, &str, usize, &str), usize> = HashMap::new();
+        let projects: std::collections::HashSet<&str> = files
+            .iter()
+            .filter(|file| file.file_path.ends_with(".csproj"))
+            .map(|file| folder(&file.file_path))
+            .collect();
         for (file_id, file) in files.iter().enumerate() {
             let Some(facts) = file
                 .navigation
@@ -155,12 +164,37 @@ impl ImplementationIndex {
                         index.omitted += 1;
                         continue;
                     }
+                    // The parts of one type share its members, so they form one type here.
+                    // Parts compile into one assembly: they sit below one project file. A
+                    // conditional part stays apart, as every conditional declaration does.
+                    let part = (typ.is_partial && typ.is_complete && typ.conditions.is_empty())
+                        .then(|| {
+                            (
+                                family(&unit.language),
+                                typ.qualified_name.as_str(),
+                                typ.parameters.len(),
+                                project_folder(&projects, &file.file_path),
+                            )
+                        });
+                    if let Some(&first) = part.and_then(|part| partial.get(&part)) {
+                        index.types[first]
+                            .parts
+                            .push((file_id, unit_id, declaration));
+                        for method in &typ.methods {
+                            index.add_method(first, method.clone(), (file_id, unit_id), None);
+                        }
+                        continue;
+                    }
                     let id = index.types.len();
+                    if let Some(part) = part {
+                        partial.insert(part, id);
+                    }
                     index.types.push(TypeNode {
                         file: file_id,
                         unit: unit_id,
                         declaration,
                         methods: Vec::new(),
+                        parts: Vec::new(),
                     });
                     index.parents.push(Vec::new());
                     index.by_name.entry(typ.name.clone()).or_default().push(id);
@@ -249,6 +283,39 @@ impl ImplementationIndex {
     pub(super) fn typ(&self, id: usize) -> &TypeDeclaration {
         &self.unit(id).types[self.types[id].declaration]
     }
+    /// Every declaration of the type with the file and unit that hold it: one, or each part
+    /// of a type declared in parts.
+    pub(super) fn declarations(
+        &self,
+        id: usize,
+    ) -> impl Iterator<Item = (usize, usize, &TypeDeclaration)> {
+        let node = &self.types[id];
+        std::iter::once((node.file, node.unit, node.declaration))
+            .chain(node.parts.iter().copied())
+            .map(|(file, unit, declaration)| {
+                let facts = self.files[file].navigation.as_ref().unwrap();
+                let unit_facts = &facts.implementations.as_ref().unwrap().units[unit];
+                (file, unit, &unit_facts.types[declaration])
+            })
+    }
+    /// Where the declaration that holds `method` starts: its type, or the part of the type
+    /// declared around it.
+    pub(super) fn declaring(&self, method: usize) -> Location {
+        let node = &self.methods[method];
+        self.declarations(node.owner)
+            .skip(1)
+            .find(|(file, unit, part)| {
+                (*file, *unit) == (node.file, node.unit)
+                    && super::resolve::encloses(&part.range, &node.location.range)
+            })
+            .map_or_else(
+                || self.location(node.owner),
+                |(file, _, part)| Location {
+                    path: self.files[file].file_path.clone(),
+                    range: part.range.clone(),
+                },
+            )
+    }
     pub(super) fn location(&self, id: usize) -> Location {
         Location {
             path: self.files[self.types[id].file].file_path.clone(),
@@ -279,5 +346,27 @@ impl ImplementationIndex {
             contract,
         });
         self.types[owner].methods.push(id);
+    }
+}
+
+/// The folder of `path`, empty at the workspace root.
+fn folder(path: &str) -> &str {
+    path.rsplit_once('/').map_or("", |(folder, _)| folder)
+}
+
+/// The folder whose sources compile together with `path`: that of the nearest project file
+/// above it, else its own.
+fn project_folder<'p>(projects: &std::collections::HashSet<&str>, path: &'p str) -> &'p str {
+    let own = folder(path);
+    let mut current = own;
+    loop {
+        if projects.contains(current) {
+            return current;
+        }
+        match current.rsplit_once('/') {
+            Some((parent, _)) => current = parent,
+            None if current.is_empty() => return own,
+            None => current = "",
+        }
     }
 }

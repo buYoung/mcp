@@ -106,16 +106,17 @@ impl ImplementationIndex {
         }
         let mut local = Vec::new();
         for &id in self.by_name.get(bare).into_iter().flatten() {
-            let node = &self.types[id];
             let typ = self.typ(id);
-            if node.file != file
-                || node.unit != unit_id
-                || !typ.parameters.is_empty()
-                || !typ.is_complete
-                || !encloses(&typ.scope, &reference.range)
-            {
+            if !typ.parameters.is_empty() || !typ.is_complete {
                 continue;
             }
+            // A type declared in parts is local to every file that holds one of them.
+            let Some((_, _, part)) = self.declarations(id).find(|(part_file, part_unit, part)| {
+                (*part_file, *part_unit) == (file, unit_id)
+                    && encloses(&part.scope, &reference.range)
+            }) else {
+                continue;
+            };
             let qualified = normalized(&typ.qualified_name);
             let owner_namespace = normalized(&typ.namespace);
             if qualified == name
@@ -127,18 +128,25 @@ impl ImplementationIndex {
                 local.push((
                     id,
                     owner_namespace.len(),
-                    typ.scope.end_line - typ.scope.start_line,
+                    part.scope.end_line - part.scope.start_line,
+                    &part.range,
                 ));
             }
         }
-        local.sort_by_key(|(_, depth, size)| (std::cmp::Reverse(*depth), *size));
-        if let Some(&(id, depth, size)) = local.first() {
+        local.sort_by_key(|(_, depth, size, _)| (std::cmp::Reverse(*depth), *size));
+        if let Some(&(id, depth, size, range)) = local.first() {
             return (local
                 .iter()
-                .filter(|(_, d, s)| *d == depth && *s == size)
+                .filter(|(_, d, s, _)| *d == depth && *s == size)
                 .count()
                 == 1)
-                .then(|| (id, vec![self.location(id)]));
+                .then(|| {
+                    let location = Location {
+                        path: source.file_path.clone(),
+                        range: range.clone(),
+                    };
+                    (id, vec![location])
+                });
         }
         let mut imported = Vec::new();
         let (head, tail) = name.split_once('.').unwrap_or((&name, ""));

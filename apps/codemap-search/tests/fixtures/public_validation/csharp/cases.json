@@ -42,5 +42,29 @@
     "contains": ["implementation candidate: Partial.EmailNotifier.Send — _codemap_language_regressions/partial/Notifiers.cs:7", "- not source-proven: 1 same-named method(s) in types naming INotifier as a base; the candidates above may be incomplete."],
     "excludes": ["BufferedNotifier."],
     "category": "implementations"
+  },
+  {
+    "id": "regression:partial-type:member",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/parts/Shop/Checkout.cs"},
+    "contains": ["Checkout.Verify — _codemap_language_regressions/parts/Shop/Rules/Checkout.Rules.cs:6", "Ledger.Post — _codemap_language_regressions/parts/Shop/Ledger.cs:5"],
+    "excludes": ["Verify (unresolved)", "parts/Tools/"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:partial-type:caller",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/parts/Shop/Rules/Checkout.Rules.cs"},
+    "contains": ["Checkout.Close (_codemap_language_regressions/parts/Shop/Checkout.cs:9)"],
+    "excludes": ["unconfirmed callers", "Checkout.Reset"],
+    "category": "missing_caller"
+  },
+  {
+    "id": "regression:partial-type:other-project",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/parts/Tools/Checkout.cs"},
+    "contains": ["Checkout.Reset (L8)"],
+    "excludes": ["Checkout.Close"],
+    "category": "wrong_caller"
   }
 ]

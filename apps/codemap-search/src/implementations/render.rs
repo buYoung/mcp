@@ -164,7 +164,7 @@ impl ImplementationIndex {
                 {
                     continue;
                 }
-                let type_location = self.location(method.owner);
+                let type_location = self.declaring(id);
                 let header = Location {
                     path: type_location.path,
                     range: crate::parser::CodeRange {

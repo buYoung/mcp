@@ -138,7 +138,14 @@ impl ImplementationIndex {
         if !tail.is_empty() && !bound.is_empty() {
             return imported(Some(tail));
         }
-        let namespace = if node.file == self.types[node.owner].file {
+        // Every part of a type declared in parts lies in the namespace of the type.
+        let owner = &self.types[node.owner];
+        let is_in_type = node.file == owner.file
+            || owner
+                .parts
+                .iter()
+                .any(|(file, unit, _)| (*file, *unit) == (node.file, node.unit));
+        let namespace = if is_in_type {
             self.typ(node.owner).namespace.as_str()
         } else {
             unit.namespace.as_str()

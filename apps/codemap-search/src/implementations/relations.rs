@@ -25,34 +25,41 @@ impl ImplementationIndex {
         sources: &HashMap<String, String>,
     ) {
         for id in 0..self.types.len() {
-            let node = self.types[id].clone();
-            let typ = self.typ(id).clone();
             let language = self.unit(id).language.clone();
-            let path = self.files[node.file].file_path.clone();
-            if !typ.is_complete
-                || !typ.parameters.is_empty()
-                || !active(&language, &path, &typ.range, &typ.conditions, resolver)
-            {
-                continue;
-            }
-            for base in &typ.bases {
-                if let Some((parent, mut evidence)) =
-                    self.resolve_type(node.file, node.unit, &typ.namespace, base, resolver)
+            let declarations: Vec<_> = self
+                .declarations(id)
+                .map(|(file, unit, typ)| (file, unit, typ.clone()))
+                .collect();
+            for (file, unit, typ) in declarations {
+                let path = self.files[file].file_path.clone();
+                if !typ.is_complete
+                    || !typ.parameters.is_empty()
+                    || !active(&language, &path, &typ.range, &typ.conditions, resolver)
                 {
-                    if parent == id || self.typ(parent).is_final {
-                        continue;
+                    continue;
+                }
+                for base in &typ.bases {
+                    if let Some((parent, mut evidence)) =
+                        self.resolve_type(file, unit, &typ.namespace, base, resolver)
+                    {
+                        if parent == id || self.typ(parent).is_final {
+                            continue;
+                        }
+                        evidence.push(Location {
+                            path: path.clone(),
+                            range: base.range.clone(),
+                        });
+                        evidence.push(Location {
+                            path: path.clone(),
+                            range: typ.range.clone(),
+                        });
+                        self.remember_proof(&evidence, sources);
+                        self.parents[id].push(Parent {
+                            owner: parent,
+                            evidence,
+                            is_pointer: false,
+                        });
                     }
-                    evidence.push(Location {
-                        path: path.clone(),
-                        range: base.range.clone(),
-                    });
-                    evidence.push(self.location(id));
-                    self.remember_proof(&evidence, sources);
-                    self.parents[id].push(Parent {
-                        owner: parent,
-                        evidence,
-                        is_pointer: false,
-                    });
                 }
             }
         }
@@ -370,8 +377,9 @@ impl ImplementationIndex {
         path: &str,
         call: &DispatchCall,
     ) -> Option<(usize, Vec<Location>)> {
-        let is_inside = self.files[self.types[owner].file].file_path == path
-            && super::resolve::encloses(&self.typ(owner).range, &call.range);
+        let is_inside = self.declarations(owner).any(|(file, _, typ)| {
+            self.files[file].file_path == path && super::resolve::encloses(&typ.range, &call.range)
+        });
         let allows_static = is_inside || call.receiver_kind == ReceiverKind::Type;
         let own = self.named_methods(owner, call, is_inside, allows_static);
         if !own.is_empty() {
@@ -472,7 +480,7 @@ impl ImplementationIndex {
                 .iter()
                 .map(|parent| self.typ(parent.owner).name.as_str())
                 .collect();
-            for base in &self.typ(owner).bases {
+            for base in self.declarations(owner).flat_map(|(_, _, typ)| &typ.bases) {
                 let name = base
                     .name
                     .rsplit(['.', ':', '\\'])
