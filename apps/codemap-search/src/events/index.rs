@@ -48,6 +48,9 @@ struct RenderContext<'a> {
 pub(crate) struct ShownRoutes {
     files: BTreeMap<(String, String, String, String), String>,
     source_routes: source_routes::QueryState,
+    /// Files whose unavailable event input this response already reported. The reason holds for
+    /// the whole file, so it is said once and not under each of its declarations.
+    diagnosed_files: BTreeSet<String>,
 }
 fn overlaps(location: &EventLocation, anchors: &[(String, usize, usize)]) -> bool {
     anchors.is_empty()
@@ -311,8 +314,13 @@ impl EventIndex {
             }
             output.push_str(&native);
         }
-        let diagnostics =
-            self.input_diagnostics(anchors, scope, cap.saturating_sub(output.len() + 1), root);
+        let diagnostics = self.input_diagnostics(
+            anchors,
+            scope,
+            cap.saturating_sub(output.len() + 1),
+            root,
+            &mut shown_routes.diagnosed_files,
+        );
         if diagnostics.is_empty() {
             output
         } else if output.is_empty() {
@@ -328,15 +336,18 @@ impl EventIndex {
         scope: Option<&str>,
         cap: usize,
         root: &Path,
+        diagnosed_files: &mut BTreeSet<String>,
     ) -> String {
         if !crate::config::get().event_navigation.is_enabled {
             return String::new();
         }
         let filter = crate::callers::test_code::TestCodeFilter::from_config(root);
         let mut output = String::new();
-        let mut seen = BTreeSet::new();
         for (path, start, _) in anchors {
-            if !seen.insert(path) || !under_scope(path, scope) || filter.is_file_excluded(path) {
+            if diagnosed_files.contains(path)
+                || !under_scope(path, scope)
+                || filter.is_file_excluded(path)
+            {
                 continue;
             }
             let Some(reason) = self.unavailable_details.get(path) else {
@@ -356,6 +367,7 @@ impl EventIndex {
             }
             output.push_str(header);
             output.push_str(&row);
+            diagnosed_files.insert(path.clone());
         }
         output
     }

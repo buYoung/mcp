@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improved
+
+- `read` and `search` say that a file's event input is unavailable once per response instead of under every declaration of that file. This note appears for C and C++ files whose macros were expanded; reading one such file could repeat it more than a hundred times.
+
 ### Fixed
 
 - A Kotlin file that ends with an annotation and no line break after it no longer stops the server. Before, parsing such a file never finished: reading it got no answer, later requests got no answer either, and indexing the repository kept a processor core busy without end.

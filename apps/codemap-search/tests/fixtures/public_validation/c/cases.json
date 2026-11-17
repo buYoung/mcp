@@ -1,0 +1,10 @@
+[
+  {
+    "id": "regression:event-input-diagnostic-once",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/macro_diagnostic.c"},
+    "contains": ["second_square", "third_square"],
+    "excludes": ["event input unavailable — _codemap_language_regressions/macro_diagnostic.c:3:", "event input unavailable — _codemap_language_regressions/macro_diagnostic.c:7:", "event input unavailable — _codemap_language_regressions/macro_diagnostic.c:11:"],
+    "category": "diagnostics"
+  }
+]
