@@ -1,0 +1,9 @@
+[
+  {
+    "id": "regression:recovery-in-body",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/BrokenStatement.php", "view": "definitions"},
+    "contains": ["Report [class, exported] — L5-18", "build [method, exported] — L7-12", "size [method, exported] — L14-17"],
+    "category": "declarations"
+  }
+]

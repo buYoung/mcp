@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A Kotlin file that ends with an annotation and no line break after it no longer stops the server. Before, parsing such a file never finished: reading it got no answer, later requests got no answer either, and indexing the repository kept a processor core busy without end.
 - A Kotlin class whose primary constructor starts on the line after the class name is read as one class again in two cases: when the class is nested in another class, and when annotations and a visibility modifier come before `constructor`. Before, the class ended at its name, its methods appeared as functions of the enclosing class or not at all, and declarations after it could be missing. Existing indexes are rebuilt once.
+- In C#, PHP, Ruby and Lua, a method, class or namespace is kept when the parser could not read a statement inside its body. Before, one such statement removed the method that holds it and every class and namespace around that method; in C# this happened when `#if` split a statement, for example an `else` branch inside `#if`. A declaration whose name, parameters or base list could not be read is still left out. Existing indexes are rebuilt once.
 
 ## [1.0.0] - 2026-11-17
 

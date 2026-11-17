@@ -1,0 +1,9 @@
+[
+  {
+    "id": "regression:recovery-in-body",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/broken_statement.lua", "view": "definitions"},
+    "contains": ["build [method, exported] — L3-7", "size [method, exported] — L9-11"],
+    "category": "declarations"
+  }
+]

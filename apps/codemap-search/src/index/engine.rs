@@ -501,7 +501,9 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
 // and content and payload hashes.
 // v44 re-extracts Kotlin files: a primary constructor that starts on the line after the class
 // name no longer ends the class at its name.
-const EXTRACTION_FORMAT_VERSION: &str = "v44-kotlin-constructors";
+// v45 re-extracts C#, PHP, Ruby and Lua files: a declaration whose only recovery nodes lie in
+// its body is kept.
+const EXTRACTION_FORMAT_VERSION: &str = "v45-recovery-in-body";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -2566,7 +2568,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v44-kotlin-constructors");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v45-recovery-in-body");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

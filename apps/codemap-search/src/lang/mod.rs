@@ -753,6 +753,26 @@ pub(crate) fn path_indicates_test(file_path: &str) -> bool {
 /// visibility. The Go uppercase-name and Kotlin default-public export rules must defer to
 /// this so a local `val`/`var` isn't reported as exported. Unknown kinds in `fn_kinds`
 /// simply never match, so over-listing is safe.
+/// Whether tree-sitter recovery left a capture usable, for the languages that reject recovered
+/// captures. A declaration (`symbol.*`) is kept when its recovery nodes all lie inside its
+/// `body`: one unparsed statement must not remove the enclosing method, class and namespace.
+/// Every other capture, and a declaration without a `body`, is rejected on any recovery node.
+pub(crate) fn is_capture_intact(capture_name: &str, node: Node<'_>) -> bool {
+    if !node.has_error() {
+        return true;
+    }
+    let body = capture_name
+        .starts_with("symbol.")
+        .then(|| node.child_by_field_name("body"))
+        .flatten();
+    let Some(body) = body else {
+        return false;
+    };
+    (0..node.child_count())
+        .filter_map(|index| node.child(index as u32))
+        .all(|child| child.id() == body.id() || !(child.has_error() || child.is_missing()))
+}
+
 pub(crate) fn is_inside_function(node: Node, fn_kinds: &[&str]) -> bool {
     crate::parser::ancestors(node).any(|current| fn_kinds.contains(&current.kind()))
 }

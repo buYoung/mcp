@@ -1,0 +1,16 @@
+[
+  {
+    "id": "regression:recovery-in-body:block-namespace",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/ConditionalElse.cs", "view": "definitions"},
+    "contains": ["Demo [mod, not exported] — L1-27", "Writer [class, exported] — L3-26", "Close [method, exported] — L7-20", "Count [method, exported] — L22-25"],
+    "category": "declarations"
+  },
+  {
+    "id": "regression:recovery-in-body:file-scoped-namespace",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/FileScopedConditional.cs", "view": "definitions"},
+    "contains": ["Reader [class, exported] — L3-24", "Read [method, exported] — L5-18", "Size [method, exported] — L20-23"],
+    "category": "declarations"
+  }
+]

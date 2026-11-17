@@ -4,7 +4,9 @@ use std::collections::HashSet;
 use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
-use super::{generic_find_owner, path_indicates_test, LanguageSpec, NameDecision};
+use super::{
+    generic_find_owner, is_capture_intact, path_indicates_test, LanguageSpec, NameDecision,
+};
 use crate::parser::{CodeRange, ImportEntry, ImportKind};
 
 const QUERY_STR: &str = concat!(
@@ -162,8 +164,8 @@ impl LanguageSpec for RubySpec {
         true
     }
 
-    fn capture_is_valid(&self, _capture_name: &str, node: Node<'_>, _source: &[u8]) -> bool {
-        !node.has_error()
+    fn capture_is_valid(&self, capture_name: &str, node: Node<'_>, _source: &[u8]) -> bool {
+        is_capture_intact(capture_name, node)
     }
 
     fn name_for_capture(
