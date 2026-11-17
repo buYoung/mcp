@@ -34,5 +34,13 @@
     "arguments": {"file_path": "_codemap_language_regressions/receiver/TextExtensions.cs"},
     "contains": ["Banner.Title (L12)"],
     "category": "wrong_caller"
+  },
+  {
+    "id": "regression:unproven-implementations",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/INotifier.cs"},
+    "contains": ["implementation candidate: Partial.EmailNotifier.Send — _codemap_language_regressions/partial/Notifiers.cs:7", "- not source-proven: 1 same-named method(s) in types naming INotifier as a base; the candidates above may be incomplete."],
+    "excludes": ["BufferedNotifier."],
+    "category": "implementations"
   }
 ]

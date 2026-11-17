@@ -11,6 +11,7 @@
 | `call declaration` | 호출 지점의 선언 위치. 실제로 실행될 구현을 확정했다는 뜻은 아님 |
 | `runtime target: unresolved` | 수신 객체의 실행 시점 인스턴스까지 증명하지 못함 |
 | `implementation: unresolved` | 현재 유효한 색인에서 증명된 구현이 없음. 프로그램에 구현이 없다는 뜻은 아님 |
+| `not source-proven: N same-named method(s) …` | 후보 목록 아래에 나옴. 이 선언의 타입을 기반으로 적은 타입에 같은 이름의 메서드가 N개 더 있지만 구현임을 증명하지 못해 목록에 넣지 않았다는 뜻. 제네릭 타입, 해석하지 못한 기반 타입, 증명하지 못한 서명이 원인이며 Go와 Rust에는 나오지 않음 |
 
 ## 적용 대상
 

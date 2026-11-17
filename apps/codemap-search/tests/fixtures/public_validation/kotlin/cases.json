@@ -50,5 +50,13 @@
     "contains": ["writeBody (L12)", "writeHeading (L19)"],
     "excludes": ["writeTitle (L"],
     "category": "wrong_caller"
+  },
+  {
+    "id": "regression:unproven-implementations",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.kt"},
+    "contains": ["implementation candidate: partial.EmailNotifier.send — _codemap_language_regressions/partial/Notifiers.kt:4", "- not source-proven: 1 same-named method(s) in types naming Notifier as a base; the candidates above may be incomplete."],
+    "excludes": ["BufferedNotifier."],
+    "category": "implementations"
   }
 ]

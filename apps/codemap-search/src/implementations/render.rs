@@ -87,6 +87,23 @@ impl ImplementationIndex {
         )
     }
 
+    /// A row saying how many eligible methods look like implementations of `declaration` and
+    /// are not listed, since the listed candidates then cover only the proven ones.
+    fn unproven_note(&self, declaration: usize, eligibility: &mut Eligibility) -> Option<String> {
+        let count = self
+            .unproven
+            .get(&declaration)?
+            .iter()
+            .filter(|method| eligibility.method(**method))
+            .count();
+        (count > 0).then(|| {
+            format!(
+                "- not source-proven: {count} same-named method(s) in types naming {} as a base; the candidates above may be incomplete.\n",
+                self.typ(self.methods[declaration].owner).name
+            )
+        })
+    }
+
     #[cfg(test)]
     pub(crate) fn for_paths(
         &self,
@@ -226,6 +243,12 @@ impl ImplementationIndex {
                     }
                 ));
             }
+            if related {
+                if let Some(note) = self.unproven_note(id, &mut eligibility) {
+                    rows += 1;
+                    section.push_str(&note);
+                }
+            }
             for &link_id in self.reverse.get(&id).into_iter().flatten() {
                 let link = &self.links[link_id];
                 if !eligibility.link(link) {
@@ -289,6 +312,7 @@ impl ImplementationIndex {
                 ),
                 self.display_method(call.declaration, current_file)
             );
+            let mut listed = false;
             for &link_id in self.forward.get(&call.declaration).into_iter().flatten() {
                 let link = &self.links[link_id];
                 if !eligibility.link(link) {
@@ -299,6 +323,7 @@ impl ImplementationIndex {
                     break;
                 }
                 rows += 1;
+                listed = true;
                 section.push_str(&format!(
                     "- implementation candidate: {}{}\n",
                     self.display_method(link.implementation, current_file),
@@ -308,6 +333,12 @@ impl ImplementationIndex {
                         ""
                     }
                 ));
+            }
+            if listed {
+                if let Some(note) = self.unproven_note(call.declaration, &mut eligibility) {
+                    rows += 1;
+                    section.push_str(&note);
+                }
             }
             section.push_str(
                 "- runtime target: unresolved (receiver instance is not statically proven).\n",

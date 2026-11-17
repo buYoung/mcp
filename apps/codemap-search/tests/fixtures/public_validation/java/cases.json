@@ -13,5 +13,13 @@
     "contains": ["implementation: unresolved"],
     "excludes": ["implementation candidate: shapes.impl.Circle.render"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:unproven-implementations",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.java"},
+    "contains": ["implementation candidate: partial.EmailNotifier.send — _codemap_language_regressions/partial/EmailNotifier.java:4", "- not source-proven: 1 same-named method(s) in types naming Notifier as a base; the candidates above may be incomplete."],
+    "excludes": ["BufferedNotifier."],
+    "category": "implementations"
   }
 ]

@@ -203,6 +203,7 @@ impl ImplementationIndex {
             .sort_by_key(|link| (link.declaration, link.implementation));
         self.links
             .dedup_by_key(|link| (link.declaration, link.implementation));
+        self.record_unproven();
         let declarations = self
             .links
             .iter()
@@ -433,6 +434,85 @@ impl ImplementationIndex {
                     && count.is_none_or(|count| method.parameters.len() == count)
             })
             .collect()
+    }
+
+    /// Records the methods that look like implementations of a declaration and are linked to
+    /// none: a type names the declaration's owner as a base, by a proven relationship or only
+    /// by spelling, and has a method of the same name. Go types name no base, and a Rust
+    /// implementation block enters the index only once its trait is resolved.
+    fn record_unproven(&mut self) {
+        let linked: HashSet<usize> = self.links.iter().map(|link| link.implementation).collect();
+        let mut unproven: HashMap<usize, Vec<usize>> = HashMap::new();
+        for owner in 0..self.types.len() {
+            let language = self.unit(owner).language.as_str();
+            if matches!(language, "go" | "rust") {
+                continue;
+            }
+            let own: Vec<usize> = self.types[owner]
+                .methods
+                .iter()
+                .copied()
+                .filter(|method| {
+                    let declaration = &self.methods[*method].declaration;
+                    !declaration.is_abstract
+                        && !declaration.is_private
+                        && !declaration.is_static
+                        && !linked.contains(method)
+                })
+                .collect();
+            if own.is_empty() {
+                continue;
+            }
+            let mut bases: HashSet<usize> = self
+                .ancestors(owner)
+                .iter()
+                .map(|parent| parent.owner)
+                .collect();
+            let proven: HashSet<&str> = self.parents[owner]
+                .iter()
+                .map(|parent| self.typ(parent.owner).name.as_str())
+                .collect();
+            for base in &self.typ(owner).bases {
+                let name = base
+                    .name
+                    .rsplit(['.', ':', '\\'])
+                    .next()
+                    .unwrap_or(&base.name);
+                if proven.contains(name) {
+                    continue;
+                }
+                bases.extend(
+                    self.by_name
+                        .get(name)
+                        .into_iter()
+                        .flatten()
+                        .copied()
+                        .filter(|parent| {
+                            *parent != owner
+                                && family(&self.unit(*parent).language) == family(language)
+                        }),
+                );
+            }
+            for base in bases {
+                for &declaration in &self.types[base].methods {
+                    let declared = &self.methods[declaration].declaration;
+                    if declared.is_private
+                        || declared.is_static
+                        || declared.is_final
+                        || !declared.is_virtual
+                    {
+                        continue;
+                    }
+                    let same_named = own
+                        .iter()
+                        .copied()
+                        .filter(|method| self.methods[*method].declaration.name == declared.name);
+                    unproven.entry(declaration).or_default().extend(same_named);
+                }
+            }
+        }
+        unproven.retain(|_, methods| !methods.is_empty());
+        self.unproven = unproven;
     }
 
     pub(super) fn ancestors(&self, owner: usize) -> Vec<Parent> {

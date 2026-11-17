@@ -79,6 +79,9 @@ pub(crate) struct ImplementationIndex {
     pub(super) forward: HashMap<usize, Vec<usize>>,
     pub(super) reverse: HashMap<usize, Vec<usize>>,
     pub(super) references: HashMap<usize, Vec<usize>>,
+    /// For a declaration, the same-named methods of types that name its owner as a base and
+    /// are linked to no declaration: implementations the source suggests but does not prove.
+    pub(super) unproven: HashMap<usize, Vec<usize>>,
     pub(super) proof_digests: HashMap<String, String>,
     pub(super) target_os: Option<String>,
     pub(super) omitted: usize,
@@ -119,6 +122,7 @@ impl ImplementationIndex {
             forward: HashMap::new(),
             reverse: HashMap::new(),
             references: HashMap::new(),
+            unproven: HashMap::new(),
             proof_digests: HashMap::new(),
             target_os,
             omitted: 0,
