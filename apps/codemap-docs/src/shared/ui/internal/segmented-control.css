@@ -1,0 +1,62 @@
+.cm-seg {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-block-size: var(--cm-h-sm);
+    padding: 2px;
+    border: 1px solid var(--cm-border);
+    border-radius: var(--cm-radius-sm);
+    background: var(--cm-bg-inset);
+}
+
+.cm-seg__item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: calc(var(--cm-h-sm) - 6px);
+    min-inline-size: 1.75rem;
+    padding-inline: var(--cm-px-sm);
+    border: 0;
+    border-radius: calc(var(--cm-radius-sm) - 2px);
+    background: transparent;
+    color: var(--cm-fg-muted);
+    font-family: var(--sl-font);
+    font-size: var(--cm-fs-xs);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition:
+        background-color var(--cm-transition-fast),
+        color var(--cm-transition-fast);
+}
+
+.cm-seg--mono .cm-seg__item {
+    font-family: var(--sl-font-mono);
+}
+
+.cm-seg__input {
+    position: absolute;
+    clip-path: inset(50%);
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+}
+
+.cm-seg__item:hover {
+    color: var(--cm-fg);
+}
+
+.cm-seg__item:is([aria-pressed="true"], :has(.cm-seg__input:checked)) {
+    background: var(--cm-bg-elevated);
+    color: var(--cm-accent-fg);
+    font-weight: 600;
+    box-shadow: var(--cm-shadow-xs);
+}
+
+.cm-seg__item:is(:focus-visible, :has(.cm-seg__input:focus-visible)) {
+    outline: 2px solid var(--cm-accent-fg);
+    outline-offset: 1px;
+}

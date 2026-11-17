@@ -1,0 +1,107 @@
+---
+title: 설치
+description: install.sh, install.ps1, Cargo로 codemap-search를 설치합니다.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+## 설치
+
+<Tabs>
+    <TabItem label="install.sh (macOS / Linux)">
+        ```sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+        ```
+
+        설치 경로나 버전을 지정할 때:
+
+        ```sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | INSTALL_DIR=/usr/local/bin sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh -s -- --version 0.14.2
+        ```
+
+        | 옵션 / 환경 변수 | 설명 |
+        |---|---|
+        | `--install-dir` / `INSTALL_DIR` | 설치 경로 (기본값: `~/.local/bin`) |
+        | `--version` / `CODEMAP_VERSION` | 설치할 버전 또는 태그 (예: `0.14.2`, 기본값: 최신 릴리스) |
+        | `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH=1` | 셸 프로필 `PATH` 자동 추가 생략 |
+        | `CODEMAP_LINUX_LIBC` | Linux `x86_64`에서 `gnu` 빌드를 쓸 때 지정 (기본값: `musl`) |
+        | `--print-target` | 다운로드 없이 감지된 플랫폼과 URL만 출력 |
+    </TabItem>
+    <TabItem label="install.ps1 (Windows)">
+        PowerShell이나 명령 프롬프트(`cmd.exe`)에서 실행하세요.
+
+        ```powershell
+        powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+        ```
+
+        설치 경로나 버전을 지정할 때:
+
+        ```powershell
+        powershell -ExecutionPolicy ByPass -c "$env:INSTALL_DIR='C:\Tools\bin'; irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+        powershell -ExecutionPolicy ByPass -c "$env:CODEMAP_VERSION='0.14.2'; irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+        ```
+
+        | 옵션 / 환경 변수 | 설명 |
+        |---|---|
+        | `-InstallDir` / `--install-dir` / `INSTALL_DIR` | 설치 경로 (기본값: `$HOME\.local\bin`) |
+        | `-Version` / `--version` / `CODEMAP_VERSION` | 설치할 버전 또는 태그 (예: `0.14.2`, 기본값: 최신 릴리스) |
+        | `-NoModifyPath` / `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH=1` | 사용자 `Path` 자동 추가 생략 |
+        | `-PrintTarget` / `--print-target` | 다운로드 없이 감지된 플랫폼과 URL만 출력 |
+    </TabItem>
+    <TabItem label="Cargo (crates.io 및 로컬 소스)">
+        [crates.io](https://crates.io/crates/codemap-search)에서 설치:
+
+        ```sh
+        cargo install codemap-search
+        ```
+
+        로컬 소스에서 직접 빌드해 설치(저장소 루트에서 실행):
+
+        ```sh
+        cargo install --path apps/codemap-search
+        ```
+    </TabItem>
+</Tabs>
+
+## 설치 확인
+
+새 터미널을 열고 버전이 출력되는지 확인하세요.
+
+```sh
+codemap-search --version
+```
+
+명령을 찾지 못하면 [문제 해결](#문제-해결)을 참고하세요. 확인이 끝나면 [MCP 클라이언트 등록](/ko/getting-started/client-setup/)으로 이동하세요.
+
+## 문제 해결
+
+터미널에서 `codemap-search`를 찾지 못하면 설치 경로(`~/.local/bin`, Cargo 설치 시 `~/.cargo/bin`)를 셸 프로필이나 Windows 사용자 `Path`에 추가하세요.
+
+```sh
+# zsh (macOS / Linux)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+
+# bash (Linux / macOS)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+```powershell
+# Windows PowerShell (실행 후 새 터미널 열기)
+$p = [Environment]::GetEnvironmentVariable("Path", "User")
+[Environment]::SetEnvironmentVariable("Path", "$HOME\.local\bin;$p", "User")
+```
+
+## 릴리스 아카이브
+
+[GitHub Releases](https://github.com/buYoung/mcp/releases)에서 아카이브를 직접 내려받아 설치할 수도 있습니다.
+
+| 운영체제 | 아키텍처 / libc | 아카이브 파일 |
+|---|---|---|
+| Linux | `x86_64` (`musl`) | `codemap-search-x86_64-unknown-linux-musl.tar.gz` |
+| Linux | `x86_64` (`gnu`) | `codemap-search-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux | `arm64` (`musl`) | `codemap-search-aarch64-unknown-linux-musl.tar.gz` |
+| macOS | Apple Silicon | `codemap-search-aarch64-apple-darwin.tar.gz` |
+| macOS | Intel | `codemap-search-x86_64-apple-darwin.tar.gz` |
+| Windows | `x86_64` | `codemap-search-x86_64-pc-windows-msvc.zip` |
+| Windows | `arm64` | `codemap-search-aarch64-pc-windows-msvc.zip` |

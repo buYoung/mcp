@@ -1,0 +1,28 @@
+---
+import "./copy-button.css";
+import Button from "./Button.astro";
+import type { ButtonVariant, ControlSize } from "./types";
+
+interface Props {
+    targetId: string;
+    label: string;
+    variant?: ButtonVariant;
+    size?: ControlSize;
+    class?: string;
+}
+
+const { targetId, label, variant = "primary", size = "md", class: className } = Astro.props;
+---
+
+<span class="cm-copy-wrap">
+    <Button
+        variant={variant}
+        size={size}
+        class:list={["cm-copy-btn", className]}
+        {...({ command: "--copy", commandfor: targetId } as Record<string, string>)}
+    >
+        <span class="cm-copy-icon" aria-hidden="true"></span>
+        <span>{label}</span>
+    </Button>
+    <span class="cm-copy-tip" role="status"></span>
+</span>

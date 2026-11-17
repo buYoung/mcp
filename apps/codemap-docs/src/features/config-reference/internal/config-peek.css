@@ -1,0 +1,130 @@
+codemap-config-peek {
+    display: none;
+}
+
+.codemap-lens-btn {
+    margin-inline: 0.1rem;
+    vertical-align: baseline;
+}
+
+.codemap-lens-chevron {
+    display: inline-block;
+    color: var(--cm-accent-fg);
+    font-size: 0.85em;
+    transition: rotate var(--cm-transition-fast);
+}
+
+.codemap-lens-btn[aria-expanded="true"] .codemap-lens-chevron {
+    rotate: 90deg;
+}
+
+.sl-markdown-content tr.has-open-peek > td {
+    border-block-end-color: transparent;
+}
+
+.sl-markdown-content tr.codemap-peek-row > td.codemap-peek-cell {
+    padding: 0.25rem 0 0.85rem;
+}
+
+.codemap-peek-panel {
+    border: 1px solid var(--cm-border);
+    border-inline-start: 3px solid var(--cm-accent-fg);
+    border-radius: var(--cm-radius-md);
+    background: var(--cm-bg-canvas);
+    box-shadow: var(--cm-shadow-xs);
+    overflow: hidden;
+}
+
+.codemap-peek-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cm-gap-sm);
+    padding: 0.45rem 0.85rem;
+    border-block-end: 1px solid var(--cm-border);
+    background: var(--cm-bg-surface);
+}
+
+.codemap-peek-title {
+    font-size: var(--cm-fs-xs);
+    font-weight: 600;
+    color: var(--cm-fg);
+}
+
+.codemap-peek-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cm-gap-xs);
+}
+
+.codemap-peek-body {
+    padding: 0.75rem 0.9rem;
+    max-block-size: 22rem;
+    font-size: var(--sl-text-sm);
+}
+
+.codemap-peek-body :not(pre) > code:not(:where(.expressive-code *)) {
+    padding: 0.12em 0.38em;
+    border: 1px solid var(--cm-code-border);
+    border-radius: 0.3125rem;
+    background-color: var(--cm-code-bg);
+    color: var(--cm-code-fg);
+    font-family: var(--sl-font-mono);
+    font-size: 0.86em;
+    font-weight: 500;
+}
+
+.codemap-peek-body > :first-child {
+    margin-block-start: 0;
+}
+
+.codemap-peek-body > :last-child {
+    margin-block-end: 0;
+}
+
+.codemap-peek-body .expressive-code .copy {
+    display: none;
+}
+
+.codemap-peek-lead {
+    margin: 0 0 0.5rem;
+}
+
+.codemap-peek-pre {
+    margin: 0 0 0.65rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--cm-border);
+    border-radius: var(--cm-radius-sm);
+    background: var(--cm-bg-surface);
+    font-family: var(--sl-font-mono);
+    font-size: var(--cm-fs-xs);
+    overflow-x: auto;
+}
+
+.codemap-peek-pii-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.5rem;
+}
+
+.codemap-peek-pii-card {
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--cm-border);
+    border-radius: var(--cm-radius-sm);
+    background: var(--cm-bg-canvas);
+}
+
+.codemap-peek-pii-card strong {
+    display: block;
+    font-size: var(--cm-fs-xs);
+    color: var(--cm-fg);
+    margin-block-end: 0.25rem;
+}
+
+.codemap-peek-pii-card p {
+    margin: 0;
+    font-size: var(--cm-fs-2xs);
+    line-height: 1.55;
+    word-break: break-word;
+}

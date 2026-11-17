@@ -1,0 +1,34 @@
+---
+import "./playground-topbar.css";
+import { Badge, Button, CopyButton } from "@shared/ui";
+import type { PgUiLabels, PresetSpec } from "./types";
+
+interface Props {
+    ui: PgUiLabels;
+    presets: PresetSpec[];
+}
+
+const { ui, presets } = Astro.props;
+---
+
+<div class="wb-topbar">
+    <div class="wb-top-left">
+        <Button href={ui.docsHref} variant="ghost" size="sm">{ui.docsLink}</Button>
+        <span class="wb-vsep" aria-hidden="true"></span>
+        <div class="wb-presets" role="toolbar" aria-label="Presets">
+            {
+                presets.map((p) => (
+                    <Button variant="ghost" size="sm" active={p.active} data-preset={p.id}>
+                        {p.label}
+                    </Button>
+                ))
+            }
+        </div>
+    </div>
+
+    <div class="wb-top-right">
+        <Badge data-telemetry>{ui.defaultBadge}</Badge>
+        <Button variant="secondary" size="md" data-reset>{ui.resetBtn}</Button>
+        <CopyButton targetId="pg-toml-code" label={ui.copyToml} variant="primary" size="md" />
+    </div>
+</div>

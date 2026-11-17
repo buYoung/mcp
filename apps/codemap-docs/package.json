@@ -1,0 +1,26 @@
+{
+    "name": "@buyong-mcp/codemap-docs",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "sync-installers": "node -e \"import('node:fs').then(fs=>{fs.mkdirSync('public',{recursive:true});for(const f of['install.sh','install.ps1'])fs.copyFileSync('../codemap-search/'+f,'public/'+f)})\"",
+        "predev": "pnpm run sync-installers",
+        "prebuild": "pnpm run sync-installers",
+        "dev": "astro dev",
+        "build": "astro build",
+        "preview": "astro preview",
+        "check-types": "astro sync && astro check"
+    },
+    "dependencies": {
+        "@astrojs/starlight": "^0.43.1",
+        "astro": "^7.4.12"
+    },
+    "devDependencies": {
+        "@astrojs/check": "^0.9.12",
+        "typescript": "6.0.3"
+    },
+    "engines": {
+        "node": ">=22.12.0"
+    }
+}

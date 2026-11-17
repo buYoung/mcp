@@ -1,0 +1,107 @@
+---
+title: Installation
+description: Install codemap-search via install.sh, install.ps1, or Cargo.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+## Install
+
+<Tabs>
+    <TabItem label="install.sh (macOS / Linux)">
+        ```sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+        ```
+
+        Custom install directory or version:
+
+        ```sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | INSTALL_DIR=/usr/local/bin sh
+        curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh -s -- --version 0.14.2
+        ```
+
+        | Option / Env var | Description |
+        |---|---|
+        | `--install-dir` / `INSTALL_DIR` | Install path (default `~/.local/bin`) |
+        | `--version` / `CODEMAP_VERSION` | Version or tag to install (e.g. `0.14.2`; default latest) |
+        | `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH=1` | Skip adding the install path to your shell profile |
+        | `CODEMAP_LINUX_LIBC` | Use `gnu` on Linux `x86_64` (default `musl`) |
+        | `--print-target` | Print detected target and URLs without downloading |
+    </TabItem>
+    <TabItem label="install.ps1 (Windows)">
+        Run in PowerShell or Command Prompt (`cmd.exe`):
+
+        ```powershell
+        powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+        ```
+
+        Custom install directory or version:
+
+        ```powershell
+        powershell -ExecutionPolicy ByPass -c "$env:INSTALL_DIR='C:\Tools\bin'; irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+        powershell -ExecutionPolicy ByPass -c "$env:CODEMAP_VERSION='0.14.2'; irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+        ```
+
+        | Option / Env var | Description |
+        |---|---|
+        | `-InstallDir` / `--install-dir` / `INSTALL_DIR` | Install path (default `$HOME\.local\bin`) |
+        | `-Version` / `--version` / `CODEMAP_VERSION` | Version or tag to install (e.g. `0.14.2`; default latest) |
+        | `-NoModifyPath` / `--no-modify-path` / `CODEMAP_NO_MODIFY_PATH=1` | Skip adding the install path to User `Path` |
+        | `-PrintTarget` / `--print-target` | Print detected target and URLs without downloading |
+    </TabItem>
+    <TabItem label="Cargo (crates.io & source)">
+        Install from [crates.io](https://crates.io/crates/codemap-search):
+
+        ```sh
+        cargo install codemap-search
+        ```
+
+        Or build from a local checkout (run from the repository root):
+
+        ```sh
+        cargo install --path apps/codemap-search
+        ```
+    </TabItem>
+</Tabs>
+
+## Verify
+
+Open a new terminal and check the installed version:
+
+```sh
+codemap-search --version
+```
+
+If the command is not found, see [Troubleshooting](#troubleshooting). Otherwise, continue to [MCP Client Setup](/getting-started/client-setup/).
+
+## Troubleshooting
+
+If your terminal reports `codemap-search: command not found`, add the install directory (`~/.local/bin`, or `~/.cargo/bin` when installed via Cargo) to your shell profile or Windows User `Path`:
+
+```sh
+# zsh (macOS / Linux)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+
+# bash (Linux / macOS)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+```powershell
+# Windows PowerShell (open a new terminal afterward)
+$p = [Environment]::GetEnvironmentVariable("Path", "User")
+[Environment]::SetEnvironmentVariable("Path", "$HOME\.local\bin;$p", "User")
+```
+
+## Release archives
+
+You can also download prebuilt archives directly from [GitHub Releases](https://github.com/buYoung/mcp/releases):
+
+| System | Architecture / libc | Archive |
+|---|---|---|
+| Linux | `x86_64` (`musl`) | `codemap-search-x86_64-unknown-linux-musl.tar.gz` |
+| Linux | `x86_64` (`gnu`) | `codemap-search-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux | `arm64` (`musl`) | `codemap-search-aarch64-unknown-linux-musl.tar.gz` |
+| macOS | Apple Silicon | `codemap-search-aarch64-apple-darwin.tar.gz` |
+| macOS | Intel | `codemap-search-x86_64-apple-darwin.tar.gz` |
+| Windows | `x86_64` | `codemap-search-x86_64-pc-windows-msvc.zip` |
+| Windows | `arm64` | `codemap-search-aarch64-pc-windows-msvc.zip` |

@@ -1,0 +1,35 @@
+---
+import "./search-input.css";
+import type { HTMLAttributes } from "astro/types";
+
+interface Props extends HTMLAttributes<"input"> {
+    placeholder: string;
+}
+
+const { placeholder, ...rest } = Astro.props;
+---
+
+<search class="cm-search">
+    <svg
+        class="cm-search__icon"
+        width="13"
+        height="13"
+        viewBox="0 0 16 16"
+        fill="none"
+        aria-hidden="true"
+    >
+        <circle cx="7" cy="7" r="4.8" stroke="currentColor" stroke-width="1.5"></circle>
+        <path d="M10.6 10.6L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+        ></path>
+    </svg>
+    <input
+        type="search"
+        class="cm-search__input"
+        placeholder={placeholder}
+        aria-label={placeholder}
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck="false"
+        {...rest}
+    />
+</search>

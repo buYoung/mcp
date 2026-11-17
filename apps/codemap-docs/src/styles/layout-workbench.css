@@ -1,0 +1,79 @@
+html:not([data-has-sidebar]):has(codemap-config-playground) main {
+    padding: 0;
+}
+
+html:not([data-has-sidebar]):has(codemap-config-playground) .content-panel:first-of-type {
+    position: absolute;
+    clip-path: inset(50%);
+    overflow: hidden;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+}
+
+html:not([data-has-sidebar]):has(codemap-config-playground) .content-panel {
+    padding: 0;
+    border: 0;
+}
+
+html:not([data-has-sidebar]):has(codemap-config-playground) .sl-container {
+    max-inline-size: none;
+    inline-size: 100%;
+    margin-inline: 0;
+}
+
+html:not([data-has-sidebar]):has(codemap-config-playground) footer {
+    display: none;
+}
+
+.wb-shell {
+    display: flex;
+    flex-direction: column;
+    inline-size: 100%;
+    block-size: calc(100dvh - var(--sl-nav-height, 3.5rem));
+    min-block-size: 34rem;
+    background: var(--cm-bg-canvas);
+    font-family: var(--sl-font);
+    overflow: hidden;
+}
+
+.wb-split {
+    display: grid;
+    grid-template-columns: minmax(24rem, 34.5%) minmax(0, 1fr);
+    flex: 1 1 auto;
+    min-block-size: 0;
+}
+
+.wb-pane-left {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+    min-block-size: 0;
+    border-inline-end: 1px solid var(--cm-border);
+}
+
+.wb-pane-right {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+    min-block-size: 0;
+    background: var(--cm-bg-canvas);
+}
+
+@media (max-width: 68rem) {
+    .wb-shell {
+        block-size: auto;
+        overflow: visible;
+    }
+
+    .wb-split {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .wb-pane-left {
+        border-inline-end: 0;
+        border-block-end: 1px solid var(--cm-border);
+    }
+}

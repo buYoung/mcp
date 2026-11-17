@@ -1,0 +1,65 @@
+---
+import "@styles/layout-workbench.css";
+import { getPlaygroundUi, getPresetSpecs, getSettingGroups } from "./i18n";
+import PlaygroundInspectorPane from "./PlaygroundInspectorPane.astro";
+import PlaygroundSettingsPane from "./PlaygroundSettingsPane.astro";
+import PlaygroundTomlDock from "./PlaygroundTomlDock.astro";
+import PlaygroundTopbar from "./PlaygroundTopbar.astro";
+import type { PgLocale } from "./types";
+
+interface Props {
+    locale: PgLocale;
+}
+
+const { locale } = Astro.props;
+const ui = getPlaygroundUi(locale);
+const presets = getPresetSpecs(ui);
+const groups = getSettingGroups(ui);
+const clientPayload = JSON.stringify({ locale, ui });
+---
+
+<codemap-config-playground class="wb-shell not-content" data-pg={clientPayload}>
+    <PlaygroundTopbar ui={ui} presets={presets} />
+
+    <div class="wb-split">
+        <div class="wb-pane-left">
+            <PlaygroundSettingsPane ui={ui} groups={groups} />
+            <PlaygroundTomlDock ui={ui} />
+        </div>
+
+        <div class="wb-pane-right">
+            <PlaygroundInspectorPane ui={ui} />
+        </div>
+    </div>
+</codemap-config-playground>
+
+<script>
+    import { bindCopyButtons, bindRovingTablist } from "@shared/ui";
+    import { computeLineDiff } from "./diff";
+    import { renderInspectorStream, renderTomlLines } from "./dom-renderer";
+    import {
+        readPlaygroundForm,
+        resetSingleSetting,
+        writePlaygroundForm,
+    } from "./form-codec";
+    import { DEFAULT_STATE, PRESETS } from "./i18n";
+    import { mountConfigPlayground } from "./playground-element";
+    import { buildTomlConfig, tokenizeTomlLine } from "./toml-builder";
+    import { simulateToolOutputs } from "./tool-simulator";
+
+    mountConfigPlayground({
+        defaultState: DEFAULT_STATE,
+        presets: PRESETS,
+        bindCopyButtons,
+        bindRovingTablist,
+        readForm: readPlaygroundForm,
+        writeForm: writePlaygroundForm,
+        resetSetting: resetSingleSetting,
+        buildToml: buildTomlConfig,
+        tokenizeToml: tokenizeTomlLine,
+        simulateOutputs: simulateToolOutputs,
+        computeDiff: computeLineDiff,
+        renderToml: renderTomlLines,
+        renderStream: renderInspectorStream,
+    });
+</script>

@@ -1,0 +1,83 @@
+---
+title: Benchmarks
+description: Summary charts and benchmark results comparing codemap-search 0.14.2 against rg 15.2.0 and four open-source MCP servers on Grafana.
+---
+
+import { BenchmarkLineCharts } from "@features/benchmarks";
+
+## Test Setup
+
+On a read-only [grafana/grafana](https://github.com/grafana/grafana) TypeScript and Go checkout, `gpt-6.1-sol` (`medium`) answered `3` multi-hop architecture questions `3` times per tool in each of `3` client environments, and a blind grader checked each answer against `12` required facts (`7` `Core` + `5` `Extended`).
+
+### Questions and expected routes
+
+- **`git-sync-job-dispatch`**
+  - **Question**: "Trace every segment of the message-bus path from creating a Git repository sync job to dispatching it to the worker that runs it."
+  - **Expected route (`Core` `7` · `Extended` `5`)**: Sync requests from the UI, controller, or webhook persist a job resource on the API server rather than queuing in memory; after KV commit, a NATS watch notification triggers the job informer queue-group subscription, enqueues the job in the driver queue, claims it, and dispatches it to the sync worker. Extended facts cover degraded start with relist fallback, dual host wiring, ignoring live update notifications, best-effort publish failures, and claim retry/cooldown handling.
+- **`alertmanager-config-autosync`**
+  - **Question**: "Trace every segment connecting the Kubernetes-style API to automatic syncing of external Alertmanager configuration."
+  - **Expected route (`Core` `7` · `Extended` `5`)**: The settings UI reads and JSON-patches the singleton configuration resource, admission validation checks the target datasource, periodic polling pre-processing fetches external Alertmanager configuration over datasource proxy HTTP, persists it, and writes sync conditions back to resource status for the UI. Extended facts cover hash-based deduplication, disable cleanup, blocking manual imports (`409`) while active, management-mode branching, and failure reason / `404` classification.
+- **`scope-annotation-filter`**
+  - **Question**: "Trace every segment connecting dashboard scope filters to saving and querying dashboard annotations."
+  - **Expected route (`Core` `7` · `Extended` `5`)**: Scope names extracted from the scope-filter toggle and dashboard scope variable flow through three entry points—datasource queries, panel-context create/update, and the annotation list panel—into the Kubernetes-style annotation client's query parameters and request body, reaching the annotation app's custom search route and store-backend filtering. Extended facts cover legacy REST omission and per-backend rejection or ignore behavior when scopes are unsupported.
+
+### Compared tools and pinned versions
+
+| Tool & version | Upstream project / package | Pinned commit | Tools used |
+| --- | --- | --- | --- |
+| `codemap-search 0.14.2` | [buYoung/mcp](https://github.com/buYoung/mcp) (`codemap-search`) | `e727d20c6` | `codemap-search` tools only ([Jev filter](/configuration/#jev-filter) off) |
+| `Graphify 0.9.95` | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) (PyPI `graphifyy`) | `92741d16` | `Graphify` + extra tools (`read`, `grep`, `find`, `ls`, `shell`) |
+| `zvec-grep 0.2.2` | [zvec-ai/zvec-grep](https://github.com/zvec-ai/zvec-grep) (npm `@zvec/zvec-grep`) | `b1a9148e` | `zvec-grep` + extra tools (`read`, `grep`, `find`, `ls`, `shell`) |
+| `codebase-memory-mcp 0.12.1` | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) | `a7158ac2` | `codebase-memory-mcp` + extra tools (`read`, `shell`) |
+| `rg 15.2.0` (baseline) | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | `e89fff89` | Built-in tools only (`rg`, `read`, `grep`, `find`, `ls`, `shell`; no MCP) |
+| `CodeGraph 1.6.2` | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) (npm `@colbymchenry/codegraph`) | `6560052a` | `CodeGraph` + extra tools (`grep`, `read`, `find`, `ls`, `shell`) |
+| `Serena 2.1.0` (excluded) | [oraios/serena](https://github.com/oraios/serena) (PyPI `serena-agent`) | `5e4f5cd1` | Go/TypeScript LSP MCP (excluded before run) |
+
+`Serena 2.1.0` was excluded before the benchmark runs because indexing Grafana's Go and TypeScript LSP took roughly `34–70` minutes per run.
+
+### Agent clients, models, and execution environments
+
+| Component / Environment | Pinned version & details |
+| --- | --- |
+| Target codebase | [grafana/grafana](https://github.com/grafana/grafana) commit `c0a598f5a49abf2014f67e806075d8ad267c9efb`, `2026-10-26`, `24,115` tracked TypeScript and Go files |
+| Solver model | `gpt-6.1-sol` (`medium`), `3` independent runs per question per tool/environment |
+| Blind grader model | `gpt-6-astra` (`high`), no tools or repository access; checks `12` required facts per question |
+| `pi direct` | `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2`; turn-by-turn MCP calls plus repo-confined `read`, `grep`, `find`, `ls` (no `bash`) |
+| `pi codemode` | `pi 1.4.0` + `@buyong/pi-mcp-adapter 0.1.2` + QuickJS `codemode`; runs JS to batch and filter calls (`10k`-token per-call output cap) |
+| `Codex code mode` | `Codex CLI 0.164.0`; runs JS `exec`/`wait` cells calling MCP tools and a repo-confined read-only shell (`10k`-token per-call output cap; `codemap-search 0.14.2` uses `100k`) |
+
+### Grafana index footprint and build time
+
+| Tool | Indexed files / graph entities | Index disk size | Index build time (`pi` envs / `Codex code mode` prep) |
+| --- | --- | --- | --- |
+| `codemap-search 0.14.2` | `19,757` files | `136.5–138.3 MiB` | `12.96 s` / `16.18 s` |
+| `codebase-memory-mcp 0.12.1` | `21,430` tracked files (`525,952` nodes; `1,562,241` `pi` / `1,562,181` `Codex` edges) | `1,915.9–1,916.9 MiB` | `34.35 s` / `56.95 s` |
+| `CodeGraph 1.6.2` | `17,094` files (`314,436` nodes, `1,035,428` edges) | `1,194.3 MiB` (`+ 1.9 MiB` state) | `88.82 s` / `101.00 s` |
+| `zvec-grep 0.2.2` | `22,642` files (`175,403` entities) | `961.9 MiB` (`+ 32.0 MiB` model cache) | `147.68 s` / `154.22 s` |
+| `Graphify 0.9.95` | `19,823` AST-scanned code files (`160,008` nodes, `867,900` edges) | `626.8 MiB` | `311.73 s` / `366.08 s` |
+| `rg 15.2.0` (baseline) | None (live disk search) | `0 MiB` | `0 s` |
+| `Serena 2.1.0` (excluded) | Go + TypeScript LSP | — | `~34–70 min` (excluded before run) |
+
+## Summary
+
+<BenchmarkLineCharts locale="en" />
+
+| Tool | `pi direct` | `pi codemode` | `Codex code mode` | All-core (7/7) answers (3 envs) | Mean total tokens / answer | Mean uncached total / answer | Mean tool calls / answer | Built-in / fallback calls / answer | Cited test/gen |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `codemap-search 0.14.2` | 96/108 | 97/108 | 98/108 | 5/9 · 6/9 · 6/9 | 946k · 829k · 1,333k | 98k · 101k · 133k | 45.1 · 39.2 · 50.4 | 0.0 · 0.0 · 0.0 | 0 · 0 · 0 |
+| `Graphify 0.9.95` | 93/108 | 88/108 | 94/108 | 3/9 · 2/9 · 5/9 | 1,008k · 746k · 1,183k | 93k · 93k · 108k | 55.8 · 66.0 · 70.6 | 16.8 · 22.9 · 11.2 | 8 · 9 · 8 |
+| `zvec-grep 0.2.2` | 89/108 | 71/84 (7 ans) | 87/108 | 3/9 · 3/7 · 4/9 | 784k · 608k · 869k | 77k · 79k · 96k | 45.6 · 55.6 · 20.9 | 38.6 · 48.4 · 15.7 | 4 · 2 · 4 |
+| `codebase-memory-mcp 0.12.1` | 87/108 | 84/108 | 85/108 | 3/9 · 3/9 · 2/9 | 1,331k · 1,190k · 1,827k | 89k · 113k · 144k | 73.9 · 94.1 · 103.1 | 5.0 · 6.3 · 2.1 | 7 · 9 · 6 |
+| `rg 15.2.0` | 86/108 | 87/108 | 89/108 | 3/9 · 1/9 · 5/9 | 555k · 505k · 866k | 68k · 76k · 104k | 63.7 · 66.6 · 20.3 | 63.7 · 66.6 · 20.3 | 6 · 6 · 5 |
+| `CodeGraph 1.6.2` | 78/108 | 85/108 | 86/108 | 2/9 · 3/9 · 3/9 | 1,727k · 1,724k · 3,309k | 132k · 142k · 194k | 24.7 · 26.3 · 36.3 | 2.8 · 4.6 · 3.4 | 5 · 5 · 4 |
+
+- **Triple order (`·`)**: Each triple lists `pi direct` · `pi codemode` · `Codex code mode`.
+- **Statistical significance (`p < 0.05`, question-stratified permutation test)**:
+  - `codemap-search 0.14.2` scored significantly higher than `rg 15.2.0`, `CodeGraph 1.6.2`, and `codebase-memory-mcp 0.12.1` in all `3` environments.
+  - It also scored significantly higher than `Graphify 0.9.95` in `pi codemode` and `zvec-grep 0.2.2` in `Codex code mode`.
+  - None of the other `4` open-source MCP servers significantly outperformed `rg 15.2.0` in any environment (`p >= 0.05`).
+- **Run notes**:
+  - `codemap-search 0.14.2` completed every run using its own MCP tools only (`0.0` built-in/fallback calls, `0` answers citing test or generated files).
+  - `*` In `pi codemode`, `zvec-grep 0.2.2` crashed twice with `SIGSEGV` on one question, completing `7` of `9` answers (`71/84`, `84.5%`).
+
+See [Detailed Results](/benchmarks/details/) for per-environment `k`-unit token distributions, pairwise `p`-values, per-question/per-fact breakdowns, and subtool call tables.

@@ -281,26 +281,6 @@ RUST_LOG=debug codemap-search mcp
 
 See the [Docker verification guide](./docker/README.md) for container validation.
 
-## Benchmarks
-
-Evaluated `codemap-search 0.14.2` against a built-in-tools baseline (`rg 15.2.0`) and four open-source MCP code-navigation servers on **Grafana** (`24,115` tracked files, TypeScript + Go) with solver `gpt-6.1-sol` (`medium`) and blind grader `gpt-6-astra` (`high`, no tools or repository access). Across three separate client environments—`pi 1.4.0` (`direct` tool calls and scripted `codemode`, using `@buyong/pi-mcp-adapter 0.1.2`) and `Codex CLI 0.164.0` (`code mode`)—each tool produced `9` answers (`3` multi-hop questions × `3` runs) graded against `108` required facts that must be both factually accurate and proven by cited `path:start-end` line ranges. The `·`-separated columns below list `pi direct · pi codemode · Codex code mode`; **Total** tokens include prompt-cached input (`~86–94%` across multi-turn context re-sends) plus uncached input and output, while **Uncached** tokens sum cache-miss input plus output.
-
-| Tool | `pi direct` | `pi codemode` | `Codex code mode` | Total tokens / ans | Uncached tokens / ans | Built-in / fallback calls / ans | Grafana index (size, build) |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `codemap-search 0.14.2` | 96/108 | 97/108 | 98/108 | 946k · 829k · 1.33M | 98k · 101k · 133k | 0.0 · 0.0 · 0.0 | 137–138 MiB (13–16 s) |
-| `Graphify 0.9.95` | 93/108 | 88/108 | 94/108 | 1.01M · 746k · 1.18M | 93k · 93k · 108k | 16.8 · 22.9 · 11.2 | 627 MiB (312–366 s) |
-| `zvec-grep 0.2.2` | 89/108 | 71/84 (7 ans, 2 crashes) | 87/108 | 784k · 608k · 869k | 77k · 79k · 96k | 38.6 · 48.4 · 15.7 | 962 MiB + 32 MiB cache (148–154 s) |
-| `codebase-memory-mcp 0.12.1` | 87/108 | 84/108 | 85/108 | 1.33M · 1.19M · 1.83M | 89k · 113k · 144k | 5.0 · 6.3 · 2.1 | 1,916–1,917 MiB (34–57 s) |
-| `rg 15.2.0` | 86/108 | 87/108 | 89/108 | 555k · 505k · 866k | 68k · 76k · 104k | 63.7 · 66.6 · 20.3 | 0 MiB (0 s) |
-| `CodeGraph 1.6.2` | 78/108 | 85/108 | 86/108 | 1.73M · 1.72M · 3.31M | 132k · 142k · 194k | 2.8 · 4.6 · 3.4 | 1,196 MiB (89–101 s) |
-
-- **vs `rg 15.2.0` and MCP peers**: `codemap-search 0.14.2` fulfilled `+1.00` to `+1.11` more cited facts/answer than `rg 15.2.0` across all three environments (unadjusted `p < 0.05` in every environment) at `1.54×`–`1.71×` total tokens (`1.27×`–`1.45×` uncached), and outperformed `CodeGraph 1.6.2` and `codebase-memory-mcp 0.12.1` on both fulfilled facts (`+1.00` to `+2.00`, all `p < 0.05`) and total tokens (`0.40×`–`0.73×`, though uncached tokens were `0.68×`–`1.10×`, specifically `1.10×` vs `codebase-memory-mcp 0.12.1` in `pi direct`).
-- **vs `Graphify 0.9.95` and `zvec-grep 0.2.2`**: `codemap-search 0.14.2` scored `+0.33` to `+1.22` higher across environments (`p < 0.05` in one environment each; inconclusive at `n = 9`, `7` for `zvec-grep` in `pi codemode`). None of the four comparison MCP tools outperformed `rg 15.2.0` at `p < 0.05` (`1.00×`–`3.82×` total tokens).
-- **Self-contained navigation**: `codemap-search 0.14.2` made `0` built-in/shell fallback calls (bundling `read`, `grep`, and `find` inside the MCP server) and cited `0` test/generated files across all `27` answers; `Graphify 0.9.95` and `zvec-grep 0.2.2` relied on built-in tools or a read-only helper (`30.6–51.7` calls/answer for `Graphify`, attached because its graph tools do not read raw source lines) for source inspection.
-- **Scope and limits**: Evaluated on a single solver model (`gpt-6.1-sol`), a single repository (`Grafana`), and `3` questions (most separation driven by `scope-annotation-filter`) across two same-day batches with unadjusted `p`-values across multiple comparisons; results depend on hardware, cache, index state, and client/adapter versions (`2` `zvec-grep` crashes in `pi codemode`; `4` `Codex` slots rerun after a host-clock check fix).
-
-See [full benchmark results](./docs/benchmarks.md) (tool definitions, pinned commits/repos, sandbox isolation rules, per-question/run tables, 36-fact matrix, subtool calls, token breakdowns, output-cap hits, and product changes informed by this benchmark).
-
 ## License
 
 MIT — see [LICENSE](./LICENSE).

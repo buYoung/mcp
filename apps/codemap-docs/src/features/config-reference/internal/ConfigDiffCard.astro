@@ -1,0 +1,48 @@
+---
+import "./config-diff-card.css";
+import { Badge } from "@shared/ui";
+
+interface Props {
+    title: string;
+    keys: string[];
+    defaultLabel: string;
+    changedLabel: string;
+}
+
+const { title, keys, defaultLabel, changedLabel } = Astro.props;
+const hasQuery = Astro.slots.has("query");
+---
+
+<div class="cfg-diff-card not-content">
+    <div class="cfg-diff-hdr">
+        <strong>{title}</strong>
+        <span class="cfg-diff-keys">
+            {keys.map((k) => <code>{k}</code>)}
+        </span>
+    </div>
+    {
+        hasQuery && (
+            <div class="cfg-diff-query">
+                <slot name="query" />
+            </div>
+        )
+    }
+    <div class="cfg-diff-grid">
+        <div class="cfg-diff-col">
+            <div class="cfg-diff-col-hdr">
+                <Badge variant="neutral" mono>{defaultLabel}</Badge>
+            </div>
+            <div class="cfg-diff-col-body">
+                <slot name="default" />
+            </div>
+        </div>
+        <div class="cfg-diff-col">
+            <div class="cfg-diff-col-hdr">
+                <Badge variant="accent" mono>{changedLabel}</Badge>
+            </div>
+            <div class="cfg-diff-col-body">
+                <slot name="changed" />
+            </div>
+        </div>
+    </div>
+</div>

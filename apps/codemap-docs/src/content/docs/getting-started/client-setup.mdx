@@ -1,0 +1,96 @@
+---
+title: MCP Client Setup
+description: Register codemap-search with Claude Code, Codex, pi, or OpenCode.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+Register `codemap-search mcp` in your client, then start the client inside the target repository.
+
+## Register with a client
+
+<Tabs>
+    <TabItem label="Claude Code">
+        Register across projects for your user account:
+
+        ```sh
+        claude mcp add --scope user codemap-search -- codemap-search mcp
+        ```
+
+        Or write a shared `.mcp.json` entry inside the target repository:
+
+        ```sh
+        claude mcp add --scope project codemap-search -- codemap-search mcp
+        ```
+
+        Omitting `--scope` saves a private `local` entry for the current repository in `~/.claude.json`.
+    </TabItem>
+    <TabItem label="Codex">
+        ```sh
+        codex mcp add codemap-search -- codemap-search mcp
+        ```
+
+        Or add to `~/.codex/config.toml`:
+
+        ```toml
+        [mcp_servers.codemap-search]
+        command = "codemap-search"
+        args = ["mcp"]
+        ```
+    </TabItem>
+    <TabItem label="pi">
+        1. Install [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter):
+
+           ```sh
+           pi install npm:@buyong/pi-mcp-adapter
+           ```
+
+        2. Disable built-in MCP by adding `"-builtin:mcp"` to `extensions` in `~/.pi/agent/settings.json` (or turn off `mcp` under **Built-in** in `pi config`).
+        3. Add the server to `~/.pi/agent/mcp.json` or `.pi/mcp.json`:
+
+           ```json
+           {
+             "mcpServers": {
+               "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
+             }
+           }
+           ```
+
+        4. If `pi` is already running, run `/reload`.
+    </TabItem>
+    <TabItem label="OpenCode">
+        Add to `~/.config/opencode/opencode.json` or a repository `opencode.json`:
+
+        ```json
+        {
+          "$schema": "https://opencode.ai/config.json",
+          "mcp": {
+            "codemap-search": {
+              "type": "local",
+              "command": ["codemap-search", "mcp"],
+              "enabled": true
+            }
+          }
+        }
+        ```
+    </TabItem>
+</Tabs>
+
+## Verify
+
+1. Open a new session in the target repository and ask the agent to call `initial_instructions` or `find` to confirm the repository path.
+2. If indexing is warming up on first launch, wait for it to finish and ask the agent to run `search` on a known symbol.
+
+- **Binary not found**: Check terminal `PATH` in [Installation Troubleshooting](/getting-started/installation/#troubleshooting). For GUI clients that do not load `~/.zshrc` or `~/.bashrc`, set `command` to the full path from `which codemap-search` (`where.exe codemap-search` on Windows).
+- **Wrong directory indexed**: Start the client inside the target repository (`codemap-search` refuses to run in `~`).
+
+## Global instructions (optional)
+
+To automatically add a one-line `codemap-search` navigation reminder to your client's global instructions file (`CLAUDE.md` or `AGENTS.md`), add this to `~/.codemap/config.toml` and start a new session:
+
+```toml
+[global_instructions]
+enabled = true
+```
+
+See [Global instructions](/configuration/#global-instructions) for per-client file paths.

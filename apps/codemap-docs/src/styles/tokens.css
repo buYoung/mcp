@@ -1,0 +1,115 @@
+:root {
+    --cm-h-xs: 1.5rem;
+    --cm-h-sm: 1.75rem;
+    --cm-h-md: 2rem;
+    --cm-tabbar-h: 2.375rem;
+
+    --cm-px-xs: 0.5rem;
+    --cm-px-sm: 0.625rem;
+    --cm-px-md: 0.8125rem;
+
+    --cm-gap-xs: 0.3125rem;
+    --cm-gap-sm: 0.4375rem;
+    --cm-gap-md: 0.625rem;
+
+    --cm-radius-xs: 0.25rem;
+    --cm-radius-sm: 0.375rem;
+    --cm-radius-md: 0.4375rem;
+    --cm-radius-lg: 0.5rem;
+    --cm-radius-pill: 999px;
+
+    --cm-fs-2xs: 0.6875rem;
+    --cm-fs-xs: 0.75rem;
+    --cm-fs-sm: 0.8125rem;
+
+    --cm-bg-canvas: var(--sl-color-bg);
+    --cm-bg-surface: var(--sl-color-bg-nav);
+    --cm-bg-elevated: color-mix(in srgb, var(--sl-color-gray-6) 65%, var(--sl-color-bg));
+    --cm-bg-inset: color-mix(in srgb, var(--sl-color-black) 36%, var(--sl-color-bg));
+    --cm-bg-hover: color-mix(in srgb, var(--sl-color-gray-5) 38%, transparent);
+    --cm-bg-subtle: color-mix(in srgb, var(--sl-color-gray-6) 45%, transparent);
+
+    --cm-border: var(--sl-color-gray-5);
+    --cm-border-subtle: var(--sl-color-gray-6);
+    --cm-border-strong: var(--sl-color-gray-4);
+
+    --cm-fg: var(--sl-color-white);
+    --cm-fg-muted: var(--sl-color-gray-2);
+    --cm-fg-faint: var(--sl-color-gray-3);
+
+    --cm-accent-fg: var(--sl-color-text-accent);
+    --cm-accent-solid: var(--sl-color-text-accent);
+    --cm-accent-contrast: var(--sl-color-black);
+    --cm-accent-border: color-mix(in srgb, var(--sl-color-text-accent) 68%, var(--sl-color-gray-5));
+    --cm-accent-soft: color-mix(in srgb, var(--sl-color-text-accent) 13%, var(--sl-color-bg));
+
+    --cm-code-bg: color-mix(in srgb, var(--sl-color-text-accent) 9%, var(--sl-color-gray-6));
+    --cm-code-border: color-mix(in srgb, var(--sl-color-text-accent) 22%, var(--sl-color-gray-5));
+    --cm-code-fg: color-mix(in srgb, var(--sl-color-text-accent) 30%, var(--sl-color-white));
+
+    --cm-sidebar-active-bg: color-mix(in srgb, var(--sl-color-text-accent) 13%, transparent);
+    --cm-sidebar-active-fg: var(--sl-color-text-accent);
+
+    --cm-pos-fg: #34d399;
+    --cm-pos-border: rgb(16 185 129 / 0.42);
+    --cm-pos-soft: rgb(16 185 129 / 0.14);
+
+    --cm-neg-fg: #f87171;
+    --cm-neg-border: rgb(239 68 68 / 0.42);
+    --cm-neg-soft: rgb(239 68 68 / 0.14);
+
+    --cm-warn-fg: #fbbf24;
+    --cm-warn-border: rgb(245 158 11 / 0.45);
+    --cm-warn-soft: rgb(245 158 11 / 0.12);
+
+    --cm-syntax-val: #38bdf8;
+    --cm-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.18);
+    --cm-shadow-md: 0 6px 18px rgb(0 0 0 / 0.28);
+    --cm-transition-fast: 140ms ease;
+}
+
+:root[data-theme="light"] {
+    --cm-bg-elevated: var(--sl-color-bg);
+    --cm-bg-inset: color-mix(in srgb, var(--sl-color-gray-6) 72%, var(--sl-color-bg));
+    --cm-bg-hover: color-mix(in srgb, var(--sl-color-gray-5) 30%, transparent);
+    --cm-accent-contrast: #ffffff;
+    --cm-code-bg: color-mix(in srgb, var(--sl-color-accent) 7%, #f3f4f6);
+    --cm-code-border: color-mix(in srgb, var(--sl-color-accent) 18%, #d1d5db);
+    --cm-code-fg: color-mix(in srgb, var(--sl-color-text-accent) 72%, #111827);
+    --cm-sidebar-active-bg: color-mix(in srgb, var(--sl-color-accent) 10%, transparent);
+    --cm-sidebar-active-fg: var(--sl-color-text-accent);
+    --cm-pos-fg: #047857;
+    --cm-pos-border: rgb(4 120 87 / 0.35);
+    --cm-pos-soft: rgb(16 185 129 / 0.12);
+    --cm-neg-fg: #b91c1c;
+    --cm-neg-border: rgb(185 28 28 / 0.35);
+    --cm-neg-soft: rgb(239 68 68 / 0.11);
+    --cm-warn-fg: #b45309;
+    --cm-warn-border: rgb(180 83 9 / 0.35);
+    --cm-warn-soft: rgb(245 158 11 / 0.12);
+    --cm-syntax-val: #0369a1;
+    --cm-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.07);
+    --cm-shadow-md: 0 6px 18px rgb(0 0 0 / 0.12);
+}
+
+.cm-visually-hidden {
+    position: absolute;
+    clip-path: inset(50%);
+    overflow: hidden;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    white-space: nowrap;
+}
+
+.cm-scroll-pane {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.cm-mono {
+    font-family: var(--sl-font-mono);
+}

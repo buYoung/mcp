@@ -1,0 +1,539 @@
+---
+title: Configuration Reference
+description: Categorized config.toml keys and allowed values, inline section peeks, side-by-side option comparisons, and legacy key mappings.
+---
+
+import { ConfigCodeLens, ConfigDiffCard } from "@features/config-reference";
+
+## Files and precedence
+
+Specify only the keys you want to override; settings merge per key as `repo > global > built-in default`. Open the [Playground](/playground/) in the top-right header to test settings live.
+
+| Scope | `config.toml` (behavior) | `auth.toml` (API keys) |
+| --- | --- | --- |
+| Repo | `<repo>/.codemap/config.toml` | `<repo>/.codemap/auth.toml` |
+| Global | `$CODEMAP_HOME/config.toml` (default `~/.codemap/config.toml`) | `$CODEMAP_HOME/auth.toml` (default `~/.codemap/auth.toml`) |
+
+- `.gitignore`, global gitignore, and `.git/info/exclude` apply automatically. Add `.codemapignore` at the repository root to skip extra Git-tracked paths in indexing, `find`, and `grep`.
+- Size keys accept positive integer bytes or quoted strings with `"b"`, `"kb"`, `"mb"`, or `"gb"` (powers of 1024, e.g., `"50mb"` = `52428800`).
+
+```toml
+# Minimal .codemap/config.toml example
+[output.search]
+max_bytes = "1mb"
+
+[output.redact]
+pii_entities = ["EMAIL_ADDRESS", "CREDIT_CARD"]
+
+[filesystem_permissions]
+find = "workspace"
+grep = "workspace"
+read = "workspace"
+```
+
+## Keys by category
+
+Click any inline badge in a table (such as `▸ Directory exclusions`) to expand its rules right below that row without scrolling away.
+
+### Output and client limits
+
+<div class="cfg-scope-line"><code>[output]</code> <code>[output.client]</code></div>
+
+| Key | Type | Allowed values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `[output].is_redact_enabled` | bool | `true`, `false` | `true` | Mask credentials and opted-in PII in MCP output |
+| `[output].max_bytes` | size | unset, `>= 1` bytes, `"<int>b/kb/mb/gb"` | unset | Fallback MCP response ceiling when a tool-specific `max_bytes` is unset |
+| `[output.client].claude_max_result_chars` | integer (chars) | `1`–`500000` | `100000` | Claude Code delivery limit (reconnect MCP after changing) |
+| `[output.client].codex_output_token_limit` | integer (tokens) | `>= 1` | `100000` | Codex output token limit (merge `codemap-search codex-config` into `~/.codex/config.toml`) |
+| `[output.client].pi_max_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `100000` | `pi` (`@buyong/pi-mcp-adapter`) delivery limit (reconnect MCP after changing) |
+| `[output.client].opencode_max_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `100000` | OpenCode delivery limit (match `tool_output.max_bytes` in `opencode.json`, which defaults to `51200`) |
+
+### Search, read, and grep limits
+
+<div class="cfg-scope-line"><code>[output.search]</code> <code>[output.read]</code> <code>[output.grep]</code></div>
+
+| Key | Type | Allowed values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `[output.search].detail_file_limit` | integer | `>= 1` | `24` | Top-ranked files rendered with detailed snippets |
+| `[output.search].overview_file_limit` | integer | `>= 1` | `80` | Max file headers listed in `search`'s compact tail |
+| `[output.search].snippet_max_lines` | integer | `>= 1` | `500` | Max snippet lines per symbol in `search` |
+| `[output.search].symbol_limit` | integer | `>= 1` | `100` | Max symbols rendered per file in `search` |
+| `[output.search].max_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `"1mb"` (`1048576`) | Max response size for one `search` call |
+| `[output.search].literal_max_chars` | integer (chars) | `>= 1` | `1200` | Max characters per matched string literal before truncation |
+| `[output.search].literal_limit` | integer | `>= 1` | `60` | Max matched literals shown per file in `search` |
+| `[output.search].anchor_snippet_limit` | integer | `>= 1` | `20` | Max full snippets per file (remaining symbols show signatures) |
+| `[output.read].max_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `"5mb"` (`5242880`) | Max size for `read` and callable-expanded `grep` |
+| `[output.read].is_outside_callers_enabled` | bool | `true`, `false` | `true` | Append outside callers and importers to `read view="source"` |
+| `[output.grep].max_columns` | integer | `0` (unlimited) or `>= 1` | `0` | Max line width in content-mode `grep` |
+| `[output.grep].max_bytes` | size | unset, `>= 1` bytes, `"<int>b/kb/mb/gb"` | `[output].max_bytes` | Max response size for `grep` |
+
+### Call context, precision, and test exclusions
+
+<div class="cfg-scope-line"><code>[output.context]</code> <code>[output.navigation]</code> <code>[output.context.exclude]</code></div>
+
+| Key | Type | Allowed values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `[output.context].is_enabled` | bool | `true`, `false` | `true` | Default `caller_context` behavior in `search` |
+| `[output.context].caller_limit` | integer | `>= 1` | `1000` | Max callers or references shown per symbol |
+| `[output.context].callee_limit` | integer | `>= 1` | `1000` | Max callees shown per symbol |
+| `[output.context].max_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `"128kb"` (`131072`) | Sub-budget for relationship annotations inside `[output.search].max_bytes` |
+| `[output.context].common_name_threshold` | integer | `>= 1` | `2` | Definition count at which name-based edges are marked ambiguous |
+| `[output.context].caller_omit_def_threshold` | integer | `>= 1` | `5` | Definition count at which approximate callers switch to a `grep` hint |
+| `[output.navigation].is_enabled` | bool | `true`, `false` | `false` | Resolve call sites structurally and mark confirmed targets `precise` |
+| `[output.navigation].callsite_budget` | integer | `>= 1` | `1000` | Max call sites checked structurally before name-based fallback |
+| `[output.navigation].scan_limit` | integer | `>= 1` | `16000` | Shared caller-scan hit cap across symbol names (min 25 per name) |
+| `[output.context.exclude].should_include_test_code` | bool | `true`, `false` | `false` | Include test code in automatic symbol/caller context |
+| `[output.context.exclude].test_file_patterns` | string array | `[]` or file path glob array | See [Test-code context](#test-code-context) | Test file path globs |
+| `[output.context.exclude].test_attributes` | language table | `rust`, `java`, `kotlin`, `csharp`, `swift`, `php` → string array | See [Test-code context](#test-code-context) | Per-language test attribute/annotation names |
+| `[output.context.exclude].test_decorators` | language table | `python` → string array | See [Test-code context](#test-code-context) | Per-language test decorator names |
+| `[output.context.exclude].test_calls` | language table | `javascript`, `typescript`, `dart`, `ruby`, `powershell` → string array | See [Test-code context](#test-code-context) | Per-language test call names |
+
+<details class="cfg-details" id="test-code-context">
+<summary>Default test exclusion patterns (`[output.context.exclude]`)</summary>
+
+Default patterns excluded from automatic caller context when `should_include_test_code = false`:
+
+```toml
+[output.context.exclude]
+should_include_test_code = false
+test_file_patterns = ["**/tests/**", "**/test/**", "**/__tests__/**", "test_*.py", "*_test.*", "*.test.*", "*_spec.*", "*.spec.*", "*Test.java", "*Tests.java", "*IT.java"]
+[output.context.exclude.test_attributes]
+rust = ["test", "tokio::test", "async_std::test", "rstest", "rstest::rstest", "cfg(test)"]
+java = ["Test", "ParameterizedTest", "RepeatedTest", "TestFactory", "TestTemplate", "Nested", "BeforeEach", "AfterEach", "BeforeAll", "AfterAll"]
+kotlin = ["Test", "ParameterizedTest", "RepeatedTest", "BeforeTest", "AfterTest", "BeforeEach", "AfterEach"]
+csharp = ["Fact", "Theory", "Test", "TestCase", "TestCaseSource", "TestFixture", "SetUp", "TearDown", "OneTimeSetUp", "OneTimeTearDown"]
+swift = ["Test", "Suite"]
+php = ["Test"]
+[output.context.exclude.test_decorators]
+python = ["pytest.fixture", "pytest.mark.*", "unittest.skip", "unittest.skipIf", "unittest.skipUnless", "unittest.expectedFailure"]
+[output.context.exclude.test_calls]
+javascript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
+typescript = ["describe", "describe.*", "it", "it.*", "test", "test.*", "suite", "suite.*"]
+dart = ["test", "group", "testWidgets"]
+ruby = ["describe", "context", "it", "specify"]
+powershell = ["Describe", "Context", "It"]
+```
+
+</details>
+
+<details class="cfg-details" id="macro-expansion-and-event-rules">
+<summary>C/C++/assembly macro expansion and event-bus rules (`[output.macro_expansion]`, `[output.event_navigation]`)</summary>
+
+Configuration example for `clang` / `nasm` preprocessing and custom event-bus rules (`typescript`, `javascript`, `rust`):
+
+```toml
+[output.macro_expansion]
+is_enabled = true
+compilation_database = "build/compile_commands.json"
+clang_path = "clang"
+nasm_path = "nasm"
+clang_flags = ["-Iinclude", "-DFEATURE=1"]
+nasm_flags = ["-Iinclude/", "-felf64"]
+timeout_ms = 5000
+max_output_bytes = "8mb"
+
+[output.event_navigation]
+is_enabled = true
+use_builtin_rules = true
+rules = [
+  { id = "known-on", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "on", role = "subscribe", event_arg = 0, handler_arg = 1, bus = "receiver" },
+  { id = "known-emit", language = "typescript", module = "src/known.ts", symbol = "KnownBus", method = "emit", role = "publish", event_arg = 0, bus = "receiver" },
+]
+```
+
+</details>
+
+### Credential and PII redaction
+
+<div class="cfg-scope-line"><code>[output.redact]</code></div>
+
+| Key | Type | Allowed values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `[output.redact].pii_entities` | string array | `[]` or built-in PII type array ([PII Redaction](/configuration/pii-redaction/)) | `[]` | Opt-in PII types to mask |
+| `[output.redact].sensitive_fields` | string array | `[]` or field-name array | `[]` | Additional field names treated as secrets (case/separator normalized) |
+| `[output.redact].rules` | inline-table array | `[]` or `{ id = "custom.*", pattern = "..." }` array | `[]` | Custom regex masking rules ([Credential redaction](#credential-redaction)) |
+| `[output.redact].exceptions` | inline-table array | `[]` or `{ rule_id, value }` array | `[]` | Exact rule/value pairs exempt from masking ([Credential redaction](#credential-redaction)) |
+
+<details class="cfg-details" id="credential-redaction">
+<summary>Custom regex and exception rules (`[output.redact]`)</summary>
+
+Rule IDs in `rules` must start with `custom.`. An optional `(?P<secret>...)` capture group masks only the captured portion. See [PII Redaction](/configuration/pii-redaction/) for all 90 built-in types and masking examples.
+
+```toml
+[output.redact]
+pii_entities = ["EMAIL_ADDRESS", "CREDIT_CARD"]
+sensitive_fields = ["internalCredential"]
+rules = [{ id = "custom.acme", pattern = 'ACME_(?P<secret>[A-Z0-9]+)' }]
+exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
+```
+
+</details>
+
+### Indexing, languages, and exclusions
+
+<div class="cfg-scope-line"><code>[index]</code> <code>[index.refresh]</code> <code>[index.language_support]</code> <code>[index.exclude]</code></div>
+
+| Key | Type | Allowed values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `[index].mode` | string | `"auto"`, `"on"`, `"off"` | `"auto"` | Indexing mode (restart required): `"auto"` (repos up to `auto_max_files`), `"on"` (always), `"off"` (disabled) |
+| `[index].auto_max_files` | integer | `>= 1` | `50000` | Max indexable files in `auto` mode (restart required) |
+| `[index].path` | string | non-empty relative or absolute path | `".codemap/index"` | Index directory path (restart required) |
+| `[index].max_file_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `"1mb"` (`1048576`) | Skip files larger than this during indexing |
+| `[index].store_references` | bool | `true`, `false` | `false` | Store non-call symbol references in the index |
+| `[index.refresh].watch` | bool | `true`, `false` | `true` | Watch filesystem changes in the background (restart required) |
+| `[index.refresh].watch_debounce_ms` | integer (ms) | `>= 1` | `500` | Filesystem watcher debounce window (restart required) |
+| `[index.refresh].index_staleness_ms` | integer (ms) | `>= 1` | `5000` | Staleness interval for request-triggered refreshes when `watch = false` |
+| `[index.refresh].indexer_auto_restart` | bool | `true`, `false` | `true` | Restart the background indexer thread if it stops |
+| `[index.language_support].is_document_support_enabled` | bool | `true`, `false` | `false` | Index `.md` and `.mdx` files |
+| `[index.language_support].is_shell_support_enabled` | bool | `true`, `false` | `false` | Index `.sh`, `.bash`, and `.zsh` scripts |
+| `[index.language_support].is_infrastructure_support_enabled` | bool | `true`, `false` | `false` | Index HCL/Terraform, Dockerfile, and Nix files |
+| `[index.language_support].is_interface_support_enabled` | bool | `true`, `false` | `false` | Index Protocol Buffers and GraphQL files |
+| `[index.language_support].is_build_support_enabled` | bool | `true`, `false` | `false` | Index Make, CMake, and Bazel build files |
+| `[index.exclude].excluded_directories` | string array | `[]` or relative directory glob array | See [Directory exclusions](#directory-exclusions) | Optional directory exclusion globs |
+| `[index.exclude].use_git_exclude` | bool | `true`, `false` | `true` | Apply `.git/info/exclude` rules |
+
+<details class="cfg-details" id="directory-exclusions">
+<summary>Default excluded directories and glob patterns (`[index.exclude].excluded_directories`)</summary>
+
+Default list: `[".idea", ".vscode", ".vs", "node_modules", ".yarn", "target", "dist", "build", "vendor"]`. Set `[]` to disable optional defaults. VCS directories and `.codemap` are always excluded.
+
+| Pattern | Matches |
+| --- | --- |
+| `build` or `**/build` | `build` at any depth |
+| `./build` | Root `build` directory only |
+| `apps/web/build` | That directory and everything under it |
+| `apps/api/**/__pycache__` | `__pycache__` at any depth under `apps/api` |
+| `apps/native/cmake-build-*` | Wildcard directory names under `apps/native` |
+
+</details>
+
+### Jev relevance filter
+
+<div class="cfg-scope-line"><code>[output.jev]</code></div>
+
+| Key | Type | Allowed values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `[output.jev].enabled` | bool | `true`, `false` | `false` | Enable the [Jev filter](#jev-filter) |
+| `[output.jev].scope` | string array | `[]` or subset of `"search"`, `"read"`, `"grep"` | `["search", "read", "grep"]` | Tools covered when Jev is enabled |
+| `[output.jev].model` | string | `"jev-1.14.0"` or `<maker>/<model>` ([Decision models](#openrouter-decision-models)) | `"jev-1.14.0"` | Decision model ID (`jev-*` for TypeSafe, `author/slug` for OpenRouter) |
+| `[output.jev].timeout_ms` | integer (ms) | `1`–`604800000` (max 7 days) | `45000` | Per-call Jev timeout |
+| `[output.jev].max_in_flight_requests` | integer | `1`–`8` | `8` | Max concurrent HTTP requests per Jev call |
+| `[output.jev].request_spacing_ms` | integer (ms) | `100`–`604800000` | `100` | Minimum delay between Jev batch requests |
+| `[output.jev].max_batch_bytes` | size | `1`–`168000` bytes or size string | `168000` | Max encoded payload size per Jev batch |
+| `[output.jev].pool_idle_timeout_ms` | integer (ms) | `1`–`604800000` (max 7 days) | `30000` | Idle HTTPS connection timeout |
+| `[output.jev].search_filter_min_unrelated_probability` | float | `0.5 < value <= 1.0` | `0.70` | Minimum probability required to omit an unrelated block |
+
+<details class="cfg-details" id="jev-filter">
+<summary>Jev `auth.toml` setup and 15 OpenRouter decision models</summary>
+
+Store the API key in `auth.toml` (or `TYPESAFE_API_KEY` / `OPENROUTER_API_KEY`) and enable `[output.jev]` in `config.toml`:
+
+```toml
+# .codemap/auth.toml
+[jev]
+api_key = "[REDACTED]"
+[openrouter]
+api_key = "[REDACTED]"
+```
+
+```toml
+# .codemap/config.toml
+[output.jev]
+enabled = true
+scope = ["search", "read", "grep"]
+model = "jev-1.14.0"
+```
+
+<div id="openrouter-decision-models" data-peek-block data-peek-title="OpenRouter decision models">
+
+| Maker | Model IDs |
+| --- | --- |
+| OpenAI | `openai/gpt-6-luna-decisions` |
+| TypeSafe | `typesafe/jev-1.14`, `typesafe/jev-1.13` |
+| Perplexity | `perplexity/pplx-decider-v1.2`, `perplexity/pplx-decider-flash-v1.2` |
+| Nace.AI | `nace-ai/drex-max`, `nace-ai/drex-v2.0`, `nace-ai/drex-v1.5` |
+| Respan | `respan/span-02` |
+| Upstage | `upstage/solar-decide`, `upstage/solar-decide-flash` |
+| Cloudflare | `cloudflare/clef`, `cloudflare/clef-omni` |
+| Liquid AI | `liquid/d1` |
+| Inception | `inception/mercury-decide` |
+
+</div>
+
+</details>
+
+### Permissions, global instructions, and extras
+
+<div class="cfg-scope-line"><code>[filesystem_permissions]</code> <code>[global_instructions]</code> <code>[related_terms]</code> <code>[update]</code></div>
+
+| Key | Type | Allowed values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `[filesystem_permissions].find` | string | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | Access scope for `find` |
+| `[filesystem_permissions].grep` | string | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | Access scope for `grep` |
+| `[filesystem_permissions].read` | string | `"workspace"`, `"allowed_roots"`, `"anywhere"` | `"anywhere"` | Access scope for `read` |
+| `[filesystem_permissions].allowed_roots` | string array | `[]` or relative/absolute directory array | `[]` | Extra directories allowed when a permission is `"allowed_roots"` |
+| `[global_instructions].enabled` | bool | `true`, `false` | `false` | Manage a one-line reminder in the client's global instructions file ([Global instructions](#global-instructions), global config only) |
+| `[related_terms].enabled` | bool | `true`, `false` | `false` | Enable the `synonyms` tool |
+| `[related_terms].dataset_path` | string | unset or non-empty file path | unset | Local sense dataset file path (skips first-use download) |
+| `[update].config_auto_update` | bool | `true`, `false` | `true` | Create missing repo `config.toml`/`auth.toml` templates on `mcp` startup |
+
+<details class="cfg-details" id="global-instructions">
+<summary>Client global instruction file paths (`[global_instructions].enabled`)</summary>
+
+Start a new agent session after changing `[global_instructions].enabled`:
+
+| Client | Default file | Override env var |
+| --- | --- | --- |
+| Codex (`codex-mcp-client`) | `~/.codex/AGENTS.md` (`AGENTS.override.md` if non-empty) | `CODEX_HOME` |
+| Claude Code (`claude-code`) | `~/.claude/CLAUDE.md` | `CLAUDE_CONFIG_DIR` |
+| `pi` | `~/.pi/agent/AGENTS.md` | `PI_CODING_AGENT_DIR` |
+| OpenCode (`opencode`) | `~/.config/opencode/AGENTS.md` | `OPENCODE_CONFIG_DIR` |
+
+</details>
+
+## Output differences by option
+
+On `grafana/grafana`, each card places the **default output** on the left and the **modified output** on the right. Combine multiple options interactively in the [Playground](/playground/).
+
+<div class="cfg-diff-list">
+
+<ConfigDiffCard
+    title="1. Call context and precision"
+    keys={["[output.context].is_enabled", "[output.navigation].is_enabled"]}
+    defaultLabel="Default (context = true, navigation = false)"
+    changedLabel="Changed (navigation = true / context = false)"
+>
+<Fragment slot="default">
+
+```markdown
+## 1. pkg/services/dashboards/service/dashboard_service.go
+- `method DashboardServiceImpl.SaveDashboard` (L142-153)
+  - _callers (approximate name scan):_
+    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
+  - _calls (depth 1, approximate):_
+    - `buildSaveDashboardCommand` — `.../dashboard_service.go:96`
+```
+
+</Fragment>
+<Fragment slot="changed">
+
+```markdown
+# navigation.is_enabled = true (structural import check)
+  - _callers (tree-sitter precise; import/source confirmed):_
+    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`, precise)
+
+# context.is_enabled = false (omit relationships)
+- `method DashboardServiceImpl.SaveDashboard` (L142-153)
+```
+
+</Fragment>
+</ConfigDiffCard>
+
+<ConfigDiffCard
+    title="2. Outside callers in read"
+    keys={["[output.read].is_outside_callers_enabled"]}
+    defaultLabel="Default (true)"
+    changedLabel="Changed (false)"
+>
+<Fragment slot="default">
+
+```text
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+...
+153→}
+[Callers from outside this window (static analysis, approximate)]
+- SaveDashboard L142: pkg/api/dashboard.go:318 (PostDashboard)
+```
+
+</Fragment>
+<Fragment slot="changed">
+
+```text
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+...
+153→}
+```
+
+</Fragment>
+</ConfigDiffCard>
+
+<ConfigDiffCard
+    title="3. Test code in call context"
+    keys={["[output.context.exclude].should_include_test_code"]}
+    defaultLabel="Default (false)"
+    changedLabel="Changed (true)"
+>
+<Fragment slot="default">
+
+```markdown
+- _callers (approximate name scan):_
+  - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
+```
+
+</Fragment>
+<Fragment slot="changed">
+
+```markdown
+- _callers (approximate name scan):_
+  - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)
+  - `pkg/services/dashboards/service/dashboard_service_test.go:88` (`TestSaveDashboard`)
+```
+
+</Fragment>
+</ConfigDiffCard>
+
+<ConfigDiffCard
+    title="4. Credential and PII masking (pkg/services/notifications/mailer.go)"
+    keys={["[output].is_redact_enabled", "[output.redact]"]}
+    defaultLabel="Default (is_redact_enabled = true, pii_entities = [])"
+    changedLabel="Changed (PII, sensitive field, and custom regex enabled)"
+>
+<Fragment slot="default">
+
+```go
+authHeader := "Bearer [REDACTED]"
+adminPassword := "*****"
+dsn := "postgres://grafana:********@10.24.8.15:5432/grafana"
+webhookSigningKey := "whsec_live_98a7bc65d4ef3210"
+serviceToken := "glsa_8Kp2Lm9Qx4Vz7Rn1Yt6Bc3Df"
+fromAddr := "alerts@grafana.example.com"
+```
+
+</Fragment>
+<Fragment slot="changed">
+
+```go
+authHeader := "Bearer [REDACTED]"
+adminPassword := "*****"
+dsn := "postgres://grafana:********@[REDACTED]:5432/grafana"
+webhookSigningKey := "[REDACTED]"
+serviceToken := "glsa_[REDACTED]"
+fromAddr := "[REDACTED]"
+```
+
+</Fragment>
+</ConfigDiffCard>
+
+<ConfigDiffCard
+    title="5. Jev task-relevance filter"
+    keys={["[output.jev].enabled"]}
+    defaultLabel="Default (enabled = false)"
+    changedLabel="Changed (enabled = true)"
+>
+<Fragment slot="query">
+
+```json
+{ "name": "initial_instructions", "arguments": { "task": "Trace how dashboard save returns a version mismatch error" } }
+{ "name": "search", "arguments": { "query": "DashboardServiceImpl SaveDashboard DeleteDashboard", "workspace_scope": "pkg" } }
+```
+
+</Fragment>
+<Fragment slot="default">
+
+````markdown
+### results
+```
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+144→    if errors.Is(err, dashboards.ErrDashboardVersionMismatch) { ... }
+153→}
+```
+```
+210→func (dr *DashboardServiceImpl) DeleteDashboard(...) error {
+211→    return dr.store.DeleteDashboard(...)
+212→}
+```
+````
+
+</Fragment>
+<Fragment slot="changed">
+
+````markdown
+### results
+```
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+144→    if errors.Is(err, dashboards.ErrDashboardVersionMismatch) { ... }
+153→}
+```
+- _omitted body: L210-212 (method DeleteDashboard) Jev found no task match in pkg/services/dashboards/service/dashboard_service.go._
+````
+
+</Fragment>
+</ConfigDiffCard>
+
+<ConfigDiffCard
+    title="6. Duplicate folding"
+    keys={["include_seen"]}
+    defaultLabel="Default (include_seen: false or omitted)"
+    changedLabel="Changed (include_seen: true)"
+>
+<Fragment slot="default">
+
+```text
+<--removed duplicated-->
+```
+
+</Fragment>
+<Fragment slot="changed">
+
+```text
+142→func (dr *DashboardServiceImpl) SaveDashboard(...) {
+...
+153→}
+```
+
+</Fragment>
+</ConfigDiffCard>
+
+</div>
+
+## Legacy configuration keys
+
+Older keys remain accepted; when both appear in the same file, the current key takes precedence.
+
+<details class="cfg-details">
+<summary>Show all 38 legacy key mappings</summary>
+
+| Legacy key | Current key |
+| --- | --- |
+| `tool_output.is_redact_enabled` | `output.is_redact_enabled` |
+| `search.result_threshold` | `output.search.detail_file_limit` |
+| `search.search_overview_file_limit` | `output.search.overview_file_limit` |
+| `search.search_detail_snippet_max_lines` | `output.search.snippet_max_lines` |
+| `search.search_detail_symbol_limit` | `output.search.symbol_limit` |
+| `search.search_detail_byte_cap` | `output.search.max_bytes` |
+| `search.search_literal_max_len` | `output.search.literal_max_chars` |
+| `search.search_literal_limit` | `output.search.literal_limit` |
+| `search.search_anchor_snippet_limit` | `output.search.anchor_snippet_limit` |
+| `tool_output.read_output_byte_cap` | `output.read.max_bytes` |
+| `tool_output.grep_max_columns` | `output.grep.max_columns` |
+| `caller_context.caller_context_default` | `output.context.is_enabled` |
+| `caller_context.caller_list_cap` | `output.context.caller_limit` |
+| `caller_context.callee_list_cap` | `output.context.callee_limit` |
+| `caller_context.annotation_sub_budget` | `output.context.max_bytes` |
+| `caller_context.common_name_threshold` | `output.context.common_name_threshold` |
+| `caller_context.caller_omit_def_threshold` | `output.context.caller_omit_def_threshold` |
+| `index.index_path` | `index.path` |
+| `index.max_file_size` | `index.max_file_bytes` |
+| `caller_context.navigation_store_references` | `index.store_references` |
+| `refresh.watch` | `index.refresh.watch` |
+| `refresh.watch_debounce_ms` | `index.refresh.watch_debounce_ms` |
+| `refresh.index_staleness_ms` | `index.refresh.index_staleness_ms` |
+| `refresh.indexer_auto_restart` | `index.refresh.indexer_auto_restart` |
+| `language_support.is_document_support_enabled` | `index.language_support.is_document_support_enabled` |
+| `language_support.is_shell_support_enabled` | `index.language_support.is_shell_support_enabled` |
+| `language_support.is_infrastructure_support_enabled` | `index.language_support.is_infrastructure_support_enabled` |
+| `language_support.is_interface_support_enabled` | `index.language_support.is_interface_support_enabled` |
+| `language_support.is_build_support_enabled` | `index.language_support.is_build_support_enabled` |
+| `caller_context.navigation_context_default` | `output.navigation.is_enabled` |
+| `caller_context.navigation_callsite_budget` | `output.navigation.callsite_budget` |
+| `caller_context.scan_cap` | `output.navigation.scan_limit` |
+| `redact.*` | `output.redact.*` |
+| `macro_expansion.*` | `output.macro_expansion.*` |
+| `event_navigation.*` | `output.event_navigation.*` |
+| `analysis.navigation.*` | `output.navigation.*` |
+| `analysis.macro_expansion.*` | `output.macro_expansion.*` |
+| `analysis.event_navigation.*` | `output.event_navigation.*` |
+
+</details>
+
+<ConfigCodeLens locale="en" />

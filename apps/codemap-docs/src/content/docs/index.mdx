@@ -1,0 +1,92 @@
+---
+title: codemap-search
+description: Standalone Rust MCP stdio server and CLI for mapping repositories, BM25 symbol search, and live source reading.
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+`codemap-search` maps repositories, searches symbols with BM25, and reads live source files over MCP stdio or the CLI.
+
+## Quick Start
+
+### 1. Install
+
+macOS / Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+```
+
+Windows (CMD / PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+```
+
+Cargo (crates.io):
+
+```sh
+cargo install codemap-search
+```
+
+Verify the binary:
+
+```sh
+codemap-search --version
+```
+
+### 2. Connect or run
+
+Run commands from the terminal ([CLI Usage](/usage/cli-and-analysis/)) or set up an [MCP Connection](/getting-started/client-setup/) in your client:
+
+Claude Code:
+
+```sh
+claude mcp add --scope user codemap-search -- codemap-search mcp
+```
+
+Codex:
+
+```sh
+codex mcp add codemap-search -- codemap-search mcp
+```
+
+## Documentation
+
+<CardGrid>
+    <LinkCard
+        title="Installation"
+        description="Installer options, release archives, and source builds."
+        href="/getting-started/installation/"
+    />
+    <LinkCard
+        title="MCP Client Setup"
+        description="Setup for Claude Code, Codex, pi, and OpenCode, including project-scoped configs."
+        href="/getting-started/client-setup/"
+    />
+    <LinkCard
+        title="MCP Tools"
+        description="Per-tool request and output examples on grafana/grafana."
+        href="/usage/tools/"
+    />
+    <LinkCard
+        title="CLI & Analysis"
+        description="CLI commands, index footprint reports, and read-activity logs."
+        href="/usage/cli-and-analysis/"
+    />
+    <LinkCard
+        title="Configuration Reference"
+        description="config.toml keys, allowed values, option diffs, and exclusions."
+        href="/configuration/"
+    />
+    <LinkCard
+        title="Configuration Playground"
+        description="Toggle settings to compare live outputs across all 7 tools and copy config.toml."
+        href="/playground/"
+    />
+    <LinkCard
+        title="Benchmarks"
+        description="Summary charts and detailed tables against ripgrep and four MCP servers on Grafana."
+        href="/benchmarks/"
+    />
+</CardGrid>

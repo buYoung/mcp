@@ -1,0 +1,25 @@
+---
+import "./badge.css";
+import type { HTMLAttributes } from "astro/types";
+import type { BadgeVariant } from "./types";
+
+interface Props extends HTMLAttributes<"span"> {
+    variant?: BadgeVariant;
+    mono?: boolean;
+    class?: string;
+}
+
+const { variant = "neutral", mono = false, class: className, ...rest } = Astro.props;
+---
+
+<span
+    class:list={[
+        "cm-badge",
+        variant !== "neutral" && `cm-badge--${variant}`,
+        mono && "cm-badge--mono",
+        className,
+    ]}
+    {...rest}
+>
+    <slot />
+</span>

@@ -1,0 +1,92 @@
+---
+title: codemap-search
+description: 저장소 구조 매핑, BM25 심볼 검색, 소스 원문 읽기용 Rust MCP stdio 서버 및 CLI.
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+`codemap-search`는 저장소 구조를 매핑하고 BM25로 심볼을 검색하며 소스 원문을 읽는 MCP stdio 서버이자 CLI입니다.
+
+## 빠른 시작
+
+### 1. 설치
+
+macOS / Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.sh | sh
+```
+
+Windows (CMD / PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/buYoung/mcp/main/apps/codemap-search/install.ps1 | iex"
+```
+
+Cargo (crates.io):
+
+```sh
+cargo install codemap-search
+```
+
+버전 확인:
+
+```sh
+codemap-search --version
+```
+
+### 2. 실행 및 연결
+
+터미널에서 바로 실행하려면 [CLI 사용법](/ko/usage/cli-and-analysis/)을, 에이전트에 등록하려면 [MCP 연결](/ko/getting-started/client-setup/)을 참고하세요.
+
+Claude Code:
+
+```sh
+claude mcp add --scope user codemap-search -- codemap-search mcp
+```
+
+Codex:
+
+```sh
+codex mcp add codemap-search -- codemap-search mcp
+```
+
+## 문서 안내
+
+<CardGrid>
+    <LinkCard
+        title="설치"
+        description="설치 옵션, 릴리스 아카이브, 로컬 소스 빌드"
+        href="/ko/getting-started/installation/"
+    />
+    <LinkCard
+        title="MCP 클라이언트 등록"
+        description="Claude Code, Codex, pi, OpenCode 전역·저장소 단위 등록"
+        href="/ko/getting-started/client-setup/"
+    />
+    <LinkCard
+        title="탐색 도구 사용"
+        description="grafana/grafana 기준 7개 도구별 호출·출력 예시"
+        href="/ko/usage/tools/"
+    />
+    <LinkCard
+        title="CLI 및 색인·읽기 분석"
+        description="CLI 명령과 색인 용량·읽기 이력 분석"
+        href="/ko/usage/cli-and-analysis/"
+    />
+    <LinkCard
+        title="설정 레퍼런스"
+        description="config.toml 키·허용 값, 옵션별 출력 차이, 제외 규칙"
+        href="/ko/configuration/"
+    />
+    <LinkCard
+        title="설정 플레이그라운드"
+        description="옵션을 바꾸며 7개 도구 출력 변화를 실시간 비교하고 설정 복사"
+        href="/ko/playground/"
+    />
+    <LinkCard
+        title="벤치마크"
+        description="grafana/grafana 저장소에서 ripgrep 및 오픈소스 MCP 서버 4종과 비교한 요약·상세 결과"
+        href="/ko/benchmarks/"
+    />
+</CardGrid>

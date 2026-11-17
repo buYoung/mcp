@@ -1,0 +1,42 @@
+---
+import "./playground-toml.css";
+import { Button, CopyButton, SegmentedControl } from "@shared/ui";
+import type { PgUiLabels } from "./types";
+
+interface Props {
+    ui: PgUiLabels;
+}
+
+const { ui } = Astro.props;
+---
+
+<div class="wb-toml-dock" data-toml-dock>
+    <div class="wb-toml-bar">
+        <code class="wb-toml-file">.codemap/config.toml</code>
+        <div class="wb-toml-ctrls">
+            <SegmentedControl
+                mode="button"
+                ariaLabel="TOML output mode"
+                dataAttr="data-toml-mode"
+                options={[
+                    { value: "diff", label: ui.tomlChangedOnly, selected: true },
+                    { value: "full", label: ui.tomlFull },
+                ]}
+            />
+            <Button variant="secondary" size="sm" data-toml-expand aria-pressed="false">
+                {ui.expandToml}
+            </Button>
+            <CopyButton
+                targetId="pg-toml-code"
+                label={ui.copyShort}
+                variant="secondary"
+                size="sm"
+            />
+        </div>
+    </div>
+    <pre
+        class="wb-toml-pre"
+        tabindex="0"
+        role="region"
+        aria-label=".codemap/config.toml"><code id="pg-toml-code" data-toml-out /></pre>
+</div>

@@ -1,0 +1,13 @@
+---
+import "./switch.css";
+
+interface Props {
+    id: string;
+    name: string;
+    checked?: boolean;
+}
+
+const { id, name, checked = false } = Astro.props;
+---
+
+<input type="checkbox" class="cm-switch" id={id} name={name} checked={checked} />

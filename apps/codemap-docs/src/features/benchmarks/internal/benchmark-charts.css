@@ -1,0 +1,213 @@
+.bench-line-widget {
+    display: block;
+    margin-block: 1rem 1.5rem;
+}
+
+.bench-series-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cm-gap-sm);
+    margin-block-end: 0.875rem;
+}
+
+.bench-series-btn.is-primary {
+    font-weight: 600;
+}
+
+.bench-series-btn[aria-pressed="false"] {
+    opacity: 0.45;
+    text-decoration: line-through;
+}
+
+.bench-series-sample {
+    inline-size: 1.35rem;
+    block-size: 0.625rem;
+    flex: none;
+}
+
+.bench-charts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+@media (max-width: 64rem) {
+    .bench-charts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.bench-chart-card {
+    border: 1px solid var(--cm-border);
+    border-radius: var(--cm-radius-lg);
+    padding: 1rem 1.25rem;
+    background: var(--cm-bg-surface);
+}
+
+.bench-chart-title {
+    margin: 0 0 0.5rem;
+    font-size: var(--cm-fs-sm);
+    font-weight: 600;
+    color: var(--cm-fg);
+}
+
+.bench-svg-stage {
+    position: relative;
+}
+
+.bench-chart-svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    overflow: visible;
+}
+
+.bench-chart-svg .grid-line {
+    stroke: var(--cm-border-subtle);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+}
+
+.bench-chart-svg .axis-line {
+    stroke: var(--cm-border);
+    stroke-width: 1;
+}
+
+.bench-chart-svg .axis-label {
+    fill: var(--cm-fg-faint);
+    font-family: var(--sl-font);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.bench-chart-svg .env-label {
+    fill: var(--cm-fg-muted);
+    font-weight: 500;
+}
+
+.bench-chart-svg .hover-guide {
+    stroke: var(--cm-border-strong);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.bench-chart-svg .hover-guide.is-visible {
+    opacity: 1;
+}
+
+.bench-chart-svg .series-group {
+    transition: opacity var(--cm-transition-fast);
+}
+
+.bench-chart-svg .series-group[hidden] {
+    display: none;
+}
+
+.bench-chart-svg .series-group.is-dimmed {
+    opacity: 0.2;
+}
+
+.bench-chart-svg .series-group.is-focused .series-line {
+    stroke-width: 3.25;
+}
+
+.bench-chart-svg .series-point {
+    stroke: var(--cm-bg-surface);
+    stroke-width: 1.5;
+}
+
+.bench-chart-svg .series-point.is-active {
+    stroke: var(--cm-fg);
+    stroke-width: 2;
+}
+
+.env-hit-grid {
+    position: absolute;
+    inset: 6% 7% 13% 11%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.env-hit-btn {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: crosshair;
+}
+
+.env-hit-btn:focus-visible {
+    outline: 2px solid var(--cm-accent-fg);
+    outline-offset: -2px;
+    border-radius: var(--cm-radius-xs);
+}
+
+.bench-tooltip {
+    position: absolute;
+    inset-block-start: 0.25rem;
+    z-index: 5;
+    min-inline-size: 12rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--cm-border-strong);
+    border-radius: var(--cm-radius-sm);
+    background: var(--cm-bg-canvas);
+    box-shadow: var(--cm-shadow-md);
+    font-size: var(--cm-fs-xs);
+    pointer-events: none;
+}
+
+.bench-tooltip[hidden] {
+    display: none;
+}
+
+.bench-tooltip.align-left {
+    inset-inline-start: 14%;
+}
+
+.bench-tooltip.align-center {
+    inset-inline-start: 50%;
+    translate: -50% 0;
+}
+
+.bench-tooltip.align-right {
+    inset-inline-end: 6%;
+}
+
+.bench-tip-env {
+    margin-block-end: 0.35rem;
+    padding-block-end: 0.25rem;
+    border-block-end: 1px solid var(--cm-border-subtle);
+    font-weight: 600;
+    color: var(--cm-fg);
+}
+
+.bench-tip-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.4rem;
+    padding-block: 0.12rem;
+    color: var(--cm-fg-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.bench-tip-row.is-primary {
+    font-weight: 600;
+    color: var(--cm-fg);
+}
+
+.bench-tip-dot {
+    inline-size: 0.5rem;
+    block-size: 0.5rem;
+    border-radius: 50%;
+}
+
+.bench-tip-name {
+    white-space: nowrap;
+}
+
+.bench-tip-val {
+    text-align: end;
+    white-space: nowrap;
+}

@@ -1,0 +1,27 @@
+---
+import "./chip-group.css";
+import type { ChipOption } from "./types";
+
+interface Props {
+    labelledBy: string;
+    options: ChipOption[];
+}
+
+const { labelledBy, options } = Astro.props;
+---
+
+<div class="cm-chips" role="group" aria-labelledby={labelledBy}>
+    {
+        options.map((opt) => (
+            <label class="cm-chip">
+                <input
+                    type="checkbox"
+                    class="cm-chip__input"
+                    name={opt.name}
+                    checked={opt.checked}
+                />
+                <span>{opt.label}</span>
+            </label>
+        ))
+    }
+</div>

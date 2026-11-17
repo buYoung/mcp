@@ -1,0 +1,73 @@
+---
+import "./benchmark-charts.css";
+import { Button } from "@shared/ui";
+import ChartPanel from "./ChartPanel.astro";
+import { getBenchmarkChartModel } from "./series-data";
+
+interface Props {
+    locale: "en" | "ko";
+}
+
+const { locale } = Astro.props;
+const model = getBenchmarkChartModel(locale);
+---
+
+<codemap-line-chart class="bench-line-widget not-content" data-chart={JSON.stringify(model.payload)}>
+    <div class="bench-series-bar" role="group" aria-label={model.toggleGroupLabel}>
+        {
+            model.series.map((s) => (
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    pill
+                    class:list={["bench-series-btn", s.primary && "is-primary"]}
+                    data-series-btn={s.id}
+                    aria-pressed="true"
+                >
+                    <svg class="bench-series-sample" viewBox="0 0 22 10" aria-hidden="true">
+                        <line
+                            x1="1"
+                            y1="5"
+                            x2="21"
+                            y2="5"
+                            stroke={s.color}
+                            stroke-width={s.width}
+                            stroke-dasharray={s.dash || undefined}
+                        />
+                        <circle cx="11" cy="5" r="2.8" fill={s.color} />
+                    </svg>
+                    <span>{s.label}</span>
+                </Button>
+            ))
+        }
+    </div>
+
+    <div class="bench-charts">
+        <ChartPanel
+            panelId="acc"
+            title={model.titleAcc}
+            ticks={model.accTicks}
+            minV={70}
+            maxV={95}
+            envs={model.envs}
+            xCoords={model.xCoords}
+            series={model.series}
+        />
+        <ChartPanel
+            panelId="tok"
+            title={model.titleTok}
+            ticks={model.tokTicks}
+            minV={0}
+            maxV={3500}
+            envs={model.envs}
+            xCoords={model.xCoords}
+            series={model.series}
+        />
+    </div>
+</codemap-line-chart>
+
+<script>
+    import { mountBenchmarkCharts } from "./chart-element";
+
+    mountBenchmarkCharts();
+</script>

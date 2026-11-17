@@ -1,0 +1,76 @@
+:root,
+html:not([data-has-sidebar]) {
+    --sl-content-width: 100%;
+    --sl-sidebar-width: 13.5rem;
+    --sl-content-pad-x: 2rem;
+}
+
+.lg\:sl-flex {
+    --sl-sidebar-width: 12rem;
+}
+
+.main-pane {
+    min-inline-size: 0;
+}
+
+.content-panel {
+    padding-inline: max(24px, var(--sl-content-pad-x));
+}
+
+.sidebar-content a[aria-current="page"],
+.sidebar-content a[aria-current="page"]:is(:hover, :focus) {
+    background-color: var(--cm-sidebar-active-bg);
+    color: var(--cm-sidebar-active-fg);
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--cm-sidebar-active-fg);
+    border-radius: 0 var(--cm-radius-sm) var(--cm-radius-sm) 0;
+}
+
+.sl-markdown-content :not(pre) > code:not(:where(.expressive-code *, .not-content *)) {
+    display: inline;
+    margin-block: 0;
+    padding: 0.14em 0.42em;
+    border: 1px solid var(--cm-code-border);
+    border-radius: 0.3125rem;
+    background-color: var(--cm-code-bg);
+    color: var(--cm-code-fg);
+    font-family: var(--sl-font-mono);
+    font-size: 0.85em;
+    font-weight: 500;
+    line-height: 1.35;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6) > code:not(:where(.not-content *)) {
+    font-size: 0.86em;
+}
+
+.sl-markdown-content a:hover:not(:where(.not-content *)) > code {
+    border-color: var(--cm-accent-border);
+    color: var(--cm-accent-fg);
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+    padding-inline: 0.5rem;
+    word-break: keep-all;
+}
+
+.sl-markdown-content :is(th:first-child, td:first-child):not(:where(.not-content *)) {
+    padding-inline-start: 0;
+}
+
+.sl-markdown-content :is(th:last-child, td:last-child):not(:where(.not-content *)) {
+    padding-inline-end: 0;
+}
+
+starlight-theme-select select,
+starlight-lang-select select {
+    appearance: none;
+    white-space: nowrap;
+}
+
+/* Overrides Starlight's inline --sl-select-width: 6.25em so Korean theme labels stay single-line */
+starlight-theme-select select {
+    inline-size: 8.75rem;
+}

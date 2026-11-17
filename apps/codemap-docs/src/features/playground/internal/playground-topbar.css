@@ -1,0 +1,33 @@
+.wb-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cm-gap-md);
+    min-block-size: 2.875rem;
+    padding: 0.375rem 1rem;
+    border-block-end: 1px solid var(--cm-border);
+    background: var(--cm-bg-surface);
+    flex: none;
+}
+
+.wb-top-left,
+.wb-top-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cm-gap-sm);
+}
+
+.wb-vsep {
+    inline-size: 1px;
+    block-size: 1.125rem;
+    background: var(--cm-border);
+}
+
+.wb-presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}

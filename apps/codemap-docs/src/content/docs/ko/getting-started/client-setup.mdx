@@ -1,0 +1,96 @@
+---
+title: MCP 클라이언트 등록
+description: Claude Code, Codex, pi, OpenCode에 codemap-search를 등록합니다.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+`codemap-search mcp`를 클라이언트에 등록한 뒤, 탐색할 저장소 폴더에서 클라이언트를 실행하세요.
+
+## 클라이언트별 등록
+
+<Tabs>
+    <TabItem label="Claude Code">
+        모든 저장소에서 공통으로 쓰려면 사용자 범위로 등록하세요.
+
+        ```sh
+        claude mcp add --scope user codemap-search -- codemap-search mcp
+        ```
+
+        팀과 공유할 `.mcp.json`에 추가하려면 탐색할 저장소 폴더에서 실행하세요.
+
+        ```sh
+        claude mcp add --scope project codemap-search -- codemap-search mcp
+        ```
+
+        `--scope`를 생략하면 현재 저장소의 개인 설정(`local`, `~/.claude.json`)으로 저장됩니다.
+    </TabItem>
+    <TabItem label="Codex">
+        ```sh
+        codex mcp add codemap-search -- codemap-search mcp
+        ```
+
+        또는 `~/.codex/config.toml`에 직접 추가하세요.
+
+        ```toml
+        [mcp_servers.codemap-search]
+        command = "codemap-search"
+        args = ["mcp"]
+        ```
+    </TabItem>
+    <TabItem label="pi">
+        1. [@buyong/pi-mcp-adapter](https://www.npmjs.com/package/@buyong/pi-mcp-adapter)를 설치하세요.
+
+           ```sh
+           pi install npm:@buyong/pi-mcp-adapter
+           ```
+
+        2. `~/.pi/agent/settings.json`의 `extensions`에 `"-builtin:mcp"`를 추가하거나 `pi config`의 **Built-in**에서 `mcp`를 꺼 기본 MCP를 비활성화하세요.
+        3. `~/.pi/agent/mcp.json`(전역)이나 `.pi/mcp.json`(저장소)에 다음을 추가하세요.
+
+           ```json
+           {
+             "mcpServers": {
+               "codemap-search": { "command": "codemap-search", "args": ["mcp"] }
+             }
+           }
+           ```
+
+        4. 이미 `pi`가 실행 중이면 `/reload`를 실행하세요.
+    </TabItem>
+    <TabItem label="OpenCode">
+        전역 `~/.config/opencode/opencode.json`이나 저장소의 `opencode.json`에 추가하세요.
+
+        ```json
+        {
+          "$schema": "https://opencode.ai/config.json",
+          "mcp": {
+            "codemap-search": {
+              "type": "local",
+              "command": ["codemap-search", "mcp"],
+              "enabled": true
+            }
+          }
+        }
+        ```
+    </TabItem>
+</Tabs>
+
+## 연결 확인
+
+1. 탐색할 저장소 폴더에서 새 세션을 열고 에이전트에게 `initial_instructions`나 `find`를 호출하게 해 경로가 맞는지 확인하세요.
+2. 첫 실행이라 색인 준비 중 안내가 나오면 잠시 뒤 `search`로 심볼이 검색되는지 확인하세요.
+
+- **바이너리를 찾지 못할 때**: 터미널 `PATH`는 [설치 문제 해결](/ko/getting-started/installation/#문제-해결)을 참고하고, `~/.zshrc`·`~/.bashrc`를 읽지 않는 GUI 클라이언트는 `which codemap-search`(Windows는 `where.exe codemap-search`)로 확인한 절대 경로를 `command`에 적으세요.
+- **다른 폴더가 색인될 때**: 탐색할 저장소 폴더에서 클라이언트를 실행했는지 확인하세요(홈 디렉터리 `~`에서는 `codemap-search`가 동작하지 않습니다).
+
+## 전역 지침 자동 등록 (선택)
+
+클라이언트의 전역 지침 파일(`CLAUDE.md`, `AGENTS.md`)에 `codemap-search` 우선 사용 안내 한 줄을 넣어 두려면 `~/.codemap/config.toml`에 다음을 추가한 뒤 새 세션을 여세요.
+
+```toml
+[global_instructions]
+enabled = true
+```
+
+클라이언트별 대상 파일 경로는 [전역 지침](/ko/configuration/#전역-지침)을 참고하세요.
