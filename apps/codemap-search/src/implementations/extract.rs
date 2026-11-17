@@ -267,6 +267,47 @@ pub(super) fn namespace(node: Node<'_>, top: &str, source: &[u8]) -> String {
     names.join(".")
 }
 
+/// Whether `node` is an include guard: an `#ifndef NAME` or `#if !defined(NAME)` that wraps
+/// the whole file and defines `NAME` first. Its body is compiled wherever the file is first
+/// included, so it does not make the declarations inside it conditional.
+fn is_include_guard(node: Node<'_>, source: &[u8]) -> bool {
+    let guard = match node.kind() {
+        "preproc_ifdef" if node.child(0).is_some_and(|token| token.kind() == "#ifndef") => {
+            node.child_by_field_name("name")
+        }
+        "preproc_if" => node.child_by_field_name("condition"),
+        _ => None,
+    };
+    let Some(guard) = guard else {
+        return false;
+    };
+    let tested = compact(text(guard, source));
+    let name = match node.kind() {
+        "preproc_if" => tested
+            .strip_prefix("!defined")
+            .map(|name| name.trim_start_matches('(').trim_end_matches(')')),
+        _ => Some(tested.as_str()),
+    };
+    let wraps_file = node.parent().is_some_and(|root| {
+        root.parent().is_none()
+            && children(root)
+                .into_iter()
+                .all(|sibling| sibling == node || sibling.kind() == "comment")
+    });
+    let first = children(node)
+        .into_iter()
+        .find(|inner| *inner != guard && inner.kind() != "comment");
+    wraps_file
+        && node.child_by_field_name("alternative").is_none()
+        && first.is_some_and(|first| {
+            first.kind() == "preproc_def"
+                && first
+                    .child_by_field_name("name")
+                    .map(|defined| text(defined, source))
+                    == name
+        })
+}
+
 pub(super) fn conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
     let mut result = Vec::new();
     for node in std::iter::once(node).chain(crate::parser::ancestors(node)) {
@@ -278,7 +319,8 @@ pub(super) fn conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
                 | "preproc_else"
                 | "if_statement"
                 | "conditional_declaration"
-        ) {
+        ) && !is_include_guard(node, source)
+        {
             result
                 .push("conditional declaration requires unavailable compile/runtime facts".into());
         }
@@ -294,6 +336,24 @@ pub(super) fn conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
     result.sort();
     result.dedup();
     result
+}
+
+/// Whether `node` declares a constructor or destructor: a function declarator without a
+/// return type. It names its own type and binds nothing that could hide a type name.
+fn declares_constructor(node: Node<'_>) -> bool {
+    // A declaration that starts with its declarator is located by that declarator.
+    let declaration = if node.kind() == "function_declarator" {
+        node.parent()
+    } else {
+        Some(node)
+    };
+    declaration.is_some_and(|declaration| {
+        declaration.kind() == "declaration"
+            && declaration.child_by_field_name("type").is_none()
+            && declaration
+                .child_by_field_name("declarator")
+                .is_some_and(|declarator| declarator.kind() == "function_declarator")
+    })
 }
 
 pub(crate) fn collect(
@@ -318,7 +378,7 @@ pub(crate) fn collect(
             omitted += 1;
             break;
         }
-        if let Some(node) = at(tree, &binding.range) {
+        if let Some(node) = at(tree, &binding.range).filter(|node| !declares_constructor(*node)) {
             unit.shadows.push(ScopedName {
                 name: binding.name.clone(),
                 scope: range(imports::scope(node)),
@@ -356,6 +416,10 @@ pub(crate) fn collect(
             continue;
         };
         if language == "swift" && modifier(node, "extension", source) {
+            continue;
+        }
+        // `class Name;` and `struct Name;` name a type that is defined elsewhere.
+        if matches!(node.kind(), "class_specifier" | "struct_specifier") && body(node).is_none() {
             continue;
         }
         if owners

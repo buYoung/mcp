@@ -131,17 +131,19 @@ impl ImplementationIndex {
             else {
                 continue;
             };
-            // Preprocessed ranges require a complete type-evidence source map. Original
-            // declarations remain available through ordinary symbol navigation.
-            if file.is_macro_expanded() {
-                continue;
-            }
+            // These facts come from the original source and keep its coordinates after macro
+            // expansion. A type on a line the preprocessor dropped belongs to another build
+            // configuration, so only types on active lines enter the index.
+            let expansion = file.macro_expansion();
             index
                 .proof_digests
                 .insert(file.file_path.clone(), facts.source_digest.clone());
             index.omitted += facts.omitted;
             for (unit_id, unit) in facts.units.iter().enumerate() {
                 for (declaration, typ) in unit.types.iter().enumerate() {
+                    if expansion.is_some_and(|info| !info.is_active_line(typ.range.start_line)) {
+                        continue;
+                    }
                     if index.types.len() >= TYPES_PER_SNAPSHOT {
                         index.omitted += 1;
                         continue;

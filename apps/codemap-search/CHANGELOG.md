@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 
+- C++ implementation relationships now reach across files. A virtual method lists the overrides in the files that include its header, and an override names the declaration it implements. Before, they appeared only when both classes were in one file, and not even then in most real code. Four things were in the way: a base class was looked up in the same file only; a file whose macros were expanded had no implementation relationships; every class inside an include guard counted as a conditional declaration; and a forward declaration (`class Name;`) or a declared constructor or destructor hid the class of that name. A base class in another file is found when the file includes its header directly and the name is visible from the namespace of the derived class. Classes inside other `#if` blocks or on lines the preprocessor left out stay unlinked. Existing indexes are rebuilt once.
 - `read` and `search` say that a file's event input is unavailable once per response instead of under every declaration of that file. This note appears for C and C++ files whose macros were expanded; reading one such file could repeat it more than a hundred times.
 
 ### Fixed

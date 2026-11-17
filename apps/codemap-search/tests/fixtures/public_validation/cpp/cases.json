@@ -1,0 +1,24 @@
+[
+  {
+    "id": "regression:implementation:guarded-header",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/contract.h"},
+    "contains": ["implementation candidate: LocalHandler.priority — L14", "implementation candidate: LocalHandler.reset — L15"],
+    "excludes": ["implementation candidate: ExtraHandler"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:implementation:included-header",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/contract.h"},
+    "contains": ["implementation candidate: RemoteHandler.priority — _codemap_language_regressions/remote_handler.cpp:6", "implementation candidate: RemoteHandler.reset — _codemap_language_regressions/remote_handler.cpp:7"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:implementation:override-declaration",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/remote_handler.cpp"},
+    "contains": ["implements/overrides declaration: Handler.priority — _codemap_language_regressions/contract.h:8", "implements/overrides declaration: Handler.reset — _codemap_language_regressions/contract.h:9"],
+    "category": "implementations"
+  }
+]

@@ -245,7 +245,7 @@ impl ImplementationIndex {
         if !imported.is_empty() {
             return None;
         }
-        if let Some(found) = self.required_member(unit, &source.file_path, bare) {
+        if let Some(found) = self.required_member(unit, &source.file_path, namespace, &name, bare) {
             return Some(found);
         }
         self.namespace_member(unit, &source.file_path, namespace, &name, bare)
@@ -400,17 +400,34 @@ impl ImplementationIndex {
     }
 
     /// A type declared in a file whose names this one loads as a whole: a Ruby file loaded
-    /// with `require_relative` or a Dart library imported without a prefix.
+    /// with `require_relative`, a Dart library imported without a prefix or a C++ file named
+    /// by `#include`. A C++ name must also lead to the type from a namespace that encloses the
+    /// reference, because an included file brings its namespaces with it.
     fn required_member(
         &self,
         unit: &ImplementationUnit,
         path: &str,
+        namespace: &str,
+        name: &str,
         bare: &str,
     ) -> Option<(usize, Vec<Location>)> {
         let language = unit.language.as_str();
-        if !matches!(language, "ruby" | "dart") {
+        if !matches!(language, "ruby" | "dart" | "cpp") {
             return None;
         }
+        let scope = normalized(namespace);
+        let is_visible = |typ: &TypeDeclaration| {
+            if language != "cpp" {
+                return true;
+            }
+            let qualified = normalized(&typ.qualified_name);
+            qualified
+                .strip_suffix(name)
+                .is_some_and(|outer| match outer.strip_suffix('.') {
+                    Some(outer) => scope == outer || scope.starts_with(&format!("{outer}.")),
+                    None => outer.is_empty(),
+                })
+        };
         let mut candidates = Vec::new();
         for import in &unit.imports {
             let Some(module) = import.entry.source.as_deref() else {
@@ -422,6 +439,13 @@ impl ImplementationIndex {
                         && relative_path(path, module)
                             .is_some_and(|module| module_matches(target, &module))
                 }
+                // The include path starts at the including file's folder or at an include
+                // directory, so the included file's path ends with it.
+                "cpp" => {
+                    relative_path(path, module).is_some_and(|included| included == target)
+                        || target == module
+                        || target.ends_with(&format!("/{module}"))
+                }
                 _ => {
                     import.entry.kind == ImportKind::Glob
                         && self.dart_libraries.matches(path, module, target)
@@ -432,6 +456,7 @@ impl ImplementationIndex {
                 if self.unit(id).language == language
                     && typ.parameters.is_empty()
                     && typ.is_complete
+                    && is_visible(typ)
                     && loads(&self.files[self.types[id].file].file_path)
                 {
                     candidates.push((
