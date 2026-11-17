@@ -9,7 +9,9 @@
         "format": "biome check --write .",
         "check-types": "turbo run check-types",
         "prepare": "husky",
-        "release": "release-it",
+        "release": "node scripts/release/release.mjs",
+        "docs:pages:create": "pnpm --filter @buyong-mcp/codemap-docs run pages:create",
+        "docs:deploy": "pnpm --filter @buyong-mcp/codemap-docs run deploy",
         "bench:start": "node benchmark/codex/start.mjs"
     },
     "devDependencies": {
@@ -17,6 +19,7 @@
         "husky": "^9.1.7",
         "lint-staged": "^17.6.0",
         "release-it": "^20.2.1",
+        "semver": "7.7.4",
         "turbo": "^2.11.7",
         "typescript": "6.0.3",
         "@inquirer/prompts": "8.4.2"

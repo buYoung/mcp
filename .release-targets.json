@@ -1,0 +1,9 @@
+{
+    "serviceApps": [
+        {
+            "name": "codemap-search",
+            "path": "apps/codemap-search",
+            "config": ".release-it.json"
+        }
+    ]
+}

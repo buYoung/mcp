@@ -10,6 +10,8 @@
         "dev": "astro dev",
         "build": "astro build",
         "preview": "astro preview",
+        "pages:create": "pnpm --allow-build=esbuild --allow-build=workerd dlx wrangler@4 pages project create codemap-search --production-branch=main",
+        "deploy": "pnpm run build && pnpm --allow-build=esbuild --allow-build=workerd dlx wrangler@4 pages deploy dist --project-name=codemap-search --branch=main",
         "check-types": "astro sync && astro check"
     },
     "dependencies": {

@@ -1,0 +1,87 @@
+name: codemap-docs Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/codemap-docs/**"
+      - "apps/codemap-search/install.sh"
+      - "apps/codemap-search/install.ps1"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/codemap-docs-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: codemap-docs-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build codemap-docs
+        run: pnpm --filter @buyong-mcp/codemap-docs build
+
+      - name: Configure AWS credentials via GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DOCS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Load Cloudflare credentials from AWS SSM Parameter Store
+        shell: bash
+        env:
+          SSM_PREFIX: ${{ vars.AWS_DOCS_SSM_PREFIX || '/buyong-mcp/codemap-docs' }}
+        run: |
+          set +x
+          set -euo pipefail
+
+          params_json="$(aws ssm get-parameters-by-path \
+            --path "$SSM_PREFIX" \
+            --with-decryption \
+            --query 'Parameters[*].{Name:Name,Value:Value}' \
+            --output json)"
+
+          while IFS= read -r row; do
+            [ -n "$row" ] || continue
+            key="$(printf '%s' "$row" | jq -r '.Name' | awk -F'/' '{print $NF}')"
+            val="$(printf '%s' "$row" | jq -r '.Value')"
+            case "$key" in
+              CLOUDFLARE_ACCOUNT_ID|CLOUDFLARE_API_TOKEN)
+                [ -n "$val" ] || { echo "::error::$key is empty in SSM"; exit 1; }
+                printf '::add-mask::%s\n' "$val"
+                printf '%s=%s\n' "$key" "$val" >> "$GITHUB_ENV"
+                ;;
+            esac
+          done < <(printf '%s' "$params_json" | jq -c '.[]')
+
+      - name: Deploy static site to Cloudflare Pages
+        shell: bash
+        run: |
+          set +x
+          set -euo pipefail
+          : "${CLOUDFLARE_ACCOUNT_ID:?Missing CLOUDFLARE_ACCOUNT_ID from SSM}"
+          : "${CLOUDFLARE_API_TOKEN:?Missing CLOUDFLARE_API_TOKEN from SSM}"
+
+          pnpm --allow-build=esbuild --allow-build=workerd dlx wrangler@4 pages deploy apps/codemap-docs/dist \
+            --project-name=codemap-search \
+            --branch=main \
+            --commit-hash="$GITHUB_SHA" \
+            --commit-dirty=false

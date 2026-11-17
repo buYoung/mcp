@@ -1,0 +1,22 @@
+{
+    "$schema": "https://unpkg.com/release-it@20.2.1/schema/release-it.json",
+    "npm": false,
+    "git": {
+        "requireBranch": "main",
+        "requireUpstream": true,
+        "commit": true,
+        "commitMessage": "chore(release): codemap-v${version}",
+        "tag": true,
+        "tagName": "codemap-v${version}",
+        "tagAnnotation": "codemap-search v${version}",
+        "tagMatch": "codemap-v[0-9]*",
+        "commitsPath": ".",
+        "push": true
+    },
+    "github": {
+        "release": false
+    },
+    "gitlab": {
+        "release": false
+    }
+}
