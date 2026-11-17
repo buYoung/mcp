@@ -27,5 +27,13 @@
     "arguments": {"file_path": "_codemap_language_regressions/named.h"},
     "contains": ["implementation candidate: Person.rename — _codemap_language_regressions/person.cpp:5"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:foreign-scope",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/ledger.cpp"},
+    "contains": ["limit_total (L14)"],
+    "excludes": ["clamp_total (L"],
+    "category": "wrong_caller"
   }
 ]

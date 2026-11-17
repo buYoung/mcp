@@ -5,5 +5,13 @@
     "arguments": {"file_path": "_codemap_language_regressions/signature/layout.ts"},
     "contains": ["implementation candidate: Grid.add — _codemap_language_regressions/signature/grid.ts:5", "implementation candidate: Grid.resize — _codemap_language_regressions/signature/grid.ts:7"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:foreign-receiver",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/parts.ts"},
+    "contains": ["anyParts (L13)"],
+    "excludes": ["dateParts (L"],
+    "category": "wrong_caller"
   }
 ]

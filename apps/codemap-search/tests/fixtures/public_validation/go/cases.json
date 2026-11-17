@@ -6,5 +6,13 @@
     "contains": ["implementation candidate: signature.MemoryStore.Lookup — _codemap_language_regressions/signature/memory.go:7", "implementation candidate: signature.MemoryStore.Persist — _codemap_language_regressions/signature/memory.go:11"],
     "excludes": ["OtherStore"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:foreign-receiver",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/gauge.go"},
+    "contains": ["SwapCurrent (L34)"],
+    "excludes": ["SwapCounter (L", "GrowBuilder (L"],
+    "category": "wrong_caller"
   }
 ]

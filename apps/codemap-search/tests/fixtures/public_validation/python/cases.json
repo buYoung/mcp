@@ -1,0 +1,10 @@
+[
+  {
+    "id": "regression:foreign-receiver",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/render.py"},
+    "contains": ["render_any (L16)"],
+    "excludes": ["render (L"],
+    "category": "wrong_caller"
+  }
+]

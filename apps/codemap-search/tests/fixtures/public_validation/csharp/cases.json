@@ -27,5 +27,12 @@
     "contains": ["implementation: unresolved"],
     "excludes": ["implementation candidate: Shop.Stores.MemoryStore.Audit"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:extension-receiver",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/TextExtensions.cs"},
+    "contains": ["Banner.Title (L12)"],
+    "category": "wrong_caller"
   }
 ]

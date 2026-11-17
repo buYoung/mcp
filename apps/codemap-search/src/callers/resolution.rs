@@ -140,6 +140,9 @@ pub(crate) struct SourceResolver<'a> {
     module_paths: RefCell<HashMap<PathBuf, Option<Rc<local::ModulePaths>>>>,
     /// Names of indexed type declarations, built on first use.
     type_names: RefCell<Option<Rc<HashSet<&'a str>>>>,
+    /// Names that indexed files declare or import under, each with whether a trait or an
+    /// interface has it, built on first use.
+    declared_names: RefCell<Option<Rc<HashMap<&'a str, bool>>>>,
     /// Indexed Dart libraries by their path below `lib/`, built on first use.
     dart_libraries: RefCell<Option<Rc<crate::implementations::DartLibraries>>>,
     /// Lookups for calls into other files, built on first use.
@@ -365,6 +368,7 @@ impl<'a> SourceResolver<'a> {
             dependency_ranges: RefCell::new(Vec::new()),
             module_paths: RefCell::new(HashMap::new()),
             type_names: RefCell::new(None),
+            declared_names: RefCell::new(None),
             dart_libraries: RefCell::new(None),
             module_lookups: RefCell::new(None),
             export_origins: RefCell::new(HashMap::new()),

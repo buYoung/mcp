@@ -225,6 +225,9 @@ const UNTYPED: &[&str] = &[
     "mixed",
 ];
 
+/// Path keywords that stand for a type or module the path does not spell out.
+const RELATIVE_SCOPES: &[&str] = &["Self", "self", "super", "crate", "static", "parent"];
+
 fn is_simple_identifier(text: &str) -> bool {
     !text.is_empty()
         && text
@@ -246,6 +249,93 @@ fn module_may_hold(module: &str, target_file: &str) -> bool {
         .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '-'))
         .filter(|segment| !segment.is_empty())
         .any(|segment| components.contains(&segment.to_lowercase()))
+}
+
+/// The type a parameter writes when its grammar gives that type no field, as Kotlin does.
+fn unlabelled_type(parameter: Node) -> Option<Node> {
+    let mut cursor = parameter.walk();
+    let found = parameter
+        .named_children(&mut cursor)
+        .find(|child| child.kind().ends_with("_type"));
+    found
+}
+
+/// Whether the function declared at `node` extends a type it is not a member of, as Kotlin
+/// `fun Type.name()`, C# `Name(this Type value)` and the members of a Dart or Scala
+/// `extension` do: member syntax on a value of that type or of any subtype reaches it.
+fn extends_receiver(node: Node, source: &Source) -> bool {
+    let follows_receiver = node
+        .child_by_field_name("name")
+        .and_then(|name| name.prev_sibling())
+        .is_some_and(|previous| previous.kind() == ".");
+    let mut block = node.parent();
+    while let Some(parent) = block.filter(|parent| !parent.kind().starts_with("extension")) {
+        block = parent.parent();
+    }
+    follows_receiver
+        || block.is_some()
+        || node
+            .child_by_field_name("parameters")
+            .and_then(|parameters| parameters.named_child(0))
+            .is_some_and(|parameter| {
+                let mut cursor = parameter.walk();
+                let extends = parameter
+                    .children(&mut cursor)
+                    .any(|child| child.kind() == "modifier" && text(child, source) == Some("this"));
+                extends
+            })
+}
+
+/// The path before the last `::` of the callee at `at`, e.g. `std::cmp` in
+/// `std::cmp::max(a, b)`.
+fn scope_path<'s>(at: Node, source: &'s Source) -> Option<&'s str> {
+    // PHP keeps the scope in the call itself; Rust and C++ keep it in the callee.
+    if at.kind() == "scoped_call_expression" {
+        return at
+            .child_by_field_name("scope")
+            .and_then(|scope| text(scope, source));
+    }
+    let mut callee = at.child_by_field_name("function")?;
+    while let Some(inner) = callee.child_by_field_name("function") {
+        callee = inner;
+    }
+    if !matches!(callee.kind(), "scoped_identifier" | "qualified_identifier") {
+        return None;
+    }
+    text(callee, source)?
+        .rsplit_once("::")
+        .map(|(path, _)| path)
+}
+
+fn names_type(node: Node, source: &Source, name: &str) -> bool {
+    if matches!(node.kind(), "type_identifier" | "identifier") && text(node, source) == Some(name) {
+        return true;
+    }
+    let mut cursor = node.walk();
+    let found = node
+        .named_children(&mut cursor)
+        .any(|child| names_type(child, source, name));
+    found
+}
+
+/// Whether a declaration around `at` introduces `name` as a type parameter or names it in a
+/// bound of one.
+fn has_type_parameter(mut at: Node, source: &Source, name: &str) -> bool {
+    loop {
+        let declares = ["type_parameters", "parameters"].iter().any(|field| {
+            at.child_by_field_name(field).is_some_and(|list| {
+                matches!(list.kind(), "type_parameters" | "template_parameter_list")
+                    && names_type(list, source, name)
+            })
+        });
+        if declares {
+            return true;
+        }
+        let Some(parent) = at.parent() else {
+            return false;
+        };
+        at = parent;
+    }
 }
 
 /// A bare callee or receiver bound only by imports from modules that cannot hold the target
@@ -344,6 +434,7 @@ fn declared_type(source: &Source, at: Node, name: &str) -> Option<String> {
                 }
                 return parameter
                     .child_by_field_name("type")
+                    .or_else(|| unlabelled_type(parameter))
                     .and_then(|node| text(node, source))
                     .map(|value| value.trim().trim_start_matches(':').trim().to_string())
                     .filter(|value| !value.is_empty());
@@ -357,8 +448,9 @@ fn declared_type(source: &Source, at: Node, name: &str) -> Option<String> {
 impl<'a> SourceResolver<'a> {
     /// Source evidence that an unresolved call reaches something other than `target`: the
     /// calling file declares a type under the callee's name, the name is imported from an
-    /// unrelated module, or the receiver is declared with a type that is neither the target's
-    /// owner nor any indexed type.
+    /// unrelated module, the receiver is declared with a type that is neither the target's
+    /// owner nor any indexed type, or the call path names a type this repository does not
+    /// declare.
     pub(super) fn rules_out_local_call(
         &self,
         file: &ExtractedFile,
@@ -412,20 +504,24 @@ impl<'a> SourceResolver<'a> {
             return false;
         };
         import_rules_out(&source, at, call, target_file)
-            || self.receiver_type_rules_out(&source, at, call, target)
+            || self.receiver_type_rules_out(&source, at, call, target_file, target)
+            || self.scope_rules_out(&source, at, target_file, target)
     }
 
+    /// A receiver declared with a type this repository does not declare calls a member of
+    /// that type: neither a member of the target's owner nor a function outside any type.
     fn receiver_type_rules_out(
         &self,
         source: &Source,
         at: Node,
         call: &CallSite,
+        target_file: &str,
         target: &ExtractedSymbol,
     ) -> bool {
-        let Some(owner) = target.owner.as_deref() else {
-            return false;
-        };
-        let owner = owner.rsplit(['.', ':']).next().unwrap_or(owner);
+        let owner = target
+            .owner
+            .as_deref()
+            .map(|owner| owner.rsplit(['.', ':']).next().unwrap_or(owner));
         let Some(receiver) = call
             .receiver
             .as_deref()
@@ -445,7 +541,132 @@ impl<'a> SourceResolver<'a> {
             && !names.iter().all(|name| UNTYPED.contains(name))
             && !names
                 .iter()
-                .any(|name| *name == owner || self.is_indexed_type(name))
+                .any(|name| Some(*name) == owner || self.is_indexed_type(name))
+            && !self.is_extension(target_file, target)
+    }
+
+    /// Whether `target` extends a receiver type, or its declaration cannot be read to tell.
+    fn is_extension(&self, target_file: &str, target: &ExtractedSymbol) -> bool {
+        self.source(target_file).is_none_or(|source| {
+            node_at(&source, &target.range).is_none_or(|node| extends_receiver(node, &source))
+        })
+    }
+
+    /// A `Type::name(...)` path names another declaration when this repository neither
+    /// declares nor imports that type, e.g. `String::from` beside the only indexed `from`.
+    fn scope_rules_out(
+        &self,
+        source: &Source,
+        at: Node,
+        target_file: &str,
+        target: &ExtractedSymbol,
+    ) -> bool {
+        let Some(path) = scope_path(at, source) else {
+            return false;
+        };
+        // An implementation block for a type without a plain name records no owner.
+        let Some(owner) = target
+            .owner
+            .clone()
+            .or_else(|| self.implemented_type(target_file, target))
+        else {
+            return false;
+        };
+        let owner = owner.rsplit(['.', ':']).next().unwrap_or(&owner);
+        let segments: Vec<&str> = path
+            .split("::")
+            .flat_map(|part| part.split('\\'))
+            .filter(|segment| !segment.is_empty())
+            .collect();
+        let (Some(head), Some(name)) = (segments.first().copied(), segments.last().copied()) else {
+            return false;
+        };
+        let is_plain = segments.iter().all(|segment| {
+            segment
+                .chars()
+                .all(|character| character.is_alphanumeric() || character == '_')
+        });
+        is_plain
+            && !RELATIVE_SCOPES.contains(&head)
+            && name != owner
+            && !has_type_parameter(at, source, head)
+            && !has_binding(source, at, head, None)
+            && self.declared_name(head).is_none()
+            && self.declared_name(name).is_none()
+            && !self.is_reached_through(target_file, target, owner, name)
+    }
+
+    /// The type that the implementation block around `target` is written for, when the block
+    /// names it by a plain path, e.g. `i32` in `impl From<Code> for i32`.
+    fn implemented_type(&self, target_file: &str, target: &ExtractedSymbol) -> Option<String> {
+        let source = self.source(target_file)?;
+        let mut node = node_at(&source, &target.range)?;
+        while node.kind() != "impl_item" {
+            node = node.parent()?;
+        }
+        let written = text(node.child_by_field_name("type")?, &source)?;
+        written
+            .chars()
+            .all(|character| character.is_alphanumeric() || matches!(character, '_' | ':'))
+            .then(|| written.to_string())
+    }
+
+    /// Whether a path through a type called `name` can still reach `target`, whose owner is
+    /// `owner`: a trait or an interface lends its members to other types, a type parameter
+    /// stands for any type, and a path through the trait that the holding block implements
+    /// reaches every implementation. Also true when the declaration cannot be read.
+    fn is_reached_through(
+        &self,
+        target_file: &str,
+        target: &ExtractedSymbol,
+        owner: &str,
+        name: &str,
+    ) -> bool {
+        if self.declared_name(owner) == Some(true) {
+            return true;
+        }
+        let Some(source) = self.source(target_file) else {
+            return true;
+        };
+        let Some(node) = node_at(&source, &target.range) else {
+            return true;
+        };
+        if has_type_parameter(node, &source, owner) {
+            return true;
+        }
+        let mut block = Some(node);
+        while let Some(current) = block {
+            if let Some(implemented) = current.child_by_field_name("trait") {
+                let written = text(implemented, &source).unwrap_or_default();
+                let plain = written.split('<').next().unwrap_or(written);
+                return plain.rsplit("::").next().map(str::trim) == Some(name);
+            }
+            block = current.parent();
+        }
+        false
+    }
+
+    /// `None` when no indexed file declares a symbol called `name` or imports something
+    /// under it, else whether a trait or an interface has that name.
+    fn declared_name(&self, name: &str) -> Option<bool> {
+        let names = self
+            .declared_names
+            .borrow_mut()
+            .get_or_insert_with(|| {
+                let mut names = HashMap::new();
+                for file in self.files {
+                    for symbol in &file.symbols {
+                        *names.entry(symbol.name.as_str()).or_default() |=
+                            matches!(symbol.kind.as_str(), "trait" | "interface");
+                    }
+                    for import in file.navigation.iter().flat_map(|file| &file.imports) {
+                        names.entry(import.local_name.as_str()).or_default();
+                    }
+                }
+                Rc::new(names)
+            })
+            .clone();
+        names.get(name).copied()
     }
 
     fn is_indexed_type(&self, name: &str) -> bool {

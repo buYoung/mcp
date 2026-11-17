@@ -42,5 +42,13 @@
     "contains": ["implementation: unresolved"],
     "excludes": ["implementation candidate: pay.impl.PaypalGateway.audit"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:foreign-receiver",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/Lines.kt"},
+    "contains": ["writeBody (L12)", "writeHeading (L19)"],
+    "excludes": ["writeTitle (L"],
+    "category": "wrong_caller"
   }
 ]

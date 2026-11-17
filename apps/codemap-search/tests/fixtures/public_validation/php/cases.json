@@ -5,5 +5,13 @@
     "arguments": {"file_path": "_codemap_language_regressions/BrokenStatement.php", "view": "definitions"},
     "contains": ["Report [class, exported] — L5-18", "build [method, exported] — L7-12", "size [method, exported] — L14-17"],
     "category": "declarations"
+  },
+  {
+    "id": "regression:foreign-scope",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/Schedule.php"},
+    "contains": ["parse_with (L23)"],
+    "excludes": ["parse_day (L"],
+    "category": "wrong_caller"
   }
 ]
