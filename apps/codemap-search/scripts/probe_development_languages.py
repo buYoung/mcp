@@ -8,7 +8,7 @@ import shutil
 import subprocess
 
 from public_validation import DATA, Checks, McpClient, save_json, sha256
-from validate_development_languages import create_probe, validate_probe
+from validate_development_languages import create_probe, create_regressions, validate_probe
 
 
 def main():
@@ -36,6 +36,7 @@ def main():
             root.mkdir(parents=True)
             subprocess.run(["git", "init", "--quiet", str(root)], check=True)
             probe = create_probe(root, name, language["extensions"][0])
+            regressions = create_regressions(root, name)
             config = (DATA / "config.toml").read_text().replace("is_shell_support_enabled = false", "is_shell_support_enabled = true")
             if profile == "structural":
                 config = config.replace("navigation_context_default = false", "navigation_context_default = true").replace("navigation_store_references = false", "navigation_store_references = true")
@@ -46,6 +47,8 @@ def main():
                     client.ready(probe, timeout=30)
                     checks = Checks(client, root)
                     validate_probe(checks, probe, name)
+                    for case in regressions:
+                        checks.case(case)
                 result = {"language": name, "profile": profile, "checks": checks.results}
                 result["counts"] = {status: sum(check["status"] == status for check in checks.results) for status in ("pass", "fail", "unverified")}
                 summary["results"].append(result)

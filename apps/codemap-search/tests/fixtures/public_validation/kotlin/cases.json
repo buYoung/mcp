@@ -1,0 +1,16 @@
+[
+  {
+    "id": "regression:ends-with-annotation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/EndsWithAnnotation.kt", "view": "definitions"},
+    "contains": ["EndsWithAnnotation [class", "stays [method"],
+    "category": "parser_termination"
+  },
+  {
+    "id": "regression:ends-with-member-annotation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/EndsWithMemberAnnotation.kt", "view": "definitions"},
+    "contains": ["size [property", "stays ["],
+    "category": "parser_termination"
+  }
+]

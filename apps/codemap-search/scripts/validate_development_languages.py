@@ -22,7 +22,7 @@ import subprocess
 import sys
 import time
 
-from public_validation import APP, DATA, RESULTS, SOURCE_ROWS, Checks, McpClient, command, declarations, save_json, sha256
+from public_validation import APP, DATA, FIXTURES, RESULTS, SOURCE_ROWS, Checks, McpClient, command, declarations, save_json, sha256
 
 MANIFEST = DATA / "development-languages.json"
 CTAGS = {"java": "Java", "csharp": "C#", "php": "PHP", "ruby": "Ruby", "lua": "Lua",
@@ -288,6 +288,15 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
     if expected:
         checks.query(f"search:{path}", "search", {"query": f"{token} {Path(path).stem}", "workspace_scope": "all", "caller_context": False},
             contains=[path], category="search_discovery")
+
+
+def create_regressions(root, language):
+    """Copy the language's examples of fixed defects into the worktree and return their checks."""
+    examples = FIXTURES / language
+    if not (examples / "cases.json").is_file():
+        return []
+    shutil.copytree(examples, root / "_codemap_language_regressions", ignore=shutil.ignore_patterns("cases.json"))
+    return json.loads((examples / "cases.json").read_text())
 
 
 def validate_probe(checks, path, language):

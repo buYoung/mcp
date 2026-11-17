@@ -23,7 +23,7 @@
     "parser_sha256": "8a4966416a4cbb303e6b671d704ac4a258db37b302988baa7ec67d3b6234441f",
     "parser_gzip_sha256": "40144e82deb2d44cce3d05ee1ad455b1766c40cfdafc3066826299b0f72d6305",
     "generator": "tree-sitter-cli 0.25.6; ABI 15",
-    "scanner_sha256": "164c2bb928d23765ed38c3a322deaef9b52d6e147cec7cdf45add90d4fa6101c",
+    "scanner_sha256": "201a6d5dbf86df917603aa5997deeacef8d85abbb1e4d23fe7852be8d2b69a70",
     "grammar_sha256": "cb5841e643e38897fc626c952d32d0ef07b9723a920b3d70cf4f88cbb1050f1c"
   }
 }

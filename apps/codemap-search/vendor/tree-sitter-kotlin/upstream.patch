@@ -18,3 +18,25 @@
  
      function_value_parameters: $ => seq(
        '(',
+--- a/src/scanner.c
++++ b/src/scanner.c
+@@ -314,7 +314,8 @@
+                 return true;
+             case '@':
+                 if (valid_symbols[CONSTRUCTOR]) {
+-                    while (!iswspace(lexer->lookahead)) {
++                    // The end of the file is not whitespace: a file that ends in an annotation must stop the loop.
++                    while (!iswspace(lexer->lookahead) && !lexer->eof(lexer)) {
+                         skip(lexer);
+                     }
+                     while (iswspace(lexer->lookahead)) {
+@@ -331,7 +332,8 @@
+                 }
+                 if (valid_symbols[GET] || valid_symbols[SET]) {
+                     bool saw_paren = false;
+-                    while ((saw_paren ? lexer->lookahead != '\n' : !iswspace(lexer->lookahead))) {
++                    while (!lexer->eof(lexer) &&
++                           (saw_paren ? lexer->lookahead != '\n' : !iswspace(lexer->lookahead))) {
+                         skip(lexer);
+                         if (lexer->lookahead == '(') {
+                             saw_paren = true;

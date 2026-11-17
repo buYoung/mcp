@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A Kotlin file that ends with an annotation and no line break after it no longer stops the server. Before, parsing such a file never finished: reading it got no answer, later requests got no answer either, and indexing the repository kept a processor core busy without end.
+
 ## [1.0.0] - 2026-11-17
 
 ### Added
