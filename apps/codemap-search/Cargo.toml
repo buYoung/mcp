@@ -9,7 +9,7 @@ repository = "https://github.com/buYoung/mcp"
 readme = "README.md"
 keywords = ["mcp", "code-search", "tree-sitter", "tantivy", "ripgrep"]
 categories = ["command-line-utilities", "development-tools"]
-exclude = [".codemap/", ".codemap-index/", "/docs", "/tests/fixtures", "/experiments", "/validation"]
+exclude = [".codemap/", ".codemap-index/", "/.release-it.json", "/docs", "/tests/fixtures", "/experiments", "/validation"]
 
 # Non-default instrumentation for local related-terms measurements, not production policy.
 [features]

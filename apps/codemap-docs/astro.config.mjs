@@ -2,6 +2,7 @@ import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
+    site: "https://codemap-search.pages.dev",
     integrations: [
         starlight({
             title: "codemap-search",
