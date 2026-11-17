@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""저장소 루트 설정으로 overview/search/read/grep/find를 실행합니다. 입력 경로는 현재 디렉터리 기준입니다."""
+"""저장소 루트 설정으로 search/read/grep/find/analyze를 실행합니다. 입력 경로는 현재 디렉터리 기준입니다."""
 
 import argparse
 import json
@@ -22,41 +22,27 @@ def find_workspace_root(caller_dir):
     return caller_dir
 
 
-def resolve_input_paths(tool, arguments, caller_dir, workspace_root):
+def resolve_input_paths(tool, arguments, caller_dir):
     resolved = dict(arguments)
     if tool in ('grep', 'find') and not isinstance(resolved.get('path'), str):
         resolved['path'] = '.'
-    if tool == 'search':
+    if tool in ('search', 'analyze'):
         return resolved
     for key, value in resolved.items():
         normalized_key = key.replace('_', '').replace('-', '').lower()
         if tool == 'read':
             is_path = normalized_key in ('filepath', 'path', 'file', 'query')
-        elif tool == 'overview':
-            is_path = key in ('path', 'file_path', 'file', 'query')
         else:
             is_path = key == 'path'
         if is_path and isinstance(value, str):
-            if tool == 'overview' and value in ('', 'all', '전체'):
-                continue
             path = Path(value.replace('\\', '/'))
-            path = path if path.is_absolute() else caller_dir / path
-            if tool == 'overview':
-                # Existing paths are cwd-relative; unknown names may be workspace aliases.
-                if not path.exists():
-                    continue
-                try:
-                    resolved[key] = str(path.resolve().relative_to(workspace_root))
-                except ValueError:
-                    resolved[key] = str(path)
-            else:
-                resolved[key] = str(path)
+            resolved[key] = str(path if path.is_absolute() else caller_dir / path)
     return resolved
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('tool', choices=('overview', 'search', 'read', 'grep', 'find'), help='호출할 MCP 도구')
+    parser.add_argument('tool', choices=('search', 'read', 'grep', 'find', 'analyze'), help='호출할 MCP 도구')
     parser.add_argument('arguments', help='도구에 전달할 JSON 객체')
     options = parser.parse_args()
     try:
@@ -68,7 +54,7 @@ def main():
 
     caller_dir = Path.cwd()
     workspace_root = find_workspace_root(caller_dir)
-    arguments = resolve_input_paths(options.tool, arguments, caller_dir, workspace_root)
+    arguments = resolve_input_paths(options.tool, arguments, caller_dir)
     print(f'cm: 작업공간 {workspace_root}', file=sys.stderr)
     print(f'cm: 저장소 설정 {workspace_root / ".codemap/config.toml"}', file=sys.stderr)
     binary = Path(__file__).resolve().with_name('codemap-search')

@@ -22,7 +22,7 @@ import subprocess
 import sys
 import time
 
-from public_validation import APP, DATA, Checks, McpClient, command, save_json, sha256
+from public_validation import APP, DATA, RESULTS, SOURCE_ROWS, Checks, McpClient, command, declarations, save_json, sha256
 
 MANIFEST = DATA / "development-languages.json"
 CTAGS = {"java": "Java", "csharp": "C#", "php": "PHP", "ruby": "Ruby", "lua": "Lua",
@@ -183,7 +183,7 @@ def independent_oracle(path, language, oracle_root=None):
             declarations.append(declaration)
         return {"oracle": name, "version": version, "declarations": declarations, "file_sha256": sha256(path)}
     if language in CTAGS:
-        # C/C++ disable prototypes by default even though overview includes them.
+        # C/C++ disable prototypes by default even though the definitions view includes them.
         kind_options = [f"--kinds-{CTAGS[language]}=+p"] if language in {"c", "cpp"} else []
         raw = command(["ctags", "--options=NONE", f"--language-force={CTAGS[language]}", *kind_options, "--output-format=json",
             "--fields=+neK", "--extras=-p", "-o", "-", str(path.resolve())], stderr=subprocess.PIPE)
@@ -205,25 +205,24 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
     # read's documented contract strips a leading UTF-8 BOM before line 1.
     source = data.decode("utf-8", errors="replace").removeprefix("\ufeff")
     lines = source.splitlines()
-    text, elapsed, error = checks.client.tool("overview", {"path": path})
+    text, elapsed, error = checks.client.definitions(path)
     try:
         data.decode("utf-8")
     except UnicodeDecodeError as failure:
         # The user chose UTF-8-only indexing. Verify the explicit exclusion and
         # the independent live-read contract instead of requiring an index entry.
         checks.record(f"encoding-exclusion:{path}", "encoding_policy",
-            error and "Not indexed: invalid UTF-8" in text,
+            not error and "Not indexed: invalid UTF-8" in text and not declarations(text, path),
             {"file": path, "invalid_byte_offset": failure.start, "policy": "UTF-8-only index", "response": text}, elapsed)
         first = data[:failure.start].count(b"\n") + 1
         checks.query(f"encoding-read:{path}", "read", {"file_path": path, "offset": first, "limit": 1},
             contains=[f"{first}→{lines[first - 1]}", "Not indexed: invalid UTF-8"], category="encoding_policy")
         return
-    actual = [(name, kind, int(start), int(end)) for name, kind, start, end in
-        re.findall(r"^- (.+?) \(([^)]+)\) \[L(\d+)-(\d+)\]", text, re.M)]
+    actual = [row[:4] for row in declarations(text, path)]
     invalid = [item for item in actual if not 1 <= item[2] <= item[3] <= len(lines)
         or item[0].strip('"\'`') not in "\n".join(lines[item[2]-1:item[3]])]
-    checks.record(f"overview-source:{path}", "source_consistency", not error and not invalid
-        and text.startswith(f"# Detailed Codemap: {path} "),
+    checks.record(f"definitions-source:{path}", "source_consistency", not error and not invalid
+        and f"## 1. {path}\n" in text,
         {"file": path, "symbols": len(actual), "invalid": invalid, "protocol_error": error}, elapsed)
     try:
         oracle = independent_oracle(checks.root / path, language, oracle_root)
@@ -263,7 +262,7 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
     has_oracle = bool(oracle.get("oracle")) and "error" not in oracle
     has_comparable_symbols = bool(expected) or not any(row[1] == "fn" for row in actual)
     status = None if has_oracle and has_comparable_symbols and not missing and not end_mismatch else "unverified"
-    checks.record(f"overview-oracle:{path}", "declaration_comparison", not error and not missing and not end_mismatch,
+    checks.record(f"definitions-oracle:{path}", "declaration_comparison", not error and not missing and not end_mismatch,
         {"file": path, "oracle": oracle.get("oracle"), "expected_count": len(expected), "missing": missing,
             "end_positions_available": sum(item.get("end") is not None for item in expected),
             "end_mismatch": end_mismatch, "note": oracle.get("limitation", oracle.get("error")),
@@ -273,7 +272,7 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
     first = expected[0]["name_line"] if expected else 1
     limit = min(8, len(lines) - first + 1)
     text, elapsed, error = checks.client.tool("read", {"file_path": path, "offset": first, "limit": limit})
-    actual_lines = [(int(line), content) for line, content in re.findall(r"^\s*(\d+)→(.*)$", text.split("\n# results\n", 1)[-1], re.M)]
+    actual_lines = [(int(line), content) for line, content in re.findall(r"^\s*(\d+)→(.*)$", text.split(RESULTS, 1)[-1], re.M)]
     expected_lines = list(enumerate(lines[first - 1:first - 1 + limit], first))
     checks.record(f"read:{path}", "live_content", not error and actual_lines == expected_lines,
         {"file": path, "offset": first, "limit": limit, "matches_source": actual_lines == expected_lines}, elapsed)
@@ -281,8 +280,8 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
     if not token:
         return
     occurrences = [index for index, line in enumerate(lines, 1) if token in line]
-    text, elapsed, error = checks.client.tool("grep", {"path": path, "pattern": re.escape(token), "head_limit": 1000})
-    positions = [int(value) for value in re.findall(r"^" + re.escape(path) + r":(\d+):", text.split("\n# results\n", 1)[-1], re.M)]
+    text, elapsed, error = checks.client.tool("grep", {"path": path, "pattern": re.escape(token), "head_limit": 1000, **SOURCE_ROWS})
+    positions = [int(value) for value in re.findall(r"^" + re.escape(path) + r":(\d+):", text, re.M)]
     checks.record(f"grep:{path}", "live_search", not error and positions == occurrences,
         {"file": path, "token": token, "expected": occurrences, "actual": positions, "protocol_error": error}, elapsed)
     checks.query(f"find:{path}", "find", {"path": str(Path(path).parent), "pattern": Path(path).name}, contains=[path], category="file_enumeration")
@@ -294,18 +293,18 @@ def validate_sample(checks, path, language, output, has_live_checks, oracle_root
 def validate_probe(checks, path, language):
     source = (checks.root / path).read_text().splitlines()
     if language in COMPONENTS:
-        checks.query("probe:component-declaration", "overview", {"path": path}, contains=["cm_validation_marker"], category="probe_declaration")
+        checks.query("probe:component-declaration", "read", {"file_path": path, "view": "definitions"}, contains=["cm_validation_marker"], category="probe_declaration")
     else:
-        checks.query("probe:declarations", "overview", {"path": path}, contains=["cm_validation_target", "cm_validation_caller"], category="probe_declaration")
+        checks.query("probe:declarations", "read", {"file_path": path, "view": "definitions"}, contains=["cm_validation_target", "cm_validation_caller"], category="probe_declaration")
     read_args = {"file_path": path, "offset": 1, "limit": min(30, len(source))}
     if language in COMPONENTS:
         checks.query("probe:component-code-caller", "read", {"file_path": path, "offset": 2, "limit": 1},
-            contains=[f"cm_validation_caller ({path}:3)"], excludes=[f"{path}:5 (top-level/unindexed)"],
+            contains=["cm_validation_caller (L3)"], excludes=[f"{path}:5 (top-level/unindexed)"],
             category="component_code_boundary", section=(path, 2))
         checks.query("probe:component-code-callee", "read", {"file_path": path, "offset": 3, "limit": 1},
-            contains=[f"cm_validation_target — {path}:2"], category="callee_attribution", section=(path, 3))
+            contains=["cm_validation_target — L2"], category="callee_attribution", section=(path, 3))
     elif language in CALLS_DISABLED:
-        checks.query("probe:unsupported-call-boundary", "read", read_args, excludes=["_calls (", "_callers (", "(precise)"],
+        checks.query("probe:unsupported-call-boundary", "read", read_args, excludes=["_calls (", "_callers (", "precise"],
             category="capability_boundary", section="symbols")
     elif language == "asm":
         checks.query("probe:asm-instruction-caller", "read", {"file_path": path, "offset": 1, "limit": 1},
@@ -315,16 +314,19 @@ def validate_probe(checks, path, language):
             return next(i for i, line in enumerate(source, 1) if re.search(r"(?:function|def|fun|func|int|static|String|string|char).*\b" + name + r"\b", line)
                 or line.startswith(f"function {name}"))
         target, caller, unknown = (declaration_line(name) for name in ("cm_validation_target", "cm_validation_caller", "cm_validation_unknown"))
+        # A call through an unknown receiver may be listed, but only under the separate unconfirmed heading.
         checks.query("probe:actual-caller", "read", {"file_path": path, "offset": target, "limit": 1}, contains=["cm_validation_caller ("],
-            excludes=["cm_validation_string (", "cm_validation_comment (", "cm_validation_unknown ("], category="caller_attribution", section=(path, target))
-        checks.query("probe:actual-callee", "read", {"file_path": path, "offset": caller, "limit": 1}, contains=[f"cm_validation_target — {path}:{target}"],
+            excludes=["cm_validation_string (", "cm_validation_comment (", "cm_validation_unknown ("], category="caller_attribution", section=(path, target, "callers"))
+        checks.query("probe:no-text-caller", "read", {"file_path": path, "offset": target, "limit": 1},
+            excludes=["cm_validation_string (", "cm_validation_comment ("], category="caller_attribution", section=(path, target))
+        checks.query("probe:actual-callee", "read", {"file_path": path, "offset": caller, "limit": 1}, contains=[f"cm_validation_target — L{target}"],
             category="callee_attribution", section=(path, caller))
         checks.query("probe:unknown-call", "read", {"file_path": path, "offset": unknown, "limit": 1}, contains=["cm_validation_target (unresolved)"],
-            excludes=[f"cm_validation_target — {path}:{target}", "(precise)"], category="resolution_policy", section=(path, unknown))
+            excludes=[f"cm_validation_target — L{target}", "precise"], category="resolution_policy", section=(path, unknown))
         if language in CONSTANT_PROBES:
             constant_line = next(i for i, line in enumerate(source, 1) if "CM_VALIDATION_LIMIT" in line)
             checks.query("probe:constant-context", "read", {"file_path": path, "offset": target, "limit": 1},
-                contains=[f"CM_VALIDATION_LIMIT — {path}:{constant_line} = 7"],
+                contains=[f"CM_VALIDATION_LIMIT — L{constant_line} = 7"],
                 category="constant_context", section=(path, target))
     for part in ("node_modules", "_validation_excluded", "ignored"):
         excluded = str(Path(path).parent / part / Path(path).name)
@@ -387,11 +389,17 @@ def run_repository(args, language, slug, manifest, output):
         shutil.copy(config_path, profile_dir / "config.toml")
         ready, checks = None, None
         try:
+            # The definitions view leaves out test code unless this is set; the parsers list every function.
+            config_path.write_text(config.replace("should_include_test_code = false", "should_include_test_code = true"))
             with McpClient(args.binary, root, profile_dir, timeout=180) as client:
                 checks = Checks(client, root)
                 ready = client.ready(probe, timeout=1200)
                 for index, path in enumerate(files):
                     validate_sample(checks, path, language["language"], profile_dir, index < 3, args.cache / "oracles")
+            config_path.write_text(config)
+            with McpClient(args.binary, root, profile_dir, timeout=180) as client:
+                checks.client = client
+                client.ready(probe, timeout=1200)
                 validate_probe(checks, probe, language["language"])
         except Exception as error:
             # Keep completed checks even when a later request/initial index fails.

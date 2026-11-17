@@ -2,6 +2,8 @@
 [update]
 config_auto_update = false
 [index]
+# Index at server start: validation roots need not be repositories or fit the automatic size limit.
+mode = "on"
 index_path = ".codemap/index"
 max_file_size = 1048576
 [language_support]
