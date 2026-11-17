@@ -12,5 +12,20 @@
     "arguments": {"file_path": "_codemap_language_regressions/FileScopedConditional.cs", "view": "definitions"},
     "contains": ["Reader [class, exported] — L3-24", "Read [method, exported] — L5-18", "Size [method, exported] — L20-23"],
     "category": "declarations"
+  },
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/IStore.cs"},
+    "contains": ["implementation candidate: Shop.Stores.MemoryStore.Put — _codemap_language_regressions/signature/Stores/MemoryStore.cs:10", "implementation candidate: Shop.Stores.MemoryStore.Find — _codemap_language_regressions/signature/Stores/MemoryStore.cs:12", "implementation candidate: Shop.Stores.MemoryStore.Track — _codemap_language_regressions/signature/Stores/MemoryStore.cs:14"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:signature-types:other-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/IStore.cs"},
+    "contains": ["implementation: unresolved"],
+    "excludes": ["implementation candidate: Shop.Stores.MemoryStore.Audit"],
+    "category": "implementations"
   }
 ]

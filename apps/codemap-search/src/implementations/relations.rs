@@ -1,3 +1,4 @@
+use super::signature::Signatures;
 use super::*;
 use crate::callers::resolution::SourceResolver;
 use crate::parser::CodeRange;
@@ -124,13 +125,16 @@ impl ImplementationIndex {
                             &method.conditions,
                             resolver,
                         ) {
-                            self.add_method(owner, method.clone(), &file.file_path, contract);
+                            self.add_method(owner, method.clone(), (file_id, unit_id), contract);
                         }
                     }
                 }
             }
         }
-        self.connect_go();
+        let signatures = Signatures::new(resolver);
+        self.connect_go(&signatures, sources);
+        // Declarations read to accept a signature, remembered once the links are in place.
+        let mut proofs = Vec::new();
         for owner in 0..self.types.len() {
             let ancestors = self.ancestors(owner);
             let own_methods = self.types[owner].methods.clone();
@@ -153,7 +157,7 @@ impl ImplementationIndex {
                         .methods
                         .iter()
                         .copied()
-                        .filter(|base| self.matches(*base, method))
+                        .filter(|base| self.matches(*base, method, &signatures))
                         .collect::<Vec<_>>();
                     if candidates.len() != 1 {
                         continue;
@@ -178,16 +182,23 @@ impl ImplementationIndex {
                         self.omitted += 1;
                         break;
                     }
+                    let is_pointer =
+                        parent.is_pointer || implementation.declaration.is_pointer_receiver;
+                    let mut proof = self.signature_evidence(base, &signatures);
+                    proof.extend(self.signature_evidence(method, &signatures));
+                    let mut evidence = parent.evidence.clone();
+                    evidence.extend(proof.iter().cloned());
+                    proofs.extend(proof);
                     self.links.push(Link {
                         declaration: base,
                         implementation: method,
-                        evidence: parent.evidence.clone(),
-                        is_pointer: parent.is_pointer
-                            || implementation.declaration.is_pointer_receiver,
+                        evidence,
+                        is_pointer,
                     });
                 }
             }
         }
+        self.remember_proof(&proofs, sources);
         self.links
             .sort_by_key(|link| (link.declaration, link.implementation));
         self.links
@@ -456,7 +467,7 @@ impl ImplementationIndex {
         result
     }
 
-    fn matches(&self, base: usize, implementation: usize) -> bool {
+    fn matches(&self, base: usize, implementation: usize, signatures: &Signatures<'_, '_>) -> bool {
         let a = &self.methods[base];
         let b = &self.methods[implementation];
         let language = self.unit(a.owner).language.as_str();
@@ -485,21 +496,17 @@ impl ImplementationIndex {
         if language == "go" && x.return_type != y.return_type {
             return false;
         }
-        // Same spelling of a custom parameter type in two different source scopes
-        // is insufficient identity evidence. Built-ins do not have that ambiguity.
-        if (a.location.path != b.location.path
-            || self.typ(a.owner).namespace != self.typ(b.owner).namespace)
-            && x.parameters
+        // The same spelling of a type in two source scopes is one type only when both scopes
+        // lead to one declaration, one import or a name the language defines.
+        a.location.path == b.location.path
+            && self.typ(a.owner).namespace == self.typ(b.owner).namespace
+            || x.parameters
                 .iter()
                 .chain((language == "go").then_some(&x.return_type))
-                .any(|typ| !builtin_signature(typ))
-        {
-            return false;
-        }
-        true
+                .all(|typ| self.same_types(base, implementation, typ, signatures))
     }
 
-    fn connect_go(&mut self) {
+    fn connect_go(&mut self, signatures: &Signatures<'_, '_>, sources: &HashMap<String, String>) {
         let mut by_method: HashMap<(String, String), HashSet<usize>> = HashMap::new();
         for (owner, node) in self.types.iter().enumerate() {
             if self.unit(owner).language != "go"
@@ -523,6 +530,7 @@ impl ImplementationIndex {
                     .insert(owner);
             }
         }
+        let mut proofs = Vec::new();
         for contract in 0..self.types.len() {
             let typ = self.typ(contract);
             if self.unit(contract).language != "go"
@@ -559,22 +567,26 @@ impl ImplementationIndex {
                     self.types[owner]
                         .methods
                         .iter()
-                        .filter(|method| self.matches(*base, **method))
+                        .filter(|method| self.matches(*base, **method, signatures))
                         .count()
                         == 1
                 }) {
                     let mut evidence = vec![self.location(contract), self.location(owner)];
                     for base in required {
                         evidence.push(self.methods[*base].location.clone());
+                        let mut proof = self.signature_evidence(*base, signatures);
                         for method in &self.types[owner].methods {
-                            if self.matches(*base, *method) {
+                            if self.matches(*base, *method, signatures) {
                                 evidence.push(self.methods[*method].location.clone());
+                                proof.extend(self.signature_evidence(*method, signatures));
                             }
                         }
+                        evidence.extend(proof.iter().cloned());
+                        proofs.extend(proof);
                     }
                     let is_pointer = required.iter().any(|base| {
                         self.types[owner].methods.iter().any(|method| {
-                            self.matches(*base, *method)
+                            self.matches(*base, *method, signatures)
                                 && self.methods[*method].declaration.is_pointer_receiver
                         })
                     });
@@ -586,54 +598,6 @@ impl ImplementationIndex {
                 }
             }
         }
+        self.remember_proof(&proofs, sources);
     }
-}
-
-fn builtin_signature(value: &str) -> bool {
-    value
-        .split(|c: char| !c.is_alphanumeric() && c != '_')
-        .filter(|part| !part.is_empty())
-        .all(|part| {
-            matches!(
-                part,
-                "void"
-                    | "bool"
-                    | "boolean"
-                    | "byte"
-                    | "char"
-                    | "short"
-                    | "int"
-                    | "long"
-                    | "float"
-                    | "double"
-                    | "number"
-                    | "string"
-                    | "str"
-                    | "u8"
-                    | "u16"
-                    | "u32"
-                    | "u64"
-                    | "i8"
-                    | "i16"
-                    | "i32"
-                    | "i64"
-                    | "usize"
-                    | "isize"
-                    | "uint"
-                    | "uint8"
-                    | "uint16"
-                    | "uint32"
-                    | "uint64"
-                    | "int8"
-                    | "int16"
-                    | "int32"
-                    | "int64"
-                    | "float32"
-                    | "float64"
-                    | "complex64"
-                    | "complex128"
-                    | "rune"
-                    | "error"
-            )
-        })
 }

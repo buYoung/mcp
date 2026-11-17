@@ -1,0 +1,17 @@
+[
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/Shape.java"},
+    "contains": ["implementation candidate: shapes.impl.Circle.describe — _codemap_language_regressions/signature/impl/Circle.java:7", "implementation candidate: shapes.impl.Circle.scaled — _codemap_language_regressions/signature/impl/Circle.java:12"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:signature-types:other-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/Shape.java"},
+    "contains": ["implementation: unresolved"],
+    "excludes": ["implementation candidate: shapes.impl.Circle.render"],
+    "category": "implementations"
+  }
+]

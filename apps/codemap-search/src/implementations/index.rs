@@ -18,6 +18,9 @@ pub(super) struct TypeNode {
 #[derive(Clone, Debug)]
 pub(super) struct MethodNode {
     pub owner: usize,
+    /// The file and the unit in it that declare the method, which need not be the owner's.
+    pub file: usize,
+    pub unit: usize,
     pub location: Location,
     pub declaration: MethodDeclaration,
     pub contract: Option<usize>,
@@ -158,7 +161,7 @@ impl ImplementationIndex {
                     index.parents.push(Vec::new());
                     index.by_name.entry(typ.name.clone()).or_default().push(id);
                     for method in &typ.methods {
-                        index.add_method(id, method.clone(), &file.file_path, None);
+                        index.add_method(id, method.clone(), (file_id, unit_id), None);
                     }
                 }
             }
@@ -252,7 +255,7 @@ impl ImplementationIndex {
         &mut self,
         owner: usize,
         declaration: MethodDeclaration,
-        path: &str,
+        (file, unit): (usize, usize),
         contract: Option<usize>,
     ) {
         if self.methods.len() >= METHODS_PER_SNAPSHOT {
@@ -262,8 +265,10 @@ impl ImplementationIndex {
         let id = self.methods.len();
         self.methods.push(MethodNode {
             owner,
+            file,
+            unit,
             location: Location {
-                path: path.into(),
+                path: self.files[file].file_path.clone(),
                 range: declaration.range.clone(),
             },
             declaration,

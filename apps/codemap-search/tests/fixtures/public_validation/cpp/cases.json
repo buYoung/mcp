@@ -20,5 +20,12 @@
     "arguments": {"file_path": "_codemap_language_regressions/remote_handler.cpp"},
     "contains": ["implements/overrides declaration: Handler.priority — _codemap_language_regressions/contract.h:8", "implements/overrides declaration: Handler.reset — _codemap_language_regressions/contract.h:9"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/named.h"},
+    "contains": ["implementation candidate: Person.rename — _codemap_language_regressions/person.cpp:5"],
+    "category": "implementations"
   }
 ]

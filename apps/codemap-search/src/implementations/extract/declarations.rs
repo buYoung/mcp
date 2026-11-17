@@ -484,7 +484,12 @@ pub(super) fn method(
             && node
                 .child_by_field_name("default_value")
                 .is_some_and(|node| node.kind() == "number_literal" && text(node, source) == "0");
-    let is_static = modifier(node, "static", source) || language == "rust" && !has_self;
+    // The modifiers of a method can stand on its signature rather than on the declaration.
+    let is_static = modifier(node, "static", source)
+        || node
+            .child_by_field_name("signature")
+            .is_some_and(|signature| modifier(signature, "static", source))
+        || language == "rust" && !has_self;
     let mut qualifiers = String::new();
     if language == "cpp" {
         let mut declarator = node;

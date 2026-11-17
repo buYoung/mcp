@@ -27,5 +27,20 @@
     "arguments": {"file_path": "_codemap_language_regressions/NextLineConstructor.kt", "view": "definitions"},
     "contains": ["Session [class, exported] — L29-35", "owner [method, exported] — L34-34", "Audit [class, exported] — L37-42", "afterSession [function, exported] — L44-44"],
     "category": "declarations"
+  },
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/Gateway.kt"},
+    "contains": ["implementation candidate: pay.impl.PaypalGateway.charge — _codemap_language_regressions/signature/impl/PaypalGateway.kt:9", "implementation candidate: pay.impl.PaypalGateway.refund — _codemap_language_regressions/signature/impl/PaypalGateway.kt:11"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:signature-types:other-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/Gateway.kt"},
+    "contains": ["implementation: unresolved"],
+    "excludes": ["implementation candidate: pay.impl.PaypalGateway.audit"],
+    "category": "implementations"
   }
 ]

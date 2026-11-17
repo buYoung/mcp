@@ -8,7 +8,7 @@ pub(super) fn encloses(outer: &CodeRange, inner: &CodeRange) -> bool {
     (outer.start_line, outer.start_col) <= (inner.start_line, inner.start_col)
         && (inner.end_line, inner.end_col) <= (outer.end_line, outer.end_col)
 }
-fn normalized(name: &str) -> String {
+pub(super) fn normalized(name: &str) -> String {
     name.trim_start_matches(['*', '&'])
         .replace("::", ".")
         .replace('\\', ".")

@@ -5,6 +5,7 @@ mod model;
 mod relations;
 mod render;
 mod resolve;
+mod signature;
 #[cfg(test)]
 mod tests;
 

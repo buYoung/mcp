@@ -721,6 +721,15 @@ def result_has_issues(result):
     return bool(result.get("error") or result.get("tracked_changes") or any(check["status"] != "pass" for check in result["checks"]))
 
 
+def create_regressions(root, language, skip=()):
+    """Copy the language's examples of fixed defects into the worktree and return their checks."""
+    examples = FIXTURES / language
+    if not (examples / "cases.json").is_file():
+        return []
+    shutil.copytree(examples, root / "_codemap_language_regressions", ignore=shutil.ignore_patterns("cases.json", *skip))
+    return json.loads((examples / "cases.json").read_text())
+
+
 def run_regressions(args, output_root):
     results = []
     for language, filename, cases in (
@@ -734,6 +743,7 @@ def run_regressions(args, output_root):
             root = output / "source"
             root.mkdir(parents=True)
             shutil.copy(FIXTURES / language / filename, root / filename)
+            regressions = create_regressions(root, language, skip=(filename,))
             write_config(root, profile)
             with McpClient(args.binary, root, output) as client:
                 client.ready(filename)
@@ -742,6 +752,8 @@ def run_regressions(args, output_root):
                     checks.query(name, "read", {"file_path": filename, "offset": line, "limit": 1}, excludes=excludes, category="wrong_caller" if name == "atomic-caller" else "wrong_callee", section=(filename, line))
                 if language == "go":
                     checks.query("implicit-constant", "read", {"file_path": filename, "offset": 31, "limit": 3}, contains=["ImplicitValue — L28"], category="references", section=(filename, 31))
+                for case in regressions:
+                    checks.case(case)
                 results.append({"language": language, "profile": profile, "checks": checks.results})
                 save_json(output / "results.json", results[-1])
     return results

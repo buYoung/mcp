@@ -1,0 +1,9 @@
+[
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/layout.ts"},
+    "contains": ["implementation candidate: Grid.add — _codemap_language_regressions/signature/grid.ts:5", "implementation candidate: Grid.resize — _codemap_language_regressions/signature/grid.ts:7"],
+    "category": "implementations"
+  }
+]
