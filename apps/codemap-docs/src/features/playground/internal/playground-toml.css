@@ -1,10 +1,15 @@
 .wb-toml-dock {
     display: flex;
     flex-direction: column;
-    block-size: 12.5rem;
+    block-size: 11.75rem;
     flex: none;
     border-block-start: 1px solid var(--cm-border);
     background: var(--cm-bg-surface);
+    transition: block-size var(--cm-transition-fast);
+}
+
+.wb-toml-dock.is-expanded {
+    block-size: 52%;
 }
 
 .wb-toml-bar {
@@ -19,10 +24,14 @@
 }
 
 .wb-toml-file {
+    padding: 0.12em 0.42em;
+    border: 1px solid var(--cm-code-border);
+    border-radius: 0.3125rem;
+    background: var(--cm-code-bg);
+    color: var(--cm-code-fg);
     font-family: var(--sl-font-mono);
     font-size: var(--cm-fs-xs);
     font-weight: 600;
-    color: var(--cm-fg);
 }
 
 .wb-toml-ctrls {
@@ -35,8 +44,9 @@
     flex: 1 1 auto;
     margin: 0;
     padding: 0.45rem 0;
-    overflow: auto;
+    overflow-y: auto;
     overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     background: var(--cm-bg-canvas);
     font-family: var(--sl-font-mono);
     font-size: var(--cm-fs-xs);
@@ -45,12 +55,12 @@
 
 .wb-toml-line {
     display: flex;
-    padding-inline-end: 0.75rem;
+    padding-inline-end: 0.85rem;
 }
 
 .wb-gutter {
     flex: none;
-    inline-size: 2.35rem;
+    inline-size: 2.2rem;
     padding-inline-end: 0.55rem;
     text-align: end;
     color: var(--cm-fg-faint);
@@ -59,7 +69,10 @@
 }
 
 .wb-toml-code {
-    white-space: pre;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
     color: var(--cm-fg);
 }
 

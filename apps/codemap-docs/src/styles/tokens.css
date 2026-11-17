@@ -43,6 +43,13 @@
     --cm-accent-border: color-mix(in srgb, var(--sl-color-text-accent) 68%, var(--sl-color-gray-5));
     --cm-accent-soft: color-mix(in srgb, var(--sl-color-text-accent) 13%, var(--sl-color-bg));
 
+    --cm-code-bg: color-mix(in srgb, var(--sl-color-text-accent) 9%, var(--sl-color-gray-6));
+    --cm-code-border: color-mix(in srgb, var(--sl-color-text-accent) 22%, var(--sl-color-gray-5));
+    --cm-code-fg: color-mix(in srgb, var(--sl-color-text-accent) 30%, var(--sl-color-white));
+
+    --cm-sidebar-active-bg: color-mix(in srgb, var(--sl-color-text-accent) 13%, transparent);
+    --cm-sidebar-active-fg: var(--sl-color-text-accent);
+
     --cm-pos-fg: #34d399;
     --cm-pos-border: rgb(16 185 129 / 0.42);
     --cm-pos-soft: rgb(16 185 129 / 0.14);
@@ -66,6 +73,11 @@
     --cm-bg-inset: color-mix(in srgb, var(--sl-color-gray-6) 72%, var(--sl-color-bg));
     --cm-bg-hover: color-mix(in srgb, var(--sl-color-gray-5) 30%, transparent);
     --cm-accent-contrast: #ffffff;
+    --cm-code-bg: color-mix(in srgb, var(--sl-color-accent) 7%, #f3f4f6);
+    --cm-code-border: color-mix(in srgb, var(--sl-color-accent) 18%, #d1d5db);
+    --cm-code-fg: color-mix(in srgb, var(--sl-color-text-accent) 72%, #111827);
+    --cm-sidebar-active-bg: color-mix(in srgb, var(--sl-color-accent) 10%, transparent);
+    --cm-sidebar-active-fg: var(--sl-color-text-accent);
     --cm-pos-fg: #047857;
     --cm-pos-border: rgb(4 120 87 / 0.35);
     --cm-pos-soft: rgb(16 185 129 / 0.12);

@@ -1,6 +1,6 @@
 ---
 import "./playground-toml.css";
-import { CopyButton, SegmentedControl } from "@shared/ui";
+import { Button, CopyButton, SegmentedControl } from "@shared/ui";
 import type { PgUiLabels } from "./types";
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 const { ui } = Astro.props;
 ---
 
-<div class="wb-toml-dock">
+<div class="wb-toml-dock" data-toml-dock>
     <div class="wb-toml-bar">
         <code class="wb-toml-file">.codemap/config.toml</code>
         <div class="wb-toml-ctrls">
@@ -23,6 +23,9 @@ const { ui } = Astro.props;
                     { value: "full", label: ui.tomlFull },
                 ]}
             />
+            <Button variant="secondary" size="sm" data-toml-expand aria-pressed="false">
+                {ui.expandToml}
+            </Button>
             <CopyButton
                 targetId="pg-toml-code"
                 label={ui.copyShort}

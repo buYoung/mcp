@@ -65,11 +65,14 @@ export function getPlaygroundUi(locale: PgLocale): PgUiLabels {
         presetJev: isKo ? "Jev·토큰 절약" : "Jev & Compact",
         presetSecurity: isKo ? "보안·PII 강화" : "Strict PII",
         presetBroad: isKo ? "테스트·문서 확장" : "Tests & Docs",
-        resetBtn: isKo ? "초기화" : "Reset",
+        resetBtn: isKo ? "전체 초기화" : "Reset all",
+        resetRow: isKo ? "기본값으로 복원" : "Reset to default",
         copyToml: isKo ? "config.toml 복사" : "Copy config.toml",
         copyShort: isKo ? "복사" : "Copy",
         copiedMsg: isKo ? "복사됨" : "Copied",
         copyFailedMsg: isKo ? "복사 실패" : "Copy failed",
+        expandToml: isKo ? "크게" : "Expand",
+        collapseToml: isKo ? "접기" : "Compact",
         defaultBadge: isKo ? "기본 설정" : "All defaults",
         statusFmt: isKo ? "변경 {m}개 · 영향 도구 {t}/7" : "{m} modified · {t}/7 tools",
         catAll: isKo ? "전체" : "All",
@@ -78,7 +81,7 @@ export function getPlaygroundUi(locale: PgLocale): PgUiLabels {
         catRedact: isKo ? "마스킹" : "Redaction",
         catJev: "Jev",
         catIndex: isKo ? "색인·권한" : "Index & Scope",
-        filterPlaceholder: isKo ? "키 필터 (예: pii, max, jev)" : "Filter keys (e.g. pii, max, jev)",
+        filterPlaceholder: isKo ? "키 또는 도구 검색 (예: pii, grep, jev)" : "Filter key or tool (e.g. pii, grep, jev)",
         tomlChangedOnly: isKo ? "변경 키만" : "Modified",
         tomlFull: isKo ? "전체 키" : "Full",
         groupContext: isKo ? "호출·이벤트 문맥" : "Call & Event Context",
@@ -94,7 +97,7 @@ export function getPlaygroundUi(locale: PgLocale): PgUiLabels {
         lblDetailFiles: isKo ? "상세 발췌 상위 파일 수" : "Detailed snippet file limit",
         lblSnippetLines: isKo ? "심볼당 최대 발췌 줄 수" : "Max snippet lines per symbol",
         lblOutsideCallers: isKo ? "read 끝에 범위 밖 호출자 표시" : "Append outside callers in read",
-        lblGrepCols: isKo ? "grep 줄 길이 상한 (0=무제한)" : "grep max line width (0=unlimited)",
+        lblGrepCols: isKo ? "grep 줄 길이 상한" : "grep max line width",
         lblIncludeSeen: isKo ? "이미 본 중복 구간 재출력" : "Re-print seen lines (include_seen)",
         lblRedactMaster: isKo ? "인증정보·선택 PII 자동 마스킹" : "Mask credentials & opted-in PII",
         lblPiiEntities: isKo ? "추가 내장 PII 유형" : "Opt-in PII entity types",
@@ -108,20 +111,24 @@ export function getPlaygroundUi(locale: PgLocale): PgUiLabels {
         lblExcludedDirs: isKo ? "선택 디렉터리 제외 목록" : "Optional directory exclusions",
         optDirsDefault: isKo ? "기본 목록" : "Defaults",
         optDirsEmpty: isKo ? "[] 해제" : "[] None",
+        optUnlimited: isKo ? "무제한 (0)" : "Unlimited (0)",
+        optCols90: isKo ? "90자" : "90 cols",
+        optCols60: isKo ? "60자" : "60 cols",
+        optDefaultSuffix: isKo ? " (기본)" : " (def)",
         lblDocSupport: isKo ? "Markdown (.md/.mdx) 색인" : "Index Markdown (.md/.mdx)",
         lblPerms: isKo ? "파일 접근 범위" : "Filesystem access scope",
         lblSynonyms: isKo ? "synonyms 유의어 도구 활성화" : "Enable synonyms tool",
         lblGlobalInst: isKo ? "클라이언트 전역 지침 자동 동기화" : "Sync client global instructions",
         outLabel: isKo ? "grafana/grafana 도구 출력" : "grafana/grafana Tool Output",
         tabAll: isKo ? "전체 7" : "All 7",
-        modeOutput: isKo ? "출력" : "Output",
-        modeDiff: isKo ? "비교 (Diff)" : "Diff",
-        changedOnly: isKo ? "변경만" : "Changed only",
+        modeOutput: isKo ? "원문" : "Output",
+        modeDiff: isKo ? "변경 비교" : "Diff",
+        changedOnly: isKo ? "변경 도구만" : "Changed only",
         unchangedBadge: isKo ? "기본" : "Default",
         modifiedBadge: isKo ? "변경됨" : "Modified",
         noChangedTools: isKo
-            ? "모든 도구가 기본 설정 출력과 같습니다. 왼쪽에서 옵션을 전환해 보세요."
-            : "All tools currently match default output. Toggle an option on the left.",
+            ? "모든 도구가 기본 설정 출력과 같습니다. 왼쪽에서 옵션을 바꾸거나 상단 프리셋을 눌러 보세요."
+            : "All tools currently match default output. Toggle an option on the left or pick a preset above.",
         noFilterMatch: isKo ? "일치하는 설정 키가 없습니다." : "No matching configuration keys.",
     };
 }
@@ -137,6 +144,7 @@ export function getPresetSpecs(ui: PgUiLabels): PresetSpec[] {
 }
 
 export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
+    const def = ui.optDefaultSuffix;
     return [
         {
             id: "context",
@@ -147,27 +155,29 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                     keywords: "output.context.is_enabled caller callee search",
                     title: ui.lblContextEnabled,
                     tomlKey: "[output.context].is_enabled",
+                    tools: ["search"],
                     control: { kind: "switch", id: "pg-ctx-enabled", name: "contextEnabled", checked: true },
                 },
                 {
                     settingKey: "navPrecise",
-                    keywords: "output.navigation.is_enabled precise tree-sitter import",
+                    keywords: "output.navigation.is_enabled precise tree-sitter import search read",
                     title: ui.lblNavPrecise,
                     tomlKey: "[output.navigation].is_enabled",
+                    tools: ["search", "read"],
                     control: { kind: "switch", id: "pg-nav-precise", name: "navPrecise" },
                 },
                 {
                     settingKey: "callerLimit",
-                    keywords: "output.context.caller_limit max callers",
+                    keywords: "output.context.caller_limit max callers search",
                     title: ui.lblCallerLimit,
                     tomlKey: "[output.context].caller_limit",
+                    tools: ["search"],
                     control: {
                         kind: "segment",
                         labelId: "lbl-caller-limit",
                         name: "callerLimit",
-                        mono: true,
                         options: [
-                            { value: "1000", label: "1000", selected: true },
+                            { value: "1000", label: `1000${def}`, selected: true },
                             { value: "2", label: "2" },
                             { value: "1", label: "1" },
                         ],
@@ -175,16 +185,18 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                 },
                 {
                     settingKey: "includeTests",
-                    keywords: "output.context.exclude.should_include_test_code test",
+                    keywords: "output.context.exclude.should_include_test_code test search read",
                     title: ui.lblIncludeTests,
                     tomlKey: "[output.context.exclude].should_include_test_code",
+                    tools: ["search", "read"],
                     control: { kind: "switch", id: "pg-inc-tests", name: "includeTests" },
                 },
                 {
                     settingKey: "eventsEnabled",
-                    keywords: "output.event_navigation.is_enabled event publish subscribe",
+                    keywords: "output.event_navigation.is_enabled event publish subscribe search read",
                     title: ui.lblEvents,
                     tomlKey: "[output.event_navigation].is_enabled",
+                    tools: ["search", "read"],
                     control: { kind: "switch", id: "pg-events", name: "eventsEnabled", checked: true },
                 },
             ],
@@ -195,16 +207,16 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
             items: [
                 {
                     settingKey: "detailFileLimit",
-                    keywords: "output.search.detail_file_limit ranked tail",
+                    keywords: "output.search.detail_file_limit ranked tail search",
                     title: ui.lblDetailFiles,
                     tomlKey: "[output.search].detail_file_limit",
+                    tools: ["search"],
                     control: {
                         kind: "segment",
                         labelId: "lbl-detail-files",
                         name: "detailFileLimit",
-                        mono: true,
                         options: [
-                            { value: "24", label: "24", selected: true },
+                            { value: "24", label: `24${def}`, selected: true },
                             { value: "2", label: "2" },
                             { value: "1", label: "1" },
                         ],
@@ -212,16 +224,16 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                 },
                 {
                     settingKey: "snippetMaxLines",
-                    keywords: "output.search.snippet_max_lines max lines truncate",
+                    keywords: "output.search.snippet_max_lines max lines truncate search",
                     title: ui.lblSnippetLines,
                     tomlKey: "[output.search].snippet_max_lines",
+                    tools: ["search"],
                     control: {
                         kind: "segment",
                         labelId: "lbl-snippet-lines",
                         name: "snippetMaxLines",
-                        mono: true,
                         options: [
-                            { value: "500", label: "500", selected: true },
+                            { value: "500", label: `500${def}`, selected: true },
                             { value: "6", label: "6" },
                             { value: "3", label: "3" },
                         ],
@@ -232,6 +244,7 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                     keywords: "output.read.is_outside_callers_enabled read callers",
                     title: ui.lblOutsideCallers,
                     tomlKey: "[output.read].is_outside_callers_enabled",
+                    tools: ["read"],
                     control: {
                         kind: "switch",
                         id: "pg-outside-callers",
@@ -244,23 +257,25 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                     keywords: "output.grep.max_columns grep width line",
                     title: ui.lblGrepCols,
                     tomlKey: "[output.grep].max_columns",
+                    tools: ["grep"],
+                    stacked: true,
                     control: {
                         kind: "segment",
                         labelId: "lbl-grep-cols",
                         name: "grepMaxColumns",
-                        mono: true,
                         options: [
-                            { value: "0", label: "0", selected: true },
-                            { value: "90", label: "90" },
-                            { value: "60", label: "60" },
+                            { value: "0", label: ui.optUnlimited, selected: true },
+                            { value: "90", label: ui.optCols90 },
+                            { value: "60", label: ui.optCols60 },
                         ],
                     },
                 },
                 {
                     settingKey: "includeSeen",
-                    keywords: "include_seen duplicate fold",
+                    keywords: "include_seen duplicate fold search read",
                     title: ui.lblIncludeSeen,
                     tomlKey: "include_seen (MCP arg)",
+                    tools: ["search", "read"],
                     control: { kind: "switch", id: "pg-inc-seen", name: "includeSeen" },
                 },
             ],
@@ -271,9 +286,10 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
             items: [
                 {
                     settingKey: "redactEnabled",
-                    keywords: "output.is_redact_enabled secret password token mask",
+                    keywords: "output.is_redact_enabled secret password token mask search read",
                     title: ui.lblRedactMaster,
                     tomlKey: "[output].is_redact_enabled",
+                    tools: ["search", "read"],
                     control: {
                         kind: "switch",
                         id: "pg-redact-master",
@@ -283,9 +299,10 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                 },
                 {
                     settingKey: "piiEntities",
-                    keywords: "output.redact.pii_entities email ip kr_rrn credit_card pii",
+                    keywords: "output.redact.pii_entities email ip kr_rrn credit_card pii search read grep",
                     title: ui.lblPiiEntities,
                     tomlKey: "[output.redact].pii_entities",
+                    tools: ["search", "read", "grep"],
                     stacked: true,
                     control: {
                         kind: "chips",
@@ -300,16 +317,18 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                 },
                 {
                     settingKey: "sensWebhook",
-                    keywords: "output.redact.sensitive_fields webhookSigningKey",
+                    keywords: "output.redact.sensitive_fields webhookSigningKey search read grep",
                     title: ui.lblSensField,
                     tomlKey: "[output.redact].sensitive_fields",
+                    tools: ["search", "read", "grep"],
                     control: { kind: "switch", id: "pg-sens-field", name: "sensWebhook" },
                 },
                 {
                     settingKey: "customRule",
-                    keywords: "output.redact.rules regex glsa custom",
+                    keywords: "output.redact.rules regex glsa custom search read",
                     title: ui.lblCustomRule,
                     tomlKey: "[output.redact].rules",
+                    tools: ["search", "read"],
                     control: { kind: "switch", id: "pg-custom-rule", name: "customRule" },
                 },
             ],
@@ -320,16 +339,18 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
             items: [
                 {
                     settingKey: "jevEnabled",
-                    keywords: "output.jev.enabled task decision filter",
+                    keywords: "output.jev.enabled task decision filter search read grep initial_instructions",
                     title: ui.lblJevEnabled,
                     tomlKey: "[output.jev].enabled",
+                    tools: ["search", "read", "grep", "initial_instructions"],
                     control: { kind: "switch", id: "pg-jev-enabled", name: "jevEnabled" },
                 },
                 {
                     settingKey: "jevScope",
-                    keywords: "output.jev.scope search read grep",
+                    keywords: "output.jev.scope search read grep initial_instructions",
                     title: ui.lblJevScope,
                     tomlKey: "[output.jev].scope",
+                    tools: ["search", "read", "grep", "initial_instructions"],
                     stacked: true,
                     control: {
                         kind: "chips",
@@ -343,9 +364,10 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                 },
                 {
                     settingKey: "jevModel",
-                    keywords: "output.jev.model openrouter luna pplx",
+                    keywords: "output.jev.model openrouter luna pplx search read grep initial_instructions",
                     title: ui.lblJevModel,
                     tomlKey: "[output.jev].model",
+                    tools: ["search", "read", "grep", "initial_instructions"],
                     stacked: true,
                     control: {
                         kind: "select",
@@ -372,16 +394,18 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
             items: [
                 {
                     settingKey: "indexMode",
-                    keywords: "index.mode auto on off",
+                    keywords: "index.mode auto on off search read initial_instructions analyze",
                     title: ui.lblIndexMode,
                     tomlKey: "[index].mode",
+                    tools: ["search", "read", "initial_instructions", "analyze"],
+                    stacked: true,
                     control: {
                         kind: "segment",
                         labelId: "lbl-index-mode",
                         name: "indexMode",
                         mono: true,
                         options: [
-                            { value: "auto", label: "auto", selected: true },
+                            { value: "auto", label: `auto${def}`, selected: true },
                             { value: "on", label: "on" },
                             { value: "off", label: "off" },
                         ],
@@ -389,16 +413,19 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                 },
                 {
                     settingKey: "storeRefs",
-                    keywords: "index.store_references references",
+                    keywords: "index.store_references references search analyze",
                     title: ui.lblStoreRefs,
                     tomlKey: "[index].store_references",
+                    tools: ["search", "analyze"],
                     control: { kind: "switch", id: "pg-store-refs", name: "storeRefs" },
                 },
                 {
                     settingKey: "exclDirs",
-                    keywords: "index.exclude.excluded_directories vendor build",
+                    keywords:
+                        "index.exclude.excluded_directories vendor build search grep find initial_instructions analyze",
                     title: ui.lblExcludedDirs,
                     tomlKey: "[index.exclude].excluded_directories",
+                    tools: ["find", "grep", "search", "analyze"],
                     control: {
                         kind: "segment",
                         labelId: "lbl-excl-dirs",
@@ -411,16 +438,19 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                 },
                 {
                     settingKey: "docSupport",
-                    keywords: "index.language_support.is_document_support_enabled markdown md mdx",
+                    keywords:
+                        "index.language_support.is_document_support_enabled markdown md mdx search initial_instructions analyze",
                     title: ui.lblDocSupport,
                     tomlKey: "[index.language_support].is_document_support_enabled",
+                    tools: ["search", "initial_instructions", "analyze"],
                     control: { kind: "switch", id: "pg-doc-support", name: "docSupport" },
                 },
                 {
                     settingKey: "fsPerm",
-                    keywords: "filesystem_permissions anywhere workspace allowed_roots",
+                    keywords: "filesystem_permissions anywhere workspace allowed_roots read grep find",
                     title: ui.lblPerms,
                     tomlKey: "[filesystem_permissions].find / grep / read",
+                    tools: ["read", "grep", "find"],
                     stacked: true,
                     control: {
                         kind: "segment",
@@ -428,7 +458,7 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                         name: "fsPerm",
                         mono: true,
                         options: [
-                            { value: "anywhere", label: "anywhere", selected: true },
+                            { value: "anywhere", label: `anywhere${def}`, selected: true },
                             { value: "workspace", label: "workspace" },
                             { value: "allowed_roots", label: "allowed_roots" },
                         ],
@@ -436,16 +466,18 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                 },
                 {
                     settingKey: "synonymsEnabled",
-                    keywords: "related_terms.enabled synonyms",
+                    keywords: "related_terms.enabled synonyms initial_instructions",
                     title: ui.lblSynonyms,
                     tomlKey: "[related_terms].enabled",
+                    tools: ["synonyms", "initial_instructions"],
                     control: { kind: "switch", id: "pg-synonyms", name: "synonymsEnabled" },
                 },
                 {
                     settingKey: "globalInst",
-                    keywords: "global_instructions.enabled agents claude codex",
+                    keywords: "global_instructions.enabled agents claude codex initial_instructions",
                     title: ui.lblGlobalInst,
                     tomlKey: "[global_instructions].enabled",
+                    tools: ["initial_instructions"],
                     control: { kind: "switch", id: "pg-global-inst", name: "globalInst" },
                 },
             ],

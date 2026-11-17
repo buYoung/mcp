@@ -49,10 +49,17 @@
     border-radius: var(--cm-radius-lg);
     background: var(--cm-bg-surface);
     overflow: hidden;
+    transition:
+        border-color var(--cm-transition-fast),
+        box-shadow var(--cm-transition-fast);
 }
 
 .wb-panel.is-changed {
     border-color: var(--cm-accent-border);
+}
+
+.wb-panel.is-spotlight {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cm-accent-fg) 42%, transparent);
 }
 
 .wb-panel-hdr {
@@ -61,7 +68,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--cm-gap-sm);
-    padding: 0.45rem 0.8rem;
+    padding: 0.5rem 0.85rem;
     border-block-end: 1px solid var(--cm-border);
     background: var(--cm-bg-canvas);
 }
@@ -75,10 +82,14 @@
 }
 
 .wb-tool-name {
+    padding: 0.12em 0.45em;
+    border: 1px solid var(--cm-code-border);
+    border-radius: 0.3125rem;
+    background: var(--cm-code-bg);
+    color: var(--cm-code-fg);
     font-family: var(--sl-font-mono);
     font-size: var(--cm-fs-xs);
     font-weight: 700;
-    color: var(--cm-fg);
 }
 
 .wb-params {
@@ -88,7 +99,7 @@
 }
 
 .wb-param {
-    padding: 0.1rem 0.4rem;
+    padding: 0.1rem 0.42rem;
     border: 1px solid var(--cm-border-subtle);
     border-radius: var(--cm-radius-xs);
     background: var(--cm-bg-elevated);

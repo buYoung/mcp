@@ -59,6 +59,7 @@ export interface InspectorRenderContext {
     tools: ToolRender[];
     baselineOutputs: Map<string, ToolRender>;
     changedSet: Set<string>;
+    byteDeltas: Map<string, number>;
     viewMode: "output" | "diff";
     ui: Partial<PgUiLabels>;
     computeDiff: (base: string[], curr: string[]) => DiffLine[];
@@ -82,11 +83,11 @@ export function renderInspectorStream(panel: HTMLElement, ctx: InspectorRenderCo
         const baseLineSet = new Set(base ? base.lines : []);
 
         const curBytes = enc.encode(item.lines.join("\n")).length;
-        const baseBytes = base ? enc.encode(base.lines.join("\n")).length : curBytes;
-        const delta = curBytes - baseBytes;
+        const delta = ctx.byteDeltas.get(item.id) ?? 0;
 
         const card = document.createElement("article");
         card.className = `wb-panel${isChanged ? " is-changed" : ""}`;
+        card.dataset.toolCard = item.id;
 
         const hdr = document.createElement("header");
         hdr.className = "wb-panel-hdr";

@@ -30,7 +30,8 @@ codemap-config-peek {
     border: 1px solid var(--cm-border);
     border-inline-start: 3px solid var(--cm-accent-fg);
     border-radius: var(--cm-radius-md);
-    background: var(--cm-bg-surface);
+    background: var(--cm-bg-canvas);
+    box-shadow: var(--cm-shadow-xs);
     overflow: hidden;
 }
 
@@ -42,7 +43,7 @@ codemap-config-peek {
     gap: var(--cm-gap-sm);
     padding: 0.45rem 0.85rem;
     border-block-end: 1px solid var(--cm-border);
-    background: var(--cm-bg-canvas);
+    background: var(--cm-bg-surface);
 }
 
 .codemap-peek-title {
@@ -61,6 +62,17 @@ codemap-config-peek {
     padding: 0.75rem 0.9rem;
     max-block-size: 22rem;
     font-size: var(--sl-text-sm);
+}
+
+.codemap-peek-body :not(pre) > code:not(:where(.expressive-code *)) {
+    padding: 0.12em 0.38em;
+    border: 1px solid var(--cm-code-border);
+    border-radius: 0.3125rem;
+    background-color: var(--cm-code-bg);
+    color: var(--cm-code-fg);
+    font-family: var(--sl-font-mono);
+    font-size: 0.86em;
+    font-weight: 500;
 }
 
 .codemap-peek-body > :first-child {
@@ -84,7 +96,7 @@ codemap-config-peek {
     padding: 0.5rem 0.65rem;
     border: 1px solid var(--cm-border);
     border-radius: var(--cm-radius-sm);
-    background: var(--cm-bg-canvas);
+    background: var(--cm-bg-surface);
     font-family: var(--sl-font-mono);
     font-size: var(--cm-fs-xs);
     overflow-x: auto;
@@ -107,12 +119,12 @@ codemap-config-peek {
     display: block;
     font-size: var(--cm-fs-xs);
     color: var(--cm-fg);
-    margin-block-end: 0.2rem;
+    margin-block-end: 0.25rem;
 }
 
 .codemap-peek-pii-card p {
     margin: 0;
     font-size: var(--cm-fs-2xs);
-    line-height: 1.45;
+    line-height: 1.55;
     word-break: break-word;
 }

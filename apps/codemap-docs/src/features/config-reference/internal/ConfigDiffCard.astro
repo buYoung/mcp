@@ -13,7 +13,7 @@ const { title, keys, defaultLabel, changedLabel } = Astro.props;
 const hasQuery = Astro.slots.has("query");
 ---
 
-<div class="cfg-diff-card">
+<div class="cfg-diff-card not-content">
     <div class="cfg-diff-hdr">
         <strong>{title}</strong>
         <span class="cfg-diff-keys">
@@ -29,16 +29,20 @@ const hasQuery = Astro.slots.has("query");
     }
     <div class="cfg-diff-grid">
         <div class="cfg-diff-col">
-            <div class="cfg-diff-badge-wrap">
+            <div class="cfg-diff-col-hdr">
                 <Badge variant="neutral" mono>{defaultLabel}</Badge>
             </div>
-            <slot name="default" />
+            <div class="cfg-diff-col-body">
+                <slot name="default" />
+            </div>
         </div>
         <div class="cfg-diff-col">
-            <div class="cfg-diff-badge-wrap">
+            <div class="cfg-diff-col-hdr">
                 <Badge variant="accent" mono>{changedLabel}</Badge>
             </div>
-            <slot name="changed" />
+            <div class="cfg-diff-col-body">
+                <slot name="changed" />
+            </div>
         </div>
     </div>
 </div>

@@ -58,6 +58,7 @@ export interface SettingItemSpec {
     keywords: string;
     title: string;
     tomlKey: string;
+    tools: string[];
     stacked?: boolean;
     control: SettingControlSpec;
 }
@@ -83,10 +84,13 @@ export interface PgUiLabels {
     presetSecurity: string;
     presetBroad: string;
     resetBtn: string;
+    resetRow: string;
     copyToml: string;
     copyShort: string;
     copiedMsg: string;
     copyFailedMsg: string;
+    expandToml: string;
+    collapseToml: string;
     defaultBadge: string;
     statusFmt: string;
     catAll: string;
@@ -125,6 +129,10 @@ export interface PgUiLabels {
     lblExcludedDirs: string;
     optDirsDefault: string;
     optDirsEmpty: string;
+    optUnlimited: string;
+    optCols90: string;
+    optCols60: string;
+    optDefaultSuffix: string;
     lblDocSupport: string;
     lblPerms: string;
     lblSynonyms: string;

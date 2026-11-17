@@ -37,7 +37,11 @@ const clientPayload = JSON.stringify({ locale, ui });
     import { bindCopyButtons, bindRovingTablist } from "@shared/ui";
     import { computeLineDiff } from "./diff";
     import { renderInspectorStream, renderTomlLines } from "./dom-renderer";
-    import { readPlaygroundForm, writePlaygroundForm } from "./form-codec";
+    import {
+        readPlaygroundForm,
+        resetSingleSetting,
+        writePlaygroundForm,
+    } from "./form-codec";
     import { DEFAULT_STATE, PRESETS } from "./i18n";
     import { mountConfigPlayground } from "./playground-element";
     import { buildTomlConfig, tokenizeTomlLine } from "./toml-builder";
@@ -50,6 +54,7 @@ const clientPayload = JSON.stringify({ locale, ui });
         bindRovingTablist,
         readForm: readPlaygroundForm,
         writeForm: writePlaygroundForm,
+        resetSetting: resetSingleSetting,
         buildToml: buildTomlConfig,
         tokenizeToml: tokenizeTomlLine,
         simulateOutputs: simulateToolOutputs,

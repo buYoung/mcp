@@ -1,14 +1,14 @@
 .cfg-diff-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.125rem;
     margin-block: 1rem 1.75rem;
 }
 
 .cfg-diff-card {
     border: 1px solid var(--cm-border);
     border-radius: var(--cm-radius-lg);
-    background: var(--cm-bg-surface);
+    background: var(--cm-bg-canvas);
     overflow: hidden;
 }
 
@@ -18,13 +18,14 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--cm-gap-sm);
-    padding: 0.6rem 0.95rem;
+    padding: 0.65rem 1rem;
     border-block-end: 1px solid var(--cm-border);
-    background: var(--cm-bg-canvas);
+    background: var(--cm-bg-surface);
 }
 
 .cfg-diff-hdr strong {
     font-size: var(--sl-text-sm);
+    font-weight: 600;
     color: var(--cm-fg);
 }
 
@@ -36,17 +37,27 @@
     font-size: var(--cm-fs-xs);
 }
 
-.cfg-diff-query {
-    padding: 0.65rem 0.95rem 0;
+.cfg-diff-keys > code {
+    padding: 0.14em 0.45em;
+    border: 1px solid var(--cm-code-border);
+    border-radius: 0.3125rem;
+    background-color: var(--cm-code-bg);
+    color: var(--cm-code-fg);
+    font-family: var(--sl-font-mono);
+    font-size: var(--cm-fs-xs);
+    font-weight: 500;
 }
 
-.cfg-diff-query .expressive-code {
-    margin: 0;
+.cfg-diff-query {
+    padding: 0.75rem 1rem;
+    border-block-end: 1px solid var(--cm-border);
+    background: var(--cm-bg-canvas);
 }
 
 .cfg-diff-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
 }
 
 @media (max-width: 58rem) {
@@ -58,9 +69,8 @@
 .cfg-diff-col {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
     min-inline-size: 0;
-    padding: 0.75rem 0.95rem 0.95rem;
+    margin: 0;
 }
 
 .cfg-diff-col:first-child {
@@ -74,11 +84,33 @@
     }
 }
 
-.cfg-diff-col .expressive-code {
+.cfg-diff-col-hdr {
+    display: flex;
+    align-items: center;
+    min-block-size: 2.25rem;
+    padding: 0.4rem 1rem;
+    border-block-end: 1px solid var(--cm-border-subtle);
+    background: var(--cm-bg-subtle);
+}
+
+.cfg-diff-col-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+    padding: 0.8rem 1rem 0.95rem;
+}
+
+.cfg-diff-query .expressive-code,
+.cfg-diff-col-body .expressive-code {
+    inline-size: 100%;
     margin: 0;
 }
 
-.cfg-diff-badge-wrap {
+.cfg-diff-col-body .expressive-code,
+.cfg-diff-col-body .expressive-code figure.frame,
+.cfg-diff-col-body .expressive-code pre {
+    flex: 1 1 auto;
     display: flex;
-    align-items: center;
+    flex-direction: column;
 }

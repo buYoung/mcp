@@ -83,3 +83,15 @@ export function writePlaygroundForm(form: HTMLFormElement, state: PgState): void
     setCheck("synonymsEnabled", state.synonymsEnabled);
     setCheck("globalInst", state.globalInst);
 }
+
+export function resetSingleSetting(form: HTMLFormElement, key: keyof PgState, defaultState: PgState): void {
+    const current = readPlaygroundForm(form);
+    if (key === "piiEntities") {
+        current.piiEntities = [...defaultState.piiEntities];
+    } else if (key === "jevScope") {
+        current.jevScope = [...defaultState.jevScope];
+    } else {
+        (current as Record<keyof PgState, unknown>)[key] = defaultState[key];
+    }
+    writePlaygroundForm(form, current);
+}

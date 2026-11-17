@@ -14,6 +14,7 @@ export interface PlaygroundDependencies {
     ) => void;
     readForm: (form: HTMLFormElement) => PgState;
     writeForm: (form: HTMLFormElement, state: PgState) => void;
+    resetSetting: (form: HTMLFormElement, key: keyof PgState, defaultState: PgState) => void;
     buildToml: (
         state: PgState,
         defaultState: PgState,
@@ -34,12 +35,14 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
         #locale: PgLocale = "ko";
         #ui: Partial<PgUiLabels> = {};
         #tomlMode: "diff" | "full" = "diff";
+        #tomlExpanded = false;
         #selectedCat = "all";
         #filterQuery = "";
         #selectedTab = "all";
-        #viewMode: "output" | "diff" = "output";
+        #viewMode: "output" | "diff" = "diff";
         #changedToolsOnly = false;
         #baselineOutputs = new Map<string, ToolRender>();
+        #spotlightTimer: number | null = null;
 
         connectedCallback(): void {
             const raw = this.dataset.pg;
@@ -60,17 +63,78 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
             this.#render();
         }
 
+        #selectToolTabUI(toolId: string): void {
+            this.#selectedTab = toolId;
+            for (const tab of Array.from(this.querySelectorAll<HTMLButtonElement>("[data-tool-tab]"))) {
+                const active = (tab.dataset.toolTab ?? "") === toolId;
+                tab.setAttribute("aria-selected", String(active));
+                tab.tabIndex = active ? 0 : -1;
+            }
+        }
+
+        #spotlightTool(toolId: string): void {
+            const panel = this.querySelector<HTMLElement>("[data-outputs-panel]");
+            const card = panel?.querySelector<HTMLElement>(`[data-tool-card="${toolId}"]`);
+            if (!panel || !card) return;
+
+            for (const prev of Array.from(panel.querySelectorAll(".wb-panel.is-spotlight"))) {
+                prev.classList.remove("is-spotlight");
+            }
+            card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            card.classList.add("is-spotlight");
+            if (this.#spotlightTimer) window.clearTimeout(this.#spotlightTimer);
+            this.#spotlightTimer = window.setTimeout(() => {
+                card.classList.remove("is-spotlight");
+            }, 900);
+        }
+
         #wireControls(): void {
             const form = this.querySelector<HTMLFormElement>("[data-pg-form]");
-            form?.addEventListener("input", () => {
+
+            const handleSettingMutation = (target: EventTarget | null) => {
                 this.#clearActivePreset();
-                this.#render();
-            });
-            form?.addEventListener("change", () => {
-                this.#clearActivePreset();
-                this.#render();
-            });
+                const row = target instanceof Element ? target.closest<HTMLElement>(".wb-row") : null;
+                const affected = (row?.dataset.affectedTools ?? "")
+                    .split(",")
+                    .map((x) => x.trim())
+                    .filter(Boolean);
+
+                if (affected.length > 0 && this.#selectedTab !== "all" && !affected.includes(this.#selectedTab)) {
+                    this.#selectToolTabUI(affected[0]);
+                }
+
+                const changedSet = this.#render();
+                const focusTarget = affected.find((id) => changedSet.has(id)) ?? affected[0] ?? null;
+                if (focusTarget) {
+                    this.#spotlightTool(focusTarget);
+                }
+            };
+
+            form?.addEventListener("change", (e) => handleSettingMutation(e.target));
             form?.addEventListener("submit", (e) => e.preventDefault());
+
+            for (const resetRowBtn of Array.from(this.querySelectorAll<HTMLButtonElement>("[data-reset-row]"))) {
+                resetRowBtn.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!form) return;
+                    const key = resetRowBtn.dataset.resetRow as keyof PgState | undefined;
+                    if (!key) return;
+                    deps.resetSetting(form, key, deps.defaultState);
+                    this.#clearActivePreset();
+                    this.#render();
+                });
+            }
+
+            for (const jumpBtn of Array.from(this.querySelectorAll<HTMLButtonElement>("[data-jump-tool]"))) {
+                jumpBtn.addEventListener("click", () => {
+                    const toolId = jumpBtn.dataset.jumpTool;
+                    if (!toolId) return;
+                    this.#selectToolTabUI(toolId);
+                    this.#render();
+                    this.#spotlightTool(toolId);
+                });
+            }
 
             const presetBtns = Array.from(this.querySelectorAll<HTMLButtonElement>("[data-preset]"));
             for (const btn of presetBtns) {
@@ -85,7 +149,28 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
                     };
                     deps.writeForm(form, next);
                     for (const b of presetBtns) b.classList.toggle("is-active", b === btn);
-                    this.#render();
+                    this.#selectedCat = "all";
+                    for (const catTab of Array.from(this.querySelectorAll<HTMLButtonElement>("[data-cat-btn]"))) {
+                        const isAll = catTab.dataset.catBtn === "all";
+                        catTab.setAttribute("aria-selected", String(isAll));
+                        catTab.tabIndex = isAll ? 0 : -1;
+                    }
+                    this.#applySettingFilters();
+                    this.#selectToolTabUI("all");
+                    const changedSet = this.#render();
+
+                    const settingsPane = this.querySelector<HTMLElement>(".wb-settings");
+                    const firstModRow = settingsPane?.querySelector<HTMLElement>(".wb-row.is-modified");
+                    if (firstModRow) {
+                        firstModRow.scrollIntoView({ behavior: "smooth", block: "center" });
+                    } else {
+                        settingsPane?.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+
+                    const panel = this.querySelector<HTMLElement>("[data-outputs-panel]");
+                    panel?.scrollTo({ top: 0, behavior: "smooth" });
+                    const firstChanged = Array.from(changedSet)[0];
+                    if (firstChanged) this.#spotlightTool(firstChanged);
                 });
             }
 
@@ -99,6 +184,9 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
                 for (const b of presetBtns) {
                     b.classList.toggle("is-active", b.dataset.preset === "default");
                 }
+                this.#changedToolsOnly = false;
+                this.querySelector("[data-changed-only]")?.setAttribute("aria-pressed", "false");
+                this.#selectToolTabUI("all");
                 this.#render();
             });
 
@@ -127,10 +215,21 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
                 });
             }
 
+            const expandBtn = this.querySelector<HTMLButtonElement>("[data-toml-expand]");
+            const tomlDock = this.querySelector<HTMLElement>("[data-toml-dock]");
+            expandBtn?.addEventListener("click", () => {
+                this.#tomlExpanded = !this.#tomlExpanded;
+                expandBtn.setAttribute("aria-pressed", String(this.#tomlExpanded));
+                expandBtn.textContent = this.#tomlExpanded
+                    ? (this.#ui.collapseToml ?? "Compact")
+                    : (this.#ui.expandToml ?? "Expand");
+                tomlDock?.classList.toggle("is-expanded", this.#tomlExpanded);
+            });
+
             const viewBtns = Array.from(this.querySelectorAll<HTMLButtonElement>("[data-view-mode]"));
             for (const btn of viewBtns) {
                 btn.addEventListener("click", () => {
-                    this.#viewMode = (btn.dataset.viewMode as "output" | "diff") ?? "output";
+                    this.#viewMode = (btn.dataset.viewMode as "output" | "diff") ?? "diff";
                     for (const b of viewBtns) b.setAttribute("aria-pressed", String(b === btn));
                     this.#render();
                 });
@@ -186,7 +285,7 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
             }
         }
 
-        #render(): void {
+        #render(): Set<string> {
             const form = this.querySelector<HTMLFormElement>("[data-pg-form]");
             const state = form ? deps.readForm(form) : { ...deps.defaultState };
 
@@ -206,10 +305,16 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
 
             const currentOutputs = deps.simulateOutputs(state, this.#locale);
             const changedSet = new Set<string>();
+            const byteDeltas = new Map<string, number>();
+            const enc = new TextEncoder();
 
             for (const item of currentOutputs) {
                 const base = this.#baselineOutputs.get(item.id);
                 if (!base) continue;
+                const curBytes = enc.encode(item.lines.join("\n")).length;
+                const baseBytes = enc.encode(base.lines.join("\n")).length;
+                byteDeltas.set(item.id, curBytes - baseBytes);
+
                 const pChanged = JSON.stringify(base.params) !== JSON.stringify(item.params);
                 if (pChanged || base.lines.join("\n") !== item.lines.join("\n")) {
                     changedSet.add(item.id);
@@ -231,7 +336,11 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
 
             for (const tab of Array.from(this.querySelectorAll<HTMLButtonElement>("[data-tool-tab]"))) {
                 const tid = tab.dataset.toolTab ?? "";
-                if (tid !== "all") tab.classList.toggle("has-diff", changedSet.has(tid));
+                if (tid === "all") continue;
+                const isMod = changedSet.has(tid);
+                tab.classList.toggle("has-diff", isMod);
+                const d = byteDeltas.get(tid) ?? 0;
+                tab.title = isMod && d !== 0 ? `${tid} (${d < 0 ? d : `+${d}`} B)` : "";
             }
             const allLabel = this.querySelector<HTMLElement>("[data-all-tab-label]");
             if (allLabel) {
@@ -244,7 +353,7 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
             }
 
             const panel = this.querySelector<HTMLElement>("[data-outputs-panel]");
-            if (!panel) return;
+            if (!panel) return changedSet;
 
             const visibleTools = currentOutputs.filter((item) => {
                 if (this.#selectedTab !== "all") return item.id === this.#selectedTab;
@@ -252,14 +361,21 @@ export function mountConfigPlayground(deps: PlaygroundDependencies): void {
                 return true;
             });
 
+            if (this.#selectedTab === "all" && changedSet.size > 0 && !this.#changedToolsOnly) {
+                visibleTools.sort((a, b) => Number(changedSet.has(b.id)) - Number(changedSet.has(a.id)));
+            }
+
             deps.renderStream(panel, {
                 tools: visibleTools,
                 baselineOutputs: this.#baselineOutputs,
                 changedSet,
+                byteDeltas,
                 viewMode: this.#viewMode,
                 ui: this.#ui,
                 computeDiff: deps.computeDiff,
             });
+
+            return changedSet;
         }
     }
 

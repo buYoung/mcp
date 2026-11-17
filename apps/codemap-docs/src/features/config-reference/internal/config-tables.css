@@ -1,8 +1,8 @@
 .cfg-scope-line {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
-    margin-block: 0.25rem 0.65rem;
+    gap: 0.375rem;
+    margin-block: 0.35rem 0.75rem;
     font-size: var(--cm-fs-xs);
 }
 
@@ -60,33 +60,40 @@
 }
 
 .sl-markdown-content details.cfg-details {
-    margin-block: 0.65rem 1.25rem;
-    padding: 0;
-    border: 1px solid var(--cm-border);
-    border-radius: var(--cm-radius-lg);
-    background: var(--cm-bg-surface);
-    overflow: hidden;
+    margin-block: 0.65rem 1.35rem;
+    padding: 0.1rem 0 0.1rem 0.9rem;
+    border: 0;
+    border-inline-start: 2px solid var(--cm-border);
+    border-radius: 0;
+    background: transparent;
+    transition: border-color var(--cm-transition-fast);
+}
+
+.sl-markdown-content details.cfg-details:hover,
+.sl-markdown-content details.cfg-details[open] {
+    border-inline-start-color: var(--cm-accent-border);
 }
 
 .sl-markdown-content details.cfg-details > summary {
     list-style: none;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    padding: 0.6rem 0.9rem;
+    gap: 0.4rem;
+    padding: 0.2rem 0.35rem 0.2rem 0;
     margin: 0;
     font-size: var(--sl-text-sm);
-    font-weight: 600;
-    color: var(--cm-fg);
+    font-weight: 500;
+    color: var(--cm-fg-muted);
     cursor: pointer;
     user-select: none;
-    transition: background-color var(--cm-transition-fast);
+    transition: color var(--cm-transition-fast);
 }
 
 .sl-markdown-content details.cfg-details > summary:hover {
-    background: var(--cm-bg-hover);
+    color: var(--cm-fg);
 }
 
+.sl-markdown-content details.cfg-details > summary::marker,
 .sl-markdown-content details.cfg-details > summary::-webkit-details-marker {
     display: none;
 }
@@ -94,27 +101,32 @@
 .sl-markdown-content details.cfg-details > summary::before {
     content: "▸";
     display: inline-block;
+    inline-size: auto;
+    block-size: auto;
+    margin: 0;
+    background: transparent;
+    mask-image: none;
+    -webkit-mask-image: none;
     color: var(--cm-accent-fg);
     font-size: 0.85em;
+    line-height: 1;
     transition: rotate var(--cm-transition-fast);
 }
 
 .sl-markdown-content details.cfg-details[open] > summary {
-    border-block-end: 1px solid var(--cm-border);
+    display: flex;
+    color: var(--cm-fg);
+    font-weight: 600;
+    padding-block-end: 0.45rem;
+    margin-block-end: 0.75rem;
+    border-block-end: 1px dashed var(--cm-border);
 }
 
 .sl-markdown-content details.cfg-details[open] > summary::before {
+    transform: none;
     rotate: 90deg;
 }
 
-.sl-markdown-content details.cfg-details > :not(summary) {
-    margin-inline: 0.9rem;
-}
-
-.sl-markdown-content details.cfg-details > :nth-child(2) {
-    margin-block-start: 0.75rem;
-}
-
 .sl-markdown-content details.cfg-details > :last-child {
-    margin-block-end: 0.75rem;
+    margin-block-end: 0.25rem;
 }
