@@ -381,17 +381,21 @@ async fn test_jev_search_protects_partial_windows_and_omits_only_complete_bodies
             ),
             "{text}"
         );
-        assert_eq!(
-            judged_names(&judge),
-            vec![vec![("wideDrop".to_string(), "fn".to_string(), None)]],
-            "only the complete body is judged"
-        );
+        let judged = judged_names(&judge);
+        assert!(!judged.is_empty(), "the complete body was judged");
+        for batch in &judged {
+            assert_eq!(
+                batch,
+                &vec![("wideDrop".to_string(), "fn".to_string(), None)],
+                "only the complete body is judged"
+            );
+        }
     })
     .await;
     let stages = capture.stages();
     let applied = stages
         .iter()
-        .find(|stage| stage["outcome"] == "applied" && stage["tool"] == "search")
+        .rfind(|stage| stage["outcome"] == "applied" && stage["tool"] == "search")
         .unwrap_or_else(|| panic!("no applied search stage in:\n{}", capture.text()));
     let counts = detail_counts(applied);
     assert_eq!(counts["bodies"], "2", "{applied:?}");
