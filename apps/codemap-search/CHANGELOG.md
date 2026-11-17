@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-17
+
 ### Added
 
 - `search` can use another repository's index. Pass a folder outside the start folder, as an absolute path or one relative to the start folder, or a linked worktree inside it, as `workspace_scope`; `search` then searches the index of the repository holding that folder and narrows the results to the folder. The first such call creates that index with the settings a server started in the repository would use, except `[filesystem_permissions]`, which stay this session's; the repository's settings files are only read. Results from that index show absolute paths, and once it exists, `read` and `grep` of files there take declarations and callers from it. The session's `read` policy must allow the whole repository folder. One such index stays open at a time; it closes when a request goes to another repository, after 10 minutes without use, or when its folder is removed. An index written in another format is reported as `Index unavailable:` and left unchanged. Output for the start folder is unchanged. Prompt-text change (tool descriptions / server instructions / initial instructions): +117 / 0 / 0 characters in a monorepo and 0 / 0 / 0 elsewhere.
