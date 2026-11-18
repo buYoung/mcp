@@ -60,7 +60,7 @@ impl MacroExpander {
             Err(error) => MacroExpansionInfo {
                 notice: format!(
                     "Macro expansion unresolved: {}. Declarations, calls and constant references come from the original source.",
-                    self.from_root(&error)
+                    self.relative_to_root(&error)
                 ),
                 symbols: Vec::new(),
                 inputs: std::iter::once(path.clone())
@@ -79,7 +79,7 @@ impl MacroExpander {
 
     /// `message` with the paths inside the workspace written from its root, so that the text
     /// is the same wherever the workspace is.
-    fn from_root(&self, message: &str) -> String {
+    fn relative_to_root(&self, message: &str) -> String {
         message.replace(
             &format!("{}{}", self.root.display(), std::path::MAIN_SEPARATOR),
             "",
