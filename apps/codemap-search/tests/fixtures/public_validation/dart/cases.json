@@ -6,5 +6,13 @@
     "contains": ["implementation candidate: FastSocket.send — _codemap_language_regressions/signature/fast_socket.dart:6", "implementation candidate: FastSocket.route — _codemap_language_regressions/signature/fast_socket.dart:9"],
     "excludes": ["implementation candidate: FastSocket.connect"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:package-scoped-member",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/access/valve.dart"},
+    "contains": ["LocalValve._seal", "RemoteValve.vent"],
+    "excludes": ["RemoteValve._seal", "not source-proven"],
+    "category": "implementations"
   }
 ]

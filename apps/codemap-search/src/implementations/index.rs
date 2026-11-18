@@ -280,6 +280,12 @@ impl ImplementationIndex {
             .unwrap()
             .units[node.unit]
     }
+    /// The unit that holds the declaration of `method`.
+    pub(super) fn method_unit(&self, method: usize) -> &ImplementationUnit {
+        let node = &self.methods[method];
+        let facts = self.files[node.file].navigation.as_ref().unwrap();
+        &facts.implementations.as_ref().unwrap().units[node.unit]
+    }
     pub(super) fn typ(&self, id: usize) -> &TypeDeclaration {
         &self.unit(id).types[self.types[id].declaration]
     }

@@ -78,6 +78,10 @@ pub struct MethodDeclaration {
     pub is_abstract: bool,
     pub is_static: bool,
     pub is_private: bool,
+    /// Visible only inside the declaring package or library, as a Java member without an
+    /// access modifier and a Dart name with a leading underscore are.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_package_scoped: bool,
     pub is_final: bool,
     pub is_virtual: bool,
     pub is_override: bool,

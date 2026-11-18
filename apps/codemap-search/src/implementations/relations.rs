@@ -511,10 +511,11 @@ impl ImplementationIndex {
                     {
                         continue;
                     }
-                    let same_named = own
-                        .iter()
-                        .copied()
-                        .filter(|method| self.methods[*method].declaration.name == declared.name);
+                    let same_named = own.iter().copied().filter(|method| {
+                        self.methods[*method].declaration.name == declared.name
+                            && (!declared.is_package_scoped
+                                || self.shares_package(declaration, *method))
+                    });
                     unproven.entry(declaration).or_default().extend(same_named);
                 }
             }
@@ -555,6 +556,23 @@ impl ImplementationIndex {
         result
     }
 
+    /// Whether `other` is declared where a package-scoped `method` is visible: in the same
+    /// file, or in another file of the same package. A Dart library is one file here.
+    fn shares_package(&self, method: usize, other: usize) -> bool {
+        let (path, other_path) = (
+            &self.methods[method].location.path,
+            &self.methods[other].location.path,
+        );
+        if path == other_path {
+            return true;
+        }
+        let (unit, other_unit) = (self.method_unit(method), self.method_unit(other));
+        unit.language != "dart"
+            && unit.namespace == other_unit.namespace
+            && (!unit.namespace.is_empty()
+                || std::path::Path::new(path).parent() == std::path::Path::new(other_path).parent())
+    }
+
     fn matches(&self, base: usize, implementation: usize, signatures: &Signatures<'_, '_>) -> bool {
         let a = &self.methods[base];
         let b = &self.methods[implementation];
@@ -568,6 +586,7 @@ impl ImplementationIndex {
             || !x.is_virtual
             || x.is_static != y.is_static
             || x.is_static && language != "rust"
+            || x.is_package_scoped && !self.shares_package(base, implementation)
         {
             return false;
         }

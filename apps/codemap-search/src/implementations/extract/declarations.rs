@@ -522,6 +522,12 @@ pub(super) fn method(
             || language == "python"
                 && symbol.name.starts_with("__")
                 && !symbol.name.ends_with("__"),
+        is_package_scoped: language == "java"
+            && !is_contract
+            && !["public", "protected", "private"]
+                .iter()
+                .any(|access| modifier(node, access, source))
+            || language == "dart" && symbol.name.starts_with('_'),
         is_final: modifier(node, "final", source) || modifier(node, "sealed", source),
         is_virtual: is_contract
             || is_abstract
