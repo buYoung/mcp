@@ -66,5 +66,13 @@
     "contains": ["Checkout.Reset (L8)"],
     "excludes": ["Checkout.Close"],
     "category": "wrong_caller"
+  },
+  {
+    "id": "regression:partial-type:shared-folder",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/parts/Twin/Left.cs"},
+    "contains": ["Twin.IDrain.Flush"],
+    "excludes": ["Twin.Pump.Flush"],
+    "category": "implementations"
   }
 ]

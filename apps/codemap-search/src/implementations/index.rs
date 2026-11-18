@@ -137,11 +137,13 @@ impl ImplementationIndex {
         };
         // The first indexed part of each type that is declared in parts.
         let mut partial: HashMap<(&str, &str, usize, &str), usize> = HashMap::new();
-        let projects: std::collections::HashSet<&str> = files
-            .iter()
-            .filter(|file| file.file_path.ends_with(".csproj"))
-            .map(|file| folder(&file.file_path))
-            .collect();
+        // The number of project files in each folder that holds one.
+        let mut projects: HashMap<&str, usize> = HashMap::new();
+        for file in files.iter() {
+            if file.file_path.ends_with(".csproj") {
+                *projects.entry(folder(&file.file_path)).or_default() += 1;
+            }
+        }
         for (file_id, file) in files.iter().enumerate() {
             let Some(facts) = file
                 .navigation
@@ -171,12 +173,14 @@ impl ImplementationIndex {
                     // Parts compile into one assembly: they sit below one project file. A
                     // conditional part stays apart, as every conditional declaration does.
                     let part = (typ.is_partial && typ.is_complete && typ.conditions.is_empty())
-                        .then(|| {
+                        .then(|| project_folder(&projects, &file.file_path))
+                        .flatten()
+                        .map(|project| {
                             (
                                 family(&unit.language),
                                 typ.qualified_name.as_str(),
                                 typ.parameters.len(),
-                                project_folder(&projects, &file.file_path),
+                                project,
                             )
                         });
                     if let Some(&first) = part.and_then(|part| partial.get(&part)) {
@@ -364,17 +368,18 @@ fn folder(path: &str) -> &str {
 }
 
 /// The folder whose sources compile together with `path`: that of the nearest project file
-/// above it, else its own.
-fn project_folder<'p>(projects: &std::collections::HashSet<&str>, path: &'p str) -> &'p str {
+/// above it, else its own. Several project files in that folder each choose their sources, so
+/// the project of `path` is then unknown.
+fn project_folder<'p>(projects: &HashMap<&str, usize>, path: &'p str) -> Option<&'p str> {
     let own = folder(path);
     let mut current = own;
     loop {
-        if projects.contains(current) {
-            return current;
+        if let Some(&count) = projects.get(current) {
+            return (count == 1).then_some(current);
         }
         match current.rsplit_once('/') {
             Some((parent, _)) => current = parent,
-            None if current.is_empty() => return own,
+            None if current.is_empty() => return Some(own),
             None => current = "",
         }
     }
