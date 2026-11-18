@@ -21,5 +21,13 @@
     "contains": ["implementation candidate: EmailNotifier.send — _codemap_language_regressions/partial/notifiers.ts:4", "- not source-proven: 1 same-named method(s) in types naming Notifier as a base; the candidates above may be incomplete."],
     "excludes": ["BufferedNotifier."],
     "category": "implementations"
+  },
+  {
+    "id": "regression:call-inside-if",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/conditional.ts"},
+    "contains": ["Gate.latch — L2"],
+    "excludes": ["latch (unresolved)"],
+    "category": "missing_callee"
   }
 ]

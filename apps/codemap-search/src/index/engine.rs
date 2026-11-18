@@ -505,7 +505,7 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
 // its body is kept.
 // v48 records which type declarations are parts of one type.
 // v49 records which methods are visible only inside their package or library.
-const EXTRACTION_FORMAT_VERSION: &str = "v50-relative-notices";
+const EXTRACTION_FORMAT_VERSION: &str = "v51-calls-in-conditions";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -2570,7 +2570,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v50-relative-notices");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v51-calls-in-conditions");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

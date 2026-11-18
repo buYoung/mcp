@@ -45,5 +45,13 @@
     "contains": ["Ledger.balance — L4"],
     "excludes": ["balance (unresolved)"],
     "category": "missing_callee"
+  },
+  {
+    "id": "regression:call-inside-if",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/conditional/Guard.java"},
+    "contains": ["Gate.latch — _codemap_language_regressions/conditional/Gate.java:4"],
+    "excludes": ["latch (unresolved)"],
+    "category": "missing_callee"
   }
 ]

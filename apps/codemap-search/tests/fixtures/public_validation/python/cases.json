@@ -21,5 +21,13 @@
     "contains": ["with_tax — _codemap_language_regressions/scope/tariff_table.py:5"],
     "excludes": ["taxed (unresolved)"],
     "category": "missing_callee"
+  },
+  {
+    "id": "regression:call-inside-if",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/conditional.py"},
+    "contains": ["Gate.latch — L2"],
+    "excludes": ["latch (unresolved)"],
+    "category": "missing_callee"
   }
 ]

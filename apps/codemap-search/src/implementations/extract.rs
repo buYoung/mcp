@@ -309,17 +309,27 @@ fn is_include_guard(node: Node<'_>, source: &[u8]) -> bool {
 }
 
 pub(super) fn conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
+    conditions_around(node, source, true)
+}
+
+/// The conditions under which a call is compiled. A runtime `if` around a call is not one of
+/// them: whenever the call runs, it names the same declaration.
+pub(super) fn call_conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
+    conditions_around(node, source, false)
+}
+
+fn conditions_around(node: Node<'_>, source: &[u8], counts_runtime_if: bool) -> Vec<String> {
     let mut result = Vec::new();
     for node in std::iter::once(node).chain(crate::parser::ancestors(node)) {
-        if matches!(
+        if (matches!(
             node.kind(),
             "preproc_if"
                 | "preproc_ifdef"
                 | "preproc_elif"
                 | "preproc_else"
-                | "if_statement"
                 | "conditional_declaration"
-        ) && !is_include_guard(node, source)
+        ) || counts_runtime_if && node.kind() == "if_statement")
+            && !is_include_guard(node, source)
         {
             result
                 .push("conditional declaration requires unavailable compile/runtime facts".into());

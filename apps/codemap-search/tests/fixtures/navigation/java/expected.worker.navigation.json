@@ -177,9 +177,7 @@
             "namespace": "CheckoutWorker",
             "enclosingSymbol": "tick",
             "argumentCount": 1,
-            "conditions": [
-              "conditional declaration requires unavailable compile/runtime facts"
-            ],
+            "conditions": [],
             "receiverKind": "value"
           },
           {

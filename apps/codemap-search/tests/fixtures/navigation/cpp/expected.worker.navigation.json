@@ -132,9 +132,7 @@
             "namespace": "CheckoutWorker",
             "enclosingSymbol": "tick",
             "argumentCount": 0,
-            "conditions": [
-              "conditional declaration requires unavailable compile/runtime facts"
-            ],
+            "conditions": [],
             "receiverKind": "value"
           },
           {
@@ -158,9 +156,7 @@
             "namespace": "CheckoutWorker",
             "enclosingSymbol": "tick",
             "argumentCount": 1,
-            "conditions": [
-              "conditional declaration requires unavailable compile/runtime facts"
-            ],
+            "conditions": [],
             "receiverKind": "value"
           },
           {

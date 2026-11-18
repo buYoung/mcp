@@ -74,5 +74,13 @@
     "contains": ["Twin.IDrain.Flush"],
     "excludes": ["Twin.Pump.Flush"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:call-inside-if",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Conditional.cs"},
+    "contains": ["Gate.Latch — L5"],
+    "excludes": ["Latch (unresolved)"],
+    "category": "missing_callee"
   }
 ]

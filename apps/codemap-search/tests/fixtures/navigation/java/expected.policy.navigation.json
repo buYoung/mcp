@@ -168,9 +168,7 @@
             "namespace": "OrderPolicy",
             "enclosingSymbol": "evaluate",
             "argumentCount": 0,
-            "conditions": [
-              "conditional declaration requires unavailable compile/runtime facts"
-            ],
+            "conditions": [],
             "receiverKind": "value"
           },
           {
@@ -194,9 +192,7 @@
             "namespace": "OrderPolicy",
             "enclosingSymbol": "evaluate",
             "argumentCount": 0,
-            "conditions": [
-              "conditional declaration requires unavailable compile/runtime facts"
-            ],
+            "conditions": [],
             "receiverKind": "type"
           }
         ]

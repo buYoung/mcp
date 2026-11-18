@@ -325,7 +325,7 @@ pub(super) fn collect(
             namespace: namespace(node, &unit.namespace, source),
             enclosing_symbol: enclosing,
             argument_count: count_arguments(node),
-            conditions: conditions(node, source),
+            conditions: call_conditions(node, source),
             receiver_kind,
         });
     }

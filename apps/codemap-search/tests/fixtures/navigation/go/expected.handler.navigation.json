@@ -202,9 +202,7 @@
             "namespace": "checkout",
             "enclosingSymbol": "ServeHTTP",
             "argumentCount": 1,
-            "conditions": [
-              "conditional declaration requires unavailable compile/runtime facts"
-            ],
+            "conditions": [],
             "receiverKind": "value"
           },
           {
@@ -252,9 +250,7 @@
             "namespace": "checkout",
             "enclosingSymbol": "ServeHTTP",
             "argumentCount": 1,
-            "conditions": [
-              "conditional declaration requires unavailable compile/runtime facts"
-            ],
+            "conditions": [],
             "receiverKind": "value"
           }
         ]
