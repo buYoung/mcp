@@ -29,5 +29,13 @@
     "contains": ["valves.LocalValve.seal", "valves.remote.RemoteValve.vent"],
     "excludes": ["valves.remote.RemoteValve.seal", "not source-proven"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:inherited-overload",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/overload/Courier.java"},
+    "contains": ["Parcel.weigh — _codemap_language_regressions/overload/Parcel.java:6", "seal (unresolved)"],
+    "excludes": ["Parcel.seal"],
+    "category": "wrong_caller"
   }
 ]

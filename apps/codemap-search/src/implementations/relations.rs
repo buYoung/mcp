@@ -383,7 +383,8 @@ impl ImplementationIndex {
         let allows_static = is_inside || call.receiver_kind == ReceiverKind::Type;
         let own = self.named_methods(owner, call, is_inside, allows_static);
         if !own.is_empty() {
-            return (own.len() == 1).then(|| (own[0], Vec::new()));
+            return (own.len() == 1 && !self.inherits_overload(owner, own[0], call, allows_static))
+                .then(|| (own[0], Vec::new()));
         }
         let mut candidates = Vec::new();
         let mut evidence = Vec::new();
@@ -397,6 +398,54 @@ impl ImplementationIndex {
         candidates.sort_unstable();
         candidates.dedup();
         (candidates.len() == 1).then(|| (candidates[0], evidence))
+    }
+
+    /// Whether an ancestor of `owner` declares another overload that `call` may reach instead
+    /// of `method`: the same name and parameter count with other parameter types. These
+    /// languages choose among the inherited and the own overloads by the argument types, which
+    /// are unknown here. C# is left out: there a method of the derived type is chosen whenever
+    /// the arguments fit it. A parameter that names a type parameter of the ancestor may stand
+    /// for the type `method` declares, so it does not tell the two apart.
+    fn inherits_overload(
+        &self,
+        owner: usize,
+        method: usize,
+        call: &DispatchCall,
+        allows_static: bool,
+    ) -> bool {
+        if !matches!(
+            self.unit(owner).language.as_str(),
+            "java" | "kotlin" | "scala" | "groovy" | "swift"
+        ) {
+            return false;
+        }
+        let own = &self.methods[method].declaration;
+        if !own.has_known_signature {
+            return false;
+        }
+        self.ancestors(owner).into_iter().any(|parent| {
+            let generic = &self.typ(parent.owner).parameters;
+            let is_generic = |typ: &str| {
+                typ.split(|character: char| !character.is_alphanumeric() && character != '_')
+                    .any(|word| generic.iter().any(|parameter| parameter == word))
+            };
+            self.types[parent.owner].methods.iter().any(|id| {
+                let other = &self.methods[*id].declaration;
+                other.name == own.name
+                    && other.has_known_signature
+                    && !other.is_private
+                    && (allows_static || !other.is_static)
+                    && other.parameters.len() == own.parameters.len()
+                    && call
+                        .argument_count
+                        .is_none_or(|count| count == other.parameters.len())
+                    && other
+                        .parameters
+                        .iter()
+                        .zip(&own.parameters)
+                        .any(|(theirs, ours)| theirs != ours && !is_generic(theirs))
+            })
+        })
     }
 
     /// Methods of `owner` named like `call`; overloads must be singled out by argument count.
