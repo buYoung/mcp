@@ -6,5 +6,13 @@
     "contains": ["second_square", "third_square"],
     "excludes": ["event input unavailable — _codemap_language_regressions/macro_diagnostic.c:3:", "event input unavailable — _codemap_language_regressions/macro_diagnostic.c:7:", "event input unavailable — _codemap_language_regressions/macro_diagnostic.c:11:"],
     "category": "diagnostics"
+  },
+  {
+    "id": "regression:local-initializer-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/local_initializer.c"},
+    "contains": ["measure_width — L1", "measure_side — L3", "measure_scale (unresolved)", "measure_scale — L5"],
+    "excludes": ["measure_width (unresolved)", "measure_side (unresolved)", "depth (unresolved)"],
+    "category": "missing_callee"
   }
 ]

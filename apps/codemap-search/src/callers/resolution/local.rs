@@ -144,20 +144,52 @@ fn has_identifier(node: Node, source: &Source, name: &str) -> bool {
     found
 }
 
+/// Whether `declarator`, a declarator of a node around `call`, declares `name` for the call.
+/// A declarator that holds the call is the variable the call initializes, as in
+/// `int total = sum();`, and declares nothing the call can name.
+fn declarator_declares(declarator: Node, call: Node, source: &Source, name: &str) -> bool {
+    !contains(declarator, call) && declares(declarator, false, source, name)
+}
+
+/// Whether the declarator `node` declares `name`: as one of the parameters of a function
+/// declarator, or as the name of any other declarator. The name of a function is the function
+/// itself, which a recursive call names, and an initial value declares nothing.
+fn declares(node: Node, is_function: bool, source: &Source, name: &str) -> bool {
+    if let Some(parameters) = node.child_by_field_name("parameters") {
+        return has_identifier(parameters, source, name)
+            || node
+                .child_by_field_name("declarator")
+                .is_some_and(|inner| declares(inner, true, source, name));
+    }
+    if let Some(inner) = node
+        .child_by_field_name("declarator")
+        .or_else(|| node.child_by_field_name("name"))
+    {
+        return declares(inner, is_function, source, name);
+    }
+    if node.named_child_count() == 0 {
+        return !is_function && has_identifier(node, source, name);
+    }
+    let mut cursor = node.walk();
+    let found = node
+        .named_children(&mut cursor)
+        .any(|child| declares(child, is_function, source, name));
+    found
+}
+
 fn has_parameter(mut at: Node, source: &Source, name: &str) -> bool {
+    let call = at;
     loop {
-        if [
-            "parameters",
-            "parameter",
-            "type_parameters",
-            "declarator",
-            "signature",
-        ]
-        .iter()
-        .any(|field| {
-            at.child_by_field_name(field)
-                .is_some_and(|node| has_identifier(node, source, name))
-        }) {
+        if ["parameters", "parameter", "type_parameters", "signature"]
+            .iter()
+            .any(|field| {
+                at.child_by_field_name(field)
+                    .is_some_and(|node| has_identifier(node, source, name))
+            })
+            || at
+                .child_by_field_name("declarator")
+                .is_some_and(|node| declarator_declares(node, call, source, name))
+        {
             return true;
         }
         // Some grammars expose formal parameters as named children without a field.

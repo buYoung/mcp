@@ -50,5 +50,13 @@
     "arguments": {"file_path": "_codemap_language_regressions/include/kit/latch.h"},
     "contains": ["kit.SpringLatch.release — _codemap_language_regressions/src/spring_latch.cpp:7"],
     "category": "implementations"
+  },
+  {
+    "id": "regression:local-initializer-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/local_initializer.cpp"},
+    "contains": ["sample — L3"],
+    "excludes": ["sample (unresolved)", "countdown (unresolved)"],
+    "category": "missing_callee"
   }
 ]

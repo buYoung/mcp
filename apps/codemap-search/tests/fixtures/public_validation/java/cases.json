@@ -37,5 +37,13 @@
     "contains": ["Parcel.weigh — _codemap_language_regressions/overload/Parcel.java:6", "seal (unresolved)"],
     "excludes": ["Parcel.seal"],
     "category": "wrong_caller"
+  },
+  {
+    "id": "regression:local-initializer-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/initializer/Ledger.java"},
+    "contains": ["Ledger.balance — L4"],
+    "excludes": ["balance (unresolved)"],
+    "category": "missing_callee"
   }
 ]
