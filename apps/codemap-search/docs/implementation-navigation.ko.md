@@ -23,7 +23,7 @@
 | Dart·PHP | 추상 클래스·인터페이스와 명시적 상속·구현 |
 | Python | 클래스 상속, `abc.abstractmethod`, 명시적으로 상속한 `typing.Protocol` |
 | Ruby·PowerShell | 클래스 상속과 메서드 재정의 |
-| C++ | 원본 소스의 가상·순수 가상 메서드 및 명시적 상속. 기반 클래스는 같은 파일과 직접 `#include`한 파일에서 찾습니다. |
+| C++ | 원본 소스의 가상·순수 가상 메서드 및 명시적 상속. 기반 클래스는 같은 파일과 직접 `#include`한 파일에서 찾습니다. include된 파일은 include하는 파일 옆의 그 경로에 있는 파일이고, 없으면 경로가 include 경로로 끝나는 색인된 파일이 하나뿐일 때 그 파일입니다. |
 | Rust | trait 요구사항과 해당 trait의 명시적 `impl`; inherent impl과 구분 |
 | Go | 기본 인터페이스의 전체 메서드 집합과 수신 타입의 구현. 포인터가 필요한 경우 `*T method set` 표시 |
 | Vue·Astro·Svelte | 기존 파서가 분리한 JavaScript·TypeScript 코드 영역 |

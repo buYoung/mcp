@@ -35,5 +35,20 @@
     "contains": ["limit_total (L14)"],
     "excludes": ["clamp_total (L"],
     "category": "wrong_caller"
+  },
+  {
+    "id": "regression:implementation:include-beside",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/other/meter.h"},
+    "contains": ["Meter.sample"],
+    "excludes": ["ProbeMeter.sample"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:implementation:include-directory",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/include/kit/latch.h"},
+    "contains": ["kit.SpringLatch.release — _codemap_language_regressions/src/spring_latch.cpp:7"],
+    "category": "implementations"
   }
 ]

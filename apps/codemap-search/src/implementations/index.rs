@@ -88,6 +88,8 @@ pub(crate) struct ImplementationIndex {
     pub(super) target_os: Option<String>,
     pub(super) omitted: usize,
     pub(super) dart_libraries: super::DartLibraries,
+    /// Indexed files by file name, built when the first include is resolved.
+    pub(super) files_by_name: std::sync::OnceLock<HashMap<String, Vec<usize>>>,
 }
 
 impl ImplementationIndex {
@@ -131,6 +133,7 @@ impl ImplementationIndex {
             dart_libraries: super::DartLibraries::new(
                 files.iter().map(|file| file.file_path.as_str()),
             ),
+            files_by_name: std::sync::OnceLock::new(),
         };
         // The first indexed part of each type that is declared in parts.
         let mut partial: HashMap<(&str, &str, usize, &str), usize> = HashMap::new();

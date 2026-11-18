@@ -441,19 +441,16 @@ impl ImplementationIndex {
             let Some(module) = import.entry.source.as_deref() else {
                 continue;
             };
+            let included = (language == "cpp")
+                .then(|| self.included_file(path, module))
+                .flatten();
             let loads = |target: &str| match language {
                 "ruby" => {
                     (module.starts_with("./") || module.starts_with("../"))
                         && relative_path(path, module)
                             .is_some_and(|module| module_matches(target, &module))
                 }
-                // The include path starts at the including file's folder or at an include
-                // directory, so the included file's path ends with it.
-                "cpp" => {
-                    relative_path(path, module).is_some_and(|included| included == target)
-                        || target == module
-                        || target.ends_with(&format!("/{module}"))
-                }
+                "cpp" => included == Some(target),
                 _ => {
                     import.entry.kind == ImportKind::Glob
                         && self.dart_libraries.matches(path, module, target)
@@ -486,6 +483,32 @@ impl ImplementationIndex {
             return candidates.pop();
         }
         None
+    }
+
+    /// The indexed file a C++ `#include` in `path` names. The file at the include path
+    /// relative to the including file is searched first. Otherwise the include path starts at
+    /// an include directory, so the included file's path ends with it: that file is known only
+    /// when no other indexed file ends the same way.
+    fn included_file(&self, path: &str, module: &str) -> Option<&str> {
+        let files_by_name = self.files_by_name.get_or_init(|| {
+            let mut names: HashMap<String, Vec<usize>> = HashMap::new();
+            for (id, file) in self.files.iter().enumerate() {
+                let name = file.file_path.rsplit('/').next().unwrap_or(&file.file_path);
+                names.entry(name.to_string()).or_default().push(id);
+            }
+            names
+        });
+        let named = files_by_name.get(module.rsplit('/').next()?)?;
+        let paths = || named.iter().map(|id| self.files[*id].file_path.as_str());
+        if let Some(beside) = relative_path(path, module) {
+            if let Some(found) = paths().find(|target| *target == beside) {
+                return Some(found);
+            }
+        }
+        let suffix = format!("/{module}");
+        let mut ending = paths().filter(|target| *target == module || target.ends_with(&suffix));
+        let found = ending.next()?;
+        ending.next().is_none().then_some(found)
     }
 
     pub(super) fn remember_proof(
