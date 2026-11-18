@@ -44,14 +44,7 @@ impl<'a> SourceResolver<'a> {
         let (candidates, table): (Vec<(&'a ExtractedFile, String)>, Option<String>) =
             match (language, call.receiver.as_deref()) {
                 ("python", None) => {
-                    // A star import may rebind any name.
-                    if imports
-                        .iter()
-                        .any(|import| import.local_name == "*" || import.kind == ImportKind::Glob)
-                    {
-                        return None;
-                    }
-                    let import = only_binding(imports, &call.name)??;
+                    let import = python_binding(&source, imports, at, &call.name)?;
                     let name = import.imported_name.as_deref().unwrap_or(&call.name);
                     let module = self.python_module(&file.file_path, import.source.as_deref()?)?;
                     (self.exported(&module.file_path, name), None)
@@ -63,6 +56,7 @@ impl<'a> SourceResolver<'a> {
                     }
                     let mut modules = imports
                         .iter()
+                        .filter(|import| python_scope_reaches(&source, import, at).is_some())
                         .filter_map(|import| {
                             let module =
                                 match (import.source.as_deref(), import.imported_name.as_deref()) {
@@ -838,6 +832,79 @@ pub(super) fn only_binding<'i>(
 }
 
 /// The nearest declaration of `name` visible at `at`.
+/// The scope a Python statement binds its names in: the nearest function, lambda or class
+/// around it, or `None` for the module.
+fn python_scope(node: Node) -> Option<Node> {
+    std::iter::successors(node.parent(), |node| node.parent()).find(|node| {
+        matches!(
+            node.kind(),
+            "function_definition" | "lambda" | "class_definition"
+        )
+    })
+}
+
+/// The statement of a Python import whose name can be read at `at`, with whether it binds a
+/// name of the module. An import in a function binds a local of that function, which the scopes
+/// inside it also read. An import in a class body binds an attribute, which only the
+/// statements of that body read by a bare name.
+fn python_scope_reaches<'t>(
+    source: &'t Source,
+    import: &ImportEntry,
+    at: Node,
+) -> Option<(Node<'t>, bool)> {
+    let statement = node_at(source, &import.range)?;
+    let reaches = match python_scope(statement) {
+        None => return Some((statement, true)),
+        Some(scope) if scope.kind() == "class_definition" => {
+            python_scope(at).is_some_and(|own| own.id() == scope.id())
+        }
+        Some(scope) => contains(scope, at),
+    };
+    reaches.then_some((statement, false))
+}
+
+/// The import that binds `name` for a bare Python call at `at`, when the imports that reach the
+/// call agree. A star import may rebind any name of the module, so a module binding holds only
+/// as a statement of the module itself that follows every star import. A function reads its
+/// own binding before any name of the module.
+fn python_binding<'i>(
+    source: &Source,
+    imports: &'i [ImportEntry],
+    at: Node,
+    name: &str,
+) -> Option<&'i ImportEntry> {
+    let position = |import: &ImportEntry| (import.range.start_line, import.range.start_col);
+    let last_star = imports
+        .iter()
+        .filter(|import| import.local_name == "*" || import.kind == ImportKind::Glob)
+        .map(position)
+        .max();
+    let mut bound: Option<&ImportEntry> = None;
+    for import in imports.iter().filter(|import| import.local_name == name) {
+        let Some((statement, is_module_name)) = python_scope_reaches(source, import, at) else {
+            continue;
+        };
+        if let (true, Some(star)) = (is_module_name, last_star) {
+            let is_module_statement = statement
+                .parent()
+                .is_some_and(|parent| parent.kind() == "module");
+            if !is_module_statement || position(import) < star {
+                return None;
+            }
+        }
+        match bound {
+            Some(first)
+                if first.source != import.source || first.imported_name != import.imported_name =>
+            {
+                return None
+            }
+            Some(_) => {}
+            None => bound = Some(import),
+        }
+    }
+    bound
+}
+
 fn nearest_binding<'s>(source: &'s Source, at: Node, name: &str) -> Option<&'s LocalBinding> {
     source
         .extracted

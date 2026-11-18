@@ -6,5 +6,20 @@
     "contains": ["render_any (L16)"],
     "excludes": ["render (L"],
     "category": "wrong_caller"
+  },
+  {
+    "id": "regression:function-scoped-import",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/scope/quote.py"},
+    "contains": ["price — _codemap_language_regressions/scope/tariff_table.py:1", "price (unresolved)"],
+    "category": "wrong_caller"
+  },
+  {
+    "id": "regression:binding-after-star-import",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/scope/quote.py"},
+    "contains": ["with_tax — _codemap_language_regressions/scope/tariff_table.py:5"],
+    "excludes": ["taxed (unresolved)"],
+    "category": "missing_callee"
   }
 ]
