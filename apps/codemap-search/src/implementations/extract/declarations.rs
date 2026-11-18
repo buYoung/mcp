@@ -176,6 +176,18 @@ pub(super) fn type_declaration(
             record.is_complete = false;
             continue;
         }
+        // Dart writes the arguments of a base as a node of their own, right after its name.
+        let written = range(candidate);
+        if let Some(base) = record.bases.last_mut().filter(|base| {
+            base.arguments.is_empty()
+                && (base.range.end_line, base.range.end_col)
+                    == (written.start_line, written.start_col)
+        }) {
+            if let Some(arguments) = type_arguments(&compact(text(candidate, source))) {
+                base.arguments = arguments;
+                continue;
+            }
+        }
         if let Some(mut base) = reference(candidate, source) {
             if base.arguments.is_empty() {
                 if let Some(arguments) = candidate

@@ -7,7 +7,7 @@ public class EmailNotifier : INotifier
     public bool Send(int count) => count > 0;
 }
 
-// A generic type is not linked to the declarations it implements.
+// A generic type implements the declaration like any other type.
 public class BufferedNotifier<T> : INotifier
 {
     private readonly List<T> pending = new();

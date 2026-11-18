@@ -185,6 +185,28 @@ pub(super) fn compact(value: &str) -> String {
     value.chars().filter(|c| !c.is_whitespace()).collect()
 }
 
+/// The arguments of a type argument list written between `<` and `>`, without whitespace.
+pub(super) fn type_arguments(list: &str) -> Option<Vec<String>> {
+    let inner = list.strip_prefix('<')?.strip_suffix('>')?;
+    let mut arguments = Vec::new();
+    let mut depth = 0usize;
+    let mut offset = 0;
+    for (i, c) in inner.char_indices() {
+        match c {
+            '<' | '[' => depth += 1,
+            ']' => depth = depth.checked_sub(1)?,
+            '>' if depth > 0 => depth -= 1,
+            ',' if depth == 0 => {
+                arguments.push(inner[offset..i].to_string());
+                offset = i + 1;
+            }
+            _ => {}
+        }
+    }
+    arguments.push(inner[offset..].to_string());
+    Some(arguments)
+}
+
 pub(super) fn reference(node: Node<'_>, source: &[u8]) -> Option<TypeReference> {
     if node.has_error() || node.is_missing() {
         return None;
@@ -205,24 +227,7 @@ pub(super) fn reference(node: Node<'_>, source: &[u8]) -> Option<TypeReference> 
     }
     let mut arguments = Vec::new();
     if let Some(start) = value.find('<') {
-        if !value.ends_with('>') {
-            return None;
-        }
-        let mut depth = 0usize;
-        let mut offset = start + 1;
-        for (i, c) in value.char_indices().skip_while(|(i, _)| *i <= start) {
-            match c {
-                '<' | '[' => depth += 1,
-                ']' => depth = depth.checked_sub(1)?,
-                '>' if depth > 0 => depth -= 1,
-                ',' if depth == 0 => {
-                    arguments.push(value[offset..i].to_string());
-                    offset = i + 1;
-                }
-                _ => {}
-            }
-        }
-        arguments.push(value[offset..value.len() - 1].to_string());
+        arguments = type_arguments(&value[start..])?;
         value.truncate(start);
     }
     if value.is_empty()

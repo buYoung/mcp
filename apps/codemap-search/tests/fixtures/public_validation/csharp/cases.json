@@ -40,7 +40,7 @@
     "tool": "read",
     "arguments": {"file_path": "_codemap_language_regressions/partial/INotifier.cs"},
     "contains": ["implementation candidate: Partial.EmailNotifier.Send — _codemap_language_regressions/partial/Notifiers.cs:7", "- not source-proven: 1 same-named method(s) in types naming INotifier as a base; the candidates above may be incomplete."],
-    "excludes": ["BufferedNotifier."],
+    "excludes": ["SpooledNotifier."],
     "category": "implementations"
   },
   {
@@ -82,5 +82,28 @@
     "contains": ["Gate.Latch — L5"],
     "excludes": ["Latch (unresolved)"],
     "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-type-implementation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/INotifier.cs"},
+    "contains": ["implementation candidate: Partial.BufferedNotifier.Send — _codemap_language_regressions/partial/Notifiers.cs:15"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic/Codec.cs"},
+    "contains": ["Codec.Width — L7", "call declaration: Generic.Codec.Decode — L5", "implementation candidate: Generic.TextCodec.Decode — L12"],
+    "excludes": ["Width (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-type-arity",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic/Outcome.cs"},
+    "contains": ["Outcome.Code — L11"],
+    "excludes": ["Outcome.Code — L6"],
+    "category": "wrong_caller"
   }
 ]

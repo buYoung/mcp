@@ -166,10 +166,11 @@ fn receiver_type(
             };
             return Some((at_call(base.clone(), node), ReceiverKind::Base));
         }
+        // The type's own parameters stand for its arguments inside it.
         return Some((
             TypeReference {
                 name: owner.qualified_name.clone(),
-                arguments: Vec::new(),
+                arguments: owner.parameters.clone(),
                 range: range(node),
             },
             ReceiverKind::Value,

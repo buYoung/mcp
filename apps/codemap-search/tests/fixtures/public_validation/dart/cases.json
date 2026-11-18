@@ -22,5 +22,13 @@
     "contains": ["Gate.latch — L2"],
     "excludes": ["latch (unresolved)"],
     "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic.dart"},
+    "contains": ["Codec.width — L4", "call declaration: Codec.decode — L2", "implementation candidate: TextCodec.decode — L8"],
+    "excludes": ["width (unresolved)"],
+    "category": "missing_callee"
   }
 ]

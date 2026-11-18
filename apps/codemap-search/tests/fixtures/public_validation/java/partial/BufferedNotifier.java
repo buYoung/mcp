@@ -3,7 +3,7 @@ package partial;
 import java.util.ArrayList;
 import java.util.List;
 
-// A generic type is not linked to the declarations it implements.
+// A generic type implements the declaration like any other type.
 public class BufferedNotifier<T> implements Notifier {
   private final List<T> pending = new ArrayList<>();
 

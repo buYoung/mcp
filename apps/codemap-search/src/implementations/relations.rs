@@ -32,8 +32,8 @@ impl ImplementationIndex {
                 .collect();
             for (file, unit, typ) in declarations {
                 let path = self.files[file].file_path.clone();
-                if !typ.is_complete
-                    || !typ.parameters.is_empty()
+                // A type that the language specializes by its arguments has no bases of its own.
+                if !super::resolve::accepts(&language, &typ, typ.parameters.len())
                     || !active(&language, &path, &typ.range, &typ.conditions, resolver)
                 {
                     continue;

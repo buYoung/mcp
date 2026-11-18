@@ -6,7 +6,7 @@ export class EmailNotifier implements Notifier {
   }
 }
 
-// A generic type is not linked to the declarations it implements.
+// A generic type implements the declaration like any other type.
 export class BufferedNotifier<T> implements Notifier {
   private pending: T[] = [];
 

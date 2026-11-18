@@ -19,7 +19,7 @@
     "tool": "read",
     "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.java"},
     "contains": ["implementation candidate: partial.EmailNotifier.send — _codemap_language_regressions/partial/EmailNotifier.java:4", "- not source-proven: 1 same-named method(s) in types naming Notifier as a base; the candidates above may be incomplete."],
-    "excludes": ["BufferedNotifier."],
+    "excludes": ["SpooledNotifier."],
     "category": "implementations"
   },
   {
@@ -52,6 +52,21 @@
     "arguments": {"file_path": "_codemap_language_regressions/conditional/Guard.java"},
     "contains": ["Gate.latch — _codemap_language_regressions/conditional/Gate.java:4"],
     "excludes": ["latch (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-type-implementation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.java"},
+    "contains": ["implementation candidate: partial.BufferedNotifier.send — _codemap_language_regressions/partial/BufferedNotifier.java:10"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic/Reader.java"},
+    "contains": ["Codec.width — _codemap_language_regressions/generic/Codec.java:6", "call declaration: generic.Codec.decode — _codemap_language_regressions/generic/Codec.java:4", "implementation candidate: generic.TextCodec.decode — _codemap_language_regressions/generic/TextCodec.java:4"],
+    "excludes": ["width (unresolved)"],
     "category": "missing_callee"
   }
 ]

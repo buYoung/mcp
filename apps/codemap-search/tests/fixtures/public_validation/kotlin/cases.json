@@ -56,7 +56,22 @@
     "tool": "read",
     "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.kt"},
     "contains": ["implementation candidate: partial.EmailNotifier.send — _codemap_language_regressions/partial/Notifiers.kt:4", "- not source-proven: 1 same-named method(s) in types naming Notifier as a base; the candidates above may be incomplete."],
-    "excludes": ["BufferedNotifier."],
+    "excludes": ["SpooledNotifier."],
     "category": "implementations"
+  },
+  {
+    "id": "regression:generic-type-implementation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.kt"},
+    "contains": ["implementation candidate: partial.BufferedNotifier.send — _codemap_language_regressions/partial/Notifiers.kt:9"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Generic.kt"},
+    "contains": ["Codec.width — L6", "call declaration: generic.Codec.decode — L4", "implementation candidate: generic.TextCodec.decode — L10"],
+    "excludes": ["width (unresolved)"],
+    "category": "missing_callee"
   }
 ]

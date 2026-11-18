@@ -42,7 +42,41 @@ fn module_matches(path: &str, module: &str) -> bool {
         || path == format!("{module}/__init__.py")
 }
 
+/// A type reference as the lookups read it: the namespace it is written in, its normalized
+/// name, the last part of that name and the number of type arguments.
+struct Written<'a> {
+    namespace: &'a str,
+    name: &'a str,
+    bare: &'a str,
+    arguments: usize,
+}
+
+/// Whether the complete declaration `typ` can be the type a reference with `arguments` type
+/// arguments names. A generic type has the same members whatever its arguments are, so it is
+/// accepted without substituting them. C++ picks a specialization and Rust an implementation
+/// block by the arguments, so there a generic type is never accepted. C# tells `Store` from
+/// `Store<T>` by the number of arguments; elsewhere a type has no more arguments than
+/// parameters, unless it declares its parameters another way, as a Python class does.
+pub(super) fn accepts(language: &str, typ: &TypeDeclaration, arguments: usize) -> bool {
+    typ.is_complete
+        && match language {
+            "cpp" | "rust" => typ.parameters.is_empty() && arguments == 0,
+            "csharp" => typ.parameters.len() == arguments,
+            _ => typ.parameters.is_empty() || arguments <= typ.parameters.len(),
+        }
+}
+
 impl ImplementationIndex {
+    /// Of several declarations that one name leads to, keeps those with as many type
+    /// parameters as the reference has arguments, when there are any: a Scala companion
+    /// object stands beside a generic trait of its name.
+    fn prefer_arity<T>(&self, candidates: &mut Vec<T>, arguments: usize, id: impl Fn(&T) -> usize) {
+        let is_exact = |candidate: &T| self.typ(id(candidate)).parameters.len() == arguments;
+        if candidates.len() > 1 && candidates.iter().any(is_exact) {
+            candidates.retain(is_exact);
+        }
+    }
+
     pub(super) fn resolve_type(
         &self,
         file: usize,
@@ -54,11 +88,10 @@ impl ImplementationIndex {
         let source = &self.files[file];
         let unit = &source.navigation.as_ref()?.implementations.as_ref()?.units[unit_id];
         let name = normalized(&reference.name);
-        // Substitution and conditional constraints need a complete proof. A bare name
-        // must never accidentally match a generic specialization.
-        if !reference.arguments.is_empty() || name.contains(['<', '>', '[', ']', '+', '?']) {
+        if name.contains(['<', '>', '[', ']', '+', '?']) {
             return None;
         }
+        let arguments = reference.arguments.len();
         if unit.language == "rust" {
             resolver.reset_dependency_tracking();
             if let Some(target) =
@@ -73,10 +106,7 @@ impl ImplementationIndex {
                             && self.typ(*id).range == target.symbol.range
                     })
                     .collect::<Vec<_>>();
-                if matches.len() == 1
-                    && self.typ(matches[0]).parameters.is_empty()
-                    && self.typ(matches[0]).is_complete
-                {
+                if matches.len() == 1 && accepts("rust", self.typ(matches[0]), arguments) {
                     let evidence = resolver
                         .source_dependencies()
                         .into_iter()
@@ -107,7 +137,7 @@ impl ImplementationIndex {
         let mut local = Vec::new();
         for &id in self.by_name.get(bare).into_iter().flatten() {
             let typ = self.typ(id);
-            if !typ.parameters.is_empty() || !typ.is_complete {
+            if !accepts(&self.unit(id).language, typ, arguments) {
                 continue;
             }
             // A type declared in parts is local to every file that holds one of them.
@@ -134,19 +164,17 @@ impl ImplementationIndex {
             }
         }
         local.sort_by_key(|(_, depth, size, _)| (std::cmp::Reverse(*depth), *size));
-        if let Some(&(id, depth, size, range)) = local.first() {
-            return (local
-                .iter()
-                .filter(|(_, d, s, _)| *d == depth && *s == size)
-                .count()
-                == 1)
-                .then(|| {
-                    let location = Location {
-                        path: source.file_path.clone(),
-                        range: range.clone(),
-                    };
-                    (id, vec![location])
-                });
+        if let Some(&(_, depth, size, _)) = local.first() {
+            local.retain(|(_, d, s, _)| *d == depth && *s == size);
+            self.prefer_arity(&mut local, arguments, |(id, ..)| *id);
+            let [(id, _, _, range)] = local.as_slice() else {
+                return None;
+            };
+            let location = Location {
+                path: source.file_path.clone(),
+                range: (*range).clone(),
+            };
+            return Some((*id, vec![location]));
         }
         let mut imported = Vec::new();
         let (head, tail) = name.split_once('.').unwrap_or((&name, ""));
@@ -169,8 +197,7 @@ impl ImplementationIndex {
                 let typ = self.typ(id);
                 let target_file = &self.files[self.types[id].file].file_path;
                 if family(&self.unit(id).language) != family(&unit.language)
-                    || !typ.parameters.is_empty()
-                    || !typ.is_complete
+                    || !accepts(&self.unit(id).language, typ, arguments)
                     || family(&unit.language) == "script" && !typ.is_exported
                 {
                     continue;
@@ -238,7 +265,7 @@ impl ImplementationIndex {
             }
         }
         if imported.is_empty() {
-            imported = self.reexported_types(unit, source, &reference.range, head, tail, resolver);
+            imported = self.reexported_types(unit, source, reference, head, tail, resolver);
         }
         imported.sort_by_key(|(id, _, _)| *id);
         imported.dedup_by_key(|(id, _, _)| *id);
@@ -247,16 +274,23 @@ impl ImplementationIndex {
         if imported.len() > 1 {
             imported.retain(|(_, _, is_same_root)| *is_same_root);
         }
+        self.prefer_arity(&mut imported, arguments, |(id, ..)| *id);
         if imported.len() == 1 {
             return imported.pop().map(|(id, evidence, _)| (id, evidence));
         }
         if !imported.is_empty() {
             return None;
         }
-        if let Some(found) = self.required_member(unit, &source.file_path, namespace, &name, bare) {
+        let written = Written {
+            namespace,
+            name: &name,
+            bare,
+            arguments,
+        };
+        if let Some(found) = self.required_member(unit, &source.file_path, &written) {
             return Some(found);
         }
-        self.namespace_member(unit, &source.file_path, namespace, &name, bare)
+        self.namespace_member(unit, &source.file_path, &written)
     }
 
     /// Types that a script, Python or Dart module imported as `head` re-exports from the files
@@ -266,7 +300,7 @@ impl ImplementationIndex {
         &self,
         unit: &ImplementationUnit,
         source: &ExtractedFile,
-        reference: &CodeRange,
+        reference: &TypeReference,
         head: &str,
         tail: &str,
         resolver: &SourceResolver<'_>,
@@ -274,7 +308,7 @@ impl ImplementationIndex {
         let language = unit.language.as_str();
         let mut found = Vec::new();
         for import in unit.imports.iter().filter(|import| {
-            encloses(&import.scope, reference)
+            encloses(&import.scope, &reference.range)
                 && (import.entry.local_name == head
                     || language == "dart" && import.entry.kind == ImportKind::Glob)
         }) {
@@ -311,8 +345,7 @@ impl ImplementationIndex {
                         let declaring = &self.files[self.types[id].file].file_path;
                         if *declaring != origin.file.file_path
                             || family(&self.unit(id).language) != family(language)
-                            || !typ.parameters.is_empty()
-                            || !typ.is_complete
+                            || !accepts(&self.unit(id).language, typ, reference.arguments.len())
                             || !typ.namespace.is_empty()
                             || family(language) == "script" && !typ.is_exported
                         {
@@ -345,10 +378,14 @@ impl ImplementationIndex {
         &self,
         unit: &ImplementationUnit,
         path: &str,
-        namespace: &str,
-        name: &str,
-        bare: &str,
+        written: &Written<'_>,
     ) -> Option<(usize, Vec<Location>)> {
+        let &Written {
+            namespace,
+            name,
+            bare,
+            arguments,
+        } = written;
         let language = unit.language.as_str();
         if !matches!(
             language,
@@ -369,7 +406,7 @@ impl ImplementationIndex {
             .filter_map(|import| import.entry.source.as_deref())
             .map(normalized)
             .collect::<Vec<_>>();
-        let candidates = self
+        let mut candidates = self
             .by_name
             .get(bare)
             .into_iter()
@@ -378,10 +415,7 @@ impl ImplementationIndex {
             .filter(|id| {
                 let typ = self.typ(*id);
                 let target = &self.files[self.types[*id].file].file_path;
-                if self.unit(*id).language != language
-                    || !typ.parameters.is_empty()
-                    || !typ.is_complete
-                {
+                if self.unit(*id).language != language || !accepts(language, typ, arguments) {
                     return false;
                 }
                 if normalized(&typ.qualified_name) == name {
@@ -401,6 +435,7 @@ impl ImplementationIndex {
                     }
             })
             .collect::<Vec<_>>();
+        self.prefer_arity(&mut candidates, arguments, |id| *id);
         let [id] = candidates.as_slice() else {
             return None;
         };
@@ -415,10 +450,14 @@ impl ImplementationIndex {
         &self,
         unit: &ImplementationUnit,
         path: &str,
-        namespace: &str,
-        name: &str,
-        bare: &str,
+        written: &Written<'_>,
     ) -> Option<(usize, Vec<Location>)> {
+        let &Written {
+            namespace,
+            name,
+            bare,
+            arguments,
+        } = written;
         let language = unit.language.as_str();
         if !matches!(language, "ruby" | "dart" | "cpp") {
             return None;
@@ -459,8 +498,7 @@ impl ImplementationIndex {
             for &id in self.by_name.get(bare).into_iter().flatten() {
                 let typ = self.typ(id);
                 if self.unit(id).language == language
-                    && typ.parameters.is_empty()
-                    && typ.is_complete
+                    && accepts(language, typ, arguments)
                     && is_visible(typ)
                     && loads(&self.files[self.types[id].file].file_path)
                 {
@@ -479,6 +517,7 @@ impl ImplementationIndex {
         }
         candidates.sort_by_key(|(id, _)| *id);
         candidates.dedup_by_key(|(id, _)| *id);
+        self.prefer_arity(&mut candidates, arguments, |(id, _)| *id);
         if candidates.len() == 1 {
             return candidates.pop();
         }
