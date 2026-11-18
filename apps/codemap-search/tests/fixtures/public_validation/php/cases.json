@@ -13,5 +13,13 @@
     "contains": ["parse_with (L23)"],
     "excludes": ["parse_day (L"],
     "category": "wrong_caller"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Nullable.php"},
+    "contains": ["Gauge.level — L5", "safe (L14)", "union (L19)"],
+    "excludes": ["level (unresolved)", "unconfirmed callers"],
+    "category": "missing_callee"
   }
 ]

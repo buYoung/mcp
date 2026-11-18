@@ -44,5 +44,13 @@
     "contains": ["Codec.width — L4", "call declaration: Codec.decode — L2", "implementation candidate: TextCodec.decode — L10"],
     "excludes": ["width (unresolved)"],
     "category": "missing_callee"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/nullable.ts"},
+    "contains": ["Gauge.level — L2", "safe (L15)", "asserted (L19)", "level (unresolved)"],
+    "excludes": ["either (L24)"],
+    "category": "missing_callee"
   }
 ]

@@ -487,6 +487,7 @@ fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String,
             Some((name, Some(receiver.trim().to_string())))
         }
         "member_expression"
+        | "null_aware_member_expression"
         | "member_access_expression"
         | "field_expression"
         | "selector_expression"

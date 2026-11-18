@@ -55,6 +55,20 @@ fn self_field<'a>(receiver: &'a str, language: &str) -> Option<&'a str> {
     (!field.is_empty() && field.chars().all(|c| c.is_alphanumeric() || c == '_')).then_some(field)
 }
 
+/// The receiver without the marks that test or assert that it is not null: `tool?` and
+/// `tool!!` in Kotlin, `tool!` in Swift, Dart, C# and TypeScript. The call reaches the same
+/// member with or without them.
+fn without_null_marks<'a>(receiver: &'a str, language: &str) -> &'a str {
+    if matches!(
+        language,
+        "kotlin" | "swift" | "dart" | "csharp" | "typescript"
+    ) {
+        receiver.trim_end_matches(['?', '!'])
+    } else {
+        receiver
+    }
+}
+
 fn is_base_receiver(receiver: Option<&str>, language: &str) -> bool {
     matches!(
         (language, receiver),
@@ -112,7 +126,10 @@ fn receiver_type(
     unit: &ImplementationUnit,
 ) -> Option<(TypeReference, ReceiverKind)> {
     let language = unit.language.as_str();
-    let receiver = call.receiver.as_deref();
+    let receiver = call
+        .receiver
+        .as_deref()
+        .map(|receiver| without_null_marks(receiver, language));
     let is_self = matches!(receiver, Some("this" | "self" | "$this"))
         || language == "python" && receiver == Some("cls");
     let is_implicit = receiver.is_none() && has_implicit_members(language);
@@ -240,23 +257,14 @@ fn declared_receiver_type(
             scope.end_byte() - scope.start_byte(),
             std::cmp::Reverse(binding_node.start_byte()),
             binding_node,
-            binding.type_name.as_deref(),
         ));
     }
-    candidates.sort_by_key(|(size, position, _, _)| (*size, *position));
-    if let Some((_, _, binding, typ)) = candidates.first() {
-        if typ.is_some() {
-            if let Some(typ) = declarations::parameter_type(*binding) {
-                let typ = if typ.kind() == "type_annotation" {
-                    typ.named_child(0)
-                } else {
-                    Some(typ)
-                };
-                return Some(typ.and_then(|typ| reference(typ, source)));
-            }
-        }
-        // An untyped nearest binding shadows a typed outer binding.
-        return Some(None);
+    candidates.sort_by_key(|(size, position, _)| (*size, *position));
+    if let Some((_, _, binding)) = candidates.first() {
+        // A nearest binding without a written type shadows a typed outer binding.
+        return Some(
+            declarations::parameter_type(*binding).and_then(|typ| fields::declared(typ, source)),
+        );
     }
     for parent in crate::parser::ancestors(node) {
         if is_method(parent) || matches!(parent.kind(), "arrow_function" | "lambda_expression") {
@@ -269,14 +277,10 @@ fn declared_receiver_type(
             );
             for parameter in parameters {
                 if declarations::parameter_name(parameter, source).as_deref() == Some(receiver) {
-                    return Some(declarations::parameter_type(parameter).and_then(|typ| {
-                        let typ = if typ.kind() == "type_annotation" {
-                            typ.named_child(0)?
-                        } else {
-                            typ
-                        };
-                        reference(typ, source)
-                    }));
+                    return Some(
+                        declarations::parameter_type(parameter)
+                            .and_then(|typ| fields::declared(typ, source)),
+                    );
                 }
             }
         }

@@ -332,6 +332,7 @@ fn declared_parameter_type<'a>(node: Node<'a>) -> Option<Node<'a>> {
                     "type_annotation",
                     "type",
                     "user_type",
+                    "nullable_type",
                     "type_literal",
                     "type_constraint",
                     "type_constraints",
@@ -346,6 +347,8 @@ fn declared_parameter_type<'a>(node: Node<'a>) -> Option<Node<'a>> {
                     "normal_formal_parameter",
                     "simple_formal_parameter",
                     "script_parameter",
+                    // A Kotlin property names its type beside its name.
+                    "variable_declaration",
                 ],
             )
             .and_then(declared_parameter_type)

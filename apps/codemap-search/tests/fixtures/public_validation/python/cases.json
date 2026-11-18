@@ -29,5 +29,13 @@
     "contains": ["Gate.latch — L2"],
     "excludes": ["latch (unresolved)"],
     "category": "missing_callee"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/nullable.py"},
+    "contains": ["Gauge.level — L5", "safe (L11)", "union (L15)"],
+    "excludes": ["level (unresolved)", "unconfirmed callers"],
+    "category": "missing_callee"
   }
 ]

@@ -163,7 +163,32 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "save",
+            "range": {
+              "startLine": 13,
+              "startCol": 5,
+              "endLine": 13,
+              "endCol": 16
+            },
+            "receiver": {
+              "name": "User",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 15,
+                "endLine": 12,
+                "endCol": 19
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "run",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

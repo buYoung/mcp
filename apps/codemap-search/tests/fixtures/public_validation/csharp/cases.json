@@ -105,5 +105,20 @@
     "contains": ["Outcome.Code — L11"],
     "excludes": ["Outcome.Code — L6"],
     "category": "wrong_caller"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/nullable/Gauge.cs"},
+    "contains": ["Gauge.Level — L6", "Panel.Safe (L12)", "Panel.Asserted (L14)"],
+    "excludes": ["Level (unresolved)", "unconfirmed callers"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:typed-local-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/TypedLocal.cs"},
+    "contains": ["Meter.Read — L5", "Station.FromLocal (L16)"],
+    "category": "missing_callee"
   }
 ]

@@ -73,5 +73,28 @@
     "contains": ["Codec.width — L6", "call declaration: generic.Codec.decode — L4", "implementation candidate: generic.TextCodec.decode — L10"],
     "excludes": ["width (unresolved)"],
     "category": "missing_callee"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Nullable.kt"},
+    "contains": ["Gauge.level — L4", "Panel.safe (L20)", "Panel.asserted (L22)", "Panel.stored (L25)", "Panel.local (L30)"],
+    "excludes": ["level (unresolved)", "unconfirmed callers"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:nullable-parameter-signature",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Nullable.kt"},
+    "contains": ["implementation candidate: nullable.MemorySink.accept — L13"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:typed-local-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/TypedLocal.kt"},
+    "contains": ["Meter.read — L4", "Station.fromProperty (L15)", "Station.fromLocal (L20)"],
+    "excludes": ["Station.hidden (L26)"],
+    "category": "missing_callee"
   }
 ]

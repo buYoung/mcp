@@ -505,7 +505,7 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
 // its body is kept.
 // v48 records which type declarations are parts of one type.
 // v49 records which methods are visible only inside their package or library.
-const EXTRACTION_FORMAT_VERSION: &str = "v52-generic-types";
+const EXTRACTION_FORMAT_VERSION: &str = "v53-nullable-receivers";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -2570,7 +2570,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v52-generic-types");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v53-nullable-receivers");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
