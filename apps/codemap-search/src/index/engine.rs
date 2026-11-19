@@ -444,6 +444,23 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
     Box::new(policy)
 }
 
+/// Whether a pass writing `written` files into an index of `stored` documents rewrites most of
+/// it, as a first build or a re-extraction does. Such a pass ends with one segment: how many
+/// segments the writer threads leave otherwise depends on when their buffers filled, and every
+/// search and stored-document read pays for each of them.
+fn is_bulk_pass(written: usize, stored: u64) -> bool {
+    written > 0 && written as u64 >= stored
+}
+
+/// Merge every segment of `index` into one. `writer` must have no merge running.
+fn merge_into_one_segment(index: &Index, writer: &mut tantivy::IndexWriter) -> tantivy::Result<()> {
+    let segments = index.searchable_segment_ids()?;
+    if segments.len() > 1 {
+        writer.merge(&segments).wait()?;
+    }
+    Ok(())
+}
+
 /// Current extraction-format version. Bump whenever the `ExtractedFile` JSON shape changes
 /// in a way that requires re-extracting on-disk source (not just a serde-compatible add).
 /// `v2` introduced `ExtractedSymbol.owner`: the field is serde-default-compatible (old docs
@@ -1495,10 +1512,22 @@ impl TantivySearchEngine {
             // Another writer may have registered files after the list was read and before the
             // lock was taken. With the lock held the list stays put, so one more open settles it.
             if attempts == 3 || std::fs::read(&managed_path).ok() == managed_before {
-                writer.set_merge_policy(merge_policy());
                 break (write_index, writer);
             }
         };
+        let stored_documents: u64 = write_index
+            .searchable_segment_metas()
+            .map_err(|error| error.to_string())?
+            .iter()
+            .map(|segment| u64::from(segment.num_docs()))
+            .sum();
+        let is_bulk_pass = is_bulk_pass(to_index.len(), stored_documents);
+        if is_bulk_pass {
+            // The single merge after the commit replaces the stepwise ones.
+            writer.set_merge_policy(Box::new(tantivy::indexer::NoMergePolicy));
+        } else {
+            writer.set_merge_policy(merge_policy());
+        }
 
         for rel_path in &to_delete {
             let term = Term::from_field_text(self.file_path_field, rel_path);
@@ -1667,6 +1696,11 @@ impl TantivySearchEngine {
         writer.commit().map_err(|e| e.to_string())?;
         // Still the writer, so no other process is creating segment files.
         super::segment_files::remove_orphans(&write_index, Path::new(&self.index_path));
+        if is_bulk_pass {
+            if let Err(error) = merge_into_one_segment(&write_index, &mut writer) {
+                tracing::warn!("index segments were not merged into one: {error}");
+            }
+        }
         // Dropping a writer cancels the merges its commit started, which would leave their
         // output unreferenced and the deleted documents in place. The commit already landed,
         // so a failed merge only postpones the cleanup to a later pass.
@@ -2473,6 +2507,72 @@ mod tests {
             "reference auxiliary should surface the call-site file: {:?}",
             results
         );
+    }
+
+    #[test]
+    fn test_bulk_pass_covers_first_builds_and_rewrites() {
+        assert!(is_bulk_pass(1, 0));
+        assert!(is_bulk_pass(10, 10));
+        assert!(!is_bulk_pass(9, 10));
+        assert!(!is_bulk_pass(0, 0));
+    }
+
+    #[test]
+    fn test_bulk_pass_leaves_one_segment_and_small_pass_adds_one() {
+        let temp = tempdir().unwrap();
+        let index_dir = temp.path().join("index");
+        let src_dir = temp.path().join("src");
+        fs::create_dir_all(&src_dir).unwrap();
+        let write = |number: usize, name: &str| {
+            let file = src_dir.join(format!("part_{number}.rs"));
+            fs::write(&file, format!("pub fn {name}_{number}() {{}}\n")).unwrap();
+            file
+        };
+        let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        let segments = |engine: &TantivySearchEngine| {
+            engine
+                .open_for_write()
+                .unwrap()
+                .searchable_segment_metas()
+                .unwrap()
+        };
+
+        for number in 0..4 {
+            write(number, "segment_probe");
+        }
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        assert_eq!(segments(&engine).len(), 1);
+
+        // As many new files as the index holds: the second pass is a bulk pass too.
+        for number in 4..10 {
+            write(number, "segment_probe");
+        }
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        let merged = segments(&engine);
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].num_docs(), 10);
+
+        let changed = write(3, "segment_changed");
+        filetime::set_file_mtime(
+            &changed,
+            filetime::FileTime::from_unix_time(2_000_000_000, 0),
+        )
+        .unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        let after_small_pass = segments(&engine);
+        assert_eq!(after_small_pass.len(), 2);
+        assert!(after_small_pass
+            .iter()
+            .any(|segment| segment.id() == merged[0].id()));
+        assert_eq!(engine.search("segment_changed_3", 10).unwrap().len(), 1);
+        assert_eq!(engine.search("segment_probe_9", 10).unwrap().len(), 1);
+        assert!(engine.search("segment_probe_3", 10).unwrap().is_empty());
     }
 
     #[test]
