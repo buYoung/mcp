@@ -25,6 +25,8 @@ pub(crate) const CANDIDATES_PER_QUERY: usize = 512;
 pub(crate) const DIRECT_CALLS_PER_SNAPSHOT: usize = 262_144;
 pub(crate) const OUTPUT_ROWS_PER_QUERY: usize = 128;
 pub(crate) const INHERITANCE_DEPTH: usize = 32;
+/// Label on the heading of a method that has no body of its own.
+pub(crate) const ABSTRACT_DECLARATION_LABEL: &str = "[abstract declaration]";
 
 /// Only development languages with declaration-level inheritance/conformance participate.
 /// Components enter through their existing JS/TS script masks, never their markup.

@@ -212,15 +212,12 @@ impl ImplementationIndex {
         let mut rows = 0;
         for id in methods {
             let method = &self.methods[id];
-            let mut section = format!(
-                "\n### {}{}\n",
-                self.display_method(id, current_file),
-                if method.declaration.is_abstract {
-                    " [abstract declaration]"
-                } else {
-                    ""
-                }
-            );
+            let mut section = format!("\n### {}", self.display_method(id, current_file));
+            if method.declaration.is_abstract {
+                section.push(' ');
+                section.push_str(ABSTRACT_DECLARATION_LABEL);
+            }
+            section.push('\n');
             let mut related = false;
             for &link_id in self.forward.get(&id).into_iter().flatten() {
                 let link = &self.links[link_id];

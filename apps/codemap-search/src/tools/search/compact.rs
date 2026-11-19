@@ -102,26 +102,61 @@ impl CompactPage {
     }
 }
 
+/// A row of the connected locations and the location it names.
+type LocationRow = ((String, usize), String);
+
+/// The connected-location rows collected so far, within [`CONNECTED_ROW_LIMIT`] and
+/// [`CONNECTED_BYTE_CAP`]. A location the page already shows is not listed again.
+struct ConnectedRows {
+    text: String,
+    count: usize,
+    printed: HashSet<(String, usize)>,
+}
+
+impl ConnectedRows {
+    fn has_room(&self, rows: usize, bytes: usize) -> bool {
+        self.count + rows <= CONNECTED_ROW_LIMIT && self.text.len() + bytes <= CONNECTED_BYTE_CAP
+    }
+
+    fn push(&mut self, (key, row): LocationRow) -> bool {
+        if !self.has_room(1, row.len()) || !self.printed.insert(key) {
+            return false;
+        }
+        self.count += 1;
+        self.text.push_str(&row);
+        true
+    }
+
+    /// Adds `row` below the heading of its section. The heading is listed even when the page
+    /// already shows its location, because the row does not say what it belongs to.
+    fn push_under(&mut self, heading: &LocationRow, (key, row): LocationRow) -> bool {
+        if !self.has_room(2, heading.1.len() + row.len()) || !self.printed.insert(key) {
+            return false;
+        }
+        self.printed.insert(heading.0.clone());
+        self.count += 2;
+        self.text.push_str(&heading.1);
+        self.text.push_str(&row);
+        true
+    }
+}
+
 /// Rows for what the full page would have attached to the listed declarations within its
 /// budget order: caller sites when caller context is on, then the planned static,
 /// event and implementation relations. Rows whose location is already printed are skipped.
+/// A section heading is listed with the first row of its section, so that no row comes
+/// without what it belongs to and no heading comes without a relation; the heading of an
+/// abstract declaration is a row in its own right.
 fn connected_locations(
     entries: &[CompactEntry],
     relations_by_file: &[Vec<String>],
     caller_annotations: Option<&crate::callers::DetailAnnotations>,
-    mut printed: HashSet<(String, usize)>,
+    printed: HashSet<(String, usize)>,
 ) -> String {
-    let mut rows = String::new();
-    let mut count = 0;
-    let mut push = |key: (String, usize), row: String, rows: &mut String| {
-        if count >= CONNECTED_ROW_LIMIT
-            || rows.len() + row.len() > CONNECTED_BYTE_CAP
-            || !printed.insert(key)
-        {
-            return;
-        }
-        count += 1;
-        rows.push_str(&row);
+    let mut rows = ConnectedRows {
+        text: String::new(),
+        count: 0,
+        printed,
     };
     for (entry, relations) in entries.iter().zip(relations_by_file) {
         if let Some(annotations) = caller_annotations {
@@ -141,27 +176,57 @@ fn connected_locations(
                         "- {}:{} {caller} → {}{label}\n",
                         site.path, site.line, symbol.name
                     );
-                    push((site.path.clone(), site.line), row, &mut rows);
+                    rows.push(((site.path.clone(), site.line), row));
                 }
             }
         }
         for relation in relations {
-            for (key, row) in relation_rows(relation, &entry.path) {
-                push(key, row, &mut rows);
+            // The heading of the current section while it is not listed yet.
+            let mut heading: Option<LocationRow> = None;
+            for line in relation_lines(relation, &entry.path) {
+                match line {
+                    RelationLine::Heading(row) => {
+                        heading = row.filter(|row| {
+                            !(row
+                                .1
+                                .contains(crate::implementations::ABSTRACT_DECLARATION_LABEL)
+                                && rows.push(row.clone()))
+                        });
+                    }
+                    RelationLine::Row(row) => match heading.take() {
+                        Some(pending) => {
+                            if !rows.push_under(&pending, row) {
+                                heading = Some(pending);
+                            }
+                        }
+                        None => {
+                            rows.push(row);
+                        }
+                    },
+                }
             }
         }
     }
-    if rows.is_empty() {
+    if rows.text.is_empty() {
         String::new()
     } else {
-        format!("{CONNECTED_HEADING}{rows}")
+        format!("{CONNECTED_HEADING}{}", rows.text)
     }
 }
 
-/// Relation lines that carry a location, as `- …` rows with the file's path made explicit.
-fn relation_rows(relations: &str, path: &str) -> Vec<((String, usize), String)> {
+enum RelationLine {
+    /// The heading of a section, with its row when it names a location.
+    Heading(Option<LocationRow>),
+    /// A line of the current section that names a location.
+    Row(LocationRow),
+}
+
+/// The section headings of a relation text and the lines that carry a location, as `- …`
+/// rows with the file's path made explicit.
+fn relation_lines(relations: &str, path: &str) -> Vec<RelationLine> {
     let mut out = Vec::new();
     for line in relations.lines() {
+        let is_heading = line.starts_with('#');
         let line = line.trim_start_matches('#').trim();
         let line = line.strip_prefix("- ").unwrap_or(line);
         if line.starts_with('_') {
@@ -171,17 +236,94 @@ fn relation_rows(relations: &str, path: &str) -> Vec<((String, usize), String)> 
         let line = PATHLESS_LOCATION.replace_all(&line, |captures: &regex::Captures<'_>| {
             format!("— {path}:{}", &captures[1])
         });
-        let Some(location) = LOCATION.captures(&line) else {
-            continue;
-        };
-        let Ok(number) = location[2].parse::<usize>() else {
-            continue;
-        };
-        let key = (location[1].to_string(), number);
-        out.push((
-            key,
-            format!("- {}\n", truncate(line.trim(), 2 * ROW_MAX_CHARS)),
-        ));
+        let row = LOCATION.captures(&line).and_then(|location| {
+            let number = location[2].parse::<usize>().ok()?;
+            Some((
+                (location[1].to_string(), number),
+                format!("- {}\n", truncate(line.trim(), 2 * ROW_MAX_CHARS)),
+            ))
+        });
+        match (is_heading, row) {
+            (true, row) => out.push(RelationLine::Heading(row)),
+            (false, Some(row)) => out.push(RelationLine::Row(row)),
+            (false, None) => {}
+        }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry(path: &str) -> CompactEntry {
+        CompactEntry {
+            text: String::new(),
+            path: path.to_string(),
+            listed: Vec::new(),
+            shown_lines: Vec::new(),
+            evidence_bytes: 0,
+        }
+    }
+
+    fn connected(relations: &str, printed: &[(&str, usize)]) -> String {
+        let printed = printed
+            .iter()
+            .map(|(path, line)| (path.to_string(), *line))
+            .collect();
+        connected_locations(
+            &[entry("src/scene.ts")],
+            &[vec![relations.to_string()]],
+            None,
+            printed,
+        )
+    }
+
+    #[test]
+    fn test_heading_without_relation_row_is_not_listed() {
+        // The byte cap of the relation text cut the section after its heading.
+        let relations = "#### Implementations\n\n##### Panel.title — L12\n- implements/overrides declaration: Titled.title — src/titled.ts:3\n\n##### Scene.switchLayout — L40\n\n[Implementation context truncated; narrow the source window or workspace.]\n";
+        assert_eq!(
+            connected(relations, &[]),
+            "\n## Connected locations\n- Panel.title — src/scene.ts:12\n- implements/overrides declaration: Titled.title — src/titled.ts:3\n"
+        );
+    }
+
+    #[test]
+    fn test_relation_row_keeps_heading_already_on_page() {
+        let relations = "#### Implementations\n\n##### Queues.GetQueue — L30 [abstract declaration]\n- implementation candidate: Builder.GetQueue — src/builder.go:77\n";
+        assert_eq!(
+            connected(relations, &[("src/scene.ts", 30)]),
+            "\n## Connected locations\n- Queues.GetQueue — src/scene.ts:30 [abstract declaration]\n- implementation candidate: Builder.GetQueue — src/builder.go:77\n"
+        );
+    }
+
+    #[test]
+    fn test_abstract_heading_is_listed_alone() {
+        let relations = "#### Implementations\n\n##### Queues.GetQueue — L30 [abstract declaration]\n- implementation: unresolved (no eligible source-proven candidate in this snapshot).\n";
+        assert_eq!(
+            connected(relations, &[]),
+            "\n## Connected locations\n- Queues.GetQueue — src/scene.ts:30 [abstract declaration]\n"
+        );
+        assert_eq!(connected(relations, &[("src/scene.ts", 30)]), "");
+    }
+
+    #[test]
+    fn test_heading_is_listed_once_for_several_rows() {
+        let relations = "#### Implementations\n\n##### Store.Insert — L9 [abstract declaration]\n- implementation candidate: Memory.Insert — src/memory.go:5\n- implementation candidate: Disk.Insert — src/disk.go:8\n";
+        assert_eq!(
+            connected(relations, &[("src/memory.go", 5)]),
+            "\n## Connected locations\n- Store.Insert — src/scene.ts:9 [abstract declaration]\n- implementation candidate: Disk.Insert — src/disk.go:8\n"
+        );
+    }
+
+    #[test]
+    fn test_row_without_located_heading_is_listed_alone() {
+        let relations =
+            "## Event relationships\n\n### Event \"saved\"\n- emit: Scene.save — src/scene.ts:21\n";
+        assert_eq!(
+            connected(relations, &[]),
+            "\n## Connected locations\n- emit: Scene.save — src/scene.ts:21\n"
+        );
+    }
 }

@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A Dart class whose base has type arguments, such as `class TextCodec extends Codec<String>`, is no longer left out of implementation navigation. The type arguments were read as a base that could not be understood, so the whole class was set aside, including its calls through typed receivers.
 - A Dart call written with `?.`, such as `gauge?.level()`, is recorded as a call to `level`. It was recorded as a call to the receiver, `gauge`, so the method never listed this caller.
 - A Kotlin method with a nullable parameter, such as `fun accept(item: String?)`, is linked to the declaration it implements. Its signature was read as unknown, so it was linked to none.
+- `Connected locations` at the end of a compact search page no longer lists the heading of a method without a row that says what it is connected to. This happened when the space for relations ended right after the heading. A relation row now also comes with its heading when the page already shows the location of that heading; alone, the row did not say which declaration it belongs to. The heading of an abstract declaration is still listed on its own.
 
 ## [1.0.0] - 2026-11-17
 
