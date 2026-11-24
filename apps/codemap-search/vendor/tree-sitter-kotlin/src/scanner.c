@@ -270,6 +270,9 @@ bool tree_sitter_kotlin_external_scanner_scan(void *payload, TSLexer *lexer, con
                         skip(lexer);
                     }
                 }
+                if (valid_symbols[CONSTRUCTOR] && lexer->lookahead == '@') {
+                    goto _switch;
+                }
 
                 uint8_t index = -1;
                 bool res = scan_words(

@@ -3070,6 +3070,18 @@ def standalone() { return 4 }
     }
 
     #[test]
+    fn kotlin_modifier_before_annotated_next_line_constructor_stays_in_class() {
+        let source = "class Holder\nprivate @Inject constructor(val id: Int) {\n  fun inside(): Int = id\n}\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "Holder.kt")
+            .unwrap();
+        let holder = file.symbols.iter().find(|s| s.name == "Holder").unwrap();
+        assert_eq!(holder.range.start_line, 1);
+        assert_eq!(holder.range.end_line_inclusive(), 4);
+        assert_eq!(owner_of(source, "Holder.kt", "inside"), Some("Holder".to_string()));
+    }
+
+    #[test]
     fn operators_accessors_and_assigned_functions_keep_their_source_ranges() {
         let extractor = TreeSitterExtractor::new();
         for (path, source, expected) in [

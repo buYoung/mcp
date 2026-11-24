@@ -1,6 +1,6 @@
 use super::*;
 use crate::parser::{CodeRange, ExtractedFile};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
@@ -28,10 +28,21 @@ pub(super) struct MethodNode {
     pub contract: Option<usize>,
 }
 #[derive(Clone, Debug)]
+pub(super) struct TypeSubstitution {
+    pub parameter: String,
+    pub argument: String,
+    pub file: usize,
+    pub unit: usize,
+    pub owner: usize,
+    pub namespace: String,
+    pub range: CodeRange,
+}
+#[derive(Clone, Debug)]
 pub(super) struct Parent {
     pub owner: usize,
     pub evidence: Vec<Location>,
     pub is_pointer: bool,
+    pub substitutions: Vec<TypeSubstitution>,
 }
 #[derive(Clone, Debug)]
 pub(super) struct Link {
@@ -85,11 +96,17 @@ pub(crate) struct ImplementationIndex {
     /// are linked to no declaration: implementations the source suggests but does not prove.
     pub(super) unproven: HashMap<usize, Vec<usize>>,
     pub(super) proof_digests: HashMap<String, String>,
+    /// Last `(len, mtime)` observed when a file's bytes matched `proof_digests`, shared across
+    /// queries of this snapshot generation to avoid re-reading unchanged files on every request.
+    pub(super) verified_stamps:
+        Arc<std::sync::RwLock<HashMap<String, (u64, std::time::SystemTime)>>>,
     pub(super) target_os: Option<String>,
     pub(super) omitted: usize,
     pub(super) dart_libraries: super::DartLibraries,
     /// Indexed files by file name, built when the first include is resolved.
     pub(super) files_by_name: std::sync::OnceLock<HashMap<String, Vec<usize>>>,
+    /// Go `package` names declared in a directory whose basename differs (e.g. `v5/` -> `package chi`).
+    pub(super) go_mismatched_packages: HashSet<String>,
 }
 
 impl ImplementationIndex {
@@ -128,12 +145,14 @@ impl ImplementationIndex {
             references: HashMap::new(),
             unproven: HashMap::new(),
             proof_digests: HashMap::new(),
+            verified_stamps: Arc::new(std::sync::RwLock::new(HashMap::new())),
             target_os,
             omitted: 0,
             dart_libraries: super::DartLibraries::new(
                 files.iter().map(|file| file.file_path.as_str()),
             ),
             files_by_name: std::sync::OnceLock::new(),
+            go_mismatched_packages: HashSet::new(),
         };
         // The first indexed part of each type that is declared in parts.
         let mut partial: HashMap<(&str, &str, usize, &str), usize> = HashMap::new();
@@ -161,6 +180,16 @@ impl ImplementationIndex {
                 .insert(file.file_path.clone(), facts.source_digest.clone());
             index.omitted += facts.omitted;
             for (unit_id, unit) in facts.units.iter().enumerate() {
+                if unit.language == "go" && !unit.namespace.is_empty() {
+                    let dir_base = std::path::Path::new(&file.file_path)
+                        .parent()
+                        .and_then(|p| p.file_name())
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("");
+                    if dir_base != unit.namespace {
+                        index.go_mismatched_packages.insert(unit.namespace.clone());
+                    }
+                }
                 for (declaration, typ) in unit.types.iter().enumerate() {
                     if expansion.is_some_and(|info| !info.is_active_line(typ.range.start_line)) {
                         continue;
@@ -171,8 +200,10 @@ impl ImplementationIndex {
                     }
                     // The parts of one type share its members, so they form one type here.
                     // Parts compile into one assembly: they sit below one project file. A
-                    // conditional part stays apart, as every conditional declaration does.
-                    let part = (typ.is_partial && typ.is_complete && typ.conditions.is_empty())
+                    // conditional partial part (such as `JsonReader.Async.cs` inside `#if`)
+                    // merges into the same type while its own bases and methods stay gated by
+                    // `conditions`, so it never poisons resolution of the unconditional parts.
+                    let part = (typ.is_partial && typ.is_complete)
                         .then(|| project_folder(&projects, &file.file_path))
                         .flatten()
                         .map(|project| {
@@ -184,9 +215,22 @@ impl ImplementationIndex {
                             )
                         });
                     if let Some(&first) = part.and_then(|part| partial.get(&part)) {
-                        index.types[first]
-                            .parts
-                            .push((file_id, unit_id, declaration));
+                        let primary_conditional = !index.typ(first).conditions.is_empty();
+                        if primary_conditional && typ.conditions.is_empty() {
+                            let old = (
+                                index.types[first].file,
+                                index.types[first].unit,
+                                index.types[first].declaration,
+                            );
+                            index.types[first].file = file_id;
+                            index.types[first].unit = unit_id;
+                            index.types[first].declaration = declaration;
+                            index.types[first].parts.push(old);
+                        } else {
+                            index.types[first]
+                                .parts
+                                .push((file_id, unit_id, declaration));
+                        }
                         for method in &typ.methods {
                             index.add_method(first, method.clone(), (file_id, unit_id), None);
                         }
@@ -274,6 +318,62 @@ impl ImplementationIndex {
     /// Digest of the source generation every recorded fact for `path` came from.
     pub(crate) fn proof_digest(&self, path: &str) -> Option<&str> {
         self.proof_digests.get(path).map(String::as_str)
+    }
+
+    /// Whether `root.join(path)` still matches the indexed `proof_digest`. Returns `None` when
+    /// `root.join(path)` has no metadata on disk. Reuses a cached `(len, mtime)` match only once
+    /// the mtime is at least two seconds old, so rapid edits within the same timestamp tick still
+    /// verify the full digest.
+    pub(crate) fn is_digest_current_on_disk(
+        &self,
+        root: &std::path::Path,
+        path: &str,
+        max_size: Option<u64>,
+        byte_budget: Option<(&mut usize, usize)>,
+    ) -> Option<bool> {
+        let Some(expected) = self.proof_digests.get(path) else {
+            return Some(false);
+        };
+        let disk_path = root.join(path);
+        let metadata = std::fs::metadata(&disk_path).ok()?;
+        let size = metadata.len();
+        if max_size.is_some_and(|cap| size > cap) {
+            return Some(false);
+        }
+        let modified = metadata.modified().ok();
+        if let Some(modified) = modified {
+            let is_racy_clean = std::time::SystemTime::now()
+                .duration_since(modified)
+                .is_ok_and(|age| age >= std::time::Duration::from_secs(2));
+            if is_racy_clean
+                && self
+                    .verified_stamps
+                    .read()
+                    .ok()
+                    .and_then(|stamps| stamps.get(path).copied())
+                    == Some((size, modified))
+            {
+                return Some(true);
+            }
+        }
+        if let Some((used, cap)) = byte_budget {
+            if used.saturating_add(size as usize) > cap {
+                return Some(false);
+            }
+            *used += size as usize;
+        }
+        let Ok(bytes) = std::fs::read(&disk_path) else {
+            return Some(false);
+        };
+        let is_match = digest(&bytes) == *expected;
+        if is_match {
+            if let Some(modified) = modified {
+                if let Ok(mut stamps) = self.verified_stamps.write() {
+                    stamps.insert(path.to_string(), (size, modified));
+                }
+            }
+        }
+        Some(is_match)
     }
 
     pub(super) fn unit(&self, id: usize) -> &ImplementationUnit {

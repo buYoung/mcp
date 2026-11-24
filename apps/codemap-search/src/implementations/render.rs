@@ -15,20 +15,20 @@ struct Eligibility<'a> {
     root: &'a Path,
     scope: Option<&'a str>,
     filter: crate::callers::test_code::TestCodeFilter,
+    ignore_probe: crate::workspace::IgnoreProbe,
     fresh: HashMap<String, bool>,
     bytes: usize,
 }
 impl Eligibility<'_> {
-    fn allows(&mut self, location: &Location) -> bool {
-        if self.scope.is_some_and(|scope| {
-            location.path != scope
-                && !location
-                    .path
+    fn in_scope(&self, path: &str) -> bool {
+        !self.scope.is_some_and(|scope| {
+            path != scope
+                && !path
                     .strip_prefix(scope)
                     .is_some_and(|tail| tail.starts_with('/'))
-        }) {
-            return false;
-        }
+        })
+    }
+    fn is_valid_evidence(&mut self, location: &Location) -> bool {
         let fresh = if let Some(fresh) = self.fresh.get(&location.path) {
             *fresh
         } else {
@@ -36,39 +36,45 @@ impl Eligibility<'_> {
             let is_fresh = self.fresh.len() < 1024
                 && self
                     .index
-                    .proof_digests
-                    .get(&location.path)
-                    .is_some_and(|expected| {
-                        crate::workspace::walk_root_is_visible(&path, true)
-                            && std::fs::metadata(&path).is_ok_and(|metadata| {
-                                let size = metadata.len();
-                                if size > 8 * 1024 * 1024
-                                    || self.bytes.saturating_add(size as usize) > 64 * 1024 * 1024
-                                {
-                                    return false;
-                                }
-                                self.bytes += size as usize;
-                                std::fs::read(&path).is_ok_and(|bytes| digest(&bytes) == *expected)
-                            })
-                    });
+                    .is_digest_current_on_disk(
+                        self.root,
+                        &location.path,
+                        Some(8 * 1024 * 1024),
+                        Some((&mut self.bytes, 64 * 1024 * 1024)),
+                    )
+                    .unwrap_or(false)
+                && if path.parent().is_none_or(|p| p.as_os_str().is_empty()) {
+                    crate::workspace::walk_root_is_visible(&path, true)
+                } else {
+                    !self.ignore_probe.is_ignored(&path)
+                };
             self.fresh.insert(location.path.clone(), is_fresh);
             is_fresh
         };
         fresh && !self.filter.is_excluded(&location.path, &location.range)
     }
+    fn allows(&mut self, location: &Location) -> bool {
+        self.in_scope(&location.path) && self.is_valid_evidence(location)
+    }
     fn method(&mut self, id: usize) -> bool {
         let method = &self.index.methods[id];
-        self.allows(&method.location) && self.allows(&self.index.location(method.owner))
+        self.allows(&method.location) && self.is_valid_evidence(&self.index.declaring(id))
     }
     fn link(&mut self, link: &Link) -> bool {
         self.method(link.declaration)
             && self.method(link.implementation)
-            && link.evidence.iter().all(|location| self.allows(location))
+            && link
+                .evidence
+                .iter()
+                .all(|location| self.is_valid_evidence(location))
     }
     fn call(&mut self, call: &Call) -> bool {
         self.allows(&call.location)
             && self.method(call.declaration)
-            && call.evidence.iter().all(|location| self.allows(location))
+            && call
+                .evidence
+                .iter()
+                .all(|location| self.is_valid_evidence(location))
     }
 }
 
@@ -144,6 +150,7 @@ impl ImplementationIndex {
             root,
             scope,
             filter: crate::callers::test_code::TestCodeFilter::from_config(root),
+            ignore_probe: crate::workspace::IgnoreProbe::default(),
             fresh: HashMap::new(),
             bytes: 0,
         };

@@ -1162,7 +1162,10 @@ pub(crate) fn annotate_results_with_state(
     implementations: Option<&crate::implementations::ImplementationIndex>,
     call_lookup: Option<&super::CallLookup>,
 ) -> Option<DetailAnnotations> {
-    let resolver = super::resolution::SourceResolver::new(snapshot, root);
+    let resolver = match call_lookup {
+        Some(lookup) => super::resolution::SourceResolver::with_lookup(snapshot, root, lookup),
+        None => super::resolution::SourceResolver::new(snapshot, root),
+    };
     let resolver = match implementations {
         Some(index) => resolver.with_implementations(index),
         None => resolver,

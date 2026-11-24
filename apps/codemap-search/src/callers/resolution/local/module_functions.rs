@@ -280,7 +280,7 @@ impl<'a> SourceResolver<'a> {
             names
                 .iter()
                 .filter_map(|name| relative_path(importer, &format!("{up}{name}")))
-                .filter_map(|path| self.files_by_path.get(path.as_str()).copied())
+                .filter_map(|path| self.file_by_path(path.as_str()))
                 .collect::<Vec<_>>()
         } else {
             self.files
@@ -292,9 +292,8 @@ impl<'a> SourceResolver<'a> {
                         };
                         root.is_empty()
                             || root.strip_suffix('/').is_some_and(|root| {
-                                !self
-                                    .files_by_path
-                                    .contains_key(format!("{root}/__init__.py").as_str())
+                                self.file_by_path(format!("{root}/__init__.py").as_str())
+                                    .is_none()
                             })
                     })
                 })
@@ -347,7 +346,7 @@ impl<'a> SourceResolver<'a> {
                     .collect::<Vec<_>>();
                 std::iter::once(module).chain(named)
             })
-            .filter_map(|candidate| self.files_by_path.get(candidate.as_str()).copied())
+            .filter_map(|candidate| self.file_by_path(candidate.as_str()))
             .collect()
     }
 
@@ -417,7 +416,7 @@ impl<'a> SourceResolver<'a> {
         if !matches!(language, "c" | "cpp") || symbol.kind != "fn" {
             return None;
         }
-        let declaring = *self.files_by_path.get(path)?;
+        let declaring = self.file_by_path(path)?;
         let source = self.source(path)?;
         let node = node_at(&source, &symbol.range)?;
         if node.kind() == "function_definition" || !current_symbol(&source, symbol) {
@@ -603,7 +602,7 @@ impl<'a> SourceResolver<'a> {
         let mut headers = Vec::new();
         for include in imports.iter().filter_map(|import| import.source.as_deref()) {
             if let Some(beside) = relative_path(path, include)
-                .and_then(|candidate| self.files_by_path.get(candidate.as_str()).copied())
+                .and_then(|candidate| self.file_by_path(candidate.as_str()))
             {
                 headers.push(beside);
                 continue;

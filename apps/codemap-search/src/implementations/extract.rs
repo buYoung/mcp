@@ -447,6 +447,36 @@ pub(crate) fn collect(
         owners.push((node, unit.types.len()));
         unit.types.push(record);
     }
+    if matches!(language, "typescript" | "javascript") {
+        for statement in children(tree.root_node())
+            .into_iter()
+            .filter(|node| node.kind() == "export_statement")
+        {
+            let mut cursor = statement.walk();
+            let is_default = statement
+                .children(&mut cursor)
+                .any(|child| !child.is_named() && child.kind() == "default");
+            if !is_default {
+                continue;
+            }
+            if let Some(value) = statement
+                .child_by_field_name("value")
+                .filter(|node| node.kind() == "identifier")
+            {
+                let name = text(value, source);
+                let matching: Vec<_> = unit
+                    .types
+                    .iter_mut()
+                    .filter(|typ| typ.namespace.is_empty() && typ.name == name)
+                    .collect();
+                if matching.len() == 1 {
+                    let typ = matching.into_iter().next().unwrap();
+                    typ.is_exported = true;
+                    typ.is_default_export = true;
+                }
+            }
+        }
+    }
     let mut method_count = 0;
     for symbol in symbols.iter().filter(|symbol| symbol.kind == "fn") {
         let Some(node) = declaration(tree, symbol, false) else {

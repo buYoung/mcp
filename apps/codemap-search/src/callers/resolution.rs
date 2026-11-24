@@ -46,11 +46,25 @@ struct Source {
 struct SourceLoader<'r, 'a> {
     root: &'a Path,
     stored_sources: Option<&'a HashMap<String, String>>,
-    files_by_path: &'r HashMap<&'a str, &'a ExtractedFile>,
+    files: &'a [std::sync::Arc<ExtractedFile>],
+    call_lookup: Option<&'a super::CallLookup>,
+    files_by_path: Option<&'r HashMap<&'a str, &'a ExtractedFile>>,
     test_filter: &'r super::test_code::TestCodeFilter,
 }
 
-impl SourceLoader<'_, '_> {
+impl<'a> SourceLoader<'_, 'a> {
+    fn file_by_path(&self, path: &str) -> Option<&'a ExtractedFile> {
+        if let Some(lookup) = self.call_lookup {
+            return lookup
+                .file_index(path)
+                .and_then(|idx| self.files.get(idx))
+                .map(|file| &**file);
+        }
+        self.files_by_path
+            .as_ref()
+            .and_then(|by_path| by_path.get(path).copied())
+    }
+
     fn read_source(&self, file: &str) -> Option<String> {
         match self.stored_sources {
             Some(sources) => sources.get(file).cloned(),
@@ -90,7 +104,7 @@ impl SourceLoader<'_, '_> {
         if self.stored_sources.is_some() {
             return None;
         }
-        let indexed = self.files_by_path.get(file)?;
+        let indexed = self.file_by_path(file)?;
         let navigation = indexed.navigation.as_ref()?;
         if navigation.macro_expansion.is_some()
             || navigation.implementations.as_ref()?.source_digest != digest
@@ -120,9 +134,10 @@ impl SourceLoader<'_, '_> {
 
 pub(crate) struct SourceResolver<'a> {
     files: &'a [std::sync::Arc<ExtractedFile>],
-    files_by_path: HashMap<&'a str, &'a ExtractedFile>,
+    call_lookup: Option<&'a super::CallLookup>,
+    files_by_path: Option<HashMap<&'a str, &'a ExtractedFile>>,
     root: &'a Path,
-    names: HashMap<&'a str, Vec<Target<'a>>>,
+    names: RefCell<Option<HashMap<&'a str, Vec<Target<'a>>>>>,
     sources: RefCell<HashMap<String, Option<Rc<Source>>>>,
     manifests: RefCell<HashMap<PathBuf, Option<Rc<toml::Value>>>>,
     /// Indexed files by the paths lookups named, since each lookup resolves links on disk.
@@ -155,13 +170,52 @@ pub(crate) struct SourceResolver<'a> {
     implementations: Option<&'a crate::implementations::ImplementationIndex>,
     /// Whether each proof file still holds the indexed source generation.
     indexed_generations: RefCell<HashMap<String, bool>>,
+    /// Canonicalized workspace root, computed once on demand.
+    canonical_root: RefCell<Option<PathBuf>>,
+    /// Nearest directory holding `go.mod` or `go.work` (or `self.root`) per file directory.
+    go_anchor_dirs: RefCell<HashMap<PathBuf, PathBuf>>,
+    /// Parsed `go.mod` info per directory, read at most once per directory.
+    go_mods: RefCell<HashMap<PathBuf, Option<Rc<GoModInfo>>>>,
+    /// Parsed `go.work` `use` `(module, dir)` pairs per directory, read at most once per directory.
+    go_works: RefCell<HashMap<PathBuf, Option<Rc<GoWorkModules>>>>,
+    /// Resolved Go import directory keyed by `(anchor_dir, import_path)`.
+    go_import_paths: RefCell<HashMap<(PathBuf, String), Option<PathBuf>>>,
+    /// Workspace-relative directory resolved for a `(anchor_dir, go_import_path)` pair.
+    go_import_dirs: RefCell<HashMap<(PathBuf, String), Option<String>>>,
+}
+
+/// Parsed `module` and local `replace` prefixes from a single `go.mod` file.
+struct GoModInfo {
+    module: Option<String>,
+    replaces: Vec<(String, PathBuf)>,
+}
+
+/// Workspace-relative directory and manifest lookup caches used during Go import resolution.
+type GoWorkModules = Vec<(String, PathBuf)>;
+
+fn clean_join(base: &Path, rel: &str) -> PathBuf {
+    let trimmed = rel.trim_start_matches("./");
+    if trimmed.is_empty() || trimmed == "." {
+        base.to_path_buf()
+    } else if !trimmed.contains("..") {
+        base.join(trimmed)
+    } else {
+        crate::workspace::canonicalize_path_lenient(&base.join(rel))
+    }
+}
+
+fn strip_go_import_prefix<'a>(import: &'a str, module: &str) -> Option<&'a str> {
+    import
+        .strip_prefix(module)
+        .filter(|suffix| suffix.is_empty() || suffix.starts_with('/'))
+        .map(|suffix| suffix.trim_start_matches('/'))
 }
 
 pub(crate) fn supports(path: &str) -> bool {
     supports_modules(path) || local::supports(path)
 }
 
-fn supports_modules(path: &str) -> bool {
+pub(super) fn supports_modules(path: &str) -> bool {
     matches!(
         Path::new(path).extension().and_then(|ext| ext.to_str()),
         Some("rs" | "go")
@@ -334,28 +388,37 @@ fn unique<'a>(targets: Vec<Target<'a>>) -> Option<Target<'a>> {
 
 impl<'a> SourceResolver<'a> {
     pub(crate) fn new(files: &'a [std::sync::Arc<ExtractedFile>], root: &'a Path) -> Self {
-        let mut names: HashMap<_, Vec<_>> = HashMap::new();
-        for file in files
-            .iter()
-            .filter(|file| supports_modules(&file.file_path))
-        {
-            for symbol in &file.symbols {
-                names.entry(symbol.name.as_str()).or_default().push(Target {
-                    file,
-                    symbol,
-                    is_precise: true,
-                });
-            }
-        }
-        Self {
-            files,
-            files_by_path: files
+        Self::construct(files, root, None)
+    }
+
+    /// Reuse snapshot-level file, module-symbol, type-name, and declared-name maps built once per
+    /// published generation so per-request construction is O(1).
+    pub(crate) fn with_lookup(
+        files: &'a [std::sync::Arc<ExtractedFile>],
+        root: &'a Path,
+        call_lookup: &'a super::CallLookup,
+    ) -> Self {
+        Self::construct(files, root, Some(call_lookup))
+    }
+
+    fn construct(
+        files: &'a [std::sync::Arc<ExtractedFile>],
+        root: &'a Path,
+        call_lookup: Option<&'a super::CallLookup>,
+    ) -> Self {
+        let files_by_path = call_lookup.is_none().then(|| {
+            files
                 .iter()
                 .filter(|file| supports(&file.file_path))
                 .map(|file| (file.file_path.as_str(), &**file))
-                .collect(),
+                .collect()
+        });
+        Self {
+            files,
+            call_lookup,
+            files_by_path,
             root,
-            names,
+            names: RefCell::new(None),
             sources: RefCell::new(HashMap::new()),
             manifests: RefCell::new(HashMap::new()),
             file_lookups: RefCell::new(HashMap::new()),
@@ -375,7 +438,64 @@ impl<'a> SourceResolver<'a> {
             workspace_packages: RefCell::new(None),
             implementations: None,
             indexed_generations: RefCell::new(HashMap::new()),
+            canonical_root: RefCell::new(None),
+            go_anchor_dirs: RefCell::new(HashMap::new()),
+            go_mods: RefCell::new(HashMap::new()),
+            go_works: RefCell::new(HashMap::new()),
+            go_import_paths: RefCell::new(HashMap::new()),
+            go_import_dirs: RefCell::new(HashMap::new()),
         }
+    }
+
+    fn file_by_path(&self, path: &str) -> Option<&'a ExtractedFile> {
+        if let Some(lookup) = self.call_lookup {
+            return lookup
+                .file_index(path)
+                .and_then(|idx| self.files.get(idx))
+                .map(|file| &**file);
+        }
+        self.files_by_path
+            .as_ref()
+            .and_then(|by_path| by_path.get(path).copied())
+    }
+
+    fn targets_named(&self, name: &str) -> Vec<Target<'a>> {
+        if let Some(lookup) = self.call_lookup {
+            return lookup
+                .module_symbols(self.files)
+                .get(name)
+                .into_iter()
+                .flatten()
+                .filter_map(|&(file_idx, sym_idx)| {
+                    let file = self.files.get(file_idx)?;
+                    let symbol = file.symbols.get(sym_idx)?;
+                    Some(Target {
+                        file: &**file,
+                        symbol,
+                        is_precise: true,
+                    })
+                })
+                .collect();
+        }
+        let mut names = self.names.borrow_mut();
+        let map = names.get_or_insert_with(|| {
+            let mut by_name: HashMap<&'a str, Vec<Target<'a>>> = HashMap::new();
+            for file in self
+                .files
+                .iter()
+                .filter(|file| supports_modules(&file.file_path))
+            {
+                for symbol in &file.symbols {
+                    by_name.entry(symbol.name.as_str()).or_default().push(Target {
+                        file,
+                        symbol,
+                        is_precise: true,
+                    });
+                }
+            }
+            by_name
+        });
+        map.get(name).cloned().unwrap_or_default()
     }
 
     /// Also resolve typed member calls proven by `index`, built from the same `files`.
@@ -512,7 +632,9 @@ impl<'a> SourceResolver<'a> {
         SourceLoader {
             root: self.root,
             stored_sources: self.stored_sources,
-            files_by_path: &self.files_by_path,
+            files: self.files,
+            call_lookup: self.call_lookup,
+            files_by_path: self.files_by_path.as_ref(),
             test_filter: &self.test_filter,
         }
     }
@@ -534,7 +656,7 @@ impl<'a> SourceResolver<'a> {
             return *found;
         }
         let key = crate::workspace::workspace_relative_key(path, self.root);
-        let found = self.files_by_path.get(key.as_str()).copied();
+        let found = self.file_by_path(key.as_str());
         self.file_lookups
             .borrow_mut()
             .insert(path.to_path_buf(), found);
@@ -696,58 +818,247 @@ impl<'a> SourceResolver<'a> {
         package
     }
 
-    fn go_import_directory(&self, file: &str, import: &str) -> Option<PathBuf> {
-        let manifest = self.nearest(file, "go.mod")?;
-        let content = std::fs::read_to_string(&manifest).ok()?;
-        let module = content
-            .lines()
-            .find_map(|line| line.trim().strip_prefix("module "))?
-            .trim();
-        if let Some(suffix) = import
-            .strip_prefix(module)
-            .filter(|suffix| suffix.is_empty() || suffix.starts_with('/'))
-        {
-            return Some(manifest.parent()?.join(suffix.trim_start_matches('/')));
+    /// Workspace-relative directory (with `/` separators, `""` for the root) that a Go import
+    /// path maps to via `go.mod`, `replace`, or `go.work`, cached per `(importer_dir, import)`.
+    fn canonical_root_path(&self) -> PathBuf {
+        let mut cached = self.canonical_root.borrow_mut();
+        cached
+            .get_or_insert_with(|| crate::workspace::canonicalize_path_lenient(self.root))
+            .clone()
+    }
+
+    fn is_under_workspace(&self, path: &Path) -> bool {
+        path.starts_with(self.root) || path.starts_with(self.canonical_root_path())
+    }
+
+    fn read_manifest_text(&self, path: &Path) -> Option<String> {
+        if let Some(sources) = self.stored_sources {
+            let key = crate::workspace::workspace_relative_key(path, self.root);
+            if let Some(content) = sources.get(&key) {
+                return Some(content.clone());
+            }
         }
-        // Workspace replacements are explicit source mappings, unlike matching a path suffix.
-        let mut directory = manifest.parent()?.to_path_buf();
-        loop {
-            if let Ok(content) = std::fs::read_to_string(directory.join("go.mod")) {
-                for line in content.lines() {
-                    let line = line.trim().strip_prefix("replace ").unwrap_or(line.trim());
-                    if let Some((module, replacement)) = line.split_once("=>") {
-                        let module = module.split_whitespace().next()?;
-                        let replacement = replacement.split_whitespace().next()?;
-                        if replacement.starts_with('.') {
-                            if let Some(suffix) = import
-                                .strip_prefix(module)
-                                .filter(|suffix| suffix.is_empty() || suffix.starts_with('/'))
-                            {
-                                let path = crate::workspace::canonicalize_path_lenient(
-                                    &directory
-                                        .join(replacement)
-                                        .join(suffix.trim_start_matches('/')),
-                                );
-                                if path.starts_with(self.root) {
-                                    return Some(path);
-                                }
-                            }
+        std::fs::read_to_string(path).ok()
+    }
+
+    fn go_mod_info(&self, dir: &Path) -> Option<Rc<GoModInfo>> {
+        if let Some(cached) = self.go_mods.borrow().get(dir) {
+            return cached.clone();
+        }
+        let info = self.read_manifest_text(&dir.join("go.mod")).map(|content| {
+            let mut module = None;
+            let mut replaces = Vec::new();
+            for raw in content.lines() {
+                let line = raw.split("//").next().unwrap_or("").trim();
+                if line.is_empty() {
+                    continue;
+                }
+                if module.is_none() {
+                    if let Some(rest) = line.strip_prefix("module ") {
+                        let name = rest.trim().trim_matches('"');
+                        if !name.is_empty() {
+                            module = Some(name.to_string());
+                        }
+                        continue;
+                    }
+                }
+                let replace_line = line.strip_prefix("replace ").unwrap_or(line);
+                if let Some((mod_part, target_part)) = replace_line.split_once("=>") {
+                    let Some(mod_name) = mod_part.split_whitespace().next() else {
+                        continue;
+                    };
+                    let Some(replacement) = target_part.split_whitespace().next() else {
+                        continue;
+                    };
+                    if replacement.starts_with('.') {
+                        let target = clean_join(dir, replacement);
+                        if self.is_under_workspace(&target) {
+                            replaces.push((mod_name.to_string(), target));
                         }
                     }
                 }
             }
-            if directory == self.root || !directory.pop() || !directory.starts_with(self.root) {
-                return None;
+            Rc::new(GoModInfo { module, replaces })
+        });
+        self.go_mods
+            .borrow_mut()
+            .insert(dir.to_path_buf(), info.clone());
+        info
+    }
+
+    fn go_work_modules(&self, dir: &Path) -> Option<Rc<GoWorkModules>> {
+        if let Some(cached) = self.go_works.borrow().get(dir) {
+            return cached.clone();
+        }
+        let modules = self.read_manifest_text(&dir.join("go.work")).map(|content| {
+            let mut entries = Vec::new();
+            let mut in_use = false;
+            for raw in content.lines() {
+                let line = raw.split("//").next().unwrap_or("").trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let use_dir = if let Some(rest) = line.strip_prefix("use ") {
+                    let rest = rest.trim();
+                    if rest == "(" {
+                        in_use = true;
+                        None
+                    } else {
+                        Some(rest.trim_matches('"'))
+                    }
+                } else if line == "use(" {
+                    in_use = true;
+                    None
+                } else if in_use && line == ")" {
+                    in_use = false;
+                    None
+                } else if in_use {
+                    Some(line.trim_matches('"'))
+                } else {
+                    None
+                };
+                let Some(use_dir) = use_dir.filter(|d| !d.is_empty()) else {
+                    continue;
+                };
+                let mod_dir = clean_join(dir, use_dir);
+                if !self.is_under_workspace(&mod_dir) {
+                    continue;
+                }
+                if let Some(info) = self.go_mod_info(&mod_dir) {
+                    if let Some(module) = &info.module {
+                        entries.push((module.clone(), mod_dir));
+                    }
+                }
+            }
+            Rc::new(entries)
+        });
+        self.go_works
+            .borrow_mut()
+            .insert(dir.to_path_buf(), modules.clone());
+        modules
+    }
+
+    fn go_anchor_dir(&self, file: &str) -> PathBuf {
+        let start = self
+            .root
+            .join(file)
+            .parent()
+            .unwrap_or(self.root)
+            .to_path_buf();
+        if let Some(cached) = self.go_anchor_dirs.borrow().get(&start) {
+            return cached.clone();
+        }
+        let mut visited = Vec::new();
+        let mut dir = start;
+        let anchor = loop {
+            if let Some(cached) = self.go_anchor_dirs.borrow().get(&dir) {
+                break cached.clone();
+            }
+            if self.go_mod_info(&dir).is_some() || self.go_work_modules(&dir).is_some() {
+                break dir;
+            }
+            visited.push(dir.clone());
+            if dir == self.root || !dir.pop() || !dir.starts_with(self.root) {
+                break self.root.to_path_buf();
+            }
+        };
+        let mut cache = self.go_anchor_dirs.borrow_mut();
+        cache.insert(anchor.clone(), anchor.clone());
+        for path in visited {
+            cache.insert(path, anchor.clone());
+        }
+        anchor
+    }
+
+    pub(crate) fn go_import_rel_dir(&self, file: &str, import: &str) -> Option<String> {
+        let anchor = self.go_anchor_dir(file);
+        let key = (anchor, import.to_string());
+        if let Some(cached) = self.go_import_dirs.borrow().get(&key) {
+            return cached.clone();
+        }
+        let resolved = self
+            .go_import_directory_from(&key.0, import)
+            .and_then(|path| {
+                let rel = path
+                    .strip_prefix(self.root)
+                    .ok()
+                    .or_else(|| path.strip_prefix(self.canonical_root_path()).ok())?;
+                Some(
+                    rel.to_string_lossy()
+                        .replace('\\', "/")
+                        .trim_matches('/')
+                        .to_string(),
+                )
+            });
+        self.go_import_dirs
+            .borrow_mut()
+            .insert(key, resolved.clone());
+        resolved
+    }
+
+    fn go_import_directory(&self, file: &str, import: &str) -> Option<PathBuf> {
+        let anchor = self.go_anchor_dir(file);
+        self.go_import_directory_from(&anchor, import)
+    }
+
+    fn go_import_directory_from(&self, anchor: &Path, import: &str) -> Option<PathBuf> {
+        let key = (anchor.to_path_buf(), import.to_string());
+        if let Some(cached) = self.go_import_paths.borrow().get(&key) {
+            return cached.clone();
+        }
+        let mut resolved = None;
+        if let Some(info) = self.go_mod_info(anchor) {
+            if let Some(module) = info.module.as_deref() {
+                if let Some(suffix) = strip_go_import_prefix(import, module) {
+                    resolved = Some(if suffix.is_empty() {
+                        anchor.to_path_buf()
+                    } else {
+                        anchor.join(suffix)
+                    });
+                }
             }
         }
+        if resolved.is_none() {
+            let mut directory = anchor.to_path_buf();
+            loop {
+                if let Some(info) = self.go_mod_info(&directory) {
+                    if let Some((_, target, suffix)) = info.replaces.iter().find_map(|(m, target)| {
+                        strip_go_import_prefix(import, m).map(|suffix| (m, target, suffix))
+                    }) {
+                        resolved = Some(if suffix.is_empty() {
+                            target.clone()
+                        } else {
+                            target.join(suffix)
+                        });
+                        break;
+                    }
+                }
+                if let Some(modules) = self.go_work_modules(&directory) {
+                    if let Some((_, mod_dir, suffix)) = modules.iter().find_map(|(m, mod_dir)| {
+                        strip_go_import_prefix(import, m).map(|suffix| (m, mod_dir, suffix))
+                    }) {
+                        resolved = Some(if suffix.is_empty() {
+                            mod_dir.clone()
+                        } else {
+                            mod_dir.join(suffix)
+                        });
+                        break;
+                    }
+                }
+                if directory == self.root || !directory.pop() || !directory.starts_with(self.root) {
+                    break;
+                }
+            }
+        }
+        self.go_import_paths
+            .borrow_mut()
+            .insert(key, resolved.clone());
+        resolved
     }
 
     fn candidates(&self, name: &str, kind: &str) -> Vec<Target<'a>> {
-        self.names
-            .get(name)
+        self.targets_named(name)
             .into_iter()
-            .flatten()
-            .copied()
             .filter(|target| supports_modules(&target.file.file_path))
             .filter(|target| match kind {
                 "call" => target.symbol.kind == "fn" && target.symbol.owner.is_none(),
@@ -1311,7 +1622,7 @@ impl<'a> SourceResolver<'a> {
     }
 
     pub(crate) fn resolve_call(&self, file: &ExtractedFile, call: &CallSite) -> Option<Target<'a>> {
-        let file = self.files_by_path.get(file.file_path.as_str()).copied()?;
+        let file = self.file_by_path(file.file_path.as_str())?;
         if local::supports(&file.file_path) {
             // Members of the enclosing type take precedence over functions of other files.
             return self
@@ -1399,11 +1710,8 @@ impl<'a> SourceResolver<'a> {
 
     fn method(&self, owner: Target<'a>, name: &str, is_precise: bool) -> Option<Target<'a>> {
         unique(
-            self.names
-                .get(name)
+            self.targets_named(name)
                 .into_iter()
-                .flatten()
-                .copied()
                 .filter(|target| {
                     target.symbol.kind == "fn"
                         && target.symbol.owner.as_deref() == Some(&owner.symbol.name)

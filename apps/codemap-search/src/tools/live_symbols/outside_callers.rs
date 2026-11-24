@@ -88,8 +88,12 @@ pub(super) fn trailer(
     if functions.is_empty() {
         return None;
     }
-    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root)
-        .with_implementations(snapshot.implementations());
+    let resolver = crate::callers::resolution::SourceResolver::with_lookup(
+        &source_files,
+        &root,
+        snapshot.call_lookup(),
+    )
+    .with_implementations(snapshot.implementations());
     // Calls reach a C/C++ prototype's definition, so its callers are those of the definition.
     let targets: Vec<Target<'_>> = functions
         .iter()

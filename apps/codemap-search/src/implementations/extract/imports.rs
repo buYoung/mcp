@@ -52,6 +52,16 @@ pub(super) fn collect(
             Point::new(entry.range.start_line - 1, entry.range.start_col - 1),
             Point::new(entry.range.end_line - 1, entry.range.end_col - 1),
         );
+        // `lang::scala` strips `{...}` selectors into a single Namespace entry; let the Scala
+        // parser below expand each selector without treating `{X}` as a wildcard import.
+        if unit.language == "scala" && entry.kind == ImportKind::Namespace {
+            if let Some(node) = node {
+                let raw = text(node, source);
+                if raw.contains('{') || (!raw.trim_end().ends_with("._") && !raw.trim_end().ends_with(".*")) {
+                    continue;
+                }
+            }
+        }
         unit.imports.push(ScopedImport {
             entry: entry.clone(),
             scope: range(node.map(scope).unwrap_or(root)),
@@ -75,10 +85,10 @@ pub(super) fn collect(
         }
         if matches!(
             unit.language.as_str(),
-            "java" | "kotlin" | "scala" | "groovy" | "csharp"
+            "java" | "kotlin" | "scala" | "groovy"
         ) && matches!(
             node.kind(),
-            "import_declaration" | "import_header" | "import" | "using_directive"
+            "import_declaration" | "import_header" | "import"
         ) {
             if modifier(node, "static", source) {
                 continue;
@@ -86,10 +96,91 @@ pub(super) fn collect(
             let value = text(node, source)
                 .trim()
                 .trim_start_matches("import")
-                .trim_start_matches("using")
                 .trim()
                 .trim_end_matches(';')
                 .trim();
+            let import_scope = range(scope(node));
+            let is_valid_dotted = |path: &str| {
+                !path.is_empty()
+                    && path
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || "_.$".contains(c))
+            };
+            // Scala brace imports: `import a.b.{X, Y => Z, _}`.
+            if unit.language == "scala" && value.contains('{') && value.ends_with('}') {
+                if let Some((prefix, body)) = value.split_once('{') {
+                    let prefix = compact(prefix.trim().trim_end_matches('.'));
+                    if is_valid_dotted(&prefix) {
+                        let inner = body.trim_end_matches('}');
+                        for selector in inner.split(',') {
+                            let selector = selector.trim();
+                            if selector.is_empty() {
+                                continue;
+                            }
+                            if matches!(selector, "_" | "*") {
+                                unit.imports.push(ScopedImport {
+                                    entry: ImportEntry {
+                                        local_name: "*".into(),
+                                        imported_name: None,
+                                        source: Some(prefix.clone()),
+                                        kind: ImportKind::Namespace,
+                                        range: range(node),
+                                    },
+                                    scope: import_scope.clone(),
+                                });
+                                continue;
+                            }
+                            let (orig, alias) = selector
+                                .split_once("=>")
+                                .or_else(|| selector.split_once(" as "))
+                                .map_or((selector, None), |(a, b)| (a.trim(), Some(b.trim())));
+                            if alias == Some("_") || !is_valid_dotted(orig) {
+                                continue;
+                            }
+                            let local = alias
+                                .map(str::to_string)
+                                .unwrap_or_else(|| orig.rsplit('.').next().unwrap_or("").into());
+                            if local.is_empty()
+                                || !local.chars().all(|c| c.is_alphanumeric() || "_$".contains(c))
+                            {
+                                continue;
+                            }
+                            let full = format!("{prefix}.{orig}");
+                            unit.imports.push(ScopedImport {
+                                entry: ImportEntry {
+                                    local_name: local,
+                                    imported_name: Some(full.clone()),
+                                    source: Some(full),
+                                    kind: ImportKind::Named,
+                                    range: range(node),
+                                },
+                                scope: import_scope.clone(),
+                            });
+                        }
+                    }
+                }
+                continue;
+            }
+            // Wildcard package imports: `import a.b.*` (Java/Kotlin/Groovy/Scala) and `import a.b._` (Scala).
+            if let Some(pkg) = value
+                .strip_suffix(".*")
+                .or_else(|| (unit.language == "scala").then(|| value.strip_suffix("._")).flatten())
+            {
+                let pkg = compact(pkg);
+                if is_valid_dotted(&pkg) {
+                    unit.imports.push(ScopedImport {
+                        entry: ImportEntry {
+                            local_name: "*".into(),
+                            imported_name: None,
+                            source: Some(pkg),
+                            kind: ImportKind::Namespace,
+                            range: range(node),
+                        },
+                        scope: import_scope,
+                    });
+                }
+                continue;
+            }
             if value.contains(['*', '{', '}', '=']) {
                 continue;
             }
@@ -97,14 +188,11 @@ pub(super) fn collect(
                 .split_once(" as ")
                 .map_or((value, None), |(a, b)| (a, Some(b)));
             let original = compact(original);
-            if !original
-                .chars()
-                .all(|c| c.is_alphanumeric() || "_.$".contains(c))
-            {
+            if !is_valid_dotted(&original) {
                 continue;
             }
             let local = alias
-                .map(str::to_string)
+                .map(|a| compact(a))
                 .unwrap_or_else(|| original.rsplit('.').next().unwrap_or("").into());
             unit.imports.push(ScopedImport {
                 entry: ImportEntry {
@@ -114,7 +202,7 @@ pub(super) fn collect(
                     kind: ImportKind::Named,
                     range: range(node),
                 },
-                scope: range(root),
+                scope: import_scope,
             });
         }
         if unit.language == "python" && node.kind() == "import_from_statement" {

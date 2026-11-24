@@ -83,13 +83,27 @@ pub(crate) struct CallLookup {
     files_by_import: HashMap<Box<str>, Vec<usize>>,
     /// Files without recorded calls, or outside source resolution, which a scan reads by text.
     unrecorded: Vec<usize>,
+    /// Supported files by workspace-relative path, for O(1) per-request lookup.
+    files_by_path: HashMap<Box<str>, usize>,
+    /// Rust/Go symbols by name as `(file_index, symbol_index)`, built on first module lookup.
+    module_symbols: std::sync::Arc<OnceLock<HashMap<Box<str>, Vec<(usize, usize)>>>>,
+    /// Names of indexed container/type declarations, built on first receiver-type check.
+    type_names: std::sync::Arc<OnceLock<HashSet<Box<str>>>>,
+    /// Names declared or imported in the snapshot, with whether a trait/interface has the name.
+    declared_names: std::sync::Arc<OnceLock<HashMap<Box<str>, bool>>>,
 }
 
 impl CallLookup {
     pub(crate) fn build(snapshot: &[std::sync::Arc<ExtractedFile>]) -> Self {
         let mut lookup = Self::default();
         for (position, file) in snapshot.iter().enumerate() {
-            if file.navigation.is_none() || !super::resolution::supports(&file.file_path) {
+            let is_supported = super::resolution::supports(&file.file_path);
+            if is_supported {
+                lookup
+                    .files_by_path
+                    .insert(file.file_path.as_str().into(), position);
+            }
+            if file.navigation.is_none() || !is_supported {
                 lookup.unrecorded.push(position);
             }
             let Some(navigation) = &file.navigation else {
@@ -113,6 +127,70 @@ impl CallLookup {
             }
         }
         lookup
+    }
+
+    pub(super) fn file_index(&self, path: &str) -> Option<usize> {
+        self.files_by_path.get(path).copied()
+    }
+
+    pub(super) fn module_symbols(
+        &self,
+        snapshot: &[std::sync::Arc<ExtractedFile>],
+    ) -> &HashMap<Box<str>, Vec<(usize, usize)>> {
+        self.module_symbols.get_or_init(|| {
+            let mut by_name: HashMap<Box<str>, Vec<(usize, usize)>> = HashMap::new();
+            for (file_idx, file) in snapshot.iter().enumerate() {
+                if !super::resolution::supports_modules(&file.file_path) {
+                    continue;
+                }
+                for (sym_idx, symbol) in file.symbols.iter().enumerate() {
+                    by_name
+                        .entry(symbol.name.as_str().into())
+                        .or_default()
+                        .push((file_idx, sym_idx));
+                }
+            }
+            by_name
+        })
+    }
+
+    pub(super) fn type_names(
+        &self,
+        snapshot: &[std::sync::Arc<ExtractedFile>],
+    ) -> &HashSet<Box<str>> {
+        self.type_names.get_or_init(|| {
+            snapshot
+                .iter()
+                .flat_map(|file| &file.symbols)
+                .filter(|symbol| crate::declarations::container(symbol))
+                .map(|symbol| symbol.name.as_str().into())
+                .collect()
+        })
+    }
+
+    pub(super) fn declared_names(
+        &self,
+        snapshot: &[std::sync::Arc<ExtractedFile>],
+    ) -> &HashMap<Box<str>, bool> {
+        self.declared_names.get_or_init(|| {
+            let mut names: HashMap<Box<str>, bool> = HashMap::new();
+            for file in snapshot {
+                for symbol in &file.symbols {
+                    let is_contract = matches!(symbol.kind.as_str(), "trait" | "interface");
+                    if let Some(existing) = names.get_mut(symbol.name.as_str()) {
+                        *existing |= is_contract;
+                    } else {
+                        names.insert(symbol.name.as_str().into(), is_contract);
+                    }
+                }
+                for import in file.navigation.iter().flat_map(|nav| &nav.imports) {
+                    if !names.contains_key(import.local_name.as_str()) {
+                        names.insert(import.local_name.as_str().into(), false);
+                    }
+                }
+            }
+            names
+        })
     }
 
     /// Ascending snapshot positions of the files whose recorded calls use one of `calls` or that

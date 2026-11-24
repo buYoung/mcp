@@ -496,7 +496,7 @@ impl<'a> SourceResolver<'a> {
         // A function declaration directly inside another function is reachable by name only
         // from inside that function. Methods of local classes and functions stored in objects
         // are not covered: they can escape with their owner.
-        if let Some(declaring) = self.files_by_path.get(target_file) {
+        if let Some(declaring) = self.file_by_path(target_file) {
             let parent = declaring
                 .symbols
                 .iter()
@@ -579,6 +579,12 @@ impl<'a> SourceResolver<'a> {
 
     /// Whether `target` extends a receiver type, or its declaration cannot be read to tell.
     fn is_extension(&self, target_file: &str, target: &ExtractedSymbol) -> bool {
+        let has_extensions = crate::lang::spec_for_path(Path::new(target_file)).is_some_and(
+            |spec| matches!(spec.language_name(), "kotlin" | "csharp" | "dart" | "scala" | "swift"),
+        );
+        if !has_extensions {
+            return false;
+        }
         self.source(target_file).is_none_or(|source| {
             node_at(&source, &target.range).is_none_or(|node| extends_receiver(node, &source))
         })
@@ -631,6 +637,9 @@ impl<'a> SourceResolver<'a> {
     /// The type that the implementation block around `target` is written for, when the block
     /// names it by a plain path, e.g. `i32` in `impl From<Code> for i32`.
     fn implemented_type(&self, target_file: &str, target: &ExtractedSymbol) -> Option<String> {
+        if !target_file.ends_with(".rs") {
+            return None;
+        }
         let source = self.source(target_file)?;
         let mut node = node_at(&source, &target.range)?;
         while node.kind() != "impl_item" {
@@ -681,6 +690,9 @@ impl<'a> SourceResolver<'a> {
     /// `None` when no indexed file declares a symbol called `name` or imports something
     /// under it, else whether a trait or an interface has that name.
     fn declared_name(&self, name: &str) -> Option<bool> {
+        if let Some(lookup) = self.call_lookup {
+            return lookup.declared_names(self.files).get(name).copied();
+        }
         let names = self
             .declared_names
             .borrow_mut()
@@ -702,6 +714,9 @@ impl<'a> SourceResolver<'a> {
     }
 
     fn is_indexed_type(&self, name: &str) -> bool {
+        if let Some(lookup) = self.call_lookup {
+            return lookup.type_names(self.files).contains(name);
+        }
         let names = self
             .type_names
             .borrow_mut()

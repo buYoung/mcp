@@ -165,7 +165,7 @@ pub(super) fn trailer(
         }
     }
     renames.retain(|(index, ..)| !filter.is_file_excluded(&files[*index].file_path));
-    let resolver = SourceResolver::new(&files, &root);
+    let resolver = SourceResolver::with_lookup(&files, &root, snapshot.call_lookup());
     let mut aliases: HashMap<&str, Option<usize>> = HashMap::new();
     for (index, export, declaration) in renames {
         let barrel = files[index].file_path.as_str();

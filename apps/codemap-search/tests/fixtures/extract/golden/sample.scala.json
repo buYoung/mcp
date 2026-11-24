@@ -85,25 +85,6 @@
             {
               "entry": {
                 "localName": "Helper",
-                "source": "demo.Helper",
-                "kind": "namespace",
-                "range": {
-                  "startLine": 1,
-                  "startCol": 1,
-                  "endLine": 1,
-                  "endCol": 19
-                }
-              },
-              "scope": {
-                "startLine": 1,
-                "startCol": 1,
-                "endLine": 9,
-                "endCol": 1
-              }
-            },
-            {
-              "entry": {
-                "localName": "Helper",
                 "importedName": "demo.Helper",
                 "source": "demo.Helper",
                 "kind": "named",

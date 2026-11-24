@@ -26,7 +26,7 @@ impl<'a> SourceResolver<'a> {
         {
             return None;
         }
-        let target_file = self.files_by_path.get(target.path).copied()?;
+        let target_file = self.file_by_path(target.path)?;
         let symbol = target_file.symbols.iter().find(|symbol| {
             symbol.kind == "fn" && symbol.name == call.name && symbol.range == *target.range
         })?;
@@ -46,10 +46,21 @@ impl<'a> SourceResolver<'a> {
         if let Some(is_current) = self.indexed_generations.borrow().get(path) {
             return *is_current;
         }
-        let is_current = index.proof_digest(path).is_some_and(|expected| {
-            self.read_source(path)
-                .is_some_and(|text| crate::implementations::digest(text.as_bytes()) == expected)
-        });
+        let is_current = if self.stored_sources.is_none() {
+            match index.is_digest_current_on_disk(self.root, path, None, None) {
+                Some(current) => current,
+                None => index.proof_digest(path).is_some_and(|expected| {
+                    std::fs::read_to_string(path)
+                        .ok()
+                        .is_some_and(|text| crate::implementations::digest(text.as_bytes()) == expected)
+                }),
+            }
+        } else {
+            index.proof_digest(path).is_some_and(|expected| {
+                self.read_source(path)
+                    .is_some_and(|text| crate::implementations::digest(text.as_bytes()) == expected)
+            })
+        };
         self.indexed_generations
             .borrow_mut()
             .insert(path.to_string(), is_current);

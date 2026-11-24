@@ -58,9 +58,16 @@ pub struct TypeDeclaration {
     pub methods: Vec<MethodDeclaration>,
     pub is_contract: bool,
     pub is_exported: bool,
+    /// Exported as the module's default export (`export default class ...`), for script modules.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_default_export: bool,
     pub is_abstract: bool,
     pub is_final: bool,
     pub is_complete: bool,
+    /// True when a non-Go type declaration has an intact header (`is_complete = true`) but its
+    /// body contains a syntax/preprocessor parse error; suppresses overload-sensitive direct calls.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub has_body_error: bool,
     /// Declared as one of several parts of a type, as C# `partial` declarations are.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub is_partial: bool,

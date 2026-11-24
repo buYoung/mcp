@@ -363,3 +363,359 @@ fn bounded_output_keeps_first_candidates_and_late_read_anchors() {
         "{output}"
     );
 }
+
+#[test]
+fn workspace_scope_keeps_links_with_external_signature_evidence() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let entries = [
+        ("types/item.ts", "export interface Item { id: string; }\n"),
+        (
+            "pkg/base.ts",
+            "import { Item } from '../types/item';\nexport interface Base { handle(item: Item): void; }\n",
+        ),
+        (
+            "pkg/child.ts",
+            "import { Item } from '../types/item';\nimport { Base } from './base';\nexport class Child implements Base { handle(item: Item): void {} }\n",
+        ),
+    ];
+    let root = tempfile::tempdir().unwrap();
+    for (path, source) in entries {
+        let full = root.path().join(path);
+        std::fs::create_dir_all(full.parent().unwrap()).unwrap();
+        std::fs::write(full, source).unwrap();
+    }
+    let index = build(&entries);
+    let scoped = index.for_paths(&[("pkg/base.ts".into(), 2, 2)], Some("pkg"), 4096, root.path());
+    assert!(scoped.contains("Child.handle — pkg/child.ts:3"), "{scoped}");
+
+    std::fs::write(
+        root.path().join("types/item.ts"),
+        "export interface Item { changed: number; }\n",
+    )
+    .unwrap();
+    let stale = index.for_paths(&[("pkg/base.ts".into(), 2, 2)], Some("pkg"), 4096, root.path());
+    assert!(!stale.contains("Child.handle"), "{stale}");
+}
+
+#[test]
+fn signature_types_resolve_csharp_generics_and_ignore_non_type_shadowing() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let csharp = build(&[
+        ("store.cs", "namespace Demo { class Store<T> {} }\n"),
+        (
+            "base.cs",
+            "namespace Demo { interface Base { void Run(Store<int> store); } }\n",
+        ),
+        (
+            "child.cs",
+            "namespace Demo { class Child : Base { public void Run(Store<int> store) {} } }\n",
+        ),
+    ]);
+    assert_eq!(csharp.links.len(), 1, "{csharp:#?}");
+
+    let method_same_name = build(&[
+        ("base.ts", "export interface Base { fail(err: Error): void; }\n"),
+        (
+            "child.ts",
+            "import { Base } from './base';\nexport class Child implements Base { Error() {} fail(err: Error): void {} }\n",
+        ),
+    ]);
+    assert_eq!(method_same_name.links.len(), 1, "{method_same_name:#?}");
+
+    let type_param_shadow = build(&[
+        ("base.ts", "export interface Base { fail(err: Error): void; }\n"),
+        (
+            "child.ts",
+            "import { Base } from './base';\nexport class Child<Error> implements Base { fail(err: Error): void {} }\n",
+        ),
+    ]);
+    assert!(type_param_shadow.links.is_empty(), "{type_param_shadow:#?}");
+}
+
+fn build_with_disk(entries: &[(&str, &str)]) -> ImplementationIndex {
+    let root = tempfile::tempdir().unwrap();
+    for (path, source) in entries {
+        let full = root.path().join(path);
+        if let Some(parent) = full.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(&full, source).unwrap();
+    }
+    let extractor = TreeSitterExtractor::new();
+    let files = std::sync::Arc::new(
+        entries
+            .iter()
+            .filter_map(|(path, source)| {
+                extractor
+                    .extract(source, path)
+                    .ok()
+                    .map(std::sync::Arc::new)
+            })
+            .collect::<Vec<_>>(),
+    );
+    let sources = entries
+        .iter()
+        .map(|(path, source)| ((*path).to_string(), (*source).to_string()))
+        .collect();
+    ImplementationIndex::build_at(files, &sources, root.path())
+}
+
+#[test]
+fn go_cross_package_assertions_and_embedded_interfaces() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let index = build_with_disk(&[
+        ("go.mod", "module example.com/app\n\ngo 1.22\n"),
+        (
+            "pkg/base/base.go",
+            concat!(
+                "package base\n",
+                "type Item struct{}\n",
+                "type Closer interface { Close() error }\n",
+                "type Service interface {\n",
+                "  Closer\n",
+                "  Run(item *Item, payload interface{}) error\n",
+                "}\n",
+                "type External interface {\n",
+                "  UnknownExt\n",
+                "  Ping() error\n",
+                "}\n",
+            ),
+        ),
+        (
+            "pkg/impl/impl.go",
+            concat!(
+                "package impl\n",
+                "import b \"example.com/app/pkg/base\"\n",
+                "type PtrSvc struct{}\n",
+                "var _ b.Service = (*PtrSvc)(nil)\n",
+                "func (s *PtrSvc) Close() error { return nil }\n",
+                "func (s *PtrSvc) Run(item *b.Item, payload any) error { return nil }\n",
+                "type ValSvc struct{}\n",
+                "var _ b.Service = ValSvc{}\n",
+                "func (s *ValSvc) Run(item *b.Item, payload any) error { return nil }\n",
+                "func (s ValSvc) Close() error { return nil }\n",
+            ),
+        ),
+        (
+            "pkg/base/local.go",
+            concat!(
+                "package base\n",
+                "type Local struct{}\n",
+                "func (l Local) Close() error { return nil }\n",
+                "func (l Local) Run(item *Item, payload any) error { return nil }\n",
+                "func (l Local) Ping() error { return nil }\n",
+            ),
+        ),
+    ]);
+    let pairs: Vec<(String, String)> = index
+        .links
+        .iter()
+        .map(|link| {
+            let decl = &index.methods[link.declaration];
+            let imp = &index.methods[link.implementation];
+            (
+                format!("{}.{}", index.typ(decl.owner).name, decl.declaration.name),
+                format!("{}.{}", index.typ(imp.owner).name, imp.declaration.name),
+            )
+        })
+        .collect();
+    // Pointer assertion links both `Service.Run` (with `any` == `interface{}` and `*b.Item` == `*Item`)
+    // and embedded `Closer.Close`.
+    assert!(pairs.contains(&("Service.Run".into(), "PtrSvc.Run".into())), "{pairs:#?}");
+    assert!(pairs.contains(&("Closer.Close".into(), "PtrSvc.Close".into())), "{pairs:#?}");
+    // Value assertion links value-receiver `Close`, never pointer-receiver `Run`.
+    assert!(pairs.contains(&("Closer.Close".into(), "ValSvc.Close".into())), "{pairs:#?}");
+    assert!(!pairs.contains(&("Service.Run".into(), "ValSvc.Run".into())), "{pairs:#?}");
+    // Same-package complete embedded interface links `Local`, while incomplete `External` never guesses.
+    assert!(pairs.contains(&("Service.Run".into(), "Local.Run".into())), "{pairs:#?}");
+    assert!(!pairs.iter().any(|(d, _)| d == "External.Ping"), "{pairs:#?}");
+}
+
+#[test]
+fn generic_base_substitution_and_semantic_signature_equivalence() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let java = build(&[
+        ("src/a/Item.java", "package a;\npublic class Item {}\n"),
+        (
+            "src/a/Base.java",
+            "package a;\npublic abstract class Base<T> { public abstract void write(T value); }\n",
+        ),
+        (
+            "src/b/Mid.java",
+            "package b;\nimport a.Base;\npublic abstract class Mid<U> extends Base<U> {}\n",
+        ),
+        (
+            "src/c/Child.java",
+            "package c;\nimport a.Item;\nimport b.Mid;\npublic class Child extends Mid<Item> { public void write(Item value) {} }\n",
+        ),
+        (
+            "src/c/Wrong.java",
+            "package c;\nimport b.Mid;\npublic class Wrong<A, B> extends Mid<A> { public void write(B value) {} }\n",
+        ),
+    ]);
+    assert_eq!(java.links.len(), 1, "{java:#?}");
+    assert_eq!(java.typ(java.methods[java.links[0].implementation].owner).name, "Child");
+
+    let csharp = build(&[
+        (
+            "base.cs",
+            "using System;\nnamespace Demo {\n  public abstract class Base {\n    public virtual void Write(string? s) {}\n    public virtual void WriteNum(int? n) {}\n    public virtual void Say(System.String s) {}\n  }\n}\n",
+        ),
+        (
+            "child.cs",
+            "namespace Demo {\n  public class Child : Base {\n    public override void Write(string s) {}\n    public override void WriteNum(int n) {}\n    public override void Say(string s) {}\n  }\n}\n",
+        ),
+    ]);
+    let linked: Vec<&str> = csharp
+        .links
+        .iter()
+        .map(|link| csharp.methods[link.declaration].declaration.name.as_str())
+        .collect();
+    assert!(linked.contains(&"Write"), "{linked:?}");
+    assert!(linked.contains(&"Say"), "{linked:?}");
+    assert!(!linked.contains(&"WriteNum"), "int? must not match int: {linked:?}");
+}
+
+#[test]
+fn swift_cross_file_modules_multi_protocol_extensions_and_defaults() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let index = build(&[
+        (
+            "Sources/Core/Protos.swift",
+            concat!(
+                "public protocol ProtoA { func run() }\n",
+                "extension ProtoA { public func run() {} }\n",
+                "public protocol ProtoB { func stop() }\n",
+                "public protocol CondProto { func cond() }\n",
+            ),
+        ),
+        (
+            "Sources/Core/Impl.swift",
+            concat!(
+                "struct Impl<T> {}\n",
+                "extension Impl: ProtoA, ProtoB {\n",
+                "  func run() {}\n",
+                "  func stop() {}\n",
+                "}\n",
+                "extension Impl: CondProto where T: Equatable {\n",
+                "  func cond() {}\n",
+                "}\n",
+            ),
+        ),
+        (
+            "Sources/App/Client.swift",
+            "import Core\nstruct Client: ProtoA { func run() {} }\n",
+        ),
+        (
+            "Sources/Other/Unimported.swift",
+            "struct Unimported: ProtoA { func run() {} }\n",
+        ),
+    ]);
+    let pairs: Vec<(String, String)> = index
+        .links
+        .iter()
+        .map(|link| {
+            let d = &index.methods[link.declaration];
+            let i = &index.methods[link.implementation];
+            (
+                format!("{}.{}", index.typ(d.owner).name, d.declaration.name),
+                format!("{}.{}", index.typ(i.owner).name, i.declaration.name),
+            )
+        })
+        .collect();
+    assert!(pairs.contains(&("ProtoA.run".into(), "Impl.run".into())), "{pairs:#?}");
+    assert!(pairs.contains(&("ProtoB.stop".into(), "Impl.stop".into())), "{pairs:#?}");
+    assert!(pairs.contains(&("ProtoA.run".into(), "Client.run".into())), "{pairs:#?}");
+    assert!(!pairs.iter().any(|(d, _)| d == "CondProto.cond"), "{pairs:#?}");
+    assert!(!pairs.iter().any(|(_, i)| i == "Unimported.run"), "{pairs:#?}");
+}
+
+#[test]
+fn php_implements_jvm_wildcards_nested_names_and_ts_default_exports() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let php = build(&[
+        (
+            "src/Iface.php",
+            "<?php\nnamespace App;\ninterface Iface { public function send(\\Psr\\Req $r): void; }\n",
+        ),
+        (
+            "src/Client.php",
+            "<?php\nnamespace App;\nuse Psr\\Req;\nclass Client implements Iface { public function send(Req $r): void {} }\n",
+        ),
+    ]);
+    assert_eq!(php.links.len(), 1, "{php:#?}");
+
+    let kotlin = build(&[
+        (
+            "src/main/kotlin/p/Outer.kt",
+            "package p\ninterface Outer {\n  interface Builder<T> {\n    fun add(v: T)\n  }\n}\n",
+        ),
+        (
+            "src/main/kotlin/p/Sub.kt",
+            "package p\nclass Sub {\n  class Builder : Outer.Builder<Builder> {\n    override fun add(v: Builder) {}\n  }\n}\n",
+        ),
+    ]);
+    assert_eq!(kotlin.links.len(), 1, "{kotlin:#?}");
+
+    let scala = build(&[
+        ("src/a/Base.scala", "package a\ntrait Base { def run(): Unit }\n"),
+        (
+            "src/b/Ok.scala",
+            "package b\nimport a.{Base => B}\nclass Ok extends B { def run(): Unit = () }\n",
+        ),
+        (
+            "src/b/Hidden.scala",
+            "package b\nimport a.{Base => _}\nclass Hidden extends Base { def run(): Unit = () }\n",
+        ),
+    ]);
+    assert_eq!(scala.links.len(), 1, "{scala:#?}");
+    assert_eq!(scala.typ(scala.methods[scala.links[0].implementation].owner).name, "Ok");
+
+    let ts = build_with_disk(&[
+        (
+            "src/base.ts",
+            "export default abstract class Base { abstract run(): void; }\n",
+        ),
+        (
+            "src/child.ts",
+            "import MyBase from './base';\nexport class Child extends MyBase { run(): void {} }\n",
+        ),
+    ]);
+    assert_eq!(ts.links.len(), 1, "{ts:#?}");
+}
+
+#[test]
+fn csharp_partial_with_conditional_part_and_body_parse_error() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let index = build_with_disk(&[
+        ("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>\n"),
+        (
+            "Reader.Async.cs",
+            "#if HAVE_ASYNC\nnamespace Demo {\n  public abstract partial class Reader {\n    public virtual void ReadAsync() {}\n  }\n}\n#endif\n",
+        ),
+        (
+            "Reader.cs",
+            concat!(
+                "namespace Demo {\n",
+                "  public abstract partial class Reader {\n",
+                "    public abstract bool Read();\n",
+                "#if HAVE_EXTRA\n",
+                "    /// doc\n",
+                "    public virtual void Extra() {}\n",
+                "#endif\n",
+                "  }\n",
+                "}\n",
+            ),
+        ),
+        (
+            "SubReader.cs",
+            "namespace Demo {\n  public class SubReader : Reader {\n    public override bool Read() { return true; }\n    public override void ReadAsync() {}\n  }\n}\n",
+        ),
+    ]);
+    let linked: Vec<&str> = index
+        .links
+        .iter()
+        .map(|link| index.methods[link.declaration].declaration.name.as_str())
+        .collect();
+    assert_eq!(linked, vec!["Read"], "{linked:?} | types={:#?}", index.types);
+}

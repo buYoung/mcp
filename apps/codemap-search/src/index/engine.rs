@@ -444,6 +444,34 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
     Box::new(policy)
 }
 
+/// Keep one entry per canonical `rel_path`, preferring a real file over a symlink when both
+/// point to the same source. Duplicate paths in one batch would delete an earlier segment's copy
+/// and trigger Tantivy's lossy fieldnorm token-count re-estimation on merge.
+fn dedup_index_entries(entries: &mut Vec<(String, PathBuf, u64)>) {
+    let mut index_by_path: HashMap<String, usize> = HashMap::with_capacity(entries.len());
+    let mut deduped: Vec<(String, PathBuf, u64)> = Vec::with_capacity(entries.len());
+    for entry in entries.drain(..) {
+        if let Some(&existing) = index_by_path.get(&entry.0) {
+            let existing_is_symlink = deduped[existing]
+                .1
+                .symlink_metadata()
+                .is_ok_and(|metadata| metadata.file_type().is_symlink());
+            let candidate_is_symlink = entry
+                .1
+                .symlink_metadata()
+                .is_ok_and(|metadata| metadata.file_type().is_symlink());
+            if existing_is_symlink && !candidate_is_symlink {
+                deduped[existing] = entry;
+            }
+        } else {
+            let pos = deduped.len();
+            index_by_path.insert(entry.0.clone(), pos);
+            deduped.push(entry);
+        }
+    }
+    *entries = deduped;
+}
+
 /// Whether a pass writing `written` files into an index of `stored` documents rewrites most of
 /// it, as a first build or a re-extraction does. Such a pass ends with one segment: how many
 /// segments the writer threads leave otherwise depends on when their buffers filled, and every
@@ -522,7 +550,7 @@ fn merge_into_one_segment(index: &Index, writer: &mut tantivy::IndexWriter) -> t
 // its body is kept.
 // v48 records which type declarations are parts of one type.
 // v49 records which methods are visible only inside their package or library.
-const EXTRACTION_FORMAT_VERSION: &str = "v53-nullable-receivers";
+const EXTRACTION_FORMAT_VERSION: &str = "v54-language-navigation";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -1314,6 +1342,7 @@ impl TantivySearchEngine {
                 }
             }
         }
+        dedup_index_entries(&mut files_to_process);
 
         // Lazily snapshot the on-disk mtime map once, then read from the maintained
         // cache — avoids an `AllQuery` over the whole index on every call, which in MCP
@@ -1471,11 +1500,12 @@ impl TantivySearchEngine {
     /// commit actually landed.
     fn apply_index_updates(
         &mut self,
-        to_index: Vec<(String, PathBuf, u64)>,
+        mut to_index: Vec<(String, PathBuf, u64)>,
         to_delete: Vec<String>,
         should_reload_reader: bool,
     ) -> Result<bool, String> {
         self.is_waiting_for_writer = false;
+        dedup_index_entries(&mut to_index);
         // Return early if no updates (adds or deletes) to avoid touching index and triggering modification
         if to_index.is_empty() && to_delete.is_empty() {
             // A peer's commit may already satisfy the refreshed mtime cache. Direct
@@ -1584,8 +1614,10 @@ impl TantivySearchEngine {
                 auxiliary.flow_file = None;
             }
 
-            let term = Term::from_field_text(self.file_path_field, &rel_path);
-            writer.delete_term(term);
+            if stored_documents > 0 {
+                let term = Term::from_field_text(self.file_path_field, &rel_path);
+                writer.delete_term(term);
+            }
 
             let mut doc = TantivyDocument::default();
             doc.add_text(self.file_path_field, &rel_path);
@@ -1694,13 +1726,13 @@ impl TantivySearchEngine {
         }
 
         writer.commit().map_err(|e| e.to_string())?;
-        // Still the writer, so no other process is creating segment files.
-        super::segment_files::remove_orphans(&write_index, Path::new(&self.index_path));
         if is_bulk_pass {
             if let Err(error) = merge_into_one_segment(&write_index, &mut writer) {
                 tracing::warn!("index segments were not merged into one: {error}");
             }
         }
+        // Still the writer, so no other process is creating segment files.
+        super::segment_files::remove_orphans(&write_index, Path::new(&self.index_path));
         // Dropping a writer cancels the merges its commit started, which would leave their
         // output unreferenced and the deleted documents in place. The commit already landed,
         // so a failed merge only postpones the cleanup to a later pass.
@@ -2670,7 +2702,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v53-nullable-receivers");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v54-language-navigation");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
@@ -2718,6 +2750,37 @@ mod tests {
             1,
             "matching sidecar must not rebuild a second time"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_symlink_target_is_not_indexed_twice_or_marked_deleted() {
+        let temp = tempdir().unwrap();
+        let mut config = crate::config::ResolvedConfig::default();
+        config.workspace_root = Some(temp.path().to_path_buf());
+        let _pin = crate::config::pin_test_config(config);
+
+        let index_dir = temp.path().join("index");
+        let real_dir = temp.path().join("real");
+        let link_dir = temp.path().join("link");
+        fs::create_dir_all(&real_dir).unwrap();
+        fs::create_dir_all(&link_dir).unwrap();
+        let target = real_dir.join("target.rs");
+        fs::write(&target, "pub fn symlink_dedup_probe() {}\n").unwrap();
+        std::os::unix::fs::symlink("../real/target.rs", link_dir.join("alias.rs")).unwrap();
+
+        let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        engine.index_files(&["."]).unwrap();
+
+        let metas = engine
+            .open_for_write()
+            .unwrap()
+            .searchable_segment_metas()
+            .unwrap();
+        assert_eq!(metas.len(), 1);
+        assert_eq!(metas[0].num_docs(), 1);
+        assert_eq!(metas[0].num_deleted_docs(), 0);
+        assert_eq!(engine.search("symlink_dedup_probe", 10).unwrap().len(), 1);
     }
 
     #[test]
