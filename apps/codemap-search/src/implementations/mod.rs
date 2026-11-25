@@ -14,6 +14,7 @@ pub(crate) use index::ImplementationIndex;
 use index::*;
 pub use model::ImplementationFile;
 pub(crate) use model::*;
+pub(crate) use render::SOURCE_TRAILER_HEADER;
 pub(crate) use resolve::{relative_path, same_source_root, DartLibraries};
 
 pub(crate) const TYPES_PER_FILE: usize = 256;

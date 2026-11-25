@@ -20,11 +20,16 @@ pub(super) fn annotate(
     let symbols: Vec<Vec<_>> = outlines
         .iter()
         .map(|outline| {
+            let is_python = outline.file.file_path.ends_with(".py");
             outline
                 .order
                 .iter()
                 .copied()
-                .filter(|i| outline.focused.contains(i) && callable(&outline.file.symbols[*i]))
+                .filter(|i| {
+                    outline.focused.contains(i)
+                        && (callable(&outline.file.symbols[*i])
+                            || (is_python && outline.file.symbols[*i].kind == "class"))
+                })
                 .map(|i| outline.file.symbols[i].clone())
                 .collect()
         })
@@ -195,26 +200,34 @@ pub(super) fn render(
             }
         }
     }
+    let is_python = path.ends_with(".py");
     let callables: Vec<_> = focused
         .iter()
         .copied()
-        .filter(|i| chosen.contains(i) && callable(&outline.file.symbols[*i]))
+        .filter(|i| {
+            chosen.contains(i)
+                && (callable(&outline.file.symbols[*i])
+                    || (is_python && outline.file.symbols[*i].kind == "class"))
+        })
         .collect();
     if options.should_include_relations() {
         for (position, &i) in callables.iter().enumerate() {
             let symbol = &outline.file.symbols[i];
+            let is_py_class = is_python && symbol.kind == "class";
             let indent = "  ".repeat(outline.chain(i).len().saturating_sub(1));
-            let detail = annotations
-                .and_then(|annotations| {
-                    annotations.render_live_relations(
-                        path,
-                        symbol.range.start_line,
-                        Some(symbol.range.start_col),
-                    )
-                })
-                .unwrap_or_else(|| {
-                    "  - [Caller/callee unavailable or omitted by scan/output budget.]\n".into()
-                });
+            let live_rel = annotations.and_then(|annotations| {
+                annotations.render_live_relations(
+                    path,
+                    symbol.range.start_line,
+                    Some(symbol.range.start_col),
+                )
+            });
+            if is_py_class && live_rel.is_none() {
+                continue;
+            }
+            let detail = live_rel.unwrap_or_else(|| {
+                "  - [Caller/callee unavailable or omitted by scan/output budget.]\n".into()
+            });
             let detail = super::locations::calls(&detail, path);
             let mut detail = detail
                 .lines()

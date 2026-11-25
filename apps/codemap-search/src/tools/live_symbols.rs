@@ -2,6 +2,7 @@
 pub(crate) mod callable;
 mod context;
 mod diagnostics;
+mod implementations_trailer;
 mod importers;
 pub(crate) mod jev;
 mod locations;
@@ -49,6 +50,10 @@ pub(crate) struct LiveOutput {
     pub jev: jev::Capture,
     /// A read window: source view appends callers from outside it.
     pub should_list_outside_callers: bool,
+    /// Original requested end line when pre-clipped for a connection-scoped delivery cap.
+    pub requested_end: Option<usize>,
+    /// Whether the read requested `expand=callable`, preserved for continuation notices.
+    pub clipped_expand_callable: bool,
 }
 
 impl LiveOutput {
@@ -265,6 +270,58 @@ fn frame(
     text
 }
 
+/// Collect source trailers under a fair-share total budget for connection-capped clients so
+/// an early trailer (e.g. outside callers) never starves implementations, shared keys, or
+/// importers.
+fn collect_fair_trailers(
+    engine: &EngineSupervisor,
+    output: &LiveOutput,
+    total_budget: usize,
+) -> Vec<String> {
+    if !output.should_list_outside_callers || total_budget < 128 {
+        return Vec::new();
+    }
+    const CAPS: [usize; 4] = [768, 576, 768, 512];
+    let query = |idx: usize, cap: usize| -> Option<String> {
+        let cap = cap.min(total_budget.saturating_sub(1));
+        match idx {
+            0 => outside_callers::trailer(engine, output, cap),
+            1 => implementations_trailer::trailer(engine, output, cap),
+            2 => shared_keys::trailer(engine, output, cap),
+            _ => importers::trailer(engine, output, cap),
+        }
+    };
+    let mut results: [Option<String>; 4] = [
+        query(0, CAPS[0]),
+        query(1, CAPS[1]),
+        query(2, CAPS[2]),
+        query(3, CAPS[3]),
+    ];
+    let total_bytes: usize = results
+        .iter()
+        .flatten()
+        .map(|trailer| trailer.len() + 1)
+        .sum();
+    if total_bytes > total_budget {
+        let count = results.iter().filter(|item| item.is_some()).count().max(1);
+        let fair = (total_budget / count).saturating_sub(1).max(320);
+        for (idx, slot) in results.iter_mut().enumerate() {
+            if slot.as_ref().is_some_and(|t| t.len() + 1 > fair) {
+                *slot = query(idx, fair);
+            }
+        }
+    }
+    let mut used = 0usize;
+    let mut out = Vec::new();
+    for trailer in results.into_iter().flatten() {
+        if used + trailer.len() < total_budget {
+            used += trailer.len() + 1;
+            out.push(trailer);
+        }
+    }
+    out
+}
+
 /// Source rows stay byte-for-byte compatible; a read window may end with its outside callers.
 /// Rich views reserve every returned source row and file heading before sharing one bounded
 /// context budget across files.
@@ -281,9 +338,9 @@ fn render(
             original: 0..output.text.len(),
             rendered_start: 0,
         });
-        let source = std::mem::take(&mut output.text);
+        let mut source = std::mem::take(&mut output.text);
         let mut text = if output.notices.is_empty() {
-            source
+            source.clone()
         } else {
             format!("{source}\n{}", output.notices.join("\n"))
         };
@@ -294,9 +351,84 @@ fn render(
                     .into(),
             ));
         }
+        if crate::config::session_delivery_byte_cap().is_some() {
+            let cap = output_byte_cap.unwrap_or(usize::MAX);
+            let free_room = cap.saturating_sub(text.len());
+            let trailer_budget = if free_room >= 1_600 {
+                free_room.min(2_400)
+            } else {
+                1_600.min(cap / 3)
+            };
+            let mut trailers = collect_fair_trailers(engine, &output, trailer_budget);
+            let trailers_bytes: usize = trailers.iter().map(|t| t.len() + 1).sum();
+            if text.len().saturating_add(trailers_bytes) > cap
+                && trailers_bytes > 0
+                && output.anchors.len() == 1
+            {
+                if let Some((start, end)) =
+                    output.anchors[0].start_line.zip(output.anchors[0].end_line)
+                {
+                    let non_clip_notices: Vec<String> = output
+                        .notices
+                        .iter()
+                        .filter(|notice| !notice.starts_with("[Clipped at L"))
+                        .cloned()
+                        .collect();
+                    let non_clip_bytes: usize = non_clip_notices.iter().map(|n| n.len() + 1).sum();
+                    let orig_end = output.requested_end.unwrap_or(end);
+                    let expand_hint = if output.clipped_expand_callable {
+                        "expand=none, "
+                    } else {
+                        ""
+                    };
+                    let clip_notice_reserve = 148usize;
+                    let target_source =
+                        cap.saturating_sub(trailers_bytes + non_clip_bytes + clip_notice_reserve);
+                    let lines: Vec<&str> = source.split('\n').collect();
+                    let mut kept = 0usize;
+                    let mut used = 0usize;
+                    for (i, line) in lines.iter().enumerate() {
+                        let added = line.len() + usize::from(i > 0);
+                        if kept > 0 && used.saturating_add(added) > target_source {
+                            break;
+                        }
+                        used = used.saturating_add(added);
+                        kept += 1;
+                    }
+                    if kept > 0 && kept < lines.len() {
+                        source = lines[..kept].join("\n");
+                        let new_end = start.saturating_add(kept - 1);
+                        output.anchors[0].end_line = Some(new_end);
+                        if let Some(copy) = copies.last_mut() {
+                            copy.original = 0..source.len();
+                        }
+                        let mut notices = non_clip_notices;
+                        notices.push(format!(
+                            "[Clipped at L{new_end} of requested L{start}-L{orig_end} (10 KiB client limit); call read with {expand_hint}offset={} if needed.]",
+                            new_end + 1
+                        ));
+                        text = format!("{source}\n{}", notices.join("\n"));
+                        let remaining = cap.saturating_sub(text.len());
+                        trailers = collect_fair_trailers(engine, &output, remaining);
+                    }
+                }
+            }
+            for trailer in trailers {
+                if text.len().saturating_add(1 + trailer.len()) <= cap {
+                    text.push('\n');
+                    text.push_str(&trailer);
+                }
+            }
+            return Ok(text);
+        }
         // The trailer is auxiliary: it only uses the room left under the cap.
         let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
         if let Some(trailer) = outside_callers::trailer(engine, &output, room) {
+            text.push('\n');
+            text.push_str(&trailer);
+        }
+        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
+        if let Some(trailer) = implementations_trailer::trailer(engine, &output, room) {
             text.push('\n');
             text.push_str(&trailer);
         }

@@ -151,6 +151,21 @@
               "isAbstract": false,
               "isFinal": false,
               "isComplete": true,
+              "fields": [
+                {
+                  "name": "name",
+                  "typ": {
+                    "name": "String",
+                    "arguments": [],
+                    "range": {
+                      "startLine": 4,
+                      "startCol": 9,
+                      "endLine": 4,
+                      "endCol": 15
+                    }
+                  }
+                }
+              ],
               "conditions": []
             }
           ],

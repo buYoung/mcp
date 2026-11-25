@@ -11,6 +11,9 @@ pub(super) struct ExpansionPage {
     next: usize,
     cap: usize,
     used: usize,
+    rendered_used: usize,
+    is_grouped_session_cap: bool,
+    last_file: Option<String>,
     has_full_page: bool,
     text: Vec<String>,
     anchors: Vec<LiveAnchor>,
@@ -20,16 +23,36 @@ pub(super) struct ExpansionPage {
 }
 
 impl ExpansionPage {
-    pub fn new(offset: usize, limit: usize) -> Self {
+    pub fn new(offset: usize, limit: usize, view: crate::tools::live_options::LiveView) -> Self {
+        let base_cap = crate::config::get().grep_output_byte_cap;
+        let session = crate::config::session_delivery_byte_cap();
+        let cap = match session {
+            Some(session_cap) => {
+                let effective = base_cap.min(session_cap);
+                let reserve = match view {
+                    crate::tools::live_options::LiveView::Full => 1_800,
+                    _ => 384,
+                };
+                effective.saturating_sub(reserve)
+            }
+            None => base_cap.saturating_sub(512),
+        };
+        let is_grouped_session_cap = session.is_some()
+            && matches!(
+                view,
+                crate::tools::live_options::LiveView::SourceGrouped
+                    | crate::tools::live_options::LiveView::Full
+            );
         Self {
             offset,
             limit: if limit == 0 { usize::MAX } else { limit },
             total: 0,
             next: offset,
-            cap: crate::config::get()
-                .grep_output_byte_cap
-                .saturating_sub(512),
+            cap,
             used: 0,
+            rendered_used: 0,
+            is_grouped_session_cap,
+            last_file: None,
             has_full_page: false,
             text: Vec::new(),
             anchors: Vec::new(),
@@ -107,6 +130,7 @@ impl ExpansionPage {
             let mut source_lines = Vec::new();
             let mut path_prefixes = Vec::new();
             let mut filter_rows = Vec::new();
+            let mut group_rendered_bytes = text.len();
             for line in start..=end {
                 let value = lines
                     .get(line.saturating_sub(1))
@@ -135,13 +159,19 @@ impl ExpansionPage {
                 let filter_source = should_capture_bodies.then(|| value.to_string());
                 let value = cap_line(value, source_byte_len, max_columns, is_match);
                 let prefix_start = text.len();
-                path_prefixes
-                    .push(prefix_start..prefix_start + path.len() + usize::from(show_lines));
+                let prefix_len = path.len() + usize::from(show_lines);
+                path_prefixes.push(prefix_start..prefix_start + prefix_len);
                 if show_lines {
                     text.push_str(&format!("{path}{sep}{line}{sep}{value}\n"));
                 } else {
                     text.push_str(&format!("{path}{sep}{value}\n"));
                 }
+                let added = text.len() - prefix_start;
+                group_rendered_bytes += if self.is_grouped_session_cap {
+                    added.saturating_sub(prefix_len)
+                } else {
+                    added
+                };
                 if let Some(content) = filter_source {
                     filter_rows.push(crate::tools::live_symbols::jev::SourceRow {
                         path: path.into(),
@@ -151,20 +181,30 @@ impl ExpansionPage {
                         content,
                     });
                 }
-                if text.len() > self.cap {
+                if group_rendered_bytes > self.cap {
                     break;
                 }
             }
             if has_omitted_columns {
-                text.push_str(&format!("[Callable source incomplete at {path}:{start}-{end}: grep_max_columns omitted long lines. Use read with expand=none and this line range.]\n"));
+                let note = format!("[Callable source incomplete at {path}:{start}-{end}: grep_max_columns omitted long lines. Use read with expand=none and this line range.]\n");
+                group_rendered_bytes += note.len();
+                text.push_str(&note);
             }
-            if text.len() > self.cap {
+            let file_heading_bytes =
+                if self.is_grouped_session_cap && self.last_file.as_deref() != Some(path) {
+                    path.len() + 16
+                } else {
+                    0
+                };
+            if group_rendered_bytes + file_heading_bytes > self.cap {
                 source_lines.clear();
                 path_prefixes.clear();
                 filter_rows.clear();
                 text = format!("[Callable body unavailable: {path}:{start}-{end} exceeds the output cap. Read this range with expand=none and smaller offset/limit windows.]\n");
+                group_rendered_bytes = text.len();
             }
-            if self.used + text.len() > self.cap {
+            let group_budget_bytes = group_rendered_bytes + file_heading_bytes;
+            if self.rendered_used + group_budget_bytes > self.cap {
                 self.has_full_page = true;
                 continue;
             }
@@ -178,6 +218,10 @@ impl ExpansionPage {
                 }
             }
             self.used += text.len();
+            self.rendered_used += group_budget_bytes;
+            if self.is_grouped_session_cap {
+                self.last_file = Some(path.into());
+            }
             self.text.push(text);
             self.source_lines.push(source_lines);
             self.path_prefixes.push(path_prefixes);

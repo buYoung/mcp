@@ -550,7 +550,7 @@ fn merge_into_one_segment(index: &Index, writer: &mut tantivy::IndexWriter) -> t
 // its body is kept.
 // v48 records which type declarations are parts of one type.
 // v49 records which methods are visible only inside their package or library.
-const EXTRACTION_FORMAT_VERSION: &str = "v54-language-navigation";
+const EXTRACTION_FORMAT_VERSION: &str = "v55-multi-language-navigation";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -2702,7 +2702,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v54-language-navigation");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v55-multi-language-navigation");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
@@ -2756,8 +2756,10 @@ mod tests {
     #[test]
     fn test_symlink_target_is_not_indexed_twice_or_marked_deleted() {
         let temp = tempdir().unwrap();
-        let mut config = crate::config::ResolvedConfig::default();
-        config.workspace_root = Some(temp.path().to_path_buf());
+        let config = crate::config::ResolvedConfig {
+            workspace_root: Some(temp.path().to_path_buf()),
+            ..crate::config::ResolvedConfig::default()
+        };
         let _pin = crate::config::pin_test_config(config);
 
         let index_dir = temp.path().join("index");

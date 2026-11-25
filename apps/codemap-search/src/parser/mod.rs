@@ -1044,6 +1044,8 @@ fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
             .unwrap_or(rest)
             .trim()
             .trim_start_matches("type ")
+            .trim()
+            .trim_start_matches("static ")
             .trim();
         if let Some(group_body) = clause
             .strip_prefix('(')
@@ -3078,7 +3080,10 @@ def standalone() { return 4 }
         let holder = file.symbols.iter().find(|s| s.name == "Holder").unwrap();
         assert_eq!(holder.range.start_line, 1);
         assert_eq!(holder.range.end_line_inclusive(), 4);
-        assert_eq!(owner_of(source, "Holder.kt", "inside"), Some("Holder".to_string()));
+        assert_eq!(
+            owner_of(source, "Holder.kt", "inside"),
+            Some("Holder".to_string())
+        );
     }
 
     #[test]

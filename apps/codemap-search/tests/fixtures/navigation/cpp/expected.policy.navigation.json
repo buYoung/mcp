@@ -113,6 +113,23 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "rules_",
+                "typ": {
+                  "name": "std::vector",
+                  "arguments": [
+                    "Rule"
+                  ],
+                  "range": {
+                    "startLine": 20,
+                    "startCol": 5,
+                    "endLine": 20,
+                    "endCol": 22
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],

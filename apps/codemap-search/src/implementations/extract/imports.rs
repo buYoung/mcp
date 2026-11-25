@@ -52,12 +52,18 @@ pub(super) fn collect(
             Point::new(entry.range.start_line - 1, entry.range.start_col - 1),
             Point::new(entry.range.end_line - 1, entry.range.end_col - 1),
         );
+        // Java `import static` imports static members, not types.
+        if unit.language == "java" && node.is_some_and(|node| modifier(node, "static", source)) {
+            continue;
+        }
         // `lang::scala` strips `{...}` selectors into a single Namespace entry; let the Scala
         // parser below expand each selector without treating `{X}` as a wildcard import.
         if unit.language == "scala" && entry.kind == ImportKind::Namespace {
             if let Some(node) = node {
                 let raw = text(node, source);
-                if raw.contains('{') || (!raw.trim_end().ends_with("._") && !raw.trim_end().ends_with(".*")) {
+                if raw.contains('{')
+                    || (!raw.trim_end().ends_with("._") && !raw.trim_end().ends_with(".*"))
+                {
                     continue;
                 }
             }
@@ -141,7 +147,9 @@ pub(super) fn collect(
                                 .map(str::to_string)
                                 .unwrap_or_else(|| orig.rsplit('.').next().unwrap_or("").into());
                             if local.is_empty()
-                                || !local.chars().all(|c| c.is_alphanumeric() || "_$".contains(c))
+                                || !local
+                                    .chars()
+                                    .all(|c| c.is_alphanumeric() || "_$".contains(c))
                             {
                                 continue;
                             }
@@ -162,10 +170,11 @@ pub(super) fn collect(
                 continue;
             }
             // Wildcard package imports: `import a.b.*` (Java/Kotlin/Groovy/Scala) and `import a.b._` (Scala).
-            if let Some(pkg) = value
-                .strip_suffix(".*")
-                .or_else(|| (unit.language == "scala").then(|| value.strip_suffix("._")).flatten())
-            {
+            if let Some(pkg) = value.strip_suffix(".*").or_else(|| {
+                (unit.language == "scala")
+                    .then(|| value.strip_suffix("._"))
+                    .flatten()
+            }) {
                 let pkg = compact(pkg);
                 if is_valid_dotted(&pkg) {
                     unit.imports.push(ScopedImport {
@@ -192,7 +201,7 @@ pub(super) fn collect(
                 continue;
             }
             let local = alias
-                .map(|a| compact(a))
+                .map(compact)
                 .unwrap_or_else(|| original.rsplit('.').next().unwrap_or("").into());
             unit.imports.push(ScopedImport {
                 entry: ImportEntry {
@@ -231,6 +240,9 @@ pub(super) fn collect(
             }
         }
     }
+    if unit.language == "cpp" {
+        collect_cpp_using_directives(root, source, unit);
+    }
     if unit.language == "dart" {
         for import in dart_library_imports(root, source) {
             let entries = if import.shown.is_empty() {
@@ -257,6 +269,86 @@ pub(super) fn collect(
         }
     }
     unit.imports.dedup_by(|a, b| a == b);
+}
+
+/// Collects C++ `using namespace ns;` directives and `using ns::Type;` declarations across the
+/// translation unit and nested namespace blocks.
+fn collect_cpp_using_directives(root: Node<'_>, source: &[u8], unit: &mut ImplementationUnit) {
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        match node.kind() {
+            "using_directive" | "using_declaration" => {
+                let raw = text(node, source).trim();
+                let after_using = raw
+                    .strip_prefix("using")
+                    .map(str::trim)
+                    .unwrap_or("")
+                    .trim_end_matches(';')
+                    .trim();
+                if let Some(after_ns) = after_using.strip_prefix("namespace") {
+                    if after_ns.starts_with(char::is_whitespace) {
+                        // `using namespace foo::bar;`
+                        let ns = compact(after_ns.trim())
+                            .trim_start_matches("::")
+                            .replace("::", ".");
+                        if !ns.is_empty()
+                            && ns.chars().all(|c| c.is_alphanumeric() || "_.".contains(c))
+                        {
+                            unit.using_namespaces.push(ScopedName {
+                                name: ns,
+                                scope: range(scope(node)),
+                                range: range(node),
+                            });
+                        }
+                        continue;
+                    }
+                }
+                // `using foo::Bar;` (not inside a class body, where `using Base::f;` inherits methods)
+                if node.parent().is_some_and(|p| {
+                    matches!(
+                        p.kind(),
+                        "field_declaration_list" | "class_specifier" | "struct_specifier"
+                    )
+                }) {
+                    continue;
+                }
+                let raw_decl = after_using.trim_start_matches("typename").trim();
+                let qualified = compact(raw_decl)
+                    .trim_start_matches("::")
+                    .replace("::", ".");
+                if let Some((_prefix, local)) = qualified.rsplit_once('.') {
+                    if !local.is_empty()
+                        && qualified
+                            .chars()
+                            .all(|c| c.is_alphanumeric() || "_.".contains(c))
+                    {
+                        unit.imports.push(ScopedImport {
+                            entry: ImportEntry {
+                                local_name: local.to_string(),
+                                imported_name: Some(qualified.clone()),
+                                source: Some(qualified),
+                                kind: ImportKind::Named,
+                                range: range(node),
+                            },
+                            scope: range(scope(node)),
+                        });
+                    }
+                }
+            }
+            "translation_unit"
+            | "namespace_definition"
+            | "declaration_list"
+            | "preproc_ifdef"
+            | "preproc_if"
+            | "preproc_else"
+            | "preproc_elif" => {
+                for child in children(node) {
+                    stack.push(child);
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 /// A Dart library directive without a prefix: the library URI and the names its `show` and

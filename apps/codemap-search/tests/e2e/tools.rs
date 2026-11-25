@@ -305,7 +305,15 @@ async fn test_implementation_context_cli_views_refresh_and_restart() {
             "{output}"
         );
         if view == "source" {
-            assert_eq!(output, raw);
+            assert!(output.starts_with(raw), "{output}");
+            let trailer = output.strip_prefix(raw).unwrap();
+            assert!(
+                trailer.is_empty()
+                    || trailer.starts_with(
+                        "\n[Implementations and overrides outside this window (static analysis)]\n"
+                    ),
+                "{output}"
+            );
         }
     }
     for (tool, args) in [

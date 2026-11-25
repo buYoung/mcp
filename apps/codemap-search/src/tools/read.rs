@@ -86,6 +86,20 @@ pub(crate) fn range_heading(index: usize, range: &Value) -> String {
     )
 }
 
+pub(crate) fn range_brief_spec(range: &Value) -> String {
+    let path = resolve_file_path_arg(range).unwrap_or("<missing>");
+    let (offset, limit) = resolve_window_args(range);
+    let start = offset.unwrap_or(1).max(1);
+    match limit {
+        Some(n) => format!(
+            "{path}:{start}-{}",
+            start.saturating_add(n.saturating_sub(1))
+        ),
+        None if offset.is_some() => format!("{path}:{start}-EOF"),
+        None => path.to_string(),
+    }
+}
+
 /// Extensions read refuses in v1 (binary / image / document / notebook). Searching
 /// these is out of scope; the agent gets an explicit unsupported error.
 const UNSUPPORTED_EXTENSIONS: &[&str] = &[
@@ -324,7 +338,7 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         .split('\n')
         .map(|line| line.strip_suffix('\r').unwrap_or(line))
         .collect();
-    let window: Vec<&str> = match limit {
+    let mut window: Vec<&str> = match limit {
         Some(n) => displayed_lines[start_line - 1..]
             .iter()
             .take(n)
@@ -333,15 +347,88 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         None => displayed_lines[start_line - 1..].to_vec(),
     };
 
-    let rendered = add_line_numbers(&window, start_line);
+    let mut rendered = add_line_numbers(&window, start_line);
     // Always-applied output ceiling: even with `offset`/`limit` set, never emit an
     // unbounded blob (e.g. a multi-MB single line read with `limit: 1`). Throws rather than
     // truncating, matching Claude Code's token-cap behavior.
+    // For connection-capped clients (e.g. `antigravity-client` at 10 KiB), auto-clip the
+    // line window before recording anchors/history so trailers attach to the delivered range
+    // and follow-up reads are never falsely duplicate-folded.
     let output_cap = crate::config::get().read_output_byte_cap;
-    if rendered.len() + notices.iter().map(String::len).sum::<usize>() > output_cap {
+    let renders_source = matches!(
+        options.view,
+        super::live_options::LiveView::Source
+            | super::live_options::LiveView::Full
+            | super::live_options::LiveView::SourceGrouped
+    );
+    let mut requested_end_line = None;
+    if renders_source {
+        if let Some(session_cap) = crate::config::session_delivery_byte_cap() {
+            let effective_cap = output_cap.min(session_cap);
+            let post_render_reserve = 128usize;
+            // LiveView::Source clips dynamically in live_symbols::render using the actual
+            // measured trailer size, so files with no/small trailers keep the full 9.7+ KiB.
+            let trailer_reserve = match options.view {
+                super::live_options::LiveView::Full => 1_800,
+                super::live_options::LiveView::Source => 0,
+                super::live_options::LiveView::SourceGrouped => 200,
+                _ => 0,
+            };
+            let existing_notices_bytes: usize = notices.iter().map(|n| n.len() + 1).sum();
+            let max_source_bytes = effective_cap
+                .saturating_sub(post_render_reserve + trailer_reserve + existing_notices_bytes);
+            if rendered.len() > max_source_bytes && window.len() > 1 {
+                let clip_notice_reserve = 140usize;
+                let clip_target = max_source_bytes.saturating_sub(clip_notice_reserve);
+                let first_line_max = effective_cap.saturating_sub(
+                    post_render_reserve + existing_notices_bytes + clip_notice_reserve,
+                );
+                let mut kept = 0usize;
+                let mut used = 0usize;
+                for (i, line) in window.iter().enumerate() {
+                    let line_no = start_line + i;
+                    let digits = line_no.checked_ilog10().map_or(1, |d| d as usize + 1);
+                    let row_len =
+                        digits.max(6) + "\u{2192}".len() + line.len() + usize::from(i > 0);
+                    let limit_bytes = if kept == 0 {
+                        first_line_max
+                    } else {
+                        clip_target
+                    };
+                    if used.saturating_add(row_len) > limit_bytes {
+                        break;
+                    }
+                    used = used.saturating_add(row_len);
+                    kept += 1;
+                }
+                if kept > 0 && kept < window.len() {
+                    let requested_end = start_line.saturating_add(window.len() - 1);
+                    requested_end_line = Some(requested_end);
+                    window.truncate(kept);
+                    let delivered_end = start_line.saturating_add(window.len() - 1);
+                    rendered = add_line_numbers(&window, start_line);
+                    let expand_hint = if options.should_expand_callable {
+                        "expand=none, "
+                    } else {
+                        ""
+                    };
+                    notices.push(format!(
+                        "[Clipped at L{delivered_end} of requested L{start_line}-L{requested_end} (10 KiB client limit); call read with {expand_hint}offset={} if needed.]",
+                        delivered_end + 1
+                    ));
+                }
+            }
+        }
+    }
+    let hard_cap = if renders_source {
+        crate::config::session_delivery_byte_cap().map_or(output_cap, |s| output_cap.min(s))
+    } else {
+        output_cap
+    };
+    if rendered.len() + notices.iter().map(String::len).sum::<usize>() > hard_cap {
         let requested_line_count = window.len().max(1);
         let suggested_limit = requested_line_count
-            .saturating_mul(output_cap)
+            .saturating_mul(hard_cap)
             .checked_div(rendered.len())
             .unwrap_or(1)
             .saturating_sub(1)
@@ -354,7 +441,7 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         return Err((
             -32602,
             format!(
-                "Read output ({} bytes) exceeds the maximum of {output_cap} bytes. Continue with {expansion_hint}a narrower window such as offset={start_line}, limit={suggested_limit}. If limit=1 still exceeds the cap, use grep to locate narrower text first.",
+                "Read output ({} bytes) exceeds the maximum of {hard_cap} bytes. Continue with {expansion_hint}a narrower window such as offset={start_line}, limit={suggested_limit}. If limit=1 still exceeds the cap, use grep to locate narrower text first.",
                 rendered.len(),
             ),
         ));
@@ -385,6 +472,8 @@ fn read_file_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutpu
         anchors,
         notices,
         should_list_outside_callers: crate::config::get().is_read_outside_callers_enabled,
+        requested_end: requested_end_line,
+        clipped_expand_callable: options.should_expand_callable,
         ..LiveOutput::default()
     };
     if let Some(anchor) = output.anchors.first() {

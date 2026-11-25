@@ -116,7 +116,9 @@
               "endLine": 27,
               "endCol": 1
             },
-            "parameters": [],
+            "parameters": [
+              "T"
+            ],
             "bases": [],
             "methods": [],
             "isContract": false,
@@ -124,6 +126,21 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "value",
+                "typ": {
+                  "name": "T",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 7,
+                    "startCol": 5,
+                    "endLine": 7,
+                    "endCol": 6
+                  }
+                }
+              }
+            ],
             "conditions": []
           },
           {
@@ -174,6 +191,47 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "inventory_",
+                "typ": {
+                  "name": "Inventory",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 24,
+                    "startCol": 5,
+                    "endLine": 24,
+                    "endCol": 14
+                  }
+                }
+              },
+              {
+                "name": "mapper_",
+                "typ": {
+                  "name": "OrderMapper",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 23,
+                    "startCol": 5,
+                    "endLine": 23,
+                    "endCol": 16
+                  }
+                }
+              },
+              {
+                "name": "repo_",
+                "typ": {
+                  "name": "OrderRepo",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 25,
+                    "startCol": 5,
+                    "endLine": 25,
+                    "endCol": 14
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],

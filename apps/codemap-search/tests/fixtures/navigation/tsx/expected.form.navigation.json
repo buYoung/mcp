@@ -91,7 +91,66 @@
         ],
         "types": [],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "validate",
+            "range": {
+              "startLine": 12,
+              "startCol": 24,
+              "endLine": 12,
+              "endCol": 55
+            },
+            "receiver": {
+              "name": "Props",
+              "arguments": [],
+              "range": {
+                "startLine": 8,
+                "startCol": 37,
+                "endLine": 8,
+                "endCol": 42
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "validator"
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "handleSubmit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "submit",
+            "range": {
+              "startLine": 18,
+              "startCol": 11,
+              "endLine": 18,
+              "endCol": 38
+            },
+            "receiver": {
+              "name": "Props",
+              "arguments": [],
+              "range": {
+                "startLine": 8,
+                "startCol": 37,
+                "endLine": 8,
+                "endCol": 42
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "service"
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "handleSubmit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

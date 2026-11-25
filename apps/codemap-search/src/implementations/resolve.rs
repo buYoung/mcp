@@ -93,20 +93,40 @@ fn swift_module(path: &str) -> String {
 
 /// Whether the complete declaration `typ` can be the type a reference with `arguments` type
 /// arguments names. A generic type has the same members whatever its arguments are, so it is
-/// accepted without substituting them. C++ picks a specialization and Rust an implementation
-/// block by the arguments, so there a generic type is never accepted. C# tells `Store` from
-/// `Store<T>` by the number of arguments; elsewhere a type has no more arguments than
-/// parameters, unless it declares its parameters another way, as a Python class does.
+/// accepted without substituting them. C++ rejects templates that have partial or explicit
+/// specializations in the workspace; C# tells `Store` from `Store<T>` by the number of
+/// arguments; elsewhere a type has no more arguments than parameters.
 pub(super) fn accepts(language: &str, typ: &TypeDeclaration, arguments: usize) -> bool {
     typ.is_complete
         && match language {
-            "cpp" | "rust" => typ.parameters.is_empty() && arguments == 0,
+            "cpp" => typ.parameters.is_empty() && arguments == 0,
             "csharp" => typ.parameters.len() == arguments,
             _ => typ.parameters.is_empty() || arguments <= typ.parameters.len(),
         }
 }
 
 impl ImplementationIndex {
+    pub(super) fn accepts_decl(
+        &self,
+        language: &str,
+        typ: &TypeDeclaration,
+        arguments: usize,
+    ) -> bool {
+        if !typ.is_complete {
+            return false;
+        }
+        match language {
+            "cpp" => {
+                (typ.parameters.is_empty() && arguments == 0)
+                    || (!typ.parameters.is_empty()
+                        && arguments <= typ.parameters.len()
+                        && !self
+                            .cpp_specialized_templates
+                            .contains(&normalized(&typ.qualified_name)))
+            }
+            _ => accepts(language, typ, arguments),
+        }
+    }
     /// Of several declarations that one name leads to, keeps those with as many type
     /// parameters as the reference has arguments, when there are any: a Scala companion
     /// object stands beside a generic trait of its name.
@@ -146,7 +166,8 @@ impl ImplementationIndex {
                             && self.typ(*id).range == target.symbol.range
                     })
                     .collect::<Vec<_>>();
-                if matches.len() == 1 && accepts("rust", self.typ(matches[0]), arguments) {
+                if matches.len() == 1 && self.accepts_decl("rust", self.typ(matches[0]), arguments)
+                {
                     let evidence = resolver
                         .source_dependencies()
                         .into_iter()
@@ -179,7 +200,7 @@ impl ImplementationIndex {
         let mut local = Vec::new();
         for &id in self.by_name.get(bare).into_iter().flatten() {
             let typ = self.typ(id);
-            if !accepts(&self.unit(id).language, typ, arguments) {
+            if !self.accepts_decl(&self.unit(id).language, typ, arguments) {
                 continue;
             }
             // A type declared in parts is local to every file that holds one of them.
@@ -269,7 +290,7 @@ impl ImplementationIndex {
                     let typ = self.typ(id);
                     let target_file = &self.files[self.types[id].file].file_path;
                     let target_unit = self.unit(id);
-                    if target_unit.language != "go" || !accepts("go", typ, arguments) {
+                    if target_unit.language != "go" || !self.accepts_decl("go", typ, arguments) {
                         continue;
                     }
                     let target_dir = Path::new(target_file)
@@ -333,7 +354,7 @@ impl ImplementationIndex {
                             && family(&self.unit(id).language) == "script"
                             && typ.is_default_export
                             && typ.namespace.is_empty()
-                            && accepts(&self.unit(id).language, typ, arguments)
+                            && self.accepts_decl(&self.unit(id).language, typ, arguments)
                         {
                             imported.push((
                                 id,
@@ -352,6 +373,13 @@ impl ImplementationIndex {
                 continue;
             }
             let target_owned: String;
+            let is_cpp_using_decl = unit.language == "cpp"
+                && entry.kind == ImportKind::Named
+                && entry.imported_name.as_deref() == entry.source.as_deref()
+                && entry.imported_name.as_deref() != Some(entry.local_name.as_str());
+            if unit.language == "cpp" && !is_cpp_using_decl {
+                continue;
+            }
             let target = match entry.kind {
                 ImportKind::Named if tail.is_empty() => {
                     has_explicit_binding = true;
@@ -361,11 +389,11 @@ impl ImplementationIndex {
                     if !tail.is_empty()
                         && matches!(
                             unit.language.as_str(),
-                            "java" | "kotlin" | "scala" | "groovy" | "php" | "csharp"
+                            "java" | "kotlin" | "scala" | "groovy" | "php" | "csharp" | "cpp"
                         ) =>
                 {
                     has_explicit_binding = true;
-                    let base = if matches!(unit.language.as_str(), "php" | "csharp") {
+                    let base = if matches!(unit.language.as_str(), "php" | "csharp" | "cpp") {
                         module
                     } else {
                         entry.imported_name.as_deref().unwrap_or(head)
@@ -373,19 +401,43 @@ impl ImplementationIndex {
                     target_owned = format!("{base}.{tail}");
                     &target_owned
                 }
+                ImportKind::Named if !tail.is_empty() && unit.language == "python" => {
+                    has_explicit_binding = true;
+                    tail
+                }
                 ImportKind::Namespace if !tail.is_empty() => tail,
                 _ => continue,
             };
+            let python_submodule: String;
+            let module =
+                if unit.language == "python" && entry.kind == ImportKind::Named && !tail.is_empty()
+                {
+                    if let Some(sub) = entry.imported_name.as_deref() {
+                        python_submodule = if module.ends_with('.') {
+                            format!("{module}{sub}")
+                        } else {
+                            format!("{module}.{sub}")
+                        };
+                        python_submodule.as_str()
+                    } else {
+                        module
+                    }
+                } else {
+                    module
+                };
+            let cpp_includes =
+                (unit.language == "cpp").then(|| self.cpp_transitive_includes(&source.file_path));
             let target_bare = target.rsplit('.').next().unwrap_or(target);
             for &id in self.by_name.get(target_bare).into_iter().flatten() {
                 let typ = self.typ(id);
                 let target_file = &self.files[self.types[id].file].file_path;
                 if family(&self.unit(id).language) != family(&unit.language)
-                    || !accepts(&self.unit(id).language, typ, arguments)
+                    || !self.accepts_decl(&self.unit(id).language, typ, arguments)
                     || family(&unit.language) == "script" && !typ.is_exported
                 {
                     continue;
                 }
+                let mut extra_evidence: Vec<Location> = Vec::new();
                 let matches = if matches!(unit.language.as_str(), "typescript" | "javascript")
                     && module.starts_with('.')
                 {
@@ -416,6 +468,27 @@ impl ImplementationIndex {
                         normalized(target)
                     };
                     normalized(&typ.qualified_name) == expected
+                } else if unit.language == "cpp" {
+                    // C++ `using Ns::Type;` brings a type from the same file or a transitively
+                    // included header into scope.
+                    let expected = if tail.is_empty() {
+                        normalized(module)
+                    } else {
+                        normalized(target)
+                    };
+                    if normalized(&typ.qualified_name) != expected {
+                        false
+                    } else if *target_file == source.file_path {
+                        true
+                    } else if let Some(chain) = cpp_includes
+                        .as_ref()
+                        .and_then(|inc| inc.get(target_file.as_str()))
+                    {
+                        extra_evidence.extend(chain.iter().cloned());
+                        true
+                    } else {
+                        false
+                    }
                 } else if family(&unit.language) == "script" {
                     // Package names and tsconfig `paths`/`baseUrl` aliases.
                     resolver
@@ -440,15 +513,15 @@ impl ImplementationIndex {
                     false
                 };
                 if matches {
+                    let mut evidence = vec![Location {
+                        path: source.file_path.clone(),
+                        range: entry.range.clone(),
+                    }];
+                    evidence.extend(extra_evidence);
+                    evidence.push(self.location(id));
                     imported.push((
                         id,
-                        vec![
-                            Location {
-                                path: source.file_path.clone(),
-                                range: entry.range.clone(),
-                            },
-                            self.location(id),
-                        ],
+                        evidence,
                         same_source_root(&source.file_path, target_file),
                     ));
                 }
@@ -536,7 +609,11 @@ impl ImplementationIndex {
                         let declaring = &self.files[self.types[id].file].file_path;
                         if *declaring != origin.file.file_path
                             || family(&self.unit(id).language) != family(language)
-                            || !accepts(&self.unit(id).language, typ, reference.arguments.len())
+                            || !self.accepts_decl(
+                                &self.unit(id).language,
+                                typ,
+                                reference.arguments.len(),
+                            )
                             || !typ.namespace.is_empty()
                             || family(language) == "script" && !typ.is_exported
                         {
@@ -611,7 +688,7 @@ impl ImplementationIndex {
         for &id in self.by_name.get(bare).into_iter().flatten() {
             let typ = self.typ(id);
             let target = &self.files[self.types[id].file].file_path;
-            if self.unit(id).language != language || !accepts(language, typ, arguments) {
+            if self.unit(id).language != language || !self.accepts_decl(language, typ, arguments) {
                 continue;
             }
             let qualified = normalized(&typ.qualified_name);
@@ -639,8 +716,9 @@ impl ImplementationIndex {
                             .map(|(_, import_range)| Some(import_range.clone()))
                     }
                 }
-                "php" => matches_under(&qualified, name, &normalized(&unit.namespace))
-                    .then_some(None),
+                "php" => {
+                    matches_under(&qualified, name, &normalized(&unit.namespace)).then_some(None)
+                }
                 "swift" => {
                     let target_mod = swift_module(target);
                     if source_swift_mod.as_deref() == Some(target_mod.as_str()) {
@@ -725,62 +803,103 @@ impl ImplementationIndex {
             name,
             bare,
             arguments,
-            ..
+            range,
         } = written;
         let language = unit.language.as_str();
         if !matches!(language, "ruby" | "dart" | "cpp") {
             return None;
         }
         let scope = normalized(namespace);
-        let is_visible = |typ: &TypeDeclaration| {
+        let active_usings: Vec<&ScopedName> = if language == "cpp" {
+            unit.using_namespaces
+                .iter()
+                .filter(|ns| encloses(&ns.scope, range))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let is_visible = |typ: &TypeDeclaration| -> Option<Option<CodeRange>> {
             if language != "cpp" {
-                return true;
+                return Some(None);
             }
             let qualified = normalized(&typ.qualified_name);
-            qualified
-                .strip_suffix(name)
-                .is_some_and(|outer| match outer.strip_suffix('.') {
-                    Some(outer) => scope == outer || scope.starts_with(&format!("{outer}.")),
-                    None => outer.is_empty(),
-                })
+            let by_enclosing =
+                qualified
+                    .strip_suffix(name)
+                    .is_some_and(|outer| match outer.strip_suffix('.') {
+                        Some(outer) => scope == outer || scope.starts_with(&format!("{outer}.")),
+                        None => outer.is_empty(),
+                    });
+            if by_enclosing {
+                return Some(None);
+            }
+            active_usings
+                .iter()
+                .find(|ns| matches_under(&qualified, name, &normalized(&ns.name)))
+                .map(|ns| Some(ns.range.clone()))
         };
         let mut candidates = Vec::new();
-        for import in &unit.imports {
-            let Some(module) = import.entry.source.as_deref() else {
-                continue;
-            };
-            let included = (language == "cpp")
-                .then(|| self.included_file(path, module))
-                .flatten();
-            let loads = |target: &str| match language {
-                "ruby" => {
-                    (module.starts_with("./") || module.starts_with("../"))
-                        && relative_path(path, module)
-                            .is_some_and(|module| module_matches(target, &module))
-                }
-                "cpp" => included == Some(target),
-                _ => {
-                    import.entry.kind == ImportKind::Glob
-                        && self.dart_libraries.matches(path, module, target)
-                }
-            };
+        if language == "cpp" {
+            let includes = self.cpp_transitive_includes(path);
             for &id in self.by_name.get(bare).into_iter().flatten() {
                 let typ = self.typ(id);
-                if self.unit(id).language == language
-                    && accepts(language, typ, arguments)
-                    && is_visible(typ)
-                    && loads(&self.files[self.types[id].file].file_path)
-                {
-                    candidates.push((
-                        id,
-                        vec![
-                            Location {
-                                path: path.to_string(),
-                                range: import.entry.range.clone(),
-                            },
-                            self.location(id),
-                        ],
-                    ));
+                if self.unit(id).language != "cpp" || !self.accepts_decl("cpp", typ, arguments) {
+                    continue;
+                }
+                let Some(using_range) = is_visible(typ) else {
+                    continue;
+                };
+                let target_path = self.files[self.types[id].file].file_path.as_str();
+                let mut evidence = if target_path == path {
+                    Vec::new()
+                } else if let Some(chain) = includes.get(target_path) {
+                    chain.clone()
+                } else {
+                    continue;
+                };
+                if let Some(using_range) = using_range {
+                    evidence.push(Location {
+                        path: path.to_string(),
+                        range: using_range,
+                    });
+                }
+                evidence.push(self.location(id));
+                candidates.push((id, evidence));
+            }
+        } else {
+            for import in &unit.imports {
+                let Some(module) = import.entry.source.as_deref() else {
+                    continue;
+                };
+                let loads = |target: &str| match language {
+                    "ruby" => {
+                        (module.starts_with("./") || module.starts_with("../"))
+                            && relative_path(path, module)
+                                .is_some_and(|module| module_matches(target, &module))
+                    }
+                    _ => {
+                        import.entry.kind == ImportKind::Glob
+                            && self.dart_libraries.matches(path, module, target)
+                    }
+                };
+                for &id in self.by_name.get(bare).into_iter().flatten() {
+                    let typ = self.typ(id);
+                    if self.unit(id).language == language
+                        && self.accepts_decl(language, typ, arguments)
+                        && is_visible(typ).is_some()
+                        && loads(&self.files[self.types[id].file].file_path)
+                    {
+                        candidates.push((
+                            id,
+                            vec![
+                                Location {
+                                    path: path.to_string(),
+                                    range: import.entry.range.clone(),
+                                },
+                                self.location(id),
+                            ],
+                        ));
+                    }
                 }
             }
         }
@@ -791,6 +910,75 @@ impl ImplementationIndex {
             return candidates.pop();
         }
         None
+    }
+
+    /// Transitively included C/C++ files reachable from `path` via `#include` directives, mapped
+    /// to the chain of `#include` locations traversed to reach each header. Bounded in depth and
+    /// total header count so cyclic or deep include graphs stay O(1)-bounded.
+    pub(super) fn cpp_transitive_includes(&self, path: &str) -> HashMap<String, Vec<Location>> {
+        const MAX_DEPTH: usize = 16;
+        const MAX_HEADERS: usize = 256;
+        let by_path = self.files_by_path.get_or_init(|| {
+            self.files
+                .iter()
+                .enumerate()
+                .map(|(id, file)| (file.file_path.clone(), id))
+                .collect()
+        });
+        let mut reached: HashMap<String, Vec<Location>> = HashMap::new();
+        let mut queue = std::collections::VecDeque::new();
+        queue.push_back((path.to_string(), Vec::<Location>::new(), 0usize));
+        let mut visited: std::collections::HashSet<String> = std::collections::HashSet::new();
+        visited.insert(path.to_string());
+        while let Some((current, chain, depth)) = queue.pop_front() {
+            if depth >= MAX_DEPTH || reached.len() >= MAX_HEADERS {
+                break;
+            }
+            let Some(&file_id) = by_path.get(&current) else {
+                continue;
+            };
+            let Some(facts) = self.files[file_id]
+                .navigation
+                .as_ref()
+                .and_then(|nav| nav.implementations.as_ref())
+            else {
+                continue;
+            };
+            for unit in &facts.units {
+                if unit.language != "cpp" {
+                    continue;
+                }
+                for import in &unit.imports {
+                    let is_cpp_using_decl = import.entry.kind == ImportKind::Named
+                        && import.entry.imported_name.as_deref() == import.entry.source.as_deref()
+                        && import.entry.imported_name.as_deref()
+                            != Some(import.entry.local_name.as_str());
+                    if is_cpp_using_decl {
+                        // `using Ns::Type;` is a namespace declaration, not an `#include`.
+                        continue;
+                    }
+                    let Some(module) = import.entry.source.as_deref() else {
+                        continue;
+                    };
+                    let Some(target) = self.included_file(&current, module) else {
+                        continue;
+                    };
+                    if visited.insert(target.to_string()) {
+                        let mut next_chain = chain.clone();
+                        next_chain.push(Location {
+                            path: current.clone(),
+                            range: import.entry.range.clone(),
+                        });
+                        reached.insert(target.to_string(), next_chain.clone());
+                        if reached.len() >= MAX_HEADERS {
+                            break;
+                        }
+                        queue.push_back((target.to_string(), next_chain, depth + 1));
+                    }
+                }
+            }
+        }
+        reached
     }
 
     /// The indexed file a C++ `#include` in `path` names. The file at the include path

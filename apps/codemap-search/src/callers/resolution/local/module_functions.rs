@@ -181,6 +181,12 @@ impl<'a> SourceResolver<'a> {
                     let namespace = namespace_path(at, &source)?;
                     return self.included_definition(&file.file_path, &call.name, &namespace);
                 }
+                ("java", None) => {
+                    return self.java_static_call(file, &source, at, call, None);
+                }
+                ("java", Some(receiver)) if receiver.contains('.') => {
+                    return self.java_static_call(file, &source, at, call, Some(receiver));
+                }
                 _ => return None,
             };
         let mut targets = Vec::new();
@@ -233,6 +239,233 @@ impl<'a> SourceResolver<'a> {
             return None;
         }
         Some(target)
+    }
+
+    /// Java `import static pkg.Class.member;` (or `import static pkg.Class.*;`) and fully
+    /// qualified `pkg.Class.method()` fallback resolution. Runs only after local/member and
+    /// dispatched-call resolution and refuses to shadow local or inherited class members.
+    fn java_static_call(
+        &self,
+        file: &'a ExtractedFile,
+        source: &Source,
+        at: Node,
+        call: &CallSite,
+        qualified_receiver: Option<&str>,
+    ) -> Option<Target<'a>> {
+        let mut exact_classes: Vec<String> = Vec::new();
+        let mut wildcard_classes: Vec<String> = Vec::new();
+        if let Some(receiver) = qualified_receiver {
+            let head = receiver.split('.').next()?;
+            if has_binding(source, at, head, None)
+                || file.symbols.iter().any(|symbol| symbol.name == head)
+            {
+                return None;
+            }
+            exact_classes.push(receiver.to_string());
+        } else {
+            if self.java_inherited_may_shadow(source, at, &call.name) {
+                return None;
+            }
+            let root = source.syntax.tree.root_node();
+            let mut cursor = root.walk();
+            for child in root.named_children(&mut cursor) {
+                if child.kind() != "import_declaration" {
+                    continue;
+                }
+                let raw = text(child, source)?.trim();
+                let Some(rest) = raw.strip_prefix("import") else {
+                    continue;
+                };
+                let rest = rest.trim();
+                let Some(after_static) = rest.strip_prefix("static") else {
+                    continue;
+                };
+                if !after_static.starts_with(char::is_whitespace) {
+                    continue;
+                }
+                let path = after_static.trim().trim_end_matches(';').trim();
+                if let Some(cls) = path.strip_suffix(".*") {
+                    if !cls.is_empty() {
+                        wildcard_classes.push(cls.trim().to_string());
+                    }
+                } else if let Some((cls, member)) = path.rsplit_once('.') {
+                    if member.trim() == call.name && !cls.is_empty() {
+                        exact_classes.push(cls.trim().to_string());
+                    }
+                }
+            }
+        }
+        let class_fqns = if !exact_classes.is_empty() {
+            exact_classes
+        } else {
+            wildcard_classes
+        };
+        if class_fqns.is_empty() {
+            return None;
+        }
+        let call_args = java_call_arg_count(at);
+        let mut targets: Vec<Target<'a>> = Vec::new();
+        for fqn in class_fqns {
+            let (pkg, cls_name) = match fqn.rsplit_once('.') {
+                Some((p, c)) => (p, c),
+                None => ("", fqn.as_str()),
+            };
+            let mut matched_files: Vec<(&'a ExtractedFile, bool)> = Vec::new();
+            for candidate in self.files {
+                if !candidate.file_path.ends_with(".java") {
+                    continue;
+                }
+                if !candidate
+                    .symbols
+                    .iter()
+                    .any(|s| s.name == cls_name && crate::declarations::container(s))
+                {
+                    continue;
+                }
+                let Some(cand_src) = self.source(&candidate.file_path) else {
+                    continue;
+                };
+                let cand_pkg = java_package_name(&cand_src).unwrap_or_default();
+                if cand_pkg == pkg {
+                    matched_files.push((
+                        candidate,
+                        same_source_root(&file.file_path, &candidate.file_path),
+                    ));
+                }
+            }
+            if matched_files.len() > 1 {
+                let same_root: Vec<_> = matched_files
+                    .iter()
+                    .copied()
+                    .filter(|(_, same)| *same)
+                    .collect();
+                if !same_root.is_empty() {
+                    matched_files = same_root;
+                }
+            }
+            for (target_file, _) in matched_files {
+                let Some(target_source) = self.source(&target_file.file_path) else {
+                    continue;
+                };
+                for symbol in &target_file.symbols {
+                    if symbol.kind != "fn"
+                        || symbol.name != call.name
+                        || symbol.owner.as_deref() != Some(cls_name)
+                        || !current_symbol(&target_source, symbol)
+                    {
+                        continue;
+                    }
+                    let Some(m_node) = node_at(&target_source, &symbol.range) else {
+                        continue;
+                    };
+                    if !java_has_modifier(m_node, &target_source, "static") {
+                        continue;
+                    }
+                    if target_file.file_path != file.file_path
+                        && java_has_modifier(m_node, &target_source, "private")
+                    {
+                        continue;
+                    }
+                    targets.push(Target {
+                        file: target_file,
+                        symbol,
+                        is_precise: true,
+                    });
+                }
+            }
+        }
+        if targets.len() > 1 {
+            if let Some(arg_count) = call_args {
+                let arity_matched: Vec<_> = targets
+                    .iter()
+                    .copied()
+                    .filter(|target| {
+                        self.source(&target.file.file_path)
+                            .and_then(|src| {
+                                let node = node_at(&src, &target.symbol.range)?;
+                                java_method_matches_arity(node, &src, arg_count)
+                            })
+                            .unwrap_or(false)
+                    })
+                    .collect();
+                if arity_matched.len() == 1 {
+                    return Some(arity_matched[0]);
+                }
+            }
+        }
+        unique(targets)
+    }
+
+    /// Returns `true` if an enclosing Java class extends a superclass or implements an interface
+    /// that may declare a member named `name`, which would shadow an `import static` binding.
+    fn java_inherited_may_shadow(&self, source: &Source, at: Node, name: &str) -> bool {
+        if matches!(
+            name,
+            "toString"
+                | "equals"
+                | "hashCode"
+                | "getClass"
+                | "notify"
+                | "notifyAll"
+                | "wait"
+                | "clone"
+                | "finalize"
+        ) {
+            return true;
+        }
+        let mut cur = at.parent();
+        while let Some(node) = cur {
+            if matches!(
+                node.kind(),
+                "class_declaration" | "enum_declaration" | "record_declaration"
+            ) {
+                let mut base_names = Vec::new();
+                if let Some(superclass) = node.child_by_field_name("superclass") {
+                    if let Some(raw) = text(superclass, source) {
+                        let base = raw
+                            .trim()
+                            .trim_start_matches("extends")
+                            .trim()
+                            .split('<')
+                            .next()
+                            .unwrap_or("")
+                            .rsplit('.')
+                            .next()
+                            .unwrap_or("")
+                            .trim();
+                        if !base.is_empty() && base != "Object" {
+                            base_names.push(base.to_string());
+                        }
+                    }
+                }
+                for base in base_names {
+                    let mut found_base = false;
+                    for file in self.files {
+                        if !file.file_path.ends_with(".java") {
+                            continue;
+                        }
+                        if file
+                            .symbols
+                            .iter()
+                            .any(|s| s.name == base && crate::declarations::container(s))
+                        {
+                            found_base = true;
+                            if file.symbols.iter().any(|s| {
+                                s.owner.as_deref() == Some(base.as_str()) && s.name == name
+                            }) {
+                                return true;
+                            }
+                        }
+                    }
+                    // Unindexed external superclass could inherit a member named `name`.
+                    if !found_base {
+                        return true;
+                    }
+                }
+            }
+            cur = node.parent();
+        }
+        false
     }
 
     /// The declarations the module file at `path` exports as `name`, with their declared names.
@@ -698,6 +931,83 @@ const REACHABLE_HEADERS_MAX: usize = 512;
 /// function of another file. Kotlin, Swift, Ruby and C++ look up members first inside a type
 /// or member definition; Kotlin lambdas and extension functions may bind a receiver, and Ruby
 /// DSLs evaluate blocks against other objects. Dart looks up lexical scope first.
+fn java_package_name(source: &Source) -> Option<String> {
+    let root = source.syntax.tree.root_node();
+    let mut cursor = root.walk();
+    for child in root.named_children(&mut cursor) {
+        if child.kind() == "package_declaration" {
+            let raw = text(child, source)?;
+            let pkg = raw
+                .trim()
+                .trim_start_matches("package")
+                .trim()
+                .trim_end_matches(';')
+                .trim();
+            if !pkg.is_empty() {
+                return Some(pkg.to_string());
+            }
+        }
+    }
+    None
+}
+
+fn java_has_modifier(node: Node, source: &Source, keyword: &str) -> bool {
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        if child.kind() == "modifiers" {
+            let mut m_cursor = child.walk();
+            for m in child.children(&mut m_cursor) {
+                if text(m, source).is_some_and(|t| t.trim() == keyword) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn java_call_arg_count(at: Node) -> Option<usize> {
+    let args = at.child_by_field_name("arguments")?;
+    if args.has_error() {
+        return None;
+    }
+    let mut count = 0usize;
+    let mut cursor = args.walk();
+    for child in args.named_children(&mut cursor) {
+        if !matches!(child.kind(), "line_comment" | "block_comment") {
+            count += 1;
+        }
+    }
+    Some(count)
+}
+
+fn java_method_matches_arity(node: Node, source: &Source, arg_count: usize) -> Option<bool> {
+    let params = node.child_by_field_name("parameters")?;
+    if params.has_error() {
+        return None;
+    }
+    let mut min_args = 0usize;
+    let mut is_varargs = false;
+    let mut cursor = params.walk();
+    for child in params.named_children(&mut cursor) {
+        if matches!(child.kind(), "line_comment" | "block_comment") {
+            continue;
+        }
+        if child.kind() == "spread_parameter"
+            || text(child, source).is_some_and(|t| t.contains("..."))
+        {
+            is_varargs = true;
+            break;
+        }
+        min_args += 1;
+    }
+    if is_varargs {
+        Some(arg_count >= min_args)
+    } else {
+        Some(arg_count == min_args)
+    }
+}
+
 fn member_may_answer(language: &str, at: Node) -> bool {
     let mut ancestors = std::iter::successors(at.parent(), |node| node.parent());
     match language {
@@ -1061,12 +1371,18 @@ mod tests {
             (&[("Sources/App/Util.swift", "func helper() -> Int { 1 }\n"), ("Sources/App/Main.swift", "func run() { _ = helper() }\n")], "Sources/App/Main.swift", 1, "helper", "Sources/App/Util.swift:1"),
             (&[("include/util.h", "int add(int a, int b);\n"), ("src/util.c", "#include \"util.h\"\nint add(int a, int b) { return a + b; }\n"), ("src/main.c", "#include \"util.h\"\nint main(void) { int x = add(1, 2); return x; }\n")], "src/main.c", 2, "add", "src/util.c:2"),
             (&[("math.h", "namespace m {\nint add(int a, int b);\n}\n"), ("math.cpp", "#include \"math.h\"\nnamespace m {\nint add(int a, int b) { return a + b; }\n}\n"), ("main.cpp", "#include \"math.h\"\nnamespace m {\nint run() { return add(1, 2); }\n}\n")], "main.cpp", 3, "add", "math.cpp:3"),
+            // J2: Java `import static` and fully qualified `pkg.Class.method()`.
+            (&[("src/pkg/MathUtil.java", "package pkg;\npublic class MathUtil {\n    public static int add(int a, int b) { return a + b; }\n}\n"), ("src/app/Main.java", "package app;\nimport static pkg.MathUtil.add;\npublic class Main {\n    int run() { return add(1, 2); }\n}\n")], "src/app/Main.java", 4, "add", "src/pkg/MathUtil.java:3"),
+            (&[("src/pkg/MathUtil.java", "package pkg;\npublic class MathUtil {\n    public static int add(int a, int b) { return a + b; }\n}\n"), ("src/app/Main.java", "package app;\npublic class Main {\n    int run() { return pkg.MathUtil.add(1, 2); }\n}\n")], "src/app/Main.java", 3, "add", "src/pkg/MathUtil.java:3"),
         ]);
     }
 
     #[test]
     fn calls_that_imports_do_not_settle_stay_unresolved() {
         check(&[
+            // J2 negative: inherited member (indexed or external) shadows `import static`.
+            (&[("src/pkg/MathUtil.java", "package pkg;\npublic class MathUtil {\n    public static int add(int a, int b) { return a + b; }\n}\n"), ("src/app/Base.java", "package app;\npublic class Base {\n    int add(int a, int b) { return a; }\n}\n"), ("src/app/Main.java", "package app;\nimport static pkg.MathUtil.add;\npublic class Main extends Base {\n    int run() { return add(1, 2); }\n}\n")], "src/app/Main.java", 4, "add", "src/app/Base.java:3"),
+            (&[("src/pkg/MathUtil.java", "package pkg;\npublic class MathUtil {\n    public static int add(int a, int b) { return a + b; }\n}\n"), ("src/app/Main.java", "package app;\nimport static pkg.MathUtil.add;\npublic class Main extends ExternalBase {\n    int run() { return add(1, 2); }\n}\n")], "src/app/Main.java", 4, "add", "-"),
             // Two imports bind the name, two files hold the module, a star import may rebind
             // the name, or the module file sits inside a package rather than at a root.
             (&[("a.py", "def f():\n    pass\n"), ("b.py", "def f():\n    pass\n"), ("main.py", "try:\n    from a import f\nexcept ImportError:\n    from b import f\nf()\n")], "main.py", 5, "f", "-"),

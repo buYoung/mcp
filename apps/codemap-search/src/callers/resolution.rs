@@ -470,7 +470,7 @@ impl<'a> SourceResolver<'a> {
                     let file = self.files.get(file_idx)?;
                     let symbol = file.symbols.get(sym_idx)?;
                     Some(Target {
-                        file: &**file,
+                        file,
                         symbol,
                         is_precise: true,
                     })
@@ -486,11 +486,14 @@ impl<'a> SourceResolver<'a> {
                 .filter(|file| supports_modules(&file.file_path))
             {
                 for symbol in &file.symbols {
-                    by_name.entry(symbol.name.as_str()).or_default().push(Target {
-                        file,
-                        symbol,
-                        is_precise: true,
-                    });
+                    by_name
+                        .entry(symbol.name.as_str())
+                        .or_default()
+                        .push(Target {
+                            file,
+                            symbol,
+                            is_precise: true,
+                        });
                 }
             }
             by_name
@@ -890,48 +893,50 @@ impl<'a> SourceResolver<'a> {
         if let Some(cached) = self.go_works.borrow().get(dir) {
             return cached.clone();
         }
-        let modules = self.read_manifest_text(&dir.join("go.work")).map(|content| {
-            let mut entries = Vec::new();
-            let mut in_use = false;
-            for raw in content.lines() {
-                let line = raw.split("//").next().unwrap_or("").trim();
-                if line.is_empty() {
-                    continue;
-                }
-                let use_dir = if let Some(rest) = line.strip_prefix("use ") {
-                    let rest = rest.trim();
-                    if rest == "(" {
+        let modules = self
+            .read_manifest_text(&dir.join("go.work"))
+            .map(|content| {
+                let mut entries = Vec::new();
+                let mut in_use = false;
+                for raw in content.lines() {
+                    let line = raw.split("//").next().unwrap_or("").trim();
+                    if line.is_empty() {
+                        continue;
+                    }
+                    let use_dir = if let Some(rest) = line.strip_prefix("use ") {
+                        let rest = rest.trim();
+                        if rest == "(" {
+                            in_use = true;
+                            None
+                        } else {
+                            Some(rest.trim_matches('"'))
+                        }
+                    } else if line == "use(" {
                         in_use = true;
                         None
+                    } else if in_use && line == ")" {
+                        in_use = false;
+                        None
+                    } else if in_use {
+                        Some(line.trim_matches('"'))
                     } else {
-                        Some(rest.trim_matches('"'))
+                        None
+                    };
+                    let Some(use_dir) = use_dir.filter(|d| !d.is_empty()) else {
+                        continue;
+                    };
+                    let mod_dir = clean_join(dir, use_dir);
+                    if !self.is_under_workspace(&mod_dir) {
+                        continue;
                     }
-                } else if line == "use(" {
-                    in_use = true;
-                    None
-                } else if in_use && line == ")" {
-                    in_use = false;
-                    None
-                } else if in_use {
-                    Some(line.trim_matches('"'))
-                } else {
-                    None
-                };
-                let Some(use_dir) = use_dir.filter(|d| !d.is_empty()) else {
-                    continue;
-                };
-                let mod_dir = clean_join(dir, use_dir);
-                if !self.is_under_workspace(&mod_dir) {
-                    continue;
-                }
-                if let Some(info) = self.go_mod_info(&mod_dir) {
-                    if let Some(module) = &info.module {
-                        entries.push((module.clone(), mod_dir));
+                    if let Some(info) = self.go_mod_info(&mod_dir) {
+                        if let Some(module) = &info.module {
+                            entries.push((module.clone(), mod_dir));
+                        }
                     }
                 }
-            }
-            Rc::new(entries)
-        });
+                Rc::new(entries)
+            });
         self.go_works
             .borrow_mut()
             .insert(dir.to_path_buf(), modules.clone());
@@ -1022,9 +1027,11 @@ impl<'a> SourceResolver<'a> {
             let mut directory = anchor.to_path_buf();
             loop {
                 if let Some(info) = self.go_mod_info(&directory) {
-                    if let Some((_, target, suffix)) = info.replaces.iter().find_map(|(m, target)| {
-                        strip_go_import_prefix(import, m).map(|suffix| (m, target, suffix))
-                    }) {
+                    if let Some((_, target, suffix)) =
+                        info.replaces.iter().find_map(|(m, target)| {
+                            strip_go_import_prefix(import, m).map(|suffix| (m, target, suffix))
+                        })
+                    {
                         resolved = Some(if suffix.is_empty() {
                             target.clone()
                         } else {

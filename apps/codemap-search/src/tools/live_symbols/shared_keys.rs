@@ -12,7 +12,7 @@ use crate::index::EngineSupervisor;
 use crate::parser::ExtractedFile;
 
 /// Keys taken from one window, in order of appearance.
-const WINDOW_KEY_LIMIT: usize = 24;
+const WINDOW_KEY_LIMIT: usize = 40;
 /// Places (an enclosing function, or a top-level line) listed per key before the rest are counted.
 const PLACES_PER_KEY: usize = 8;
 /// A key used in more files than this is too common to point at related code; it is skipped.
@@ -149,9 +149,11 @@ fn window_keys(file: &ExtractedFile, lines: &[&str], start: usize, end: usize) -
     keys
 }
 
-/// Whether `text` on 1-based `line` is a call argument: after skipping its quotes (strings) or a
-/// qualifier such as `Type.`, `self::` or `$this->` (names), the previous non-blank character,
-/// possibly at the end of an earlier line, is `(` or `,`.
+/// Whether `text` on 1-based `line` appears in a key-bearing position:
+/// - for string literals (`is_literal == true`): call arguments (`(`, `,`), constant/value
+///   assignments and equality checks (`=`, `:=`, `==`, `===`, `!=`, `=>`), map/struct/case
+///   entries (`:`), or `case "..."` branches across languages;
+/// - for identifier key sites (`is_literal == false`): call arguments (`(`, `,`) only.
 fn is_argument(lines: &[&str], line: usize, text: &str, is_literal: bool) -> bool {
     let Some(row) = line.checked_sub(1).and_then(|index| lines.get(index)) else {
         return false;
@@ -174,8 +176,25 @@ fn is_argument(lines: &[&str], line: usize, text: &str, is_literal: bool) -> boo
             }
             strip_qualifiers(&row[..at])
         };
-        if previous_symbol(lines, line - 1, before).is_some_and(|c| c == '(' || c == ',') {
+        let prev = previous_symbol(lines, line - 1, before);
+        if prev.is_some_and(|c| c == '(' || c == ',') {
             return true;
+        }
+        if is_literal {
+            if prev.is_some_and(|c| c == '=' || c == ':') {
+                return true;
+            }
+            let trimmed = before.trim_end();
+            if let Some(prefix) = trimmed.strip_suffix("case") {
+                if prefix.is_empty()
+                    || !prefix
+                        .chars()
+                        .last()
+                        .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_')
+                {
+                    return true;
+                }
+            }
         }
     }
     false

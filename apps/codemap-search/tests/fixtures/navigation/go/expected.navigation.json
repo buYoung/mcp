@@ -109,7 +109,13 @@
               }
             ],
             "namespace": "main",
-            "conditions": []
+            "conditions": [],
+            "range": {
+              "startLine": 7,
+              "startCol": 1,
+              "endLine": 7,
+              "endCol": 38
+            }
           }
         ],
         "calls": []

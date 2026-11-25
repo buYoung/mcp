@@ -106,6 +106,47 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "logger_",
+                "typ": {
+                  "name": "Logger",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 19,
+                    "startCol": 5,
+                    "endLine": 19,
+                    "endCol": 11
+                  }
+                }
+              },
+              {
+                "name": "processor_",
+                "typ": {
+                  "name": "JobProcessor",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 18,
+                    "startCol": 5,
+                    "endLine": 18,
+                    "endCol": 17
+                  }
+                }
+              },
+              {
+                "name": "queue_",
+                "typ": {
+                  "name": "JobQueue",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 17,
+                    "startCol": 5,
+                    "endLine": 17,
+                    "endCol": 13
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],

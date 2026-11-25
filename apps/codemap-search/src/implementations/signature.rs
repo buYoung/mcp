@@ -16,6 +16,7 @@ pub(super) struct TypeScope {
     pub owner: usize,
     pub namespace: String,
     pub range: CodeRange,
+    pub method_type_params: Vec<String>,
 }
 
 type CacheKey = (usize, usize, usize, usize, usize, String, usize);
@@ -31,6 +32,8 @@ enum TypeIdentity {
     Global(String),
     /// A type parameter declared on the enclosing type.
     TypeParam(String),
+    /// A method-level generic type parameter identified by its 0-based positional slot.
+    MethodTypeParam(usize),
     /// A language-standard unqualified type name (e.g. Java `String`, Swift `Int`).
     Standard(String),
     /// A built-in language keyword/primitive type (canonicalized across exact aliases).
@@ -87,6 +90,7 @@ impl ImplementationIndex {
             owner: node.owner,
             namespace,
             range: node.declaration.range.clone(),
+            method_type_params: node.declaration.type_parameters.clone(),
         }
     }
 
@@ -109,6 +113,7 @@ impl ImplementationIndex {
             && base_scope.file == impl_scope.file
             && base_scope.namespace == impl_scope.namespace
             && base_scope.owner == impl_scope.owner
+            && base_scope.method_type_params == impl_scope.method_type_params
         {
             return Some(Vec::new());
         }
@@ -168,10 +173,19 @@ impl ImplementationIndex {
                                 .iter()
                                 .any(|param| param == spelling)
                     };
+                    let is_method_param_on = |scope: &TypeScope, spelling: &str| {
+                        !spelling.contains(['.', ':', '\\'])
+                            && scope
+                                .method_type_params
+                                .iter()
+                                .any(|param| param == spelling)
+                    };
                     let same_scope_spelling = na == nb
                         && sa.file == sb.file
                         && sa.unit == sb.unit
                         && sa.namespace == sb.namespace
+                        && !is_method_param_on(sa, na)
+                        && !is_method_param_on(sb, nb)
                         && (sa.owner == sb.owner
                             || (!is_param_on(sa.owner, na) && !is_param_on(sb.owner, nb)));
                     if !same_scope_spelling {
@@ -210,14 +224,22 @@ impl ImplementationIndex {
         if let Some(keyword) = canonical_keyword(language, name) {
             return Some((TypeIdentity::Keyword(keyword), Vec::new()));
         }
-        if !name.contains(['.', ':', '\\'])
-            && self
+        if !name.contains(['.', ':', '\\']) {
+            if let Some(position) = scope
+                .method_type_params
+                .iter()
+                .position(|param| param == name)
+            {
+                return Some((TypeIdentity::MethodTypeParam(position), Vec::new()));
+            }
+            if self
                 .typ(scope.owner)
                 .parameters
                 .iter()
                 .any(|param| param == name)
-        {
-            return Some((TypeIdentity::TypeParam(name.to_string()), Vec::new()));
+            {
+                return Some((TypeIdentity::TypeParam(name.to_string()), Vec::new()));
+            }
         }
         // Go imports are strictly file-scoped and Go has no nested type declarations, so
         // non-type-parameter spellings resolve identically across every method in a unit.
@@ -283,10 +305,15 @@ impl ImplementationIndex {
             name: name.to_string(),
             arguments: vec![String::new(); arity],
             range: range.clone(),
+            conditions: Vec::new(),
         };
-        if let Some((id, evidence)) =
-            self.resolve_type(scope.file, scope.unit, &scope.namespace, &reference, resolver)
-        {
+        if let Some((id, evidence)) = self.resolve_type(
+            scope.file,
+            scope.unit,
+            &scope.namespace,
+            &reference,
+            resolver,
+        ) {
             return Some((TypeIdentity::Indexed(id), evidence));
         }
         // A path anchored at the global scope (`\Ns\Type` in PHP, `::ns::Type` in C++) denotes
@@ -339,13 +366,12 @@ impl ImplementationIndex {
                 .map(|entry| {
                     let module = entry.source.as_deref()?;
                     // A relative module names a file, so it is read from the importing file.
-                    let module = if module.starts_with('.')
-                        || language == "dart" && !module.contains(':')
-                    {
-                        relative_path(&file.file_path, module)?
-                    } else {
-                        module.to_string()
-                    };
+                    let module =
+                        if module.starts_with('.') || language == "dart" && !module.contains(':') {
+                            relative_path(&file.file_path, module)?
+                        } else {
+                            module.to_string()
+                        };
                     let member = member.unwrap_or(match entry.kind {
                         ImportKind::Default => "default",
                         _ => entry.imported_name.as_deref().unwrap_or(head),
@@ -452,7 +478,11 @@ fn tokenize_type(
             continue;
         }
         let arity = generic_arity(bytes, at);
-        if depth < 8 && arity == 0 && !word.contains(['.', ':', '\\']) {
+        if depth < 8
+            && arity == 0
+            && !word.contains(['.', ':', '\\'])
+            && !scope.method_type_params.iter().any(|param| param == word)
+        {
             if let Some(sub) = substitutions.iter().find(|sub| sub.parameter == word) {
                 let sub_scope = TypeScope {
                     file: sub.file,
@@ -460,8 +490,15 @@ fn tokenize_type(
                     owner: sub.owner,
                     namespace: sub.namespace.clone(),
                     range: sub.range.clone(),
+                    method_type_params: Vec::new(),
                 };
-                tokens.extend(tokenize_type(language, &sub.argument, &sub_scope, &[], depth + 1));
+                tokens.extend(tokenize_type(
+                    language,
+                    &sub.argument,
+                    &sub_scope,
+                    &[],
+                    depth + 1,
+                ));
                 continue;
             }
         }
@@ -478,7 +515,15 @@ fn is_csharp_known_ref_type(name: &str) -> bool {
     let bare = name.rsplit('.').next().unwrap_or(name);
     matches!(
         bare,
-        "string" | "String" | "object" | "Object" | "dynamic" | "Uri" | "Type" | "Exception" | "Array"
+        "string"
+            | "String"
+            | "object"
+            | "Object"
+            | "dynamic"
+            | "Uri"
+            | "Type"
+            | "Exception"
+            | "Array"
     )
 }
 

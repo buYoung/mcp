@@ -220,9 +220,7 @@
                     "endLine": 10,
                     "endCol": 21
                   },
-                  "parameters": [
-                    "?"
-                  ],
+                  "parameters": [],
                   "returnType": "",
                   "qualifiers": "",
                   "isAbstract": false,
@@ -232,7 +230,7 @@
                   "isVirtual": true,
                   "isOverride": false,
                   "isPointerReceiver": false,
-                  "hasKnownSignature": false,
+                  "hasKnownSignature": true,
                   "conditions": []
                 },
                 {
@@ -243,9 +241,7 @@
                     "endLine": 13,
                     "endCol": 17
                   },
-                  "parameters": [
-                    "?"
-                  ],
+                  "parameters": [],
                   "returnType": "",
                   "qualifiers": "",
                   "isAbstract": false,
@@ -255,7 +251,7 @@
                   "isVirtual": true,
                   "isOverride": false,
                   "isPointerReceiver": false,
-                  "hasKnownSignature": false,
+                  "hasKnownSignature": true,
                   "conditions": []
                 },
                 {
@@ -266,9 +262,7 @@
                     "endLine": 18,
                     "endCol": 20
                   },
-                  "parameters": [
-                    "?"
-                  ],
+                  "parameters": [],
                   "returnType": "",
                   "qualifiers": "",
                   "isAbstract": false,
@@ -278,7 +272,7 @@
                   "isVirtual": true,
                   "isOverride": false,
                   "isPointerReceiver": false,
-                  "hasKnownSignature": false,
+                  "hasKnownSignature": true,
                   "conditions": []
                 }
               ],

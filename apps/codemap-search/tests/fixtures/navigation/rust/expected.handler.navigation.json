@@ -86,6 +86,21 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "service",
+                "typ": {
+                  "name": "S",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 4,
+                    "startCol": 14,
+                    "endLine": 4,
+                    "endCol": 15
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],
@@ -130,10 +145,48 @@
               }
             ],
             "namespace": "",
-            "conditions": []
+            "conditions": [],
+            "range": {
+              "startLine": 7,
+              "startCol": 1,
+              "endLine": 16,
+              "endCol": 2
+            }
           }
         ],
-        "calls": []
+        "calls": [
+          {
+            "name": "submit",
+            "range": {
+              "startLine": 13,
+              "startCol": 23,
+              "endLine": 13,
+              "endCol": 51
+            },
+            "receiver": {
+              "name": "CheckoutHandler",
+              "arguments": [
+                "S"
+              ],
+              "range": {
+                "startLine": 7,
+                "startCol": 9,
+                "endLine": 7,
+                "endCol": 27
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "service"
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "post",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

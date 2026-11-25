@@ -134,6 +134,21 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "service",
+                "typ": {
+                  "name": "ServicePort",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 9,
+                    "startCol": 10,
+                    "endLine": 9,
+                    "endCol": 21
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],
@@ -177,7 +192,13 @@
               }
             ],
             "namespace": "checkout",
-            "conditions": []
+            "conditions": [],
+            "range": {
+              "startLine": 12,
+              "startCol": 1,
+              "endLine": 27,
+              "endCol": 2
+            }
           }
         ],
         "calls": [
@@ -202,6 +223,35 @@
             "namespace": "checkout",
             "enclosingSymbol": "ServeHTTP",
             "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "Submit",
+            "range": {
+              "startLine": 20,
+              "startCol": 18,
+              "endLine": 20,
+              "endCol": 56
+            },
+            "receiver": {
+              "name": "Handler",
+              "arguments": [],
+              "range": {
+                "startLine": 12,
+                "startCol": 9,
+                "endLine": 12,
+                "endCol": 16
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "service"
+              }
+            ],
+            "namespace": "checkout",
+            "enclosingSymbol": "ServeHTTP",
+            "argumentCount": 2,
             "conditions": [],
             "receiverKind": "value"
           },

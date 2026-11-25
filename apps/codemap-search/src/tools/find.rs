@@ -307,6 +307,36 @@ pub fn find_files(args: &Value) -> Result<String, (i64, String)> {
         return Ok("No files found".to_string());
     }
 
+    if let Some(session_cap) = crate::config::session_delivery_byte_cap() {
+        let budget = session_cap.saturating_sub(256);
+        let mut out = String::new();
+        let mut shown = 0usize;
+        let total = results.hits.len();
+        for (path, _) in &results.hits {
+            let added = path.len() + usize::from(!out.is_empty());
+            if shown > 0 && out.len() + added > budget {
+                break;
+            }
+            if !out.is_empty() {
+                out.push('\n');
+            }
+            out.push_str(path);
+            shown += 1;
+        }
+        if shown < total || results.is_truncated {
+            out.push('\n');
+            if shown < total {
+                let plus = if results.is_truncated { "+" } else { "" };
+                out.push_str(&format!(
+                    "(Showing {shown} of {total}{plus} matches for 10 KiB client limit. Consider using a more specific path or pattern.)"
+                ));
+            } else {
+                out.push_str(FIND_FILES_TRUNCATION_MESSAGE);
+            }
+        }
+        return Ok(out);
+    }
+
     let mut out = results
         .hits
         .into_iter()

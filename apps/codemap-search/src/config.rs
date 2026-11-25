@@ -1213,6 +1213,7 @@ pub fn get() -> Arc<ResolvedConfig> {
 thread_local! {
     static REQUEST_CONFIG: std::cell::RefCell<Option<Arc<ResolvedConfig>>> = const { std::cell::RefCell::new(None) };
     static THREAD_ROOT: std::cell::RefCell<Option<RootConfig>> = const { std::cell::RefCell::new(None) };
+    static SESSION_DELIVERY_CAP: std::cell::RefCell<Option<usize>> = const { std::cell::RefCell::new(None) };
 }
 
 /// Settings of a workspace root other than the start folder, loaded from that root's own files
@@ -1314,6 +1315,42 @@ pub(crate) fn pin_test_config(config: ResolvedConfig) -> RequestConfigScope {
 impl Drop for RequestConfigScope {
     fn drop(&mut self) {
         REQUEST_CONFIG.with(|slot| slot.replace(self.previous.take()));
+    }
+}
+
+/// Connection-scoped delivery byte cap for clients with a fixed hard truncation threshold
+/// (e.g. `antigravity-client` at 10 KiB). Remains `None` for all other clients and CLI.
+pub(crate) struct SessionDeliveryCapScope {
+    previous: Option<usize>,
+    same_thread: std::marker::PhantomData<std::rc::Rc<()>>,
+}
+
+pub(crate) fn pin_session_delivery_cap(cap: Option<usize>) -> SessionDeliveryCapScope {
+    SessionDeliveryCapScope {
+        previous: SESSION_DELIVERY_CAP.with(|slot| slot.replace(cap)),
+        same_thread: std::marker::PhantomData,
+    }
+}
+
+impl Drop for SessionDeliveryCapScope {
+    fn drop(&mut self) {
+        SESSION_DELIVERY_CAP.with(|slot| slot.replace(self.previous.take()));
+    }
+}
+
+pub(crate) fn session_delivery_byte_cap() -> Option<usize> {
+    SESSION_DELIVERY_CAP.with(|slot| *slot.borrow())
+}
+
+/// Effective client delivery byte cap: the smaller of configured `output.client` and any
+/// active connection-scoped client cap.
+pub(crate) fn effective_client_delivery_byte_cap() -> Option<usize> {
+    match (
+        get().client_output.delivery_byte_cap(),
+        session_delivery_byte_cap(),
+    ) {
+        (Some(configured), Some(session)) => Some(configured.min(session)),
+        (configured, session) => configured.or(session),
     }
 }
 

@@ -88,7 +88,6 @@
                   "endCol": 40
                 },
                 "parameters": [
-                  "?",
                   "?"
                 ],
                 "returnType": "bool",
@@ -113,7 +112,34 @@
           }
         ],
         "implementations": [],
-        "calls": []
+        "calls": [
+          {
+            "name": "append",
+            "range": {
+              "startLine": 13,
+              "startCol": 13,
+              "endLine": 13,
+              "endCol": 53
+            },
+            "receiver": {
+              "name": "list",
+              "arguments": [
+                "str"
+              ],
+              "range": {
+                "startLine": 9,
+                "startCol": 15,
+                "endLine": 9,
+                "endCol": 24
+              }
+            },
+            "namespace": "",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

@@ -73,6 +73,8 @@ pub(super) struct CallSiteAddress {
     pub(super) call_index: usize,
 }
 
+type ModuleSymbolIndex = HashMap<Box<str>, Vec<(usize, usize)>>;
+
 /// Indexed files by the names their recorded calls and imports use. Built once per published
 /// generation, so a live caller lookup visits only the files that can hold a caller.
 #[derive(Debug, Clone, Default)]
@@ -86,7 +88,7 @@ pub(crate) struct CallLookup {
     /// Supported files by workspace-relative path, for O(1) per-request lookup.
     files_by_path: HashMap<Box<str>, usize>,
     /// Rust/Go symbols by name as `(file_index, symbol_index)`, built on first module lookup.
-    module_symbols: std::sync::Arc<OnceLock<HashMap<Box<str>, Vec<(usize, usize)>>>>,
+    module_symbols: std::sync::Arc<OnceLock<ModuleSymbolIndex>>,
     /// Names of indexed container/type declarations, built on first receiver-type check.
     type_names: std::sync::Arc<OnceLock<HashSet<Box<str>>>>,
     /// Names declared or imported in the snapshot, with whether a trait/interface has the name.

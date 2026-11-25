@@ -482,6 +482,8 @@ struct SymbolAnnotation {
     prefix: String,
     /// The caller list / omission note / observation caveat block. The only deduped part.
     caller_block: String,
+    /// Scope-verified non-call function references rendered in `read`/`grep` live relations.
+    live_non_call_block: String,
     /// The depth-1 callee block rendered after the caller block (may be empty).
     suffix: String,
     /// Attributed callers behind the caller block (proven first, then name-matched), uncapped.
@@ -584,7 +586,90 @@ fn render_symbol_annotation(
 
     // --- Callers (built into its own block so identical repeats can be deduped per file). ---
     let own_def_count = lookup_compatible_candidates(&sym.name, file_path, false, index).len();
+    if file_path.ends_with(".py") && sym.kind == "class" {
+        let mut class_calls: Vec<CallerSite> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        let test_filter = super::test_code::TestCodeFilter::from_config(root);
+        'files: for candidate in snapshot {
+            if !candidate.file_path.ends_with(".py") {
+                continue;
+            }
+            let Some(nav) = candidate.navigation.as_ref() else {
+                continue;
+            };
+            for call in &nav.calls {
+                if call.name != sym.name {
+                    continue;
+                }
+                if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                    *is_cut_short = true;
+                    break 'files;
+                }
+                if test_filter.is_excluded(&candidate.file_path, &call.range) {
+                    continue;
+                }
+                if candidate.file_path == file_path
+                    && call.range.start_line >= sym.range.start_line
+                    && call.range.start_line <= sym.range.end_line_inclusive()
+                {
+                    continue;
+                }
+                if !resolver.is_python_class_call_compatible(
+                    &candidate.file_path,
+                    call.range.start_line,
+                    &sym.name,
+                    file_path,
+                    own_def_count,
+                ) {
+                    continue;
+                }
+                let caller_name = resolver
+                    .caller_name(candidate, call.range.start_line)
+                    .or_else(|| {
+                        enclosing_fn(candidate, call.range.start_line)
+                            .map(|enclosing| qualified_name(enclosing, &candidate.file_path))
+                    });
+                let site = CallerSite {
+                    caller: caller_name,
+                    path: candidate.file_path.clone(),
+                    line: call.range.start_line,
+                };
+                if seen.insert(site.entry()) {
+                    class_calls.push(site);
+                }
+            }
+        }
+        if class_calls.is_empty() {
+            return None;
+        }
+        let mut block = String::from(
+            "  - _class name called at (instantiation / __new__ / __init__ entry; static analysis):_\n",
+        );
+        for entry in class_calls.iter().take(cfg.caller_list_cap) {
+            block.push_str(&format!("    - {}\n", entry.entry()));
+        }
+        if class_calls.len() > cfg.caller_list_cap {
+            block.push_str(&format!(
+                "    - _… {} more not shown._\n",
+                class_calls.len() - cfg.caller_list_cap
+            ));
+        }
+        let annotation = SymbolAnnotation {
+            name: sym.name.clone(),
+            prefix,
+            caller_block: block,
+            live_non_call_block: String::new(),
+            suffix: String::new(),
+            callers: class_calls,
+            unconfirmed_callers: Vec::new(),
+        };
+        if annotation.full_len() > byte_budget {
+            return None;
+        }
+        return Some(annotation);
+    }
     let mut caller_block = String::new();
+    let mut live_non_call_block = String::new();
     let mut callers: Vec<CallerSite> = Vec::new();
     let mut unconfirmed_callers: Vec<CallerSite> = Vec::new();
     let mut used_precise_callers = false;
@@ -726,6 +811,7 @@ fn render_symbol_annotation(
                 // No direct callers: surface non-call references (the dead-code antidote), then
                 // always the observation-scope caveat — never a bare "0 callers".
                 let mut refs: Vec<String> = Vec::new();
+                let mut verified_refs: Vec<String> = Vec::new();
                 let mut seen_refs: HashSet<String> = HashSet::new();
                 for hit in scan
                     .hits
@@ -755,10 +841,29 @@ fn render_symbol_annotation(
                         hit.line_text.trim()
                     );
                     if seen_refs.insert(entry.clone()) {
+                        if super::resolution::supports(&hit.file_path)
+                            && resolver.is_verified_non_call_reference(
+                                &hit.file_path,
+                                hit.line_number,
+                                &sym.name,
+                                file_path,
+                                own_def_count,
+                            )
+                        {
+                            verified_refs.push(entry.clone());
+                        }
                         refs.push(entry);
                     }
                     if refs.len() >= cfg.caller_list_cap {
                         break;
+                    }
+                }
+                if !verified_refs.is_empty() {
+                    live_non_call_block.push_str(
+                        "  - _function value referenced at (non-call position; callback / handler reference):_\n",
+                    );
+                    for r in verified_refs {
+                        live_non_call_block.push_str(&format!("    - {r}\n"));
                     }
                 }
                 // Observed but unattributed calls are already reported above, so they never
@@ -922,6 +1027,7 @@ fn render_symbol_annotation(
         name: sym.name.clone(),
         prefix,
         caller_block,
+        live_non_call_block,
         suffix,
         callers,
         unconfirmed_callers,
@@ -937,6 +1043,7 @@ fn render_symbol_annotation(
                 name: sym.name.clone(),
                 prefix: ANNOTATION_OMITTED_MARKER.to_string(),
                 caller_block: String::new(),
+                live_non_call_block: String::new(),
                 suffix: String::new(),
                 callers: Vec::new(),
                 unconfirmed_callers: Vec::new(),
@@ -1042,12 +1149,19 @@ impl DetailAnnotations {
             None => self.annotations.get(&(file_path.to_string(), start_line)),
         };
         annotation.map(|ann| {
-            if ann.caller_block.is_empty() && ann.suffix.is_empty() {
+            if ann.caller_block.is_empty()
+                && ann.live_non_call_block.is_empty()
+                && ann.suffix.is_empty()
+            {
                 return ANNOTATION_OMITTED_MARKER.to_string();
             }
-            let callers = if ann.caller_block.contains("referenced in a non-call position") {
+            let callers = if !ann.live_non_call_block.is_empty() {
+                ann.live_non_call_block.clone()
+            } else if ann.caller_block.contains("referenced in a non-call position") {
                 format!("  - {OBSERVATION_SCOPE_CAVEAT} (non-call references excluded; scan may be capped)\n")
-            } else { ann.caller_block.clone() };
+            } else {
+                ann.caller_block.clone()
+            };
             format!("{callers}{}", ann.suffix)
         })
     }
@@ -1324,7 +1438,7 @@ fn annotate_with_presentation(
     });
 
     let is_annotated = |file_path: &str, sym: &ExtractedSymbol| {
-        sym.kind == "fn"
+        (sym.kind == "fn" || (file_path.ends_with(".py") && sym.kind == "class"))
             && !test_filter.is_excluded(file_path, &sym.range)
             && (!should_skip_ambiguous_names
                 || lookup_compatible_candidates(&sym.name, file_path, false, &index).len()
@@ -1339,7 +1453,7 @@ fn annotate_with_presentation(
         for sym in req
             .symbols
             .iter()
-            .filter(|s| is_annotated(req.file_path, s))
+            .filter(|s| s.kind == "fn" && is_annotated(req.file_path, s))
         {
             names.push(sym.name.clone());
         }
@@ -1540,6 +1654,7 @@ mod tests {
         let annotations = (1..=3).map(|line| (("t.rs".to_string(), line), SymbolAnnotation {
             name: "tick".to_string(), prefix: String::new(), suffix: String::new(),
             caller_block: "  - _callers (approximate; `tick` has 3 definitions):_\n    - driver (t.rs:5)\n".to_string(),
+            live_non_call_block: String::new(),
             callers: Vec::new(), unconfirmed_callers: Vec::new(),
         })).collect();
         DetailAnnotations {
@@ -2117,5 +2232,131 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn wave1_to_3_c2_proof_tier_and_p1_python_callbacks_and_class_calls() {
+        // C2: external-import initializer (`from flask import Flask; app = Flask(__name__)`)
+        // rules out `@app.route("/health")` against `Router.route`; fixed arity rules out
+        // `config.get("port", 8080)` against `Cache.get(self, key)`, while `cache.get("k")`
+        // stays in `unconfirmed callers`.
+        let (_dir, root) = crate::callers::fixtures::write_repo(&[
+            (
+                "router.py",
+                "class Router:\n    def route(self, path):\n        pass\nclass Cache:\n    def get(self, key):\n        return key\n",
+            ),
+            (
+                "app.py",
+                concat!(
+                    "from flask import Flask\n",
+                    "app = Flask(__name__)\n",
+                    "@app.route(\"/health\")\n",
+                    "def health():\n",
+                    "    pass\n",
+                    "def read_cfg(config, cache):\n",
+                    "    a = config.get(\"port\", 8080)\n",
+                    "    b = cache.get(\"k\")\n",
+                    "    return a, b\n",
+                ),
+            ),
+            (
+                "callbacks.py",
+                concat!(
+                    "def handle_req():\n",
+                    "    return 1\n",
+                    "class Service:\n",
+                    "    def __new__(cls, x):\n",
+                    "        return super().__new__(cls)\n",
+                    "    def __init__(self, x):\n",
+                    "        self.x = x\n",
+                ),
+            ),
+            (
+                "wire.py",
+                concat!(
+                    "from callbacks import handle_req, Service\n",
+                    "hooks = {}\n",
+                    "def register():\n",
+                    "    hooks[\"on_req\"] = handle_req\n",
+                    "    return Service(42)\n",
+                ),
+            ),
+        ]);
+        let parse_all = |path: &str| {
+            use crate::parser::CodeExtractor;
+            let src = std::fs::read_to_string(root.join(path)).unwrap();
+            std::sync::Arc::new(
+                crate::parser::TreeSitterExtractor::new()
+                    .extract(&src, path)
+                    .unwrap(),
+            )
+        };
+        let snapshot = vec![
+            parse_all("router.py"),
+            parse_all("app.py"),
+            parse_all("callbacks.py"),
+            parse_all("wire.py"),
+        ];
+        let requests = [
+            AnnotationRequest {
+                file_path: "router.py",
+                symbols: &snapshot[0].symbols,
+                is_fallback: false,
+            },
+            AnnotationRequest {
+                file_path: "callbacks.py",
+                symbols: &snapshot[2].symbols,
+                is_fallback: false,
+            },
+        ];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+
+        // C2 check 1: Router.route must NOT list app.py:3 in unconfirmed callers.
+        let route_text = note(&ann, "router.py", 2);
+        assert!(
+            !route_text.contains("unconfirmed callers") && !route_text.contains("app.py:3"),
+            "C2 external Flask initializer must rule out @app.route: {route_text}"
+        );
+        // C2 check 2: Cache.get(self, key) must rule out 2-arg `config.get("port", 8080)` (line 7)
+        // while keeping 1-arg `cache.get("k")` (line 8) in unconfirmed callers.
+        let get_text = note(&ann, "router.py", 5);
+        assert!(
+            get_text.contains("unconfirmed callers")
+                && get_text.contains("app.py:8")
+                && !get_text.contains("app.py:7"),
+            "C2 arity must rule out 2-arg config.get while keeping 1-arg cache.get: {get_text}"
+        );
+
+        // P1 check 1: callback `handle_req` surfaces in `render_live_relations` (`read`).
+        let cb_live = ann
+            .render_live_relations("callbacks.py", 1, None)
+            .expect("P1 callback should have live relations");
+        assert!(
+            cb_live.contains("function value referenced at") && cb_live.contains("wire.py:4"),
+            "P1 callback non-call ref should surface in read: {cb_live}"
+        );
+        // P1 check 2: `Service(42)` surfaces as `class name called at` on `class Service` (line 3)
+        // and NEVER as a caller of `__init__` (line 6).
+        let cls_live = ann
+            .render_live_relations("callbacks.py", 3, None)
+            .unwrap_or_else(|| {
+                panic!(
+                    "P1 Python class should have class-call relations; syms={:#?}; wire_imports={:#?}; ann_keys={:#?}",
+                    snapshot[2].symbols,
+                    snapshot[3].navigation.as_ref().map(|n| &n.imports),
+                    ann.annotations.keys().collect::<Vec<_>>()
+                )
+            });
+        assert!(
+            cls_live.contains("class name called at") && cls_live.contains("wire.py:5"),
+            "P1 class instantiation label expected: {cls_live}"
+        );
+        let init_live = ann
+            .render_live_relations("callbacks.py", 6, None)
+            .unwrap_or_default();
+        assert!(
+            !init_live.contains("wire.py:5"),
+            "P1 negative: Service(42) must never be attributed to __init__: {init_live}"
+        );
     }
 }

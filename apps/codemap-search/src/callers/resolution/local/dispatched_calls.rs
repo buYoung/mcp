@@ -50,9 +50,9 @@ impl<'a> SourceResolver<'a> {
             match index.is_digest_current_on_disk(self.root, path, None, None) {
                 Some(current) => current,
                 None => index.proof_digest(path).is_some_and(|expected| {
-                    std::fs::read_to_string(path)
-                        .ok()
-                        .is_some_and(|text| crate::implementations::digest(text.as_bytes()) == expected)
+                    std::fs::read_to_string(path).ok().is_some_and(|text| {
+                        crate::implementations::digest(text.as_bytes()) == expected
+                    })
                 }),
             }
         } else {

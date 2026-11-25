@@ -185,26 +185,43 @@ pub(super) fn compact(value: &str) -> String {
     value.chars().filter(|c| !c.is_whitespace()).collect()
 }
 
-/// The arguments of a type argument list written between `<` and `>`, without whitespace.
+/// The arguments of a type argument list written between `<` and `>`, or `[` and `]`
+/// (Python/Scala/Go generics), without whitespace. Empty `[]` array suffixes return `None`.
 pub(super) fn type_arguments(list: &str) -> Option<Vec<String>> {
-    let inner = list.strip_prefix('<')?.strip_suffix('>')?;
+    let (open, close) = if list.starts_with('<') && list.ends_with('>') {
+        ('<', '>')
+    } else if list.starts_with('[') && list.ends_with(']') {
+        ('[', ']')
+    } else {
+        return None;
+    };
+    let inner = list.strip_prefix(open)?.strip_suffix(close)?;
+    if inner.is_empty() {
+        return None;
+    }
     let mut arguments = Vec::new();
     let mut depth = 0usize;
     let mut offset = 0;
     for (i, c) in inner.char_indices() {
         match c {
-            '<' | '[' => depth += 1,
-            ']' => depth = depth.checked_sub(1)?,
+            '<' | '[' | '(' => depth += 1,
+            ']' | ')' => depth = depth.checked_sub(1)?,
             '>' if depth > 0 => depth -= 1,
             ',' if depth == 0 => {
-                arguments.push(inner[offset..i].to_string());
+                let piece = &inner[offset..i];
+                if !piece.is_empty() {
+                    arguments.push(piece.to_string());
+                }
                 offset = i + 1;
             }
             _ => {}
         }
     }
-    arguments.push(inner[offset..].to_string());
-    Some(arguments)
+    let tail = &inner[offset..];
+    if !tail.is_empty() {
+        arguments.push(tail.to_string());
+    }
+    (!arguments.is_empty()).then_some(arguments)
 }
 
 pub(super) fn reference(node: Node<'_>, source: &[u8]) -> Option<TypeReference> {
@@ -226,7 +243,13 @@ pub(super) fn reference(node: Node<'_>, source: &[u8]) -> Option<TypeReference> 
         return None;
     }
     let mut arguments = Vec::new();
-    if let Some(start) = value.find('<') {
+    let generic_start = match (value.find('<'), value.find('[')) {
+        (Some(a), Some(b)) => Some(a.min(b)),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) if b > 0 && &value[b..] != "[]" => Some(b),
+        _ => None,
+    };
+    if let Some(start) = generic_start {
         arguments = type_arguments(&value[start..])?;
         value.truncate(start);
     }
@@ -241,6 +264,31 @@ pub(super) fn reference(node: Node<'_>, source: &[u8]) -> Option<TypeReference> 
         name: value,
         arguments,
         range: range(node),
+        conditions: Vec::new(),
+    })
+}
+
+/// Fallback owner spelling for detached impl blocks targeting external/primitive types
+/// (e.g. Rust `impl LocalTrait for &str` or `impl LocalTrait for [u8]`), so explicit impl
+/// block locations can be reported without pretending the owner is a local indexed type.
+pub(super) fn raw_owner_reference(node: Node<'_>, source: &[u8]) -> Option<TypeReference> {
+    if node.kind() != "reference_type" {
+        if let Some(parsed) = reference(node, source) {
+            return Some(parsed);
+        }
+    }
+    if node.has_error() || node.is_missing() {
+        return None;
+    }
+    let name = compact(text(node, source));
+    if name.is_empty() || name.len() > 256 {
+        return None;
+    }
+    Some(TypeReference {
+        name,
+        arguments: Vec::new(),
+        range: range(node),
+        conditions: Vec::new(),
     })
 }
 
@@ -314,16 +362,63 @@ fn is_include_guard(node: Node<'_>, source: &[u8]) -> bool {
 }
 
 pub(super) fn conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
-    conditions_around(node, source, true)
+    conditions_around("", node, source, true)
+}
+
+pub(super) fn conditions_for(language: &str, node: Node<'_>, source: &[u8]) -> Vec<String> {
+    conditions_around(language, node, source, true)
 }
 
 /// The conditions under which a call is compiled. A runtime `if` around a call is not one of
 /// them: whenever the call runs, it names the same declaration.
 pub(super) fn call_conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
-    conditions_around(node, source, false)
+    conditions_around("", node, source, false)
 }
 
-fn conditions_around(node: Node<'_>, source: &[u8], counts_runtime_if: bool) -> Vec<String> {
+fn preproc_condition_label(node: Node<'_>, source: &[u8]) -> Option<String> {
+    let raw = text(node, source);
+    let first_line = raw.lines().next().unwrap_or("").trim();
+    if let Some(expr) = first_line
+        .strip_prefix("#if")
+        .or_else(|| first_line.strip_prefix("#elif"))
+    {
+        let expr = expr
+            .split("//")
+            .next()
+            .unwrap_or("")
+            .split("/*")
+            .next()
+            .unwrap_or("")
+            .trim();
+        if !expr.is_empty() && expr.len() <= 160 {
+            return Some(format!("#if {expr}"));
+        }
+    }
+    if first_line.starts_with("#else") {
+        // Derive the negated condition from the enclosing `#if` when available.
+        for ancestor in crate::parser::ancestors(node) {
+            if ancestor.kind() == "preproc_if" {
+                let parent_line = text(ancestor, source).lines().next().unwrap_or("").trim();
+                if let Some(expr) = parent_line.strip_prefix("#if") {
+                    let expr = expr.split("//").next().unwrap_or("").trim();
+                    if !expr.is_empty() && expr.len() <= 140 {
+                        return Some(format!("#if !({expr})"));
+                    }
+                }
+                break;
+            }
+        }
+        return Some("#else".into());
+    }
+    None
+}
+
+fn conditions_around(
+    language: &str,
+    node: Node<'_>,
+    source: &[u8],
+    counts_runtime_if: bool,
+) -> Vec<String> {
     let mut result = Vec::new();
     for node in std::iter::once(node).chain(crate::parser::ancestors(node)) {
         if (matches!(
@@ -336,8 +431,19 @@ fn conditions_around(node: Node<'_>, source: &[u8], counts_runtime_if: bool) -> 
         ) || counts_runtime_if && node.kind() == "if_statement")
             && !is_include_guard(node, source)
         {
-            result
-                .push("conditional declaration requires unavailable compile/runtime facts".into());
+            if language == "csharp" {
+                if let Some(label) = preproc_condition_label(node, source) {
+                    result.push(label);
+                } else {
+                    result.push(
+                        "conditional declaration requires unavailable compile/runtime facts".into(),
+                    );
+                }
+            } else {
+                result.push(
+                    "conditional declaration requires unavailable compile/runtime facts".into(),
+                );
+            }
         }
         let mut before = node.prev_named_sibling();
         while let Some(attribute) = before.filter(|node| node.kind() == "attribute_item") {
@@ -446,6 +552,38 @@ pub(crate) fn collect(
         let record = declarations::type_declaration(node, symbol, source, &unit);
         owners.push((node, unit.types.len()));
         unit.types.push(record);
+    }
+    // Collect typed fields for each named type so Rust `self.field.m()` and cross-file
+    // chained receivers (`x.field.m()`) resolve against the snapshot without reparsing.
+    for &(owner_node, index) in &owners {
+        let mut declared = fields::Fields::of(owner_node, language, source).to_declarations();
+        if declared.len() > 64 {
+            declared.truncate(64);
+        }
+        unit.types[index].fields = declared;
+    }
+    // Collect anonymous implementation owners: Java `new Base<X>() { ... }` and Kotlin
+    // `object : Base { ... }`. They stay out of `by_name` and out of `symbol.owner`,
+    // attaching overrides only to their own anonymous `TypeDeclaration`.
+    if matches!(language, "java" | "kotlin") {
+        collect_anonymous_owners(
+            tree.root_node(),
+            language,
+            source,
+            &mut owners,
+            &mut unit,
+            &mut omitted,
+        );
+    }
+    if matches!(language, "c" | "cpp") {
+        unit.export_macros = collect_cpp_export_macros(tree.root_node(), source);
+    }
+    if language == "cpp" {
+        unit.specialized_templates =
+            collect_cpp_specialized_templates(tree.root_node(), source, &unit.namespace);
+    }
+    if language == "csharp" && tree.root_node().has_error() {
+        recover_csharp_preproc_header_types(source, &mut unit, &mut omitted);
     }
     if matches!(language, "typescript" | "javascript") {
         for statement in children(tree.root_node())
@@ -654,4 +792,580 @@ pub(crate) fn collect(
         units: vec![unit],
         omitted,
     })
+}
+
+/// Collects anonymous implementation owners in Java (`new Base<X>() { ... }`) and Kotlin
+/// (`object : Base { ... }`), inheriting enclosing type parameters so outer generic binders
+/// remain in scope while keeping methods unattached to any enclosing named class.
+fn collect_anonymous_owners<'tree>(
+    root: Node<'tree>,
+    language: &str,
+    source: &[u8],
+    owners: &mut Vec<(Node<'tree>, usize)>,
+    unit: &mut ImplementationUnit,
+    omitted: &mut usize,
+) {
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        let is_java_anon = language == "java"
+            && node.kind() == "object_creation_expression"
+            && child(node, &["class_body"]).is_some();
+        let is_kotlin_anon = language == "kotlin"
+            && node.kind() == "object_literal"
+            && child(node, &["class_body"]).is_some()
+            && child(node, &["delegation_specifiers"]).is_some();
+        if is_java_anon || is_kotlin_anon {
+            if unit.types.len() >= TYPES_PER_FILE {
+                *omitted += 1;
+            } else {
+                let bases: Vec<TypeReference> = if is_java_anon {
+                    node.child_by_field_name("type")
+                        .and_then(|typ| reference(typ, source))
+                        .into_iter()
+                        .collect()
+                } else {
+                    declarations::base_references(node, source)
+                };
+                if !bases.is_empty() {
+                    let first_base = bases[0]
+                        .name
+                        .rsplit(['.', ':', '\\'])
+                        .next()
+                        .unwrap_or(&bases[0].name);
+                    let r = range(node);
+                    let anon_name = format!("<anonymous {first_base}@L{}>", r.start_line);
+                    let ns = namespace(node, &unit.namespace, source);
+                    let qualified_name = if ns.is_empty() {
+                        anon_name.clone()
+                    } else {
+                        format!("{ns}.{anon_name}")
+                    };
+                    // Inherit type parameters of enclosing named types/methods so references like
+                    // `new TypeAdapter<T>() { public T read(...) }` preserve the binder `T`.
+                    let mut inherited_params = Vec::new();
+                    for anc in crate::parser::ancestors(node) {
+                        for p in declarations::extract_type_parameters(anc, source) {
+                            if !inherited_params.contains(&p) {
+                                inherited_params.push(p);
+                            }
+                        }
+                    }
+                    let index = unit.types.len();
+                    let body_err = child(node, &["class_body"]).is_some_and(|b| b.has_error());
+                    unit.types.push(TypeDeclaration {
+                        name: anon_name,
+                        qualified_name,
+                        range: r,
+                        namespace: ns,
+                        scope: range(imports::scope(node)),
+                        parameters: inherited_params,
+                        bases,
+                        methods: Vec::new(),
+                        is_contract: false,
+                        is_exported: false,
+                        is_default_export: false,
+                        is_abstract: false,
+                        is_final: true,
+                        is_complete: !node.is_error() && !node.is_missing(),
+                        has_body_error: body_err,
+                        is_partial: false,
+                        is_anonymous: true,
+                        fields: Vec::new(),
+                        conditions: conditions(node, source),
+                    });
+                    owners.push((node, index));
+                }
+            }
+        }
+        let mut cursor = node.walk();
+        for child_node in node.named_children(&mut cursor) {
+            stack.push(child_node);
+        }
+    }
+}
+
+/// Collects C/C++ `#define NAME ...` macro names whose expansion is empty or consists strictly
+/// of export/visibility attributes (`__attribute__((visibility(...)))`, `__declspec(dllexport)`,
+/// `[[...]]`, `alignas(...)`). Only confirmed macros are ever masked during header recovery.
+fn collect_cpp_export_macros(root: Node<'_>, source: &[u8]) -> Vec<String> {
+    let mut macros = Vec::new();
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "preproc_def" {
+            if let Some(name_node) = node.child_by_field_name("name") {
+                let name = text(name_node, source).trim();
+                let value = node
+                    .child_by_field_name("value")
+                    .map(|v| text(v, source).trim())
+                    .unwrap_or("");
+                if !name.is_empty()
+                    && name.len() >= 3
+                    && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+                    && !name.ends_with("_H")
+                    && !name.ends_with("_HPP")
+                    && !name.ends_with("_H_")
+                    && is_pure_export_macro_body(value)
+                {
+                    macros.push(name.to_string());
+                }
+            }
+            continue;
+        }
+        let mut cursor = node.walk();
+        for c in node.named_children(&mut cursor) {
+            if matches!(
+                c.kind(),
+                "preproc_def"
+                    | "preproc_if"
+                    | "preproc_ifdef"
+                    | "preproc_else"
+                    | "preproc_elif"
+                    | "linkage_specification"
+                    | "declaration_list"
+            ) {
+                stack.push(c);
+            }
+        }
+    }
+    macros.sort();
+    macros.dedup();
+    macros
+}
+
+fn is_pure_export_macro_body(value: &str) -> bool {
+    let trimmed = value
+        .split("//")
+        .next()
+        .unwrap_or("")
+        .split("/*")
+        .next()
+        .unwrap_or("")
+        .trim();
+    if trimmed.is_empty() {
+        return true;
+    }
+    // Accept only explicit compiler visibility / DLL export / C++ attribute decorators.
+    let allowed_prefixes = ["__attribute__", "__declspec", "[[", "alignas"];
+    let has_export_marker = trimmed.contains("__attribute__")
+        || trimmed.contains("__declspec")
+        || trimmed.contains("dllexport")
+        || trimmed.contains("dllimport")
+        || trimmed.contains("visibility");
+    has_export_marker && allowed_prefixes.iter().any(|p| trimmed.starts_with(p))
+}
+
+/// Recovers C# type declarations whose base list contains inline `#if ... #endif` directives
+/// (e.g. `public partial class JContainer : JToken #if HAVE_COMP , ITypedList #endif { ... }`),
+/// which cause tree-sitter-c-sharp to drop the enclosing `class_declaration` into an `ERROR` node.
+/// Masks ONLY the `#if ... #endif` spans inside broken headers with same-length spaces so byte
+/// offsets and line coordinates remain exact, re-parses the class and its methods, and reads both
+/// unconditional and `#if`-tagged bases from the original `source` bytes.
+fn recover_csharp_preproc_header_types(
+    source: &[u8],
+    unit: &mut ImplementationUnit,
+    omitted: &mut usize,
+) {
+    let Ok(text_str) = std::str::from_utf8(source) else {
+        return;
+    };
+    if !text_str.contains("#if") {
+        return;
+    }
+    // Mask `#if ... #endif` blocks that appear after a class/struct/interface/record header line
+    // containing `:` before its opening `{`, keeping newlines intact so line/col coordinates match.
+    let mut masked = source.to_vec();
+    let mut in_header = false;
+    let mut if_depth = 0usize;
+    let mut touched_header_lines = std::collections::HashSet::new();
+    let mut current_header_line = 0usize;
+    let mut offset = 0usize;
+    for (idx, line) in text_str.split_inclusive('\n').enumerate() {
+        let line_no = idx + 1;
+        let trimmed = line.trim();
+        let line_len = line.len();
+        let content_end = offset + line.trim_end_matches(['\r', '\n']).len();
+        if !in_header {
+            let is_type_header = (trimmed.contains("class ")
+                || trimmed.contains("struct ")
+                || trimmed.contains("interface ")
+                || trimmed.contains("record "))
+                && trimmed.contains(':')
+                && !trimmed.contains('{')
+                && !trimmed.ends_with(';');
+            if is_type_header {
+                in_header = true;
+                current_header_line = line_no;
+                if_depth = 0;
+            }
+        } else {
+            if trimmed.starts_with("#if") {
+                if_depth += 1;
+                for b in &mut masked[offset..content_end] {
+                    *b = b' ';
+                }
+                touched_header_lines.insert(current_header_line);
+            } else if trimmed.starts_with("#elif") || trimmed.starts_with("#else") {
+                if if_depth > 0 {
+                    for b in &mut masked[offset..content_end] {
+                        *b = b' ';
+                    }
+                    touched_header_lines.insert(current_header_line);
+                }
+            } else if trimmed.starts_with("#endif") {
+                if if_depth > 0 {
+                    if_depth -= 1;
+                    for b in &mut masked[offset..content_end] {
+                        *b = b' ';
+                    }
+                    touched_header_lines.insert(current_header_line);
+                }
+            } else if if_depth > 0 {
+                // Mask conditional base tokens inside the `#if ... #endif` header span so the
+                // unconditional header parses cleanly; the original source still supplies all
+                // conditional bases with their `#if` tags below.
+                for b in &mut masked[offset..content_end] {
+                    *b = b' ';
+                }
+            } else if trimmed.contains('{') || trimmed.ends_with(';') {
+                in_header = false;
+            }
+        }
+        offset += line_len;
+    }
+    if touched_header_lines.is_empty() {
+        return;
+    }
+    let mut parser = tree_sitter::Parser::new();
+    if parser
+        .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+        .is_err()
+    {
+        return;
+    }
+    let Some(tree) = parser.parse(&masked, None) else {
+        return;
+    };
+    let mut stack = vec![tree.root_node()];
+    while let Some(node) = stack.pop() {
+        if matches!(
+            node.kind(),
+            "class_declaration"
+                | "struct_declaration"
+                | "interface_declaration"
+                | "record_declaration"
+        ) && body(node).is_some()
+            && touched_header_lines.contains(&(node.start_position().row + 1))
+        {
+            if unit.types.len() >= TYPES_PER_FILE {
+                *omitted += 1;
+                continue;
+            }
+            if let Some(name_node) = node.child_by_field_name("name") {
+                let name = compact(text(name_node, &masked));
+                let r = range(node);
+                let already_present = unit
+                    .types
+                    .iter()
+                    .any(|t| t.range.start_line == r.start_line && t.name == name);
+                if !name.is_empty() && !already_present {
+                    let sym = ExtractedSymbol {
+                        name: name.clone(),
+                        kind: match node.kind() {
+                            "interface_declaration" => "interface".into(),
+                            "struct_declaration" => "struct".into(),
+                            "record_declaration" => "record".into(),
+                            _ => "class".into(),
+                        },
+                        range: r,
+                        docstring: None,
+                        owner: None,
+                        flags: crate::parser::SymbolFlags {
+                            has_todo: false,
+                            has_fixme: false,
+                            is_test: false,
+                            is_exported: modifier(node, "public", &masked),
+                            is_deprecated: false,
+                        },
+                    };
+                    let mut record = declarations::type_declaration(node, &sym, &masked, unit);
+                    record.bases.clear();
+                    declarations::collect_csharp_conditional_bases(node, source, &mut record);
+                    record.fields = fields::Fields::of(node, "csharp", &masked).to_declarations();
+                    if let Some(body_node) = body(node) {
+                        for member in children(body_node) {
+                            if member.kind() != "method_declaration" {
+                                continue;
+                            }
+                            let Some(m_name_node) = member.child_by_field_name("name") else {
+                                continue;
+                            };
+                            let m_name = compact(text(m_name_node, &masked));
+                            if m_name.is_empty() || m_name == name {
+                                continue;
+                            }
+                            let m_sym = ExtractedSymbol {
+                                name: m_name,
+                                kind: "fn".into(),
+                                range: range(member),
+                                docstring: None,
+                                owner: Some(name.clone()),
+                                flags: crate::parser::SymbolFlags {
+                                    has_todo: false,
+                                    has_fixme: false,
+                                    is_test: false,
+                                    is_exported: modifier(member, "public", &masked),
+                                    is_deprecated: false,
+                                },
+                            };
+                            let m = declarations::method(
+                                member,
+                                &m_sym,
+                                &masked,
+                                "csharp",
+                                record.is_contract,
+                            );
+                            record.is_abstract |= m.is_abstract;
+                            record.methods.push(m);
+                        }
+                    }
+                    unit.types.push(record);
+                }
+            }
+        }
+        let mut cursor = node.walk();
+        for c in node.named_children(&mut cursor) {
+            stack.push(c);
+        }
+    }
+}
+
+/// Collects qualified names of C++ template classes/structs that declare partial or explicit
+/// specializations (`template<> class Box<int> {}` or `template<typename T> class Box<T*> {}`).
+fn collect_cpp_specialized_templates(root: Node<'_>, source: &[u8], unit_ns: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if matches!(node.kind(), "class_specifier" | "struct_specifier")
+            && node
+                .parent()
+                .is_some_and(|p| p.kind() == "template_declaration")
+        {
+            if let Some(name_node) = node.child_by_field_name("name") {
+                if name_node.kind() == "template_type" {
+                    let base = name_node
+                        .child_by_field_name("name")
+                        .map(|n| compact(text(n, source)))
+                        .unwrap_or_else(|| {
+                            compact(text(name_node, source))
+                                .split('<')
+                                .next()
+                                .unwrap_or("")
+                                .to_string()
+                        });
+                    if !base.is_empty() {
+                        let ns = namespace(node, unit_ns, source);
+                        let qname = if ns.is_empty() {
+                            base
+                        } else {
+                            format!("{ns}.{base}")
+                        };
+                        found.push(qname);
+                    }
+                }
+            }
+        }
+        let mut cursor = node.walk();
+        for c in node.named_children(&mut cursor) {
+            stack.push(c);
+        }
+    }
+    found.sort();
+    found.dedup();
+    found
+}
+
+/// Recovers C++ class/struct declarations whose header was hidden from tree-sitter-cpp by a
+/// confirmed export decorator macro (e.g. `class LEVELDB_EXPORT Comparator { ... }`).
+/// Only tokens present in `confirmed_macros` (proven from `#define` in included headers or the
+/// file itself) are replaced with same-length spaces so byte offsets and line coordinates remain
+/// exact and ordinary declarations like `struct REAL instance {};` are never altered.
+pub(crate) fn recover_cpp_decorated_types(
+    source: &[u8],
+    existing: &ImplementationUnit,
+    confirmed_macros: &std::collections::HashSet<&str>,
+) -> Vec<TypeDeclaration> {
+    if existing.language != "cpp" || confirmed_macros.is_empty() {
+        return Vec::new();
+    }
+    let Ok(text_str) = std::str::from_utf8(source) else {
+        return Vec::new();
+    };
+    let mut masked = source.to_vec();
+    let mut touched_lines = std::collections::HashSet::new();
+    let mut line_offset = 0usize;
+    for (idx, line) in text_str.split_inclusive('\n').enumerate() {
+        let trimmed = line.trim_start();
+        let leading = line.len() - trimmed.len();
+        let kw_len = if trimmed.starts_with("class ") || trimmed.starts_with("class\t") {
+            Some(5)
+        } else if trimmed.starts_with("struct ") || trimmed.starts_with("struct\t") {
+            Some(6)
+        } else {
+            None
+        };
+        if let Some(kw) = kw_len {
+            let after_kw = &trimmed[kw..];
+            let ws_after_kw = after_kw.len() - after_kw.trim_start().len();
+            let rest = &after_kw[ws_after_kw..];
+            let tok_len = rest
+                .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+                .unwrap_or(rest.len());
+            if tok_len > 0 {
+                let tok = &rest[..tok_len];
+                if confirmed_macros.contains(tok) {
+                    // Require a valid type name immediately following the macro token.
+                    let after_tok = rest[tok_len..].trim_start();
+                    let next_len = after_tok
+                        .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+                        .unwrap_or(after_tok.len());
+                    if next_len > 0 {
+                        let start = line_offset + leading + kw + ws_after_kw;
+                        for b in &mut masked[start..start + tok_len] {
+                            *b = b' ';
+                        }
+                        touched_lines.insert(idx + 1);
+                    }
+                }
+            }
+        } else {
+            // Also handle `MACRO class Name` / `MACRO struct Name` where the confirmed export
+            // macro precedes the keyword.
+            let tok_len = trimmed
+                .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+                .unwrap_or(trimmed.len());
+            if tok_len > 0 && confirmed_macros.contains(&trimmed[..tok_len]) {
+                let after_tok = trimmed[tok_len..].trim_start();
+                if after_tok.starts_with("class ")
+                    || after_tok.starts_with("class\t")
+                    || after_tok.starts_with("struct ")
+                    || after_tok.starts_with("struct\t")
+                {
+                    let start = line_offset + leading;
+                    for b in &mut masked[start..start + tok_len] {
+                        *b = b' ';
+                    }
+                    touched_lines.insert(idx + 1);
+                }
+            }
+        }
+        line_offset += line.len();
+    }
+    if touched_lines.is_empty() {
+        return Vec::new();
+    }
+    let mut parser = tree_sitter::Parser::new();
+    if parser
+        .set_language(&tree_sitter_cpp::LANGUAGE.into())
+        .is_err()
+    {
+        return Vec::new();
+    }
+    let Some(tree) = parser.parse(&masked, None) else {
+        return Vec::new();
+    };
+    let mut recovered = Vec::new();
+    let mut stack = vec![tree.root_node()];
+    while let Some(node) = stack.pop() {
+        if matches!(node.kind(), "class_specifier" | "struct_specifier")
+            && body(node).is_some()
+            && touched_lines.contains(&(node.start_position().row + 1))
+        {
+            if let Some(name_node) = node.child_by_field_name("name") {
+                let name = compact(text(name_node, &masked));
+                let r = range(node);
+                let already_present = existing
+                    .types
+                    .iter()
+                    .any(|t| t.range.start_line == r.start_line && t.name == name);
+                if !name.is_empty() && !already_present {
+                    let sym = ExtractedSymbol {
+                        name: name.clone(),
+                        kind: if node.kind() == "struct_specifier" {
+                            "struct".into()
+                        } else {
+                            "class".into()
+                        },
+                        range: r,
+                        docstring: None,
+                        owner: None,
+                        flags: crate::parser::SymbolFlags {
+                            has_todo: false,
+                            has_fixme: false,
+                            is_test: false,
+                            is_exported: true,
+                            is_deprecated: false,
+                        },
+                    };
+                    let mut record = declarations::type_declaration(node, &sym, &masked, existing);
+                    if let Some(body_node) = body(node) {
+                        for member in children(body_node) {
+                            let m_node = if member.kind() == "field_declaration"
+                                || member.kind() == "function_definition"
+                                || member.kind() == "declaration"
+                            {
+                                member
+                            } else {
+                                continue;
+                            };
+                            if let Some(m_name) = cpp_member_method_name(m_node, &masked) {
+                                if m_name == name || m_name.starts_with('~') {
+                                    continue;
+                                }
+                                let m_sym = ExtractedSymbol {
+                                    name: m_name,
+                                    kind: "fn".into(),
+                                    range: range(m_node),
+                                    docstring: None,
+                                    owner: Some(name.clone()),
+                                    flags: crate::parser::SymbolFlags {
+                                        has_todo: false,
+                                        has_fixme: false,
+                                        is_test: false,
+                                        is_exported: true,
+                                        is_deprecated: false,
+                                    },
+                                };
+                                let m = declarations::method(m_node, &m_sym, &masked, "cpp", false);
+                                record.is_abstract |= m.is_abstract;
+                                record.methods.push(m);
+                            }
+                        }
+                    }
+                    recovered.push(record);
+                }
+            }
+        }
+        let mut cursor = node.walk();
+        for c in node.named_children(&mut cursor) {
+            stack.push(c);
+        }
+    }
+    recovered
+}
+
+fn cpp_member_method_name(node: Node<'_>, source: &[u8]) -> Option<String> {
+    let mut decl = node.child_by_field_name("declarator")?;
+    while let Some(inner) = decl.child_by_field_name("declarator") {
+        if decl.kind() == "function_declarator" {
+            let name_node = inner;
+            let name = text(name_node, source).trim();
+            return (!name.is_empty()
+                && name
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "_~".contains(c)))
+            .then(|| name.to_string());
+        }
+        decl = inner;
+    }
+    None
 }

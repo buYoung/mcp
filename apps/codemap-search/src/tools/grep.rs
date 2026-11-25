@@ -231,6 +231,68 @@ fn paginate<T: Clone>(items: &[T], offset: usize, head_limit: usize) -> (Vec<T>,
     (page, footer)
 }
 
+/// Slice `items` under a connection-scoped byte budget (always emitting at least one row so
+/// `next_offset` strictly advances) while preserving grep's native `next_offset` footer.
+fn paginate_bounded<T: Clone, F: FnMut(&T) -> usize>(
+    items: &[T],
+    offset: usize,
+    head_limit: usize,
+    byte_budget: usize,
+    mut item_bytes: F,
+) -> (Vec<T>, Option<String>) {
+    let total = items.len();
+    let start = offset.min(total);
+    let limit = if head_limit == 0 { total } else { head_limit };
+    let max_end = (start + limit).min(total);
+    let mut end = start;
+    let mut used = 0usize;
+    let mut byte_capped = false;
+    while end < max_end {
+        let added = item_bytes(&items[end]) + usize::from(end > start);
+        if end > start && used.saturating_add(added) > byte_budget {
+            byte_capped = true;
+            break;
+        }
+        used = used.saturating_add(added);
+        end += 1;
+    }
+    let page = items[start..end].to_vec();
+    let truncated = start > 0 || end < total;
+    let footer = if !truncated {
+        None
+    } else if page.is_empty() {
+        Some(format!("[No results at offset {offset}; {total} total.]"))
+    } else if end < total {
+        if byte_capped {
+            Some(format!(
+                "[Showing results {}-{} of {} (10 KiB client limit); next_offset={}. Continue with offset={} or narrow path/glob/pattern.]",
+                start + 1,
+                end,
+                total,
+                end,
+                end
+            ))
+        } else {
+            Some(format!(
+                "[Showing results {}-{} of {}; next_offset={}. Continue with offset={} and the same head_limit, or raise head_limit if you want a larger page.]",
+                start + 1,
+                end,
+                total,
+                end,
+                end
+            ))
+        }
+    } else {
+        Some(format!(
+            "[Showing results {}-{} of {}; this is the last page.]",
+            start + 1,
+            end,
+            total
+        ))
+    };
+    (page, footer)
+}
+
 /// Appended to every empty result so the agent knows which narrowing filters were in
 /// effect and what to do next. Observed failure mode without it: agents rerun the same
 /// pattern through a shell grep, or repeat the call unchanged. Names filters only — never
@@ -398,7 +460,15 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
     } else {
         Box::new(entries)
     };
-    let mut expanded = expansion::ExpansionPage::new(offset, head_limit);
+    let configured_max_columns = crate::config::get().grep_max_columns;
+    let max_columns = if configured_max_columns > 0 {
+        configured_max_columns
+    } else if crate::config::session_delivery_byte_cap().is_some() {
+        600
+    } else {
+        0
+    };
+    let mut expanded = expansion::ExpansionPage::new(offset, head_limit, options.view);
     let mut content_row_count = 0usize;
     for result in entries {
         let entry = match result {
@@ -465,7 +535,7 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
                     bytes.as_deref(),
                     &sink.hits,
                     show_line_numbers,
-                    crate::config::get().grep_max_columns,
+                    max_columns,
                     should_capture_bodies,
                 );
                 continue;
@@ -501,7 +571,6 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
         }
     }
 
-    let max_columns = crate::config::get().grep_max_columns;
     let no_match_hint = || {
         empty_result_hint(
             path,
@@ -541,7 +610,16 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
                 .iter()
                 .map(|f| (f.path.clone(), f.occurrences))
                 .collect();
-            let (page, footer) = paginate(&rows, offset, head_limit);
+            let (page, footer) = match crate::config::session_delivery_byte_cap() {
+                Some(session_cap) => paginate_bounded(
+                    &rows,
+                    offset,
+                    head_limit,
+                    session_cap.saturating_sub(512),
+                    |(p, _)| p.len() + 12,
+                ),
+                None => paginate(&rows, offset, head_limit),
+            };
             // Summary counts the post-head_limit rows (Claude Code sums the truncated slice).
             let total_occ: usize = page.iter().map(|(_, c)| c).sum();
             let mut out = String::new();
@@ -600,7 +678,50 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
                     ..LiveOutput::default()
                 });
             }
-            let (page, footer) = paginate(&lines, offset, head_limit);
+            let (page, footer) = match crate::config::session_delivery_byte_cap() {
+                Some(session_cap) => match options.view {
+                    super::live_options::LiveView::SourceGrouped
+                    | super::live_options::LiveView::Full => {
+                        let reserve = if options.view == super::live_options::LiveView::Full {
+                            2_000
+                        } else {
+                            320
+                        };
+                        let mut last_path: Option<String> = None;
+                        let mut file_count = 0usize;
+                        paginate_bounded(
+                            &lines,
+                            offset,
+                            head_limit,
+                            session_cap.saturating_sub(reserve),
+                            |row| {
+                                let suffix_len = row.text.len().saturating_sub(
+                                    row.path.len() + usize::from(show_line_numbers),
+                                );
+                                let heading_len = if last_path.as_deref() != Some(row.path.as_str())
+                                {
+                                    last_path = Some(row.path.clone());
+                                    file_count += 1;
+                                    let digits =
+                                        file_count.checked_ilog10().map_or(1, |d| d as usize + 1);
+                                    row.path.len() + 12 + digits
+                                } else {
+                                    0
+                                };
+                                heading_len + suffix_len
+                            },
+                        )
+                    }
+                    _ => paginate_bounded(
+                        &lines,
+                        offset,
+                        head_limit,
+                        session_cap.saturating_sub(320),
+                        |row| row.text.len(),
+                    ),
+                },
+                None => paginate(&lines, offset, head_limit),
+            };
             let mut output = LiveOutput::default();
             output.jev.judges_enclosing_bodies = true;
             output.jev.files = files
@@ -658,7 +779,16 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
             sorted.sort_by(|a, b| b.mtime.cmp(&a.mtime).then_with(|| a.path.cmp(&b.path)));
             let total = sorted.len();
             let paths: Vec<String> = sorted.iter().map(|f| f.path.clone()).collect();
-            let (page, footer) = paginate(&paths, offset, head_limit);
+            let (page, footer) = match crate::config::session_delivery_byte_cap() {
+                Some(session_cap) => paginate_bounded(
+                    &paths,
+                    offset,
+                    head_limit,
+                    session_cap.saturating_sub(512),
+                    String::len,
+                ),
+                None => paginate(&paths, offset, head_limit),
+            };
             let mut out = format!("Found {total} file(s)\n");
             out.push_str(&page.join("\n"));
             if let Some(f) = footer {

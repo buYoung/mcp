@@ -246,6 +246,34 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "mapper",
+                "typ": {
+                  "name": "OrderMapper",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 21,
+                    "startCol": 30,
+                    "endLine": 21,
+                    "endCol": 41
+                  }
+                }
+              },
+              {
+                "name": "repo",
+                "typ": {
+                  "name": "OrderRepository",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 20,
+                    "startCol": 28,
+                    "endLine": 20,
+                    "endCol": 43
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],

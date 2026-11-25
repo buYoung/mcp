@@ -114,11 +114,130 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "rules",
+                "typ": {
+                  "name": "List",
+                  "arguments": [
+                    "Rule"
+                  ],
+                  "range": {
+                    "startLine": 4,
+                    "startCol": 19,
+                    "endLine": 4,
+                    "endCol": 29
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],
         "implementations": [],
         "calls": [
+          {
+            "name": "toList",
+            "range": {
+              "startLine": 11,
+              "startCol": 33,
+              "endLine": 14,
+              "endCol": 26
+            },
+            "receiver": {
+              "name": "List",
+              "arguments": [
+                "Rule"
+              ],
+              "range": {
+                "startLine": 11,
+                "startCol": 33,
+                "endLine": 14,
+                "endCol": 26
+              }
+            },
+            "receiverSteps": [
+              {
+                "call": {
+                  "name": "stream",
+                  "argument_count": null
+                }
+              }
+            ],
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "map",
+            "range": {
+              "startLine": 11,
+              "startCol": 33,
+              "endLine": 13,
+              "endCol": 33
+            },
+            "receiver": {
+              "name": "List",
+              "arguments": [
+                "Rule"
+              ],
+              "range": {
+                "startLine": 11,
+                "startCol": 33,
+                "endLine": 13,
+                "endCol": 33
+              }
+            },
+            "receiverSteps": [
+              {
+                "call": {
+                  "name": "stream",
+                  "argument_count": null
+                }
+              }
+            ],
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "filter",
+            "range": {
+              "startLine": 11,
+              "startCol": 33,
+              "endLine": 12,
+              "endCol": 52
+            },
+            "receiver": {
+              "name": "List",
+              "arguments": [
+                "Rule"
+              ],
+              "range": {
+                "startLine": 11,
+                "startCol": 33,
+                "endLine": 12,
+                "endCol": 52
+              }
+            },
+            "receiverSteps": [
+              {
+                "call": {
+                  "name": "stream",
+                  "argument_count": 0
+                }
+              }
+            ],
+            "namespace": "OrderPolicy",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
           {
             "name": "stream",
             "range": {

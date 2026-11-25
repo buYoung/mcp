@@ -198,6 +198,21 @@
               "isAbstract": false,
               "isFinal": false,
               "isComplete": true,
+              "fields": [
+                {
+                  "name": "port",
+                  "typ": {
+                    "name": "u16",
+                    "arguments": [],
+                    "range": {
+                      "startLine": 5,
+                      "startCol": 15,
+                      "endLine": 5,
+                      "endCol": 18
+                    }
+                  }
+                }
+              ],
               "conditions": []
             }
           ],
@@ -259,7 +274,13 @@
                 }
               ],
               "namespace": "",
-              "conditions": []
+              "conditions": [],
+              "range": {
+                "startLine": 8,
+                "startCol": 1,
+                "endLine": 20,
+                "endCol": 2
+              }
             }
           ],
           "calls": []

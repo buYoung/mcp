@@ -199,6 +199,21 @@
               "isAbstract": false,
               "isFinal": false,
               "isComplete": true,
+              "fields": [
+                {
+                  "name": "Addr",
+                  "typ": {
+                    "name": "string",
+                    "arguments": [],
+                    "range": {
+                      "startLine": 6,
+                      "startCol": 7,
+                      "endLine": 6,
+                      "endCol": 13
+                    }
+                  }
+                }
+              ],
               "conditions": []
             }
           ],
@@ -239,7 +254,13 @@
                 }
               ],
               "namespace": "sample",
-              "conditions": []
+              "conditions": [],
+              "range": {
+                "startLine": 10,
+                "startCol": 1,
+                "endLine": 13,
+                "endCol": 2
+              }
             },
             {
               "owner": {
@@ -277,7 +298,13 @@
                 }
               ],
               "namespace": "sample",
-              "conditions": []
+              "conditions": [],
+              "range": {
+                "startLine": 18,
+                "startCol": 1,
+                "endLine": 20,
+                "endCol": 2
+              }
             }
           ],
           "calls": []

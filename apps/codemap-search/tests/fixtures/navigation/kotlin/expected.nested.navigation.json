@@ -189,6 +189,47 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "inventory",
+                "typ": {
+                  "name": "Inventory",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 7,
+                    "startCol": 28,
+                    "endLine": 7,
+                    "endCol": 37
+                  }
+                }
+              },
+              {
+                "name": "mapper",
+                "typ": {
+                  "name": "OrderMapper",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 8,
+                    "startCol": 25,
+                    "endLine": 8,
+                    "endCol": 36
+                  }
+                }
+              },
+              {
+                "name": "repository",
+                "typ": {
+                  "name": "OrderRepository",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 29,
+                    "endLine": 6,
+                    "endCol": 44
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],

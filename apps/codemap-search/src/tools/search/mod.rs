@@ -745,6 +745,7 @@ pub(crate) struct DetailState {
     caller_annotations: Option<crate::callers::DetailAnnotations>,
     query_tokens: crate::parser::QueryTokens,
     results: Vec<crate::index::SearchResult>,
+    detail_indices: Vec<usize>,
     remaining_indices: Vec<usize>,
     output_was_capped: bool,
     detail_result_count: usize,
@@ -1021,7 +1022,8 @@ pub(crate) fn prepare_detail(
     const DETAIL_DIR_CAP: usize = 3;
     let order = diversified_order(&results, result_branch_threshold, DETAIL_DIR_CAP);
     let detail_len = order.len().min(result_branch_threshold);
-    let detail_results: Vec<&crate::index::SearchResult> = order[..detail_len]
+    let detail_indices: Vec<usize> = order[..detail_len].to_vec();
+    let detail_results: Vec<&crate::index::SearchResult> = detail_indices
         .iter()
         .map(|index| &results[*index])
         .collect();
@@ -1390,6 +1392,7 @@ pub(crate) fn prepare_detail(
         caller_annotations: detail_caller_annotations,
         query_tokens: detail_query_tokens,
         results,
+        detail_indices,
         remaining_indices,
         output_was_capped,
         detail_result_count,
@@ -1408,6 +1411,39 @@ pub(crate) fn prepare_detail(
     })))
 }
 
+fn ranked_tail_row(res: &crate::index::SearchResult) -> String {
+    // The matched qualified literal leads the tail note (#2): it is the discriminative
+    // reason a legacy dispatch/lookup file ranked in, and surfacing it in BOTH the
+    // non-fallback (symbol-notes) and the bare-path (fallback) sub-branches fixes the
+    // `encoding [L20]` mislabel — the file reads as its dispatch table, not as a plain mod.
+    let mut notes: Vec<String> = Vec::new();
+    if let Some(literal) = &res.qualified_literal_hit {
+        let source = render::RenderSource::new(&res.file_path);
+        let literal = source.matched_literal_value(literal, &res.matched_literals);
+        notes.push(format!("matched literal: `{literal}`"));
+    }
+    if !res.symbol_fallback {
+        notes.extend(res.matched_symbols.iter().take(3).map(|sym| {
+            format!(
+                "{} [L{}-{}]",
+                sym.name,
+                sym.range.start_line,
+                sym.range.end_line_inclusive()
+            )
+        }));
+    }
+    if notes.is_empty() {
+        format!("- {} ({} lines)\n", res.file_path, res.total_lines)
+    } else {
+        format!(
+            "- {} ({} lines) — {}\n",
+            res.file_path,
+            res.total_lines,
+            notes.join(", ")
+        )
+    }
+}
+
 /// Ranked tail: one line per remaining match, strongest first, with up to 3 matched
 /// symbols inline. The index's matched-symbol selection (exact-name/partial promotions
 /// included, strongest first) is reused as-is; a fallback entry (path/docstring-only match)
@@ -1422,39 +1458,7 @@ fn ranked_tail(remaining_results: &[&crate::index::SearchResult]) -> String {
     );
     let mut shown_tail = 0usize;
     for res in remaining_results.iter().take(tail_file_limit) {
-        // The matched qualified literal leads the tail note (#2): it is the discriminative
-        // reason a legacy dispatch/lookup file ranked in, and surfacing it in BOTH the
-        // non-fallback (symbol-notes) and the bare-path (fallback) sub-branches fixes the
-        // `encoding [L20]` mislabel — the file reads as its dispatch table, not as a plain mod.
-        let mut notes: Vec<String> = Vec::new();
-        if let Some(literal) = &res.qualified_literal_hit {
-            let source = render::RenderSource::new(&res.file_path);
-            let literal = source.matched_literal_value(literal, &res.matched_literals);
-            notes.push(format!("matched literal: `{literal}`"));
-        }
-        if !res.symbol_fallback {
-            notes.extend(res.matched_symbols.iter().take(3).map(|sym| {
-                format!(
-                    "{} [L{}-{}]",
-                    sym.name,
-                    sym.range.start_line,
-                    sym.range.end_line_inclusive()
-                )
-            }));
-        }
-        if notes.is_empty() {
-            tail.push_str(&format!(
-                "- {} ({} lines)\n",
-                res.file_path, res.total_lines
-            ));
-        } else {
-            tail.push_str(&format!(
-                "- {} ({} lines) — {}\n",
-                res.file_path,
-                res.total_lines,
-                notes.join(", ")
-            ));
-        }
+        tail.push_str(&ranked_tail_row(res));
         shown_tail += 1;
     }
     if remaining_results.len() > shown_tail {
@@ -1475,6 +1479,130 @@ fn ranked_tail(remaining_results: &[&crate::index::SearchResult]) -> String {
     tail
 }
 
+/// Row-by-row byte-bounded ranked tail for connection-capped clients (e.g. `antigravity-client`),
+/// keeping as many top-ranked tail files as fit inside `byte_budget`. Returns `(text, is_complete)`.
+fn ranked_tail_bounded(
+    remaining_results: &[&crate::index::SearchResult],
+    byte_budget: usize,
+) -> (String, bool) {
+    if remaining_results.is_empty() {
+        return (String::new(), true);
+    }
+    let tail_file_limit = crate::config::get().search_overview_file_limit;
+    let total = remaining_results.len();
+    let mut tail = format!("\n## Other matches — {total} more files, ranked by relevance\n");
+    let footer_reserve = format!(
+        "- _Showing tail files 1-{total} of {total}; {total} more files not shown. Continue by narrowing the query._\n"
+    )
+    .len();
+    if tail.len() + footer_reserve > byte_budget {
+        return (String::new(), false);
+    }
+    let mut shown_tail = 0usize;
+    for res in remaining_results.iter().take(tail_file_limit) {
+        let row = ranked_tail_row(res);
+        let needed_footer = if shown_tail + 1 < total {
+            footer_reserve
+        } else {
+            0
+        };
+        if tail.len() + row.len() + needed_footer > byte_budget {
+            break;
+        }
+        tail.push_str(&row);
+        shown_tail += 1;
+    }
+    if shown_tail == 0 {
+        return (String::new(), false);
+    }
+    if total > shown_tail {
+        tail.push_str(&format!(
+            "- _Showing tail files 1-{shown_tail} of {total}; {} more files not shown. Continue by narrowing the query._\n",
+            total - shown_tail
+        ));
+        (tail, false)
+    } else {
+        (tail, true)
+    }
+}
+
+/// Single-call tight-budget search page for connection-capped clients: packs top compact detail
+/// entries into the primary share, demotes remaining detail files to the front of the ranked
+/// tail so no ranked file is dropped, renders `## Other matches` row-by-row, and appends
+/// connected locations in whatever leftover bytes remain under `byte_cap`.
+#[allow(clippy::too_many_arguments)]
+fn build_tight_compact_page(
+    compact_prefix: String,
+    entries: Vec<compact::CompactEntry>,
+    relations_by_file: &[Vec<String>],
+    caller_annotations: Option<&crate::callers::DetailAnnotations>,
+    results: &[crate::index::SearchResult],
+    detail_indices: &[usize],
+    remaining_results: &[&crate::index::SearchResult],
+    call_candidate_text: &str,
+    phrase_matches: &[crate::index::PhraseMatch],
+    free_tail_rows: usize,
+    is_stale: bool,
+    byte_cap: usize,
+) -> Option<SearchOutput> {
+    let base_len = compact_prefix.len() + compact::LEGEND.len();
+    if !entries.is_empty() && base_len + entries[0].text.len() > byte_cap {
+        return None;
+    }
+    let has_more = !remaining_results.is_empty() || detail_indices.len() > entries.len();
+    let all_entries_bytes: usize = entries.iter().map(|entry| entry.text.len()).sum();
+    let need_tail_reserve = has_more || base_len + all_entries_bytes > byte_cap;
+    let tail_reserve = if need_tail_reserve {
+        (byte_cap * 40 / 100).min(3_800)
+    } else {
+        0
+    };
+    let detail_budget = byte_cap.saturating_sub(tail_reserve);
+    let mut kept = 0usize;
+    let mut used = base_len;
+    for entry in &entries {
+        let limit = if kept == 0 { byte_cap } else { detail_budget };
+        if used + entry.text.len() > limit {
+            break;
+        }
+        used += entry.text.len();
+        kept += 1;
+    }
+    let kept_entries: Vec<compact::CompactEntry> = entries.into_iter().take(kept).collect();
+    let mut page = compact::CompactPage::new(compact_prefix, kept_entries);
+
+    let mut tail_results: Vec<&crate::index::SearchResult> = detail_indices
+        .get(kept..)
+        .into_iter()
+        .flatten()
+        .map(|index| &results[*index])
+        .collect();
+    tail_results.extend(remaining_results.iter().copied());
+
+    let mut is_tail_complete = tail_results.is_empty();
+    if !tail_results.is_empty() {
+        let tail_budget = byte_cap.saturating_sub(page.text.len());
+        let (tail, complete) = ranked_tail_bounded(&tail_results, tail_budget);
+        if !tail.is_empty() {
+            page.text.push_str(&tail);
+            is_tail_complete = complete;
+        } else {
+            let note = tail_omission_note(tail_results.len());
+            if page.text.len() + note.len() <= byte_cap {
+                page.text.push_str(&note);
+            }
+        }
+    }
+    if !call_candidate_text.is_empty() && page.text.len() + call_candidate_text.len() <= byte_cap {
+        page.text.push_str(call_candidate_text);
+    }
+    if is_tail_complete && !is_stale {
+        append_phrase_matches(&mut page.text, phrase_matches, free_tail_rows, byte_cap);
+    }
+    let kept_relations = relations_by_file.get(..kept).unwrap_or(relations_by_file);
+    Some(page.finish_bounded(kept_relations, caller_annotations, byte_cap))
+}
+
 /// Finalize files, ranked tail, truncation, candidates and relations before serialization.
 /// Returns the output and the number of body blocks the retention mask actually replaced.
 fn finish_detail(
@@ -1488,6 +1616,7 @@ fn finish_detail(
         caller_annotations,
         query_tokens,
         results,
+        detail_indices,
         remaining_indices,
         mut output_was_capped,
         detail_result_count,
@@ -1562,9 +1691,15 @@ fn finish_detail(
             .iter()
             .map(|(file, partial)| file.primary_bytes(*partial))
             .sum::<usize>();
+    let primary_bytes_before_defer = primary_bytes;
+    let is_tight_session_cap = crate::config::session_delivery_byte_cap().is_some();
     let mut deferred_bodies = 0;
     // Apply this additional guard only when the client explicitly tightens the server cap.
-    if byte_cap < crate::config::get().search_detail_byte_cap {
+    // Connection-capped sessions with compact entries skip premature body deferral so narrow
+    // hits <= byte_cap keep full bodies while broader hits transition cleanly to compact+tail.
+    if byte_cap < crate::config::get().search_detail_byte_cap
+        && (!is_tight_session_cap || compact_entries.is_none())
+    {
         for (file_index, (file, _)) in grouped_files.iter_mut().enumerate().rev() {
             deferred_bodies +=
                 file.defer_bodies(&mut primary_bytes, primary_budget_bytes, |block_index| {
@@ -1666,7 +1801,9 @@ fn finish_detail(
     // A partial page loses its tail or source to the cap; it is compacted when the full
     // detail files alone exceed the threshold. Its relations were skipped above, so the
     // compact page plans them over the same files.
-    let should_compact = if is_partial {
+    let should_compact = if is_tight_session_cap {
+        primary_bytes_before_defer > byte_cap || is_partial || text.len() > byte_cap
+    } else if is_partial {
         files_end > COMPACT_OUTPUT_THRESHOLD_BYTES
     } else {
         text.len() > COMPACT_OUTPUT_THRESHOLD_BYTES
@@ -1717,44 +1854,69 @@ fn finish_detail(
         append_phrase_matches(&mut output.text, &phrase_matches, free_tail_rows, byte_cap);
     }
     if let Some(entries) = compact_entries {
-        let mut page = compact::CompactPage::new(compact_prefix, entries);
-        if !is_partial {
-            // Everything after the files is byte-identical to the full page.
-            page.text.push_str(&after_files);
-            page.text.push_str(&call_candidate_text);
-            page.text.push_str(&output.text[phrase_start..]);
+        if is_tight_session_cap {
+            if let Some(tight_output) = build_tight_compact_page(
+                compact_prefix,
+                entries,
+                &relations_by_file,
+                caller_annotations.as_ref(),
+                &results,
+                &detail_indices,
+                &remaining_results,
+                &call_candidate_text,
+                &phrase_matches,
+                free_tail_rows,
+                is_warming || is_dead || has_refresh_error,
+                byte_cap,
+            ) {
+                output = tight_output;
+            }
         } else {
-            // The same planned tail, shown when the compact page leaves room for it.
-            let omitted_detail_count = detail_result_count.saturating_sub(rendered_detail_count);
-            let mut is_tail_shown = false;
-            if is_planner_capped {
-                if omitted_detail_count > 0 || !remaining_results.is_empty() {
-                    page.text.push_str(&tail_omission_note(
-                        omitted_detail_count + remaining_results.len(),
-                    ));
+            let mut page = compact::CompactPage::new(compact_prefix, entries);
+            if !is_partial {
+                // Everything after the files is byte-identical to the full page.
+                page.text.push_str(&after_files);
+                page.text.push_str(&call_candidate_text);
+                page.text.push_str(&output.text[phrase_start..]);
+            } else {
+                // The same planned tail, shown when the compact page leaves room for it.
+                let omitted_detail_count =
+                    detail_result_count.saturating_sub(rendered_detail_count);
+                let mut is_tail_shown = false;
+                if is_planner_capped {
+                    if omitted_detail_count > 0 || !remaining_results.is_empty() {
+                        page.text.push_str(&tail_omission_note(
+                            omitted_detail_count + remaining_results.len(),
+                        ));
+                    }
+                } else if !remaining_results.is_empty() {
+                    let tail = ranked_tail(&remaining_results);
+                    if page.text.len() + tail.len() <= byte_cap {
+                        page.text.push_str(&tail);
+                        is_tail_shown = true;
+                    } else {
+                        page.text
+                            .push_str(&tail_omission_note(remaining_results.len()));
+                    }
                 }
-            } else if !remaining_results.is_empty() {
-                let tail = ranked_tail(&remaining_results);
-                if page.text.len() + tail.len() <= byte_cap {
-                    page.text.push_str(&tail);
-                    is_tail_shown = true;
-                } else {
-                    page.text
-                        .push_str(&tail_omission_note(remaining_results.len()));
+                page.text.push_str(&call_candidate_text);
+                if (is_tail_shown || remaining_results.is_empty() && !is_planner_capped)
+                    && !is_warming
+                    && !is_dead
+                    && !has_refresh_error
+                {
+                    append_phrase_matches(
+                        &mut page.text,
+                        &phrase_matches,
+                        free_tail_rows,
+                        byte_cap,
+                    );
                 }
             }
-            page.text.push_str(&call_candidate_text);
-            if (is_tail_shown || remaining_results.is_empty() && !is_planner_capped)
-                && !is_warming
-                && !is_dead
-                && !has_refresh_error
-            {
-                append_phrase_matches(&mut page.text, &phrase_matches, free_tail_rows, byte_cap);
+            // A compact page that cannot itself fit keeps the full page.
+            if page.text.len() <= byte_cap {
+                output = page.finish(&relations_by_file, caller_annotations.as_ref(), byte_cap);
             }
-        }
-        // A compact page that cannot itself fit keeps the full page.
-        if page.text.len() <= byte_cap {
-            output = page.finish(&relations_by_file, caller_annotations.as_ref(), byte_cap);
         }
     }
     tracing::debug!(

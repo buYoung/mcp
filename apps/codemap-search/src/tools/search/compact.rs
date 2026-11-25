@@ -14,7 +14,7 @@ pub(super) const ROW_MAX_CHARS: usize = 160;
 /// Connected-location rows after the details, tail and phrase matches.
 const CONNECTED_ROW_LIMIT: usize = 24;
 const CONNECTED_BYTE_CAP: usize = 3 * 1024;
-const LEGEND: &str = "\nBody deferred by delivery budget, not a relevance judgment; listed reads restore unshown source.\n";
+pub(super) const LEGEND: &str = "\nBody deferred by delivery budget, not a relevance judgment; listed reads restore unshown source.\n";
 const CONNECTED_HEADING: &str = "\n## Connected locations\n";
 
 static PATHLESS_LOCATION: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"— L([0-9]+)").unwrap());
@@ -93,10 +93,48 @@ impl CompactPage {
             source_files,
         } = self;
         debug_assert_eq!(entries.len(), relations_by_file.len());
-        let connected =
-            connected_locations(&entries, relations_by_file, caller_annotations, printed);
+        let connected = connected_locations(
+            &entries,
+            relations_by_file,
+            caller_annotations,
+            printed,
+            CONNECTED_BYTE_CAP,
+        );
         if !connected.is_empty() && text.len() + connected.len() <= byte_cap {
             text.push_str(&connected);
+        }
+        super::SearchOutput { text, source_files }
+    }
+
+    /// Append connected-location rows bounded strictly to the leftover bytes under `byte_cap`.
+    pub(super) fn finish_bounded(
+        self,
+        relations_by_file: &[Vec<String>],
+        caller_annotations: Option<&crate::callers::DetailAnnotations>,
+        byte_cap: usize,
+    ) -> super::SearchOutput {
+        let Self {
+            mut text,
+            entries,
+            printed,
+            source_files,
+        } = self;
+        debug_assert_eq!(entries.len(), relations_by_file.len());
+        let remaining = byte_cap.saturating_sub(text.len());
+        if remaining > CONNECTED_HEADING.len() + 32 {
+            let row_budget = remaining
+                .saturating_sub(CONNECTED_HEADING.len())
+                .min(CONNECTED_BYTE_CAP);
+            let connected = connected_locations(
+                &entries,
+                relations_by_file,
+                caller_annotations,
+                printed,
+                row_budget,
+            );
+            if !connected.is_empty() && text.len() + connected.len() <= byte_cap {
+                text.push_str(&connected);
+            }
         }
         super::SearchOutput { text, source_files }
     }
@@ -106,16 +144,17 @@ impl CompactPage {
 type LocationRow = ((String, usize), String);
 
 /// The connected-location rows collected so far, within [`CONNECTED_ROW_LIMIT`] and
-/// [`CONNECTED_BYTE_CAP`]. A location the page already shows is not listed again.
+/// `byte_cap`. A location the page already shows is not listed again.
 struct ConnectedRows {
     text: String,
     count: usize,
+    byte_cap: usize,
     printed: HashSet<(String, usize)>,
 }
 
 impl ConnectedRows {
     fn has_room(&self, rows: usize, bytes: usize) -> bool {
-        self.count + rows <= CONNECTED_ROW_LIMIT && self.text.len() + bytes <= CONNECTED_BYTE_CAP
+        self.count + rows <= CONNECTED_ROW_LIMIT && self.text.len() + bytes <= self.byte_cap
     }
 
     fn push(&mut self, (key, row): LocationRow) -> bool {
@@ -152,10 +191,12 @@ fn connected_locations(
     relations_by_file: &[Vec<String>],
     caller_annotations: Option<&crate::callers::DetailAnnotations>,
     printed: HashSet<(String, usize)>,
+    byte_cap: usize,
 ) -> String {
     let mut rows = ConnectedRows {
         text: String::new(),
         count: 0,
+        byte_cap,
         printed,
     };
     for (entry, relations) in entries.iter().zip(relations_by_file) {
@@ -276,6 +317,7 @@ mod tests {
             &[vec![relations.to_string()]],
             None,
             printed,
+            CONNECTED_BYTE_CAP,
         )
     }
 
