@@ -75,7 +75,7 @@ impl LanguageSpec for ZshSpec {
             // its independently parsed declaration header. Error ancestors and
             // a missing body delimiter still make the boundary unreliable.
             let mut last = body;
-            while let Some(child) = last.child(last.child_count().saturating_sub(1) as u32) {
+            while let Some(child) = last.child(last.child_count().saturating_sub(1)) {
                 last = child;
             }
             return is_recoverable(name) && !last.is_missing() && !last.is_error();

@@ -227,10 +227,10 @@ impl Interpreter<'_, '_> {
                 && node
                     .children
                     .iter()
-                    .any(|n| self.source.nodes[*n].kind == "initialized_variable_definition")
+                    .any(|n| self.source.nodes[*n].kind == "initialized_variable_declaration")
             {
                 for child in node.children {
-                    if self.source.nodes[child].kind == "initialized_variable_definition" {
+                    if self.source.nodes[child].kind == "initialized_variable_declaration" {
                         self.statement(Some(child));
                     }
                 }

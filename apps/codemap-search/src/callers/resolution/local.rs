@@ -582,7 +582,10 @@ fn fixed_call_argument_count(source: &Source, at: Node) -> Option<usize> {
     let mut count = 0usize;
     let mut cursor = args.walk();
     for child in args.named_children(&mut cursor) {
-        if matches!(child.kind(), "comment" | "line_comment" | "block_comment") {
+        if matches!(
+            child.kind(),
+            "comment" | "line_comment" | "block_comment" | "documentation_comment"
+        ) {
             continue;
         }
         if matches!(
@@ -658,6 +661,7 @@ fn fixed_target_param_bounds(
             "comment"
                 | "line_comment"
                 | "block_comment"
+                | "documentation_comment"
                 | "positional_separator"
                 | "keyword_separator"
         ) {

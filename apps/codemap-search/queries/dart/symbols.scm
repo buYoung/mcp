@@ -4,7 +4,7 @@
 (extension_type_declaration
   name: (extension_type_name (identifier) @symbol.name)) @symbol.type
 (enum_declaration name: (identifier) @symbol.name) @symbol.enum
-(enum_constant name: (identifier) @symbol.name) @symbol.variant
+(enum_entry name: (identifier) @symbol.name) @symbol.variant
 (type_alias (type_identifier) @symbol.name) @symbol.type
 
 (function_declaration
@@ -20,19 +20,19 @@
 (method_declaration
   signature: (method_signature
     (factory_constructor_signature (identifier) @symbol.name))) @symbol.method
-(class_member
+(member_declaration
   (declaration
     (function_signature name: (identifier) @symbol.name))) @symbol.method
-(class_member
+(member_declaration
   (declaration
     (constructor_signature name: (identifier) @symbol.name))) @symbol.method
-(class_member
+(member_declaration
   (declaration
     (constant_constructor_signature (identifier) @symbol.name))) @symbol.method
-(class_member
+(member_declaration
   (declaration
     (factory_constructor_signature (identifier) @symbol.name))) @symbol.method
-(class_member
+(member_declaration
   (declaration
     (redirecting_factory_constructor_signature (identifier) @symbol.name))) @symbol.method
 
@@ -44,21 +44,21 @@
   signature: (method_signature
     [(getter_signature name: (identifier) @symbol.name)
      (setter_signature name: (identifier) @symbol.name)])) @symbol.property
-(class_member
+(member_declaration
   (declaration
     [(getter_signature name: (identifier) @symbol.name)
      (setter_signature name: (identifier) @symbol.name)])) @symbol.property
 (method_declaration
   signature: (method_signature
     (operator_signature operator: _ @symbol.name))) @symbol.method
-(class_member
+(member_declaration
   (declaration
     (operator_signature operator: _ @symbol.name))) @symbol.method
 
 (top_level_variable_declaration
   (initialized_identifier_list
     (initialized_identifier name: (identifier) @symbol.name))) @symbol.field
-(initialized_variable_definition
+(initialized_variable_declaration
   name: (identifier) @symbol.name) @symbol.field
 
 (top_level_variable_declaration

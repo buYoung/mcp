@@ -146,7 +146,7 @@ fn collect_index_auxiliary_from_tree(
     let mut cursor = QueryCursor::new();
     let mut matches = cursor.matches(tags_query, tree.root_node(), source);
     while let Some(query_match) = matches.next() {
-        for capture in query_match.captures {
+        for capture in query_match.captures() {
             let capture_name = tags_query.capture_names()[capture.index as usize];
             let Some(text) = node_text(capture.node, source) else {
                 continue;
@@ -204,7 +204,7 @@ pub(crate) fn declaration_source_range(node: Node<'_>, source: &[u8]) -> CodeRan
     loop {
         let child = (0..last.child_count())
             .rev()
-            .filter_map(|index| last.child(index as u32))
+            .filter_map(|index| last.child(index))
             .find(|child| {
                 !child.is_extra() && !child.is_missing() && child.end_byte() > child.start_byte()
             });
@@ -390,10 +390,14 @@ fn normalized_collection_owner_type(text: &str) -> Option<String> {
 }
 
 fn first_descendant_kind<'a>(node: Node<'a>, kinds: &[&str]) -> Option<Node<'a>> {
+    first_descendant(node, |node| kinds.contains(&node.kind()))
+}
+
+fn first_descendant<'a>(node: Node<'a>, matches: impl Fn(Node<'a>) -> bool) -> Option<Node<'a>> {
     let mut cursor = node.walk();
     let mut pending = vec![node];
     while let Some(node) = pending.pop() {
-        if kinds.contains(&node.kind()) {
+        if matches(node) {
             return Some(node);
         }
         let children: Vec<_> = node.children(&mut cursor).collect();
@@ -538,7 +542,7 @@ fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String,
         }
         "parenthesized_expression" | "parenthesized_declarator" => {
             for child_index in 0..function_node.child_count() {
-                let child = function_node.child(child_index as u32).unwrap();
+                let child = function_node.child(child_index).unwrap();
                 if child.is_named() {
                     return call_name_and_receiver(child, source);
                 }
@@ -582,6 +586,15 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
             })?;
             let name = node_text(type_node, source).and_then(|text| base_name_from_text(&text))?;
             (name, None)
+        }
+        "constructor_invocation" => {
+            let callee = named_constructor_callee_text(node, source)?;
+            let (receiver, name) = callee.rsplit_once('.')?;
+            let receiver = normalize_navigation_text(receiver.to_string());
+            (
+                name.trim().to_string(),
+                (!receiver.is_empty()).then_some(receiver),
+            )
         }
         "new_expression" => {
             let constructor = node
@@ -658,7 +671,7 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
                 .or_else(|| node.child_by_field_name("name"))
                 .or_else(|| {
                     (0..node.child_count())
-                        .map(|index| node.child(index as u32).unwrap())
+                        .map(|index| node.child(index).unwrap())
                         .find(|child| child.is_named())
                 })?;
             call_name_and_receiver(function_node, source)?
@@ -675,7 +688,26 @@ fn call_site_from_node(node: Node, source: &[u8]) -> Option<CallSite> {
     })
 }
 
+/// tree-sitter-dart parses a named constructor with type arguments, `Future<void>.delayed(...)`,
+/// as `constructor_invocation`. Kotlin uses the same kind, without fields, for annotations and
+/// supertype calls, so only the Dart shape with a `constructor` field counts.
+fn is_named_constructor_invocation(node: Node) -> bool {
+    node.kind() == "constructor_invocation" && node.child_by_field_name("constructor").is_some()
+}
+
+/// The text before the arguments of a Dart named constructor invocation, `Future<void>.delayed`,
+/// which earlier grammar versions exposed as the callee of a `call_expression`.
+fn named_constructor_callee_text(node: Node, source: &[u8]) -> Option<String> {
+    let constructor = node.child_by_field_name("constructor")?;
+    let text = source.get(node.start_byte()..constructor.end_byte())?;
+    std::str::from_utf8(text).ok().map(str::to_string)
+}
+
 fn value_type_from_initializer(value_node: Node, source: &[u8]) -> Option<String> {
+    if is_named_constructor_invocation(value_node) {
+        return named_constructor_callee_text(value_node, source)
+            .and_then(|text| base_name_from_text(&text));
+    }
     if matches!(value_node.kind(), "call_expression" | "call") {
         if let Some(function_node) = value_node
             .child_by_field_name("function")
@@ -782,7 +814,7 @@ fn binding_names_from_pattern(node: Node, source: &[u8]) -> Vec<String> {
             let mut names = Vec::new();
             let mut skipped_constructor = false;
             for child_index in 0..node.child_count() {
-                let child = node.child(child_index as u32).unwrap();
+                let child = node.child(child_index).unwrap();
                 if !child.is_named() {
                     continue;
                 }
@@ -815,7 +847,7 @@ fn binding_names_from_pattern(node: Node, source: &[u8]) -> Vec<String> {
             .or_else(|| node.child_by_field_name("value"))
             .or_else(|| {
                 (0..node.child_count())
-                    .map(|index| node.child(index as u32).unwrap())
+                    .map(|index| node.child(index).unwrap())
                     .find(|child| child.is_named())
             })
             .map(|argument| binding_names_from_pattern(argument, source))
@@ -823,7 +855,7 @@ fn binding_names_from_pattern(node: Node, source: &[u8]) -> Vec<String> {
         "array_pattern" | "object_pattern" | "tuple_pattern" | "list_pattern" => {
             let mut names = Vec::new();
             for child_index in 0..node.child_count() {
-                let child = node.child(child_index as u32).unwrap();
+                let child = node.child(child_index).unwrap();
                 if child.is_named() {
                     for name in binding_names_from_pattern(child, source) {
                         push_binding_name(&mut names, name);
@@ -835,7 +867,7 @@ fn binding_names_from_pattern(node: Node, source: &[u8]) -> Vec<String> {
         kind if kind.ends_with("_pattern") => {
             let mut names = Vec::new();
             for child_index in 0..node.child_count() {
-                let child = node.child(child_index as u32).unwrap();
+                let child = node.child(child_index).unwrap();
                 if child.is_named() {
                     for name in binding_names_from_pattern(child, source) {
                         push_binding_name(&mut names, name);
@@ -881,16 +913,16 @@ pub(crate) fn local_bindings_from_node(node: Node, source: &[u8]) -> Vec<LocalBi
                 .and_then(|type_node| node_text(type_node, source))
                 .and_then(|text| clean_type_text(&text))
         });
-    let value_type = first_descendant_kind(
-        node,
-        &[
-            "new_expression",
-            "object_creation_expression",
-            "composite_literal",
-            "call_expression",
-            "call",
-        ],
-    )
+    let value_type = first_descendant(node, |candidate| {
+        matches!(
+            candidate.kind(),
+            "new_expression"
+                | "object_creation_expression"
+                | "composite_literal"
+                | "call_expression"
+                | "call"
+        ) || is_named_constructor_invocation(candidate)
+    })
     .and_then(|value_node| value_type_from_initializer(value_node, source));
 
     names
@@ -1381,7 +1413,7 @@ fn typescript_class_member_type(
 
     let body = class_node.child_by_field_name("body")?;
     for child_index in 0..body.child_count() {
-        let child = body.child(child_index as u32).unwrap();
+        let child = body.child(child_index).unwrap();
         if !child.is_named() {
             continue;
         }
@@ -1907,7 +1939,7 @@ fn is_collection_consumer_operation(ext: &str, operation: Option<&str>) -> bool 
 
 fn bounded_collection_value(arguments_node: Node, source: &[u8]) -> Option<String> {
     let value_node = (0..arguments_node.child_count())
-        .filter_map(|index| arguments_node.child(index as u32))
+        .filter_map(|index| arguments_node.child(index))
         .find(|child| child.is_named())?;
     let value = node_text(value_node, source).map(normalize_navigation_text)?;
     if value.is_empty() {
@@ -1993,7 +2025,7 @@ fn static_collection_edge(
 
 fn is_typescript_for_of(node: Node, source: &[u8]) -> bool {
     (0..node.child_count()).any(|index| {
-        node.child(index as u32)
+        node.child(index)
             .filter(|child| !child.is_named())
             .and_then(|child| child.utf8_text(source).ok())
             == Some("of")
@@ -2045,7 +2077,7 @@ fn collect_static_collection_edges_from_tree(
         let mut expression_node = None;
         let mut operation_node = None;
         let mut write_node = None;
-        for capture in query_match.captures {
+        for capture in query_match.captures() {
             match query.capture_names()[capture.index as usize] {
                 "collection.owner" => owner_node = Some(capture.node),
                 "collection.field" => field_node = Some(capture.node),
@@ -2281,7 +2313,7 @@ impl TreeSitterExtractor {
             let mut local_scope_node: Option<Node> = None;
             let mut local_reference_node: Option<Node> = None;
 
-            for capture in mat.captures {
+            for capture in mat.captures() {
                 let name_idx = capture.index as usize;
                 let name = query.capture_names()[name_idx];
 
@@ -2506,7 +2538,10 @@ impl TreeSitterExtractor {
 
                             while let Some(sibling) = current_sibling {
                                 let sk = sibling.kind();
-                                if sk == "comment" || sk == "line_comment" || sk == "block_comment"
+                                if sk == "comment"
+                                    || sk == "line_comment"
+                                    || sk == "block_comment"
+                                    || sk == "documentation_comment"
                                 {
                                     let end_row = sibling.end_position().row;
                                     if end_row >= last_row.saturating_sub(1) {

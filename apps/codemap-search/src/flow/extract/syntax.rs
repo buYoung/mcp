@@ -116,7 +116,11 @@ pub(super) fn is_method(node: Node<'_>) -> bool {
 pub(super) fn is_comment(node: Node<'_>) -> bool {
     matches!(
         node.kind(),
-        "comment" | "line_comment" | "block_comment" | "multiline_comment"
+        "comment"
+            | "line_comment"
+            | "block_comment"
+            | "documentation_comment"
+            | "multiline_comment"
     )
 }
 pub(super) fn is_import(node: Node<'_>) -> bool {

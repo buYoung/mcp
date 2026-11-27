@@ -3,7 +3,7 @@
 (extension_declaration name: (identifier) @definition.class)
 (extension_type_declaration name: (extension_type_name (identifier) @definition.type))
 (enum_declaration name: (identifier) @definition.enum)
-(enum_constant name: (identifier) @definition.constant)
+(enum_entry name: (identifier) @definition.constant)
 (type_alias (type_identifier) @definition.type)
 (function_declaration signature: (function_signature name: (identifier) @definition.function))
 (method_signature (function_signature name: (identifier) @definition.method))

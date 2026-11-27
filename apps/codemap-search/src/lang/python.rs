@@ -146,7 +146,7 @@ impl LanguageSpec for PythonSpec {
             if parent.kind() == "decorated_definition" {
                 let mut found = false;
                 for i in 0..parent.child_count() {
-                    let child = parent.child(i as u32).unwrap();
+                    let child = parent.child(i).unwrap();
                     if child.kind() == "decorator" {
                         if let Ok(text) = child.utf8_text(source) {
                             if text.contains("test") || text.contains("pytest") {
@@ -188,7 +188,7 @@ impl LanguageSpec for PythonSpec {
             if parent.kind() == "decorated_definition" {
                 let mut found = false;
                 for i in 0..parent.child_count() {
-                    let child = parent.child(i as u32).unwrap();
+                    let child = parent.child(i).unwrap();
                     if child.kind() == "decorator" {
                         if let Ok(text) = child.utf8_text(source) {
                             if text.contains("deprecated") {

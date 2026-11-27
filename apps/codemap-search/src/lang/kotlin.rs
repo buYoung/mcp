@@ -83,10 +83,10 @@ fn kotlin_is_exported(node: Node, source: &[u8]) -> bool {
         return false;
     }
     for i in 0..node.child_count() {
-        let child = node.child(i as u32).unwrap();
+        let child = node.child(i).unwrap();
         if child.kind() == "modifiers" {
             for j in 0..child.child_count() {
-                let modifier = child.child(j as u32).unwrap();
+                let modifier = child.child(j).unwrap();
                 if modifier.kind() == "visibility_modifier" {
                     if let Ok(text) = modifier.utf8_text(source) {
                         return text.trim() == "public";
@@ -102,7 +102,7 @@ fn kotlin_is_exported(node: Node, source: &[u8]) -> bool {
 /// presence of an `interface` keyword child token.
 fn kotlin_class_kind(node: Node) -> &'static str {
     for i in 0..node.child_count() {
-        if node.child(i as u32).unwrap().kind() == "interface" {
+        if node.child(i).unwrap().kind() == "interface" {
             return "interface";
         }
     }

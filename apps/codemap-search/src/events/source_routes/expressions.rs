@@ -631,7 +631,11 @@ impl Interpreter<'_, '_> {
         let mut literal_fields = BTreeSet::new();
         for (field_index, field) in fields.iter().copied().enumerate() {
             let field_kind = self.source.nodes[field].kind.clone();
-            if Some(field) == type_node || matches!(field_kind.as_str(), "comment" | "line_comment")
+            if Some(field) == type_node
+                || matches!(
+                    field_kind.as_str(),
+                    "comment" | "line_comment" | "documentation_comment"
+                )
             {
                 continue;
             }
@@ -650,6 +654,7 @@ impl Interpreter<'_, '_> {
             if matches!(
                 field_kind.as_str(),
                 "pair"
+                    | "map_element"
                     | "field_initializer"
                     | "keyed_element"
                     | "field"
@@ -758,7 +763,7 @@ impl Interpreter<'_, '_> {
                     .filter_map(|later| {
                         if matches!(
                             self.source.nodes[*later].kind.as_str(),
-                            "pair" | "shorthand_property_identifier"
+                            "pair" | "map_element" | "shorthand_property_identifier"
                         ) {
                             let key = self.source.child(*later, &["key"]).unwrap_or(*later);
                             if is_identifier(&self.source.nodes[key].kind)

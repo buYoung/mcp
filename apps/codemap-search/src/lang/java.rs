@@ -46,10 +46,10 @@ fn get_java_static_collection_query() -> &'static Query {
 /// (Java defaults to package-private, so visibility must be explicit.)
 fn java_is_public(node: Node) -> bool {
     for i in 0..node.child_count() {
-        let child = node.child(i as u32).unwrap();
+        let child = node.child(i).unwrap();
         if child.kind() == "modifiers" {
             for j in 0..child.child_count() {
-                if child.child(j as u32).unwrap().kind() == "public" {
+                if child.child(j).unwrap().kind() == "public" {
                     return true;
                 }
             }

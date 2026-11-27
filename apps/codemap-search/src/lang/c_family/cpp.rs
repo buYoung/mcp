@@ -105,7 +105,7 @@ fn cpp_scope_to_name(scope_node: Node, source: &[u8]) -> Option<String> {
         "template_type" => {
             // `Foo<T>` — the base is the first `type_identifier` child.
             for i in 0..scope_node.child_count() {
-                let child = scope_node.child(i as u32).unwrap();
+                let child = scope_node.child(i).unwrap();
                 if child.kind() == "type_identifier" || child.kind() == "identifier" {
                     return child.utf8_text(source).ok().map(|t| t.to_string());
                 }
@@ -115,7 +115,7 @@ fn cpp_scope_to_name(scope_node: Node, source: &[u8]) -> Option<String> {
         "nested_namespace_specifier" | "qualified_identifier" => {
             // Nested: take the rightmost identifier portion.
             for i in (0..scope_node.child_count()).rev() {
-                let child = scope_node.child(i as u32).unwrap();
+                let child = scope_node.child(i).unwrap();
                 if let Some(name) = cpp_scope_to_name(child, source) {
                     return Some(name);
                 }
@@ -145,7 +145,7 @@ fn find_function_declarator(node: Node) -> Option<Node> {
         "reference_declarator" | "parenthesized_declarator"
     ) {
         for i in 0..node.child_count() {
-            let child = node.child(i as u32).unwrap();
+            let child = node.child(i).unwrap();
             if matches!(
                 child.kind(),
                 "function_declarator"

@@ -23,7 +23,7 @@ fn declaration_scope(mut node: Node<'_>) -> Option<Node<'_>> {
                 | "declaration"
                 | "static_final_declaration_list"
                 | "top_level_variable_declaration"
-                | "class_member"
+                | "member_declaration"
         ) {
             return Some(node);
         }
@@ -101,7 +101,8 @@ fn identifier_role(mut node: Node<'_>, root: Node<'_>) -> IdentifierRole {
         {
             return IdentifierRole::Ignore;
         }
-        if kind == "pair" && parent.child_by_field_name("key") == Some(node) {
+        if matches!(kind, "pair" | "map_element") && parent.child_by_field_name("key") == Some(node)
+        {
             return IdentifierRole::Ignore;
         }
         // PHP has separate constant, variable, and function namespaces.

@@ -769,7 +769,7 @@ pub(crate) fn is_capture_intact(capture_name: &str, node: Node<'_>) -> bool {
         return false;
     };
     (0..node.child_count())
-        .filter_map(|index| node.child(index as u32))
+        .filter_map(|index| node.child(index))
         .all(|child| child.id() == body.id() || !(child.has_error() || child.is_missing()))
 }
 
@@ -794,7 +794,7 @@ pub(crate) fn find_name(node: Node, source: &[u8]) -> Option<String> {
         return Some(name_node.utf8_text(source).unwrap_or("").to_string());
     }
     for i in 0..node.child_count() {
-        let child = node.child(i as u32).unwrap();
+        let child = node.child(i).unwrap();
         let k = child.kind();
         if k == "identifier" || k == "type_identifier" || k == "field_identifier" {
             return Some(child.utf8_text(source).unwrap_or("").to_string());
@@ -807,7 +807,7 @@ pub(crate) fn find_name(node: Node, source: &[u8]) -> Option<String> {
 /// Shared by Java and Kotlin specs.
 pub(crate) fn has_annotation(node: Node, target: &str, source: &[u8]) -> bool {
     for i in 0..node.child_count() {
-        let child = node.child(i as u32).unwrap();
+        let child = node.child(i).unwrap();
         if child.kind() == "modifiers" && annotation_subtree_contains(child, target, source) {
             return true;
         }
@@ -856,7 +856,7 @@ pub(crate) fn annotation_subtree_contains(node: Node, target: &str, source: &[u8
         }
     }
     for i in 0..node.child_count() {
-        if annotation_subtree_contains(node.child(i as u32).unwrap(), target, source) {
+        if annotation_subtree_contains(node.child(i).unwrap(), target, source) {
             return true;
         }
     }
