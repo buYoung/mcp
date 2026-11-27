@@ -115,7 +115,7 @@ fn go_base_type_name(node: Node, source: &[u8]) -> Option<String> {
         "pointer_type" => {
             // `*T` — the inner type is the single named child.
             for i in 0..node.child_count() {
-                let child = node.child(i as u32).unwrap();
+                let child = node.child(i).unwrap();
                 if child.is_named() {
                     return go_base_type_name(child, source);
                 }
@@ -140,7 +140,7 @@ fn go_base_type_name(node: Node, source: &[u8]) -> Option<String> {
 fn go_receiver_owner(method_node: Node, source: &[u8]) -> Option<String> {
     let receiver = method_node.child_by_field_name("receiver")?; // parameter_list
     for i in 0..receiver.child_count() {
-        let child = receiver.child(i as u32).unwrap();
+        let child = receiver.child(i).unwrap();
         if child.kind() == "parameter_declaration" {
             let type_node = child.child_by_field_name("type")?;
             return go_base_type_name(type_node, source);

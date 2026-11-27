@@ -550,7 +550,9 @@ fn merge_into_one_segment(index: &Index, writer: &mut tantivy::IndexWriter) -> t
 // its body is kept.
 // v48 records which type declarations are parts of one type.
 // v49 records which methods are visible only inside their package or library.
-const EXTRACTION_FORMAT_VERSION: &str = "v55-multi-language-navigation";
+// v56 re-extracts with tree-sitter 0.27, whose parser changes alter some C, C++, C# and Groovy
+// results, mostly where macros or `#if` blocks split a declaration.
+const EXTRACTION_FORMAT_VERSION: &str = "v56-tree-sitter-0.27";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -2755,7 +2757,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v55-multi-language-navigation");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v56-tree-sitter-0.27");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

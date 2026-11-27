@@ -2,7 +2,7 @@
 use super::model::{Location, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 
 pub(crate) type NodeId = usize;
 
@@ -68,6 +68,22 @@ impl Tokens {
     pub fn iter(&self) -> impl Iterator<Item = &'static str> + '_ {
         self.0.iter().copied()
     }
+}
+
+/// Tree-sitter ties node kinds and field names to the tree, but they come from the fixed symbol
+/// tables of the bundled grammars. Each distinct name is leaked once and shared by every node.
+fn grammar_name(name: &str) -> &'static str {
+    static NAMES: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+    let mut names = NAMES
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    if let Some(name) = names.get(name) {
+        return name;
+    }
+    let name: &'static str = Box::leak(name.into());
+    names.insert(name);
+    name
 }
 
 #[derive(Clone, Debug)]
@@ -218,7 +234,7 @@ impl Source {
         let mut fields = Vec::new();
         let mut tokens = Vec::new();
         for index in 0..node.child_count() {
-            let Some(child) = node.child(index as u32) else {
+            let Some(child) = node.child(index) else {
                 continue;
             };
             if child.is_named() {
@@ -228,18 +244,18 @@ impl Source {
                 }
                 let nested = self.collect_node(child, Some(id), depth + 1);
                 children.push(nested);
-                if let Some(name) = node.field_name_for_child(index as u32) {
-                    fields.push((name, nested));
+                if let Some(name) = node.field_name_for_child(index) {
+                    fields.push((grammar_name(name), nested));
                 }
             } else {
-                tokens.push(child.kind());
+                tokens.push(grammar_name(child.kind()));
                 if child.is_missing() {
                     self.has_parse_error = true;
                 }
-                if let Some(name) = node.field_name_for_child(index as u32) {
+                if let Some(name) = node.field_name_for_child(index) {
                     if self.nodes.len() < 131_072 && depth < 256 {
                         let nested = self.collect_node(child, Some(id), depth + 1);
-                        fields.push((name, nested));
+                        fields.push((grammar_name(name), nested));
                     } else {
                         self.has_node_limit = true;
                     }

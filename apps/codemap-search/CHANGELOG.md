@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A call on a local variable with a written type is now linked to the method of that type in Kotlin and C#, such as `val picked: Store = ...` or `Store store = Open();`. In Kotlin this also holds for a property declared in the class body, such as `private val store: Store`. Before, these declarations gave no type, so the calls stayed unresolved. A local variable without a written type, such as `var store = Open();`, is still left unresolved.
 - A first index build, and any refresh that rewrites at least as many files as the index holds, now ends with one search segment. Before, the number of segments left after a build depended on when the writer's buffers filled: the same repository ended with 2, 7 and 4 segments in three builds in a row. With seven segments `read` was about 2% slower than with one when four servers shared the host. A refresh of a few files adds a small segment as before.
 
+### Changed
+
+- Source files are parsed with tree-sitter 0.27. Most files give the same declarations as before. Where macros or `#if` blocks split a C or C++ declaration, a declaration can now start on another line, and a few declarations are found or missed where they were not before. Some C# and Groovy files also show different local bindings and call scopes. Existing indexes are rebuilt once.
+
 ### Fixed
 
 - A `static` method in Dart is no longer listed as an implementation of a same-named static method of a supertype. Existing indexes are rebuilt once.

@@ -56,7 +56,7 @@ fn collect_asm_globl_names(root: Node, source: &[u8], out: &mut HashSet<String>)
                     if lower == ".globl" || lower == ".global" {
                         // The argument is an ident child (confirmed via parse-tree dump).
                         for i in 0..node.child_count() {
-                            let child = node.child(i as u32).unwrap();
+                            let child = node.child(i).unwrap();
                             if child.kind() == "ident" {
                                 // The ident may contain a reg child (reg { word }) —
                                 // walk to the innermost word to get the plain name text.
@@ -71,7 +71,7 @@ fn collect_asm_globl_names(root: Node, source: &[u8], out: &mut HashSet<String>)
         // Push all children; no need to recurse into subtrees more than 1 level since
         // the grammar's root `program` has all directives and labels as direct children.
         for i in (0..node.child_count()).rev() {
-            to_visit.push(node.child(i as u32).unwrap());
+            to_visit.push(node.child(i).unwrap());
         }
         // Avoid infinite loop warning — cursor is used for WalkBuilder compatibility.
         let _ = &mut cursor;
@@ -97,7 +97,7 @@ fn asm_label_name(label_node: Node, source: &[u8]) -> Option<String> {
     }
     // Fall back to the first `ident` child (local labels).
     for i in 0..label_node.child_count() {
-        let child = label_node.child(i as u32).unwrap();
+        let child = label_node.child(i).unwrap();
         if child.kind() == "ident" {
             return child.utf8_text(source).ok().map(|t| t.trim().to_string());
         }
@@ -231,7 +231,7 @@ impl LanguageSpec for AsmSpec {
             // `.macro name` — the first `ident` child is the macro name.
             let mut macro_name = None;
             for i in 0..node.child_count() {
-                let child = node.child(i as u32).unwrap();
+                let child = node.child(i).unwrap();
                 if child.kind() == "ident" {
                     if let Ok(text) = child.utf8_text(source) {
                         macro_name = Some(text.trim().to_string());
