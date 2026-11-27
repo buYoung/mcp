@@ -54,34 +54,18 @@ Click any inline badge in a table (such as `▸ Directory exclusions`) to expand
 
 | Key | Type | Allowed values | Default | Description |
 | --- | --- | --- | --- | --- |
-| `[output.search].detail_file_limit` | integer | `>= 1` | `24` | Top-ranked files rendered with detailed snippets |
-| `[output.search].overview_file_limit` | integer | `>= 1` | `80` | Max file headers listed in `search`'s compact tail |
-| `[output.search].snippet_max_lines` | integer | `>= 1` | `500` | Max snippet lines per symbol in `search` |
-| `[output.search].symbol_limit` | integer | `>= 1` | `100` | Max symbols rendered per file in `search` |
 | `[output.search].max_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `"1mb"` (`1048576`) | Max response size for one `search` call |
-| `[output.search].literal_max_chars` | integer (chars) | `>= 1` | `1200` | Max characters per matched string literal before truncation |
-| `[output.search].literal_limit` | integer | `>= 1` | `60` | Max matched literals shown per file in `search` |
-| `[output.search].anchor_snippet_limit` | integer | `>= 1` | `20` | Max full snippets per file (remaining symbols show signatures) |
 | `[output.read].max_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `"5mb"` (`5242880`) | Max size for `read` and callable-expanded `grep` |
 | `[output.read].is_outside_callers_enabled` | bool | `true`, `false` | `true` | Append outside callers and importers to `read view="source"` |
-| `[output.grep].max_columns` | integer | `0` (unlimited) or `>= 1` | `0` | Max line width in content-mode `grep` |
 | `[output.grep].max_bytes` | size | unset, `>= 1` bytes, `"<int>b/kb/mb/gb"` | `[output].max_bytes` | Max response size for `grep` |
 
-### Call context, precision, and test exclusions
+### Call context and test exclusions
 
-<div class="cfg-scope-line"><code>[output.context]</code> <code>[output.navigation]</code> <code>[output.context.exclude]</code></div>
+<div class="cfg-scope-line"><code>[output.context]</code> <code>[output.context.exclude]</code></div>
 
 | Key | Type | Allowed values | Default | Description |
 | --- | --- | --- | --- | --- |
 | `[output.context].is_enabled` | bool | `true`, `false` | `true` | Default `caller_context` behavior in `search` |
-| `[output.context].caller_limit` | integer | `>= 1` | `1000` | Max callers or references shown per symbol |
-| `[output.context].callee_limit` | integer | `>= 1` | `1000` | Max callees shown per symbol |
-| `[output.context].max_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `"128kb"` (`131072`) | Sub-budget for relationship annotations inside `[output.search].max_bytes` |
-| `[output.context].common_name_threshold` | integer | `>= 1` | `2` | Definition count at which name-based edges are marked ambiguous |
-| `[output.context].caller_omit_def_threshold` | integer | `>= 1` | `5` | Definition count at which approximate callers switch to a `grep` hint |
-| `[output.navigation].is_enabled` | bool | `true`, `false` | `false` | Resolve call sites structurally and mark confirmed targets `precise` |
-| `[output.navigation].callsite_budget` | integer | `>= 1` | `1000` | Max call sites checked structurally before name-based fallback |
-| `[output.navigation].scan_limit` | integer | `>= 1` | `16000` | Shared caller-scan hit cap across symbol names (min 25 per name) |
 | `[output.context.exclude].should_include_test_code` | bool | `true`, `false` | `false` | Include test code in automatic symbol/caller context |
 | `[output.context.exclude].test_file_patterns` | string array | `[]` or file path glob array | See [Test-code context](#test-code-context) | Test file path globs |
 | `[output.context.exclude].test_attributes` | language table | `rust`, `java`, `kotlin`, `csharp`, `swift`, `php` → string array | See [Test-code context](#test-code-context) | Per-language test attribute/annotation names |
@@ -119,18 +103,14 @@ powershell = ["Describe", "Context", "It"]
 <details class="cfg-details" id="macro-expansion-and-event-rules">
 <summary>C/C++/assembly macro expansion and event-bus rules (`[output.macro_expansion]`, `[output.event_navigation]`)</summary>
 
-Configuration example for `clang` / `nasm` preprocessing and custom event-bus rules (`typescript`, `javascript`, `rust`):
+Configuration example for `clang` preprocessing (NASM uses `nasm` on `PATH` with built-in limits) and custom event-bus rules (`typescript`, `javascript`, `rust`):
 
 ```toml
 [output.macro_expansion]
 is_enabled = true
 compilation_database = "build/compile_commands.json"
 clang_path = "clang"
-nasm_path = "nasm"
 clang_flags = ["-Iinclude", "-DFEATURE=1"]
-nasm_flags = ["-Iinclude/", "-felf64"]
-timeout_ms = 5000
-max_output_bytes = "8mb"
 
 [output.event_navigation]
 is_enabled = true
@@ -179,11 +159,7 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 | `[index].auto_max_files` | integer | `>= 1` | `50000` | Max indexable files in `auto` mode (restart required) |
 | `[index].path` | string | non-empty relative or absolute path | `".codemap/index"` | Index directory path (restart required) |
 | `[index].max_file_bytes` | size | `>= 1` bytes, `"<int>b/kb/mb/gb"` | `"1mb"` (`1048576`) | Skip files larger than this during indexing |
-| `[index].store_references` | bool | `true`, `false` | `false` | Store non-call symbol references in the index |
 | `[index.refresh].watch` | bool | `true`, `false` | `true` | Watch filesystem changes in the background (restart required) |
-| `[index.refresh].watch_debounce_ms` | integer (ms) | `>= 1` | `500` | Filesystem watcher debounce window (restart required) |
-| `[index.refresh].index_staleness_ms` | integer (ms) | `>= 1` | `5000` | Staleness interval for request-triggered refreshes when `watch = false` |
-| `[index.refresh].indexer_auto_restart` | bool | `true`, `false` | `true` | Restart the background indexer thread if it stops |
 | `[index.language_support].is_document_support_enabled` | bool | `true`, `false` | `false` | Index `.md` and `.mdx` files |
 | `[index.language_support].is_shell_support_enabled` | bool | `true`, `false` | `false` | Index `.sh`, `.bash`, and `.zsh` scripts |
 | `[index.language_support].is_infrastructure_support_enabled` | bool | `true`, `false` | `false` | Index HCL/Terraform, Dockerfile, and Nix files |
@@ -298,10 +274,10 @@ On `grafana/grafana`, each card places the **default output** on the left and th
 <div class="cfg-diff-list">
 
 <ConfigDiffCard
-    title="1. Call context and precision"
-    keys={["[output.context].is_enabled", "[output.navigation].is_enabled"]}
-    defaultLabel="Default (context = true, navigation = false)"
-    changedLabel="Changed (navigation = true / context = false)"
+    title="1. Call context in search"
+    keys={["[output.context].is_enabled"]}
+    defaultLabel="Default (true)"
+    changedLabel="Changed (false)"
 >
 <Fragment slot="default">
 
@@ -318,11 +294,7 @@ On `grafana/grafana`, each card places the **default output** on the left and th
 <Fragment slot="changed">
 
 ```markdown
-# navigation.is_enabled = true (structural import check)
-  - _callers (tree-sitter precise; import/source confirmed):_
-    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`, precise)
-
-# context.is_enabled = false (omit relationships)
+## 1. pkg/services/dashboards/service/dashboard_service.go
 - `method DashboardServiceImpl.SaveDashboard` (L142-153)
 ```
 
@@ -491,49 +463,30 @@ fromAddr := "[REDACTED]"
 Older keys remain accepted; when both appear in the same file, the current key takes precedence.
 
 <details class="cfg-details">
-<summary>Show all 38 legacy key mappings</summary>
+<summary>Show all 17 legacy key mappings</summary>
 
 | Legacy key | Current key |
 | --- | --- |
 | `tool_output.is_redact_enabled` | `output.is_redact_enabled` |
-| `search.result_threshold` | `output.search.detail_file_limit` |
-| `search.search_overview_file_limit` | `output.search.overview_file_limit` |
-| `search.search_detail_snippet_max_lines` | `output.search.snippet_max_lines` |
-| `search.search_detail_symbol_limit` | `output.search.symbol_limit` |
 | `search.search_detail_byte_cap` | `output.search.max_bytes` |
-| `search.search_literal_max_len` | `output.search.literal_max_chars` |
-| `search.search_literal_limit` | `output.search.literal_limit` |
-| `search.search_anchor_snippet_limit` | `output.search.anchor_snippet_limit` |
 | `tool_output.read_output_byte_cap` | `output.read.max_bytes` |
-| `tool_output.grep_max_columns` | `output.grep.max_columns` |
 | `caller_context.caller_context_default` | `output.context.is_enabled` |
-| `caller_context.caller_list_cap` | `output.context.caller_limit` |
-| `caller_context.callee_list_cap` | `output.context.callee_limit` |
-| `caller_context.annotation_sub_budget` | `output.context.max_bytes` |
-| `caller_context.common_name_threshold` | `output.context.common_name_threshold` |
-| `caller_context.caller_omit_def_threshold` | `output.context.caller_omit_def_threshold` |
 | `index.index_path` | `index.path` |
 | `index.max_file_size` | `index.max_file_bytes` |
-| `caller_context.navigation_store_references` | `index.store_references` |
 | `refresh.watch` | `index.refresh.watch` |
-| `refresh.watch_debounce_ms` | `index.refresh.watch_debounce_ms` |
-| `refresh.index_staleness_ms` | `index.refresh.index_staleness_ms` |
-| `refresh.indexer_auto_restart` | `index.refresh.indexer_auto_restart` |
 | `language_support.is_document_support_enabled` | `index.language_support.is_document_support_enabled` |
 | `language_support.is_shell_support_enabled` | `index.language_support.is_shell_support_enabled` |
 | `language_support.is_infrastructure_support_enabled` | `index.language_support.is_infrastructure_support_enabled` |
 | `language_support.is_interface_support_enabled` | `index.language_support.is_interface_support_enabled` |
 | `language_support.is_build_support_enabled` | `index.language_support.is_build_support_enabled` |
-| `caller_context.navigation_context_default` | `output.navigation.is_enabled` |
-| `caller_context.navigation_callsite_budget` | `output.navigation.callsite_budget` |
-| `caller_context.scan_cap` | `output.navigation.scan_limit` |
 | `redact.*` | `output.redact.*` |
 | `macro_expansion.*` | `output.macro_expansion.*` |
 | `event_navigation.*` | `output.event_navigation.*` |
-| `analysis.navigation.*` | `output.navigation.*` |
 | `analysis.macro_expansion.*` | `output.macro_expansion.*` |
 | `analysis.event_navigation.*` | `output.event_navigation.*` |
 
 </details>
+
+Schema v34 retires internal tuning knobs (`output.search.{detail_file_limit,overview_file_limit,snippet_max_lines,symbol_limit,literal_max_chars,literal_limit,anchor_snippet_limit}`, `output.context.{caller_limit,callee_limit,max_bytes,common_name_threshold,caller_omit_def_threshold}`, `output.navigation.*`, `output.grep.max_columns`, `output.macro_expansion.{nasm_path,nasm_flags,timeout_ms,max_output_bytes}`, `index.store_references`, `index.refresh.{watch_debounce_ms,index_staleness_ms,indexer_auto_restart}`) and removes them from synced repository configs while preserving user notes; unmigrated files containing retired keys warn and use compiled-in defaults.
 
 <ConfigCodeLens locale="en" />

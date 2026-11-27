@@ -41,42 +41,22 @@ export function simulateToolOutputs(s: PgState, locale: PgLocale): ToolRender[] 
         searchLines.push("- `method DashboardServiceImpl.SaveDashboard` (L142-153)");
 
         if (s.contextEnabled) {
-            searchLines.push(
-                s.navPrecise
-                    ? "  - _callers (tree-sitter precise; import/source resolution confirmed):_"
-                    : "  - _callers (approximate name scan):_",
-            );
+            searchLines.push("  - _callers (approximate name scan):_");
 
             const callers: string[] = [
-                s.navPrecise
-                    ? "    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`, precise)"
-                    : "    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)",
-                s.navPrecise
-                    ? "    - `pkg/services/provisioning/dashboards/file_reader.go:204` (`FileReader.saveDashboard`, precise)"
-                    : "    - `pkg/services/provisioning/dashboards/file_reader.go:204` (`FileReader.saveDashboard`)",
+                "    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`)",
+                "    - `pkg/services/provisioning/dashboards/file_reader.go:204` (`FileReader.saveDashboard`)",
             ];
-            if (s.storeRefs) {
-                callers.push("    - `pkg/registry/apis/dashboards/legacy.go:64` (`SaveDashboardDTO` reference)");
-            }
             if (s.includeTests) {
                 callers.push(
                     "    - `pkg/services/dashboards/service/dashboard_service_test.go:88` (`TestSaveDashboard`)",
                 );
             }
-            searchLines.push(...callers.slice(0, s.callerLimit));
-            if (callers.length > s.callerLimit) {
-                searchLines.push(
-                    `    - _(+${callers.length - s.callerLimit} more omitted by output.context.caller_limit=${s.callerLimit})_`,
-                );
-            }
+            searchLines.push(...callers);
 
+            searchLines.push("  - _calls (depth 1, approximate):_");
             searchLines.push(
-                s.navPrecise ? "  - _calls (depth 1, tree-sitter precise):_" : "  - _calls (depth 1, approximate):_",
-            );
-            searchLines.push(
-                s.navPrecise
-                    ? "    - `DashboardServiceImpl.buildSaveDashboardCommand` — `pkg/services/dashboards/service/dashboard_service.go:96` (`precise`)"
-                    : "    - `buildSaveDashboardCommand` — `pkg/services/dashboards/service/dashboard_service.go:96`",
+                "    - `buildSaveDashboardCommand` — `pkg/services/dashboards/service/dashboard_service.go:96`",
             );
         }
 
@@ -103,14 +83,7 @@ export function simulateToolOutputs(s: PgState, locale: PgLocale): ToolRender[] 
             "152→    return res, nil",
             "153→}",
         ];
-        if (s.snippetMaxLines < fullSaveLines.length) {
-            searchLines.push(...fullSaveLines.slice(0, s.snippetMaxLines));
-            searchLines.push(
-                `... [snippet capped at ${s.snippetMaxLines} lines; read pkg/services/dashboards/service/dashboard_service.go L${142 + s.snippetMaxLines}-153]`,
-            );
-        } else {
-            searchLines.push(...fullSaveLines);
-        }
+        searchLines.push(...fullSaveLines);
 
         if (s.jevEnabled && s.jevScope.includes("search")) {
             searchLines.push(
@@ -165,20 +138,9 @@ export function simulateToolOutputs(s: PgState, locale: PgLocale): ToolRender[] 
             });
         }
 
-        const tailRows: string[] = [];
-        for (let i = 0; i < extraCandidates.length; i++) {
-            const rank = i + 2;
-            if (rank <= s.detailFileLimit) {
-                searchLines.push("");
-                searchLines.push(...extraCandidates[i].detail);
-            } else {
-                tailRows.push(`- ${rank}. \`${extraCandidates[i].path}\``);
-            }
-        }
-        if (tailRows.length > 0) {
+        for (const cand of extraCandidates) {
             searchLines.push("");
-            searchLines.push(`## Ranked tail (compact; detail_file_limit = ${s.detailFileLimit})`);
-            searchLines.push(...tailRows);
+            searchLines.push(...cand.detail);
         }
     }
 
@@ -224,11 +186,7 @@ export function simulateToolOutputs(s: PgState, locale: PgLocale): ToolRender[] 
     if (s.indexMode === "off") {
         readLines.push('[Outside callers unavailable: indexing is disabled ([index].mode = "off").]');
     } else if (s.outsideCallers) {
-        readLines.push(
-            s.navPrecise
-                ? "[Callers from outside this window (tree-sitter precise)]"
-                : "[Callers from outside this window (static analysis, approximate)]",
-        );
+        readLines.push("[Callers from outside this window (static analysis, approximate)]");
         readLines.push(
             "- SendNotification L38: pkg/services/ngalert/notifier/channels/email.go:164 (EmailNotifier.Notify)",
         );
@@ -251,30 +209,22 @@ export function simulateToolOutputs(s: PgState, locale: PgLocale): ToolRender[] 
         '48:var ErrDashboardVersionMismatch = errors.New("the dashboard has been changed by someone else")';
     const rawGrepLine2 = `42:    webhookSigningKey := "${maskValue(s, "sensWebhook", "whsec_live_98a7bc65d4ef3210")}" // notify=${maskValue(s, "email", "alerts@grafana.example.com")}`;
 
-    const clampCol = (ln: string) => {
-        if (s.grepMaxColumns > 0 && ln.length > s.grepMaxColumns) {
-            const lineNo = ln.split(":")[0];
-            return `${lineNo}:[Omitted long matching line (${ln.length} > max_columns=${s.grepMaxColumns})]`;
-        }
-        return ln;
-    };
-
     const grepLines: string[] = [
         `# codemap-search (permission: ${s.fsPerm})`,
         "## 1. pkg/services/dashboards/models.go",
-        clampCol(rawGrepLine1),
+        rawGrepLine1,
         "",
         "## 2. pkg/services/notifications/mailer.go",
     ];
     if (s.jevEnabled && s.jevScope.includes("grep")) {
         grepLines.push(`- _omitted match: L42 (Mailer.SendNotification) Jev (${s.jevModel}) found no task match._`);
     } else {
-        grepLines.push(clampCol(rawGrepLine2));
+        grepLines.push(rawGrepLine2);
     }
     if (s.exclDirs === "empty") {
         grepLines.push("");
         grepLines.push("## 3. vendor/github.com/grafana/sdk/errors.go");
-        grepLines.push(clampCol('19:    ErrDashboardVersionMismatch = "version-mismatch"'));
+        grepLines.push('19:    ErrDashboardVersionMismatch = "version-mismatch"');
     }
 
     const findParams: Array<[string, string]> = [
@@ -336,23 +286,18 @@ export function simulateToolOutputs(s: PgState, locale: PgLocale): ToolRender[] 
     } else {
         const baseFiles = 19757 + (s.docSupport ? 1840 : 0) + (s.exclDirs === "empty" ? 4120 : 0);
         const baseSymbols = 312480 + (s.docSupport ? 14200 : 0) + (s.exclDirs === "empty" ? 58900 : 0);
-        const baseBytes =
-            143130624 +
-            (s.storeRefs ? 19400000 : 0) +
-            (s.docSupport ? 6200000 : 0) +
-            (s.exclDirs === "empty" ? 31500000 : 0);
+        const baseBytes = 143130624 + (s.docSupport ? 6200000 : 0) + (s.exclDirs === "empty" ? 31500000 : 0);
         const rows: Array<[string, string, number, number]> = [
-            ["pkg/services/sqlstore/migrations/migrations.go", "go", s.storeRefs ? 114820 : 98210, 2140],
+            ["pkg/services/sqlstore/migrations/migrations.go", "go", 98210, 2140],
             s.docSupport
                 ? ["docs/sources/administration/configuration/index.md", "markdown", 91400, 1960]
-                : ["pkg/api/api.go", "go", s.storeRefs ? 71200 : 61400, 1180],
+                : ["pkg/api/api.go", "go", 61400, 1180],
         ];
         analyzeLines = JSON.stringify(
             {
                 target: "index",
                 status: "ok",
                 index_mode: s.indexMode,
-                store_references: s.storeRefs,
                 summary: { files: baseFiles, symbols: baseSymbols, stored_bytes: baseBytes },
                 columns: ["path", "language", "stored", "lines"],
                 rows,
