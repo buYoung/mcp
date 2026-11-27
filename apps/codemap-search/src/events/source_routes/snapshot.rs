@@ -6,6 +6,7 @@ use crate::parser::{CodeRange, ExtractedFile};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -74,17 +75,114 @@ fn locations(relation: &Relation) -> Vec<&Location> {
         .collect()
 }
 
+/// Prepared inputs for computing a [`Snapshot`] lazily on demand so large snapshots neither
+/// block initial publication, retain masked source copies in memory, nor burn background CPU
+/// during sessions that never query source routes.
+pub(crate) struct PreparedBuild {
+    files: Vec<Arc<ExtractedFile>>,
+    sources: Arc<HashMap<String, String>>,
+    root: std::path::PathBuf,
+    max_endpoints: usize,
+    configured_endpoints_per_file: BTreeMap<String, usize>,
+    cache_directory: Option<std::path::PathBuf>,
+}
+
+impl PreparedBuild {
+    pub(crate) fn source_count(&self) -> usize {
+        self.sources.len()
+    }
+
+    pub(crate) fn run(self, cancelled: &AtomicBool) -> Option<Snapshot> {
+        if cancelled.load(Ordering::Acquire) {
+            return None;
+        }
+        let inputs = mask_inputs(&self.sources, &self.root);
+        if cancelled.load(Ordering::Acquire) {
+            return None;
+        }
+        let cache = self.cache_directory.as_deref().and_then(|directory| {
+            open_cache(
+                directory,
+                &self.root,
+                &self.files,
+                &self.sources,
+                &inputs,
+                self.max_endpoints,
+                &self.configured_endpoints_per_file,
+            )
+        });
+        super::cache::load_or_build(cache, cancelled, || {
+            if cancelled.load(Ordering::Acquire) {
+                return None;
+            }
+            let bindings = super::manifests::bindings(&self.sources);
+            let analysis = super::analyze_with_bindings(&inputs, &bindings);
+            if cancelled.load(Ordering::Acquire) {
+                return None;
+            }
+            Some(Snapshot::from_analysis(
+                analysis,
+                &self.files,
+                &self.sources,
+                &self.root,
+                self.max_endpoints,
+                &self.configured_endpoints_per_file,
+            ))
+        })
+    }
+}
+
+fn mask_inputs(sources: &HashMap<String, String>, root: &Path) -> BTreeMap<String, String> {
+    let filter = crate::callers::test_code::TestCodeFilter::from_config(root);
+    let mut inputs = BTreeMap::new();
+    for (path, data) in sources {
+        if filter.is_file_excluded(path) {
+            continue;
+        }
+        let mut bytes = data.as_bytes().to_vec();
+        filter.mask_source(path, &mut bytes);
+        if let Ok(data) = String::from_utf8(bytes) {
+            inputs.insert(path.clone(), data);
+        }
+    }
+    inputs
+}
+
+fn open_cache(
+    directory: &Path,
+    root: &Path,
+    files: &[Arc<ExtractedFile>],
+    sources: &HashMap<String, String>,
+    inputs: &BTreeMap<String, String>,
+    max_endpoints: usize,
+    configured_endpoints_per_file: &BTreeMap<String, usize>,
+) -> Option<super::cache::SnapshotCache> {
+    super::cache::SnapshotCache::open(
+        directory,
+        &(
+            root,
+            super::super::config_stamp(),
+            crate::config::get().max_file_size,
+            files,
+            sources.iter().collect::<BTreeMap<_, _>>(),
+            inputs,
+            max_endpoints,
+            configured_endpoints_per_file,
+        ),
+    )
+}
+
 impl Snapshot {
-    pub fn build(
+    pub(crate) fn prepare(
         files: &[std::sync::Arc<ExtractedFile>],
-        sources: &HashMap<String, String>,
+        sources: Arc<HashMap<String, String>>,
         root: &Path,
         max_endpoints: usize,
-        configured_endpoints_per_file: &BTreeMap<String, usize>,
+        configured_endpoints_per_file: BTreeMap<String, usize>,
         cache_directory: Option<&Path>,
-    ) -> Self {
+    ) -> Result<Self, Box<PreparedBuild>> {
         if !crate::config::get().event_navigation.is_enabled {
-            return Self::default();
+            return Ok(Self::default());
         }
         // Rendering reads indexed declarations only to decide Rust cfg activation, so the cache
         // key and the rendering both take the Rust files alone: edits elsewhere reuse the cache.
@@ -93,46 +191,14 @@ impl Snapshot {
             .filter(|file| file.file_path.ends_with(".rs"))
             .cloned()
             .collect();
-        let files = files.as_slice();
-        let filter = crate::callers::test_code::TestCodeFilter::from_config(root);
-        let mut inputs = BTreeMap::new();
-        for (path, data) in sources {
-            if filter.is_file_excluded(path) {
-                continue;
-            }
-            let mut bytes = data.as_bytes().to_vec();
-            filter.mask_source(path, &mut bytes);
-            if let Ok(data) = String::from_utf8(bytes) {
-                inputs.insert(path.clone(), data);
-            }
-        }
-        let cache = cache_directory.and_then(|directory| {
-            super::cache::SnapshotCache::open(
-                directory,
-                &(
-                    root,
-                    super::super::config_stamp(),
-                    crate::config::get().max_file_size,
-                    files,
-                    sources.iter().collect::<BTreeMap<_, _>>(),
-                    &inputs,
-                    max_endpoints,
-                    configured_endpoints_per_file,
-                ),
-            )
-        });
-        super::cache::load_or_build(cache, || {
-            let bindings = super::manifests::bindings(sources);
-            let analysis = super::analyze_with_bindings(&inputs, &bindings);
-            Self::from_analysis(
-                analysis,
-                files,
-                sources,
-                root,
-                max_endpoints,
-                configured_endpoints_per_file,
-            )
-        })
+        Err(Box::new(PreparedBuild {
+            files,
+            sources,
+            root: root.to_path_buf(),
+            max_endpoints,
+            configured_endpoints_per_file,
+            cache_directory: cache_directory.map(Path::to_path_buf),
+        }))
     }
 
     pub(super) fn restore_indexes(&mut self) {

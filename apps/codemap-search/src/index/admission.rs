@@ -1,7 +1,8 @@
 //! Whether and when the MCP server indexes its workspace (`[index].mode`). In `auto` mode a
 //! folder outside any repository (for example a parent of several repositories) is never
-//! walked, and a repository is indexed only once an index-backed tool is used and its
-//! indexable file count stays within `[index].auto_max_files`.
+//! walked; a repository with an existing current-format index within `[index].auto_max_files`
+//! hydrates at startup, and otherwise indexing starts on the first index-backed tool call once
+//! its indexable file count stays within `[index].auto_max_files`.
 
 use std::path::{Path, PathBuf};
 
@@ -33,12 +34,61 @@ pub fn decide(cwd: &Path) -> Admission {
         IndexMode::Auto => {
             let cwd = crate::workspace::path_resolved_from_cwd(cwd);
             if is_inside_repository(&cwd) {
-                Admission::Deferred
+                if has_current_committed_index_within_limit(&cwd) {
+                    Admission::Eager
+                } else {
+                    Admission::Deferred
+                }
             } else {
                 Admission::Unavailable(outside_repository_message(&cwd))
             }
         }
     }
+}
+
+/// True when the configured index directory already holds committed Tantivy segments in the
+/// current extraction format whose live document count fits within `[index].auto_max_files`,
+/// so `auto` mode can hydrate the existing index at startup without re-walking an unindexed
+/// workspace, triggering a format-upgrade rebuild on startup, or bypassing `auto_max_files`.
+fn has_current_committed_index_within_limit(cwd: &Path) -> bool {
+    let cfg = crate::config::get();
+    let configured = PathBuf::from(&cfg.index_path);
+    let index_dir = if configured.is_absolute() {
+        configured
+    } else {
+        cwd.join(configured)
+    };
+    if !super::engine::has_current_format(&index_dir) {
+        return false;
+    }
+    let Ok(bytes) = std::fs::read(index_dir.join("meta.json")) else {
+        return false;
+    };
+    let Ok(meta) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+        return false;
+    };
+    let Some(segments) = meta.get("segments").and_then(serde_json::Value::as_array) else {
+        return false;
+    };
+    if segments.is_empty() {
+        return false;
+    }
+    let live_docs: u64 = segments
+        .iter()
+        .map(|segment| {
+            let max_doc = segment
+                .get("max_doc")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0);
+            let deleted = segment
+                .get("deletes")
+                .and_then(|deletes| deletes.get("num_deleted_docs"))
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0);
+            max_doc.saturating_sub(deleted)
+        })
+        .sum();
+    live_docs > 0 && live_docs <= cfg.index_auto_max_files as u64
 }
 
 /// The deferred size check: `Some(message)` when more indexable files than

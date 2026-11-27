@@ -128,7 +128,13 @@
               }
             ],
             "namespace": "",
-            "conditions": []
+            "conditions": [],
+            "range": {
+              "startLine": 6,
+              "startCol": 1,
+              "endLine": 8,
+              "endCol": 2
+            }
           }
         ],
         "calls": [

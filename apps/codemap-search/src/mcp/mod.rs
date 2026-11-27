@@ -20,6 +20,16 @@ use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 /// JSON-RPC code for an unknown tool name, the only protocol error raised after tool dispatch.
 const TOOL_NOT_FOUND_CODE: i64 = -32601;
 
+/// Client identifier reported by Antigravity (`agy`) during MCP `initialize`.
+const ANTIGRAVITY_CLIENT_NAME: &str = "antigravity-client";
+/// Antigravity hard-truncates single tool outputs at 10 KiB (10,240 bytes including its
+/// ~78 B timestamp header). Bound every delivered text response cleanly to 9,900 bytes.
+const ANTIGRAVITY_DELIVERY_BYTE_CAP: usize = 9_900;
+const ANTIGRAVITY_INSTRUCTIONS: &str = "\
+## Client output budget (10 KiB)
+This client clips outputs above 10 KiB, so codemap-search fits each response cleanly inside ~9.9 KiB.
+If a response notes clipped lines (`offset=N`), deferred ranges, or a `grep` `next_offset`, continue with only the remaining range or offset needed to verify every hop and citation.";
+
 /// A tool result whose only content is `text`.
 fn text_content(text: &str) -> serde_json::Value {
     serde_json::json!({"content": [{"type": "text", "text": text}]})
@@ -72,7 +82,7 @@ fn enforce_client_delivery_cap(
     arguments: Option<&Value>,
     response: &Value,
 ) -> Result<(), (i64, String)> {
-    let Some(cap) = crate::config::get().client_output.delivery_byte_cap() else {
+    let Some(cap) = crate::config::effective_client_delivery_byte_cap() else {
         return Ok(());
     };
     let bytes = response_text_bytes(response);
@@ -86,6 +96,77 @@ fn enforce_client_delivery_cap(
         _ => "Narrow the path/query.".into(),
     };
     Err((-32602, format!("{name} output ({bytes} bytes) exceeds the output.client delivery limit of {cap} bytes. {narrowing}")))
+}
+
+/// Last-resort line-boundary trim for connection-capped clients (e.g. `antigravity-client`)
+/// if an unbudgeted tool (such as `overview` or `initial_instructions`) or post-render
+/// expansion still exceeds `cap`. Returns `true` when trimming was applied.
+fn trim_to_session_cap(name: &str, response: &mut Value, cap: usize) -> bool {
+    let total_bytes = response_text_bytes(response);
+    if total_bytes <= cap {
+        return false;
+    }
+    let Some(text_value) = response
+        .get("content")
+        .and_then(Value::as_array)
+        .and_then(|items| items.first())
+        .and_then(|item| item.get("text"))
+        .and_then(Value::as_str)
+        .map(str::to_owned)
+    else {
+        return false;
+    };
+    let other_bytes = total_bytes.saturating_sub(text_value.len());
+    let target = cap.saturating_sub(other_bytes);
+    let footer = format!(
+        "\n[Output trimmed to {cap} bytes for 10 KiB client limit; narrow path/query or request a smaller range.]"
+    );
+    if target <= footer.len() {
+        return false;
+    }
+    let mut fence_close = "";
+    let mut cut;
+    loop {
+        let allowed = target.saturating_sub(footer.len() + fence_close.len());
+        let mut end = allowed.min(text_value.len());
+        while end > 0 && !text_value.is_char_boundary(end) {
+            end -= 1;
+        }
+        let snapped = text_value[..end].rfind('\n').unwrap_or(end);
+        let prefix = &text_value[..snapped];
+        let is_open_fence = prefix
+            .lines()
+            .filter(|line| line.trim_start().starts_with("```"))
+            .count()
+            % 2
+            == 1;
+        let next_fence = if is_open_fence { "\n```" } else { "" };
+        cut = snapped;
+        if next_fence == fence_close {
+            break;
+        }
+        fence_close = next_fence;
+    }
+    let mut trimmed = String::with_capacity(cut + fence_close.len() + footer.len());
+    trimmed.push_str(&text_value[..cut]);
+    trimmed.push_str(fence_close);
+    trimmed.push_str(&footer);
+    tracing::warn!(
+        tool = name,
+        original_bytes = total_bytes,
+        trimmed_bytes = trimmed.len(),
+        cap,
+        "session delivery cap safety-net trim applied"
+    );
+    if let Some(slot) = response
+        .get_mut("content")
+        .and_then(Value::as_array_mut)
+        .and_then(|items| items.first_mut())
+        .and_then(|item| item.get_mut("text"))
+    {
+        *slot = Value::String(trimmed);
+    }
+    true
 }
 
 /// Scale the returned numbered source rows to a window that fits the delivery limit.
@@ -158,6 +239,7 @@ pub struct McpServer {
     global_instructions: global_instructions::GlobalInstructions,
     jev: jev::JevHost,
     related_terms: Option<crate::related_terms::runtime::RelatedTermsRuntime>,
+    client_name: Option<String>,
 }
 
 impl McpServer {
@@ -180,6 +262,7 @@ impl McpServer {
             global_instructions: global_instructions::GlobalInstructions::default(),
             jev: jev::JevHost::default(),
             related_terms,
+            client_name: None,
         }
     }
 
@@ -376,6 +459,9 @@ impl McpServer {
         // the loop is sequential and the runtime is single-threaded, so no other request can
         // observe or replace them while a Jev stage is in flight.
         let _config_scope = crate::config::pin_request();
+        let session_cap = (self.client_name.as_deref() == Some(ANTIGRAVITY_CLIENT_NAME))
+            .then_some(ANTIGRAVITY_DELIVERY_BYTE_CAP);
+        let _session_cap_scope = crate::config::pin_session_delivery_cap(session_cap);
         let _redact_scope = crate::redact::begin_request();
         let started = std::time::Instant::now();
         self.pending_source_files.clear();
@@ -452,15 +538,21 @@ impl McpServer {
         };
         // Removing a very short repeat may add a slightly longer marker. Check
         // the final response too, and never commit evidence from a rejected one.
-        let result = result.and_then(|value| {
+        let mut trimmed_by_session_cap = false;
+        let result = result.and_then(|mut value| {
             if let Some(name) = tool_name {
                 enforce_response_cap(name, &value)?;
+                if let Some(effective_cap) = crate::config::session_delivery_byte_cap()
+                    .and_then(|_| crate::config::effective_client_delivery_byte_cap())
+                {
+                    trimmed_by_session_cap = trim_to_session_cap(name, &mut value, effective_cap);
+                }
                 let arguments = params.and_then(|params| params.get("arguments"));
                 enforce_client_delivery_cap(name, arguments, &value)?;
             }
             Ok(value)
         });
-        if result.is_err() {
+        if result.is_err() || trimmed_by_session_cap {
             self.source_history.discard_pending();
         }
         if let Some(name) = tool_name {
@@ -528,9 +620,13 @@ impl McpServer {
                 let client_name = params
                     .and_then(|p| p.pointer("/clientInfo/name"))
                     .and_then(Value::as_str);
+                self.client_name = client_name.map(str::to_owned);
                 if client_name == Some("codex-mcp-client") {
                     instructions.push_str("\n\n");
                     instructions.push_str(&crate::tools::codex_exec_instructions());
+                } else if client_name == Some(ANTIGRAVITY_CLIENT_NAME) {
+                    instructions.push_str("\n\n");
+                    instructions.push_str(ANTIGRAVITY_INSTRUCTIONS);
                 }
                 Ok(serde_json::json!({
                     "protocolVersion": protocol_version,

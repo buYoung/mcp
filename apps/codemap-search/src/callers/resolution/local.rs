@@ -144,20 +144,52 @@ fn has_identifier(node: Node, source: &Source, name: &str) -> bool {
     found
 }
 
+/// Whether `declarator`, a declarator of a node around `call`, declares `name` for the call.
+/// A declarator that holds the call is the variable the call initializes, as in
+/// `int total = sum();`, and declares nothing the call can name.
+fn declarator_declares(declarator: Node, call: Node, source: &Source, name: &str) -> bool {
+    !contains(declarator, call) && declares(declarator, false, source, name)
+}
+
+/// Whether the declarator `node` declares `name`: as one of the parameters of a function
+/// declarator, or as the name of any other declarator. The name of a function is the function
+/// itself, which a recursive call names, and an initial value declares nothing.
+fn declares(node: Node, is_function: bool, source: &Source, name: &str) -> bool {
+    if let Some(parameters) = node.child_by_field_name("parameters") {
+        return has_identifier(parameters, source, name)
+            || node
+                .child_by_field_name("declarator")
+                .is_some_and(|inner| declares(inner, true, source, name));
+    }
+    if let Some(inner) = node
+        .child_by_field_name("declarator")
+        .or_else(|| node.child_by_field_name("name"))
+    {
+        return declares(inner, is_function, source, name);
+    }
+    if node.named_child_count() == 0 {
+        return !is_function && has_identifier(node, source, name);
+    }
+    let mut cursor = node.walk();
+    let found = node
+        .named_children(&mut cursor)
+        .any(|child| declares(child, is_function, source, name));
+    found
+}
+
 fn has_parameter(mut at: Node, source: &Source, name: &str) -> bool {
+    let call = at;
     loop {
-        if [
-            "parameters",
-            "parameter",
-            "type_parameters",
-            "declarator",
-            "signature",
-        ]
-        .iter()
-        .any(|field| {
-            at.child_by_field_name(field)
-                .is_some_and(|node| has_identifier(node, source, name))
-        }) {
+        if ["parameters", "parameter", "type_parameters", "signature"]
+            .iter()
+            .any(|field| {
+                at.child_by_field_name(field)
+                    .is_some_and(|node| has_identifier(node, source, name))
+            })
+            || at
+                .child_by_field_name("declarator")
+                .is_some_and(|node| declarator_declares(node, call, source, name))
+        {
             return true;
         }
         // Some grammars expose formal parameters as named children without a field.
@@ -225,6 +257,9 @@ const UNTYPED: &[&str] = &[
     "mixed",
 ];
 
+/// Path keywords that stand for a type or module the path does not spell out.
+const RELATIVE_SCOPES: &[&str] = &["Self", "self", "super", "crate", "static", "parent"];
+
 fn is_simple_identifier(text: &str) -> bool {
     !text.is_empty()
         && text
@@ -246,6 +281,93 @@ fn module_may_hold(module: &str, target_file: &str) -> bool {
         .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '-'))
         .filter(|segment| !segment.is_empty())
         .any(|segment| components.contains(&segment.to_lowercase()))
+}
+
+/// The type a parameter writes when its grammar gives that type no field, as Kotlin does.
+fn unlabelled_type(parameter: Node) -> Option<Node> {
+    let mut cursor = parameter.walk();
+    let found = parameter
+        .named_children(&mut cursor)
+        .find(|child| child.kind().ends_with("_type"));
+    found
+}
+
+/// Whether the function declared at `node` extends a type it is not a member of, as Kotlin
+/// `fun Type.name()`, C# `Name(this Type value)` and the members of a Dart or Scala
+/// `extension` do: member syntax on a value of that type or of any subtype reaches it.
+fn extends_receiver(node: Node, source: &Source) -> bool {
+    let follows_receiver = node
+        .child_by_field_name("name")
+        .and_then(|name| name.prev_sibling())
+        .is_some_and(|previous| previous.kind() == ".");
+    let mut block = node.parent();
+    while let Some(parent) = block.filter(|parent| !parent.kind().starts_with("extension")) {
+        block = parent.parent();
+    }
+    follows_receiver
+        || block.is_some()
+        || node
+            .child_by_field_name("parameters")
+            .and_then(|parameters| parameters.named_child(0))
+            .is_some_and(|parameter| {
+                let mut cursor = parameter.walk();
+                let extends = parameter
+                    .children(&mut cursor)
+                    .any(|child| child.kind() == "modifier" && text(child, source) == Some("this"));
+                extends
+            })
+}
+
+/// The path before the last `::` of the callee at `at`, e.g. `std::cmp` in
+/// `std::cmp::max(a, b)`.
+fn scope_path<'s>(at: Node, source: &'s Source) -> Option<&'s str> {
+    // PHP keeps the scope in the call itself; Rust and C++ keep it in the callee.
+    if at.kind() == "scoped_call_expression" {
+        return at
+            .child_by_field_name("scope")
+            .and_then(|scope| text(scope, source));
+    }
+    let mut callee = at.child_by_field_name("function")?;
+    while let Some(inner) = callee.child_by_field_name("function") {
+        callee = inner;
+    }
+    if !matches!(callee.kind(), "scoped_identifier" | "qualified_identifier") {
+        return None;
+    }
+    text(callee, source)?
+        .rsplit_once("::")
+        .map(|(path, _)| path)
+}
+
+fn names_type(node: Node, source: &Source, name: &str) -> bool {
+    if matches!(node.kind(), "type_identifier" | "identifier") && text(node, source) == Some(name) {
+        return true;
+    }
+    let mut cursor = node.walk();
+    let found = node
+        .named_children(&mut cursor)
+        .any(|child| names_type(child, source, name));
+    found
+}
+
+/// Whether a declaration around `at` introduces `name` as a type parameter or names it in a
+/// bound of one.
+fn has_type_parameter(mut at: Node, source: &Source, name: &str) -> bool {
+    loop {
+        let declares = ["type_parameters", "parameters"].iter().any(|field| {
+            at.child_by_field_name(field).is_some_and(|list| {
+                matches!(list.kind(), "type_parameters" | "template_parameter_list")
+                    && names_type(list, source, name)
+            })
+        });
+        if declares {
+            return true;
+        }
+        let Some(parent) = at.parent() else {
+            return false;
+        };
+        at = parent;
+    }
 }
 
 /// A bare callee or receiver bound only by imports from modules that cannot hold the target
@@ -344,6 +466,7 @@ fn declared_type(source: &Source, at: Node, name: &str) -> Option<String> {
                 }
                 return parameter
                     .child_by_field_name("type")
+                    .or_else(|| unlabelled_type(parameter))
                     .and_then(|node| text(node, source))
                     .map(|value| value.trim().trim_start_matches(':').trim().to_string())
                     .filter(|value| !value.is_empty());
@@ -354,11 +477,481 @@ fn declared_type(source: &Source, at: Node, name: &str) -> Option<String> {
     None
 }
 
+/// Extracts the constructor/factory callee path (e.g. `Flask`, `flask.Flask`) when `binding_node`
+/// is initialized directly by a call or `new` expression (`app = Flask(...)`,
+/// `const app = createApp()`, `var app = new Client()`).
+fn initializer_callee_path(binding_node: Node, source: &Source) -> Option<String> {
+    let mut cur = binding_node;
+    let mut init_expr = None;
+    for _ in 0..4 {
+        if let Some(rhs) = cur
+            .child_by_field_name("right")
+            .or_else(|| cur.child_by_field_name("value"))
+            .or_else(|| cur.child_by_field_name("initializer"))
+        {
+            if !contains(rhs, binding_node) {
+                init_expr = Some(rhs);
+                break;
+            }
+        }
+        if matches!(
+            cur.kind(),
+            "assignment"
+                | "augmented_assignment"
+                | "variable_declarator"
+                | "init_declarator"
+                | "short_var_declaration"
+                | "property_declaration"
+                | "let_declaration"
+        ) {
+            // Some grammars (e.g. Kotlin `property_declaration`, Go `short_var_declaration`) hold
+            // the initializer as the last named child rather than a `value`/`right` field.
+            let mut cursor = cur.walk();
+            for child in cur.named_children(&mut cursor) {
+                if !contains(child, binding_node)
+                    && matches!(
+                        child.kind(),
+                        "call"
+                            | "call_expression"
+                            | "new_expression"
+                            | "object_creation_expression"
+                            | "invocation_expression"
+                            | "expression_list"
+                    )
+                {
+                    init_expr = Some(if child.kind() == "expression_list" {
+                        child.named_child(0)?
+                    } else {
+                        child
+                    });
+                    break;
+                }
+            }
+            if init_expr.is_some() {
+                break;
+            }
+        }
+        cur = cur.parent()?;
+    }
+    let expr = init_expr?;
+    let callee = match expr.kind() {
+        "call" | "call_expression" | "invocation_expression" => expr
+            .child_by_field_name("function")
+            .or_else(|| expr.named_child(0))?,
+        "new_expression" => expr.child_by_field_name("constructor")?,
+        "object_creation_expression" => expr.child_by_field_name("type")?,
+        _ => return None,
+    };
+    let raw = text(callee, source)?.trim();
+    let base = raw.split(['<', '(']).next()?.trim();
+    if base.is_empty()
+        || !base
+            .chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | ':' | '$'))
+    {
+        return None;
+    }
+    Some(base.to_string())
+}
+
+/// Counts arguments at call site `at` when the argument list parses cleanly and contains no
+/// splat/spread/unpack arguments (`*args`, `**kwargs`, `...spread`).
+fn fixed_call_argument_count(source: &Source, at: Node) -> Option<usize> {
+    let args = at.child_by_field_name("arguments").or_else(|| {
+        let mut cursor = at.walk();
+        let found = at.named_children(&mut cursor).find(|c| {
+            matches!(
+                c.kind(),
+                "argument_list" | "arguments" | "value_arguments" | "call_suffix"
+            )
+        });
+        found
+    })?;
+    let args = if args.kind() == "call_suffix" {
+        let mut cursor = args.walk();
+        let found = args
+            .named_children(&mut cursor)
+            .find(|c| c.kind() == "value_arguments")?;
+        found
+    } else {
+        args
+    };
+    if args.has_error() {
+        return None;
+    }
+    let mut count = 0usize;
+    let mut cursor = args.walk();
+    for child in args.named_children(&mut cursor) {
+        if matches!(child.kind(), "comment" | "line_comment" | "block_comment") {
+            continue;
+        }
+        if matches!(
+            child.kind(),
+            "list_splat"
+                | "dictionary_splat"
+                | "spread_element"
+                | "splat_argument"
+                | "hash_splat_argument"
+                | "variadic_argument"
+                | "argument_unpacking"
+        ) {
+            return None;
+        }
+        if let Some(raw) = text(child, source) {
+            let t = raw.trim();
+            if t.starts_with('*') || t.starts_with("...") || t.ends_with("...") {
+                return None;
+            }
+        }
+        count += 1;
+    }
+    Some(count)
+}
+
+/// Returns `(min_args, max_args)` for `target_node` when its parameter list is non-variadic and
+/// unambiguous. Returns `None` on variadic parameters, syntax errors, or unrecognized nodes.
+fn fixed_target_param_bounds(
+    source: &Source,
+    target_node: Node,
+    language: &str,
+    target: &ExtractedSymbol,
+    has_receiver: bool,
+) -> Option<(usize, usize)> {
+    let mut fn_node = target_node;
+    if fn_node.kind() == "decorated_definition" {
+        fn_node = fn_node.child_by_field_name("definition")?;
+    }
+    // C/C++ declarators hold parameters inside `function_declarator`.
+    let params = fn_node
+        .child_by_field_name("parameters")
+        .or_else(|| {
+            fn_node
+                .child_by_field_name("declarator")
+                .and_then(|d| d.child_by_field_name("parameters"))
+        })
+        .or_else(|| {
+            let mut cursor = fn_node.walk();
+            let found = fn_node.named_children(&mut cursor).find(|c| {
+                matches!(
+                    c.kind(),
+                    "parameters"
+                        | "formal_parameters"
+                        | "parameter_list"
+                        | "function_value_parameters"
+                )
+            });
+            found
+        })?;
+    if params.has_error() {
+        return None;
+    }
+    let is_py_staticmethod = language == "python"
+        && target_node.kind() == "decorated_definition"
+        && text(target_node, source).is_some_and(|raw| raw.contains("@staticmethod"));
+    let mut min_args = 0usize;
+    let mut max_args = 0usize;
+    let mut first = true;
+    let mut cursor = params.walk();
+    for param in params.named_children(&mut cursor) {
+        if matches!(
+            param.kind(),
+            "comment"
+                | "line_comment"
+                | "block_comment"
+                | "positional_separator"
+                | "keyword_separator"
+        ) {
+            continue;
+        }
+        let raw = text(param, source).unwrap_or("").trim();
+        if matches!(
+            param.kind(),
+            "list_splat_pattern"
+                | "dictionary_splat_pattern"
+                | "rest_pattern"
+                | "spread_parameter"
+                | "variadic_parameter"
+                | "variadic_parameter_declaration"
+                | "splat_parameter"
+                | "hash_splat_parameter"
+        ) || raw.starts_with('*')
+            || raw.contains("...")
+            || raw.starts_with("params ")
+            || raw.starts_with("vararg ")
+            || raw.contains(" vararg ")
+        {
+            return None;
+        }
+        if first {
+            first = false;
+            if param.kind() == "self_parameter" {
+                continue;
+            }
+            if language == "python"
+                && target.owner.is_some()
+                && !is_py_staticmethod
+                && (raw == "self"
+                    || raw.starts_with("self:")
+                    || raw.starts_with("self ")
+                    || raw == "cls"
+                    || raw.starts_with("cls:")
+                    || raw.starts_with("cls "))
+            {
+                continue;
+            }
+            if language == "csharp" && has_receiver && raw.starts_with("this ") {
+                continue;
+            }
+            if matches!(language, "typescript" | "javascript")
+                && (raw == "this" || raw.starts_with("this:"))
+            {
+                continue;
+            }
+        }
+        // Go `func f(a, b int)` groups multiple identifiers inside one `parameter_declaration`.
+        if language == "go" && param.kind() == "parameter_declaration" {
+            let mut id_count = 0usize;
+            let mut p_cursor = param.walk();
+            for c in param.named_children(&mut p_cursor) {
+                if c.kind() == "identifier" {
+                    id_count += 1;
+                }
+            }
+            let n = id_count.max(1);
+            min_args += n;
+            max_args += n;
+            continue;
+        }
+        let is_optional = matches!(
+            param.kind(),
+            "default_parameter" | "typed_default_parameter" | "optional_parameter"
+        ) || param.child_by_field_name("default_value").is_some()
+            || raw.contains('=')
+            || (language == "typescript" && raw.contains("?:"));
+        max_args += 1;
+        if !is_optional {
+            min_args += 1;
+        }
+    }
+    Some((min_args, max_args))
+}
+
+impl<'a> SourceResolver<'a> {
+    /// P1: Verifies that `name` on 1-indexed `line` of `file_path` is a genuine code identifier
+    /// reference (not a comment/string/import/declaration) and is scope-compatible with
+    /// `target_file` (same file, explicit import from a compatible module, or unique definition
+    /// not imported from an unrelated module).
+    pub(crate) fn is_verified_non_call_reference(
+        &self,
+        file_path: &str,
+        line: usize,
+        name: &str,
+        target_file: &str,
+        own_def_count: usize,
+    ) -> bool {
+        let Some(source) = self.source(file_path) else {
+            return false;
+        };
+        let row = line.saturating_sub(1);
+        let root = source.syntax.tree.root_node();
+        let mut stack = vec![root];
+        let mut matched_node = None;
+        while let Some(node) = stack.pop() {
+            if node.end_position().row < row || node.start_position().row > row {
+                continue;
+            }
+            if node.start_position().row == row
+                && matches!(
+                    node.kind(),
+                    "identifier" | "simple_identifier" | "property_identifier" | "field_identifier"
+                )
+                && text(node, &source) == Some(name)
+            {
+                let parent_kind = node.parent().map(|p| p.kind()).unwrap_or("");
+                let in_import_or_use =
+                    std::iter::successors(node.parent(), |n| n.parent()).any(|anc| {
+                        matches!(
+                            anc.kind(),
+                            "import_from_statement"
+                                | "import_statement"
+                                | "import_declaration"
+                                | "use_declaration"
+                                | "import"
+                        )
+                    });
+                let in_cpp_fn_declarator = parent_kind == "function_declarator"
+                    || (parent_kind == "qualified_identifier"
+                        && node
+                            .parent()
+                            .and_then(|p| p.parent())
+                            .is_some_and(|gp| gp.kind() == "function_declarator"));
+                if !in_import_or_use
+                    && !in_cpp_fn_declarator
+                    && !matches!(
+                        parent_kind,
+                        "aliased_import"
+                            | "import_specifier"
+                            | "function_definition"
+                            | "function_declaration"
+                            | "method_definition"
+                            | "method_declaration"
+                            | "function_item"
+                    )
+                {
+                    matched_node = Some(node);
+                    break;
+                }
+            }
+            let mut cursor = node.walk();
+            for c in node.named_children(&mut cursor) {
+                stack.push(c);
+            }
+        }
+        let Some(at) = matched_node else {
+            return false;
+        };
+        if has_parameter(at, &source, name) {
+            return false;
+        }
+        if file_path == target_file {
+            return true;
+        }
+        let Some(navigation) = source.extracted.navigation.as_ref() else {
+            return own_def_count == 1;
+        };
+        let matching_imports: Vec<_> = navigation
+            .imports
+            .iter()
+            .filter(|imp| imp.local_name == name || imp.imported_name.as_deref() == Some(name))
+            .collect();
+        if !matching_imports.is_empty() {
+            return matching_imports.iter().any(|imp| {
+                imp.source
+                    .as_deref()
+                    .is_some_and(|m| module_may_hold(m, target_file))
+            });
+        }
+        // Qualified reference like `mod.handler`: check module import if present.
+        if let Some(parent) = at.parent().filter(|p| {
+            matches!(
+                p.kind(),
+                "attribute"
+                    | "member_expression"
+                    | "field_expression"
+                    | "scoped_identifier"
+                    | "qualified_identifier"
+            )
+        }) {
+            if let Some(obj) = parent.named_child(0).and_then(|o| text(o, &source)) {
+                let mod_imports: Vec<_> = navigation
+                    .imports
+                    .iter()
+                    .filter(|imp| imp.local_name == obj)
+                    .collect();
+                if !mod_imports.is_empty() {
+                    return mod_imports.iter().any(|imp| {
+                        imp.source
+                            .as_deref()
+                            .or(imp.imported_name.as_deref())
+                            .or(Some(imp.local_name.as_str()))
+                            .is_some_and(|m| module_may_hold(m, target_file))
+                    });
+                }
+            }
+        }
+        own_def_count == 1
+    }
+
+    /// P1: Verifies whether a Python class call `Cls(...)` on `line` of `file_path` is scope-
+    /// compatible with the Python class `name` declared in `target_file`.
+    pub(crate) fn is_python_class_call_compatible(
+        &self,
+        file_path: &str,
+        line: usize,
+        name: &str,
+        target_file: &str,
+        own_def_count: usize,
+    ) -> bool {
+        if !file_path.ends_with(".py") {
+            return false;
+        }
+        let Some(source) = self.source(file_path) else {
+            return false;
+        };
+        if file_path == target_file {
+            return true;
+        }
+        let Some(navigation) = source.extracted.navigation.as_ref() else {
+            return own_def_count == 1;
+        };
+        let matching_imports: Vec<_> = navigation
+            .imports
+            .iter()
+            .filter(|imp| imp.local_name == name || imp.imported_name.as_deref() == Some(name))
+            .collect();
+        if !matching_imports.is_empty() {
+            return matching_imports.iter().any(|imp| {
+                imp.source.as_deref().is_some_and(|m| {
+                    self.python_module(file_path, m)
+                        .map(|f| f.file_path == target_file)
+                        .unwrap_or_else(|| module_may_hold(m, target_file))
+                })
+            });
+        }
+        // Check `pkg.Cls(...)` qualified call on `line`.
+        let row = line.saturating_sub(1);
+        let root = source.syntax.tree.root_node();
+        let mut stack = vec![root];
+        while let Some(node) = stack.pop() {
+            if node.end_position().row < row || node.start_position().row > row {
+                continue;
+            }
+            if node.kind() == "call" && node.start_position().row == row {
+                if let Some(func) = node.child_by_field_name("function") {
+                    if func.kind() == "attribute"
+                        && func
+                            .child_by_field_name("attribute")
+                            .and_then(|a| text(a, &source))
+                            == Some(name)
+                    {
+                        if let Some(obj) = func
+                            .child_by_field_name("object")
+                            .and_then(|o| text(o, &source))
+                        {
+                            let head = obj.split('.').next().unwrap_or(obj);
+                            let mod_imports: Vec<_> = navigation
+                                .imports
+                                .iter()
+                                .filter(|imp| imp.local_name == head)
+                                .collect();
+                            if !mod_imports.is_empty() {
+                                return mod_imports.iter().any(|imp| {
+                                    let module =
+                                        imp.source.as_deref().unwrap_or(imp.local_name.as_str());
+                                    self.python_module(file_path, module)
+                                        .map(|f| f.file_path == target_file)
+                                        .unwrap_or_else(|| module_may_hold(module, target_file))
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            let mut cursor = node.walk();
+            for c in node.named_children(&mut cursor) {
+                stack.push(c);
+            }
+        }
+        false
+    }
+}
+
 impl<'a> SourceResolver<'a> {
     /// Source evidence that an unresolved call reaches something other than `target`: the
     /// calling file declares a type under the callee's name, the name is imported from an
-    /// unrelated module, or the receiver is declared with a type that is neither the target's
-    /// owner nor any indexed type.
+    /// unrelated module, the receiver is declared with a type that is neither the target's
+    /// owner nor any indexed type, or the call path names a type this repository does not
+    /// declare.
     pub(super) fn rules_out_local_call(
         &self,
         file: &ExtractedFile,
@@ -372,7 +965,7 @@ impl<'a> SourceResolver<'a> {
         // A function declaration directly inside another function is reachable by name only
         // from inside that function. Methods of local classes and functions stored in objects
         // are not covered: they can escape with their owner.
-        if let Some(declaring) = self.files_by_path.get(target_file) {
+        if let Some(declaring) = self.file_by_path(target_file) {
             let parent = declaring
                 .symbols
                 .iter()
@@ -412,20 +1005,192 @@ impl<'a> SourceResolver<'a> {
             return false;
         };
         import_rules_out(&source, at, call, target_file)
-            || self.receiver_type_rules_out(&source, at, call, target)
+            || self.receiver_type_rules_out(&source, at, call, target_file, target)
+            || self.external_initializer_rules_out(&source, at, call, target_file, target)
+            || self.arity_rules_out(&source, at, call, target_file, target)
+            || self.scope_rules_out(&source, at, target_file, target)
     }
 
+    /// C2: A receiver initialized directly from an external imported constructor/factory
+    /// (`from flask import Flask; app = Flask(__name__)`) cannot hold an instance of a workspace
+    /// type (`Router`), moving `@app.route(...)` out of `unconfirmed callers`.
+    fn external_initializer_rules_out(
+        &self,
+        source: &Source,
+        at: Node,
+        call: &CallSite,
+        target_file: &str,
+        target: &ExtractedSymbol,
+    ) -> bool {
+        let Some(receiver) = call
+            .receiver
+            .as_deref()
+            .filter(|receiver| is_simple_identifier(receiver))
+        else {
+            return false;
+        };
+        let receiver = receiver.trim_start_matches('$');
+        if self.is_extension(target_file, target) {
+            return false;
+        }
+        let Some(navigation) = source.extracted.navigation.as_ref() else {
+            return false;
+        };
+        let nearest = navigation
+            .local_bindings
+            .iter()
+            .filter(|binding| binding.name.trim_start_matches('$') == receiver)
+            .filter_map(|binding| {
+                let node = node_at(source, &binding.range)?;
+                let scope = lexical_scope(node);
+                (same_tree(node, at) && node.start_byte() <= at.start_byte() && contains(scope, at))
+                    .then(|| {
+                        (
+                            (
+                                scope.end_byte() - scope.start_byte(),
+                                std::cmp::Reverse(node.start_byte()),
+                            ),
+                            node,
+                        )
+                    })
+            })
+            .min_by_key(|(key, _)| *key);
+        let Some((_, binding_node)) = nearest else {
+            return false;
+        };
+        // A closer function parameter shadows an outer module-level binding.
+        if has_parameter(at, source, receiver) {
+            return false;
+        }
+        let Some(callee_path) = initializer_callee_path(binding_node, source) else {
+            return false;
+        };
+        let head = callee_path
+            .split(['.', ':'])
+            .next()
+            .unwrap_or(callee_path.as_str())
+            .trim();
+        let bare = callee_path
+            .rsplit(['.', ':'])
+            .next()
+            .unwrap_or(callee_path.as_str())
+            .trim();
+        if head.is_empty() || bare.is_empty() {
+            return false;
+        }
+        let owner = target
+            .owner
+            .as_deref()
+            .map(|owner| owner.rsplit(['.', ':']).next().unwrap_or(owner));
+        if Some(bare) == owner
+            || self.is_indexed_type(bare)
+            || source
+                .extracted
+                .symbols
+                .iter()
+                .any(|s| s.name == head || s.name == bare)
+        {
+            return false;
+        }
+        let mut modules = navigation
+            .imports
+            .iter()
+            .filter(|import| {
+                import.kind != ImportKind::Glob
+                    && import.local_name.trim_start_matches('$') == head
+                    && node_at(source, &import.range).is_some_and(|node| same_tree(node, at))
+            })
+            .map(|import| import.source.as_deref())
+            .peekable();
+        if modules.peek().is_none() {
+            return false;
+        }
+        let lang = crate::lang::spec_for_path(Path::new(&source.extracted.file_path))
+            .map(|s| s.language_name());
+        modules.all(|module| {
+            let Some(module) = module else {
+                return false;
+            };
+            if module_may_hold(module, target_file) {
+                return false;
+            }
+            match lang {
+                Some("python") => self
+                    .python_module(&source.extracted.file_path, module)
+                    .is_none(),
+                Some("typescript" | "javascript" | "vue" | "astro" | "svelte") => self
+                    .script_module(&source.extracted.file_path, module)
+                    .is_none(),
+                _ => !module.starts_with('.'),
+            }
+        })
+    }
+
+    /// C2: Fixed-arity mismatch between a call site and a non-variadic target declaration (e.g.
+    /// `config.get("port", 8080)` cannot target `Cache.get(self, key)`). Conservative: returns
+    /// `false` whenever either side has variadic/splat syntax, missing AST, or JS dynamic arity.
+    fn arity_rules_out(
+        &self,
+        source: &Source,
+        at: Node,
+        call: &CallSite,
+        target_file: &str,
+        target: &ExtractedSymbol,
+    ) -> bool {
+        if !crate::declarations::callable(target) {
+            return false;
+        }
+        let Some(caller_lang) = crate::lang::spec_for_path(Path::new(&source.extracted.file_path))
+            .map(|s| s.language_name())
+        else {
+            return false;
+        };
+        let Some(target_lang) =
+            crate::lang::spec_for_path(Path::new(target_file)).map(|s| s.language_name())
+        else {
+            return false;
+        };
+        // JavaScript allows calling any function with extra or omitted arguments at runtime.
+        if matches!(caller_lang, "javascript" | "vue" | "astro" | "svelte")
+            || matches!(target_lang, "javascript" | "vue" | "astro" | "svelte")
+        {
+            return false;
+        }
+        let Some(arg_count) = fixed_call_argument_count(source, at) else {
+            return false;
+        };
+        let Some(target_source) = self.source(target_file) else {
+            return false;
+        };
+        let Some(target_node) = node_at(&target_source, &target.range) else {
+            return false;
+        };
+        let Some((min_args, max_args)) = fixed_target_param_bounds(
+            &target_source,
+            target_node,
+            target_lang,
+            target,
+            call.receiver.is_some(),
+        ) else {
+            return false;
+        };
+        arg_count < min_args || arg_count > max_args
+    }
+
+    /// A receiver declared with a type this repository does not declare calls a member of
+    /// that type: neither a member of the target's owner nor a function outside any type.
     fn receiver_type_rules_out(
         &self,
         source: &Source,
         at: Node,
         call: &CallSite,
+        target_file: &str,
         target: &ExtractedSymbol,
     ) -> bool {
-        let Some(owner) = target.owner.as_deref() else {
-            return false;
-        };
-        let owner = owner.rsplit(['.', ':']).next().unwrap_or(owner);
+        let owner = target
+            .owner
+            .as_deref()
+            .map(|owner| owner.rsplit(['.', ':']).next().unwrap_or(owner));
         let Some(receiver) = call
             .receiver
             .as_deref()
@@ -445,10 +1210,154 @@ impl<'a> SourceResolver<'a> {
             && !names.iter().all(|name| UNTYPED.contains(name))
             && !names
                 .iter()
-                .any(|name| *name == owner || self.is_indexed_type(name))
+                .any(|name| Some(*name) == owner || self.is_indexed_type(name))
+            && !self.is_extension(target_file, target)
+    }
+
+    /// Whether `target` extends a receiver type, or its declaration cannot be read to tell.
+    fn is_extension(&self, target_file: &str, target: &ExtractedSymbol) -> bool {
+        let has_extensions =
+            crate::lang::spec_for_path(Path::new(target_file)).is_some_and(|spec| {
+                matches!(
+                    spec.language_name(),
+                    "kotlin" | "csharp" | "dart" | "scala" | "swift"
+                )
+            });
+        if !has_extensions {
+            return false;
+        }
+        self.source(target_file).is_none_or(|source| {
+            node_at(&source, &target.range).is_none_or(|node| extends_receiver(node, &source))
+        })
+    }
+
+    /// A `Type::name(...)` path names another declaration when this repository neither
+    /// declares nor imports that type, e.g. `String::from` beside the only indexed `from`.
+    fn scope_rules_out(
+        &self,
+        source: &Source,
+        at: Node,
+        target_file: &str,
+        target: &ExtractedSymbol,
+    ) -> bool {
+        let Some(path) = scope_path(at, source) else {
+            return false;
+        };
+        // An implementation block for a type without a plain name records no owner.
+        let Some(owner) = target
+            .owner
+            .clone()
+            .or_else(|| self.implemented_type(target_file, target))
+        else {
+            return false;
+        };
+        let owner = owner.rsplit(['.', ':']).next().unwrap_or(&owner);
+        let segments: Vec<&str> = path
+            .split("::")
+            .flat_map(|part| part.split('\\'))
+            .filter(|segment| !segment.is_empty())
+            .collect();
+        let (Some(head), Some(name)) = (segments.first().copied(), segments.last().copied()) else {
+            return false;
+        };
+        let is_plain = segments.iter().all(|segment| {
+            segment
+                .chars()
+                .all(|character| character.is_alphanumeric() || character == '_')
+        });
+        is_plain
+            && !RELATIVE_SCOPES.contains(&head)
+            && name != owner
+            && !has_type_parameter(at, source, head)
+            && !has_binding(source, at, head, None)
+            && self.declared_name(head).is_none()
+            && self.declared_name(name).is_none()
+            && !self.is_reached_through(target_file, target, owner, name)
+    }
+
+    /// The type that the implementation block around `target` is written for, when the block
+    /// names it by a plain path, e.g. `i32` in `impl From<Code> for i32`.
+    fn implemented_type(&self, target_file: &str, target: &ExtractedSymbol) -> Option<String> {
+        if !target_file.ends_with(".rs") {
+            return None;
+        }
+        let source = self.source(target_file)?;
+        let mut node = node_at(&source, &target.range)?;
+        while node.kind() != "impl_item" {
+            node = node.parent()?;
+        }
+        let written = text(node.child_by_field_name("type")?, &source)?;
+        written
+            .chars()
+            .all(|character| character.is_alphanumeric() || matches!(character, '_' | ':'))
+            .then(|| written.to_string())
+    }
+
+    /// Whether a path through a type called `name` can still reach `target`, whose owner is
+    /// `owner`: a trait or an interface lends its members to other types, a type parameter
+    /// stands for any type, and a path through the trait that the holding block implements
+    /// reaches every implementation. Also true when the declaration cannot be read.
+    fn is_reached_through(
+        &self,
+        target_file: &str,
+        target: &ExtractedSymbol,
+        owner: &str,
+        name: &str,
+    ) -> bool {
+        if self.declared_name(owner) == Some(true) {
+            return true;
+        }
+        let Some(source) = self.source(target_file) else {
+            return true;
+        };
+        let Some(node) = node_at(&source, &target.range) else {
+            return true;
+        };
+        if has_type_parameter(node, &source, owner) {
+            return true;
+        }
+        let mut block = Some(node);
+        while let Some(current) = block {
+            if let Some(implemented) = current.child_by_field_name("trait") {
+                let written = text(implemented, &source).unwrap_or_default();
+                let plain = written.split('<').next().unwrap_or(written);
+                return plain.rsplit("::").next().map(str::trim) == Some(name);
+            }
+            block = current.parent();
+        }
+        false
+    }
+
+    /// `None` when no indexed file declares a symbol called `name` or imports something
+    /// under it, else whether a trait or an interface has that name.
+    fn declared_name(&self, name: &str) -> Option<bool> {
+        if let Some(lookup) = self.call_lookup {
+            return lookup.declared_names(self.files).get(name).copied();
+        }
+        let names = self
+            .declared_names
+            .borrow_mut()
+            .get_or_insert_with(|| {
+                let mut names = HashMap::new();
+                for file in self.files {
+                    for symbol in &file.symbols {
+                        *names.entry(symbol.name.as_str()).or_default() |=
+                            matches!(symbol.kind.as_str(), "trait" | "interface");
+                    }
+                    for import in file.navigation.iter().flat_map(|file| &file.imports) {
+                        names.entry(import.local_name.as_str()).or_default();
+                    }
+                }
+                Rc::new(names)
+            })
+            .clone();
+        names.get(name).copied()
     }
 
     fn is_indexed_type(&self, name: &str) -> bool {
+        if let Some(lookup) = self.call_lookup {
+            return lookup.type_names(self.files).contains(name);
+        }
         let names = self
             .type_names
             .borrow_mut()
@@ -518,6 +1427,8 @@ impl<'a> SourceResolver<'a> {
         if !has_explicit_self && callee != call.name {
             return None;
         }
+        let glob_shadows_local =
+            !matches!(language, "kotlin" | "java" | "csharp" | "scala" | "swift");
         if !has_explicit_self
             && source
                 .extracted
@@ -526,7 +1437,8 @@ impl<'a> SourceResolver<'a> {
                 .imports
                 .iter()
                 .any(|import| {
-                    (import.local_name == call.name || import.kind == ImportKind::Glob)
+                    (import.local_name == call.name
+                        || (glob_shadows_local && import.kind == ImportKind::Glob))
                         && node_at(&source, &import.range).is_some_and(|node| same_tree(node, at))
                 })
         {

@@ -1,0 +1,124 @@
+[
+  {
+    "id": "regression:recovery-in-body:block-namespace",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/ConditionalElse.cs", "view": "definitions"},
+    "contains": ["Demo [mod, not exported] — L1-27", "Writer [class, exported] — L3-26", "Close [method, exported] — L7-20", "Count [method, exported] — L22-25"],
+    "category": "declarations"
+  },
+  {
+    "id": "regression:recovery-in-body:file-scoped-namespace",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/FileScopedConditional.cs", "view": "definitions"},
+    "contains": ["Reader [class, exported] — L3-24", "Read [method, exported] — L5-18", "Size [method, exported] — L20-23"],
+    "category": "declarations"
+  },
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/IStore.cs"},
+    "contains": ["implementation candidate: Shop.Stores.MemoryStore.Put — _codemap_language_regressions/signature/Stores/MemoryStore.cs:10", "implementation candidate: Shop.Stores.MemoryStore.Find — _codemap_language_regressions/signature/Stores/MemoryStore.cs:12", "implementation candidate: Shop.Stores.MemoryStore.Track — _codemap_language_regressions/signature/Stores/MemoryStore.cs:14"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:signature-types:other-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/IStore.cs"},
+    "contains": ["implementation: unresolved"],
+    "excludes": ["implementation candidate: Shop.Stores.MemoryStore.Audit"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:extension-receiver",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/TextExtensions.cs"},
+    "contains": ["Banner.Title (L12)"],
+    "category": "wrong_caller"
+  },
+  {
+    "id": "regression:unproven-implementations",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/INotifier.cs"},
+    "contains": ["implementation candidate: Partial.EmailNotifier.Send — _codemap_language_regressions/partial/Notifiers.cs:7", "- not source-proven: 1 same-named method(s) in types naming INotifier as a base; the candidates above may be incomplete."],
+    "excludes": ["SpooledNotifier."],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:partial-type:member",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/parts/Shop/Checkout.cs"},
+    "contains": ["Checkout.Verify — _codemap_language_regressions/parts/Shop/Rules/Checkout.Rules.cs:6", "Ledger.Post — _codemap_language_regressions/parts/Shop/Ledger.cs:5"],
+    "excludes": ["Verify (unresolved)", "parts/Tools/"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:partial-type:caller",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/parts/Shop/Rules/Checkout.Rules.cs"},
+    "contains": ["Checkout.Close (_codemap_language_regressions/parts/Shop/Checkout.cs:9)"],
+    "excludes": ["unconfirmed callers", "Checkout.Reset"],
+    "category": "missing_caller"
+  },
+  {
+    "id": "regression:partial-type:other-project",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/parts/Tools/Checkout.cs"},
+    "contains": ["Checkout.Reset (L8)"],
+    "excludes": ["Checkout.Close"],
+    "category": "wrong_caller"
+  },
+  {
+    "id": "regression:partial-type:shared-folder",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/parts/Twin/Left.cs"},
+    "contains": ["Twin.IDrain.Flush"],
+    "excludes": ["Twin.Pump.Flush"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:call-inside-if",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Conditional.cs"},
+    "contains": ["Gate.Latch — L5"],
+    "excludes": ["Latch (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-type-implementation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/INotifier.cs"},
+    "contains": ["implementation candidate: Partial.BufferedNotifier.Send — _codemap_language_regressions/partial/Notifiers.cs:15"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic/Codec.cs"},
+    "contains": ["Codec.Width — L7", "call declaration: Generic.Codec.Decode — L5", "implementation candidate: Generic.TextCodec.Decode — L12"],
+    "excludes": ["Width (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-type-arity",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic/Outcome.cs"},
+    "contains": ["Outcome.Code — L11"],
+    "excludes": ["Outcome.Code — L6"],
+    "category": "wrong_caller"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/nullable/Gauge.cs"},
+    "contains": ["Gauge.Level — L6", "Panel.Safe (L12)", "Panel.Asserted (L14)"],
+    "excludes": ["Level (unresolved)", "unconfirmed callers"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:typed-local-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/TypedLocal.cs"},
+    "contains": ["Meter.Read — L5", "Station.FromLocal (L16)"],
+    "category": "missing_callee"
+  }
+]

@@ -9,9 +9,6 @@ const DOCUMENT_CONTENT: &str =
 fn config(is_enabled: bool) -> String {
     format!(
         "# codemap-config-version: 5\n\
-         [refresh]\n\
-         index_staleness_ms = 3600000\n\
-         watch_debounce_ms = 100\n\
          [language_support]\n\
          is_document_support_enabled = {is_enabled}\n"
     )

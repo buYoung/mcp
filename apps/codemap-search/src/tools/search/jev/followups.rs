@@ -60,7 +60,8 @@ pub(in crate::tools::search) fn call_candidates(
             if !names.contains(name) {
                 continue;
             }
-            if inspected >= config.navigation_callsite_budget {
+            let caller_cfg = crate::callers::CallerConfig::runtime(config.max_file_size);
+            if inspected >= caller_cfg.navigation_callsite_budget {
                 is_partial = true;
                 break 'files;
             }
@@ -76,7 +77,11 @@ pub(in crate::tools::search) fn call_candidates(
                 continue;
             }
             let entries = groups.entry(name.to_string()).or_default();
-            if entries.len() < config.caller_list_cap.min(super::MAX_LINKS_PER_QUESTION) {
+            if entries.len()
+                < caller_cfg
+                    .caller_list_cap
+                    .min(super::MAX_LINKS_PER_QUESTION)
+            {
                 entries.insert((file.file_path.clone(), call.range.start_line));
             } else {
                 is_partial = true;
@@ -204,7 +209,7 @@ pub(in crate::tools::search) fn append_call_candidates(
     let budget_bytes = config.search_detail_byte_cap;
     let budget_bytes = super::super::display::delivery_byte_cap(budget_bytes)
         .saturating_sub(text.len())
-        .min(config.annotation_sub_budget)
+        .min(crate::callers::CallerConfig::runtime(config.max_file_size).annotation_sub_budget)
         .min(4096);
     if budget_bytes < 512 {
         return;

@@ -98,12 +98,6 @@ const JUNK_FILES: &[(&str, &str)] = &[
 fn config(is_enabled: bool) -> String {
     format!(
         "# codemap-config-version: 5\n\
-         [refresh]\n\
-         index_staleness_ms = 3600000\n\
-         watch_debounce_ms = 100\n\
-         [search]\n\
-         result_threshold = 50\n\
-         search_overview_file_limit = 50\n\
          [language_support]\n\
          is_shell_support_enabled = {is_enabled}\n\
          is_infrastructure_support_enabled = {is_enabled}\n\

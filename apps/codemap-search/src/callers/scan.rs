@@ -6,7 +6,7 @@ use grep::matcher::Matcher;
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkMatch};
 use std::cell::OnceCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::Path;
 use std::time::{Instant, UNIX_EPOCH};
 
@@ -195,29 +195,32 @@ pub(super) struct ScanResult {
     pub(super) is_past_deadline: bool,
 }
 
-/// Indexed files by path and the nanosecond modification stamp each had when extracted.
+/// Indexed files and the nanosecond modification stamp each had when extracted.
 pub(super) struct IndexedFiles<'a> {
-    pub(super) files: &'a HashMap<&'a str, &'a ExtractedFile>,
+    pub(super) snapshot: &'a [std::sync::Arc<ExtractedFile>],
+    pub(super) call_lookup: &'a super::CallLookup,
     pub(super) mtime: &'a dyn Fn(&str) -> Option<u64>,
+    /// Files that must still be scanned for same-file non-call references (e.g. callback
+    /// registrations or method bindings in the declaring file) even when they contain no
+    /// direct `name(` call.
+    pub(super) extra_files: &'a HashSet<String>,
 }
 
 /// Shortcuts a scan whose caller only needs call sites may take.
 #[derive(Default)]
 pub(super) struct ScanOptions<'a> {
-    /// An unchanged indexed file whose recorded calls hold none of the scanned names is not
-    /// read: caller resolution confirms only calls that live extraction of that same source
-    /// finds, and non-call references are not wanted.
+    /// An unchanged indexed file whose recorded calls and imports hold none of the scanned names
+    /// (and is not in `extra_files`) is not read.
     pub(super) unchanged_calls: Option<IndexedFiles<'a>>,
     /// No further file is scanned after this instant.
     pub(super) deadline: Option<Instant>,
     /// Indexed files the filesystem watcher keeps current, with their lookup by recorded call
-    /// names. They are scanned in place of a workspace walk, and one whose recorded calls hold
-    /// none of the scanned names is skipped before its metadata is read.
+    /// and import names. They are scanned in place of a workspace walk.
     pub(super) indexed_walk: Option<(&'a [std::sync::Arc<ExtractedFile>], &'a super::CallLookup)>,
 }
 
 /// Whether `display` is an indexed file that has not changed since extraction and records no
-/// call of any scanned name.
+/// call or import of any scanned name (nor is explicitly requested via `extra_files`).
 fn records_no_scanned_call(
     display: &str,
     metadata: &std::fs::Metadata,
@@ -227,13 +230,17 @@ fn records_no_scanned_call(
     let Some(indexed) = &options.unchanged_calls else {
         return false;
     };
+    if indexed.extra_files.contains(display) {
+        return false;
+    }
     // Files outside source resolution become callers by name, so their text is needed.
     if !super::resolution::supports(display) {
         return false;
     }
     let Some(navigation) = indexed
-        .files
-        .get(display)
+        .call_lookup
+        .file_index(display)
+        .and_then(|pos| indexed.snapshot.get(pos))
         .and_then(|file| file.navigation.as_ref())
     else {
         return false;
@@ -249,6 +256,12 @@ fn records_no_scanned_call(
             .calls
             .iter()
             .any(|call| names.contains(call.name.as_str()))
+        && !navigation.imports.iter().any(|import| {
+            import
+                .imported_name
+                .as_deref()
+                .is_some_and(|name| names.contains(name))
+        })
 }
 
 /// Floor of the per-name scan budget. `scan_cap` divided across many names could leave
@@ -438,29 +451,85 @@ pub(super) fn scan_workspace(
             }
         }
         Some((files, lookup)) => {
-            for position in lookup.files(names.iter().map(String::as_str), [], true) {
-                let file = &files[position];
-                if is_past() {
-                    is_past_deadline = true;
-                    break;
+            let mut positions = lookup.files(
+                names.iter().map(String::as_str),
+                names.iter().map(String::as_str),
+                true,
+            );
+            if let Some(indexed) = &options.unchanged_calls {
+                for extra in indexed.extra_files {
+                    if let Some(pos) = lookup.file_index(extra) {
+                        positions.push(pos);
+                    }
                 }
-                let display = file.file_path.as_str();
-                let path = root.join(display);
-                if !is_scanned_source(&path) {
-                    continue;
+                positions.sort_unstable();
+                positions.dedup();
+            }
+            const INDEXED_BATCH_FILES: usize = 32;
+            let threads = crate::parallel::threads();
+            if positions.len() >= 8 && threads > 1 {
+                for chunk in positions.chunks(INDEXED_BATCH_FILES) {
+                    if is_past() {
+                        is_past_deadline = true;
+                        break;
+                    }
+                    let batch: Vec<(std::path::PathBuf, String)> = chunk
+                        .iter()
+                        .filter_map(|&position| {
+                            let display = files[position].file_path.as_str();
+                            let path = root.join(display);
+                            if !is_scanned_source(&path) || test_filter.is_file_excluded(display) {
+                                return None;
+                            }
+                            let metadata = metadata_under_cap(&path)?;
+                            if records_no_scanned_call(display, &metadata, &name_set, options) {
+                                return None;
+                            }
+                            Some((path, display.to_string()))
+                        })
+                        .collect();
+                    if batch.is_empty() {
+                        continue;
+                    }
+                    let found = crate::parallel::map_in_order(
+                        &batch,
+                        threads,
+                        new_searcher,
+                        |searcher, (path, display)| search_file(searcher, path, display.clone()),
+                    );
+                    if !found
+                        .into_iter()
+                        .flatten()
+                        .all(|file| budgets.take(file, &mut all_hits))
+                    {
+                        break;
+                    }
                 }
-                let Some(metadata) = metadata_under_cap(&path) else {
-                    continue;
-                };
-                if !scan_file(
-                    &mut searcher,
-                    &mut budgets,
-                    &mut all_hits,
-                    &path,
-                    display.to_string(),
-                    metadata,
-                ) {
-                    break;
+            } else {
+                for position in positions {
+                    let file = &files[position];
+                    if is_past() {
+                        is_past_deadline = true;
+                        break;
+                    }
+                    let display = file.file_path.as_str();
+                    let path = root.join(display);
+                    if !is_scanned_source(&path) {
+                        continue;
+                    }
+                    let Some(metadata) = metadata_under_cap(&path) else {
+                        continue;
+                    };
+                    if !scan_file(
+                        &mut searcher,
+                        &mut budgets,
+                        &mut all_hits,
+                        &path,
+                        display.to_string(),
+                        metadata,
+                    ) {
+                        break;
+                    }
                 }
             }
         }

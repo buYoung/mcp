@@ -2,14 +2,9 @@ import type { PgLocale, PgState, PgUiLabels, PresetSpec, SettingGroupSpec } from
 
 export const DEFAULT_STATE: PgState = {
     contextEnabled: true,
-    navPrecise: false,
-    callerLimit: 1000,
     includeTests: false,
     eventsEnabled: true,
-    detailFileLimit: 24,
-    snippetMaxLines: 500,
     outsideCallers: true,
-    grepMaxColumns: 0,
     includeSeen: false,
     redactEnabled: true,
     piiEntities: [],
@@ -19,7 +14,6 @@ export const DEFAULT_STATE: PgState = {
     jevScope: ["search", "read", "grep"],
     jevModel: "jev-1.14.0",
     indexMode: "auto",
-    storeRefs: false,
     exclDirs: "default",
     docSupport: false,
     fsPerm: "anywhere",
@@ -29,16 +23,9 @@ export const DEFAULT_STATE: PgState = {
 
 export const PRESETS: Record<string, Partial<PgState>> = {
     default: {},
-    precise: {
-        navPrecise: true,
-        storeRefs: true,
-        synonymsEnabled: true,
-    },
     jev: {
         jevEnabled: true,
-        detailFileLimit: 1,
-        snippetMaxLines: 6,
-        grepMaxColumns: 90,
+        outsideCallers: false,
     },
     security: {
         redactEnabled: true,
@@ -61,7 +48,6 @@ export function getPlaygroundUi(locale: PgLocale): PgUiLabels {
         docsLink: isKo ? "← 설정 레퍼런스" : "← Config Reference",
         docsHref: isKo ? "/ko/configuration/" : "/configuration/",
         presetDefault: isKo ? "기본값" : "Defaults",
-        presetPrecise: isKo ? "정밀 호출·참조" : "Precise & Refs",
         presetJev: isKo ? "Jev·토큰 절약" : "Jev & Compact",
         presetSecurity: isKo ? "보안·PII 강화" : "Strict PII",
         presetBroad: isKo ? "테스트·문서 확장" : "Tests & Docs",
@@ -90,14 +76,9 @@ export function getPlaygroundUi(locale: PgLocale): PgUiLabels {
         groupJev: isKo ? "Jev 작업 관련성 필터" : "Jev Relevance Filter",
         groupIndex: isKo ? "색인·권한·확장 도구" : "Index, Permissions & Extras",
         lblContextEnabled: isKo ? "search 기본 호출 관계 표시" : "Show callers/callees in search",
-        lblNavPrecise: isKo ? "구조·import 정밀 확인 (precise)" : "Structural import verification (precise)",
-        lblCallerLimit: isKo ? "심볼당 최대 호출자 수" : "Max callers per symbol",
         lblIncludeTests: isKo ? "호출 문맥에 테스트 파일 포함" : "Include test files in callers",
         lblEvents: isKo ? "정적 이벤트 발행·구독 경로" : "Static event publish/subscribe routes",
-        lblDetailFiles: isKo ? "상세 발췌 상위 파일 수" : "Detailed snippet file limit",
-        lblSnippetLines: isKo ? "심볼당 최대 발췌 줄 수" : "Max snippet lines per symbol",
         lblOutsideCallers: isKo ? "read 끝에 범위 밖 호출자 표시" : "Append outside callers in read",
-        lblGrepCols: isKo ? "grep 줄 길이 상한" : "grep max line width",
         lblIncludeSeen: isKo ? "이미 본 중복 구간 재출력" : "Re-print seen lines (include_seen)",
         lblRedactMaster: isKo ? "인증정보·선택 PII 자동 마스킹" : "Mask credentials & opted-in PII",
         lblPiiEntities: isKo ? "추가 내장 PII 유형" : "Opt-in PII entity types",
@@ -107,13 +88,9 @@ export function getPlaygroundUi(locale: PgLocale): PgUiLabels {
         lblJevScope: isKo ? "필터 적용 도구" : "Filtered tools",
         lblJevModel: isKo ? "판정 모델 ID" : "Decision model ID",
         lblIndexMode: isKo ? "색인 실행 모드" : "Indexing mode",
-        lblStoreRefs: isKo ? "비호출 심볼 참조도 색인" : "Index non-call references",
         lblExcludedDirs: isKo ? "선택 디렉터리 제외 목록" : "Optional directory exclusions",
         optDirsDefault: isKo ? "기본 목록" : "Defaults",
         optDirsEmpty: isKo ? "[] 해제" : "[] None",
-        optUnlimited: isKo ? "무제한 (0)" : "Unlimited (0)",
-        optCols90: isKo ? "90자" : "90 cols",
-        optCols60: isKo ? "60자" : "60 cols",
         optDefaultSuffix: isKo ? " (기본)" : " (def)",
         lblDocSupport: isKo ? "Markdown (.md/.mdx) 색인" : "Index Markdown (.md/.mdx)",
         lblPerms: isKo ? "파일 접근 범위" : "Filesystem access scope",
@@ -136,7 +113,6 @@ export function getPlaygroundUi(locale: PgLocale): PgUiLabels {
 export function getPresetSpecs(ui: PgUiLabels): PresetSpec[] {
     return [
         { id: "default", label: ui.presetDefault, active: true },
-        { id: "precise", label: ui.presetPrecise },
         { id: "jev", label: ui.presetJev },
         { id: "security", label: ui.presetSecurity },
         { id: "broad", label: ui.presetBroad },
@@ -157,31 +133,6 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                     tomlKey: "[output.context].is_enabled",
                     tools: ["search"],
                     control: { kind: "switch", id: "pg-ctx-enabled", name: "contextEnabled", checked: true },
-                },
-                {
-                    settingKey: "navPrecise",
-                    keywords: "output.navigation.is_enabled precise tree-sitter import search read",
-                    title: ui.lblNavPrecise,
-                    tomlKey: "[output.navigation].is_enabled",
-                    tools: ["search", "read"],
-                    control: { kind: "switch", id: "pg-nav-precise", name: "navPrecise" },
-                },
-                {
-                    settingKey: "callerLimit",
-                    keywords: "output.context.caller_limit max callers search",
-                    title: ui.lblCallerLimit,
-                    tomlKey: "[output.context].caller_limit",
-                    tools: ["search"],
-                    control: {
-                        kind: "segment",
-                        labelId: "lbl-caller-limit",
-                        name: "callerLimit",
-                        options: [
-                            { value: "1000", label: `1000${def}`, selected: true },
-                            { value: "2", label: "2" },
-                            { value: "1", label: "1" },
-                        ],
-                    },
                 },
                 {
                     settingKey: "includeTests",
@@ -206,40 +157,6 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
             title: ui.groupLimits,
             items: [
                 {
-                    settingKey: "detailFileLimit",
-                    keywords: "output.search.detail_file_limit ranked tail search",
-                    title: ui.lblDetailFiles,
-                    tomlKey: "[output.search].detail_file_limit",
-                    tools: ["search"],
-                    control: {
-                        kind: "segment",
-                        labelId: "lbl-detail-files",
-                        name: "detailFileLimit",
-                        options: [
-                            { value: "24", label: `24${def}`, selected: true },
-                            { value: "2", label: "2" },
-                            { value: "1", label: "1" },
-                        ],
-                    },
-                },
-                {
-                    settingKey: "snippetMaxLines",
-                    keywords: "output.search.snippet_max_lines max lines truncate search",
-                    title: ui.lblSnippetLines,
-                    tomlKey: "[output.search].snippet_max_lines",
-                    tools: ["search"],
-                    control: {
-                        kind: "segment",
-                        labelId: "lbl-snippet-lines",
-                        name: "snippetMaxLines",
-                        options: [
-                            { value: "500", label: `500${def}`, selected: true },
-                            { value: "6", label: "6" },
-                            { value: "3", label: "3" },
-                        ],
-                    },
-                },
-                {
                     settingKey: "outsideCallers",
                     keywords: "output.read.is_outside_callers_enabled read callers",
                     title: ui.lblOutsideCallers,
@@ -250,24 +167,6 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                         id: "pg-outside-callers",
                         name: "outsideCallers",
                         checked: true,
-                    },
-                },
-                {
-                    settingKey: "grepMaxColumns",
-                    keywords: "output.grep.max_columns grep width line",
-                    title: ui.lblGrepCols,
-                    tomlKey: "[output.grep].max_columns",
-                    tools: ["grep"],
-                    stacked: true,
-                    control: {
-                        kind: "segment",
-                        labelId: "lbl-grep-cols",
-                        name: "grepMaxColumns",
-                        options: [
-                            { value: "0", label: ui.optUnlimited, selected: true },
-                            { value: "90", label: ui.optCols90 },
-                            { value: "60", label: ui.optCols60 },
-                        ],
                     },
                 },
                 {
@@ -410,14 +309,6 @@ export function getSettingGroups(ui: PgUiLabels): SettingGroupSpec[] {
                             { value: "off", label: "off" },
                         ],
                     },
-                },
-                {
-                    settingKey: "storeRefs",
-                    keywords: "index.store_references references search analyze",
-                    title: ui.lblStoreRefs,
-                    tomlKey: "[index].store_references",
-                    tools: ["search", "analyze"],
-                    control: { kind: "switch", id: "pg-store-refs", name: "storeRefs" },
                 },
                 {
                     settingKey: "exclDirs",

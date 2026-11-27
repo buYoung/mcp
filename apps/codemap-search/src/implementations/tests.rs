@@ -363,3 +363,803 @@ fn bounded_output_keeps_first_candidates_and_late_read_anchors() {
         "{output}"
     );
 }
+
+#[test]
+fn workspace_scope_keeps_links_with_external_signature_evidence() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let entries = [
+        ("types/item.ts", "export interface Item { id: string; }\n"),
+        (
+            "pkg/base.ts",
+            "import { Item } from '../types/item';\nexport interface Base { handle(item: Item): void; }\n",
+        ),
+        (
+            "pkg/child.ts",
+            "import { Item } from '../types/item';\nimport { Base } from './base';\nexport class Child implements Base { handle(item: Item): void {} }\n",
+        ),
+    ];
+    let root = tempfile::tempdir().unwrap();
+    for (path, source) in entries {
+        let full = root.path().join(path);
+        std::fs::create_dir_all(full.parent().unwrap()).unwrap();
+        std::fs::write(full, source).unwrap();
+    }
+    let index = build(&entries);
+    let scoped = index.for_paths(
+        &[("pkg/base.ts".into(), 2, 2)],
+        Some("pkg"),
+        4096,
+        root.path(),
+    );
+    assert!(scoped.contains("Child.handle — pkg/child.ts:3"), "{scoped}");
+
+    std::fs::write(
+        root.path().join("types/item.ts"),
+        "export interface Item { changed: number; }\n",
+    )
+    .unwrap();
+    let stale = index.for_paths(
+        &[("pkg/base.ts".into(), 2, 2)],
+        Some("pkg"),
+        4096,
+        root.path(),
+    );
+    assert!(!stale.contains("Child.handle"), "{stale}");
+}
+
+#[test]
+fn signature_types_resolve_csharp_generics_and_ignore_non_type_shadowing() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let csharp = build(&[
+        ("store.cs", "namespace Demo { class Store<T> {} }\n"),
+        (
+            "base.cs",
+            "namespace Demo { interface Base { void Run(Store<int> store); } }\n",
+        ),
+        (
+            "child.cs",
+            "namespace Demo { class Child : Base { public void Run(Store<int> store) {} } }\n",
+        ),
+    ]);
+    assert_eq!(csharp.links.len(), 1, "{csharp:#?}");
+
+    let method_same_name = build(&[
+        ("base.ts", "export interface Base { fail(err: Error): void; }\n"),
+        (
+            "child.ts",
+            "import { Base } from './base';\nexport class Child implements Base { Error() {} fail(err: Error): void {} }\n",
+        ),
+    ]);
+    assert_eq!(method_same_name.links.len(), 1, "{method_same_name:#?}");
+
+    let type_param_shadow = build(&[
+        ("base.ts", "export interface Base { fail(err: Error): void; }\n"),
+        (
+            "child.ts",
+            "import { Base } from './base';\nexport class Child<Error> implements Base { fail(err: Error): void {} }\n",
+        ),
+    ]);
+    assert!(type_param_shadow.links.is_empty(), "{type_param_shadow:#?}");
+}
+
+fn build_with_disk(entries: &[(&str, &str)]) -> ImplementationIndex {
+    let root = tempfile::tempdir().unwrap();
+    for (path, source) in entries {
+        let full = root.path().join(path);
+        if let Some(parent) = full.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(&full, source).unwrap();
+    }
+    let extractor = TreeSitterExtractor::new();
+    let files = std::sync::Arc::new(
+        entries
+            .iter()
+            .filter_map(|(path, source)| {
+                extractor
+                    .extract(source, path)
+                    .ok()
+                    .map(std::sync::Arc::new)
+            })
+            .collect::<Vec<_>>(),
+    );
+    let sources = entries
+        .iter()
+        .map(|(path, source)| ((*path).to_string(), (*source).to_string()))
+        .collect();
+    ImplementationIndex::build_at(files, &sources, root.path())
+}
+
+#[test]
+fn go_cross_package_assertions_and_embedded_interfaces() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let index = build_with_disk(&[
+        ("go.mod", "module example.com/app\n\ngo 1.22\n"),
+        (
+            "pkg/base/base.go",
+            concat!(
+                "package base\n",
+                "type Item struct{}\n",
+                "type Closer interface { Close() error }\n",
+                "type Service interface {\n",
+                "  Closer\n",
+                "  Run(item *Item, payload interface{}) error\n",
+                "}\n",
+                "type External interface {\n",
+                "  UnknownExt\n",
+                "  Ping() error\n",
+                "}\n",
+            ),
+        ),
+        (
+            "pkg/impl/impl.go",
+            concat!(
+                "package impl\n",
+                "import b \"example.com/app/pkg/base\"\n",
+                "type PtrSvc struct{}\n",
+                "var _ b.Service = (*PtrSvc)(nil)\n",
+                "func (s *PtrSvc) Close() error { return nil }\n",
+                "func (s *PtrSvc) Run(item *b.Item, payload any) error { return nil }\n",
+                "type ValSvc struct{}\n",
+                "var _ b.Service = ValSvc{}\n",
+                "func (s *ValSvc) Run(item *b.Item, payload any) error { return nil }\n",
+                "func (s ValSvc) Close() error { return nil }\n",
+            ),
+        ),
+        (
+            "pkg/base/local.go",
+            concat!(
+                "package base\n",
+                "type Local struct{}\n",
+                "func (l Local) Close() error { return nil }\n",
+                "func (l Local) Run(item *Item, payload any) error { return nil }\n",
+                "func (l Local) Ping() error { return nil }\n",
+            ),
+        ),
+    ]);
+    let pairs: Vec<(String, String)> = index
+        .links
+        .iter()
+        .map(|link| {
+            let decl = &index.methods[link.declaration];
+            let imp = &index.methods[link.implementation];
+            (
+                format!("{}.{}", index.typ(decl.owner).name, decl.declaration.name),
+                format!("{}.{}", index.typ(imp.owner).name, imp.declaration.name),
+            )
+        })
+        .collect();
+    // Pointer assertion links both `Service.Run` (with `any` == `interface{}` and `*b.Item` == `*Item`)
+    // and embedded `Closer.Close`.
+    assert!(
+        pairs.contains(&("Service.Run".into(), "PtrSvc.Run".into())),
+        "{pairs:#?}"
+    );
+    assert!(
+        pairs.contains(&("Closer.Close".into(), "PtrSvc.Close".into())),
+        "{pairs:#?}"
+    );
+    // Value assertion links value-receiver `Close`, never pointer-receiver `Run`.
+    assert!(
+        pairs.contains(&("Closer.Close".into(), "ValSvc.Close".into())),
+        "{pairs:#?}"
+    );
+    assert!(
+        !pairs.contains(&("Service.Run".into(), "ValSvc.Run".into())),
+        "{pairs:#?}"
+    );
+    // Same-package complete embedded interface links `Local`, while incomplete `External` never guesses.
+    assert!(
+        pairs.contains(&("Service.Run".into(), "Local.Run".into())),
+        "{pairs:#?}"
+    );
+    assert!(
+        !pairs.iter().any(|(d, _)| d == "External.Ping"),
+        "{pairs:#?}"
+    );
+}
+
+#[test]
+fn generic_base_substitution_and_semantic_signature_equivalence() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let java = build(&[
+        ("src/a/Item.java", "package a;\npublic class Item {}\n"),
+        (
+            "src/a/Base.java",
+            "package a;\npublic abstract class Base<T> { public abstract void write(T value); }\n",
+        ),
+        (
+            "src/b/Mid.java",
+            "package b;\nimport a.Base;\npublic abstract class Mid<U> extends Base<U> {}\n",
+        ),
+        (
+            "src/c/Child.java",
+            "package c;\nimport a.Item;\nimport b.Mid;\npublic class Child extends Mid<Item> { public void write(Item value) {} }\n",
+        ),
+        (
+            "src/c/Wrong.java",
+            "package c;\nimport b.Mid;\npublic class Wrong<A, B> extends Mid<A> { public void write(B value) {} }\n",
+        ),
+    ]);
+    assert_eq!(java.links.len(), 1, "{java:#?}");
+    assert_eq!(
+        java.typ(java.methods[java.links[0].implementation].owner)
+            .name,
+        "Child"
+    );
+
+    let csharp = build(&[
+        (
+            "base.cs",
+            "using System;\nnamespace Demo {\n  public abstract class Base {\n    public virtual void Write(string? s) {}\n    public virtual void WriteNum(int? n) {}\n    public virtual void Say(System.String s) {}\n  }\n}\n",
+        ),
+        (
+            "child.cs",
+            "namespace Demo {\n  public class Child : Base {\n    public override void Write(string s) {}\n    public override void WriteNum(int n) {}\n    public override void Say(string s) {}\n  }\n}\n",
+        ),
+    ]);
+    let linked: Vec<&str> = csharp
+        .links
+        .iter()
+        .map(|link| csharp.methods[link.declaration].declaration.name.as_str())
+        .collect();
+    assert!(linked.contains(&"Write"), "{linked:?}");
+    assert!(linked.contains(&"Say"), "{linked:?}");
+    assert!(
+        !linked.contains(&"WriteNum"),
+        "int? must not match int: {linked:?}"
+    );
+}
+
+#[test]
+fn swift_cross_file_modules_multi_protocol_extensions_and_defaults() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let index = build(&[
+        (
+            "Sources/Core/Protos.swift",
+            concat!(
+                "public protocol ProtoA { func run() }\n",
+                "extension ProtoA { public func run() {} }\n",
+                "public protocol ProtoB { func stop() }\n",
+                "public protocol CondProto { func cond() }\n",
+            ),
+        ),
+        (
+            "Sources/Core/Impl.swift",
+            concat!(
+                "struct Impl<T> {}\n",
+                "extension Impl: ProtoA, ProtoB {\n",
+                "  func run() {}\n",
+                "  func stop() {}\n",
+                "}\n",
+                "extension Impl: CondProto where T: Equatable {\n",
+                "  func cond() {}\n",
+                "}\n",
+            ),
+        ),
+        (
+            "Sources/App/Client.swift",
+            "import Core\nstruct Client: ProtoA { func run() {} }\n",
+        ),
+        (
+            "Sources/Other/Unimported.swift",
+            "struct Unimported: ProtoA { func run() {} }\n",
+        ),
+    ]);
+    let pairs: Vec<(String, String)> = index
+        .links
+        .iter()
+        .map(|link| {
+            let d = &index.methods[link.declaration];
+            let i = &index.methods[link.implementation];
+            (
+                format!("{}.{}", index.typ(d.owner).name, d.declaration.name),
+                format!("{}.{}", index.typ(i.owner).name, i.declaration.name),
+            )
+        })
+        .collect();
+    assert!(
+        pairs.contains(&("ProtoA.run".into(), "Impl.run".into())),
+        "{pairs:#?}"
+    );
+    assert!(
+        pairs.contains(&("ProtoB.stop".into(), "Impl.stop".into())),
+        "{pairs:#?}"
+    );
+    assert!(
+        pairs.contains(&("ProtoA.run".into(), "Client.run".into())),
+        "{pairs:#?}"
+    );
+    assert!(
+        !pairs.iter().any(|(d, _)| d == "CondProto.cond"),
+        "{pairs:#?}"
+    );
+    assert!(
+        !pairs.iter().any(|(_, i)| i == "Unimported.run"),
+        "{pairs:#?}"
+    );
+}
+
+#[test]
+fn php_implements_jvm_wildcards_nested_names_and_ts_default_exports() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let php = build(&[
+        (
+            "src/Iface.php",
+            "<?php\nnamespace App;\ninterface Iface { public function send(\\Psr\\Req $r): void; }\n",
+        ),
+        (
+            "src/Client.php",
+            "<?php\nnamespace App;\nuse Psr\\Req;\nclass Client implements Iface { public function send(Req $r): void {} }\n",
+        ),
+    ]);
+    assert_eq!(php.links.len(), 1, "{php:#?}");
+
+    let kotlin = build(&[
+        (
+            "src/main/kotlin/p/Outer.kt",
+            "package p\ninterface Outer {\n  interface Builder<T> {\n    fun add(v: T)\n  }\n}\n",
+        ),
+        (
+            "src/main/kotlin/p/Sub.kt",
+            "package p\nclass Sub {\n  class Builder : Outer.Builder<Builder> {\n    override fun add(v: Builder) {}\n  }\n}\n",
+        ),
+    ]);
+    assert_eq!(kotlin.links.len(), 1, "{kotlin:#?}");
+
+    let scala = build(&[
+        (
+            "src/a/Base.scala",
+            "package a\ntrait Base { def run(): Unit }\n",
+        ),
+        (
+            "src/b/Ok.scala",
+            "package b\nimport a.{Base => B}\nclass Ok extends B { def run(): Unit = () }\n",
+        ),
+        (
+            "src/b/Hidden.scala",
+            "package b\nimport a.{Base => _}\nclass Hidden extends Base { def run(): Unit = () }\n",
+        ),
+    ]);
+    assert_eq!(scala.links.len(), 1, "{scala:#?}");
+    assert_eq!(
+        scala
+            .typ(scala.methods[scala.links[0].implementation].owner)
+            .name,
+        "Ok"
+    );
+
+    let ts = build_with_disk(&[
+        (
+            "src/base.ts",
+            "export default abstract class Base { abstract run(): void; }\n",
+        ),
+        (
+            "src/child.ts",
+            "import MyBase from './base';\nexport class Child extends MyBase { run(): void {} }\n",
+        ),
+    ]);
+    assert_eq!(ts.links.len(), 1, "{ts:#?}");
+}
+
+#[test]
+fn csharp_partial_with_conditional_part_and_body_parse_error() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let index = build_with_disk(&[
+        ("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>\n"),
+        (
+            "Reader.Async.cs",
+            "#if HAVE_ASYNC\nnamespace Demo {\n  public abstract partial class Reader {\n    public virtual void ReadAsync() {}\n  }\n}\n#endif\n",
+        ),
+        (
+            "Reader.cs",
+            concat!(
+                "namespace Demo {\n",
+                "  public abstract partial class Reader {\n",
+                "    public abstract bool Read();\n",
+                "#if HAVE_EXTRA\n",
+                "    /// doc\n",
+                "    public virtual void Extra() {}\n",
+                "#endif\n",
+                "  }\n",
+                "}\n",
+            ),
+        ),
+        (
+            "SubReader.cs",
+            "namespace Demo {\n  public class SubReader : Reader {\n    public override bool Read() { return true; }\n    public override void ReadAsync() {}\n  }\n}\n",
+        ),
+    ]);
+    let linked: Vec<&str> = index
+        .links
+        .iter()
+        .map(|link| index.methods[link.declaration].declaration.name.as_str())
+        .collect();
+    assert_eq!(
+        linked,
+        vec!["Read"],
+        "{linked:?} | types={:#?}",
+        index.types
+    );
+}
+
+#[test]
+fn wave1_to_3_multi_language_navigation_positive_and_negative() {
+    let _config = crate::config::pin_test_config(crate::config::ResolvedConfig::default());
+    let root = tempfile::tempdir().unwrap();
+
+    // K1 + K2: Kotlin @Composable (() -> T), trailing comma <A, B,>, Kotlin 2.1 multi-dollar
+    // strings, and anonymous `object : Listener { ... }`.
+    let kt_src = concat!(
+        "interface Listener<A, B,> {\n",
+        "    fun onEvent(cb: @Composable (() -> A), value: B)\n",
+        "}\n",
+        "fun setup() {\n",
+        "    val msg = $$\"literal $x\"\n",
+        "    val multi = $$\"\"\"block $y\"\"\"\n",
+        "    val l = object : Listener<String, Int,> {\n",
+        "        override fun onEvent(cb: @Composable (() -> String), value: Int) {}\n",
+        "    }\n",
+        "}\n",
+    );
+    let kt_index = build(&[("app.kt", kt_src)]);
+    assert_eq!(
+        kt_index.links.len(),
+        1,
+        "K1+K2 links: {:#?}\ntypes: {:#?}\nparents: {:#?}\nmethods: {:#?}",
+        kt_index.links,
+        kt_index
+            .types
+            .iter()
+            .map(|t| &kt_index.unit(0).types[t.declaration])
+            .collect::<Vec<_>>(),
+        kt_index.parents,
+        kt_index.methods
+    );
+    assert!(
+        kt_index
+            .by_name
+            .values()
+            .flatten()
+            .all(|&id| !kt_index.typ(id).is_anonymous),
+        "anonymous Kotlin object must not enter by_name"
+    );
+
+    // J1 + C4: Java anonymous class implementation + method-level generic alpha-renaming
+    // (positive `<T> T map(T x)` vs `<U> U map(U x)`, negative swapped `<T, U>` vs `<U, T>`).
+    let java_src = concat!(
+        "package demo;\n",
+        "public abstract class TypeAdapter<V> {\n",
+        "    public abstract V read();\n",
+        "    public abstract <T> T map(T input);\n",
+        "    public abstract <T, U> void pair(T first, U second);\n",
+        "}\n",
+        "class Factory {\n",
+        "    TypeAdapter<String> build() {\n",
+        "        return new TypeAdapter<String>() {\n",
+        "            @Override public String read() { return \"ok\"; }\n",
+        "            @Override public <U> U map(U input) { return input; }\n",
+        "            @Override public <U, T> void pair(T first, U second) {}\n",
+        "        };\n",
+        "    }\n",
+        "}\n",
+    );
+    let java_index = build(&[("demo/Factory.java", java_src)]);
+    let java_linked: Vec<&str> = java_index
+        .links
+        .iter()
+        .map(|l| java_index.methods[l.declaration].declaration.name.as_str())
+        .collect();
+    assert!(
+        java_linked.contains(&"read") && java_linked.contains(&"map"),
+        "J1+C4 expected read & map linked, got {java_linked:?}"
+    );
+    assert!(
+        !java_linked.contains(&"pair"),
+        "C4 negative: swapped <T,U> vs <U,T> must not link: {java_linked:?}"
+    );
+
+    // R1 + R2: Rust external/primitive `impl LocalTrait for &str` -> explicit_impls (not links),
+    // generic `impl<T> GenericTrait<T> for Boxed<T>`, and `self.field.work()`.
+    let rs_src = concat!(
+        "pub trait Sanitize {\n",
+        "    fn sanitize(&self);\n",
+        "}\n",
+        "impl Sanitize for &str {\n",
+        "    fn sanitize(&self) {}\n",
+        "}\n",
+        "pub trait Runner<T> {\n",
+        "    fn run(&self, item: T);\n",
+        "}\n",
+        "pub struct Boxed<T> { pub inner: T }\n",
+        "impl<T> Runner<T> for Boxed<T> {\n",
+        "    fn run(&self, _item: T) {}\n",
+        "}\n",
+        "pub struct Worker {\n",
+        "    runner: Boxed<String>,\n",
+        "    dyn_runner: Box<dyn Runner<String>>,\n",
+        "}\n",
+        "impl Worker {\n",
+        "    pub fn go(&self, s: String) {\n",
+        "        self.runner.run(s.clone());\n",
+        "        self.dyn_runner.run(s);\n",
+        "    }\n",
+        "}\n",
+    );
+    let rs_index = build(&[("src/lib.rs", rs_src)]);
+    assert_eq!(
+        rs_index.explicit_impls.len(),
+        1,
+        "R1 explicit_impls: {:#?}",
+        rs_index.explicit_impls
+    );
+    assert_eq!(rs_index.explicit_impls[0].owner_display, "&str");
+    assert!(
+        rs_index
+            .links
+            .iter()
+            .any(|l| rs_index.methods[l.declaration].declaration.name == "run"),
+        "R2 generic trait impl should link: {:#?}",
+        rs_index.links
+    );
+    assert!(
+        rs_index
+            .direct_calls
+            .values()
+            .flatten()
+            .any(|c| c.name == "run"),
+        "R2 concrete self.runner.run() should record direct_call: {:#?}",
+        rs_index.direct_calls
+    );
+    assert!(
+        rs_index
+            .calls
+            .iter()
+            .any(|c| rs_index.methods[c.declaration].declaration.name == "run"),
+        "R2 trait-object self.dyn_runner.run() should resolve call declaration: {:#?}",
+        rs_index.calls
+    );
+
+    // P2 + P3: Python bracket generics `Base[Item]`, `Generic[T]`, `typed_default_parameter`,
+    // and qualified `self.repo = pkg.Repo()`.
+    let py_files = [
+        ("pkg/models.py", "class Item:\n    pass\n"),
+        (
+            "pkg/base.py",
+            "from typing import Generic, TypeVar\nT = TypeVar('T')\nclass Base(Generic[T]):\n    def load(self, x: T) -> T:\n        raise NotImplementedError\n",
+        ),
+        (
+            "pkg/repo.py",
+            "from .base import Base\nfrom .models import Item\nclass Repo(Base[Item]):\n    def load(self, x: Item) -> Item:\n        return x\n",
+        ),
+        (
+            "pkg/app.py",
+            "from . import repo as pkg\nfrom .base import Base\nfrom .models import Item\nclass Service:\n    def __init__(self, fallback: Base[Item] = None):\n        self.repo = pkg.Repo()\n        self.fallback = fallback\n    def go(self, it: Item):\n        self.repo.load(it)\n        self.fallback.load(it)\n",
+        ),
+    ];
+    let py_index = build(&py_files);
+    assert!(
+        py_index
+            .links
+            .iter()
+            .any(|l| py_index.methods[l.declaration].declaration.name == "load"),
+        "P2 bracket generic base should link: {:#?}",
+        py_index.links
+    );
+    assert!(
+        py_index
+            .calls
+            .iter()
+            .any(|c| py_index.methods[c.declaration].declaration.name == "load"),
+        "P3 typed_default_parameter & qualified ctor field should resolve call: calls={:#?}\ndirect={:#?}\napp_unit={:#?}\napp_calls={:#?}",
+        py_index.calls,
+        py_index.direct_calls,
+        py_index.files[3].navigation.as_ref().and_then(|n| n.implementations.as_ref()),
+        py_index.files[3].navigation.as_ref().map(|n| &n.calls)
+    );
+
+    // X1 + X2 + X3: C++ confirmed export macro + negative `struct REAL instance {};`,
+    // transitive `#include` + `using namespace` + `using Ns::Type`, and non-specialized vs
+    // specialized template class inheritance.
+    let cpp_files = [
+        (
+            "inc/export.h",
+            "#define MY_EXPORT __attribute__((visibility(\"default\")))\n",
+        ),
+        (
+            "inc/base.h",
+            concat!(
+                "#include \"export.h\"\n",
+                "namespace core {\n",
+                "class MY_EXPORT Comparator {\n",
+                "public:\n",
+                "    virtual int Compare(int a) const = 0;\n",
+                "};\n",
+                "struct REAL { int x; };\n",
+                "struct REAL instance {};\n",
+                "template <typename T>\n",
+                "class GenBase {\n",
+                "public:\n",
+                "    virtual void push(T v) = 0;\n",
+                "};\n",
+                "template <typename T>\n",
+                "class SpecBase {\n",
+                "public:\n",
+                "    virtual void pull(T v) = 0;\n",
+                "};\n",
+                "template <>\n",
+                "class SpecBase<int> {\n",
+                "public:\n",
+                "    virtual void pull(int v) = 0;\n",
+                "};\n",
+                "}\n",
+            ),
+        ),
+        ("inc/umbrella.h", "#include \"base.h\"\n"),
+        (
+            "src/impl.cpp",
+            concat!(
+                "#include \"umbrella.h\"\n",
+                "using namespace core;\n",
+                "class ByteCmp : public Comparator {\n",
+                "public:\n",
+                "    int Compare(int a) const override { return a; }\n",
+                "};\n",
+                "class IntGen : public GenBase<int> {\n",
+                "public:\n",
+                "    void push(int v) override {}\n",
+                "};\n",
+                "class IntSpec : public SpecBase<int> {\n",
+                "public:\n",
+                "    void pull(int v) override {}\n",
+                "};\n",
+            ),
+        ),
+    ];
+    let cpp_index = build(&cpp_files);
+    assert!(
+        !cpp_index.by_name.contains_key("instance"),
+        "X1 negative: `struct REAL instance {{}};` must never be recovered as a class"
+    );
+    let cpp_linked: Vec<&str> = cpp_index
+        .links
+        .iter()
+        .map(|l| cpp_index.methods[l.declaration].declaration.name.as_str())
+        .collect();
+    assert!(
+        cpp_linked.contains(&"Compare"),
+        "X1+X2 confirmed export macro + transitive include + using namespace should link: {cpp_linked:?}"
+    );
+    assert!(
+        cpp_linked.contains(&"push"),
+        "X3 non-specialized template base should link: {cpp_linked:?}"
+    );
+    assert!(
+        !cpp_linked.contains(&"pull"),
+        "X3 negative: specialized template base must not link: {cpp_linked:?}"
+    );
+
+    // S1 + S2: C# per-base `#if` conditions + multi-`.csproj` `<Compile Include>` isolation.
+    let cs_files = [
+        (
+            "AppA.csproj",
+            "<Project><PropertyGroup><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include=\"Part1.cs;Part2.cs;Interfaces.cs\" /></ItemGroup></Project>\n",
+        ),
+        (
+            "AppB.csproj",
+            "<Project><PropertyGroup><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include=\"Other.cs\" /></ItemGroup></Project>\n",
+        ),
+        (
+            "Interfaces.cs",
+            "namespace Demo {\n  public interface IBase { void Core(); }\n  public interface IComp { void Bind(); }\n}\n",
+        ),
+        (
+            "Part1.cs",
+            "namespace Demo {\n  public partial class Widget : IBase\n#if HAVE_COMP\n    , IComp\n#endif\n  {\n    public void Core() {}\n  }\n}\n",
+        ),
+        (
+            "Part2.cs",
+            "namespace Demo {\n  public partial class Widget {\n    public void Bind() {}\n  }\n}\n",
+        ),
+        (
+            "Other.cs",
+            "namespace Demo {\n  public partial class Widget {\n    public void OtherProjectMethod() {}\n  }\n}\n",
+        ),
+    ];
+    let cs_index = build_with_disk(&cs_files);
+    let core_link = cs_index
+        .links
+        .iter()
+        .find(|l| cs_index.methods[l.declaration].declaration.name == "Core")
+        .expect("S1 unconditional IBase.Core should link");
+    assert!(
+        core_link.conditions.is_empty(),
+        "S1 unconditional base must have no conditions: {:?}",
+        core_link.conditions
+    );
+    let bind_link = cs_index
+        .links
+        .iter()
+        .find(|l| cs_index.methods[l.declaration].declaration.name == "Bind")
+        .expect("S1+S2 conditional IComp.Bind merged via AppA.csproj should link");
+    assert_eq!(bind_link.conditions, vec!["#if HAVE_COMP"]);
+    let widget_methods: Vec<&str> = cs_index.types
+        [cs_index.methods[core_link.implementation].owner]
+        .methods
+        .iter()
+        .map(|&m| cs_index.methods[m].declaration.name.as_str())
+        .collect();
+    assert!(
+        !widget_methods.contains(&"OtherProjectMethod"),
+        "S2 negative: AppB.csproj partial class must not merge into AppA.csproj: {widget_methods:?}"
+    );
+
+    // C1 + C3: `source_trailer` out-of-window implementations, chained `f().m()` (call declaration
+    // only, NO direct_calls), and inherited overload negative (`Child.take(Object)` vs `Super.take(String)`).
+    let c3_files = [
+        (
+            "base.ts",
+            "export abstract class Service { abstract work(): void; }\nexport class Concrete extends Service { work(): void {} }\nexport class Holder { service: Service; make(): Service { return this.service; } }\nexport class Outer { holder: Holder; }\n",
+        ),
+        (
+            "use.ts",
+            "import { Outer } from './base';\nexport function go(o: Outer) {\n  o.holder.service.work();\n  o.holder.make().work();\n}\n",
+        ),
+    ];
+    for (p, s) in c3_files {
+        std::fs::write(root.path().join(p), s).unwrap();
+    }
+    let c3_index = build(&c3_files);
+    assert_eq!(
+        c3_index.calls.len(),
+        2,
+        "C3 both field-chain and 1-step return-type calls should record static Call: {:#?}",
+        c3_index.calls
+    );
+    assert!(
+        c3_index
+            .direct_calls
+            .values()
+            .flatten()
+            .all(|c| c.name != "work"),
+        "C3 runtime-replaceable / call-step `.work()` must not fabricate direct_calls: {:#?}",
+        c3_index.direct_calls
+    );
+    assert!(
+        c3_index
+            .direct_calls
+            .values()
+            .flatten()
+            .any(|c| c.name == "make"),
+        "C3 concrete field-chain `o.holder.make()` should record direct_call: {:#?}",
+        c3_index.direct_calls
+    );
+    let trailer = c3_index
+        .source_trailer("base.ts", 1, 1, root.path(), 1024)
+        .expect("C1 source_trailer should surface out-of-window implementation");
+    assert!(
+        trailer.starts_with(super::SOURCE_TRAILER_HEADER) && trailer.contains("Concrete.work"),
+        "C1 trailer: {trailer}"
+    );
+
+    let overload_java = concat!(
+        "class Super { void take(String s) {} }\n",
+        "class Child extends Super { void take(Object o) {} }\n",
+        "class Caller {\n",
+        "    Child make() { return new Child(); }\n",
+        "    void go() { this.make().take(\"hi\"); }\n",
+        "}\n",
+    );
+    let ov_index = build(&[("Caller.java", overload_java)]);
+    assert!(
+        ov_index.calls.is_empty()
+            && ov_index
+                .direct_calls
+                .values()
+                .flatten()
+                .all(|c| c.name != "take"),
+        "C3 negative: inherited overload Child.take(Object) vs Super.take(String) must stay unresolved: calls={:#?}, direct={:#?}",
+        ov_index.calls,
+        ov_index.direct_calls
+    );
+}

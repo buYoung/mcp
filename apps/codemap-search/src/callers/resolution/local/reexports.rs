@@ -47,7 +47,7 @@ impl<'a> SourceResolver<'a> {
             return origins;
         }
         let mut files_read = Vec::new();
-        let origins = Rc::new(match self.files_by_path.get(path).copied() {
+        let origins = Rc::new(match self.file_by_path(path) {
             Some(module) => self.origins_at(module, name, 0, &mut HashSet::new(), &mut files_read),
             None => Vec::new(),
         });

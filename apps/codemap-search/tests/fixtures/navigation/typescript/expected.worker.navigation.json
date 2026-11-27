@@ -136,6 +136,47 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "logger",
+                "typ": {
+                  "name": "Logger",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 7,
+                    "startCol": 30,
+                    "endLine": 7,
+                    "endCol": 36
+                  }
+                }
+              },
+              {
+                "name": "processor",
+                "typ": {
+                  "name": "JobProcessor",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 33,
+                    "endLine": 6,
+                    "endCol": 45
+                  }
+                }
+              },
+              {
+                "name": "queue",
+                "typ": {
+                  "name": "JobQueue",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 5,
+                    "startCol": 29,
+                    "endLine": 5,
+                    "endCol": 37
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],
@@ -234,9 +275,7 @@
             "namespace": "CheckoutWorker",
             "enclosingSymbol": "tick",
             "argumentCount": 1,
-            "conditions": [
-              "conditional declaration requires unavailable compile/runtime facts"
-            ],
+            "conditions": [],
             "receiverKind": "value"
           },
           {

@@ -33,11 +33,7 @@ pub(super) struct MacroExpansionLayer {
     is_enabled: Option<bool>,
     compilation_database: Option<String>,
     clang_path: Option<String>,
-    nasm_path: Option<String>,
     clang_flags: Option<Vec<String>>,
-    nasm_flags: Option<Vec<String>>,
-    timeout_ms: Option<u64>,
-    max_output_bytes: Option<usize>,
 }
 
 pub(super) fn normalize(value: &toml::Value, path: &Path) -> MacroExpansionLayer {
@@ -57,13 +53,7 @@ pub(super) fn normalize(value: &toml::Value, path: &Path) -> MacroExpansionLayer
                 layer.compilation_database = super::as_nonempty_string(value, &label, path)
             }
             "clang_path" => layer.clang_path = super::as_nonempty_string(value, &label, path),
-            "nasm_path" => layer.nasm_path = super::as_nonempty_string(value, &label, path),
             "clang_flags" => layer.clang_flags = super::as_string_array(value, &label, path),
-            "nasm_flags" => layer.nasm_flags = super::as_string_array(value, &label, path),
-            "timeout_ms" => layer.timeout_ms = super::as_positive_u64(value, &label, path),
-            "max_output_bytes" => {
-                layer.max_output_bytes = super::as_positive_byte_size(value, &label, path)
-            }
             _ => super::warn(&format!(
                 "unknown config key '{label}': {} — ignored",
                 path.display()
@@ -88,19 +78,10 @@ pub(super) fn merge(
             .clang_path
             .or(global.clang_path)
             .unwrap_or(defaults.clang_path),
-        nasm_path: repo
-            .nasm_path
-            .or(global.nasm_path)
-            .unwrap_or(defaults.nasm_path),
+        nasm_path: defaults.nasm_path,
         clang_flags: repo.clang_flags.or(global.clang_flags).unwrap_or_default(),
-        nasm_flags: repo.nasm_flags.or(global.nasm_flags).unwrap_or_default(),
-        timeout_ms: repo
-            .timeout_ms
-            .or(global.timeout_ms)
-            .unwrap_or(defaults.timeout_ms),
-        max_output_bytes: repo
-            .max_output_bytes
-            .or(global.max_output_bytes)
-            .unwrap_or(defaults.max_output_bytes),
+        nasm_flags: defaults.nasm_flags,
+        timeout_ms: defaults.timeout_ms,
+        max_output_bytes: defaults.max_output_bytes,
     }
 }

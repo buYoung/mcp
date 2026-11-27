@@ -5,14 +5,18 @@ mod model;
 mod relations;
 mod render;
 mod resolve;
+mod signature;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use extract::{collect, dart_library_exports, dart_library_imports};
+pub(crate) use extract::{
+    collect, dart_library_exports, dart_library_imports, preproc_conditions_for_node,
+};
 pub(crate) use index::ImplementationIndex;
 use index::*;
 pub use model::ImplementationFile;
 pub(crate) use model::*;
+pub(crate) use render::SOURCE_TRAILER_HEADER;
 pub(crate) use resolve::{relative_path, same_source_root, DartLibraries};
 
 pub(crate) const TYPES_PER_FILE: usize = 256;
@@ -24,6 +28,8 @@ pub(crate) const CANDIDATES_PER_QUERY: usize = 512;
 pub(crate) const DIRECT_CALLS_PER_SNAPSHOT: usize = 262_144;
 pub(crate) const OUTPUT_ROWS_PER_QUERY: usize = 128;
 pub(crate) const INHERITANCE_DEPTH: usize = 32;
+/// Label on the heading of a method that has no body of its own.
+pub(crate) const ABSTRACT_DECLARATION_LABEL: &str = "[abstract declaration]";
 
 /// Only development languages with declaration-level inheritance/conformance participate.
 /// Components enter through their existing JS/TS script masks, never their markup.

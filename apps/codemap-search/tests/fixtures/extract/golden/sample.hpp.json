@@ -187,6 +187,21 @@
               "isAbstract": false,
               "isFinal": false,
               "isComplete": true,
+              "fields": [
+                {
+                  "name": "x",
+                  "typ": {
+                    "name": "int",
+                    "arguments": [],
+                    "range": {
+                      "startLine": 7,
+                      "startCol": 5,
+                      "endLine": 7,
+                      "endCol": 8
+                    }
+                  }
+                }
+              ],
               "conditions": []
             },
             {

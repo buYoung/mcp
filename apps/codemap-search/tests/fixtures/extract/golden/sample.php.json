@@ -281,6 +281,21 @@
               "isAbstract": false,
               "isFinal": false,
               "isComplete": true,
+              "fields": [
+                {
+                  "name": "status",
+                  "typ": {
+                    "name": "string",
+                    "arguments": [],
+                    "range": {
+                      "startLine": 12,
+                      "startCol": 12,
+                      "endLine": 12,
+                      "endCol": 18
+                    }
+                  }
+                }
+              ],
               "conditions": []
             }
           ],

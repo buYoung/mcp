@@ -1,0 +1,62 @@
+[
+  {
+    "id": "regression:implementation:guarded-header",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/contract.h"},
+    "contains": ["implementation candidate: LocalHandler.priority — L14", "implementation candidate: LocalHandler.reset — L15"],
+    "excludes": ["implementation candidate: ExtraHandler"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:implementation:included-header",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/contract.h"},
+    "contains": ["implementation candidate: RemoteHandler.priority — _codemap_language_regressions/remote_handler.cpp:6", "implementation candidate: RemoteHandler.reset — _codemap_language_regressions/remote_handler.cpp:7"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:implementation:override-declaration",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/remote_handler.cpp"},
+    "contains": ["implements/overrides declaration: Handler.priority — _codemap_language_regressions/contract.h:8", "implements/overrides declaration: Handler.reset — _codemap_language_regressions/contract.h:9"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/named.h"},
+    "contains": ["implementation candidate: Person.rename — _codemap_language_regressions/person.cpp:5"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:foreign-scope",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/ledger.cpp"},
+    "contains": ["limit_total (L14)"],
+    "excludes": ["clamp_total (L"],
+    "category": "wrong_caller"
+  },
+  {
+    "id": "regression:implementation:include-beside",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/other/meter.h"},
+    "contains": ["Meter.sample"],
+    "excludes": ["ProbeMeter.sample"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:implementation:include-directory",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/include/kit/latch.h"},
+    "contains": ["kit.SpringLatch.release — _codemap_language_regressions/src/spring_latch.cpp:7"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:local-initializer-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/local_initializer.cpp"},
+    "contains": ["sample — L3"],
+    "excludes": ["sample (unresolved)", "countdown (unresolved)"],
+    "category": "missing_callee"
+  }
+]

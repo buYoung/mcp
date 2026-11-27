@@ -204,6 +204,21 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "total",
+                "typ": {
+                  "name": "Decimal",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 7,
+                    "startCol": 12,
+                    "endLine": 7,
+                    "endCol": 19
+                  }
+                }
+              }
+            ],
             "conditions": []
           },
           {
@@ -234,7 +249,6 @@
                   "endCol": 19
                 },
                 "parameters": [
-                  "?",
                   "list[dict[str,Decimal]]"
                 ],
                 "returnType": "OrderDto",
@@ -246,7 +260,7 @@
                 "isVirtual": true,
                 "isOverride": false,
                 "isPointerReceiver": false,
-                "hasKnownSignature": false,
+                "hasKnownSignature": true,
                 "conditions": []
               }
             ],

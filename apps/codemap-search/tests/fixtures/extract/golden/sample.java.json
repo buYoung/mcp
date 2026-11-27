@@ -217,6 +217,7 @@
                   "isAbstract": false,
                   "isStatic": false,
                   "isPrivate": false,
+                  "isPackageScoped": true,
                   "isFinal": false,
                   "isVirtual": true,
                   "isOverride": false,

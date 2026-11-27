@@ -84,6 +84,47 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "logger",
+                "typ": {
+                  "name": "Logger",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 8,
+                    "startCol": 12,
+                    "endLine": 8,
+                    "endCol": 18
+                  }
+                }
+              },
+              {
+                "name": "processor",
+                "typ": {
+                  "name": "Processor",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 7,
+                    "startCol": 12,
+                    "endLine": 7,
+                    "endCol": 21
+                  }
+                }
+              },
+              {
+                "name": "queue",
+                "typ": {
+                  "name": "JobQueue",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 12,
+                    "endLine": 6,
+                    "endCol": 20
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],
@@ -126,10 +167,133 @@
               }
             ],
             "namespace": "checkout",
-            "conditions": []
+            "conditions": [],
+            "range": {
+              "startLine": 11,
+              "startCol": 1,
+              "endLine": 23,
+              "endCol": 2
+            }
           }
         ],
-        "calls": []
+        "calls": [
+          {
+            "name": "Next",
+            "range": {
+              "startLine": 12,
+              "startCol": 13,
+              "endLine": 12,
+              "endCol": 30
+            },
+            "receiver": {
+              "name": "Worker",
+              "arguments": [],
+              "range": {
+                "startLine": 11,
+                "startCol": 9,
+                "endLine": 11,
+                "endCol": 15
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "queue"
+              }
+            ],
+            "namespace": "checkout",
+            "enclosingSymbol": "Tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "Warn",
+            "range": {
+              "startLine": 14,
+              "startCol": 3,
+              "endLine": 14,
+              "endCol": 26
+            },
+            "receiver": {
+              "name": "Worker",
+              "arguments": [],
+              "range": {
+                "startLine": 11,
+                "startCol": 9,
+                "endLine": 11,
+                "endCol": 15
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "logger"
+              }
+            ],
+            "namespace": "checkout",
+            "enclosingSymbol": "Tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "Process",
+            "range": {
+              "startLine": 18,
+              "startCol": 18,
+              "endLine": 18,
+              "endCol": 47
+            },
+            "receiver": {
+              "name": "Worker",
+              "arguments": [],
+              "range": {
+                "startLine": 11,
+                "startCol": 9,
+                "endLine": 11,
+                "endCol": 15
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "processor"
+              }
+            ],
+            "namespace": "checkout",
+            "enclosingSymbol": "Tick",
+            "argumentCount": 2,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "Ack",
+            "range": {
+              "startLine": 22,
+              "startCol": 9,
+              "endLine": 22,
+              "endCol": 37
+            },
+            "receiver": {
+              "name": "Worker",
+              "arguments": [],
+              "range": {
+                "startLine": 11,
+                "startCol": 9,
+                "endLine": 11,
+                "endCol": 15
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "queue"
+              }
+            ],
+            "namespace": "checkout",
+            "enclosingSymbol": "Tick",
+            "argumentCount": 2,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

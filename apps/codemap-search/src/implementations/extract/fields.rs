@@ -39,6 +39,21 @@ impl Fields {
             .all(|typ| typ.name == first.name && typ.arguments == first.arguments)
             .then(|| first.clone())
     }
+
+    /// Deterministic list of unambiguously typed fields declared on the type.
+    pub(super) fn to_declarations(&self) -> Vec<FieldDeclaration> {
+        let mut names: Vec<&String> = self.by_name.keys().collect();
+        names.sort();
+        names
+            .into_iter()
+            .filter_map(|name| {
+                self.get(name).map(|typ| FieldDeclaration {
+                    name: name.clone(),
+                    typ,
+                })
+            })
+            .collect()
+    }
 }
 
 /// The fields `node` declares, by name, with their written type node.
@@ -63,6 +78,11 @@ fn declared_fields<'a>(
                 })
                 .unwrap_or_default()
         }
+        // Rust struct fields (`name: Type`).
+        "field_declaration" if language == "rust" => node
+            .child_by_field_name("name")
+            .map(|field| named(text(field, source), node.child_by_field_name("type")))
+            .unwrap_or_default(),
         // Java/Groovy/C++ fields and C# field declarations.
         "field_declaration" | "variable_declaration" => {
             let typ = node.child_by_field_name("type");
@@ -254,28 +274,39 @@ fn python_value_type<'a>(assignment: Node<'a>, source: &[u8]) -> Option<Node<'a>
                     return children(node.child_by_field_name("parameters")?)
                         .into_iter()
                         .find(|candidate| {
-                            candidate.kind() == "typed_parameter"
-                                && child(*candidate, &["identifier"])
-                                    .is_some_and(|name| text(name, source) == parameter)
+                            matches!(
+                                candidate.kind(),
+                                "typed_parameter" | "typed_default_parameter"
+                            ) && candidate
+                                .child_by_field_name("name")
+                                .or_else(|| child(*candidate, &["identifier"]))
+                                .is_some_and(|name| text(name, source) == parameter)
                         })
                         .and_then(|candidate| candidate.child_by_field_name("type"));
                 }
             }
             None
         }
-        "call" => right.child_by_field_name("function").filter(|function| {
-            function.kind() == "identifier"
-                && text(*function, source)
+        "call" => right
+            .child_by_field_name("function")
+            .filter(|function| match function.kind() {
+                "identifier" => text(*function, source)
                     .chars()
                     .next()
-                    .is_some_and(char::is_uppercase)
-        }),
+                    .is_some_and(char::is_uppercase),
+                "attribute" => function
+                    .child_by_field_name("attribute")
+                    .and_then(|attr| text(attr, source).chars().next())
+                    .is_some_and(char::is_uppercase),
+                _ => false,
+            }),
         _ => None,
     }
 }
 
-/// A named type behind annotations, optional markers and wrappers.
-fn declared(node: Node<'_>, source: &[u8]) -> Option<TypeReference> {
+/// A named type behind annotations, optional markers and wrappers: a value declared with a
+/// nullable type has the members of the type that is left without `null`.
+pub(super) fn declared(node: Node<'_>, source: &[u8]) -> Option<TypeReference> {
     let mut current = node;
     loop {
         let next = match current.kind() {
@@ -288,6 +319,50 @@ fn declared(node: Node<'_>, source: &[u8]) -> Option<TypeReference> {
                 .child_by_field_name("wrapped")
                 .or_else(|| current.child_by_field_name("type"))
                 .or_else(|| current.named_child(0)),
+            // `Tool | null`, `Tool | undefined` and Python's `Tool | None`.
+            "union_type" | "binary_operator" => {
+                let mut members = Vec::new();
+                union_members(current, source, &mut members);
+                members.retain(|member| {
+                    !matches!(text(*member, source).trim(), "null" | "undefined" | "None")
+                });
+                match members.as_slice() {
+                    [only] if only.id() != current.id() => Some(*only),
+                    _ => None,
+                }
+            }
+            // Python's `Optional[Tool]` and Rust's Deref wrappers `Box<T>` / `Arc<T>` / `Rc<T>`.
+            // Java's `Optional<Tool>` is a type of its own.
+            "generic_type"
+                if current.named_child(0).is_some_and(|name| {
+                    matches!(text(name, source).rsplit('.').next(), Some("Optional"))
+                }) && current.named_child_count() == 2 =>
+            {
+                current
+                    .named_child(1)
+                    .filter(|arguments| {
+                        arguments.kind() == "type_parameter" && arguments.named_child_count() == 1
+                    })
+                    .and_then(|arguments| arguments.named_child(0))
+            }
+            "generic_type"
+                if current.child_by_field_name("type").is_some_and(|name| {
+                    matches!(
+                        text(name, source).rsplit("::").next(),
+                        Some("Box" | "Arc" | "Rc")
+                    )
+                }) =>
+            {
+                current
+                    .child_by_field_name("type_arguments")
+                    .and_then(|arguments| {
+                        let types: Vec<_> = children(arguments)
+                            .into_iter()
+                            .filter(|c| c.kind() != "lifetime")
+                            .collect();
+                        (types.len() == 1).then(|| types[0])
+                    })
+            }
             _ => None,
         };
         match next {
@@ -299,6 +374,24 @@ fn declared(node: Node<'_>, source: &[u8]) -> Option<TypeReference> {
         return None;
     }
     reference(current, source)
+}
+
+/// The members of a union type, written with `|` at any depth.
+fn union_members<'a>(node: Node<'a>, source: &[u8], members: &mut Vec<Node<'a>>) {
+    let is_union = match node.kind() {
+        "union_type" => true,
+        "binary_operator" => children_with_tokens(node)
+            .iter()
+            .any(|child| !child.is_named() && text(*child, source) == "|"),
+        _ => false,
+    };
+    if is_union {
+        for child in children(node) {
+            union_members(child, source, members);
+        }
+    } else {
+        members.push(node);
+    }
 }
 
 fn is_method_body(node: Node<'_>) -> bool {

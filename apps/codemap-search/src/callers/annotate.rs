@@ -179,7 +179,7 @@ fn resolve_navigation_call<'a>(
     call_file: &'a ExtractedFile,
     snapshot: &'a [std::sync::Arc<ExtractedFile>],
     index: &'a SymbolIndex<'a>,
-    navigation_index: &NavigationIndex,
+    navigation_index: &NavigationIndex<'_>,
     is_member: bool,
 ) -> Option<(&'a ExtractedFile, &'a ExtractedSymbol)> {
     if has_non_function_local_shadow(call, call_file, index) {
@@ -284,7 +284,7 @@ fn precise_navigation_callers(
     target_file_path: &str,
     snapshot: &[std::sync::Arc<ExtractedFile>],
     index: &SymbolIndex<'_>,
-    navigation_index: &NavigationIndex,
+    navigation_index: &NavigationIndex<'_>,
     call_lookup: Option<&super::CallLookup>,
     cfg: &CallerConfig,
     runtime_state: AnnotationRuntimeState,
@@ -293,12 +293,10 @@ fn precise_navigation_callers(
     deadline: Option<Instant>,
     is_cut_short: &mut bool,
 ) -> Option<ConfirmedCallers> {
-    if (!cfg.navigation_context_default && !super::resolution::supports(target_file_path))
-        || runtime_state.suppresses_navigation()
-    {
+    if runtime_state.suppresses_navigation() {
         return None;
     }
-    if navigation_index.calls_by_name.is_empty() && !super::resolution::supports(target_file_path) {
+    if !navigation_index.has_calls && !super::resolution::supports(target_file_path) {
         return Some(ConfirmedCallers {
             entries: Vec::new(),
             is_partial: false,
@@ -312,10 +310,27 @@ fn precise_navigation_callers(
     let mut relevant_names = HashSet::from([target.name.as_str()]);
     let mut is_alias_limited = false;
     if target_file_path.ends_with(".rs") {
+        let mut checked_names: HashSet<&str> = HashSet::new();
         for round in 0..16 {
             let before = relevant_names.len();
-            for import in snapshot
+            let new_names: Vec<&str> = relevant_names
                 .iter()
+                .copied()
+                .filter(|name| checked_names.insert(*name))
+                .collect();
+            if new_names.is_empty() {
+                break;
+            }
+            let import_files: Box<dyn Iterator<Item = &ExtractedFile>> = match call_lookup {
+                Some(lookup) => Box::new(
+                    lookup
+                        .files([], new_names.iter().copied(), false)
+                        .into_iter()
+                        .map(|position| &*snapshot[position]),
+                ),
+                None => Box::new(snapshot.iter().map(|file| &**file)),
+            };
+            for import in import_files
                 .filter(|file| file.file_path.ends_with(".rs"))
                 .filter_map(|file| file.navigation.as_ref())
                 .flat_map(|navigation| &navigation.imports)
@@ -360,10 +375,16 @@ fn precise_navigation_callers(
     let candidates: Vec<&ExtractedFile> = candidates
         .filter(|file| file.navigation.is_some())
         .collect();
-    // Without a deadline every call within the budget is resolved, so the sources those calls
-    // resolve in are loaded on all cores first; the walk below finds them loaded.
-    if deadline.is_none() {
+    // Preload candidate sources across all cores before resolution; under a deadline cap the
+    // preload batch so parallel parsing speeds up large C++/Rust lookups without stalling.
+    const DEADLINE_PRELOAD_FILE_CAP: usize = 64;
+    if deadline.is_none_or(|d| Instant::now() < d) {
         let mut remaining = cfg.navigation_callsite_budget;
+        let file_cap = if deadline.is_some() {
+            DEADLINE_PRELOAD_FILE_CAP
+        } else {
+            usize::MAX
+        };
         let mut files = Vec::new();
         'files: for call_file in &candidates {
             let navigation = call_file.navigation.as_ref().unwrap();
@@ -378,6 +399,9 @@ fn precise_navigation_callers(
                 if super::resolution::supports(&call_file.file_path)
                     && files.last() != Some(&call_file.file_path.as_str())
                 {
+                    if files.len() >= file_cap {
+                        break 'files;
+                    }
                     files.push(call_file.file_path.as_str());
                 }
             }
@@ -482,12 +506,16 @@ struct SymbolAnnotation {
     prefix: String,
     /// The caller list / omission note / observation caveat block. The only deduped part.
     caller_block: String,
+    /// Scope-verified non-call function references rendered in `read`/`grep` live relations.
+    live_non_call_block: String,
     /// The depth-1 callee block rendered after the caller block (may be empty).
     suffix: String,
     /// Attributed callers behind the caller block (proven first, then name-matched), uncapped.
     callers: Vec<CallerSite>,
     /// Single-definition matches whose receiver did not resolve, as listed in the block.
     unconfirmed_callers: Vec<CallerSite>,
+    /// Scope-verified non-call references (callbacks / handlers / bindings / system registrations).
+    non_call_references: Vec<CallerSite>,
 }
 
 impl SymbolAnnotation {
@@ -551,7 +579,7 @@ fn render_symbol_annotation(
     scan: &ScanResult,
     snapshot: &[std::sync::Arc<ExtractedFile>],
     index: &SymbolIndex<'_>,
-    navigation_index: &NavigationIndex,
+    navigation_index: &NavigationIndex<'_>,
     call_lookup: Option<&super::CallLookup>,
     cfg: &CallerConfig,
     byte_budget: usize,
@@ -584,9 +612,94 @@ fn render_symbol_annotation(
 
     // --- Callers (built into its own block so identical repeats can be deduped per file). ---
     let own_def_count = lookup_compatible_candidates(&sym.name, file_path, false, index).len();
+    if file_path.ends_with(".py") && sym.kind == "class" {
+        let mut class_calls: Vec<CallerSite> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        let test_filter = super::test_code::TestCodeFilter::from_config(root);
+        'files: for candidate in snapshot {
+            if !candidate.file_path.ends_with(".py") {
+                continue;
+            }
+            let Some(nav) = candidate.navigation.as_ref() else {
+                continue;
+            };
+            for call in &nav.calls {
+                if call.name != sym.name {
+                    continue;
+                }
+                if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                    *is_cut_short = true;
+                    break 'files;
+                }
+                if test_filter.is_excluded(&candidate.file_path, &call.range) {
+                    continue;
+                }
+                if candidate.file_path == file_path
+                    && call.range.start_line >= sym.range.start_line
+                    && call.range.start_line <= sym.range.end_line_inclusive()
+                {
+                    continue;
+                }
+                if !resolver.is_python_class_call_compatible(
+                    &candidate.file_path,
+                    call.range.start_line,
+                    &sym.name,
+                    file_path,
+                    own_def_count,
+                ) {
+                    continue;
+                }
+                let caller_name = resolver
+                    .caller_name(candidate, call.range.start_line)
+                    .or_else(|| {
+                        enclosing_fn(candidate, call.range.start_line)
+                            .map(|enclosing| qualified_name(enclosing, &candidate.file_path))
+                    });
+                let site = CallerSite {
+                    caller: caller_name,
+                    path: candidate.file_path.clone(),
+                    line: call.range.start_line,
+                };
+                if seen.insert(site.entry()) {
+                    class_calls.push(site);
+                }
+            }
+        }
+        if class_calls.is_empty() {
+            return None;
+        }
+        let mut block = String::from(
+            "  - _class name called at (instantiation / __new__ / __init__ entry; static analysis):_\n",
+        );
+        for entry in class_calls.iter().take(cfg.caller_list_cap) {
+            block.push_str(&format!("    - {}\n", entry.entry()));
+        }
+        if class_calls.len() > cfg.caller_list_cap {
+            block.push_str(&format!(
+                "    - _… {} more not shown._\n",
+                class_calls.len() - cfg.caller_list_cap
+            ));
+        }
+        let annotation = SymbolAnnotation {
+            name: sym.name.clone(),
+            prefix,
+            caller_block: block,
+            live_non_call_block: String::new(),
+            suffix: String::new(),
+            callers: class_calls,
+            unconfirmed_callers: Vec::new(),
+            non_call_references: Vec::new(),
+        };
+        if annotation.full_len() > byte_budget {
+            return None;
+        }
+        return Some(annotation);
+    }
     let mut caller_block = String::new();
+    let mut live_non_call_block = String::new();
     let mut callers: Vec<CallerSite> = Vec::new();
     let mut unconfirmed_callers: Vec<CallerSite> = Vec::new();
+    let mut non_call_references: Vec<CallerSite> = Vec::new();
     let mut used_precise_callers = false;
     let mut precise_caller_entries: HashSet<String> = HashSet::new();
     if let Some(confirmed) = precise_navigation_callers(
@@ -726,6 +839,7 @@ fn render_symbol_annotation(
                 // No direct callers: surface non-call references (the dead-code antidote), then
                 // always the observation-scope caveat — never a bare "0 callers".
                 let mut refs: Vec<String> = Vec::new();
+                let mut verified_refs: Vec<String> = Vec::new();
                 let mut seen_refs: HashSet<String> = HashSet::new();
                 for hit in scan
                     .hits
@@ -755,10 +869,29 @@ fn render_symbol_annotation(
                         hit.line_text.trim()
                     );
                     if seen_refs.insert(entry.clone()) {
+                        if super::resolution::supports(&hit.file_path)
+                            && resolver.is_verified_non_call_reference(
+                                &hit.file_path,
+                                hit.line_number,
+                                &sym.name,
+                                file_path,
+                                own_def_count,
+                            )
+                        {
+                            verified_refs.push(entry.clone());
+                        }
                         refs.push(entry);
                     }
                     if refs.len() >= cfg.caller_list_cap {
                         break;
+                    }
+                }
+                if !verified_refs.is_empty() {
+                    live_non_call_block.push_str(
+                        "  - _function value referenced at (non-call position; callback / handler reference):_\n",
+                    );
+                    for r in verified_refs {
+                        live_non_call_block.push_str(&format!("    - {r}\n"));
                     }
                 }
                 // Observed but unattributed calls are already reported above, so they never
@@ -819,6 +952,72 @@ fn render_symbol_annotation(
         }
         callers.extend(caller_entries);
         unconfirmed_callers = unresolved_entries;
+
+        // Collect scope-verified non-call references (callbacks, system registrations, method
+        // bindings, handler tables) even when direct callers also exist, so `read view=source`
+        // trailers can surface registration/binding sites alongside direct callers.
+        let mut seen_non_call: HashSet<(String, usize)> = HashSet::new();
+        for hit in scan
+            .hits
+            .iter()
+            .filter(|h| h.name == sym.name && !h.is_call)
+        {
+            if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                *is_cut_short = true;
+                break;
+            }
+            if !definition_is_compatible(&hit.file_path, hit.is_member_access, file_path, sym) {
+                continue;
+            }
+            if is_within_same_named_fn(hit, &sym.name, index) {
+                continue;
+            }
+            let hit_ext = extension_of(&hit.file_path);
+            if is_import_line(&hit.line_text, hit_ext) {
+                continue;
+            }
+            if !super::resolution::supports(&hit.file_path) {
+                continue;
+            }
+            let key = (hit.file_path.clone(), hit.line_number);
+            if seen_non_call.contains(&key) {
+                continue;
+            }
+            if !resolver.is_verified_non_call_reference(
+                &hit.file_path,
+                hit.line_number,
+                &sym.name,
+                file_path,
+                own_def_count,
+            ) {
+                continue;
+            }
+            seen_non_call.insert(key);
+            let file = call_lookup
+                .and_then(|lookup| lookup.file_index(&hit.file_path))
+                .and_then(|pos| snapshot.get(pos))
+                .map(|file| &**file)
+                .or_else(|| {
+                    snapshot
+                        .iter()
+                        .find(|f| f.file_path == hit.file_path)
+                        .map(|file| &**file)
+                });
+            let caller_name = file.and_then(|file| {
+                resolver.caller_name(file, hit.line_number).or_else(|| {
+                    enclosing_fn(file, hit.line_number)
+                        .map(|enclosing| qualified_name(enclosing, &file.file_path))
+                })
+            });
+            non_call_references.push(CallerSite {
+                caller: caller_name,
+                path: hit.file_path.clone(),
+                line: hit.line_number,
+            });
+            if non_call_references.len() >= cfg.caller_list_cap {
+                break;
+            }
+        }
     } // end caller-list branch (skipped when callers are omitted for too-many-defs)
 
     // --- Callees: depth-1, name-match only. Held in the fixed `suffix` part — never deduped,
@@ -922,9 +1121,11 @@ fn render_symbol_annotation(
         name: sym.name.clone(),
         prefix,
         caller_block,
+        live_non_call_block,
         suffix,
         callers,
         unconfirmed_callers,
+        non_call_references,
     };
     // Budget check against the FULL (un-deduped) length: the render-order dedup only ever
     // emits this length or LESS, so reserving the full length keeps the cap safe. Over budget
@@ -937,9 +1138,11 @@ fn render_symbol_annotation(
                 name: sym.name.clone(),
                 prefix: ANNOTATION_OMITTED_MARKER.to_string(),
                 caller_block: String::new(),
+                live_non_call_block: String::new(),
                 suffix: String::new(),
                 callers: Vec::new(),
                 unconfirmed_callers: Vec::new(),
+                non_call_references: Vec::new(),
             });
         }
         return None;
@@ -1042,12 +1245,19 @@ impl DetailAnnotations {
             None => self.annotations.get(&(file_path.to_string(), start_line)),
         };
         annotation.map(|ann| {
-            if ann.caller_block.is_empty() && ann.suffix.is_empty() {
+            if ann.caller_block.is_empty()
+                && ann.live_non_call_block.is_empty()
+                && ann.suffix.is_empty()
+            {
                 return ANNOTATION_OMITTED_MARKER.to_string();
             }
-            let callers = if ann.caller_block.contains("referenced in a non-call position") {
+            let callers = if !ann.live_non_call_block.is_empty() {
+                ann.live_non_call_block.clone()
+            } else if ann.caller_block.contains("referenced in a non-call position") {
                 format!("  - {OBSERVATION_SCOPE_CAVEAT} (non-call references excluded; scan may be capped)\n")
-            } else { ann.caller_block.clone() };
+            } else {
+                ann.caller_block.clone()
+            };
             format!("{callers}{}", ann.suffix)
         })
     }
@@ -1082,6 +1292,19 @@ impl DetailAnnotations {
                     annotation.unconfirmed_callers.as_slice(),
                 )
             })
+    }
+
+    /// Scope-verified non-call references (callbacks, handler/system registrations, bindings)
+    /// of one annotated symbol. `None` when the symbol was not annotated.
+    pub(crate) fn non_call_references(
+        &self,
+        file_path: &str,
+        start_line: usize,
+        start_col: usize,
+    ) -> Option<&[CallerSite]> {
+        self.exact_annotations
+            .get(&(file_path.to_string(), start_line, start_col))
+            .map(|annotation| annotation.non_call_references.as_slice())
     }
 
     /// Attributed and unconfirmed caller sites of the symbol starting at `start_line`, as
@@ -1162,7 +1385,10 @@ pub(crate) fn annotate_results_with_state(
     implementations: Option<&crate::implementations::ImplementationIndex>,
     call_lookup: Option<&super::CallLookup>,
 ) -> Option<DetailAnnotations> {
-    let resolver = super::resolution::SourceResolver::new(snapshot, root);
+    let resolver = match call_lookup {
+        Some(lookup) => super::resolution::SourceResolver::with_lookup(snapshot, root, lookup),
+        None => super::resolution::SourceResolver::new(snapshot, root),
+    };
     let resolver = match implementations {
         Some(index) => resolver.with_implementations(index),
         None => resolver,
@@ -1290,13 +1516,24 @@ fn annotate_with_presentation(
     let annotation_started = should_trace_navigation_metrics.then(Instant::now);
     let test_filter = super::test_code::TestCodeFilter::from_config(root);
     test_filter.retain_snapshot_cache(snapshot);
-    let index = build_symbol_index(snapshot, Some(&test_filter));
-    let should_build_navigation_index =
-        cfg.navigation_context_default && !runtime_state.suppresses_navigation();
+    let call_lookup = limits
+        .as_ref()
+        .map(|limits| limits.call_lookup)
+        .or(call_lookup);
+    let index = match call_lookup {
+        Some(lookup) => SymbolIndex::from_lookup(snapshot, lookup, Some(&test_filter)),
+        None => build_symbol_index(snapshot, Some(&test_filter)),
+    };
+    let has_non_source_resolver_target = requests
+        .iter()
+        .any(|req| !req.is_fallback && !super::resolution::supports(req.file_path));
+    let should_build_navigation_index = (cfg.navigation_context_default
+        || has_non_source_resolver_target)
+        && !runtime_state.suppresses_navigation();
     let navigation_index_started =
         (should_trace_navigation_metrics && should_build_navigation_index).then(Instant::now);
     let navigation_index = if should_build_navigation_index {
-        build_navigation_index(snapshot)
+        build_navigation_index(snapshot, call_lookup)
     } else {
         NavigationIndex::default()
     };
@@ -1321,7 +1558,7 @@ fn annotate_with_presentation(
     });
 
     let is_annotated = |file_path: &str, sym: &ExtractedSymbol| {
-        sym.kind == "fn"
+        (sym.kind == "fn" || (file_path.ends_with(".py") && sym.kind == "class"))
             && !test_filter.is_excluded(file_path, &sym.range)
             && (!should_skip_ambiguous_names
                 || lookup_compatible_candidates(&sym.name, file_path, false, &index).len()
@@ -1329,6 +1566,7 @@ fn annotate_with_presentation(
     };
     // Union of every non-fallback matched `fn` name across all detail files → one scan.
     let mut names: Vec<String> = Vec::new();
+    let mut extra_files: HashSet<String> = HashSet::new();
     for req in requests {
         if req.is_fallback {
             continue;
@@ -1336,24 +1574,20 @@ fn annotate_with_presentation(
         for sym in req
             .symbols
             .iter()
-            .filter(|s| is_annotated(req.file_path, s))
+            .filter(|s| s.kind == "fn" && is_annotated(req.file_path, s))
         {
             names.push(sym.name.clone());
+            extra_files.insert(req.file_path.to_string());
         }
     }
     names.sort();
     names.dedup();
-    let files_by_path: HashMap<&str, &ExtractedFile> = match &limits {
-        Some(_) => snapshot
-            .iter()
-            .map(|file| (file.file_path.as_str(), &**file))
-            .collect(),
-        None => HashMap::new(),
-    };
     let scan_options = ScanOptions {
         unchanged_calls: limits.as_ref().map(|limits| IndexedFiles {
-            files: &files_by_path,
+            snapshot,
+            call_lookup: limits.call_lookup,
             mtime: limits.indexed_mtime,
+            extra_files: &extra_files,
         }),
         deadline: limits.as_ref().map(|limits| limits.deadline),
         indexed_walk: limits
@@ -1361,10 +1595,6 @@ fn annotate_with_presentation(
             .filter(|limits| limits.is_index_current)
             .map(|limits| (snapshot, limits.call_lookup)),
     };
-    let call_lookup = limits
-        .as_ref()
-        .map(|limits| limits.call_lookup)
-        .or(call_lookup);
     let scan = scan_workspace(&names, cfg, root, &index, &scan_options)?;
     let deadline = scan_options.deadline;
     let mut is_partial = scan.is_past_deadline;
@@ -1377,57 +1607,78 @@ fn annotate_with_presentation(
     // less, so the reserved cap is never exceeded at emission time.
     let mut sub_remaining = cfg.annotation_sub_budget;
     let mut overall_remaining = available_bytes;
-    'requests: for req in requests {
-        if req.is_fallback {
-            continue;
+    let work_items: Vec<(&str, &ExtractedSymbol)> = requests
+        .iter()
+        .filter(|req| !req.is_fallback)
+        .flat_map(|req| {
+            req.symbols
+                .iter()
+                .filter(|s| is_annotated(req.file_path, s))
+                .map(|s| (req.file_path, s))
+        })
+        .collect();
+    let total_items = work_items.len();
+    for (idx, (req_file_path, sym)) in work_items.into_iter().enumerate() {
+        let budget = sub_remaining.min(overall_remaining);
+        if budget == 0 {
+            break;
         }
-        for sym in req
-            .symbols
-            .iter()
-            .filter(|s| is_annotated(req.file_path, s))
-        {
-            let budget = sub_remaining.min(overall_remaining);
-            if budget == 0 {
-                break;
+        let now = Instant::now();
+        if deadline.is_some_and(|total| now >= total) {
+            is_partial = true;
+            break;
+        }
+        // Fair per-function time slice when multiple functions share a deadline so one
+        // high-fan-in function cannot starve every remaining function in the read window.
+        let sym_deadline = deadline.map(|total| {
+            let remaining = total.saturating_duration_since(now);
+            let remaining_fns = (total_items - idx) as u32;
+            if remaining_fns <= 1 {
+                total
+            } else {
+                let slice = (remaining / remaining_fns)
+                    .max(std::time::Duration::from_millis(80))
+                    .min(remaining);
+                now + slice
             }
-            if is_partial || deadline.is_some_and(|deadline| Instant::now() >= deadline) {
-                is_partial = true;
-                break 'requests;
-            }
-            if let Some(annotation) = render_symbol_annotation(
-                sym,
-                req.file_path,
-                &scan,
-                snapshot,
-                &index,
-                &navigation_index,
-                call_lookup,
-                cfg,
-                budget,
-                root,
-                runtime_state,
-                resolver,
-                should_list_unresolved,
-                should_discover_callees,
-                deadline,
-                &mut is_partial,
-            ) {
-                let reserved = annotation.full_len();
-                sub_remaining = sub_remaining.saturating_sub(reserved);
-                overall_remaining = overall_remaining.saturating_sub(reserved);
-                exact_annotations.insert(
-                    (
-                        req.file_path.to_string(),
-                        sym.range.start_line,
-                        sym.range.start_col,
-                    ),
-                    annotation.clone(),
-                );
-                annotations.insert(
-                    (req.file_path.to_string(), sym.range.start_line),
-                    annotation,
-                );
-            }
+        });
+        let mut sym_partial = false;
+        if let Some(annotation) = render_symbol_annotation(
+            sym,
+            req_file_path,
+            &scan,
+            snapshot,
+            &index,
+            &navigation_index,
+            call_lookup,
+            cfg,
+            budget,
+            root,
+            runtime_state,
+            resolver,
+            should_list_unresolved,
+            should_discover_callees,
+            sym_deadline,
+            &mut sym_partial,
+        ) {
+            let reserved = annotation.full_len();
+            sub_remaining = sub_remaining.saturating_sub(reserved);
+            overall_remaining = overall_remaining.saturating_sub(reserved);
+            exact_annotations.insert(
+                (
+                    req_file_path.to_string(),
+                    sym.range.start_line,
+                    sym.range.start_col,
+                ),
+                annotation.clone(),
+            );
+            annotations.insert(
+                (req_file_path.to_string(), sym.range.start_line),
+                annotation,
+            );
+        }
+        if sym_partial {
+            is_partial = true;
         }
     }
     if let Some(metrics) = &mut navigation_metrics {
@@ -1537,7 +1788,8 @@ mod tests {
         let annotations = (1..=3).map(|line| (("t.rs".to_string(), line), SymbolAnnotation {
             name: "tick".to_string(), prefix: String::new(), suffix: String::new(),
             caller_block: "  - _callers (approximate; `tick` has 3 definitions):_\n    - driver (t.rs:5)\n".to_string(),
-            callers: Vec::new(), unconfirmed_callers: Vec::new(),
+            live_non_call_block: String::new(),
+            callers: Vec::new(), unconfirmed_callers: Vec::new(), non_call_references: Vec::new(),
         })).collect();
         DetailAnnotations {
             annotations,
@@ -2114,5 +2366,131 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn wave1_to_3_c2_proof_tier_and_p1_python_callbacks_and_class_calls() {
+        // C2: external-import initializer (`from flask import Flask; app = Flask(__name__)`)
+        // rules out `@app.route("/health")` against `Router.route`; fixed arity rules out
+        // `config.get("port", 8080)` against `Cache.get(self, key)`, while `cache.get("k")`
+        // stays in `unconfirmed callers`.
+        let (_dir, root) = crate::callers::fixtures::write_repo(&[
+            (
+                "router.py",
+                "class Router:\n    def route(self, path):\n        pass\nclass Cache:\n    def get(self, key):\n        return key\n",
+            ),
+            (
+                "app.py",
+                concat!(
+                    "from flask import Flask\n",
+                    "app = Flask(__name__)\n",
+                    "@app.route(\"/health\")\n",
+                    "def health():\n",
+                    "    pass\n",
+                    "def read_cfg(config, cache):\n",
+                    "    a = config.get(\"port\", 8080)\n",
+                    "    b = cache.get(\"k\")\n",
+                    "    return a, b\n",
+                ),
+            ),
+            (
+                "callbacks.py",
+                concat!(
+                    "def handle_req():\n",
+                    "    return 1\n",
+                    "class Service:\n",
+                    "    def __new__(cls, x):\n",
+                    "        return super().__new__(cls)\n",
+                    "    def __init__(self, x):\n",
+                    "        self.x = x\n",
+                ),
+            ),
+            (
+                "wire.py",
+                concat!(
+                    "from callbacks import handle_req, Service\n",
+                    "hooks = {}\n",
+                    "def register():\n",
+                    "    hooks[\"on_req\"] = handle_req\n",
+                    "    return Service(42)\n",
+                ),
+            ),
+        ]);
+        let parse_all = |path: &str| {
+            use crate::parser::CodeExtractor;
+            let src = std::fs::read_to_string(root.join(path)).unwrap();
+            std::sync::Arc::new(
+                crate::parser::TreeSitterExtractor::new()
+                    .extract(&src, path)
+                    .unwrap(),
+            )
+        };
+        let snapshot = vec![
+            parse_all("router.py"),
+            parse_all("app.py"),
+            parse_all("callbacks.py"),
+            parse_all("wire.py"),
+        ];
+        let requests = [
+            AnnotationRequest {
+                file_path: "router.py",
+                symbols: &snapshot[0].symbols,
+                is_fallback: false,
+            },
+            AnnotationRequest {
+                file_path: "callbacks.py",
+                symbols: &snapshot[2].symbols,
+                is_fallback: false,
+            },
+        ];
+        let ann = annotate_results(&requests, &snapshot, &cfg(), 100_000, &root).unwrap();
+
+        // C2 check 1: Router.route must NOT list app.py:3 in unconfirmed callers.
+        let route_text = note(&ann, "router.py", 2);
+        assert!(
+            !route_text.contains("unconfirmed callers") && !route_text.contains("app.py:3"),
+            "C2 external Flask initializer must rule out @app.route: {route_text}"
+        );
+        // C2 check 2: Cache.get(self, key) must rule out 2-arg `config.get("port", 8080)` (line 7)
+        // while keeping 1-arg `cache.get("k")` (line 8) in unconfirmed callers.
+        let get_text = note(&ann, "router.py", 5);
+        assert!(
+            get_text.contains("unconfirmed callers")
+                && get_text.contains("app.py:8")
+                && !get_text.contains("app.py:7"),
+            "C2 arity must rule out 2-arg config.get while keeping 1-arg cache.get: {get_text}"
+        );
+
+        // P1 check 1: callback `handle_req` surfaces in `render_live_relations` (`read`).
+        let cb_live = ann
+            .render_live_relations("callbacks.py", 1, None)
+            .expect("P1 callback should have live relations");
+        assert!(
+            cb_live.contains("function value referenced at") && cb_live.contains("wire.py:4"),
+            "P1 callback non-call ref should surface in read: {cb_live}"
+        );
+        // P1 check 2: `Service(42)` surfaces as `class name called at` on `class Service` (line 3)
+        // and NEVER as a caller of `__init__` (line 6).
+        let cls_live = ann
+            .render_live_relations("callbacks.py", 3, None)
+            .unwrap_or_else(|| {
+                panic!(
+                    "P1 Python class should have class-call relations; syms={:#?}; wire_imports={:#?}; ann_keys={:#?}",
+                    snapshot[2].symbols,
+                    snapshot[3].navigation.as_ref().map(|n| &n.imports),
+                    ann.annotations.keys().collect::<Vec<_>>()
+                )
+            });
+        assert!(
+            cls_live.contains("class name called at") && cls_live.contains("wire.py:5"),
+            "P1 class instantiation label expected: {cls_live}"
+        );
+        let init_live = ann
+            .render_live_relations("callbacks.py", 6, None)
+            .unwrap_or_default();
+        assert!(
+            !init_live.contains("wire.py:5"),
+            "P1 negative: Service(42) must never be attributed to __init__: {init_live}"
+        );
     }
 }

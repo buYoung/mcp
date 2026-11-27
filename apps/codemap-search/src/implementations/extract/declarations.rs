@@ -1,23 +1,44 @@
 use super::*;
 
+pub(super) fn extract_type_parameters(node: Node<'_>, source: &[u8]) -> Vec<String> {
+    parameters(node, source)
+}
+
+pub(super) fn base_references(node: Node<'_>, source: &[u8]) -> Vec<TypeReference> {
+    base_nodes(node)
+        .into_iter()
+        .filter_map(|candidate| reference(candidate, source))
+        .collect()
+}
+
 fn parameters(node: Node<'_>, source: &[u8]) -> Vec<String> {
-    node.child_by_field_name("type_parameters")
+    let list = node
+        .child_by_field_name("type_parameters")
         .or_else(|| child(node, &["type_parameters", "type_parameter_list"]))
-        .map(|list| {
-            children(list)
-                .into_iter()
-                .filter_map(|parameter| {
-                    let name = parameter
-                        .child_by_field_name("name")
-                        .or_else(|| child(parameter, &["type_identifier", "identifier"]))
-                        .unwrap_or(parameter);
-                    let value = compact(text(name, source));
-                    (!value.is_empty() && value.chars().all(|c| c.is_alphanumeric() || c == '_'))
-                        .then_some(value)
+        .or_else(|| {
+            node.parent()
+                .filter(|parent| parent.kind() == "template_declaration")
+                .and_then(|parent| {
+                    parent
+                        .child_by_field_name("parameters")
+                        .or_else(|| child(parent, &["template_parameter_list"]))
                 })
-                .collect()
-        })
-        .unwrap_or_default()
+        });
+    list.map(|list| {
+        children(list)
+            .into_iter()
+            .filter_map(|parameter| {
+                let name = parameter
+                    .child_by_field_name("name")
+                    .or_else(|| child(parameter, &["type_identifier", "identifier"]))
+                    .unwrap_or(parameter);
+                let value = compact(text(name, source));
+                (!value.is_empty() && value.chars().all(|c| c.is_alphanumeric() || c == '_'))
+                    .then_some(value)
+            })
+            .collect()
+    })
+    .unwrap_or_default()
 }
 
 fn base_nodes(node: Node<'_>) -> Vec<Node<'_>> {
@@ -39,6 +60,7 @@ fn base_nodes(node: Node<'_>) -> Vec<Node<'_>> {
                     | "mixins"
                     | "extends_clause"
                     | "base_clause"
+                    | "class_interface_clause"
                     | "class_base"
             )
         })
@@ -66,6 +88,7 @@ fn base_nodes(node: Node<'_>) -> Vec<Node<'_>> {
                 | "implements_clause"
                 | "type_list"
                 | "base_clause"
+                | "class_interface_clause"
                 | "class_base"
                 | "mixin_clause"
         ) {
@@ -94,6 +117,20 @@ fn base_nodes(node: Node<'_>) -> Vec<Node<'_>> {
     }
     result.sort_by_key(Node::start_byte);
     result
+}
+
+/// Whether a type declaration's header (modifiers, name, type parameters, base list — everything
+/// outside its body) parsed without syntax errors.
+fn header_intact(node: Node<'_>) -> bool {
+    if node.is_error() || node.is_missing() {
+        return false;
+    }
+    let body_id = body(node).map(|b| b.id());
+    let mut cursor = node.walk();
+    let intact = node
+        .children(&mut cursor)
+        .all(|child| body_id == Some(child.id()) || (!child.has_error() && !child.is_missing()));
+    intact
 }
 
 pub(super) fn type_declaration(
@@ -131,14 +168,42 @@ pub(super) fn type_declaration(
         methods: Vec::new(),
         is_contract,
         is_exported: symbol.flags.is_exported,
+        is_default_export: matches!(language, "typescript" | "javascript")
+            && node.parent().is_some_and(|parent| {
+                parent.kind() == "export_statement" && {
+                    let mut cursor = parent.walk();
+                    let found = parent
+                        .children(&mut cursor)
+                        .any(|child| !child.is_named() && child.kind() == "default");
+                    found
+                }
+            }),
         is_abstract: is_contract
             || modifier(node, "abstract", source)
             || node.kind() == "abstract_class_declaration",
         is_final: modifier(node, "final", source) || modifier(node, "sealed", source),
-        is_complete: !node.has_error(),
-        conditions: conditions(node, source),
+        is_complete: if language == "go" {
+            !node.has_error()
+        } else {
+            header_intact(node)
+        },
+        has_body_error: language != "go" && body(node).is_some_and(|b| b.has_error()),
+        is_partial: modifier(node, "partial", source),
+        is_anonymous: false,
+        fields: Vec::new(),
+        conditions: conditions_for(language, node, source),
     };
     let mut candidates = base_nodes(node);
+    // C# headers with inline `#if` directives inside the base list (e.g. Newtonsoft.Json
+    // `JContainer : JToken, IList<JToken>, IList #if HAVE_COMPONENT_MODEL , ITypedList #endif`)
+    // split or error the tree-sitter `base_list`. Parse unconditional vs `#if`-guarded bases
+    // directly from the header slice between `:` and `{`, preserving per-base conditions.
+    if language == "csharp"
+        && csharp_header_has_preproc(node, source)
+        && collect_csharp_conditional_bases(node, source, &mut record)
+    {
+        return record;
+    }
     if language == "python" {
         candidates.extend(
             node.child_by_field_name("superclasses")
@@ -175,6 +240,18 @@ pub(super) fn type_declaration(
             record.is_complete = false;
             continue;
         }
+        // Dart writes the arguments of a base as a node of their own, right after its name.
+        let written = range(candidate);
+        if let Some(base) = record.bases.last_mut().filter(|base| {
+            base.arguments.is_empty()
+                && (base.range.end_line, base.range.end_col)
+                    == (written.start_line, written.start_col)
+        }) {
+            if let Some(arguments) = type_arguments(&compact(text(candidate, source))) {
+                base.arguments = arguments;
+                continue;
+            }
+        }
         if let Some(mut base) = reference(candidate, source) {
             if base.arguments.is_empty() {
                 if let Some(arguments) = candidate
@@ -206,10 +283,37 @@ pub(super) fn type_declaration(
                             import.entry.source.as_deref(),
                             Some("typing" | "typing_extensions")
                         )
+                        && import.entry.imported_name.as_deref() == Some("Generic")
+                        && import.entry.local_name == base.name
+                })
+            {
+                for arg in &base.arguments {
+                    if arg.chars().all(|c| c.is_alphanumeric() || c == '_')
+                        && !record.parameters.contains(arg)
+                    {
+                        record.parameters.push(arg.clone());
+                    }
+                }
+                continue;
+            }
+            if language == "python"
+                && unit.imports.iter().any(|import| {
+                    visible_import(import, node, unit)
+                        && matches!(
+                            import.entry.source.as_deref(),
+                            Some("typing" | "typing_extensions")
+                        )
                         && import.entry.imported_name.as_deref() == Some("Protocol")
                         && import.entry.local_name == base.name
                 })
             {
+                for arg in &base.arguments {
+                    if arg.chars().all(|c| c.is_alphanumeric() || c == '_')
+                        && !record.parameters.contains(arg)
+                    {
+                        record.parameters.push(arg.clone());
+                    }
+                }
                 record.is_contract = true;
                 record.is_abstract = true;
                 continue;
@@ -229,13 +333,43 @@ pub(super) fn type_declaration(
         if let Some(typ) = node.child_by_field_name("type") {
             record.is_contract = typ.kind() == "interface_type";
             record.is_abstract = record.is_contract;
-            // Embedded/type-set constraints need a complete method-set proof; never use a subset.
-            if record.is_contract
-                && children(typ)
-                    .iter()
-                    .any(|node| !matches!(node.kind(), "method_elem" | "comment"))
-            {
-                record.is_complete = false;
+            // Embedded interfaces enter `record.bases` so explicit assertions and complete
+            // embedded hierarchies resolve cleanly; union/tilde type-set constraints stay
+            // incomplete so no partial method-set guess is ever made.
+            if record.is_contract {
+                for element in children(typ) {
+                    match element.kind() {
+                        "method_elem" | "comment" => {}
+                        "type_elem" => {
+                            let inner = children(element);
+                            if inner.len() == 1
+                                && matches!(inner[0].kind(), "type_identifier" | "qualified_type")
+                            {
+                                if let Some(base) = reference(inner[0], source) {
+                                    if !record.bases.iter().any(|old| {
+                                        old.name == base.name && old.arguments == base.arguments
+                                    }) {
+                                        record.bases.push(base);
+                                    }
+                                    continue;
+                                }
+                            }
+                            record.is_complete = false;
+                        }
+                        "type_identifier" | "qualified_type" => {
+                            if let Some(base) = reference(element, source) {
+                                if !record.bases.iter().any(|old| {
+                                    old.name == base.name && old.arguments == base.arguments
+                                }) {
+                                    record.bases.push(base);
+                                }
+                            } else {
+                                record.is_complete = false;
+                            }
+                        }
+                        _ => record.is_complete = false,
+                    }
+                }
             }
             if typ.kind() == "struct_type" {
                 if let Some(fields) = child(typ, &["field_declaration_list"]) {
@@ -319,6 +453,10 @@ fn declared_parameter_type<'a>(node: Node<'a>) -> Option<Node<'a>> {
                     "type_annotation",
                     "type",
                     "user_type",
+                    "nullable_type",
+                    "non_nullable_type",
+                    "function_type",
+                    "parenthesized_type",
                     "type_literal",
                     "type_constraint",
                     "type_constraints",
@@ -333,6 +471,8 @@ fn declared_parameter_type<'a>(node: Node<'a>) -> Option<Node<'a>> {
                     "normal_formal_parameter",
                     "simple_formal_parameter",
                     "script_parameter",
+                    // A Kotlin property names its type beside its name.
+                    "variable_declaration",
                 ],
             )
             .and_then(declared_parameter_type)
@@ -340,21 +480,27 @@ fn declared_parameter_type<'a>(node: Node<'a>) -> Option<Node<'a>> {
 }
 
 pub(super) fn parameter_name(node: Node<'_>, source: &[u8]) -> Option<String> {
-    let value = node
-        .child_by_field_name("name")
-        .or_else(|| node.child_by_field_name("pattern"))
-        .or_else(|| {
-            child(
-                node,
-                &[
-                    "identifier",
-                    "simple_identifier",
-                    "variable_name",
-                    "variable",
-                ],
-            )
-        })
-        .or_else(|| declarator_name(node))?;
+    let value = if matches!(
+        node.kind(),
+        "identifier" | "simple_identifier" | "variable_name" | "variable"
+    ) {
+        node
+    } else {
+        node.child_by_field_name("name")
+            .or_else(|| node.child_by_field_name("pattern"))
+            .or_else(|| {
+                child(
+                    node,
+                    &[
+                        "identifier",
+                        "simple_identifier",
+                        "variable_name",
+                        "variable",
+                    ],
+                )
+            })
+            .or_else(|| declarator_name(node))?
+    };
     let name = compact(text(value, source));
     (!name.is_empty()
         && name
@@ -430,6 +576,9 @@ pub(super) fn method(
         let value = parameter_text(parameter, source, language);
         has_known_signature &= value.is_some();
         let mut value = value.unwrap_or_else(|| "?".into());
+        if language == "go" && parameter.kind() == "variadic_parameter_declaration" {
+            value = format!("...{value}");
+        }
         if language == "csharp" {
             for mode in ["ref", "out", "in"] {
                 if modifier(parameter, mode, source) {
@@ -462,9 +611,7 @@ pub(super) fn method(
         has_known_signature = false;
         params.truncate(32);
     }
-    if !parameters(signature, source).is_empty() {
-        has_known_signature = false;
-    }
+    let type_parameters = parameters(signature, source);
     let return_type = signature
         .child_by_field_name("return_type")
         .or_else(|| signature.child_by_field_name("returns"))
@@ -484,7 +631,12 @@ pub(super) fn method(
             && node
                 .child_by_field_name("default_value")
                 .is_some_and(|node| node.kind() == "number_literal" && text(node, source) == "0");
-    let is_static = modifier(node, "static", source) || language == "rust" && !has_self;
+    // The modifiers of a method can stand on its signature rather than on the declaration.
+    let is_static = modifier(node, "static", source)
+        || node
+            .child_by_field_name("signature")
+            .is_some_and(|signature| modifier(signature, "static", source))
+        || language == "rust" && !has_self;
     let mut qualifiers = String::new();
     if language == "cpp" {
         let mut declarator = node;
@@ -506,6 +658,7 @@ pub(super) fn method(
         name: symbol.name.clone(),
         range: symbol.range.clone(),
         parameters: params,
+        type_parameters,
         return_type,
         qualifiers,
         is_abstract,
@@ -516,6 +669,12 @@ pub(super) fn method(
             || language == "python"
                 && symbol.name.starts_with("__")
                 && !symbol.name.ends_with("__"),
+        is_package_scoped: language == "java"
+            && !is_contract
+            && !["public", "protected", "private"]
+                .iter()
+                .any(|access| modifier(node, access, source))
+            || language == "dart" && symbol.name.starts_with('_'),
         is_final: modifier(node, "final", source) || modifier(node, "sealed", source),
         is_virtual: is_contract
             || is_abstract
@@ -559,6 +718,14 @@ pub(super) fn python_abstract(node: Node<'_>, source: &[u8], unit: &Implementati
         })
 }
 
+fn swift_has_where_clause(node: Node<'_>, source: &[u8]) -> bool {
+    let mut cursor = node.walk();
+    let found = node.children(&mut cursor).any(|child| {
+        child.kind() == "type_constraints" || (!child.is_named() && text(child, source) == "where")
+    });
+    found
+}
+
 pub(super) fn detached_method(
     node: Node<'_>,
     symbol: &ExtractedSymbol,
@@ -575,10 +742,14 @@ pub(super) fn detached_method(
                 else {
                     return true;
                 };
-                let contracts = base_nodes(candidate)
-                    .into_iter()
-                    .filter_map(|node| reference(node, source))
-                    .collect();
+                let contracts = if swift_has_where_clause(candidate, source) {
+                    Vec::new()
+                } else {
+                    base_nodes(candidate)
+                        .into_iter()
+                        .filter_map(|node| reference(node, source))
+                        .collect()
+                };
                 let method = method(node, symbol, source, language, false);
                 if let Some(block) = unit
                     .implementations
@@ -593,6 +764,7 @@ pub(super) fn detached_method(
                         methods: vec![method],
                         namespace: namespace(candidate, &unit.namespace, source),
                         conditions: conditions(candidate, source),
+                        range: Some(range(candidate)),
                     });
                 }
                 return true;
@@ -609,17 +781,21 @@ pub(super) fn detached_method(
                 return false;
             }
             if candidate.kind() == "impl_item" {
-                let Some(owner) = candidate
-                    .child_by_field_name("type")
-                    .and_then(|node| reference(node, source))
-                else {
-                    return true;
-                };
                 let contracts = candidate
                     .child_by_field_name("trait")
                     .and_then(|node| reference(node, source))
                     .into_iter()
                     .collect::<Vec<_>>();
+                let owner_node = candidate.child_by_field_name("type");
+                let Some(owner) = owner_node.and_then(|node| {
+                    if contracts.is_empty() {
+                        reference(node, source)
+                    } else {
+                        raw_owner_reference(node, source)
+                    }
+                }) else {
+                    return true;
+                };
                 let method = method(node, symbol, source, language, !contracts.is_empty());
                 if let Some(block) = unit
                     .implementations
@@ -634,6 +810,7 @@ pub(super) fn detached_method(
                         methods: vec![method],
                         namespace: namespace(candidate, &unit.namespace, source),
                         conditions: conditions(candidate, source),
+                        range: Some(range(candidate)),
                     });
                 }
                 return true;
@@ -657,11 +834,380 @@ pub(super) fn detached_method(
                 methods: vec![method],
                 namespace: unit.namespace.clone(),
                 conditions: Vec::new(),
+                range: Some(range(node)),
             });
         }
         return true;
     }
     false
+}
+
+/// Extract concrete owner type from a Go compile-time interface assertion value:
+/// `(*Impl)(nil)`, `&Impl{}`, `Impl{}`, or `(Impl)(...)`.
+fn go_assertion_owner(mut expr: Node<'_>, source: &[u8]) -> Option<TypeReference> {
+    while expr.kind() == "parenthesized_expression" {
+        expr = children(expr).into_iter().next()?;
+    }
+    match expr.kind() {
+        "composite_literal" => {
+            let typ = expr.child_by_field_name("type")?;
+            reference(typ, source)
+        }
+        "unary_expression" => {
+            let op = expr.child_by_field_name("operator")?;
+            if text(op, source) != "&" {
+                return None;
+            }
+            let operand = expr.child_by_field_name("operand")?;
+            if operand.kind() != "composite_literal" {
+                return None;
+            }
+            let typ = operand.child_by_field_name("type")?;
+            let mut owner = reference(typ, source)?;
+            if !owner.name.starts_with('*') {
+                owner.name = format!("*{}", owner.name);
+            }
+            Some(owner)
+        }
+        "type_conversion_expression" => {
+            let operand = expr.child_by_field_name("operand")?;
+            if text(operand, source).trim() != "nil" {
+                return None;
+            }
+            let mut typ = expr.child_by_field_name("type")?;
+            while matches!(
+                typ.kind(),
+                "parenthesized_type" | "parenthesized_expression"
+            ) {
+                typ = children(typ).into_iter().next()?;
+            }
+            if matches!(
+                typ.kind(),
+                "pointer_type" | "type_identifier" | "qualified_type"
+            ) {
+                reference(typ, source)
+            } else {
+                None
+            }
+        }
+        "call_expression" => {
+            let args = expr.child_by_field_name("arguments")?;
+            let arg_nodes = children(args);
+            if arg_nodes.len() != 1 || text(arg_nodes[0], source) != "nil" {
+                return None;
+            }
+            let mut func = expr.child_by_field_name("function")?;
+            while matches!(
+                func.kind(),
+                "parenthesized_type" | "parenthesized_expression"
+            ) {
+                func = children(func).into_iter().next()?;
+            }
+            // tree-sitter-go parses `(*Impl)(nil)` as a `call_expression` whose function is a
+            // dereference `unary_expression` (`*Impl`), or as a `pointer_type`.
+            if func.kind() == "unary_expression" {
+                let op = func.child_by_field_name("operator")?;
+                if text(op, source) != "*" {
+                    return None;
+                }
+                let operand = func.child_by_field_name("operand")?;
+                let mut owner = reference(operand, source)?;
+                if !owner.name.starts_with('*') {
+                    owner.name = format!("*{}", owner.name);
+                }
+                return Some(owner);
+            }
+            if matches!(
+                func.kind(),
+                "pointer_type"
+                    | "type_identifier"
+                    | "qualified_type"
+                    | "identifier"
+                    | "selector_expression"
+            ) {
+                reference(func, source)
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
+fn collect_go_assertions(root: Node<'_>, source: &[u8], unit: &mut ImplementationUnit) {
+    let mut specs = Vec::new();
+    for node in children(root) {
+        if node.kind() != "var_declaration" {
+            continue;
+        }
+        for child in children(node) {
+            if child.kind() == "var_spec" {
+                specs.push(child);
+            } else if child.kind() == "var_spec_list" {
+                specs.extend(
+                    children(child)
+                        .into_iter()
+                        .filter(|n| n.kind() == "var_spec"),
+                );
+            }
+        }
+    }
+    for spec in specs {
+        let mut cursor = spec.walk();
+        let names: Vec<_> = spec.children_by_field_name("name", &mut cursor).collect();
+        if names.len() != 1 || text(names[0], source) != "_" {
+            continue;
+        }
+        let Some(iface) = spec
+            .child_by_field_name("type")
+            .and_then(|node| reference(node, source))
+        else {
+            continue;
+        };
+        let Some(value) = spec.child_by_field_name("value") else {
+            continue;
+        };
+        let exprs = if value.kind() == "expression_list" {
+            children(value)
+        } else {
+            vec![value]
+        };
+        if exprs.len() != 1 {
+            continue;
+        }
+        let Some(owner) = go_assertion_owner(exprs[0], source) else {
+            continue;
+        };
+        unit.implementations.push(ImplementationBlock {
+            owner,
+            contracts: vec![iface],
+            methods: Vec::new(),
+            namespace: unit.namespace.clone(),
+            conditions: conditions(spec, source),
+            range: Some(range(spec)),
+        });
+    }
+}
+
+fn collect_swift_conformance_extensions(
+    root: Node<'_>,
+    source: &[u8],
+    unit: &mut ImplementationUnit,
+) {
+    for node in children(root) {
+        if node.kind() != "class_declaration"
+            || !modifier(node, "extension", source)
+            || swift_has_where_clause(node, source)
+        {
+            continue;
+        }
+        let Some(owner) = node
+            .child_by_field_name("name")
+            .and_then(|node| reference(node, source))
+        else {
+            continue;
+        };
+        let contracts: Vec<_> = base_nodes(node)
+            .into_iter()
+            .filter_map(|node| reference(node, source))
+            .collect();
+        if contracts.is_empty()
+            || unit
+                .implementations
+                .iter()
+                .any(|block| block.owner.range == owner.range)
+        {
+            continue;
+        }
+        unit.implementations.push(ImplementationBlock {
+            owner,
+            contracts,
+            methods: Vec::new(),
+            namespace: namespace(node, &unit.namespace, source),
+            conditions: conditions(node, source),
+            range: Some(range(node)),
+        });
+    }
+}
+
+/// Records Rust trait `impl` blocks that had no extracted methods (e.g. marker traits or
+/// default-method-only impls such as `impl SanitizeErr for &str {}`) so `explicit impl block`
+/// discovery covers every explicit trait impl in the file.
+fn collect_rust_trait_impl_blocks(root: Node<'_>, source: &[u8], unit: &mut ImplementationUnit) {
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "impl_item" {
+            let contracts: Vec<TypeReference> = node
+                .child_by_field_name("trait")
+                .and_then(|t| reference(t, source))
+                .into_iter()
+                .collect();
+            if !contracts.is_empty() {
+                if let Some(owner) = node
+                    .child_by_field_name("type")
+                    .and_then(|t| raw_owner_reference(t, source))
+                {
+                    if !unit
+                        .implementations
+                        .iter()
+                        .any(|block| block.owner.range == owner.range)
+                    {
+                        unit.implementations.push(ImplementationBlock {
+                            owner,
+                            contracts,
+                            methods: Vec::new(),
+                            namespace: namespace(node, &unit.namespace, source),
+                            conditions: conditions(node, source),
+                            range: Some(range(node)),
+                        });
+                    }
+                }
+            }
+            continue;
+        }
+        let mut cursor = node.walk();
+        for c in node.named_children(&mut cursor) {
+            if matches!(c.kind(), "impl_item" | "mod_item" | "declaration_list") {
+                stack.push(c);
+            }
+        }
+    }
+}
+
+/// Whether a C# type header (between the start of the declaration and its opening `{`) contains
+/// preprocessor `#if` directives affecting its base list.
+fn csharp_header_has_preproc(node: Node<'_>, source: &[u8]) -> bool {
+    let start = node.start_byte();
+    let end = body(node)
+        .map(|b| b.start_byte())
+        .unwrap_or(node.end_byte());
+    source
+        .get(start..end)
+        .and_then(|s| std::str::from_utf8(s).ok())
+        .is_some_and(|hdr| hdr.contains(':') && hdr.contains("#if"))
+}
+
+/// Parses a C# type header containing `#if` / `#elif` / `#else` / `#endif` inside its base list,
+/// keeping unconditional bases condition-free and tagging each conditional base with its exact
+/// preprocessor condition stack (`#if SYM`).
+pub(super) fn collect_csharp_conditional_bases(
+    node: Node<'_>,
+    source: &[u8],
+    record: &mut TypeDeclaration,
+) -> bool {
+    let start = node.start_byte();
+    let end = body(node)
+        .map(|b| b.start_byte())
+        .unwrap_or(node.end_byte());
+    let Ok(header) = std::str::from_utf8(source.get(start..end).unwrap_or(&[])) else {
+        return false;
+    };
+    let Some(colon_idx) = header.find(':') else {
+        return false;
+    };
+    let base_slice = &header[colon_idx + 1..];
+    let base_start_line = node.start_position().row
+        + 1
+        + header[..colon_idx + 1]
+            .bytes()
+            .filter(|&b| b == b'\n')
+            .count();
+    let mut cond_stack: Vec<String> = Vec::new();
+    let mut parsed_any = false;
+    for (line_offset, raw_line) in base_slice.lines().enumerate() {
+        let line_no = base_start_line + line_offset;
+        let trimmed = raw_line.split("//").next().unwrap_or("").trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if let Some(expr) = trimmed.strip_prefix("#if") {
+            let expr = expr.trim();
+            cond_stack.push(format!("#if {expr}"));
+            continue;
+        }
+        if let Some(expr) = trimmed.strip_prefix("#elif") {
+            cond_stack.pop();
+            let expr = expr.trim();
+            cond_stack.push(format!("#if {expr}"));
+            continue;
+        }
+        if trimmed.starts_with("#else") {
+            if let Some(prev) = cond_stack.pop() {
+                let inner = prev.strip_prefix("#if ").unwrap_or(&prev);
+                cond_stack.push(format!("#if !({inner})"));
+            }
+            continue;
+        }
+        if trimmed.starts_with("#endif") {
+            cond_stack.pop();
+            continue;
+        }
+        if trimmed.starts_with('#') || trimmed.starts_with("where ") {
+            continue;
+        }
+        // Split top-level commas respecting `<...>`.
+        let mut depth = 0usize;
+        let mut piece_start = 0usize;
+        let bytes = trimmed.as_bytes();
+        let mut pieces = Vec::new();
+        for (i, &b) in bytes.iter().enumerate() {
+            match b {
+                b'<' => depth += 1,
+                b'>' => depth = depth.saturating_sub(1),
+                b',' if depth == 0 => {
+                    pieces.push(trimmed[piece_start..i].trim());
+                    piece_start = i + 1;
+                }
+                _ => {}
+            }
+        }
+        pieces.push(trimmed[piece_start..].trim());
+        for piece in pieces {
+            let token = compact(piece);
+            if token.is_empty() {
+                continue;
+            }
+            let (name, arguments) = if let Some(lt) = token.find('<') {
+                let Some(args) = type_arguments(&token[lt..]) else {
+                    continue;
+                };
+                (token[..lt].to_string(), args)
+            } else {
+                (token, Vec::new())
+            };
+            if name.is_empty()
+                || !name
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || "_.$".contains(c))
+            {
+                continue;
+            }
+            if !record
+                .bases
+                .iter()
+                .any(|old| old.name == name && old.arguments == arguments)
+            {
+                record.bases.push(TypeReference {
+                    name,
+                    arguments,
+                    range: CodeRange {
+                        start_line: line_no,
+                        start_col: 1,
+                        end_line: line_no,
+                        end_col: raw_line.len().max(1),
+                    },
+                    conditions: cond_stack.clone(),
+                });
+                parsed_any = true;
+            }
+        }
+    }
+    if parsed_any && body(node).is_some() {
+        // Unconditional bases are complete even though `#if` inside the base list caused a
+        // header parse error in tree-sitter-c-sharp.
+        record.is_complete = true;
+    }
+    parsed_any
 }
 
 pub(super) fn detached_types(
@@ -670,9 +1216,18 @@ pub(super) fn detached_types(
     unit: &mut ImplementationUnit,
     omitted: &mut usize,
 ) {
+    if unit.language == "swift" {
+        collect_swift_conformance_extensions(root, source, unit);
+        return;
+    }
+    if unit.language == "rust" {
+        collect_rust_trait_impl_blocks(root, source, unit);
+        return;
+    }
     if unit.language != "go" {
         return;
     }
+    collect_go_assertions(root, source, unit);
     let mut method_count = unit
         .types
         .iter()

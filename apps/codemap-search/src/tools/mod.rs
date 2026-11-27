@@ -84,6 +84,7 @@ pub(crate) fn split_grep_globs(glob: &str) -> Vec<String> {
 /// observe identical semantics instead of re-deriving them.
 pub struct GlobMatcher {
     overrides: ignore::overrides::Override,
+    explicit_negations: Option<ignore::overrides::Override>,
     has_whitelist: bool,
 }
 
@@ -102,6 +103,16 @@ impl GlobMatcher {
             ignore::Match::None => !self.has_whitelist,
         }
     }
+
+    /// True when `rel_path` was rejected only because it did not match any positive glob
+    /// (and was not explicitly excluded by a `!` negation pattern).
+    pub fn is_unmatched_by_whitelist(&self, rel_path: &Path) -> bool {
+        self.has_whitelist
+            && !self.is_match(rel_path)
+            && !self.explicit_negations.as_ref().is_some_and(|neg| {
+                matches!(neg.matched(rel_path, false), ignore::Match::Whitelist(_))
+            })
+    }
 }
 
 /// Build a [`GlobMatcher`] from one or more patterns rooted at `base`. `./` prefixes are
@@ -109,6 +120,8 @@ impl GlobMatcher {
 /// whitespace/comma-split set from [`split_grep_globs`]. Errors map to JSON-RPC -32602.
 pub fn build_glob_matcher(base: &Path, patterns: &[String]) -> Result<GlobMatcher, (i64, String)> {
     let mut builder = ignore::overrides::OverrideBuilder::new(base);
+    let mut negation_builder = ignore::overrides::OverrideBuilder::new(base);
+    let mut has_negation = false;
     for pattern in patterns {
         let normalized = normalize_glob_prefix(pattern);
         if normalized.is_empty() || normalized == "!" {
@@ -117,13 +130,32 @@ pub fn build_glob_matcher(base: &Path, patterns: &[String]) -> Result<GlobMatche
         builder
             .add(&normalized)
             .map_err(|e| (-32602, format!("Invalid glob pattern '{pattern}': {e}")))?;
+        if let Some(negated) = normalized.strip_prefix('!') {
+            let negated = normalize_glob_prefix(negated);
+            if !negated.is_empty() {
+                negation_builder
+                    .add(&negated)
+                    .map_err(|e| (-32602, format!("Invalid glob pattern '{pattern}': {e}")))?;
+                has_negation = true;
+            }
+        }
     }
     let overrides = builder
         .build()
         .map_err(|e| (-32602, format!("Invalid glob pattern set: {e}")))?;
+    let explicit_negations = if has_negation {
+        Some(
+            negation_builder
+                .build()
+                .map_err(|e| (-32602, format!("Invalid glob pattern set: {e}")))?,
+        )
+    } else {
+        None
+    };
     let has_whitelist = overrides.num_whitelists() > 0;
     Ok(GlobMatcher {
         overrides,
+        explicit_negations,
         has_whitelist,
     })
 }
@@ -368,7 +400,6 @@ pub fn list_tools() -> Value {
     let read_view_description = "full (default) returns source with declarations and relationships; source returns live source, possibly followed by callers from outside the window; definitions returns declarations only; relations returns identities and supported relationships without source.";
     let unresolved_description = "Unresolved call targets in full/relations: list (default) gives bounded names plus a count; count hides the names.";
     let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
-    let debug_description = "Legacy compatibility flag; does not change analysis or output.";
     let include_seen_schema = serde_json::json!({
         "type": "boolean", "default": false,
         "description": "False (default) omits repeated content; true restores it. Other filters and limits still apply."
@@ -429,7 +460,6 @@ pub fn list_tools() -> Value {
         "include_seen": include_seen_schema.clone(),
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes), not ranked search; query is required. Zero endpoints does not prove no route. Bus identity and qualifiers remain separate." },
-        "debug": { "type": "boolean", "default": false, "description": debug_description },
         "caller_context": { "type": "boolean", "description": "Depth-one callers/callees for detail snippets; defaults to caller_context_default. False also skips callsite implementation lookup, but retains declaration/implementation and static collection links." },
         "language_hint": { "type": "string", "description": "Query language for cross-language ranking, e.g. 'typescript' or 'rust'; omitted means language-agnostic." },
         "extension_hint": { "type": "string", "description": "Query extension for same-extension ranking, e.g. 'ts' or '.rs'; omitted leaves ranking unchanged." }
@@ -476,7 +506,6 @@ pub fn list_tools() -> Value {
                             "properties": {
                                 "include_seen": include_seen_schema.clone(),
                                 "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": read_view_description },
-                                "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },
                                 "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "callable reads the smallest supported named callable at offset/start, including attached attributes, and overrides limit/end; none (default) reads a line window." },
@@ -525,7 +554,6 @@ pub fn list_tools() -> Value {
                             "properties": {
                                 "include_seen": include_seen_schema.clone(),
                                 "view": { "type": "string", "enum": ["full", "source", "source_grouped", "definitions", "relations"], "default": "full", "description": format!("{live_view_description} source_grouped keeps all source rows under file headings without declaration/relationship work; prefer it for source inspection.") },
-                                "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },
                                 "expand": { "type": "string", "enum": ["none", "callable"], "default": "callable", "description": "Content mode defaults to the smallest named callable per match, deduplicated per body, ignoring -A/-B/-C. none returns matching rows with line context. Omitted in file/count modes means no expansion." },
@@ -533,7 +561,7 @@ pub fn list_tools() -> Value {
                                 "path": { "type": "string", "description": search_path_description },
                                 "glob": { "type": "string", "description": format!("File filter using {glob_syntax} Slashed patterns are relative to path. Separate patterns with whitespace/commas outside braces. Aliases: include/file_pattern.") },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
-                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "content (default): 42:match/43-context rows; view=source adds paths. files_with_matches: paths; count: per-file counts. File/count modes ignore full/source/source_grouped view; other views, unresolved=count, debug=true, expand=callable or include_events=true are errors." },
+                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "content (default): 42:match/43-context rows; view=source adds paths. files_with_matches: paths; count: per-file counts. File/count modes ignore full/source/source_grouped view; other views, unresolved=count, expand=callable or include_events=true are errors." },
                                 "-i": { "type": "boolean", "description": "Case-insensitive (default false)." },
                                 "-n": { "type": "boolean", "description": "Show line numbers in content mode (default true)." },
                                 "-A": { "type": "integer", "description": "Context lines after each match." },

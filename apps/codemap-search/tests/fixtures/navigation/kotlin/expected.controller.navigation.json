@@ -128,6 +128,34 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "parser",
+                "typ": {
+                  "name": "OrderParser",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 5,
+                    "startCol": 25,
+                    "endLine": 5,
+                    "endCol": 36
+                  }
+                }
+              },
+              {
+                "name": "service",
+                "typ": {
+                  "name": "CheckoutService",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 4,
+                    "startCol": 26,
+                    "endLine": 4,
+                    "endCol": 41
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],

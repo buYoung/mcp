@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::sync::OnceLock;
 use tree_sitter::{Language, Node, Query};
 
-use super::{path_indicates_test, LanguageSpec, NameDecision};
+use super::{is_capture_intact, path_indicates_test, LanguageSpec, NameDecision};
 use crate::parser::{CodeRange, ImportEntry, ImportKind};
 
 const QUERY_STR: &str = concat!(
@@ -169,7 +169,7 @@ impl LanguageSpec for LuaSpec {
     }
 
     fn capture_is_valid(&self, capture_name: &str, node: Node<'_>, _source: &[u8]) -> bool {
-        if node.has_error() {
+        if !is_capture_intact(capture_name, node) {
             return false;
         }
         if capture_name == "symbol.variable"

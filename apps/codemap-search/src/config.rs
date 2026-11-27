@@ -134,7 +134,18 @@ const HOME_ENV: &str = "CODEMAP_HOME";
 /// start. Wording changes alone do not bump this version; a one-time cleanup of existing
 /// generated comments does, so it runs once without rewriting current user files.
 /// This version belongs to repository config only; global files are not schema-synced.
-const CONFIG_VERSION: u32 = 33;
+const CONFIG_VERSION: u32 = 34;
+
+/// Compiled-in internal search & refresh limits (no longer exposed in `config.toml`).
+pub(crate) const DEFAULT_RESULT_THRESHOLD: usize = 24;
+pub(crate) const DEFAULT_SEARCH_OVERVIEW_FILE_LIMIT: usize = 80;
+pub(crate) const DEFAULT_SEARCH_DETAIL_SNIPPET_MAX_LINES: usize = 500;
+pub(crate) const DEFAULT_SEARCH_DETAIL_SYMBOL_LIMIT: usize = 100;
+pub(crate) const DEFAULT_SEARCH_LITERAL_MAX_LEN: usize = 1200;
+pub(crate) const DEFAULT_SEARCH_LITERAL_LIMIT: usize = 60;
+pub(crate) const DEFAULT_SEARCH_ANCHOR_SNIPPET_LIMIT: usize = 20;
+pub(crate) const DEFAULT_WATCH_DEBOUNCE_MS: u64 = 500;
+pub(crate) const DEFAULT_INDEX_STALENESS_MS: u64 = 5_000;
 /// Version assumed for a file that carries no [`VERSION_MARKER_PREFIX`] line — i.e. a file
 /// written before versioning existed. Such a file is run through every [`MIGRATIONS`] entry
 /// (each presence-guarded) so it converges to the current schema without duplicating any key
@@ -200,9 +211,6 @@ pub struct ResolvedConfig {
     pub index_mode: IndexMode,
     /// Indexable files `auto` mode accepts before asking for `mode = "on"` (default 50,000).
     pub index_auto_max_files: usize,
-    /// Number of top-ranked files `search` renders as details before remaining matches
-    /// become compact ranked-tail rows (default 24).
-    pub result_threshold: usize,
     /// Files larger than this (bytes) are skipped before read/parse (default 1 MiB).
     pub max_file_size: u64,
     /// Complete optional directory rules. Explicit arrays replace lower layers/defaults;
@@ -220,31 +228,11 @@ pub struct ResolvedConfig {
     /// personal excludes) while still honoring `.gitignore`. A per-call `include_ignored`
     /// on find/grep is a broader override that bypasses every ignore source.
     pub use_git_exclude: bool,
-    /// Debounce window (milliseconds) for background index/codemap refreshes triggered by
-    /// `search` (default 5000). Within this window repeated calls enqueue at most
-    /// one background refresh; each call still answers immediately from the committed
-    /// snapshot. `read`/`find`/`grep` always read live disk, so any brief search staleness
-    /// is corrected by the follow-up read/grep.
-    pub index_staleness_ms: u64,
-    /// Max file headers `search` emits in the compact ranked tail (default 80). Caps
-    /// the context a broad query can spend after the top `result_threshold` detail files.
-    /// Output-size only — safe to tune.
-    pub search_overview_file_limit: usize,
     /// Filesystem watcher toggle (default true). When the watcher runs and is healthy,
     /// changes refresh the index autonomously and `search` never triggers a
     /// tree walk; when false (or the watcher fails), the request-triggered lazy refresh
-    /// (`index_staleness_ms`) is the fallback.
+    /// is the fallback.
     pub watch: bool,
-    /// Debounce window (milliseconds) for watcher events (default 500): events arriving
-    /// within the window are batched into one incremental refresh, and a git HEAD change
-    /// joins the same window so a half-written tree mid-checkout is not walked twice.
-    pub watch_debounce_ms: u64,
-    /// Automatic indexer recovery (default true). When the background indexer thread
-    /// dies, the next `search` rebuilds the engine, respawns the indexer, and
-    /// re-attaches the watcher — bounded by a per-process attempt cap (see
-    /// `mcp::MAX_INDEXER_RESTART_ATTEMPTS`) so a deterministic crash cannot respawn-loop.
-    /// Set false to keep the frozen-results behavior until the server restarts.
-    pub indexer_auto_restart: bool,
     /// Whether Markdown documents (`.md`, `.mdx`) participate in index-backed discovery.
     /// Direct `read`/`find`/`grep`/`parse` remain available.
     pub is_document_support_enabled: bool,
@@ -263,35 +251,15 @@ pub struct ResolvedConfig {
     /// tool reach any path the server process can access; `workspace` or `allowed_roots`
     /// confine them.
     pub filesystem_permissions: FilesystemPermissions,
-    /// `grep` content-mode column cap (default 0, unlimited). A matched line wider
-    /// than a positive cap is replaced with `[Omitted long matching line]`.
-    pub grep_max_columns: usize,
     /// `read` and callable-expanded `grep` output ceiling in bytes (default 5 MiB).
     /// Oversized reads return a narrowing error; expanded grep returns bounded pages.
     /// Distinct from the 256 KiB whole-file read cap when `limit` is omitted.
     pub read_output_byte_cap: usize,
     /// Whether `read view=source` may end with callers from outside the window.
     pub is_read_outside_callers_enabled: bool,
-    /// `search` detail-view per-symbol snippet line cap (default 500). A symbol body longer
-    /// than this is truncated with an elision marker. Output-size only.
-    pub search_detail_snippet_max_lines: usize,
-    /// `search` detail-view per-file symbol cap (default 100). Beyond it, a "more symbols
-    /// not shown" note replaces the remaining symbols. Output-size only.
-    pub search_detail_symbol_limit: usize,
     /// Hard byte ceiling for one `search` response (default 1 MiB), including
     /// detail files, ranked tail, and the partial-output footer. Output-size only.
     pub search_detail_byte_cap: usize,
-    /// `search` matched-literal truncation length in characters (default 1200). A longer
-    /// literal is cut with an ellipsis. Output-size only.
-    pub search_literal_max_len: usize,
-    /// `search` per-file matched-literal count cap (default 60). Output-size only.
-    pub search_literal_limit: usize,
-    /// `search` detail-view per-file anchor full-snippet cap (default 20). At most this many
-    /// anchor symbols in one detail file render a FULL snippet; anchors ranked beyond the cap
-    /// degrade to a ≤3-line signature (the Tier-2 abbreviation), not a one-line stub. A file
-    /// whose anchor count is at or below the cap is unaffected. Output-size only — it bounds
-    /// the snippet flood a broad query with a common name (`save`/`send`) can trigger.
-    pub search_anchor_snippet_limit: usize,
     /// Repo-level default for the caller/callee context (default true). The per-call
     /// `caller_context` parameter, when supplied, always overrides this; the key only
     /// decides the default when the parameter is omitted.
@@ -299,35 +267,6 @@ pub struct ResolvedConfig {
     /// Include test regions in automatic symbol and caller/callee context.
     pub should_include_test_code: bool,
     pub test_code_rules: TestCodeRules,
-    /// Repo-level default for navigation-based precise attribution (default false). Caller
-    /// context still renders via the existing name-match fallback when this is off.
-    pub navigation_context_default: bool,
-    /// Max navigation call sites resolved in one annotation pass before falling back
-    /// (default 1000).
-    pub navigation_callsite_budget: usize,
-    /// Whether extraction stores reference sites in `NavigationFile` (default false).
-    pub navigation_store_references: bool,
-    /// Max call sites collected across the single combined-regex caller scan (default 16000).
-    /// Shared by all matched names in one scan; reaching it marks the caller list truncated.
-    pub scan_cap: usize,
-    /// Per-symbol caller-list (or non-call-reference) cap (default 1000). Output-size only.
-    pub caller_list_cap: usize,
-    /// Per-symbol callee-list cap (default 1000). Output-size only.
-    pub callee_list_cap: usize,
-    /// Annotation byte sub-budget WITHIN `search_detail_byte_cap` (default 128 KiB). A
-    /// sub-limit, not an allowance added on top — snippets keep priority; annotations stop
-    /// when either this or the remaining overall cap is exhausted.
-    pub annotation_sub_budget: usize,
-    /// Common-name threshold (default 2): a name with this many `fn` definitions in the
-    /// snapshot has its caller list and callee occurrences labeled attribution-ambiguous
-    /// (still rendered, never suppressed).
-    pub common_name_threshold: usize,
-    /// Caller-omission threshold (default 5): a matched `fn` name with this many `fn`
-    /// definitions in the snapshot has its caller list replaced by a one-line omission note
-    /// (attribution is unresolvable by a name-match scan; a `grep "name("` pointer is given
-    /// instead). Stricter than `common_name_threshold`, which only labels the list — this
-    /// suppresses it. Callees are unaffected. Output-size / signal-quality only.
-    pub caller_omit_def_threshold: usize,
 }
 
 impl ResolvedConfig {
@@ -369,7 +308,6 @@ impl Default for ResolvedConfig {
             index_auto_max_files: 50_000,
             index_root: PathBuf::from(format!("{CODEMAP_DIR_NAME}/index")),
             workspace_root: None,
-            result_threshold: 24,
             max_file_size: crate::workspace::MAX_INDEXED_FILE_BYTES,
             excluded_directories: crate::workspace::EXCLUDED_DIRS
                 .iter()
@@ -383,38 +321,19 @@ impl Default for ResolvedConfig {
             )
             .expect("built-in directory patterns are valid"),
             use_git_exclude: true,
-            index_staleness_ms: 5_000,
-            search_overview_file_limit: 80,
             watch: true,
-            watch_debounce_ms: 500,
-            indexer_auto_restart: true,
             is_document_support_enabled: false,
             is_shell_support_enabled: false,
             is_infrastructure_support_enabled: false,
             is_interface_support_enabled: false,
             is_build_support_enabled: false,
             filesystem_permissions: FilesystemPermissions::default(),
-            grep_max_columns: 0,
             read_output_byte_cap: 5 * 1024 * 1024,
             is_read_outside_callers_enabled: true,
-            search_detail_snippet_max_lines: 500,
-            search_detail_symbol_limit: 100,
             search_detail_byte_cap: 1024 * 1024,
-            search_literal_max_len: 1200,
-            search_literal_limit: 60,
-            search_anchor_snippet_limit: 20,
             caller_context_default: true,
             should_include_test_code: false,
             test_code_rules: TestCodeRules::default(),
-            navigation_context_default: false,
-            navigation_callsite_budget: 1000,
-            navigation_store_references: false,
-            scan_cap: 16_000,
-            caller_list_cap: 1000,
-            callee_list_cap: 1000,
-            annotation_sub_budget: 128 * 1024,
-            common_name_threshold: 2,
-            caller_omit_def_threshold: 5,
         }
     }
 }
@@ -440,42 +359,22 @@ struct ConfigLayer {
     index_path: Option<String>,
     index_mode: Option<IndexMode>,
     index_auto_max_files: Option<usize>,
-    result_threshold: Option<usize>,
     max_file_size: Option<u64>,
     excluded_directories: Option<Vec<String>>,
     use_git_exclude: Option<bool>,
-    index_staleness_ms: Option<u64>,
-    search_overview_file_limit: Option<usize>,
     watch: Option<bool>,
-    watch_debounce_ms: Option<u64>,
-    indexer_auto_restart: Option<bool>,
     is_document_support_enabled: Option<bool>,
     is_shell_support_enabled: Option<bool>,
     is_infrastructure_support_enabled: Option<bool>,
     is_interface_support_enabled: Option<bool>,
     is_build_support_enabled: Option<bool>,
     filesystem_permissions: FilesystemPermissionsLayer,
-    grep_max_columns: Option<usize>,
     read_output_byte_cap: Option<usize>,
     is_read_outside_callers_enabled: Option<bool>,
-    search_detail_snippet_max_lines: Option<usize>,
-    search_detail_symbol_limit: Option<usize>,
     search_detail_byte_cap: Option<usize>,
-    search_literal_max_len: Option<usize>,
-    search_literal_limit: Option<usize>,
-    search_anchor_snippet_limit: Option<usize>,
     caller_context_default: Option<bool>,
     should_include_test_code: Option<bool>,
     test_code_rules: test_code::TestCodeLayer,
-    navigation_context_default: Option<bool>,
-    navigation_callsite_budget: Option<usize>,
-    navigation_store_references: Option<bool>,
-    scan_cap: Option<usize>,
-    caller_list_cap: Option<usize>,
-    callee_list_cap: Option<usize>,
-    annotation_sub_budget: Option<usize>,
-    common_name_threshold: Option<usize>,
-    caller_omit_def_threshold: Option<usize>,
 }
 
 #[derive(Default, PartialEq)]
@@ -658,25 +557,9 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
                 | "excluded_directories"
                 | "use_git_exclude"
         ),
-        "refresh" => matches!(
-            key,
-            "watch" | "watch_debounce_ms" | "index_staleness_ms" | "indexer_auto_restart"
-        ),
-        "search" => matches!(
-            key,
-            "result_threshold"
-                | "search_overview_file_limit"
-                | "search_detail_snippet_max_lines"
-                | "search_detail_symbol_limit"
-                | "search_detail_byte_cap"
-                | "search_literal_max_len"
-                | "search_literal_limit"
-                | "search_anchor_snippet_limit"
-        ),
-        "tool_output" => matches!(
-            key,
-            "grep_max_columns" | "read_output_byte_cap" | "is_redact_enabled"
-        ),
+        "refresh" => matches!(key, "watch"),
+        "search" => matches!(key, "search_detail_byte_cap"),
+        "tool_output" => matches!(key, "read_output_byte_cap" | "is_redact_enabled"),
         "exclude" => exclude::TEST_KEYS.contains(&key) || exclude::WORKSPACE_KEYS.contains(&key),
         "index.exclude" => exclude::WORKSPACE_KEYS.contains(&key),
         "output.context.exclude" => exclude::TEST_KEYS.contains(&key),
@@ -688,15 +571,6 @@ fn section_accepts_key(section: &str, key: &str) -> bool {
                 | "test_attributes"
                 | "test_decorators"
                 | "test_calls"
-                | "navigation_context_default"
-                | "navigation_callsite_budget"
-                | "navigation_store_references"
-                | "scan_cap"
-                | "caller_list_cap"
-                | "callee_list_cap"
-                | "annotation_sub_budget"
-                | "common_name_threshold"
-                | "caller_omit_def_threshold"
         ),
         "language_support" => matches!(
             key,
@@ -786,21 +660,12 @@ fn assign_config_key(
         "index_auto_max_files" => {
             layer.index_auto_max_files = as_positive_usize(value, key_display, path)
         }
-        "result_threshold" => layer.result_threshold = as_positive_usize(value, key_display, path),
         "max_file_size" => layer.max_file_size = as_positive_byte_size(value, key_display, path),
         "excluded_directories" => {
             layer.excluded_directories = as_directory_patterns(value, key_display, path)
         }
         "use_git_exclude" => layer.use_git_exclude = as_bool(value, key_display, path),
-        "index_staleness_ms" => {
-            layer.index_staleness_ms = as_positive_u64(value, key_display, path)
-        }
-        "search_overview_file_limit" => {
-            layer.search_overview_file_limit = as_positive_usize(value, key_display, path)
-        }
         "watch" => layer.watch = as_bool(value, key_display, path),
-        "watch_debounce_ms" => layer.watch_debounce_ms = as_positive_u64(value, key_display, path),
-        "indexer_auto_restart" => layer.indexer_auto_restart = as_bool(value, key_display, path),
         "is_document_support_enabled" => {
             layer.is_document_support_enabled = as_bool(value, key_display, path)
         }
@@ -816,30 +681,14 @@ fn assign_config_key(
         "is_build_support_enabled" => {
             layer.is_build_support_enabled = as_bool(value, key_display, path)
         }
-        "grep_max_columns" => layer.grep_max_columns = as_nonneg_usize(value, key_display, path),
         "read_output_byte_cap" => {
             layer.read_output_byte_cap = as_positive_byte_size(value, key_display, path)
         }
         "is_read_outside_callers_enabled" => {
             layer.is_read_outside_callers_enabled = as_bool(value, key_display, path)
         }
-        "search_detail_snippet_max_lines" => {
-            layer.search_detail_snippet_max_lines = as_positive_usize(value, key_display, path)
-        }
-        "search_detail_symbol_limit" => {
-            layer.search_detail_symbol_limit = as_positive_usize(value, key_display, path)
-        }
         "search_detail_byte_cap" => {
             layer.search_detail_byte_cap = as_positive_byte_size(value, key_display, path)
-        }
-        "search_literal_max_len" => {
-            layer.search_literal_max_len = as_positive_usize(value, key_display, path)
-        }
-        "search_literal_limit" => {
-            layer.search_literal_limit = as_positive_usize(value, key_display, path)
-        }
-        "search_anchor_snippet_limit" => {
-            layer.search_anchor_snippet_limit = as_positive_usize(value, key_display, path)
         }
         "caller_context_default" => {
             layer.caller_context_default = as_bool(value, key_display, path)
@@ -859,27 +708,6 @@ fn assign_config_key(
         }
         "test_calls" => {
             layer.test_code_rules.calls = test_code::parse_languages(value, key_display, path)
-        }
-        "navigation_context_default" => {
-            layer.navigation_context_default = as_bool(value, key_display, path)
-        }
-        "navigation_callsite_budget" => {
-            layer.navigation_callsite_budget = as_positive_usize(value, key_display, path)
-        }
-        "navigation_store_references" => {
-            layer.navigation_store_references = as_bool(value, key_display, path)
-        }
-        "scan_cap" => layer.scan_cap = as_positive_usize(value, key_display, path),
-        "caller_list_cap" => layer.caller_list_cap = as_positive_usize(value, key_display, path),
-        "callee_list_cap" => layer.callee_list_cap = as_positive_usize(value, key_display, path),
-        "annotation_sub_budget" => {
-            layer.annotation_sub_budget = as_positive_byte_size(value, key_display, path)
-        }
-        "common_name_threshold" => {
-            layer.common_name_threshold = as_positive_usize(value, key_display, path)
-        }
-        "caller_omit_def_threshold" => {
-            layer.caller_omit_def_threshold = as_positive_usize(value, key_display, path)
         }
         _ => return false,
     }
@@ -973,10 +801,6 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .index_auto_max_files
             .or(global.index_auto_max_files)
             .unwrap_or(defaults.index_auto_max_files),
-        result_threshold: repo
-            .result_threshold
-            .or(global.result_threshold)
-            .unwrap_or(defaults.result_threshold),
         max_file_size: repo
             .max_file_size
             .or(global.max_file_size)
@@ -989,23 +813,7 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .use_git_exclude
             .or(global.use_git_exclude)
             .unwrap_or(defaults.use_git_exclude),
-        index_staleness_ms: repo
-            .index_staleness_ms
-            .or(global.index_staleness_ms)
-            .unwrap_or(defaults.index_staleness_ms),
-        search_overview_file_limit: repo
-            .search_overview_file_limit
-            .or(global.search_overview_file_limit)
-            .unwrap_or(defaults.search_overview_file_limit),
         watch: repo.watch.or(global.watch).unwrap_or(defaults.watch),
-        watch_debounce_ms: repo
-            .watch_debounce_ms
-            .or(global.watch_debounce_ms)
-            .unwrap_or(defaults.watch_debounce_ms),
-        indexer_auto_restart: repo
-            .indexer_auto_restart
-            .or(global.indexer_auto_restart)
-            .unwrap_or(defaults.indexer_auto_restart),
         is_document_support_enabled: repo
             .is_document_support_enabled
             .or(global.is_document_support_enabled)
@@ -1031,10 +839,6 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             global.filesystem_permissions,
             defaults.filesystem_permissions,
         ),
-        grep_max_columns: repo
-            .grep_max_columns
-            .or(global.grep_max_columns)
-            .unwrap_or(defaults.grep_max_columns),
         read_output_byte_cap: repo
             .read_output_byte_cap
             .or(repo.output_byte_cap)
@@ -1045,32 +849,12 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             .is_read_outside_callers_enabled
             .or(global.is_read_outside_callers_enabled)
             .unwrap_or(defaults.is_read_outside_callers_enabled),
-        search_detail_snippet_max_lines: repo
-            .search_detail_snippet_max_lines
-            .or(global.search_detail_snippet_max_lines)
-            .unwrap_or(defaults.search_detail_snippet_max_lines),
-        search_detail_symbol_limit: repo
-            .search_detail_symbol_limit
-            .or(global.search_detail_symbol_limit)
-            .unwrap_or(defaults.search_detail_symbol_limit),
         search_detail_byte_cap: repo
             .search_detail_byte_cap
             .or(repo.output_byte_cap)
             .or(global.search_detail_byte_cap)
             .or(global.output_byte_cap)
             .unwrap_or(defaults.search_detail_byte_cap),
-        search_literal_max_len: repo
-            .search_literal_max_len
-            .or(global.search_literal_max_len)
-            .unwrap_or(defaults.search_literal_max_len),
-        search_literal_limit: repo
-            .search_literal_limit
-            .or(global.search_literal_limit)
-            .unwrap_or(defaults.search_literal_limit),
-        search_anchor_snippet_limit: repo
-            .search_anchor_snippet_limit
-            .or(global.search_anchor_snippet_limit)
-            .unwrap_or(defaults.search_anchor_snippet_limit),
         caller_context_default: repo
             .caller_context_default
             .or(global.caller_context_default)
@@ -1083,42 +867,6 @@ fn merge(repo: ConfigLayer, global: ConfigLayer) -> ResolvedConfig {
             repo.test_code_rules,
             global.test_code_rules,
         ),
-        navigation_context_default: repo
-            .navigation_context_default
-            .or(global.navigation_context_default)
-            .unwrap_or(defaults.navigation_context_default),
-        navigation_callsite_budget: repo
-            .navigation_callsite_budget
-            .or(global.navigation_callsite_budget)
-            .unwrap_or(defaults.navigation_callsite_budget),
-        navigation_store_references: repo
-            .navigation_store_references
-            .or(global.navigation_store_references)
-            .unwrap_or(defaults.navigation_store_references),
-        scan_cap: repo
-            .scan_cap
-            .or(global.scan_cap)
-            .unwrap_or(defaults.scan_cap),
-        caller_list_cap: repo
-            .caller_list_cap
-            .or(global.caller_list_cap)
-            .unwrap_or(defaults.caller_list_cap),
-        callee_list_cap: repo
-            .callee_list_cap
-            .or(global.callee_list_cap)
-            .unwrap_or(defaults.callee_list_cap),
-        annotation_sub_budget: repo
-            .annotation_sub_budget
-            .or(global.annotation_sub_budget)
-            .unwrap_or(defaults.annotation_sub_budget),
-        common_name_threshold: repo
-            .common_name_threshold
-            .or(global.common_name_threshold)
-            .unwrap_or(defaults.common_name_threshold),
-        caller_omit_def_threshold: repo
-            .caller_omit_def_threshold
-            .or(global.caller_omit_def_threshold)
-            .unwrap_or(defaults.caller_omit_def_threshold),
     }
 }
 
@@ -1213,6 +961,7 @@ pub fn get() -> Arc<ResolvedConfig> {
 thread_local! {
     static REQUEST_CONFIG: std::cell::RefCell<Option<Arc<ResolvedConfig>>> = const { std::cell::RefCell::new(None) };
     static THREAD_ROOT: std::cell::RefCell<Option<RootConfig>> = const { std::cell::RefCell::new(None) };
+    static SESSION_DELIVERY_CAP: std::cell::RefCell<Option<usize>> = const { std::cell::RefCell::new(None) };
 }
 
 /// Settings of a workspace root other than the start folder, loaded from that root's own files
@@ -1314,6 +1063,42 @@ pub(crate) fn pin_test_config(config: ResolvedConfig) -> RequestConfigScope {
 impl Drop for RequestConfigScope {
     fn drop(&mut self) {
         REQUEST_CONFIG.with(|slot| slot.replace(self.previous.take()));
+    }
+}
+
+/// Connection-scoped delivery byte cap for clients with a fixed hard truncation threshold
+/// (e.g. `antigravity-client` at 10 KiB). Remains `None` for all other clients and CLI.
+pub(crate) struct SessionDeliveryCapScope {
+    previous: Option<usize>,
+    same_thread: std::marker::PhantomData<std::rc::Rc<()>>,
+}
+
+pub(crate) fn pin_session_delivery_cap(cap: Option<usize>) -> SessionDeliveryCapScope {
+    SessionDeliveryCapScope {
+        previous: SESSION_DELIVERY_CAP.with(|slot| slot.replace(cap)),
+        same_thread: std::marker::PhantomData,
+    }
+}
+
+impl Drop for SessionDeliveryCapScope {
+    fn drop(&mut self) {
+        SESSION_DELIVERY_CAP.with(|slot| slot.replace(self.previous.take()));
+    }
+}
+
+pub(crate) fn session_delivery_byte_cap() -> Option<usize> {
+    SESSION_DELIVERY_CAP.with(|slot| *slot.borrow())
+}
+
+/// Effective client delivery byte cap: the smaller of configured `output.client` and any
+/// active connection-scoped client cap.
+pub(crate) fn effective_client_delivery_byte_cap() -> Option<usize> {
+    match (
+        get().client_output.delivery_byte_cap(),
+        session_delivery_byte_cap(),
+    ) {
+        (Some(configured), Some(session)) => Some(configured.min(session)),
+        (configured, session) => configured.or(session),
     }
 }
 
@@ -1691,27 +1476,6 @@ const MIGRATIONS: &[Migration] = &[
         korean_block: "# C/C++/ASM 파일의 Clang/NASM 전처리는 기본으로 켜집니다. docs/configuration.ko.md를 참고하세요.\n# is_enabled = true",
     },
     Migration {
-        version: 2,
-        key: "navigation_store_references",
-        placement: KeyPlacement::Subtable("caller_context"),
-        english_block: "# navigation_store_references = false",
-        korean_block: "# navigation_store_references = false",
-    },
-    Migration {
-        version: 2,
-        key: "navigation_callsite_budget",
-        placement: KeyPlacement::Subtable("caller_context"),
-        english_block: "# navigation_callsite_budget = 1000",
-        korean_block: "# navigation_callsite_budget = 1000",
-    },
-    Migration {
-        version: 2,
-        key: "navigation_context_default",
-        placement: KeyPlacement::Subtable("caller_context"),
-        english_block: "# Precise caller/callee attribution. When false, annotations use conservative name matching.\n# Set true to allow tree-sitter navigation data to mark unambiguous lines as precise.\n# navigation_context_default = false",
-        korean_block: "# 호출자/호출 대상 귀속을 정밀하게 표시합니다. false이면 주석은 보수적인 이름 매칭을 사용합니다.\n# tree-sitter navigation 데이터가 모호하지 않은 줄을 precise로 표시할 수 있게 하려면 true로 설정하세요.\n# navigation_context_default = false",
-    },
-    Migration {
         version: 3,
         key: "config_auto_update",
         placement: KeyPlacement::TopLevel,
@@ -2008,6 +1772,18 @@ fn migrate_existing(path: &Path, existing: &str) {
             Err(error) => {
                 warn(&format!(
                     "config overview-setting removal skipped for {}: {error}",
+                    path.display()
+                ));
+                return;
+            }
+        };
+    }
+    if file_version < 34 {
+        updated = match layout::remove_retired_v34_settings(&updated) {
+            Ok(updated) => updated,
+            Err(error) => {
+                warn(&format!(
+                    "config v34 retired-setting removal skipped for {}: {error}",
                     path.display()
                 ));
                 return;
@@ -2367,32 +2143,6 @@ fn as_positive_usize(value: &toml::Value, key: &str, path: &Path) -> Option<usiz
     }
 }
 
-fn as_nonneg_usize(value: &toml::Value, key: &str, path: &Path) -> Option<usize> {
-    match value.as_integer() {
-        Some(n) if n >= 0 => Some(n as usize),
-        _ => {
-            warn(&format!(
-                "config '{key}' must be a non-negative integer: {} — ignored",
-                path.display()
-            ));
-            None
-        }
-    }
-}
-
-fn as_positive_u64(value: &toml::Value, key: &str, path: &Path) -> Option<u64> {
-    match value.as_integer() {
-        Some(n) if n > 0 => Some(n as u64),
-        _ => {
-            warn(&format!(
-                "config '{key}' must be a positive integer: {} — ignored",
-                path.display()
-            ));
-            None
-        }
-    }
-}
-
 fn as_bool(value: &toml::Value, key: &str, path: &Path) -> Option<bool> {
     match value.as_bool() {
         Some(b) => Some(b),
@@ -2553,20 +2303,12 @@ mod tests {
         let defaults = ResolvedConfig::default();
         assert!(cfg.config_auto_update);
         assert_eq!(cfg.index_path, defaults.index_path);
-        assert_eq!(cfg.result_threshold, 24);
         assert_eq!(cfg.max_file_size, crate::workspace::MAX_INDEXED_FILE_BYTES);
         assert!(cfg.use_git_exclude);
         assert!(cfg.excluded_directories.iter().any(|d| d == "node_modules"));
-        assert_eq!(cfg.search_anchor_snippet_limit, 20);
-        // Caller/callee context: annotation on by default, caps at their tuned values.
         assert!(cfg.caller_context_default);
         assert!(!cfg.should_include_test_code);
         assert_eq!(cfg.test_code_rules, TestCodeRules::default());
-        assert_eq!(cfg.scan_cap, 16_000);
-        assert_eq!(cfg.caller_list_cap, 1000);
-        assert_eq!(cfg.callee_list_cap, 1000);
-        assert_eq!(cfg.annotation_sub_budget, 128 * 1024);
-        assert_eq!(cfg.common_name_threshold, 2);
         assert!(!cfg.is_document_support_enabled);
         assert!(!cfg.is_shell_support_enabled);
         assert!(!cfg.is_infrastructure_support_enabled);
@@ -2587,11 +2329,6 @@ mod tests {
             !cfg.caller_context_default,
             "repo disables the on-by-default annotation"
         );
-        assert_eq!(cfg.scan_cap, 100);
-        assert_eq!(cfg.common_name_threshold, 3);
-        // Untouched keys keep their defaults.
-        assert_eq!(cfg.caller_list_cap, 1000);
-        assert_eq!(cfg.annotation_sub_budget, 128 * 1024);
     }
 
     #[test]
@@ -2688,15 +2425,15 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
     fn test_repo_overrides_global_overrides_default() {
         let repo = tempdir().unwrap();
         let global = tempdir().unwrap();
-        // global sets threshold=20 and max_file_size=10; repo overrides threshold=3 only.
+        // global sets index_auto_max_files=200 and max_file_size=10; repo overrides index_auto_max_files=30 only.
         fs::write(
             global.path().join(CONFIG_FILE_NAME),
-            "result_threshold = 20\nmax_file_size = 10\n",
+            "index_auto_max_files = 200\nmax_file_size = 10\n",
         )
         .unwrap();
-        write_repo_config(repo.path(), "result_threshold = 3\n");
+        write_repo_config(repo.path(), "index_auto_max_files = 30\n");
         let cfg = load(repo.path(), global.path());
-        assert_eq!(cfg.result_threshold, 3, "repo wins for threshold");
+        assert_eq!(cfg.index_auto_max_files, 30, "repo wins for auto_max_files");
         assert_eq!(cfg.max_file_size, 10, "global wins where repo is silent");
     }
 
@@ -2837,7 +2574,8 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
         write_repo_config(repo.path(), "this is = = not valid toml [[[");
         let cfg = load(repo.path(), global.path());
         assert_eq!(
-            cfg.result_threshold, 24,
+            cfg.search_detail_byte_cap,
+            1024 * 1024,
             "malformed config must degrade to defaults, not crash"
         );
     }
@@ -2846,14 +2584,14 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
     fn test_unknown_key_and_bad_type_ignored() {
         let repo = tempdir().unwrap();
         let global = tempdir().unwrap();
-        // unknown key + a wrong-typed known key (string where int expected) → both ignored.
+        // unknown/retired keys + wrong-typed known key (string where int expected) → ignored.
         write_repo_config(
             repo.path(),
-            "totally_unknown = 1\nresult_threshold = \"five\"\n",
+            "totally_unknown = 1\nresult_threshold = 7\nindex_auto_max_files = \"five\"\n",
         );
         let cfg = load(repo.path(), global.path());
         assert_eq!(
-            cfg.result_threshold, 24,
+            cfg.index_auto_max_files, 50_000,
             "bad-typed key must fall back to default"
         );
     }
@@ -3016,29 +2754,129 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
     }
 
     #[test]
-    fn test_v2_migrations_insert_navigation_keys_under_caller_context() {
-        let body = "# codemap-config-version: 1\n\n[caller_context]\n# caller_context_default = true\n\n[tool_output]\n# grep_max_columns = 500\n";
-        let out = apply_migrations(body, 1, 2, MIGRATIONS).expect("v2 sync is due");
-        let header_pos = out.find("[caller_context]").unwrap();
-        let navigation_context_pos = out.find("navigation_context_default").unwrap();
-        let navigation_budget_pos = out.find("navigation_callsite_budget").unwrap();
-        let navigation_store_pos = out.find("navigation_store_references").unwrap();
-        let next_table_pos = out.find("[tool_output]").unwrap();
+    fn test_v34_migration_strips_retired_settings_and_preserves_user_notes() {
+        let repo = tempdir().unwrap();
+        let global = tempdir().unwrap();
+        write_repo_config(
+            repo.path(),
+            r#"# codemap-config-version: 33
+# user note at top
+[output.search]
+# user note in search
+detail_file_limit = 7
+overview_file_limit = 40
+snippet_max_lines = 120
+symbol_limit = 25
+literal_max_chars = 300
+literal_limit = 10
+anchor_snippet_limit = 5
+max_bytes = "2mb"
+
+[output.grep]
+# Maximum length of a line in grep results, in bytes. 0 disables the limit.
+max_columns = 0
+# max_bytes = "5mb"
+
+[output.context]
+is_enabled = false
+caller_limit = 200
+callee_limit = 200
+max_bytes = "64kb"
+common_name_threshold = 3
+caller_omit_def_threshold = 8
+
+[output.navigation]
+# user note inside navigation
+is_enabled = true
+callsite_budget = 500
+scan_limit = 4000
+
+[output.macro_expansion]
+is_enabled = true
+clang_path = "/usr/bin/clang"
+nasm_path = "/usr/bin/nasm"
+clang_flags = ["-DFOO=1"]
+nasm_flags = ["-Iinc"]
+timeout_ms = 9000
+max_output_bytes = "4mb"
+
+[index]
+path = ".codemap/index"
+max_file_bytes = "2mb"
+store_references = true
+
+[index.refresh]
+watch = false
+watch_debounce_ms = 250
+index_staleness_ms = 2000
+indexer_auto_restart = false
+"#,
+        );
+        ensure_repo_config_with_auto_update(repo.path(), true);
+        let path = repo.path().join(CODEMAP_DIR_NAME).join(CONFIG_FILE_NAME);
+        let migrated = fs::read_to_string(&path).unwrap();
         assert!(
-            header_pos < navigation_context_pos && navigation_store_pos < next_table_pos,
-            "navigation keys must be inserted inside [caller_context]: {out:?}"
+            migrated.starts_with(&format!("# codemap-config-version: {CONFIG_VERSION}\n")),
+            "{migrated}"
         );
+        let parsed: toml::Value = toml::from_str(&migrated).unwrap();
+        assert!(parsed["output"].get("navigation").is_none(), "{migrated}");
+        for key in [
+            "detail_file_limit",
+            "overview_file_limit",
+            "snippet_max_lines",
+            "symbol_limit",
+            "literal_max_chars",
+            "literal_limit",
+            "anchor_snippet_limit",
+        ] {
+            assert!(parsed["output"]["search"].get(key).is_none(), "{migrated}");
+        }
         assert!(
-            navigation_context_pos < navigation_budget_pos
-                && navigation_budget_pos < navigation_store_pos,
-            "navigation migration keys must keep template order: {out:?}"
+            parsed["output"]["grep"].get("max_columns").is_none(),
+            "{migrated}"
         );
-        assert_eq!(
-            out.matches("navigation_context_default").count(),
-            1,
-            "migration must not duplicate the v2 navigation key: {out:?}"
+        for key in [
+            "caller_limit",
+            "callee_limit",
+            "max_bytes",
+            "common_name_threshold",
+            "caller_omit_def_threshold",
+        ] {
+            assert!(parsed["output"]["context"].get(key).is_none(), "{migrated}");
+        }
+        for key in ["nasm_path", "nasm_flags", "timeout_ms", "max_output_bytes"] {
+            assert!(
+                parsed["output"]["macro_expansion"].get(key).is_none(),
+                "{migrated}"
+            );
+        }
+        assert!(
+            parsed["index"].get("store_references").is_none(),
+            "{migrated}"
         );
-        assert!(out.contains("# codemap-config-version: 2"));
+        for key in [
+            "watch_debounce_ms",
+            "index_staleness_ms",
+            "indexer_auto_restart",
+        ] {
+            assert!(parsed["index"]["refresh"].get(key).is_none(), "{migrated}");
+        }
+        assert!(migrated.contains("# user note at top"), "{migrated}");
+        assert!(migrated.contains("# user note in search"), "{migrated}");
+        assert!(
+            migrated.contains("# user note inside navigation"),
+            "{migrated}"
+        );
+        let cfg = load(repo.path(), global.path());
+        assert_eq!(cfg.search_detail_byte_cap, 2 * 1024 * 1024);
+        assert!(!cfg.caller_context_default);
+        assert_eq!(cfg.macro_expansion.clang_path, "/usr/bin/clang");
+        assert_eq!(cfg.macro_expansion.clang_flags, vec!["-DFOO=1"]);
+        assert_eq!(cfg.macro_expansion.nasm_path, "nasm");
+        assert_eq!(cfg.macro_expansion.timeout_ms, 5_000);
+        assert_eq!(cfg.max_file_size, 2 * 1024 * 1024);
+        assert!(!cfg.watch);
     }
 
     #[test]
@@ -3151,7 +2989,10 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
         );
         // Explicit scaffolded defaults still resolve to the compiled-in defaults.
         let global = tempdir().unwrap();
-        assert_eq!(load(repo.path(), global.path()).result_threshold, 24);
+        assert_eq!(
+            load(repo.path(), global.path()).search_detail_byte_cap,
+            1024 * 1024
+        );
     }
 
     #[test]
@@ -3236,7 +3077,6 @@ test_attributes = { rust = ["legacy::test"], java = ["LegacyTest"] }
             assert_eq!(before.use_git_exclude, after.use_git_exclude);
             assert_eq!(before.index_path, after.index_path);
             assert_eq!(before.max_file_size, after.max_file_size);
-            assert_eq!(before.scan_cap, after.scan_cap);
             assert_eq!(before.macro_expansion, after.macro_expansion);
             ensure_repo_config_with_auto_update(repo.path(), true);
             assert_eq!(fs::read_to_string(&path).unwrap(), migrated);

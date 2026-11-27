@@ -117,6 +117,9 @@ pub struct PublishedIndexSnapshot {
     type_declaration_counts: HashMap<String, usize>,
     /// Files by recorded call and import names, built on the first live caller lookup.
     call_lookup: std::sync::OnceLock<crate::callers::CallLookup>,
+    /// Files and lines by shared key text, built on the first shared-key trailer lookup.
+    shared_key_lookup:
+        std::sync::OnceLock<crate::tools::live_symbols::shared_keys::SharedKeyLookup>,
 }
 
 #[derive(Debug, Clone)]
@@ -273,12 +276,21 @@ impl PublishedIndexSnapshot {
             type_declaration_ranges_by_path,
             type_declaration_counts,
             call_lookup: std::sync::OnceLock::new(),
+            shared_key_lookup: std::sync::OnceLock::new(),
         }
     }
 
     pub(crate) fn call_lookup(&self) -> &crate::callers::CallLookup {
         self.call_lookup
             .get_or_init(|| crate::callers::CallLookup::build(&self.codemap))
+    }
+
+    pub(crate) fn shared_key_lookup(
+        &self,
+    ) -> &crate::tools::live_symbols::shared_keys::SharedKeyLookup {
+        self.shared_key_lookup.get_or_init(|| {
+            crate::tools::live_symbols::shared_keys::SharedKeyLookup::build(&self.codemap)
+        })
     }
 
     pub(crate) fn events(&self) -> &crate::events::EventIndex {

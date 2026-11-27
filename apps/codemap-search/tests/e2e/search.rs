@@ -13,8 +13,8 @@ async fn test_composite_query_preserves_coverage_body_evidence_and_continuation(
             .map(|i| format!("const padding{i} = 'callback';\n"))
             .collect::<String>()
     );
-    let window=format!("/** queue callback dispatch */\nexport function processQueueCallbackDispatch() {{\n{}return deliver(queue, callback, dispatch);\n}}",(0..150).map(|i|format!("const padding{i} = {i};\n")).collect::<String>());
-    let temp=create_mock_repo(&[("src/partial.ts",&partial),("src/complete.ts","/** queue callback dispatch */\nexport function routeQueueCallbackDispatch() { return 1; }"),("src/window.ts",&window),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[search]\nsearch_detail_snippet_max_lines=12\n")]).unwrap();
+    let window=format!("/** queue callback dispatch */\nexport function processQueueCallbackDispatch() {{\n{}return deliver(queue, callback, dispatch);\n}}",(0..520).map(|i|format!("const padding{i} = {i};\n")).collect::<String>());
+    let temp=create_mock_repo(&[("src/partial.ts",&partial),("src/complete.ts","/** queue callback dispatch */\nexport function routeQueueCallbackDispatch() { return 1; }"),("src/window.ts",&window),(".codemap/config.toml","[update]\nconfig_auto_update=false\n")]).unwrap();
     let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
         .await
         .unwrap();
@@ -621,8 +621,8 @@ async fn test_search_recalls_buried_indexed_phrases_without_displacing_ranked_re
             "{ext}: {output}"
         );
         drop(client);
-        // Without unused tail rows or output bytes, the ranked output is all there is.
-        for config in ["result_threshold=2\n", "search_detail_byte_cap=12000\n"] {
+        // Without unused output bytes, the ranked output is all there is.
+        for config in ["search_detail_byte_cap=12000\n"] {
             let temp = phrase_recall_repo(language, config);
             let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
                 .await
@@ -1162,7 +1162,7 @@ async fn test_path_matched_data_file_lists_matching_keys_and_counts_the_rest() {
 
 #[tokio::test]
 async fn test_search_note_folding_preserves_source_and_ranked_paths() {
-    let sources: Vec<(String, String)> = (0..8).map(|index| {
+    let sources: Vec<(String, String)> = (0..26).map(|index| {
         let steps = (0..60).map(|step| format!("  const step{step} = entries.length + {step};\n")).collect::<String>();
         (format!("src/ledger{index}.ts"), format!("import {{finish}} from './helper';\nexport function reconcileLedger{index}(entries: number[]): number {{\n{steps}  return finish(entries.length);\n}}\n"))
     }).collect();
@@ -1174,7 +1174,10 @@ async fn test_search_note_folding_preserves_source_and_ranked_paths() {
         "src/helper.ts",
         "export function finish(value: number): number { return value; }\n",
     ));
-    files.push((".codemap/config.toml", "[update]\nconfig_auto_update=false\n[search]\nresult_threshold=6\n[output.client]\npi_max_bytes=16000\n"));
+    files.push((
+        ".codemap/config.toml",
+        "[update]\nconfig_auto_update=false\n[output.client]\npi_max_bytes=16000\n",
+    ));
     let temp = create_mock_repo(&files).unwrap();
     let mut client = crate::e2e::helpers::McpClient::spawn(temp.path())
         .await
@@ -1185,7 +1188,7 @@ async fn test_search_note_folding_preserves_source_and_ranked_paths() {
         .send_tool_until("search", args.clone(), |text| {
             text.contains("[D1]")
                 && text.contains("calls [C1]")
-                && (0..8).all(|index| text.contains(&format!("src/ledger{index}.ts")))
+                && text.contains("## Other matches")
         })
         .await
         .unwrap();

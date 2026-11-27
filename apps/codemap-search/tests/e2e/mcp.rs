@@ -11,7 +11,7 @@ async fn test_initial_instructions_keeps_scope_inventory() {
     use std::sync::{atomic::Ordering, Arc};
 
     for is_monorepo in [false, true] {
-        let config = "[index.refresh]\nwatch = false\nindexer_auto_restart = false\n";
+        let config = "[index.refresh]\nwatch = false\n";
         let mut files = vec![(".codemap/config.toml", config)];
         if is_monorepo {
             files.extend([
@@ -22,7 +22,8 @@ async fn test_initial_instructions_keeps_scope_inventory() {
             files.push(("src/lib.rs", "pub fn standalone() {}\n"));
         }
         let temp = create_mock_repo(&files).unwrap();
-        with_in_process_server(temp.path(), None, |mut client| async move {
+        let repo_path = temp.path().to_path_buf();
+        with_in_process_server(temp.path(), None, move |mut client| async move {
             let initial = client
                 .call(
                     "tools/call",
@@ -49,6 +50,16 @@ async fn test_initial_instructions_keeps_scope_inventory() {
             } else {
                 assert_eq!(initial_text, codemap_search::tools::instructions());
             }
+
+            // Point index.path at a regular file so auto-restart cannot reopen an index
+            // and the dead-indexer notice stays observable without a test-only hook.
+            std::fs::write(repo_path.join(".codemap/blocked-index"), "block").unwrap();
+            std::fs::write(
+                repo_path.join(".codemap/config.toml"),
+                "[index]\npath = \".codemap/blocked-index\"\n[index.refresh]\nwatch = false\n",
+            )
+            .unwrap();
+            codemap_search::config::reload(&repo_path);
 
             for is_dead in [false, true] {
                 let index_dir = tempfile::tempdir().unwrap();
@@ -153,29 +164,23 @@ async fn test_mcp_list_tools() {
 
 #[tokio::test]
 async fn test_mcp_branching_hybrid_view() {
-    // 6 matches (> configured threshold 5) => hybrid: the top 5 files render full detail
-    // with source snippets; the 6th lands in the ranked tail as a one-liner without source.
-    let temp = create_mock_repo(&[
-        (".codemap/config.toml", "[search]\nresult_threshold = 5\n"),
-        ("src/a.rs", "fn match_func() {}"),
-        ("src/b.rs", "fn match_func() {}"),
-        ("src/c.rs", "fn match_func() {}"),
-        ("src/d.rs", "fn match_func() {}"),
-        ("src/e.rs", "fn match_func() {}"),
-        ("src/f.rs", "fn match_func() {}"),
-    ])
-    .unwrap();
+    // 25 matches (> built-in threshold 24) => hybrid: the top 24 files render full detail
+    // with source snippets; the 25th lands in the ranked tail as a one-liner without source.
+    let owned: Vec<(String, String)> = (0..25)
+        .map(|i| (format!("src/f{i:02}.rs"), "fn match_func() {}".to_string()))
+        .collect();
+    let files: Vec<(&str, &str)> = owned
+        .iter()
+        .map(|(p, c)| (p.as_str(), c.as_str()))
+        .collect();
+    let temp = create_mock_repo(&files).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
     let response = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "search",
-                "arguments": {
-                    "query": "match_func"
-                }
-            }),
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "match_func" }),
+            |t| t.contains("Other matches — 1 more files"),
         )
         .await
         .unwrap();
@@ -183,7 +188,7 @@ async fn test_mcp_branching_hybrid_view() {
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
     assert_eq!(
         text.matches("\n### results\n").count(),
-        5,
+        24,
         "top-threshold files get the detail view: {text:?}"
     );
     assert!(
@@ -202,36 +207,35 @@ async fn test_mcp_branching_hybrid_view() {
 
 #[tokio::test]
 async fn test_mcp_fallback_match_no_snippets_and_clean_tail() {
-    // 6 files match the query via their shared path segment ("widgets"), NOT by symbol
-    // name. Hybrid view: the top 5 render as fallback detail — symbol names + ranges but
+    // 25 files match the query via their shared path segment ("widgets"), NOT by symbol
+    // name. Hybrid view: the top 24 render as fallback detail — symbol names + ranges but
     // never source snippets — and the ranked-tail line must stay bare (no unrelated
     // symbols leaked, same all-terms criterion as the index symbol filter).
-    let temp = create_mock_repo(&[
-        (".codemap/config.toml", "[search]\nresult_threshold = 5\n"),
-        ("widgets/w1.rs", "pub fn alpha() {}"),
-        ("widgets/w2.rs", "pub fn beta() {}"),
-        ("widgets/w3.rs", "pub fn gamma() {}"),
-        ("widgets/w4.rs", "pub fn delta() {}"),
-        ("widgets/w5.rs", "pub fn epsilon() {}"),
-        ("widgets/w6.rs", "pub fn zeta() {}"),
-    ])
-    .unwrap();
+    let owned: Vec<(String, String)> = (1..=25)
+        .map(|i| {
+            (
+                format!("widgets/w{i:02}.rs"),
+                format!("pub fn sym_{i:02}() {{}}"),
+            )
+        })
+        .collect();
+    let files: Vec<(&str, &str)> = owned
+        .iter()
+        .map(|(p, c)| (p.as_str(), c.as_str()))
+        .collect();
+    let temp = create_mock_repo(&files).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
     let response = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({
-                "name": "search",
-                "arguments": { "query": "widgets" }
-            }),
-        )
+        .send_tool_until("search", serde_json::json!({ "query": "widgets" }), |t| {
+            t.contains("## Other matches")
+        })
         .await
         .unwrap();
 
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        text.contains("widgets/w1.rs"),
+        text.contains("widgets/w01.rs"),
         "matched files listed: {text:?}"
     );
     assert!(
@@ -242,9 +246,10 @@ async fn test_mcp_fallback_match_no_snippets_and_clean_tail() {
         .split("## Other matches")
         .nth(1)
         .expect("ranked tail present for the overflow match");
-    for sym in ["alpha", "beta", "gamma", "delta", "epsilon", "zeta"] {
+    for i in 1..=25 {
+        let sym = format!("sym_{i:02}");
         assert!(
-            !tail.contains(sym),
+            !tail.contains(&sym),
             "ranked tail leaked fallback symbol '{sym}': {tail:?}"
         );
     }
@@ -775,17 +780,15 @@ async fn test_caller_context_on_renders_callers_callees_qualified() {
 /// so no caller annotation appears anywhere in this all-fallback result.
 #[tokio::test]
 async fn test_caller_context_broad_match_hybrid_tail() {
-    // 6 files share the path token "widgets" (> configured result_threshold 5).
-    let temp = create_mock_repo(&[
-        (".codemap/config.toml", "[search]\nresult_threshold = 5\n"),
-        ("widgets/w1.rs", "pub fn a1() {}"),
-        ("widgets/w2.rs", "pub fn a2() {}"),
-        ("widgets/w3.rs", "pub fn a3() {}"),
-        ("widgets/w4.rs", "pub fn a4() {}"),
-        ("widgets/w5.rs", "pub fn a5() {}"),
-        ("widgets/w6.rs", "pub fn a6() {}"),
-    ])
-    .unwrap();
+    // 25 files share the path token "widgets" (> built-in threshold 24).
+    let owned: Vec<(String, String)> = (1..=25)
+        .map(|i| (format!("widgets/w{i:02}.rs"), format!("pub fn a{i}() {{}}")))
+        .collect();
+    let files: Vec<(&str, &str)> = owned
+        .iter()
+        .map(|(p, c)| (p.as_str(), c.as_str()))
+        .collect();
+    let temp = create_mock_repo(&files).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     let response = client
         .send_tool_until(
@@ -798,7 +801,7 @@ async fn test_caller_context_broad_match_hybrid_tail() {
     let text = response["result"]["content"][0]["text"].as_str().unwrap();
     assert_eq!(
         text.matches("\n### results\n").count(),
-        5,
+        24,
         "top-threshold files render detail sections: {text}"
     );
     assert!(

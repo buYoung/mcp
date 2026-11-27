@@ -74,7 +74,7 @@ When disabled, these files are absent from indexing, search, codemap, and file-c
 
 ## Extraction details
 
-Call relationships are approximate by default. With `navigation_context_default = true`, a uniquely confirmed call target is marked `precise`. Paths and call targets determined at runtime, including reflection, are not treated as confirmed. `navigation_store_references` controls optional storage of reference locations other than function calls; see the [configuration reference](./configuration.md#output-and-call-relationships).
+Call relationships combine static source resolution (marking uniquely confirmed targets `precise`) with approximate name-based estimates when ambiguous. Paths and call targets determined at runtime, including reflection, are not treated as confirmed. See the [configuration reference](./configuration.md#output-and-call-relationships).
 
 | Language | Visibility, test, or deprecation rules |
 |---|---|

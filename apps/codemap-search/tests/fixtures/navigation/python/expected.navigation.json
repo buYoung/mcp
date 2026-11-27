@@ -110,9 +110,7 @@
                   "endLine": 13,
                   "endCol": 14
                 },
-                "parameters": [
-                  "?"
-                ],
+                "parameters": [],
                 "returnType": "",
                 "qualifiers": "",
                 "isAbstract": false,
@@ -122,7 +120,7 @@
                 "isVirtual": true,
                 "isOverride": false,
                 "isPointerReceiver": false,
-                "hasKnownSignature": false,
+                "hasKnownSignature": true,
                 "conditions": []
               }
             ],

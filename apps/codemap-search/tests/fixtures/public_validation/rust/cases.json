@@ -1,0 +1,10 @@
+[
+  {
+    "id": "regression:foreign-scope",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/reading.rs"},
+    "contains": ["through_trait (L17)", "through_parameter (L22)", "level (L36)"],
+    "excludes": ["label (L", "narrow (L"],
+    "category": "wrong_caller"
+  }
+]

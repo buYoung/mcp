@@ -1,0 +1,42 @@
+[
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/socket.dart"},
+    "contains": ["implementation candidate: FastSocket.send — _codemap_language_regressions/signature/fast_socket.dart:6", "implementation candidate: FastSocket.route — _codemap_language_regressions/signature/fast_socket.dart:9"],
+    "excludes": ["implementation candidate: FastSocket.connect"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:package-scoped-member",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/access/valve.dart"},
+    "contains": ["LocalValve._seal", "RemoteValve.vent"],
+    "excludes": ["RemoteValve._seal", "not source-proven"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:call-inside-if",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/conditional.dart"},
+    "contains": ["Gate.latch — L2"],
+    "excludes": ["latch (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic.dart"},
+    "contains": ["Codec.width — L4", "call declaration: Codec.decode — L2", "implementation candidate: TextCodec.decode — L8"],
+    "excludes": ["width (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/nullable.dart"},
+    "contains": ["Gauge.level — L2", "safe (L7)", "asserted (L11)"],
+    "excludes": ["gauge (unresolved)", "level (unresolved)", "unconfirmed callers"],
+    "category": "missing_callee"
+  }
+]

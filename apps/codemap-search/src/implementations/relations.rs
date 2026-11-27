@@ -1,7 +1,68 @@
+use super::signature::Signatures;
 use super::*;
 use crate::callers::resolution::SourceResolver;
 use crate::parser::CodeRange;
 use std::collections::{HashMap, HashSet};
+
+fn specific_preproc_conditions(
+    language: &str,
+    path: &str,
+    range: &CodeRange,
+    recorded: &[String],
+    resolver: &SourceResolver<'_>,
+) -> Vec<String> {
+    if !recorded.is_empty() && !recorded.iter().any(|c| c.starts_with("conditional ")) {
+        return recorded.to_vec();
+    }
+    resolver.preproc_conditions_at(language, path, range)
+}
+
+/// When both a C++/C# base declaration and its override are guarded by the exact same
+/// non-empty preprocessor condition set (e.g. both under `#ifdef DEBUG_ENABLED`), the override
+/// compiles whenever the base compiles. Mismatched or unresolved conditions stay unlinked.
+#[allow(clippy::too_many_arguments)]
+fn matching_preproc_conditions(
+    base_language: &str,
+    impl_language: &str,
+    base_path: &str,
+    base_range: &CodeRange,
+    base_conditions: &[String],
+    impl_path: &str,
+    impl_range: &CodeRange,
+    impl_conditions: &[String],
+    resolver: &SourceResolver<'_>,
+) -> Option<Vec<String>> {
+    if base_language != impl_language
+        || !matches!(base_language, "cpp" | "csharp")
+        || base_conditions.is_empty()
+        || impl_conditions.is_empty()
+    {
+        return None;
+    }
+    let base_labels = specific_preproc_conditions(
+        base_language,
+        base_path,
+        base_range,
+        base_conditions,
+        resolver,
+    );
+    let impl_labels = specific_preproc_conditions(
+        impl_language,
+        impl_path,
+        impl_range,
+        impl_conditions,
+        resolver,
+    );
+    if base_labels.is_empty()
+        || base_labels != impl_labels
+        || base_labels
+            .iter()
+            .any(|label| label == "#else" || label.starts_with("conditional "))
+    {
+        return None;
+    }
+    Some(base_labels)
+}
 
 fn active(
     language: &str,
@@ -24,34 +85,63 @@ impl ImplementationIndex {
         sources: &HashMap<String, String>,
     ) {
         for id in 0..self.types.len() {
-            let node = self.types[id].clone();
-            let typ = self.typ(id).clone();
             let language = self.unit(id).language.clone();
-            let path = self.files[node.file].file_path.clone();
-            if !typ.is_complete
-                || !typ.parameters.is_empty()
-                || !active(&language, &path, &typ.range, &typ.conditions, resolver)
-            {
-                continue;
-            }
-            for base in &typ.bases {
-                if let Some((parent, mut evidence)) =
-                    self.resolve_type(node.file, node.unit, &typ.namespace, base, resolver)
+            let declarations: Vec<_> = self
+                .declarations(id)
+                .map(|(file, unit, typ)| (file, unit, typ.clone()))
+                .collect();
+            for (file, unit, typ) in declarations {
+                let path = self.files[file].file_path.clone();
+                // A type that the language specializes by its arguments has no bases of its own.
+                if !self.accepts_decl(&language, &typ, typ.parameters.len())
+                    || !active(&language, &path, &typ.range, &typ.conditions, resolver)
                 {
-                    if parent == id || self.typ(parent).is_final {
-                        continue;
+                    continue;
+                }
+                for base in &typ.bases {
+                    if let Some((parent, mut evidence)) =
+                        self.resolve_type(file, unit, &typ.namespace, base, resolver)
+                    {
+                        if parent == id || self.typ(parent).is_final {
+                            continue;
+                        }
+                        evidence.push(Location {
+                            path: path.clone(),
+                            range: base.range.clone(),
+                        });
+                        evidence.push(Location {
+                            path: path.clone(),
+                            range: typ.range.clone(),
+                        });
+                        self.remember_proof(&evidence, sources);
+                        let parent_params = &self.typ(parent).parameters;
+                        let substitutions = if !parent_params.is_empty()
+                            && base.arguments.len() == parent_params.len()
+                        {
+                            parent_params
+                                .iter()
+                                .zip(&base.arguments)
+                                .map(|(parameter, argument)| TypeSubstitution {
+                                    parameter: parameter.clone(),
+                                    argument: argument.clone(),
+                                    file,
+                                    unit,
+                                    owner: id,
+                                    namespace: typ.namespace.clone(),
+                                    range: base.range.clone(),
+                                })
+                                .collect()
+                        } else {
+                            Vec::new()
+                        };
+                        self.parents[id].push(Parent {
+                            owner: parent,
+                            evidence,
+                            is_pointer: false,
+                            substitutions,
+                            conditions: base.conditions.clone(),
+                        });
                     }
-                    evidence.push(Location {
-                        path: path.clone(),
-                        range: base.range.clone(),
-                    });
-                    evidence.push(self.location(id));
-                    self.remember_proof(&evidence, sources);
-                    self.parents[id].push(Parent {
-                        owner: parent,
-                        evidence,
-                        is_pointer: false,
-                    });
                 }
             }
         }
@@ -84,37 +174,198 @@ impl ImplementationIndex {
                         &block.owner,
                         resolver,
                     ) else {
+                        // R1: Rust `impl LocalTrait for ExternalOrPrimitiveType` — the owner is
+                        // external or a primitive (`&str`, `io::Error`, `RegexSet`), while the
+                        // implemented trait is local. Record it separately as an explicit impl
+                        // block without fabricating method-override links.
+                        if unit.language == "rust" && block.contracts.len() == 1 {
+                            if let Some((contract, mut evidence)) = self.resolve_type(
+                                file_id,
+                                unit_id,
+                                &block.namespace,
+                                &block.contracts[0],
+                                resolver,
+                            ) {
+                                if self.typ(contract).is_contract {
+                                    let impl_range = block
+                                        .range
+                                        .clone()
+                                        .unwrap_or_else(|| block.owner.range.clone());
+                                    evidence.push(Location {
+                                        path: file.file_path.clone(),
+                                        range: impl_range.clone(),
+                                    });
+                                    evidence.push(self.location(contract));
+                                    self.remember_proof(&evidence, sources);
+                                    if !self.explicit_impls.iter().any(|existing| {
+                                        existing.contract == contract
+                                            && existing.location.path == file.file_path
+                                            && existing.location.range.start_line
+                                                == impl_range.start_line
+                                    }) {
+                                        self.explicit_impls.push(ExplicitImpl {
+                                            contract,
+                                            owner_display: block.owner.name.clone(),
+                                            location: Location {
+                                                path: file.file_path.clone(),
+                                                range: impl_range,
+                                            },
+                                            evidence,
+                                        });
+                                    }
+                                }
+                            }
+                        }
                         continue;
                     };
-                    let contract = if block.contracts.is_empty() {
-                        None
-                    } else {
+                    let mut block_contract = None;
+                    if unit.language == "swift" {
+                        // Swift extensions may declare conformance to multiple protocols
+                        // (`extension Foo: ProtoA, ProtoB { ... }`) and their methods can satisfy
+                        // any protocol `owner` conforms to, not only a single contract here.
+                        for contract_ref in &block.contracts {
+                            let Some((contract, evidence)) = self.resolve_type(
+                                file_id,
+                                unit_id,
+                                &block.namespace,
+                                contract_ref,
+                                resolver,
+                            ) else {
+                                continue;
+                            };
+                            if contract == owner || self.typ(contract).is_final {
+                                continue;
+                            }
+                            let mut contract_proof = proof.clone();
+                            contract_proof.extend(evidence);
+                            contract_proof.push(Location {
+                                path: file.file_path.clone(),
+                                range: block.owner.range.clone(),
+                            });
+                            contract_proof.push(Location {
+                                path: file.file_path.clone(),
+                                range: contract_ref.range.clone(),
+                            });
+                            self.remember_proof(&contract_proof, sources);
+                            let parent_params = &self.typ(contract).parameters;
+                            let substitutions = if !parent_params.is_empty()
+                                && contract_ref.arguments.len() == parent_params.len()
+                            {
+                                parent_params
+                                    .iter()
+                                    .zip(&contract_ref.arguments)
+                                    .map(|(parameter, argument)| TypeSubstitution {
+                                        parameter: parameter.clone(),
+                                        argument: argument.clone(),
+                                        file: file_id,
+                                        unit: unit_id,
+                                        owner,
+                                        namespace: block.namespace.clone(),
+                                        range: contract_ref.range.clone(),
+                                    })
+                                    .collect()
+                            } else {
+                                Vec::new()
+                            };
+                            self.parents[owner].push(Parent {
+                                owner: contract,
+                                evidence: contract_proof,
+                                is_pointer: false,
+                                substitutions,
+                                conditions: Vec::new(),
+                            });
+                        }
+                    } else if unit.language == "go" && !block.contracts.is_empty() {
+                        // Go compile-time interface assertion (`var _ pkg.Iface = (*Impl)(nil)`).
                         if block.contracts.len() != 1 {
                             continue;
                         }
+                        let contract_ref = &block.contracts[0];
                         let Some((contract, evidence)) = self.resolve_type(
                             file_id,
                             unit_id,
                             &block.namespace,
-                            &block.contracts[0],
+                            contract_ref,
                             resolver,
                         ) else {
                             continue;
                         };
+                        if contract == owner || !self.typ(contract).is_contract {
+                            continue;
+                        }
                         proof.extend(evidence);
-                        Some(contract)
-                    };
-                    proof.push(Location {
-                        path: file.file_path.clone(),
-                        range: block.owner.range.clone(),
-                    });
-                    self.remember_proof(&proof, sources);
-                    if let Some(contract) = contract {
-                        self.parents[owner].push(Parent {
-                            owner: contract,
-                            evidence: proof,
-                            is_pointer: false,
+                        proof.push(Location {
+                            path: file.file_path.clone(),
+                            range: block.owner.range.clone(),
                         });
+                        proof.push(Location {
+                            path: file.file_path.clone(),
+                            range: contract_ref.range.clone(),
+                        });
+                        self.remember_proof(&proof, sources);
+                        let is_pointer = block.owner.name.starts_with('*');
+                        if !self.parents[owner].iter().any(|parent| {
+                            parent.owner == contract && parent.is_pointer == is_pointer
+                        }) {
+                            self.parents[owner].push(Parent {
+                                owner: contract,
+                                evidence: proof,
+                                is_pointer,
+                                substitutions: Vec::new(),
+                                conditions: Vec::new(),
+                            });
+                        }
+                    } else {
+                        let mut substitutions = Vec::new();
+                        if !block.contracts.is_empty() {
+                            if block.contracts.len() != 1 {
+                                continue;
+                            }
+                            let contract_ref = &block.contracts[0];
+                            let Some((contract, evidence)) = self.resolve_type(
+                                file_id,
+                                unit_id,
+                                &block.namespace,
+                                contract_ref,
+                                resolver,
+                            ) else {
+                                continue;
+                            };
+                            let parent_params = &self.typ(contract).parameters;
+                            if !parent_params.is_empty()
+                                && contract_ref.arguments.len() == parent_params.len()
+                            {
+                                substitutions = parent_params
+                                    .iter()
+                                    .zip(&contract_ref.arguments)
+                                    .map(|(parameter, argument)| TypeSubstitution {
+                                        parameter: parameter.clone(),
+                                        argument: argument.clone(),
+                                        file: file_id,
+                                        unit: unit_id,
+                                        owner,
+                                        namespace: block.namespace.clone(),
+                                        range: contract_ref.range.clone(),
+                                    })
+                                    .collect();
+                            }
+                            proof.extend(evidence);
+                            block_contract = Some(contract);
+                        }
+                        proof.push(Location {
+                            path: file.file_path.clone(),
+                            range: block.owner.range.clone(),
+                        });
+                        self.remember_proof(&proof, sources);
+                        if let Some(contract) = block_contract {
+                            self.parents[owner].push(Parent {
+                                owner: contract,
+                                evidence: proof,
+                                is_pointer: false,
+                                substitutions,
+                                conditions: Vec::new(),
+                            });
+                        }
                     }
                     for method in &block.methods {
                         if active(
@@ -124,80 +375,152 @@ impl ImplementationIndex {
                             &method.conditions,
                             resolver,
                         ) {
-                            self.add_method(owner, method.clone(), &file.file_path, contract);
+                            self.add_method(
+                                owner,
+                                method.clone(),
+                                (file_id, unit_id),
+                                block_contract,
+                            );
                         }
                     }
                 }
             }
         }
-        self.connect_go();
-        for owner in 0..self.types.len() {
-            let ancestors = self.ancestors(owner);
+        let signatures = Signatures::new(resolver);
+        self.connect_go(&signatures, sources);
+        // `self.parents` is complete after `connect_go`; compute ancestor lists once and reuse
+        // them across link, unproven, replaceable, and call resolution passes.
+        let ancestors_by_owner: Vec<Vec<Parent>> = (0..self.types.len())
+            .map(|owner| self.ancestors(owner))
+            .collect();
+        // Declarations read to accept a signature, remembered once the links are in place.
+        let mut proofs = Vec::new();
+        for (owner, ancestors) in ancestors_by_owner.iter().enumerate().take(self.types.len()) {
+            if ancestors.is_empty() {
+                continue;
+            }
             let own_methods = self.types[owner].methods.clone();
             for method in own_methods {
                 let implementation = &self.methods[method];
                 if implementation.declaration.is_abstract {
                     continue;
                 }
-                for parent in &ancestors {
+                for parent in ancestors {
                     if implementation
                         .contract
                         .is_some_and(|contract| contract != parent.owner)
                     {
                         continue;
                     }
-                    if self.unit(owner).language == "rust" && implementation.contract.is_none() {
+                    let owner_language = self.unit(owner).language.as_str();
+                    if owner_language == "rust" && implementation.contract.is_none() {
                         continue;
                     }
-                    let candidates = self.types[parent.owner]
+                    // A Go value-receiver interface assertion (`var _ Iface = Impl{}`) only
+                    // includes value-receiver methods in the method set of `Impl`.
+                    if owner_language == "go"
+                        && !parent.is_pointer
+                        && implementation.declaration.is_pointer_receiver
+                    {
+                        continue;
+                    }
+                    let mut candidates = self.types[parent.owner]
                         .methods
                         .iter()
                         .copied()
-                        .filter(|base| self.matches(*base, method))
+                        .filter_map(|base| {
+                            self.matches(base, method, &parent.substitutions, &signatures)
+                                .map(|sig_proof| (base, sig_proof))
+                        })
                         .collect::<Vec<_>>();
+                    // Swift protocol extensions add default implementations directly onto the
+                    // protocol type alongside the abstract requirement; prefer the requirement.
+                    if candidates.len() > 1 && self.typ(parent.owner).is_contract {
+                        let abstract_only: Vec<_> = candidates
+                            .iter()
+                            .filter(|(base, _)| self.methods[*base].declaration.is_abstract)
+                            .cloned()
+                            .collect();
+                        if abstract_only.len() == 1 {
+                            candidates = abstract_only;
+                        }
+                    }
                     if candidates.len() != 1 {
                         continue;
                     }
-                    let base = candidates[0];
-                    if !active(
-                        &self.unit(parent.owner).language,
+                    let (base, sig_proof) = candidates.pop().unwrap();
+                    let base_language = &self.unit(parent.owner).language;
+                    let base_active = active(
+                        base_language,
                         &self.methods[base].location.path,
                         &self.methods[base].declaration.range,
                         &self.methods[base].declaration.conditions,
                         resolver,
-                    ) || !active(
-                        &self.unit(owner).language,
+                    );
+                    let impl_active = active(
+                        owner_language,
                         &implementation.location.path,
                         &implementation.declaration.range,
                         &implementation.declaration.conditions,
                         resolver,
-                    ) {
-                        continue;
+                    );
+                    let mut link_conditions = parent.conditions.clone();
+                    if !base_active || !impl_active {
+                        let Some(shared_conds) = matching_preproc_conditions(
+                            base_language,
+                            owner_language,
+                            &self.methods[base].location.path,
+                            &self.methods[base].declaration.range,
+                            &self.methods[base].declaration.conditions,
+                            &implementation.location.path,
+                            &implementation.declaration.range,
+                            &implementation.declaration.conditions,
+                            resolver,
+                        ) else {
+                            continue;
+                        };
+                        for cond in shared_conds {
+                            if !link_conditions.contains(&cond) {
+                                link_conditions.push(cond);
+                            }
+                        }
                     }
                     if self.links.len() >= METHODS_PER_SNAPSHOT * 2 {
                         self.omitted += 1;
                         break;
                     }
+                    let is_pointer =
+                        parent.is_pointer || implementation.declaration.is_pointer_receiver;
+                    let mut evidence = parent.evidence.clone();
+                    evidence.extend(sig_proof.iter().cloned());
+                    proofs.extend(sig_proof);
                     self.links.push(Link {
                         declaration: base,
                         implementation: method,
-                        evidence: parent.evidence.clone(),
-                        is_pointer: parent.is_pointer
-                            || implementation.declaration.is_pointer_receiver,
+                        evidence,
+                        is_pointer,
+                        conditions: link_conditions,
                     });
                 }
             }
         }
-        self.links
-            .sort_by_key(|link| (link.declaration, link.implementation));
+        self.remember_proof(&proofs, sources);
+        self.links.sort_by_key(|link| {
+            (
+                link.declaration,
+                link.implementation,
+                !link.conditions.is_empty(),
+            )
+        });
         self.links
             .dedup_by_key(|link| (link.declaration, link.implementation));
+        self.record_unproven(&ancestors_by_owner);
         let declarations = self
             .links
             .iter()
             .map(|link| link.declaration)
             .collect::<HashSet<_>>();
-        let replaceable = self.replaceable_methods(&declarations);
+        let replaceable = self.replaceable_methods(&declarations, &ancestors_by_owner);
         for (file_id, file) in files.iter().enumerate() {
             let Some(facts) = file
                 .navigation
@@ -221,7 +544,7 @@ impl ImplementationIndex {
                     ) {
                         continue;
                     }
-                    let Some((owner, mut evidence)) = self.resolve_type(
+                    let Some((mut owner, mut evidence)) = self.resolve_type(
                         file_id,
                         unit_id,
                         &call.namespace,
@@ -230,23 +553,44 @@ impl ImplementationIndex {
                     ) else {
                         continue;
                     };
-                    self.record_direct_call(
-                        owner,
-                        &file.file_path,
-                        call,
-                        &evidence,
-                        &replaceable,
-                        sources,
-                    );
+                    let mut used_call_step = false;
+                    if !call.receiver_steps.is_empty() {
+                        let Some((next_owner, step_evidence, has_call_step)) = self
+                            .resolve_receiver_steps(
+                                owner,
+                                &call.receiver_steps,
+                                &ancestors_by_owner,
+                                resolver,
+                            )
+                        else {
+                            continue;
+                        };
+                        owner = next_owner;
+                        evidence.extend(step_evidence);
+                        used_call_step = has_call_step;
+                    }
+                    // C3: A call chained through a method return type (`f().m()`) proves only the
+                    // static declaration; runtime target stays unresolved, so skip `direct_calls`.
+                    if !used_call_step {
+                        self.record_direct_call(
+                            owner,
+                            &file.file_path,
+                            call,
+                            &evidence,
+                            &replaceable,
+                            &ancestors_by_owner,
+                            sources,
+                        );
+                    }
                     let mut candidates = self.call_methods(owner, &call.name, call.argument_count);
                     if candidates.is_empty() {
-                        for parent in self.ancestors(owner) {
+                        for parent in &ancestors_by_owner[owner] {
                             candidates.extend(self.call_methods(
                                 parent.owner,
                                 &call.name,
                                 call.argument_count,
                             ));
-                            evidence.extend(parent.evidence);
+                            evidence.extend(parent.evidence.iter().cloned());
                         }
                     }
                     candidates.sort_unstable();
@@ -255,6 +599,17 @@ impl ImplementationIndex {
                         continue;
                     }
                     let declaration = candidates[0];
+                    if self.methods[declaration].owner == owner
+                        && self.inherits_overload(
+                            owner,
+                            declaration,
+                            call,
+                            false,
+                            &ancestors_by_owner,
+                        )
+                    {
+                        continue;
+                    }
                     // Ordinary concrete methods remain in direct-call navigation.
                     if !self.methods[declaration].declaration.is_abstract
                         && !declarations.contains(&declaration)
@@ -280,12 +635,155 @@ impl ImplementationIndex {
         }
     }
 
+    /// Walks chained receiver steps (field accesses like `self.field.m()` / `x.a.b.m()` and
+    /// 1-step method return types like `f().m()`) starting from `start_owner`.
+    fn resolve_receiver_steps(
+        &self,
+        start_owner: usize,
+        steps: &[ReceiverStep],
+        ancestors_by_owner: &[Vec<Parent>],
+        resolver: &SourceResolver<'_>,
+    ) -> Option<(usize, Vec<Location>, bool)> {
+        let mut cur_owner = start_owner;
+        let mut evidence = Vec::new();
+        let mut used_call_step = false;
+        for step in steps {
+            match step {
+                ReceiverStep::Field(field_name) => {
+                    let mut matches = Vec::new();
+                    for (f_file, f_unit, decl) in self.declarations(cur_owner) {
+                        for field in &decl.fields {
+                            if field.name == *field_name {
+                                matches.push((
+                                    f_file,
+                                    f_unit,
+                                    decl.namespace.clone(),
+                                    field.typ.clone(),
+                                    Vec::new(),
+                                ));
+                            }
+                        }
+                    }
+                    if matches.is_empty() {
+                        for parent in &ancestors_by_owner[cur_owner] {
+                            for (f_file, f_unit, decl) in self.declarations(parent.owner) {
+                                for field in &decl.fields {
+                                    if field.name == *field_name {
+                                        matches.push((
+                                            f_file,
+                                            f_unit,
+                                            decl.namespace.clone(),
+                                            field.typ.clone(),
+                                            parent.evidence.clone(),
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if matches.len() != 1 {
+                        return None;
+                    }
+                    let (f_file, f_unit, ns, typ_ref, parent_ev) = matches.pop().unwrap();
+                    let (next_owner, resolved_ev) =
+                        self.resolve_type(f_file, f_unit, &ns, &typ_ref, resolver)?;
+                    evidence.push(self.location(cur_owner));
+                    evidence.extend(parent_ev);
+                    evidence.push(Location {
+                        path: self.files[f_file].file_path.clone(),
+                        range: typ_ref.range,
+                    });
+                    evidence.extend(resolved_ev);
+                    cur_owner = next_owner;
+                }
+                ReceiverStep::Call {
+                    name,
+                    argument_count,
+                } => {
+                    used_call_step = true;
+                    let mut candidates = self.call_methods(cur_owner, name, *argument_count);
+                    let mut extra_parent_ev = Vec::new();
+                    if candidates.is_empty() {
+                        for parent in &ancestors_by_owner[cur_owner] {
+                            let found = self.call_methods(parent.owner, name, *argument_count);
+                            if !found.is_empty() {
+                                candidates.extend(found);
+                                extra_parent_ev.extend(parent.evidence.iter().cloned());
+                            }
+                        }
+                    }
+                    candidates.sort_unstable();
+                    candidates.dedup();
+                    if candidates.len() != 1 {
+                        return None;
+                    }
+                    let method_id = candidates[0];
+                    let synthetic = DispatchCall {
+                        receiver: TypeReference {
+                            name: String::new(),
+                            arguments: Vec::new(),
+                            range: self.methods[method_id].location.range.clone(),
+                            conditions: Vec::new(),
+                        },
+                        receiver_steps: Vec::new(),
+                        receiver_kind: ReceiverKind::Value,
+                        name: name.clone(),
+                        argument_count: *argument_count,
+                        range: self.methods[method_id].location.range.clone(),
+                        namespace: String::new(),
+                        enclosing_symbol: None,
+                        conditions: Vec::new(),
+                    };
+                    if self.methods[method_id].owner == cur_owner
+                        && self.inherits_overload(
+                            cur_owner,
+                            method_id,
+                            &synthetic,
+                            false,
+                            ancestors_by_owner,
+                        )
+                    {
+                        return None;
+                    }
+                    let m_node = &self.methods[method_id];
+                    if !m_node.declaration.has_known_signature
+                        || m_node.declaration.return_type.is_empty()
+                    {
+                        return None;
+                    }
+                    let ret_ref = parse_return_type_ref(
+                        &m_node.declaration.return_type,
+                        &m_node.location.range,
+                    )?;
+                    let m_scope = self.method_type_scope(method_id);
+                    let (next_owner, resolved_ev) = self.resolve_type(
+                        m_node.file,
+                        m_node.unit,
+                        &m_scope.namespace,
+                        &ret_ref,
+                        resolver,
+                    )?;
+                    evidence.push(self.location(cur_owner));
+                    evidence.extend(extra_parent_ev);
+                    evidence.push(m_node.location.clone());
+                    evidence.extend(resolved_ev);
+                    cur_owner = next_owner;
+                }
+            }
+        }
+        Some((cur_owner, evidence, used_call_step))
+    }
+
     /// Methods a runtime receiver may replace: abstract ones, linked declarations and any
     /// method a subtype redeclares under the same name, whatever its signature.
-    fn replaceable_methods(&self, declarations: &HashSet<usize>) -> HashSet<usize> {
+    fn replaceable_methods(
+        &self,
+        declarations: &HashSet<usize>,
+        ancestors_by_owner: &[Vec<Parent>],
+    ) -> HashSet<usize> {
         let mut replaceable = declarations.clone();
-        for owner in 0..self.types.len() {
-            if self.types[owner].methods.is_empty() {
+        for (owner, ancestors) in ancestors_by_owner.iter().enumerate().take(self.types.len()) {
+            if self.types[owner].methods.is_empty() || ancestors.is_empty() {
                 continue;
             }
             let names = self.types[owner]
@@ -293,7 +791,7 @@ impl ImplementationIndex {
                 .iter()
                 .map(|id| self.methods[*id].declaration.name.as_str())
                 .collect::<HashSet<_>>();
-            for parent in self.ancestors(owner) {
+            for parent in ancestors {
                 replaceable.extend(
                     self.types[parent.owner]
                         .methods
@@ -312,6 +810,7 @@ impl ImplementationIndex {
 
     /// Remember a typed call whose member lookup singles out a method no runtime receiver can
     /// replace, for caller attribution beyond implementation navigation.
+    #[allow(clippy::too_many_arguments)]
     fn record_direct_call(
         &mut self,
         owner: usize,
@@ -319,13 +818,16 @@ impl ImplementationIndex {
         call: &DispatchCall,
         type_evidence: &[Location],
         replaceable: &HashSet<usize>,
+        ancestors_by_owner: &[Vec<Parent>],
         sources: &HashMap<String, String>,
     ) {
         if self.direct_call_count >= DIRECT_CALLS_PER_SNAPSHOT {
             self.omitted += 1;
             return;
         }
-        let Some((method, mut evidence)) = self.direct_method(owner, path, call) else {
+        let Some((method, mut evidence)) =
+            self.direct_method(owner, path, call, ancestors_by_owner)
+        else {
             return;
         };
         // Static, `super` and private member calls name the member that runs.
@@ -357,26 +859,95 @@ impl ImplementationIndex {
         owner: usize,
         path: &str,
         call: &DispatchCall,
+        ancestors_by_owner: &[Vec<Parent>],
     ) -> Option<(usize, Vec<Location>)> {
-        let is_inside = self.files[self.types[owner].file].file_path == path
-            && super::resolve::encloses(&self.typ(owner).range, &call.range);
+        if self
+            .declarations(owner)
+            .any(|(_, _, typ)| typ.has_body_error)
+            || ancestors_by_owner[owner].iter().any(|parent| {
+                self.declarations(parent.owner)
+                    .any(|(_, _, typ)| typ.has_body_error)
+            })
+        {
+            return None;
+        }
+        let is_inside = self.declarations(owner).any(|(file, _, typ)| {
+            self.files[file].file_path == path && super::resolve::encloses(&typ.range, &call.range)
+        });
         let allows_static = is_inside || call.receiver_kind == ReceiverKind::Type;
         let own = self.named_methods(owner, call, is_inside, allows_static);
         if !own.is_empty() {
-            return (own.len() == 1).then(|| (own[0], Vec::new()));
+            return (own.len() == 1
+                && !self.inherits_overload(
+                    owner,
+                    own[0],
+                    call,
+                    allows_static,
+                    ancestors_by_owner,
+                ))
+            .then(|| (own[0], Vec::new()));
         }
         let mut candidates = Vec::new();
         let mut evidence = Vec::new();
-        for parent in self.ancestors(owner) {
+        for parent in &ancestors_by_owner[owner] {
             let methods = self.named_methods(parent.owner, call, false, allows_static);
             if !methods.is_empty() {
                 candidates.extend(methods);
-                evidence.extend(parent.evidence);
+                evidence.extend(parent.evidence.iter().cloned());
             }
         }
         candidates.sort_unstable();
         candidates.dedup();
         (candidates.len() == 1).then(|| (candidates[0], evidence))
+    }
+
+    /// Whether an ancestor of `owner` declares another overload that `call` may reach instead
+    /// of `method`: the same name and parameter count with other parameter types. These
+    /// languages choose among the inherited and the own overloads by the argument types, which
+    /// are unknown here. C# is left out: there a method of the derived type is chosen whenever
+    /// the arguments fit it. A parameter that names a type parameter of the ancestor may stand
+    /// for the type `method` declares, so it does not tell the two apart.
+    fn inherits_overload(
+        &self,
+        owner: usize,
+        method: usize,
+        call: &DispatchCall,
+        allows_static: bool,
+        ancestors_by_owner: &[Vec<Parent>],
+    ) -> bool {
+        if !matches!(
+            self.unit(owner).language.as_str(),
+            "java" | "kotlin" | "scala" | "groovy" | "swift"
+        ) {
+            return false;
+        }
+        let own = &self.methods[method].declaration;
+        if !own.has_known_signature {
+            return false;
+        }
+        ancestors_by_owner[owner].iter().any(|parent| {
+            let generic = &self.typ(parent.owner).parameters;
+            let is_generic = |typ: &str| {
+                typ.split(|character: char| !character.is_alphanumeric() && character != '_')
+                    .any(|word| generic.iter().any(|parameter| parameter == word))
+            };
+            self.types[parent.owner].methods.iter().any(|id| {
+                let other = &self.methods[*id].declaration;
+                other.name == own.name
+                    && other.has_known_signature
+                    && !other.is_private
+                    && (allows_static || !other.is_static)
+                    && other.parameters.len() == own.parameters.len()
+                    && call
+                        .argument_count
+                        .is_none_or(|count| count == other.parameters.len())
+                    && other
+                        .parameters
+                        .iter()
+                        .zip(&own.parameters)
+                        .any(|(theirs, ours)| theirs != ours && !is_generic(theirs))
+            })
+        })
     }
 
     /// Methods of `owner` named like `call`; overloads must be singled out by argument count.
@@ -424,6 +995,89 @@ impl ImplementationIndex {
             .collect()
     }
 
+    /// Records the methods that look like implementations of a declaration and are linked to
+    /// none: a type names the declaration's owner as a base, by a proven relationship or only
+    /// by spelling, and has a method of the same name. Go types name no base, and a Rust
+    /// implementation block enters the index only once its trait is resolved.
+    fn record_unproven(&mut self, ancestors_by_owner: &[Vec<Parent>]) {
+        let linked: HashSet<usize> = self.links.iter().map(|link| link.implementation).collect();
+        let mut unproven: HashMap<usize, Vec<usize>> = HashMap::new();
+        for (owner, ancestors) in ancestors_by_owner.iter().enumerate().take(self.types.len()) {
+            let language = self.unit(owner).language.as_str();
+            if matches!(language, "go" | "rust") {
+                continue;
+            }
+            if ancestors.is_empty()
+                && self
+                    .declarations(owner)
+                    .all(|(_, _, typ)| typ.bases.is_empty())
+            {
+                continue;
+            }
+            let own: Vec<usize> = self.types[owner]
+                .methods
+                .iter()
+                .copied()
+                .filter(|method| {
+                    let declaration = &self.methods[*method].declaration;
+                    !declaration.is_abstract
+                        && !declaration.is_private
+                        && !declaration.is_static
+                        && !linked.contains(method)
+                })
+                .collect();
+            if own.is_empty() {
+                continue;
+            }
+            let mut bases: HashSet<usize> = ancestors.iter().map(|parent| parent.owner).collect();
+            let proven: HashSet<&str> = self.parents[owner]
+                .iter()
+                .map(|parent| self.typ(parent.owner).name.as_str())
+                .collect();
+            for base in self.declarations(owner).flat_map(|(_, _, typ)| &typ.bases) {
+                let name = base
+                    .name
+                    .rsplit(['.', ':', '\\'])
+                    .next()
+                    .unwrap_or(&base.name);
+                if proven.contains(name) {
+                    continue;
+                }
+                bases.extend(
+                    self.by_name
+                        .get(name)
+                        .into_iter()
+                        .flatten()
+                        .copied()
+                        .filter(|parent| {
+                            *parent != owner
+                                && family(&self.unit(*parent).language) == family(language)
+                        }),
+                );
+            }
+            for base in bases {
+                for &declaration in &self.types[base].methods {
+                    let declared = &self.methods[declaration].declaration;
+                    if declared.is_private
+                        || declared.is_static
+                        || declared.is_final
+                        || !declared.is_virtual
+                    {
+                        continue;
+                    }
+                    let same_named = own.iter().copied().filter(|method| {
+                        self.methods[*method].declaration.name == declared.name
+                            && (!declared.is_package_scoped
+                                || self.shares_package(declaration, *method))
+                    });
+                    unproven.entry(declaration).or_default().extend(same_named);
+                }
+            }
+        }
+        unproven.retain(|_, methods| !methods.is_empty());
+        self.unproven = unproven;
+    }
+
     pub(super) fn ancestors(&self, owner: usize) -> Vec<Parent> {
         let mut pending = self.parents[owner]
             .iter()
@@ -442,11 +1096,21 @@ impl ImplementationIndex {
             for next in &self.parents[parent.owner] {
                 let mut evidence = parent.evidence.clone();
                 evidence.extend(next.evidence.clone());
+                let substitutions =
+                    compose_substitutions(&parent.substitutions, &next.substitutions);
+                let mut conditions = parent.conditions.clone();
+                for c in &next.conditions {
+                    if !conditions.contains(c) {
+                        conditions.push(c.clone());
+                    }
+                }
                 pending.push((
                     Parent {
                         owner: next.owner,
                         evidence,
                         is_pointer: parent.is_pointer || next.is_pointer,
+                        substitutions,
+                        conditions,
                     },
                     visited.clone(),
                 ));
@@ -456,7 +1120,30 @@ impl ImplementationIndex {
         result
     }
 
-    fn matches(&self, base: usize, implementation: usize) -> bool {
+    /// Whether `other` is declared where a package-scoped `method` is visible: in the same
+    /// file, or in another file of the same package. A Dart library is one file here.
+    fn shares_package(&self, method: usize, other: usize) -> bool {
+        let (path, other_path) = (
+            &self.methods[method].location.path,
+            &self.methods[other].location.path,
+        );
+        if path == other_path {
+            return true;
+        }
+        let (unit, other_unit) = (self.method_unit(method), self.method_unit(other));
+        unit.language != "dart"
+            && unit.namespace == other_unit.namespace
+            && (!unit.namespace.is_empty()
+                || std::path::Path::new(path).parent() == std::path::Path::new(other_path).parent())
+    }
+
+    fn matches(
+        &self,
+        base: usize,
+        implementation: usize,
+        substitutions: &[TypeSubstitution],
+        signatures: &Signatures<'_, '_>,
+    ) -> Option<Vec<Location>> {
         let a = &self.methods[base];
         let b = &self.methods[implementation];
         let language = self.unit(a.owner).language.as_str();
@@ -469,37 +1156,88 @@ impl ImplementationIndex {
             || !x.is_virtual
             || x.is_static != y.is_static
             || x.is_static && language != "rust"
+            || x.is_package_scoped && !self.shares_package(base, implementation)
         {
-            return false;
+            return None;
         }
         if matches!(language, "javascript" | "python" | "ruby") {
-            return true;
+            return Some(Vec::new());
         }
         if !x.has_known_signature
             || !y.has_known_signature
-            || x.parameters != y.parameters
+            || x.parameters.len() != y.parameters.len()
+            || x.type_parameters.len() != y.type_parameters.len()
             || x.qualifiers != y.qualifiers
         {
-            return false;
+            return None;
         }
-        if language == "go" && x.return_type != y.return_type {
-            return false;
+        let base_scope = self.method_type_scope(base);
+        let impl_scope = self.method_type_scope(implementation);
+        let mut evidence = Vec::new();
+        for (base_param, impl_param) in x.parameters.iter().zip(&y.parameters) {
+            evidence.extend(self.same_type_spelling(
+                language,
+                &base_scope,
+                &impl_scope,
+                base_param,
+                impl_param,
+                substitutions,
+                signatures,
+            )?);
         }
-        // Same spelling of a custom parameter type in two different source scopes
-        // is insufficient identity evidence. Built-ins do not have that ambiguity.
-        if (a.location.path != b.location.path
-            || self.typ(a.owner).namespace != self.typ(b.owner).namespace)
-            && x.parameters
-                .iter()
-                .chain((language == "go").then_some(&x.return_type))
-                .any(|typ| !builtin_signature(typ))
-        {
-            return false;
+        if language == "go" {
+            evidence.extend(self.same_type_spelling(
+                language,
+                &base_scope,
+                &impl_scope,
+                &x.return_type,
+                &y.return_type,
+                substitutions,
+                signatures,
+            )?);
         }
-        true
+        Some(evidence)
     }
 
-    fn connect_go(&mut self) {
+    /// All required methods of a Go interface when the interface and every embedded interface
+    /// it names resolve to complete indexed interfaces (returning `None` if any embedded
+    /// interface is external or incomplete, so structural matching never uses a subset).
+    fn go_complete_interface_methods(
+        &self,
+        contract: usize,
+    ) -> Option<(Vec<usize>, Vec<Location>)> {
+        let mut required = Vec::new();
+        let mut evidence = Vec::new();
+        let mut visited = HashSet::new();
+        let mut stack = vec![contract];
+        while let Some(id) = stack.pop() {
+            if !visited.insert(id) {
+                return None;
+            }
+            let typ = self.typ(id);
+            if self.unit(id).language != "go" || !typ.is_contract || !typ.is_complete {
+                return None;
+            }
+            // Every embedded interface must resolve to a complete indexed interface.
+            let expected_bases: usize = self.declarations(id).map(|(_, _, d)| d.bases.len()).sum();
+            let resolved_bases = &self.parents[id];
+            if resolved_bases.len() < expected_bases {
+                return None;
+            }
+            evidence.push(self.location(id));
+            required.extend(self.types[id].methods.iter().copied());
+            if required.len() > 128 {
+                return None;
+            }
+            for parent in resolved_bases {
+                evidence.extend(parent.evidence.iter().cloned());
+                stack.push(parent.owner);
+            }
+        }
+        (!required.is_empty()).then_some((required, evidence))
+    }
+
+    fn connect_go(&mut self, signatures: &Signatures<'_, '_>, sources: &HashMap<String, String>) {
         let mut by_method: HashMap<(String, String), HashSet<usize>> = HashMap::new();
         for (owner, node) in self.types.iter().enumerate() {
             if self.unit(owner).language != "go"
@@ -523,22 +1261,20 @@ impl ImplementationIndex {
                     .insert(owner);
             }
         }
+        let mut proofs = Vec::new();
         for contract in 0..self.types.len() {
-            let typ = self.typ(contract);
-            if self.unit(contract).language != "go"
-                || !typ.is_contract
-                || !typ.is_complete
-                || self.types[contract].methods.is_empty()
-                || self.types[contract].methods.len() > 128
-            {
+            if self.unit(contract).language != "go" || !self.typ(contract).is_contract {
                 continue;
             }
+            let Some((required, contract_evidence)) = self.go_complete_interface_methods(contract)
+            else {
+                continue;
+            };
             let package = std::path::Path::new(&self.files[self.types[contract].file].file_path)
                 .parent()
                 .unwrap_or_else(|| std::path::Path::new(""))
                 .to_string_lossy()
                 .to_string();
-            let required = &self.types[contract].methods;
             let mut candidates = required
                 .iter()
                 .map(|id| {
@@ -552,88 +1288,215 @@ impl ImplementationIndex {
             let mut owners = candidates.iter().copied().collect::<Vec<_>>();
             owners.sort_unstable();
             for owner in owners.into_iter().take(CANDIDATES_PER_QUERY) {
-                if self.unit(owner).namespace != self.unit(contract).namespace {
+                if self.unit(owner).namespace != self.unit(contract).namespace
+                    || self.parents[owner]
+                        .iter()
+                        .any(|parent| parent.owner == contract)
+                {
                     continue;
                 }
-                if required.iter().all(|base| {
-                    self.types[owner]
-                        .methods
-                        .iter()
-                        .filter(|method| self.matches(*base, **method))
-                        .count()
-                        == 1
-                }) {
-                    let mut evidence = vec![self.location(contract), self.location(owner)];
-                    for base in required {
-                        evidence.push(self.methods[*base].location.clone());
-                        for method in &self.types[owner].methods {
-                            if self.matches(*base, *method) {
-                                evidence.push(self.methods[*method].location.clone());
+                let mut matched = Vec::with_capacity(required.len());
+                let mut all_matched = true;
+                for &base in &required {
+                    let mut found = None;
+                    let mut multiple = false;
+                    for &method in &self.types[owner].methods {
+                        if let Some(sig_proof) = self.matches(base, method, &[], signatures) {
+                            if found.is_some() {
+                                multiple = true;
+                                break;
                             }
+                            found = Some((method, sig_proof));
                         }
                     }
-                    let is_pointer = required.iter().any(|base| {
-                        self.types[owner].methods.iter().any(|method| {
-                            self.matches(*base, *method)
-                                && self.methods[*method].declaration.is_pointer_receiver
-                        })
-                    });
+                    if multiple {
+                        all_matched = false;
+                        break;
+                    }
+                    let Some((method, sig_proof)) = found else {
+                        all_matched = false;
+                        break;
+                    };
+                    matched.push((base, method, sig_proof));
+                }
+                if all_matched {
+                    let mut evidence = contract_evidence.clone();
+                    evidence.push(self.location(owner));
+                    let mut is_pointer = false;
+                    for (base, method, sig_proof) in matched {
+                        evidence.push(self.methods[base].location.clone());
+                        evidence.push(self.methods[method].location.clone());
+                        evidence.extend(sig_proof.iter().cloned());
+                        proofs.extend(sig_proof);
+                        is_pointer |= self.methods[method].declaration.is_pointer_receiver;
+                    }
                     self.parents[owner].push(Parent {
                         owner: contract,
                         evidence,
                         is_pointer,
+                        substitutions: Vec::new(),
+                        conditions: Vec::new(),
                     });
                 }
             }
         }
+        self.remember_proof(&proofs, sources);
     }
 }
 
-fn builtin_signature(value: &str) -> bool {
-    value
-        .split(|c: char| !c.is_alphanumeric() && c != '_')
-        .filter(|part| !part.is_empty())
-        .all(|part| {
-            matches!(
-                part,
-                "void"
-                    | "bool"
-                    | "boolean"
-                    | "byte"
-                    | "char"
-                    | "short"
-                    | "int"
-                    | "long"
-                    | "float"
-                    | "double"
-                    | "number"
-                    | "string"
-                    | "str"
-                    | "u8"
-                    | "u16"
-                    | "u32"
-                    | "u64"
-                    | "i8"
-                    | "i16"
-                    | "i32"
-                    | "i64"
-                    | "usize"
-                    | "isize"
-                    | "uint"
-                    | "uint8"
-                    | "uint16"
-                    | "uint32"
-                    | "uint64"
-                    | "int8"
-                    | "int16"
-                    | "int32"
-                    | "int64"
-                    | "float32"
-                    | "float64"
-                    | "complex64"
-                    | "complex128"
-                    | "rune"
-                    | "error"
-            )
+/// Parses a compact method return type spelling (e.g. `Service`, `Box<Service>`, `&dyn Service`,
+/// `pkg.Repo<Item>`) into a `TypeReference` suitable for `resolve_type`.
+fn parse_return_type_ref(spelling: &str, range: &CodeRange) -> Option<TypeReference> {
+    let mut s = spelling.trim();
+    loop {
+        let trimmed = s
+            .trim_start_matches('&')
+            .trim_start_matches('*')
+            .trim_start_matches("mut ")
+            .trim_start_matches("const ")
+            .trim_start_matches("dyn ")
+            .trim_start_matches("impl ")
+            .trim_end_matches('?')
+            .trim_end_matches('&')
+            .trim_end_matches('*')
+            .trim();
+        if trimmed == s {
+            break;
+        }
+        s = trimmed;
+    }
+    if s.is_empty() || s.contains(['(', ')', '|', '{', '}', ' ']) {
+        return None;
+    }
+    let (head, arguments) = if let Some((base, rest)) = s.split_once('<') {
+        let inner = rest.strip_suffix('>')?;
+        let args = split_top_level_args(inner);
+        (base.trim(), args)
+    } else if let Some((base, rest)) = s.split_once('[') {
+        let inner = rest.strip_suffix(']')?;
+        if inner.trim().is_empty() {
+            return None;
+        }
+        let args = split_top_level_args(inner);
+        (base.trim(), args)
+    } else {
+        (s, Vec::new())
+    };
+    if matches!(head, "Box" | "Arc" | "Rc" | "Option" | "Result") && arguments.len() == 1 {
+        return parse_return_type_ref(&arguments[0], range);
+    }
+    if head.is_empty() {
+        return None;
+    }
+    Some(TypeReference {
+        name: head.to_string(),
+        arguments,
+        range: range.clone(),
+        conditions: Vec::new(),
+    })
+}
+
+fn split_top_level_args(inner: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for (idx, ch) in inner.char_indices() {
+        match ch {
+            '<' | '[' | '(' => depth += 1,
+            '>' | ']' | ')' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                let piece = inner[start..idx].trim();
+                if !piece.is_empty() {
+                    args.push(piece.to_string());
+                }
+                start = idx + 1;
+            }
+            _ => {}
+        }
+    }
+    let tail = inner[start..].trim();
+    if !tail.is_empty() {
+        args.push(tail.to_string());
+    }
+    args
+}
+
+/// Compose child->parent substitutions with parent->grandparent substitutions.
+/// If `parent` maps `U -> Concrete` (at child scope) and `next` maps `T -> U` (at parent scope),
+/// the composed mapping is `T -> Concrete` (at child scope).
+fn compose_substitutions(
+    outer: &[TypeSubstitution],
+    inner: &[TypeSubstitution],
+) -> Vec<TypeSubstitution> {
+    if outer.is_empty() {
+        return inner.to_vec();
+    }
+    inner
+        .iter()
+        .map(|sub| {
+            let trimmed = sub.argument.trim();
+            if let Some(mapped) = outer.iter().find(|o| o.parameter == trimmed) {
+                return TypeSubstitution {
+                    parameter: sub.parameter.clone(),
+                    argument: mapped.argument.clone(),
+                    file: mapped.file,
+                    unit: mapped.unit,
+                    owner: mapped.owner,
+                    namespace: mapped.namespace.clone(),
+                    range: mapped.range.clone(),
+                };
+            }
+            // Substitute bare parameter identifiers inside compound arguments (e.g. `List<U>`)
+            // when all referenced outer parameters come from the same scope.
+            let mut replaced = String::with_capacity(sub.argument.len());
+            let mut bytes = sub.argument.as_bytes();
+            let mut changed = false;
+            let mut single_outer: Option<&TypeSubstitution> = None;
+            let mut mixed_scopes = false;
+            while !bytes.is_empty() {
+                if bytes[0].is_ascii_alphabetic() || bytes[0] == b'_' {
+                    let end = bytes
+                        .iter()
+                        .position(|b| !(b.is_ascii_alphanumeric() || *b == b'_'))
+                        .unwrap_or(bytes.len());
+                    let word = std::str::from_utf8(&bytes[..end]).unwrap_or("");
+                    if let Some(mapped) = outer.iter().find(|o| o.parameter == word) {
+                        replaced.push_str(&mapped.argument);
+                        changed = true;
+                        match single_outer {
+                            None => single_outer = Some(mapped),
+                            Some(prev)
+                                if prev.file == mapped.file
+                                    && prev.unit == mapped.unit
+                                    && prev.namespace == mapped.namespace => {}
+                            Some(_) => mixed_scopes = true,
+                        }
+                    } else {
+                        replaced.push_str(word);
+                    }
+                    bytes = &bytes[end..];
+                } else {
+                    let ch = std::str::from_utf8(bytes).unwrap().chars().next().unwrap();
+                    replaced.push(ch);
+                    bytes = &bytes[ch.len_utf8()..];
+                }
+            }
+            if changed && !mixed_scopes {
+                if let Some(mapped) = single_outer {
+                    if mapped.file == sub.file && mapped.unit == sub.unit {
+                        return TypeSubstitution {
+                            parameter: sub.parameter.clone(),
+                            argument: replaced,
+                            file: mapped.file,
+                            unit: mapped.unit,
+                            owner: mapped.owner,
+                            namespace: mapped.namespace.clone(),
+                            range: mapped.range.clone(),
+                        };
+                    }
+                }
+            }
+            sub.clone()
         })
+        .collect()
 }

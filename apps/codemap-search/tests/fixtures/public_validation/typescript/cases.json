@@ -1,0 +1,56 @@
+[
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/layout.ts"},
+    "contains": ["implementation candidate: Grid.add — _codemap_language_regressions/signature/grid.ts:5", "implementation candidate: Grid.resize — _codemap_language_regressions/signature/grid.ts:7"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:foreign-receiver",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/parts.ts"},
+    "contains": ["anyParts (L13)"],
+    "excludes": ["dateParts (L"],
+    "category": "wrong_caller"
+  },
+  {
+    "id": "regression:unproven-implementations",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/notifier.ts"},
+    "contains": ["implementation candidate: EmailNotifier.send — _codemap_language_regressions/partial/notifiers.ts:4", "- not source-proven: 1 same-named method(s) in types naming Notifier as a base; the candidates above may be incomplete."],
+    "excludes": ["SpooledNotifier."],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:call-inside-if",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/conditional.ts"},
+    "contains": ["Gate.latch — L2"],
+    "excludes": ["latch (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-type-implementation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/notifier.ts"},
+    "contains": ["implementation candidate: BufferedNotifier.send — _codemap_language_regressions/partial/notifiers.ts:13"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic.ts"},
+    "contains": ["Codec.width — L4", "call declaration: Codec.decode — L2", "implementation candidate: TextCodec.decode — L10"],
+    "excludes": ["width (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/nullable.ts"},
+    "contains": ["Gauge.level — L2", "safe (L15)", "asserted (L19)", "level (unresolved)"],
+    "excludes": ["either (L24)"],
+    "category": "missing_callee"
+  }
+]

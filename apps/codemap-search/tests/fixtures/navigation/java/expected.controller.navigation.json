@@ -155,6 +155,7 @@
                 "isAbstract": false,
                 "isStatic": false,
                 "isPrivate": false,
+                "isPackageScoped": true,
                 "isFinal": false,
                 "isVirtual": true,
                 "isOverride": false,
@@ -168,6 +169,34 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "parser",
+                "typ": {
+                  "name": "OrderParser",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 19,
+                    "endLine": 6,
+                    "endCol": 30
+                  }
+                }
+              },
+              {
+                "name": "service",
+                "typ": {
+                  "name": "CheckoutService",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 5,
+                    "startCol": 19,
+                    "endLine": 5,
+                    "endCol": 34
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],

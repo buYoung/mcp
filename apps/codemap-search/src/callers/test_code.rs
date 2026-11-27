@@ -43,14 +43,28 @@ impl Default for RegionCache {
 
 impl RegionCache {
     fn retain_snapshot(&mut self, root: &Path, snapshot: &[std::sync::Arc<ExtractedFile>]) {
-        let paths: HashSet<_> = snapshot
-            .iter()
-            .map(|file| root.join(&file.file_path))
-            .collect();
-        self.entries.retain(|path, _| paths.contains(path));
         // A whole-snapshot scan must fit, or every read/grep reparses the same
         // large repository. Leave bounded room for live files outside the index.
-        self.capacity = paths.len().saturating_add(1024);
+        self.capacity = snapshot.len().saturating_add(1024);
+        if self.entries.is_empty() {
+            return;
+        }
+        let paths: HashSet<&str> = snapshot
+            .iter()
+            .map(|file| file.file_path.as_str())
+            .collect();
+        self.entries.retain(|path, _| {
+            let Ok(rel) = path.strip_prefix(root) else {
+                return false;
+            };
+            let Some(rel) = rel.to_str() else {
+                return false;
+            };
+            if paths.contains(rel) {
+                return true;
+            }
+            cfg!(windows) && paths.contains(rel.replace('\\', "/").as_str())
+        });
     }
 
     fn insert(&mut self, path: PathBuf, entry: CacheEntry) {

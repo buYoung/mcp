@@ -5,25 +5,27 @@
 | 출력 | 의미 |
 | --- | --- |
 | `[abstract declaration]` | 추상 메서드 또는 본문 없는 인터페이스·trait·protocol 요구사항 |
-| `implementation candidate` | 선언된 상속·구현 관계와 메서드 서명으로 연결한 구현 위치 |
+| `implementation candidate` | 선언된 상속·구현 관계와 메서드 서명으로 연결한 구현 위치 (`[conditional: #if ...]`로 조건부 기반 표시 가능) |
 | `implements/overrides declaration` | 구현 메서드에서 거슬러 올라간 선언 위치 |
+| `explicit impl block` | Rust 로컬 trait을 외부 타입이나 원시 타입(`&str` 등)에 구현한 `impl Trait for ExternalType` 블록 |
 | `declaration reference` | 타입이 확인된 수신 객체로 이 선언을 참조하는 호출 위치 |
 | `call declaration` | 호출 지점의 선언 위치. 실제로 실행될 구현을 확정했다는 뜻은 아님 |
 | `runtime target: unresolved` | 수신 객체의 실행 시점 인스턴스까지 증명하지 못함 |
 | `implementation: unresolved` | 현재 유효한 색인에서 증명된 구현이 없음. 프로그램에 구현이 없다는 뜻은 아님 |
+| `not source-proven: N same-named method(s) …` | 후보 목록 아래에 나옴. 이 선언의 타입을 기반으로 적은 타입에 같은 이름의 메서드가 N개 더 있지만 구현임을 증명하지 못해 목록에 넣지 않았다는 뜻. 해석하지 못한 기반 타입, 증명하지 못한 서명, 타입 매개변수로 적은 매개변수가 원인이며 Go와 Rust에는 나오지 않음 |
 
 ## 적용 대상
 
 | 언어 | 수집·연결하는 기본 문법 |
 | --- | --- |
 | TypeScript·JavaScript | 클래스 상속·메서드 재정의, TypeScript 추상 메서드·명시적 인터페이스 구현 |
-| Java·C#·Kotlin·Scala·Groovy | 추상 클래스·인터페이스·trait의 명시적 상속 및 메서드 구현 |
+| Java·C#·Kotlin·Scala·Groovy | 추상 클래스·인터페이스·trait의 명시적 상속 및 메서드 구현, Java 익명 클래스(`new Type() { ... }`), Kotlin 익명 객체(`object : Type { ... }`), 메서드 제네릭 `<T>` |
 | Swift | protocol 요구사항, 명시적 준수와 클래스·확장 메서드 |
 | Dart·PHP | 추상 클래스·인터페이스와 명시적 상속·구현 |
-| Python | 클래스 상속, `abc.abstractmethod`, 명시적으로 상속한 `typing.Protocol` |
+| Python | 클래스 상속(대괄호 제네릭 `Base[T]`·`Generic[T]`·`Protocol[T]` 포함), `abc.abstractmethod`, 명시적으로 상속한 `typing.Protocol` |
 | Ruby·PowerShell | 클래스 상속과 메서드 재정의 |
-| C++ | 원본 소스의 가상·순수 가상 메서드 및 명시적 상속 |
-| Rust | trait 요구사항과 해당 trait의 명시적 `impl`; inherent impl과 구분 |
+| C++ | 원본 소스의 가상·순수 가상 메서드 및 명시적 상속. 기반 클래스는 같은 파일과 전이 `#include` 체인, `using namespace`·`using Ns::Type`에서 찾습니다. 헤더에서 확인된 export 매크로로 장식된 클래스 선언과 특수화가 없는 템플릿 클래스 상속을 지원합니다. |
+| Rust | trait 요구사항과 해당 trait의 명시적 `impl`(제네릭 타입·trait 및 `self.field.method()` 수신자 포함), 외부·원시 타입 구현은 `explicit impl block`으로 분리 표시 |
 | Go | 기본 인터페이스의 전체 메서드 집합과 수신 타입의 구현. 포인터가 필요한 경우 `*T method set` 표시 |
 | Vue·Astro·Svelte | 기존 파서가 분리한 JavaScript·TypeScript 코드 영역 |
 
@@ -32,7 +34,7 @@
 ## 자동 표시와 제외 규칙
 
 - `read`·내용형 `grep`은 반환한 줄에 관련 선언·구현·호출이 있을 때 표시합니다. 타입 선언의 첫 줄은 해당 타입의 관련 메서드도 선택합니다. 관련 없는 코드에는 빈 구현 섹션을 붙이지 않습니다.
-- `view="source"`·`view="definitions"`와 경로·개수형 `grep`에는 구현 관계를 붙이지 않습니다. 원문은 그대로 유지합니다.
+- `view="source"`는 원문 줄을 그대로 유지하면서, `read` 창 밖의 증명된 구현·재정의와 계약 경유 호출 위치(`called via contract:` / `called at:`)가 있을 때 끝부분에 `[Implementations and overrides outside this window (static analysis)]` 트레일러를 덧붙입니다(`view="definitions"`와 경로·개수형 `grep`에는 붙이지 않습니다).
 - MCP `search`는 결과 파일과 선택된 `workspace_scope` 안에서 관계를 표시합니다. `caller_context=false`는 선언 참조·호출 문맥을 숨기고 선언↔구현 관계는 유지합니다. CLI `codemap-search search`의 파일 목록 출력과는 다릅니다.
 - `[index.exclude]`의 디렉터리·Git 규칙과 `[output.context.exclude]`의 테스트 코드 규칙을 적용합니다. 상속을 증명한 중간 선언과 Go 전체 메서드 집합의 근거도 제외·최신성 검사를 통과해야 합니다.
 - 파일 내용의 해시가 색인과 다르면 그 파일에 의존한 관계를 숨깁니다. 바뀐 파일의 재색인이 끝나야 새 관계가 나옵니다. 해시 확인은 요청당 최대 1,024개 파일·64 MiB, 파일당 8 MiB까지이며 초과한 근거는 연결하지 않습니다.
@@ -44,15 +46,18 @@
 
 다음은 미해결 또는 생략할 수 있습니다.
 
-- 제네릭 인자 치환·특수화·제약, 커스텀 타입의 파일 간 서명 동등성, 모호한 오버로드.
+- 특수화(partial/explicit specialization)가 존재하는 C++ 템플릿, 모호한 오버로드(상속 오버로드 포함). 제네릭 기반 타입의 타입 인자 치환과 메서드 수준 제네릭 `<T>` 위치 일치, Rust 제네릭 타입·trait, Python 대괄호 제네릭 `Base[T]`는 연결합니다. C#은 타입 인자의 개수가 다른 같은 이름의 타입을 서로 다른 타입으로 봅니다.
+- 두 타입 이상의 합집합으로 선언한 수신자. `Tool?`, `?Tool`, `Tool | null`, `Tool | undefined`, `Tool | None`, `Optional[Tool]`처럼 null만 더한 타입은 `Tool`로 읽습니다. `Gauge | Dial`은 어느 타입의 메서드인지 정하지 않습니다. Java의 `Optional<Tool>`은 별개의 타입이므로 `Tool`로 읽지 않습니다.
+- 다른 파일에 있는 서명의 타입 이름 가운데 같은 타입임을 확인하지 못한 것. 양쪽 이름이 저장소의 같은 선언으로 풀리거나, 같은 모듈에서 같은 이름을 명시적으로 import하거나, 언어가 어디서나 같은 뜻으로 정한 이름일 때만 같은 타입으로 봅니다. 와일드카드 import, 타입 별칭, C++ 템플릿으로만 풀리는 이름은 확인하지 못합니다.
 - 기본 export·재export·와일드카드·경로 별칭 등 현재 타입 해석기가 증명하지 못한 import. Rust의 지원되는 모듈·별칭·재export 해석은 기존 해석기를 사용합니다.
 - Go의 임베딩·타입 집합·제네릭 인터페이스, 빌드 태그·OS/아키텍처 파일 조건. 빈 인터페이스에 모든 타입을 나열하지 않습니다.
-- 조건부 선언과 확인되지 않은 Rust `cfg`. Rust는 명시한 `analysis.target_os`를 사용하며 실행 컴퓨터의 OS로 추정하지 않습니다.
-- C++ 전처리를 적용한 파일의 구현 관계. 기존 매크로 생성 선언 탐색은 유지하지만 확장 토큰의 타입 근거까지 원본에 매핑하지 않습니다.
-- 동적 믹스인·구조적 타입의 암묵적 만족·기본 구현의 상속만으로 생기는 새 구현 후보, DI·팩토리·리플렉션에 따른 실제 실행 대상.
+- 조건부 선언과 확인되지 않은 Rust `cfg`. Rust는 명시한 `analysis.target_os`를 사용하며 실행 컴퓨터의 OS로 추정하지 않습니다. 파일 전체를 감싸는 C++ include guard는 조건부 선언으로 보지 않습니다. C# 클래스 헤더 안 `#if` 기반 목록은 무조건 기반과 조건부 기반(`[conditional: #if ...]`)을 구분해 보존합니다.
+- C++에서 임의 매크로가 만든 선언과 전처리기가 제외한 줄에 있는 선언의 구현 관계. 헤더에서 `#define`으로 export/가시성 속성이 확인된 매크로만 마스킹해 복원하며, 일반 토큰은 건드리지 않습니다.
+- C# `partial` 타입에서 합치지 못한 조각의 멤버와 기반 타입. 같은 `.csproj` 파일 아래(색인된 프로젝트 파일이 없으면 같은 폴더)의 조각은 한 타입으로 합쳐 다룹니다. `.csproj`가 여러 개인 폴더에서는 `<EnableDefaultCompileItems>`와 `<Compile Include/Remove>`로 단일 프로젝트 소속이 확인되는 조각만 합칩니다. `#if`로 전체가 감싸인 조각, 소속이 모호하거나 여러 프로젝트에 속한 조각, 소스 생성기가 만든 조각처럼 색인에 없는 조각은 합치지 않습니다.
+- 동적 믹스인·구조적 타입의 암묵적 만족·기본 구현의 상속만으로 생기는 새 구현 후보, DI·팩토리·리플렉션에 따른 실제 실행 대상. 1단계 반환 타입 체인(`f().m()`)은 정적 `call declaration`만 표시하며 실행 대상은 미확정으로 둡니다.
 - 기존 언어 파서가 복구 노드로 처리한 문법. 예를 들어 일부 Kotlin 한 줄 선언은 파서 제약이 남아 있으며, 관계를 억지로 복원하지 않습니다.
 
-조건을 증명하지 못한 경우에도 직접 읽은 원문과 기존 심볼 탐색은 사용할 수 있습니다. 파싱 JSON에는 `navigation.implementations`가 추가됩니다. 색인 저장 형식은 `v29-indexed-implementations`로 변경되며 이전 색인은 한 번 재구축합니다. 설정 스키마와 기존 요청 인자는 바꾸지 않습니다.
+조건을 증명하지 못한 경우에도 직접 읽은 원문과 기존 심볼 탐색은 사용할 수 있습니다. 파싱 JSON에는 `navigation.implementations`가 추가됩니다. 색인 저장 형식은 `v55-multi-language-navigation`으로 변경되며 이전 색인은 한 번 재구축합니다. 설정 스키마와 기존 요청 인자는 바꾸지 않습니다.
 
 ## 반복 검증
 

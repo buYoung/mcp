@@ -335,6 +335,47 @@
               "isAbstract": false,
               "isFinal": false,
               "isComplete": true,
+              "fields": [
+                {
+                  "name": "Completed",
+                  "typ": {
+                    "name": "EventHandler",
+                    "arguments": [],
+                    "range": {
+                      "startLine": 14,
+                      "startCol": 18,
+                      "endLine": 14,
+                      "endCol": 30
+                    }
+                  }
+                },
+                {
+                  "name": "Status",
+                  "typ": {
+                    "name": "string",
+                    "arguments": [],
+                    "range": {
+                      "startLine": 15,
+                      "startCol": 12,
+                      "endLine": 15,
+                      "endCol": 18
+                    }
+                  }
+                },
+                {
+                  "name": "attempts",
+                  "typ": {
+                    "name": "int",
+                    "arguments": [],
+                    "range": {
+                      "startLine": 16,
+                      "startCol": 13,
+                      "endLine": 16,
+                      "endCol": 16
+                    }
+                  }
+                }
+              ],
               "conditions": []
             }
           ],

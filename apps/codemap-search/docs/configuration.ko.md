@@ -17,8 +17,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 | `output.search` | 검색 상세 파일·심볼·코드 조각 |
 | `output.read` | 직접 읽기 응답 |
 | `output.grep` | 일치 행·함수 본문 응답 |
-| `output.context` | 호출자·호출 대상 표시 수와 관계 출력 예산 |
-| `output.navigation` | 소스 구조 기반 탐색과 호출자 검색 예산 |
+| `output.context` | 호출자·호출 대상 표시 여부 |
 | `output.macro_expansion` | 매크로 전처리와 생성된 선언의 탐색 결과 |
 | `output.event_navigation` | 이벤트·소스 경로 색인과 탐색 결과 |
 | `output.redact` | 추가 가림 규칙과 예외 |
@@ -31,7 +30,7 @@ codemap-search는 설정 파일 없이도 기본값으로 동작합니다. 변�
 
 설정 위치만 구분하며 기존 적용 범위는 유지합니다. search는 색인에 포함된 파일을 사용하고, find·grep은 같은 디렉터리 규칙을 공유합니다. read 원문에는 디렉터리 제외를 적용하지 않으며 자동 문맥에는 `output.context.exclude`를 적용합니다.
 
-`output.max_bytes`는 선택 사항입니다. 응답 한도 우선순위는 **저장소 도구별 값 → 저장소 공통값 → 전역 도구별 값 → 전역 공통값 → 기존 도구 기본값**입니다. 모든 값을 생략하면 검색은 1 MiB, read와 확장 grep은 5 MiB를 유지합니다. 확장 grep은 해당 계층에 grep·공통 한도가 없으면 read 한도를 이어받습니다. `output.context.max_bytes`는 별도 관계 출력 예산으로, 검색 응답 안의 남은 공간도 함께 적용합니다.
+`output.max_bytes`는 선택 사항입니다. 응답 한도 우선순위는 **저장소 도구별 값 → 저장소 공통값 → 전역 도구별 값 → 전역 공통값 → 기존 도구 기본값**입니다. 모든 값을 생략하면 검색은 1 MiB, read와 확장 grep은 5 MiB를 유지합니다. 확장 grep은 해당 계층에 grep·공통 한도가 없으면 read 한도를 이어받습니다. 호출 관계 주석은 검색 응답 안의 고정 128 KiB 하위 예산 내에서 출력합니다.
 
 search는 부분 결과를 표시하고 read는 더 좁은 구간을 요청합니다. find·initial_instructions와 확장하지 않은 grep은 명시한 응답 한도를 넘으면 범위 축소 오류를 반환합니다. 한도는 MCP 본문 텍스트 기준이며 JSON 봉투나 오류 메시지에는 적용하지 않습니다. 일반 CLI의 parse·index 결과는 이 MCP 응답 한도로 자르지 않습니다.
 
@@ -53,7 +52,7 @@ Codex Code Mode는 `exec` 호출마다 별도 출력 예산을 적용합니다. 
 
 ## 설정 위치와 우선순위
 
-키별 우선순위는 저장소 → 전역 → 내장 기본값입니다. 저장소 파일에 `[output.search].detail_file_limit`만 있으면 다른 키는 전역 설정이나 기본값을 이어받습니다.
+키별 우선순위는 저장소 → 전역 → 내장 기본값입니다. 저장소 파일에 `[output.search].max_bytes`만 있으면 다른 키는 전역 설정이나 기본값을 이어받습니다.
 
 | 범위 | 경로 |
 |---|---|
@@ -210,10 +209,8 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 |---|---|
 | `[index.exclude]`, `[output.context.exclude]`, 모든 `[index.language_support]` 키 | 다시 읽은 뒤 전체 색인 갱신을 요청하고, 완료되면 결과에 반영 |
 | `output.client`를 제외한 출력·호출 관계 표시·응답 한도, `output.is_redact_enabled`, `[output.redact]`, 파일시스템 권한 | 설정을 다시 읽은 뒤 다음 도구 요청 |
-| `index.refresh.index_staleness_ms`, `index.refresh.indexer_auto_restart` | 이후 갱신·복구 판단 |
 | `index.max_file_bytes` | 이후 탐색·갱신부터 적용하며, 이 값만 바꾸면 전체 갱신을 요청하지 않음 |
-| `index.store_references` | 이후 파싱부터 적용하며, 재시작해도 변경되지 않은 파일은 기존 색인을 재사용할 수 있음 |
-| `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | 재시작 필요 |
+| `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch` | 재시작 필요 |
 | `config_auto_update` | 다음 MCP 시작 시 자동 작성 |
 | `[global_instructions].enabled` (사용자 전역 전용) | MCP 초기화 또는 활성화 값 변경을 다시 읽은 뒤 다음 요청. 갱신한 파일은 새 에이전트 세션에서 읽음 |
 | `auth.toml`의 `[jev].api_key`, `[openrouter].api_key` | 다시 읽은 뒤 다음 활성 Jev 요청부터 적용하며, 키가 바뀌면 공통 HTTPS 평가기를 다시 생성 |
@@ -226,9 +223,9 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 ## 설정 키
 
-숫자 키는 양의 정수이며 `output.grep.max_columns`만 `0`도 허용합니다. 템플릿은 아래처럼 섹션별 키를 사용합니다. 호환성을 위해 `result_threshold = 5` 같은 기존 최상위 키도 허용하지만 같은 파일에 둘 다 있으면 섹션별 값이 우선합니다.
+숫자 키는 양의 정수로 적습니다. 템플릿은 아래처럼 섹션별 키를 사용합니다. 호환성을 위해 `search_detail_byte_cap = 1048576` 같은 기존 최상위 키도 허용하지만 같은 파일에 둘 다 있으면 섹션별 값이 우선합니다.
 
-바이트 크기에는 정수 바이트 수 또는 `b`, `kb`, `mb`, `gb`를 붙인 양의 정수 문자열을 사용합니다. 단위는 대소문자를 구분하지 않으며 1024배 기준입니다. `"50mb"`는 `52428800`바이트이고 `"50 MB"`처럼 앞뒤·단위 앞 공백도 허용합니다. 소수, 0, 음수, 미지원 단위, 저장 자료형의 범위를 넘는 값은 경고 후 하위 설정을 상속합니다. TOML에서 단위가 붙은 값은 따옴표가 필요하므로 `50mb`만 쓰면 구문 오류입니다. 적용 키는 `index.max_file_bytes`, `output.max_bytes`, 도구별 `output.*.max_bytes`, `output.client.pi_max_bytes`, `output.client.opencode_max_bytes`, `output.macro_expansion.max_output_bytes`입니다. 개수·밀리초 설정은 계속 정수만 받습니다.
+바이트 크기에는 정수 바이트 수 또는 `b`, `kb`, `mb`, `gb`를 붙인 양의 정수 문자열을 사용합니다. 단위는 대소문자를 구분하지 않으며 1024배 기준입니다. `"50mb"`는 `52428800`바이트이고 `"50 MB"`처럼 앞뒤·단위 앞 공백도 허용합니다. 소수, 0, 음수, 미지원 단위, 저장 자료형의 범위를 넘는 값은 경고 후 하위 설정을 상속합니다. TOML에서 단위가 붙은 값은 따옴표가 필요하므로 `50mb`만 쓰면 구문 오류입니다. 적용 키는 `index.max_file_bytes`, `output.max_bytes`, 도구별 `output.*.max_bytes`, `output.client.pi_max_bytes`, `output.client.opencode_max_bytes`입니다. 개수·밀리초 설정은 계속 정수만 받습니다.
 
 | 키 | 자료형 | 기본값 | 설명 |
 |---|---|---|---|
@@ -239,27 +236,11 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[output.client].codex_output_token_limit` | 양의 정수(토큰) | `100000` | Codex 설정 내보내기와 최종 전달 한도(토큰당 3.5바이트) |
 | `[output.client].pi_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | pi tools/list 메타데이터와 최종 전달 한도. 재연결 필요 |
 | `[output.client].opencode_max_bytes` | 정수 바이트 또는 크기 문자열 | `100000` | opencode 최종 전달 한도 |
-| `[output.search].detail_file_limit` | 정수 | `24` | 상세 내용을 표시할 상위 파일 수 |
-| `[output.search].overview_file_limit` | 정수 | `80` | 나머지 간략 목록에 표시할 최대 파일 수 |
-| `[output.search].snippet_max_lines` | 정수 | `500` | 심볼마다 표시할 최대 발췌 줄 수. 긴 본문은 생략 표시 |
-| `[output.search].symbol_limit` | 정수 | `100` | 파일마다 표시할 최대 심볼 수. 초과분은 생략 안내. 경로·문서 주석으로만 검색된 JSON·YAML·TOML 파일에서 일치하지 않은 키는 개수만 표시 |
 | `[output.search].max_bytes` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 부분 출력 안내를 포함한 검색 응답 전체 크기 제한 |
-| `[output.search].literal_max_chars` | 정수(문자) | `1200` | 일치한 리터럴의 최대 표시 길이. 초과분은 말줄임표로 표시 |
-| `[output.search].literal_limit` | 정수 | `60` | 파일마다 표시할 최대 리터럴 수 |
-| `[output.search].anchor_snippet_limit` | 정수 | `20` | 파일마다 전체 발췌를 표시할 최대 심볼 수. 나머지는 최대 3줄 선언으로 표시 |
 | `[output.read].max_bytes` | 정수 바이트 또는 크기 문자열 | `"5mb"` (`5242880`) | `read`와 함수 본문으로 확장된 `grep`의 출력 한도. read 초과는 오류, grep은 페이지 분할 |
 | `[output.read].is_outside_callers_enabled` | bool | `true` | `read view=source` 끝에 표시한 함수의 창 밖 호출자 목록, 같은 키를 쓰는 다른 위치, 창의 선언을 import하는 다른 파일을 덧붙임. `false`면 셋 다 생략 |
-| `[output.grep].max_columns` | 정수 | `0` | `grep`의 `content` 모드 열 제한. 양수 제한 초과 시 `[Omitted long matching line]`, `0`이면 제한 해제 |
 | `[output.grep].max_bytes` | 정수 바이트 또는 크기 문자열 | 공통값 상속 | grep 응답 한도. 확장 본문은 read 한도도 대체값으로 사용 |
 | `[output.context].is_enabled` | bool | `true` | `search` 호출에서 `caller_context` 생략 시 호출 관계 표시 여부 |
-| `[output.context].caller_limit` | 정수 | `1000` | 심볼마다 표시할 최대 호출자 또는 비호출 참조 수 |
-| `[output.context].callee_limit` | 정수 | `1000` | 심볼마다 표시할 최대 호출 대상 수 |
-| `[output.context].max_bytes` | 정수 바이트 또는 크기 문자열 | `"128kb"` (`131072`) | `output.search.max_bytes` 안에서 호출 관계의 출력 크기 제한 |
-| `[output.context].common_name_threshold` | 정수 | `2` | 같은 이름의 정의가 이 수 이상이면 모호함 표시 |
-| `[output.context].caller_omit_def_threshold` | 정수 | `5` | 같은 이름의 정의가 이 수 이상이면 추정 호출자 목록을 생략하고 `grep` 안내. 호출 대상 목록에는 미적용 |
-| `[output.navigation].is_enabled` | bool | `false` | 소스 구조로 호출 대상을 확인하면 `precise`로 표시 |
-| `[output.navigation].callsite_budget` | 정수 | `1000` | 이름 기반 추정으로 전환하기 전 검사할 최대 호출 위치 수 |
-| `[output.navigation].scan_limit` | 정수 | `16000` | 호출자 탐색에서 이름별로 나눠 쓸 검색 건수 제한. 이름당 최소 25건 |
 | `[output.redact].pii_entities` | 문자열 배열 | `[]` | 활성화할 PII 종류의 정확한 이름. [지원 목록](./pii-redaction.ko.md) 참고 |
 | `[output.redact].sensitive_fields` | 문자열 배열 | `[]` | 내장 민감 필드명에 추가할 이름. 대소문자와 구분자를 정규화한 뒤 정확히 일치해야 함 |
 | `[output.redact].rules` | 인라인 테이블 배열 | `[]` | 추가 정규식 규칙. 각 항목에 `id`, `pattern` 필요 |
@@ -268,11 +249,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 | `[index].auto_max_files` | 정수 | `50000` | `auto` 모드가 색인하는 최대 색인 대상 파일 수 |
 | `[index].path` | 문자열 | `".codemap/index"` | 색인 저장 위치. 절대 경로나 작업공간 루트 기준 상대 경로 |
 | `[index].max_file_bytes` | 정수 바이트 또는 크기 문자열 | `"1mb"` (`1048576`) | 파싱·색인 전 건너뛸 파일 크기 기준 |
-| `[index].store_references` | bool | `false` | 함수 호출 외의 참조 위치 저장 |
 | `[index.refresh].watch` | bool | `true` | 파일 변경을 감시해 백그라운드 색인 갱신 |
-| `[index.refresh].watch_debounce_ms` | 정수(ms) | `500` | 파일 변경을 모아서 처리하는 시간 |
-| `[index.refresh].index_staleness_ms` | 정수(ms) | `5000` | 파일 감시를 쓸 수 없을 때 요청 기반 갱신 간격 |
-| `[index.refresh].indexer_auto_restart` | bool | `true` | 백그라운드 색인이 중단되면 자동 복구 |
 | `[index.language_support].is_document_support_enabled` | bool | `false` | `.md`/`.mdx`를 색인 기반 탐색에 포함 |
 | `[index.language_support].is_shell_support_enabled` | bool | `false` | `.sh`, `.bash`, `.zsh`를 색인 기반 탐색에 포함 |
 | `[index.language_support].is_infrastructure_support_enabled` | bool | `false` | HCL/Terraform, Dockerfile, Nix 포함 |
@@ -308,7 +285,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 | 모드 | 동작 |
 |---|---|
-| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
+| `"auto"`(기본값) | 저장소 안이고 현재 형식의 기존 색인이 있으며 색인된 파일이 `[index].auto_max_files`개 이하이면 서버 시작 때 바로 불러옵니다. 그 밖에는 첫 `search`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작하며, 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
 | `"on"` | 이 확인 없이 서버 시작 때 색인합니다. |
 | `"off"` | 작업공간을 색인하지 않습니다. |
 
@@ -335,21 +312,17 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 is_enabled = true
 compilation_database = "build/compile_commands.json"
 clang_path = "clang"
-nasm_path = "nasm"
 clang_flags = ["-Iinclude", "-DFEATURE=1"]
-nasm_flags = ["-Iinclude/", "-felf64"]
-timeout_ms = 5000
-max_output_bytes = "8mb"
 ```
 
 | `[output.macro_expansion]`의 키 | 자료형 / 기본값 | 적용 |
 | --- | --- | --- |
 | `is_enabled` | bool / `true` | C/C++/ASM 색인과 직접 `parse`·`codemap`에 자동 전처리 적용. 명시적인 `false`로 끔 |
 | `compilation_database` | 비어 있지 않은 문자열 / 생략 | 저장소 기준 상대 경로 또는 절대 경로. JSON 파일·디렉터리 또는 `compile_flags.txt` 파일 |
-| `clang_path`, `nasm_path` | 비어 있지 않은 문자열 / `"clang"`, `"nasm"` | 설치된 실행 파일의 이름 또는 경로 |
-| `clang_flags`, `nasm_flags` | 문자열 배열 / `[]` | 빌드 설정 뒤에 추가하는 인자. 저장소 배열은 전역 배열을 대체 |
-| `timeout_ms` | 양의 정수 / `5000` | 외부 프로세스 한 번의 밀리초 제한. NASM은 전처리·확장 목록 생성 두 번 실행 |
-| `max_output_bytes` | 정수 바이트 또는 크기 문자열 / `"8mb"` (`8388608`) | 전처리 결과 또는 NASM 확장 목록의 바이트 제한 |
+| `clang_path` | 비어 있지 않은 문자열 / `"clang"` | 설치된 Clang 실행 파일의 이름 또는 경로 |
+| `clang_flags` | 문자열 배열 / `[]` | 빌드 설정 뒤에 추가하는 인자. 저장소 배열은 전역 배열을 대체 |
+
+NASM 전처리는 `PATH`의 `nasm`을 사용하며, 전처리 실행마다 내장 한도(5000ms 시간 제한, 8 MiB 출력 제한)를 적용합니다.
 
 경로를 생략하면 소스의 부모 디렉터리에서 저장소 루트까지 `compile_commands.json`·`compile_flags.txt`를 찾습니다. JSON에서는 정규화한 파일 경로가 정확히 일치하는 첫 항목을 사용합니다. 이름이 비슷한 파일의 빌드 옵션으로 헤더 설정을 추정하지 않습니다. 데이터베이스가 없으면 사용자 인자와 설치된 도구의 기본값을 사용합니다. 데이터베이스에 대상 파일이 없으면 항목을 추가하거나 `compilation_database`에 `compile_flags.txt` 파일을 명시해야 합니다.
 
@@ -409,23 +382,19 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 
 `search`는 상위 파일의 상세 내용 뒤에 나머지 파일을 간략 목록으로 표시합니다. 32 KiB를 넘는 결과는 상위 파일마다 일치 이유, 읽을 범위, 일치한 선언, 일치하는 줄 최대 2개만 표시하고 그 뒤에 연결된 위치를 표시합니다. 크기 설정은 출력을 제한하며 제외 파일을 바꾸지 않습니다. 일반 질의에서는 생성 파일과 번역 리소스의 순위를 낮추지만 정확한 경로·심볼·리소스 키·인용 원문으로 해당 파일을 지정할 수 있습니다.
 
-`output.search.max_bytes`에는 부분 출력 안내도 포함합니다. 결과가 잘리면 질의를 좁히거나 안내된 범위를 읽으세요. `search`에는 페이지 위치 인자가 없습니다. `output.search.anchor_snippet_limit`는 파일마다 전체 발췌를 표시할 심볼 수를 제한하며 나머지는 최대 3줄 선언으로 표시합니다. 쓰지 않고 남은 tail 행과 바이트에는 [순위 밖 구절 일치](../README.ko.md#탐색-도구-사용)가 들어갈 수 있습니다.
+`output.search.max_bytes`에는 부분 출력 안내도 포함합니다. 결과가 잘리면 질의를 좁히거나 안내된 범위를 읽으세요. `search`에는 페이지 위치 인자가 없습니다. 파일마다 최대 20개의 앵커 심볼을 전체 발췌로 표시하며 나머지는 최대 3줄 선언으로 표시합니다. 쓰지 않고 남은 tail 행과 바이트에는 [순위 밖 구절 일치](../README.ko.md#탐색-도구-사용)가 들어갈 수 있습니다.
 
-`output.read.max_bytes`에는 줄 번호·문맥·제목을 포함하며 함수 본문으로 확장된 `grep`에도 적용합니다. `read` 출력이 초과하면 더 좁은 `offset`/`limit`를 안내하는 오류를 반환합니다. 확장된 `grep`은 본문을 조용히 자르는 대신 크기 초과 또는 페이지 분할을 안내합니다. `read`에서 함수 확장을 끄고 `limit`를 생략하면 별도의 전체 파일 256 KiB 제한도 적용합니다. `grep_max_columns = 0`은 긴 줄 제한을 끄고, 그 외에는 초과 줄을 `[Omitted long matching line]`으로 표시합니다. `grep`의 부분 결과에는 `next_offset`이 있습니다.
+`output.read.max_bytes`에는 줄 번호·문맥·제목을 포함하며 함수 본문으로 확장된 `grep`에도 적용합니다. `read` 출력이 초과하면 더 좁은 `offset`/`limit`를 안내하는 오류를 반환합니다. 확장된 `grep`은 본문을 조용히 자르는 대신 크기 초과 또는 페이지 분할을 안내합니다. `read`에서 함수 확장을 끄고 `limit`를 생략하면 별도의 전체 파일 256 KiB 제한도 적용합니다. 클라이언트 전달 상한이 적용된 세션에서는 `grep`의 개별 긴 줄을 600바이트로 제한(`[Omitted long matching line]`)해 압축·생성된 단일 줄이 전체 페이지를 막지 않게 합니다. `grep`의 부분 결과에는 `next_offset`이 있습니다.
 
-읽기 한도를 늘려도 검색·관계 문맥·파싱의 별도 제한은 유지합니다. 검색 응답은 기본 1 MiB, 호출 관계는 그 안에서 128 KiB입니다. 호출자 수집은 `scan_cap = 16000`을 검색할 이름들이 나누어 사용하며, caller/callee 1000은 표시 가능한 최대 개수이므로 실제 1000건 출력을 보장하지 않습니다. 실시간 `read`/`grep` 문맥에는 공유 16 KiB 고정 상한도 있습니다. 함수 확장 파싱은 `min(max_file_size, 4 MiB)`이며 기본값으로는 1 MiB입니다. 한도를 높이면 허용 응답 크기와 출력 처리량이 늘지만, 이 값으로 소비 클라이언트의 응답 한도까지 확인할 수는 없습니다.
+읽기 한도를 늘려도 검색·관계 문맥·파싱의 별도 제한은 유지합니다. 검색 응답은 기본 1 MiB, 호출 관계는 그 안에서 128 KiB입니다. 호출자 수집은 이름당 최소 25건을 보장하며 16,000건의 내장 예산을 검색할 이름들이 나누어 사용하고, 심볼당 호출자·호출 대상은 최대 1,000건까지 표시합니다. 실시간 `read`/`grep` 문맥에는 공유 16 KiB 고정 상한도 있습니다. 함수 확장 파싱은 `min(max_file_size, 4 MiB)`이며 기본값으로는 1 MiB입니다. 한도를 높이면 허용 응답 크기와 출력 처리량이 늘지만, 이 값으로 소비 클라이언트의 응답 한도까지 확인할 수는 없습니다.
 
 내장 기본값이 바뀌어도 기존 저장소·전역 설정에 명시한 값은 유지합니다. 새 기본값을 쓰려면 이전 덮어쓰기 값을 삭제·주석 처리하거나 직접 바꿔야 하며, 재시작만으로 교체되지는 않습니다.
 
-`output.context.is_enabled`는 `search` 호출에서 `caller_context`를 생략했을 때만 적용하며 명시한 인자가 우선합니다. 호출 관계는 기본적으로 추정값입니다. `navigation_context_default = true`이면 소스 구조·import·지역 변수 연결로 단일 호출 대상을 확인한 경우 `precise`로 표시합니다. 확인할 수 없는 호출은 추정 결과를 사용합니다. `output.navigation.callsite_budget`은 이름 기반 탐색으로 전환하기 전 검사할 호출 위치 수를 제한합니다.
+`output.context.is_enabled`는 `search` 호출에서 `caller_context`를 생략했을 때만 적용하며 명시한 인자가 우선합니다. 호출 관계는 정적 소스 해석(단일 대상을 확인한 경우 `precise` 표시)과 모호한 경우의 이름 기반 추정을 함께 사용합니다.
 
-`index.store_references`는 함수 호출 외의 참조 위치를 저장하며 호출 대상 확인에 필수인 설정은 아닙니다. 일부 구조화 형식은 참조를 항상 저장합니다. 파싱 시 적용하므로 재시작만으로 변경되지 않은 파일을 다시 파싱하지 않을 수 있습니다.
+대상이 정해진 `calls` 항목에는 추정 모드와 `precise` 모드 모두 `이름 — 파일:줄` 형식으로 정의 위치를 붙입니다. 대상이 모호하면 이름만 유지합니다. MCP `read`/`grep`은 소스 구문 트리와 색인의 상수 선언(JavaScript/TypeScript의 `const` 바인딩 포함)을 확인해 표시한 함수의 직접 식별자 참조를 `references (same-file constants, approximate)`로 함께 보여줍니다. 코드를 실행하지 않고 정의 위치와 초기값 원문을 표시하며, 240자를 넘는 값은 줄여서 표시합니다. 주석·문자열, 경로를 붙이거나 import한 참조, 매크로 토큰, 중복 이름, 지역 바인딩이 있는 이름은 생략합니다. 테스트 제외 규칙과 문맥 출력 크기 제한도 적용하며, 크기 제한으로 생략한 항목은 안내합니다.
 
-대상이 정해진 `calls` 항목에는 추정 모드와 `precise` 모드 모두 `이름 — 파일:줄` 형식으로 정의 위치를 붙입니다. 대상이 모호하면 이름만 유지합니다. MCP `read`/`grep`은 표시한 함수의 직접 식별자 참조를 `references (same-file constants, approximate)`로 함께 보여줍니다. 소스 구문 트리와 색인의 상수 선언(JavaScript/TypeScript의 `const` 바인딩 포함)을 확인하므로 `navigation_store_references = false`여도 동작합니다. 코드를 실행하지 않고 정의 위치와 초기값 원문을 표시하며, 240자를 넘는 값은 줄여서 표시합니다. 주석·문자열, 경로를 붙이거나 import한 참조, 매크로 토큰, 중복 이름, 지역 바인딩이 있는 이름은 생략합니다. 테스트 제외 규칙과 문맥 출력 크기 제한도 적용하며, 크기 제한으로 생략한 항목은 안내합니다.
-
-`output.navigation.scan_limit`은 검색할 이름들이 나누어 사용하며 이름당 최소 25건을 허용합니다. `output.context.caller_limit`과 `output.context.callee_limit`은 심볼별 관계 수를 제한합니다. `output.context.max_bytes`은 `output.search.max_bytes` 안에서 호출 관계의 총 출력 크기를 바이트로 제한합니다. 원문 발췌가 우선하며 생략한 관계는 안내합니다.
-
-같은 이름의 정의가 `output.context.common_name_threshold` 이상이면 추정 관계에 모호함을 표시합니다. `output.context.caller_omit_def_threshold` 이상이면 추정 호출자 목록 대신 안내와 `grep` 제안을 표시합니다. 호출 대상 목록이나 확인된 대상의 표시를 막지는 않습니다.
+같은 이름의 정의가 2개 이상이면 추정 관계에 모호함을 표시하고, 5개 이상이면 추정 호출자 목록 대신 안내와 `grep` 제안을 표시합니다. 호출 대상 목록이나 확인된 대상의 표시를 막지는 않습니다.
 
 ### 테스트 코드 문맥
 
@@ -500,9 +469,9 @@ powershell = ["Describe", "Context", "It"]
 
 ### 색인 갱신
 
-`watch = true`이면 파일 변경을 백그라운드에서 반영합니다. `index.refresh.watch_debounce_ms` 동안 발생한 변경은 한 번에 갱신합니다. `.gitignore`, `.ignore`, `.codemapignore`가 숨기는 경로의 변경은 제외 디렉터리처럼 버리고, 이 파일들이 바뀌면 전체 탐색을 합니다. 감시를 끄거나 사용할 수 없으면 `search`가 `index.refresh.index_staleness_ms` 간격에 따라 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
+`watch = true`이면 파일 변경을 백그라운드에서 반영하며 500ms 단위로 인접 변경을 모아 한 번에 갱신합니다. `.gitignore`, `.ignore`, `.codemapignore`가 숨기는 경로의 변경은 제외 디렉터리처럼 버리고, 이 파일들이 바뀌면 전체 탐색을 합니다. 감시를 끄거나 사용할 수 없으면 `search`가 최소 5초 간격으로 백그라운드 갱신을 요청하고 마지막 결과를 즉시 반환합니다.
 
-`indexer_auto_restart = true`이면 백그라운드 색인 중단 후 다음 `search`가 복구를 시도합니다. 서버 실행 중 복구 횟수에는 제한이 있습니다. 끄면 재시작 전까지 결과가 고정됩니다. 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
+백그라운드 색인이 중단되면 다음 `search`가 자동으로 복구를 시도합니다(서버 실행당 횟수 제한). 실시간 `read`/`find`/`grep`은 어느 경우에도 사용할 수 있습니다.
 
 체크아웃이 같은 내용으로 파일을 다시 쓸 때처럼 수정 시간만 바뀌고 내용은 그대로이면, 색인은 그 파일의 문서를 유지하고 새 수정 시간을 색인 폴더의 `content-mtimes.json`에 기록합니다. 그 뒤의 갱신과 서버 시작에서는 그 파일을 다시 읽지 않습니다.
 
@@ -511,11 +480,11 @@ powershell = ["Describe", "Context", "It"]
 주요 값을 명시한 예시입니다. 테스트 규칙 목록은 위의 별도 예시를 참고하세요. 실제 파일에는 변경할 키만 남겨도 됩니다.
 
 ```toml
-# codemap-config-version: 32
+# codemap-config-version: 34
 # 이 저장소의 codemap-search 설정입니다. 여기 적은 값이 전역 설정보다 우선합니다.
 # 키를 지우거나 주석 처리하면 전역 설정이나 기본값을 씁니다.
 # 목록은 전역 설정의 목록과 합치지 않고 이 값으로 바꿉니다. []로 비울 수 있습니다.
-# 개수·시간·크기는 1 이상의 정수로 적습니다. output.grep.max_columns만 0을 쓸 수 있습니다.
+# 개수·시간·크기는 1 이상의 정수로 적습니다.
 # 바이트 크기에는 "50mb"처럼 b/kb/mb/gb를 붙일 수 있습니다(1kb = 1024바이트).
 # 파일을 저장하면 서버가 설정을 다시 읽습니다. 반영되지 않으면 서버를 재시작하세요.
 
@@ -545,27 +514,6 @@ pi_max_bytes = 100000
 opencode_max_bytes = 100000
 
 [output.search]
-# 상세 결과로 표시할 최대 파일 수입니다. 나머지 결과는 간략 목록으로 표시합니다.
-detail_file_limit = 24
-
-# 간략 결과 목록의 최대 파일 수입니다.
-overview_file_limit = 80
-
-# 검색된 정의(함수, 클래스 등)마다 표시할 코드의 최대 줄 수입니다.
-snippet_max_lines = 500
-
-# 상세 결과에서 파일마다 표시할 최대 정의 수입니다.
-symbol_limit = 100
-
-# 코드에서 추출한 문자열 값 중 검색어와 일치한 값을 표시할 최대 문자 수입니다.
-literal_max_chars = 1200
-
-# 파일마다 표시할 문자열 값의 최대 개수입니다.
-literal_limit = 60
-
-# 파일마다 코드 전체를 표시할 최대 정의 수입니다. 나머지는 선언부를 3줄까지만 표시합니다.
-anchor_snippet_limit = 20
-
 # search 응답의 최대 크기입니다.
 max_bytes = "1mb"
 
@@ -577,10 +525,6 @@ max_bytes = "5mb"
 is_outside_callers_enabled = true
 
 [output.grep]
-# grep 결과에서 한 줄의 최대 길이(바이트)입니다. 0이면 제한이 없습니다.
-# 더 긴 줄은 `[Omitted long matching line]` 같은 생략 표시로 바뀝니다.
-max_columns = 0
-
 # grep 응답의 최대 크기입니다(기본: 제한 없음).
 # 함수 본문을 함께 보여 주는 grep은 이 값과 output.max_bytes가 없으면 output.read.max_bytes를 씁니다.
 # max_bytes = "5mb"
@@ -588,32 +532,6 @@ max_columns = 0
 [output.context]
 # search 결과에 호출자와 호출 대상을 보여 줍니다. search 호출에 caller_context를 넘기면 그 값이 우선합니다.
 is_enabled = true
-
-# 정의마다 표시할 최대 호출자 수입니다. 호출이 아닌 참조도 포함합니다.
-caller_limit = 1000
-
-# 정의마다 표시할 최대 호출 대상 수입니다.
-callee_limit = 1000
-
-# search 응답에서 호출 관계가 차지할 최대 크기입니다. 코드를 먼저 넣고, 호출 관계는 남은 공간에 넣습니다.
-max_bytes = "128kb"
-
-# 같은 이름의 정의가 이 개수 이상이면 이름으로 추정한 호출 관계를 모호하다고 표시합니다.
-common_name_threshold = 2
-
-# 같은 이름의 정의가 이 개수 이상이면 추정한 호출자 목록 대신 grep 검색을 안내합니다.
-caller_omit_def_threshold = 5
-
-[output.navigation]
-# import 문과 코드 구조를 분석해 실제 호출 대상을 찾습니다. 찾은 대상에는 `precise`를 붙입니다.
-# false이면 이름만으로 추정합니다.
-is_enabled = false
-
-# 이 개수만큼 호출 위치를 확인한 뒤에는 이름으로 추정합니다.
-callsite_budget = 1000
-
-# 호출자를 찾을 때 확인할 최대 검색 결과 수입니다.
-scan_limit = 16000
 
 [output.macro_expansion]
 # 설치된 Clang/NASM으로 C/C++/어셈블리 코드의 매크로를 펼쳐 분석합니다.
@@ -627,20 +545,8 @@ is_enabled = true
 # Clang 실행 파일 이름(PATH에서 찾음) 또는 경로입니다.
 clang_path = "clang"
 
-# NASM 실행 파일 이름(PATH에서 찾음) 또는 경로입니다.
-nasm_path = "nasm"
-
 # 빌드 설정 뒤에 추가할 Clang 인자입니다.
 clang_flags = []
-
-# 빌드 설정 뒤에 추가할 NASM 인자입니다.
-nasm_flags = []
-
-# 전처리 한 번에 허용할 최대 시간(밀리초)입니다.
-timeout_ms = 5000
-
-# 전처리 결과의 최대 크기입니다.
-max_output_bytes = "8mb"
 
 [output.event_navigation]
 # 이벤트를 보내고 받는 코드와 값이 전달되는 경로를 분석해 탐색 결과에 보여 줍니다.
@@ -747,7 +653,7 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, read, grep 호출 때 시작하며,
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 현재 형식의 기존 색인이 있으면 시작 때 불러오고 없으면 첫 search, read, grep 호출 때 시작하며,
 # 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
 # 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search가 이유를 알려 줍니다.
 # "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.
@@ -764,10 +670,6 @@ path = ".codemap/index"
 # 값을 늘리면 CPU, 메모리, 디스크 사용량이 늘어날 수 있습니다.
 max_file_bytes = "1mb"
 
-# 함수 호출이 아닌 참조 위치도 색인에 저장합니다.
-# 이미 색인한 파일은 내용이 바뀌어야 반영됩니다.
-store_references = false
-
 [index.exclude]
 # 색인과 find/grep에서 제외할 폴더입니다. read로 직접 여는 파일에는 적용하지 않습니다.
 # "build"나 "**/build"는 모든 위치의 build를, "./build"는 작업공간 루트의 build만 제외합니다.
@@ -783,17 +685,6 @@ use_git_exclude = true
 # 파일이 바뀌면 색인을 자동으로 갱신합니다. false이면 search를 호출할 때 갱신합니다.
 # 바꾼 뒤에는 서버를 재시작하세요.
 watch = true
-
-# 파일 변경을 모아서 처리할 시간(밀리초)입니다. 길수록 갱신 횟수는 줄고 반영은 늦어집니다.
-# 바꾼 뒤에는 서버를 재시작하세요.
-watch_debounce_ms = 500
-
-# 파일 감시를 쓰지 않을 때 색인을 갱신하는 최소 간격(밀리초)입니다.
-index_staleness_ms = 5000
-
-# 색인 작업이 멈추면 다음 search 때 다시 시작합니다(횟수 제한 있음).
-# false이면 서버를 재시작할 때까지 search 결과가 갱신되지 않습니다.
-indexer_auto_restart = true
 
 [index.language_support]
 # 아래 파일 종류를 색인할지 정합니다. 꺼 두어도 read/find/grep으로는 볼 수 있습니다.
@@ -890,7 +781,7 @@ allowed_roots = []
 
 여러 알려진 범위는 `read`의 `ranges: [{file_path, offset?, limit?}, ...]`로 한 번에 읽습니다(1~20개). 최상위 `file_path`나 그 별칭과 함께 쓰면 오류이며, 빈 배열·배열이 아닌 값·항목 수 초과도 거부합니다. 항목마다 단일 read와 같은 경로 권한·확장자 제한·파일/출력 바이트 상한을 적용합니다. 별칭 우선순위도 같습니다: `file_path` > `path` > `file` > `query`, 명시한 `offset`/`limit` > `start_line`/`end_line` > `start`/`end`. camel/kebab 변형과 문자열 숫자도 받습니다. offset 기본값은 1, limit 기본값은 EOF이며 최상위 offset/limit는 상속하지 않습니다.
 
-공통 `view`, `expand`, `unresolved`, `include_events`, `debug`, `include_seen`은 최상위에 둡니다. 항목 안의 출력 옵션은 무시합니다. 각 결과에 경로와 요청 범위 제목을 붙이며 함수 확장 시 실제 범위는 더 넓을 수 있습니다. 항목 실패는 그 자리에 오류로 표시하고 나머지는 계속합니다. 같은 연결의 단일 read·search·grep 및 앞선 항목과 전달 이력을 공유하며 `include_seen=true`는 중복 제거만 우회하고 Jev·다른 제한은 유지합니다. 합산 상한에 걸리면 처음 미룬 항목의 1부터 시작하는 범위 번호와 0부터 시작하는 `ranges` 인덱스를 알립니다. 그 항목부터 남은 범위를 더 적게 묶거나 좁혀 다시 요청하세요.
+공통 `view`, `expand`, `unresolved`, `include_events`, `include_seen`은 최상위에 둡니다. 항목 안의 출력 옵션은 무시합니다. 각 결과에 경로와 요청 범위 제목을 붙이며 함수 확장 시 실제 범위는 더 넓을 수 있습니다. 항목 실패는 그 자리에 오류로 표시하고 나머지는 계속합니다. 같은 연결의 단일 read·search·grep 및 앞선 항목과 전달 이력을 공유하며 `include_seen=true`는 중복 제거만 우회하고 Jev·다른 제한은 유지합니다. 합산 상한에 걸리면 처음 미룬 항목의 1부터 시작하는 범위 번호와 0부터 시작하는 `ranges` 인덱스를 알립니다. 그 항목부터 남은 범위를 더 적게 묶거나 좁혀 다시 요청하세요.
 
 다음은 TOML 설정이 아닌 요청 인자입니다. 내용 모드 `grep`은 기본으로 함수 본문까지 확장하고, `read`는 기본으로 요청한 줄 범위를 유지합니다. `search.caller_context`에는 영향을 주지 않습니다.
 
@@ -1154,43 +1045,24 @@ UTF-8 소스만 저장하며 색인·Git·디렉터리 제외 규칙을 적용�
 | 이전 경로 | 새 경로 |
 |---|---|
 | `tool_output.is_redact_enabled` | `output.is_redact_enabled` |
-| `search.result_threshold` | `output.search.detail_file_limit` |
-| `search.search_overview_file_limit` | `output.search.overview_file_limit` |
-| `search.search_detail_snippet_max_lines` | `output.search.snippet_max_lines` |
-| `search.search_detail_symbol_limit` | `output.search.symbol_limit` |
 | `search.search_detail_byte_cap` | `output.search.max_bytes` |
-| `search.search_literal_max_len` | `output.search.literal_max_chars` |
-| `search.search_literal_limit` | `output.search.literal_limit` |
-| `search.search_anchor_snippet_limit` | `output.search.anchor_snippet_limit` |
 | `tool_output.read_output_byte_cap` | `output.read.max_bytes` |
-| `tool_output.grep_max_columns` | `output.grep.max_columns` |
 | `caller_context.caller_context_default` | `output.context.is_enabled` |
-| `caller_context.caller_list_cap` | `output.context.caller_limit` |
-| `caller_context.callee_list_cap` | `output.context.callee_limit` |
-| `caller_context.annotation_sub_budget` | `output.context.max_bytes` |
-| `caller_context.common_name_threshold` | `output.context.common_name_threshold` |
-| `caller_context.caller_omit_def_threshold` | `output.context.caller_omit_def_threshold` |
 | `index.index_path` | `index.path` |
 | `index.max_file_size` | `index.max_file_bytes` |
-| `caller_context.navigation_store_references` | `index.store_references` |
 | `refresh.watch` | `index.refresh.watch` |
-| `refresh.watch_debounce_ms` | `index.refresh.watch_debounce_ms` |
-| `refresh.index_staleness_ms` | `index.refresh.index_staleness_ms` |
-| `refresh.indexer_auto_restart` | `index.refresh.indexer_auto_restart` |
 | `language_support.is_document_support_enabled` | `index.language_support.is_document_support_enabled` |
 | `language_support.is_shell_support_enabled` | `index.language_support.is_shell_support_enabled` |
 | `language_support.is_infrastructure_support_enabled` | `index.language_support.is_infrastructure_support_enabled` |
 | `language_support.is_interface_support_enabled` | `index.language_support.is_interface_support_enabled` |
 | `language_support.is_build_support_enabled` | `index.language_support.is_build_support_enabled` |
-| `caller_context.navigation_context_default` | `output.navigation.is_enabled` |
-| `caller_context.navigation_callsite_budget` | `output.navigation.callsite_budget` |
-| `caller_context.scan_cap` | `output.navigation.scan_limit` |
 | `redact.*` | `output.redact.*` |
 | `macro_expansion.*` | `output.macro_expansion.*` |
 | `event_navigation.*` | `output.event_navigation.*` |
-| `analysis.navigation.*` (v18) | `output.navigation.*` |
 | `analysis.macro_expansion.*` (v18) | `output.macro_expansion.*` |
 | `analysis.event_navigation.*` (v18) | `output.event_navigation.*` |
+
+스키마 v34에서는 내부 미세 조정 옵션(`output.search.{detail_file_limit,overview_file_limit,snippet_max_lines,symbol_limit,literal_max_chars,literal_limit,anchor_snippet_limit}`, `output.context.{caller_limit,callee_limit,max_bytes,common_name_threshold,caller_omit_def_threshold}`, `output.navigation.*`, `output.grep.max_columns`, `output.macro_expansion.{nasm_path,nasm_flags,timeout_ms,max_output_bytes}`, `index.store_references`, `index.refresh.{watch_debounce_ms,index_staleness_ms,indexer_auto_restart}`)을 제거해 내장 기본값으로 통합했습니다. 자동 동기화되는 저장소 설정에서는 사용자 주석을 유지한 채 제거된 키를 정리하며, 미동기화 파일에 남아 있으면 경고 후 내장 기본값을 사용합니다.
 
 ### 검색 표시 압축과 grep 원문 묶음
 

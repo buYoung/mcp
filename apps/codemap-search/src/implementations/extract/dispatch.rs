@@ -55,6 +55,20 @@ fn self_field<'a>(receiver: &'a str, language: &str) -> Option<&'a str> {
     (!field.is_empty() && field.chars().all(|c| c.is_alphanumeric() || c == '_')).then_some(field)
 }
 
+/// The receiver without the marks that test or assert that it is not null: `tool?` and
+/// `tool!!` in Kotlin, `tool!` in Swift, Dart, C# and TypeScript. The call reaches the same
+/// member with or without them.
+fn without_null_marks<'a>(receiver: &'a str, language: &str) -> &'a str {
+    if matches!(
+        language,
+        "kotlin" | "swift" | "dart" | "csharp" | "typescript"
+    ) {
+        receiver.trim_end_matches(['?', '!'])
+    } else {
+        receiver
+    }
+}
+
 fn is_base_receiver(receiver: Option<&str>, language: &str) -> bool {
     matches!(
         (language, receiver),
@@ -110,44 +124,37 @@ fn receiver_type(
     node: Node<'_>,
     owners: &mut Owners<'_, '_>,
     unit: &ImplementationUnit,
-) -> Option<(TypeReference, ReceiverKind)> {
+) -> Option<(TypeReference, Vec<ReceiverStep>, ReceiverKind)> {
     let language = unit.language.as_str();
-    let receiver = call.receiver.as_deref();
+    let receiver = call
+        .receiver
+        .as_deref()
+        .map(|receiver| without_null_marks(receiver, language));
     let is_self = matches!(receiver, Some("this" | "self" | "$this"))
         || language == "python" && receiver == Some("cls");
     let is_implicit = receiver.is_none() && has_implicit_members(language);
     if language == "rust" && (is_self || is_implicit) {
-        let mut crossed_method = false;
-        for parent in crate::parser::ancestors(node) {
-            if let Some((_, index)) = owners
-                .nodes
-                .iter()
-                .find(|(owner, _)| owner.id() == parent.id())
+        return rust_enclosing_self_type(node, owners, unit, source)
+            .map(|typ| (typ, Vec::new(), ReceiverKind::Value));
+    }
+    // Rust `self.field.method()` / `self.a.b.method()` resolves through the enclosing `impl`
+    // owner's indexed fields (even when `struct` and `impl` live in different files).
+    if language == "rust" {
+        if let Some(rest) = receiver.and_then(|r| r.strip_prefix("self.")) {
+            let parts: Vec<&str> = rest.split('.').collect();
+            if (1..=2).contains(&parts.len())
+                && parts
+                    .iter()
+                    .all(|p| !p.is_empty() && p.chars().all(|c| c.is_alphanumeric() || c == '_'))
             {
-                let owner = &unit.types[*index];
-                return Some((
-                    TypeReference {
-                        name: owner.qualified_name.clone(),
-                        arguments: Vec::new(),
-                        range: range(node),
-                    },
-                    ReceiverKind::Value,
-                ));
-            }
-            if parent.kind() == "impl_item" {
-                return parent
-                    .child_by_field_name("type")
-                    .and_then(|typ| reference(typ, source))
-                    .map(|typ| (typ, ReceiverKind::Value));
-            }
-            if is_method(parent) {
-                if crossed_method {
-                    return None;
-                }
-                crossed_method = true;
+                let typ = rust_enclosing_self_type(node, owners, unit, source)?;
+                let steps = parts
+                    .into_iter()
+                    .map(|p| ReceiverStep::Field(p.to_string()))
+                    .collect();
+                return Some((typ, steps, ReceiverKind::Value));
             }
         }
-        return None;
     }
     let is_base = is_base_receiver(receiver, language);
     let field = receiver.and_then(|receiver| self_field(receiver, language));
@@ -157,21 +164,24 @@ fn receiver_type(
         if let Some(field) = field {
             return owners
                 .field_type(owner_node, field, language, source)
-                .map(|typ| (at_call(typ, node), ReceiverKind::Value));
+                .map(|typ| (at_call(typ, node), Vec::new(), ReceiverKind::Value));
         }
         if is_base {
             // Several bases leave `super` to a resolution order this proof does not model.
             let [base] = owner.bases.as_slice() else {
                 return None;
             };
-            return Some((at_call(base.clone(), node), ReceiverKind::Base));
+            return Some((at_call(base.clone(), node), Vec::new(), ReceiverKind::Base));
         }
+        // The type's own parameters stand for its arguments inside it.
         return Some((
             TypeReference {
                 name: owner.qualified_name.clone(),
-                arguments: Vec::new(),
+                arguments: owner.parameters.clone(),
                 range: range(node),
+                conditions: Vec::new(),
             },
+            Vec::new(),
             ReceiverKind::Value,
         ));
     }
@@ -180,16 +190,16 @@ fn receiver_type(
         .chars()
         .all(|c| c.is_alphanumeric() || "_$".contains(c))
     {
-        return None;
+        return chained_receiver(tree, source, navigation, receiver, node, owners, unit);
     }
     if let Some(found) = declared_receiver_type(tree, source, navigation, receiver, node) {
-        return found.map(|typ| (typ, ReceiverKind::Value));
+        return found.map(|typ| (typ, Vec::new(), ReceiverKind::Value));
     }
     // An undeclared name in a type with implicit members may be one of its fields.
     if has_implicit_members(language) {
         if let Some((owner_node, _)) = enclosing_owner(node, owners.nodes, unit) {
             if let Some(typ) = owners.field_type(owner_node, receiver, language, source) {
-                return Some((at_call(typ, node), ReceiverKind::Value));
+                return Some((at_call(typ, node), Vec::new(), ReceiverKind::Value));
             }
         }
     }
@@ -206,9 +216,207 @@ fn receiver_type(
                 name: receiver.to_string(),
                 arguments: Vec::new(),
                 range: range(node),
+                conditions: Vec::new(),
             },
+            Vec::new(),
             ReceiverKind::Type,
         ));
+    }
+    None
+}
+
+fn rust_enclosing_self_type(
+    node: Node<'_>,
+    owners: &Owners<'_, '_>,
+    unit: &ImplementationUnit,
+    source: &[u8],
+) -> Option<TypeReference> {
+    let mut crossed_method = false;
+    for parent in crate::parser::ancestors(node) {
+        if let Some((_, index)) = owners
+            .nodes
+            .iter()
+            .find(|(owner, _)| owner.id() == parent.id())
+        {
+            let owner = &unit.types[*index];
+            return Some(TypeReference {
+                name: owner.qualified_name.clone(),
+                arguments: owner.parameters.clone(),
+                range: range(node),
+                conditions: Vec::new(),
+            });
+        }
+        if parent.kind() == "impl_item" {
+            return parent
+                .child_by_field_name("type")
+                .and_then(|typ| reference(typ, source));
+        }
+        if is_method(parent) {
+            if crossed_method {
+                return None;
+            }
+            crossed_method = true;
+        }
+    }
+    None
+}
+
+/// Resolves bounded compound receivers:
+/// 1. Field chains (`this.a.b.m()`, `x.field.m()`, `x.a.b.m()`, up to 2 field steps).
+/// 2. 1-step method-call return receivers (`f().m()`, `this.f().m()`, `x.f().m()`).
+fn chained_receiver(
+    tree: &Tree,
+    source: &[u8],
+    navigation: &NavigationFile,
+    receiver: &str,
+    node: Node<'_>,
+    owners: &mut Owners<'_, '_>,
+    unit: &ImplementationUnit,
+) -> Option<(TypeReference, Vec<ReceiverStep>, ReceiverKind)> {
+    let language = unit.language.as_str();
+    // 1-step call-return receiver: `f().m()`, `this.f().m()`, `x.f().m()`.
+    if let Some(open) = receiver.find('(') {
+        if !receiver.ends_with(')') || receiver[..open].contains('(') {
+            return None;
+        }
+        let callee_part = receiver[..open].trim();
+        let args_part = receiver[open + 1..receiver.len() - 1].trim();
+        let arg_count = if args_part.is_empty() {
+            Some(0)
+        } else if args_part.contains(['(', '{', '[']) {
+            None
+        } else {
+            Some(args_part.split(',').count())
+        };
+        let (base_recv, method_name) = split_last_member(callee_part, language);
+        if method_name.is_empty() || !method_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            return None;
+        }
+        let step = ReceiverStep::Call {
+            name: method_name.to_string(),
+            argument_count: arg_count,
+        };
+        let mut steps = Vec::new();
+        let base_type = match base_recv {
+            None if language == "rust" => rust_enclosing_self_type(node, owners, unit, source)?,
+            None if has_implicit_members(language) => {
+                let (_, index) = enclosing_owner(node, owners.nodes, unit)?;
+                let owner = &unit.types[index];
+                TypeReference {
+                    name: owner.qualified_name.clone(),
+                    arguments: owner.parameters.clone(),
+                    range: range(node),
+                    conditions: Vec::new(),
+                }
+            }
+            Some(base) => {
+                if let Some(simple) =
+                    resolve_simple_root(tree, source, navigation, base, node, owners, unit)
+                {
+                    simple
+                } else {
+                    let (root_base, field_part) = split_last_member(base, language);
+                    let root_base = root_base?;
+                    if field_part.is_empty()
+                        || !field_part.chars().all(|c| c.is_alphanumeric() || c == '_')
+                    {
+                        return None;
+                    }
+                    let root_ty = resolve_simple_root(
+                        tree, source, navigation, root_base, node, owners, unit,
+                    )?;
+                    steps.push(ReceiverStep::Field(field_part.to_string()));
+                    root_ty
+                }
+            }
+            None => return None,
+        };
+        steps.push(step);
+        return Some((base_type, steps, ReceiverKind::Value));
+    }
+    // Field chains: `a.b`, `this.a.b`, `self.a.b`, `$this->a->b`, `this->a->b` (max 2 field steps).
+    let sep = if language == "php" || (language == "cpp" && receiver.contains("->")) {
+        "->"
+    } else {
+        "."
+    };
+    let raw_parts: Vec<&str> = receiver
+        .split(sep)
+        .map(|part| without_null_marks(part.trim(), language))
+        .collect();
+    if raw_parts.len() < 2 || raw_parts.len() > 3 {
+        return None;
+    }
+    let root_part = raw_parts[0];
+    let field_parts = &raw_parts[1..];
+    if !field_parts
+        .iter()
+        .all(|p| !p.is_empty() && p.chars().all(|c| c.is_alphanumeric() || c == '_'))
+    {
+        return None;
+    }
+    let root_type = resolve_simple_root(tree, source, navigation, root_part, node, owners, unit)?;
+    let steps = field_parts
+        .iter()
+        .map(|f| ReceiverStep::Field((*f).to_string()))
+        .collect();
+    Some((root_type, steps, ReceiverKind::Value))
+}
+
+fn split_last_member<'a>(expr: &'a str, language: &str) -> (Option<&'a str>, &'a str) {
+    let expr = expr.trim();
+    if matches!(language, "php" | "cpp") {
+        if let Some((base, name)) = expr.rsplit_once("->") {
+            return (Some(without_null_marks(base.trim(), language)), name.trim());
+        }
+    }
+    if let Some((base, name)) = expr.rsplit_once('.') {
+        return (Some(without_null_marks(base.trim(), language)), name.trim());
+    }
+    (None, expr)
+}
+
+fn resolve_simple_root(
+    tree: &Tree,
+    source: &[u8],
+    navigation: &NavigationFile,
+    root: &str,
+    node: Node<'_>,
+    owners: &mut Owners<'_, '_>,
+    unit: &ImplementationUnit,
+) -> Option<TypeReference> {
+    let language = unit.language.as_str();
+    let root = without_null_marks(root, language);
+    let is_self =
+        matches!(root, "this" | "self" | "$this") || (language == "python" && root == "cls");
+    if is_self {
+        if language == "rust" {
+            return rust_enclosing_self_type(node, owners, unit, source);
+        }
+        let (_, index) = enclosing_owner(node, owners.nodes, unit)?;
+        let owner = &unit.types[index];
+        return Some(TypeReference {
+            name: owner.qualified_name.clone(),
+            arguments: owner.parameters.clone(),
+            range: range(node),
+            conditions: Vec::new(),
+        });
+    }
+    if !root
+        .chars()
+        .all(|c| c.is_alphanumeric() || "_$".contains(c))
+    {
+        return None;
+    }
+    if let Some(found) = declared_receiver_type(tree, source, navigation, root, node) {
+        return found;
+    }
+    if has_implicit_members(language) {
+        if let Some((owner_node, _)) = enclosing_owner(node, owners.nodes, unit) {
+            if let Some(typ) = owners.field_type(owner_node, root, language, source) {
+                return Some(at_call(typ, node));
+            }
+        }
     }
     None
 }
@@ -239,23 +447,14 @@ fn declared_receiver_type(
             scope.end_byte() - scope.start_byte(),
             std::cmp::Reverse(binding_node.start_byte()),
             binding_node,
-            binding.type_name.as_deref(),
         ));
     }
-    candidates.sort_by_key(|(size, position, _, _)| (*size, *position));
-    if let Some((_, _, binding, typ)) = candidates.first() {
-        if typ.is_some() {
-            if let Some(typ) = declarations::parameter_type(*binding) {
-                let typ = if typ.kind() == "type_annotation" {
-                    typ.named_child(0)
-                } else {
-                    Some(typ)
-                };
-                return Some(typ.and_then(|typ| reference(typ, source)));
-            }
-        }
-        // An untyped nearest binding shadows a typed outer binding.
-        return Some(None);
+    candidates.sort_by_key(|(size, position, _)| (*size, *position));
+    if let Some((_, _, binding)) = candidates.first() {
+        // A nearest binding without a written type shadows a typed outer binding.
+        return Some(
+            declarations::parameter_type(*binding).and_then(|typ| fields::declared(typ, source)),
+        );
     }
     for parent in crate::parser::ancestors(node) {
         if is_method(parent) || matches!(parent.kind(), "arrow_function" | "lambda_expression") {
@@ -268,14 +467,10 @@ fn declared_receiver_type(
             );
             for parameter in parameters {
                 if declarations::parameter_name(parameter, source).as_deref() == Some(receiver) {
-                    return Some(declarations::parameter_type(parameter).and_then(|typ| {
-                        let typ = if typ.kind() == "type_annotation" {
-                            typ.named_child(0)?
-                        } else {
-                            typ
-                        };
-                        reference(typ, source)
-                    }));
+                    return Some(
+                        declarations::parameter_type(parameter)
+                            .and_then(|typ| fields::declared(typ, source)),
+                    );
                 }
             }
         }
@@ -304,7 +499,7 @@ pub(super) fn collect(
         let Some(node) = at(tree, &call.range) else {
             continue;
         };
-        let Some((receiver, receiver_kind)) =
+        let Some((receiver, receiver_steps, receiver_kind)) =
             receiver_type(tree, source, navigation, call, node, &mut owners, unit)
         else {
             continue;
@@ -322,10 +517,11 @@ pub(super) fn collect(
             name: call.name.clone(),
             range: call.range.clone(),
             receiver,
+            receiver_steps,
             namespace: namespace(node, &unit.namespace, source),
             enclosing_symbol: enclosing,
             argument_count: count_arguments(node),
-            conditions: conditions(node, source),
+            conditions: call_conditions(node, source),
             receiver_kind,
         });
     }

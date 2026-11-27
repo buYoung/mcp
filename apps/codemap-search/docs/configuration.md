@@ -17,8 +17,7 @@ Keep behavior settings in `config.toml`, grouped by responsibility, and credenti
 | `output.search` | Ranked files, symbols and snippets |
 | `output.read` | Live file reads |
 | `output.grep` | Matching rows and expanded callable responses |
-| `output.context` | Caller/callee display limits and relationship output budget |
-| `output.navigation` | Source-based navigation and caller scanning budgets |
+| `output.context` | Caller/callee display toggle |
 | `output.macro_expansion` | Native preprocessing and generated declaration results |
 | `output.event_navigation` | Indexed event/source routes and navigation results |
 | `output.redact` | Additional masking rules and exceptions |
@@ -31,7 +30,7 @@ Keep behavior settings in `config.toml`, grouped by responsibility, and credenti
 
 Only the configuration location changes. Search uses indexed files, while find and grep share the directory rules. Direct read does not apply directory exclusions; its automatic context uses `output.context.exclude`.
 
-`output.max_bytes` is optional. Response ceilings resolve as **repo tool override > repo common > global tool override > global common > existing tool default**. With all limits omitted, search remains 1 MiB and read/expanded grep remain 5 MiB. Expanded grep inherits the read ceiling within a layer when neither grep nor common is configured there. `output.context.max_bytes` is a separate relationship sub-budget, additionally bounded by space left in the search response.
+`output.max_bytes` is optional. Response ceilings resolve as **repo tool override > repo common > global tool override > global common > existing tool default**. With all limits omitted, search remains 1 MiB and read/expanded grep remain 5 MiB. Expanded grep inherits the read ceiling within a layer when neither grep nor common is configured there. Call-relationship annotations stay within a fixed 128 KiB sub-budget inside the search response.
 
 Search returns explicit partial output; read requests a narrower range. Find, initial_instructions and unexpanded grep reject responses exceeding an explicitly configured ceiling with a narrowing error. Budgets cover MCP body text, not the JSON envelope or error messages. They do not truncate ordinary CLI parse/index output.
 
@@ -60,7 +59,7 @@ Config is read from two layers and merged **per key** as `repo > global > defaul
 | Repo | `<repo>/.codemap/config.toml` |
 | Global | `$CODEMAP_HOME/config.toml`, else `~/.codemap/config.toml` |
 
-"Per key" means a repo file that sets only `[output.search].detail_file_limit` still inherits every other setting from the global file (if set there) or the default. Layers are not all-or-nothing.
+"Per key" means a repo file that sets only `[output.search].max_bytes` still inherits every other setting from the global file (if set there) or the default. Layers are not all-or-nothing.
 
 ### Global instructions
 
@@ -211,10 +210,8 @@ MCP watches `config.toml` and `auth.toml` in the repo/global config directories 
 | `[index.exclude]`, `[output.context.exclude]`, all `[index.language_support]` switches | Reload requests a full index refresh; results reflect the change when it finishes |
 | All `[output.macro_expansion]` settings | Reload requests a full refresh, including when expansion is disabled |
 | Output and caller rendering/budgets except `output.client`, `output.is_redact_enabled`, `[output.redact]`, filesystem permissions | Subsequent tool requests after reload |
-| `index.refresh.index_staleness_ms`, `index.refresh.indexer_auto_restart` | Subsequent refresh/recovery decisions |
 | `index.max_file_bytes` | Subsequent walks/refreshes; changing it alone does not request a full refresh |
-| `index.store_references` | Subsequent parsing; unchanged files can be reused from the index even after restart |
-| `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch`, `index.refresh.watch_debounce_ms` | Restart required |
+| `index.path`, `index.mode`, `index.auto_max_files`, `index.refresh.watch` | Restart required |
 | `config_auto_update` | Automatic writes at the next MCP startup |
 | `[global_instructions].enabled` (global-only) | MCP initialization or the next request after a reloaded toggle; new agent session to load the updated file |
 | `auth.toml` `[jev].api_key`, `[openrouter].api_key` | Subsequent enabled Jev requests after reload; a changed key rebuilds the shared HTTPS evaluator |
@@ -227,9 +224,9 @@ Manual exclusion changes update file filters and request a full index refresh. R
 
 ## Key reference
 
-This table summarizes supported keys, accepted types, and defaults. Numeric keys require positive integers except `output.grep.max_columns`, which also accepts `0`. The generated template uses the sectioned form shown here. Legacy top-level keys (for example `result_threshold = 5`) are still accepted for compatibility; when both forms appear in one file, the sectioned value wins.
+This table summarizes supported keys, accepted types, and defaults. Numeric keys require positive integers. The generated template uses the sectioned form shown here. Legacy top-level keys (for example `search_detail_byte_cap = 1048576`) are still accepted for compatibility; when both forms appear in one file, the sectioned value wins.
 
-Byte-size keys accept either an integer byte count or a quoted positive integer with `b`, `kb`, `mb`, or `gb`. Units are case-insensitive and use powers of 1024: `"50mb"` = `52428800` bytes. Surrounding whitespace and a space before the unit are accepted (`"50 MB"`). Fractions, zero, negative values, unknown units, and values outside the destination integer range warn and inherit the lower layer. TOML requires quotes around unit-bearing values; bare `50mb` is invalid TOML. This applies to `index.max_file_bytes`, `output.read.max_bytes`, `output.search.max_bytes`, `output.context.max_bytes`, `output.client.pi_max_bytes`, `output.client.opencode_max_bytes`, and `output.macro_expansion.max_output_bytes`; counts and milliseconds still require integers.
+Byte-size keys accept either an integer byte count or a quoted positive integer with `b`, `kb`, `mb`, or `gb`. Units are case-insensitive and use powers of 1024: `"50mb"` = `52428800` bytes. Surrounding whitespace and a space before the unit are accepted (`"50 MB"`). Fractions, zero, negative values, unknown units, and values outside the destination integer range warn and inherit the lower layer. TOML requires quotes around unit-bearing values; bare `50mb` is invalid TOML. This applies to `index.max_file_bytes`, `output.max_bytes`, `output.read.max_bytes`, `output.search.max_bytes`, `output.grep.max_bytes`, `output.client.pi_max_bytes`, and `output.client.opencode_max_bytes`; counts and milliseconds still require integers.
 
 | Key | Type | Default | Summary |
 |---|---|---|---|
@@ -240,27 +237,11 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[output.client].codex_output_token_limit` | positive integer tokens | `100000` | Codex export and final delivery limit (3.5 bytes per token) |
 | `[output.client].pi_max_bytes` | integer bytes or size string | `100000` | pi tools/list metadata and final delivery limit; reconnect required |
 | `[output.client].opencode_max_bytes` | integer bytes or size string | `100000` | opencode final delivery limit |
-| `[output.search].detail_file_limit` | integer | `24` | Number of top-ranked files `search` renders as details before the ranked tail |
-| `[output.search].overview_file_limit` | integer | `80` | Max file headers in `search`'s compact ranked tail |
-| `[output.search].snippet_max_lines` | integer | `500` | Per-symbol snippet line cap in `search` detail view; bodies longer than this are truncated |
-| `[output.search].symbol_limit` | integer | `100` | Max symbols rendered per file in `search` detail view; overflow becomes a summary note. In JSON/YAML/TOML files matched only by path or docstring, unmatched keys are counted, not listed |
 | `[output.search].max_bytes` | integer bytes or size string | `"1mb"` (`1048576`) | Output size limit in bytes for one `search` response, including the partial-output footer |
-| `[output.search].literal_max_chars` | integer (chars) | `1200` | Matched-literal truncation length; longer literals are cut with an ellipsis |
-| `[output.search].literal_limit` | integer | `60` | Max matched literals rendered per file in `search` detail view |
-| `[output.search].anchor_snippet_limit` | integer | `20` | Maximum full snippets per file; further matches use signatures of up to three lines |
 | `[output.read].max_bytes` | integer bytes or size string | `"5mb"` (`5242880`) | `read` and callable-expanded `grep` output ceiling; oversized reads return a narrowing error, expanded grep paginates |
 | `[output.read].is_outside_callers_enabled` | bool | `true` | Let `read view=source` end with callers from outside the window for the functions it shows, with other places using the same keys, and with other files importing the window's declarations; `false` omits all three lists |
-| `[output.grep].max_columns` | integer | `0` | `grep` content-mode column cap; matched lines wider than a positive cap are replaced with `[Omitted long matching line]`; `0` disables |
 | `[output.grep].max_bytes` | integer bytes or size string | common budget | Grep response ceiling; expanded bodies can also fall back to read |
 | `[output.context].is_enabled` | bool | `true` | `search` caller/callee annotation default when the per-call parameter is omitted |
-| `[output.context].caller_limit` | integer | `1000` | Max callers (or non-call references) rendered per symbol |
-| `[output.context].callee_limit` | integer | `1000` | Max callees rendered per symbol |
-| `[output.context].max_bytes` | integer bytes or size string | `"128kb"` (`131072`) | Call-relationship output size within `output.search.max_bytes` |
-| `[output.context].common_name_threshold` | integer | `2` | Defs-per-name count at which caller/callee lists carry an ambiguity label |
-| `[output.context].caller_omit_def_threshold` | integer | `5` | Definition count for the same name at which the approximate caller list is replaced with a `grep` suggestion; callees unaffected |
-| `[output.navigation].is_enabled` | bool | `false` | Check source structure and mark confirmed call targets `precise` |
-| `[output.navigation].callsite_budget` | integer | `1000` | Maximum call sites checked before using approximate name-based scanning |
-| `[output.navigation].scan_limit` | integer | `16000` | Caller-scan hit limit, shared across names (minimum 25/name) |
 | `[output.redact].pii_entities` | string array | `[]` | Exact PII entity types to enable; see [supported types](./pii-redaction.md) |
 | `[output.redact].sensitive_fields` | string array | `[]` | Additional sensitive field names, matched exactly after case/separator normalization |
 | `[output.redact].rules` | inline-table array | `[]` | Additional regex rules, each with `id` and `pattern` |
@@ -269,11 +250,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 | `[index].auto_max_files` | integer | `50000` | Most indexable files that `auto` mode indexes |
 | `[index].path` | string | `".codemap/index"` | Index directory; absolute or relative to the workspace root |
 | `[index].max_file_bytes` | integer bytes or size string | `"1mb"` (`1048576`) | Files larger than this are skipped before parse/index |
-| `[index].store_references` | bool | `false` | Store reference locations other than function calls |
 | `[index.refresh].watch` | bool | `true` | Filesystem watcher (autonomous background index refresh) |
-| `[index.refresh].watch_debounce_ms` | integer (ms) | `500` | Batching window for watcher events |
-| `[index.refresh].index_staleness_ms` | integer (ms) | `5000` | Debounce for the request-triggered fallback refresh |
-| `[index.refresh].indexer_auto_restart` | bool | `true` | Auto-recovery when the background indexer thread dies |
 | `[index.language_support].is_document_support_enabled` | bool | `false` | Include `.md`/`.mdx` in index, search, codemap, and watcher refreshes |
 | `[index.language_support].is_shell_support_enabled` | bool | `false` | Include `.sh`, `.bash`, and `.zsh` in index-backed discovery |
 | `[index.language_support].is_infrastructure_support_enabled` | bool | `false` | Include HCL/Terraform, Dockerfile, and Nix definitions |
@@ -309,7 +286,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 
 | Mode | Behavior |
 |---|---|
-| `"auto"` (default) | Indexing starts on the first `search`, `read` or `grep` call, or on `synonyms` or a monorepo `initial_instructions`, not at server start. It runs only when the workspace is inside a repository and has at most `[index].auto_max_files` indexable files. A `.git`, `.hg` or `.jj` in the workspace or a parent folder marks a repository; one in the home directory itself does not. |
+| `"auto"` (default) | Hydrates an existing current-format index at server start when inside a repository and its live file count is at most `[index].auto_max_files`. Otherwise indexing starts on the first `search`, `read` or `grep` call, or on `synonyms` or a monorepo `initial_instructions`, only when the workspace is inside a repository and has at most `[index].auto_max_files` indexable files. A `.git`, `.hg` or `.jj` in the workspace or a parent folder marks a repository; one in the home directory itself does not. |
 | `"on"` | Indexing starts at server start without these checks. |
 | `"off"` | The workspace is never indexed. |
 
@@ -336,21 +313,17 @@ Native expansion automatically attempts C/C++ preprocessor macros and CPP-based 
 is_enabled = true
 compilation_database = "build/compile_commands.json"
 clang_path = "clang"
-nasm_path = "nasm"
 clang_flags = ["-Iinclude", "-DFEATURE=1"]
-nasm_flags = ["-Iinclude/", "-felf64"]
-timeout_ms = 5000
-max_output_bytes = "8mb"
 ```
 
 | Key under `[output.macro_expansion]` | Type / default | Behavior |
 | --- | --- | --- |
 | `is_enabled` | bool / `true` | Automatically attempts preprocessing for indexed C/C++/ASM files and direct `parse`/`codemap`; explicit `false` disables it |
 | `compilation_database` | nonempty string / omitted | Workspace-relative or absolute JSON file/directory; a `compile_flags.txt` file is also accepted |
-| `clang_path`, `nasm_path` | nonempty string / `"clang"`, `"nasm"` | Installed executable name or path |
-| `clang_flags`, `nasm_flags` | string array / `[]` | Arguments appended to the selected build settings; repo arrays replace global arrays |
-| `timeout_ms` | positive integer / `5000` | Maximum milliseconds for each native process; NASM runs preprocessing and a listing pass |
-| `max_output_bytes` | integer bytes or size string / `"8mb"` (`8388608`) | Maximum bytes for expanded output or NASM listing |
+| `clang_path` | nonempty string / `"clang"` | Installed Clang executable name or path |
+| `clang_flags` | string array / `[]` | Arguments appended to the selected build settings; repo arrays replace global arrays |
+
+NASM preprocessing uses `nasm` on `PATH` with built-in per-process limits (5000ms timeout and 8 MiB output cap).
 
 Without an explicit database, source-parent directories are searched up to the workspace root for `compile_commands.json` or `compile_flags.txt`. A JSON database requires an exact canonical file entry; the first matching entry wins. Header commands are not inferred from similarly named files. If no database exists, configured flags and the installed tool's defaults are used. With a database but no matching entry, add an entry or select a `compile_flags.txt` file explicitly.
 
@@ -410,23 +383,19 @@ Unrecognized names/formats, encoded values and values assembled through calls ca
 
 `search` shows detailed top matches followed by a compact list; a page over 32 KiB lists each top match with its match reason, read range, matched declarations and up to two matching lines, followed by connected locations. Its size settings limit output; they do not change which files are excluded. General queries rank generated files and translation resources lower, while exact paths, symbols, resource keys, or quoted text can target those files directly.
 
-`output.search.max_bytes` includes the partial-output notice. If results are cut off, narrow the query or read the suggested ranges; `search` has no page-offset parameter. `output.search.anchor_snippet_limit` limits full snippets per file; further matches show signatures of up to three lines. Tail rows and bytes left unused can hold [exact phrase matches outside the ranking](../README.md#use-the-navigation-tools).
+`output.search.max_bytes` includes the partial-output notice. If results are cut off, narrow the query or read the suggested ranges; `search` has no page-offset parameter. Up to 20 anchor symbols per file render full snippets; further matches show signatures of up to three lines. Tail rows and bytes left unused can hold [exact phrase matches outside the ranking](../README.md#use-the-navigation-tools).
 
-`output.read.max_bytes` includes line numbers, context, and headings, and also bounds callable-expanded `grep`. Oversized `read` output returns an error with a narrower `offset`/`limit` suggestion. Expanded grep reports oversized bodies or pagination instead of silently splitting a callable. A separate 256 KiB whole-file limit applies to `read` when `limit` is omitted and callable expansion is off. `grep_max_columns = 0` disables the long-line limit; otherwise long matches become `[Omitted long matching line]`. Partial `grep` pages report `next_offset`.
+`output.read.max_bytes` includes line numbers, context, and headings, and also bounds callable-expanded `grep`. Oversized `read` output returns an error with a narrower `offset`/`limit` suggestion. Expanded grep reports oversized bodies or pagination instead of silently splitting a callable. A separate 256 KiB whole-file limit applies to `read` when `limit` is omitted and callable expansion is off. Under a client delivery cap, `grep` caps individual lines at 600 bytes (`[Omitted long matching line]`) so one minified or generated line cannot crowd out a page. Partial `grep` pages report `next_offset`.
 
-Raising the read cap does not raise the independent search, annotation, or parsing limits. Search defaults to a 1 MiB cap, with a 128 KiB annotation sub-budget. Caller scans use `scan_cap = 16000`, shared across scanned names; 1000-entry caller/callee lists remain upper bounds, not guaranteed output counts. Live `read`/`grep` context also has a fixed shared 16 KiB ceiling. Callable parsing accepts at most `min(max_file_size, 4 MiB)`, which is 1 MiB by default. Larger caps permit larger responses and more rendering work; they do not establish any consuming client's response limit.
+Raising the read cap does not raise the independent search, annotation, or parsing limits. Search defaults to a 1 MiB cap, with a 128 KiB annotation sub-budget. Caller scans share a built-in 16,000-hit scan budget across scanned names (minimum 25 hits/name), and per-symbol caller/callee lists cap at 1,000 entries. Live `read`/`grep` context also has a fixed shared 16 KiB ceiling. Callable parsing accepts at most `min(max_file_size, 4 MiB)`, which is 1 MiB by default. Larger caps permit larger responses and more rendering work; they do not establish any consuming client's response limit.
 
 Existing explicit repo/global values are preserved when built-in defaults change. Remove, comment out, or update an old override to use the new value; restarting alone does not replace it.
 
-`output.context.is_enabled` applies only when a `search` call omits `caller_context`. An explicit argument wins. Call relationships are approximate by default. With `navigation_context_default = true`, source structure, imports, and local bindings can confirm a single target and mark it `precise`. Calls that cannot be confirmed use approximate results. `output.navigation.callsite_budget` limits the number of call sites checked before using name-based scanning.
+`output.context.is_enabled` applies only when a `search` call omits `caller_context`. An explicit argument wins. Call relationships combine static source resolution (marking uniquely confirmed call targets `precise`) with approximate name-based scanning when ambiguous.
 
-`index.store_references` stores reference locations other than function calls; it is not required to confirm call targets. Some structured formats always store references. The setting applies during parsing, so restarting alone may reuse unchanged files without reparsing them.
+Resolved `calls` entries include the definition as `name — file:line`, in both approximate and `precise` modes. Ambiguous targets keep their bare names. MCP `read`/`grep` also show `references (same-file constants, approximate)` for direct bare identifiers in the displayed functions by checking the source tree against indexed constant declarations (including JavaScript/TypeScript `const` bindings). Locations and initializer text are shown without evaluating code; previews longer than 240 characters are shortened. Comments, strings, qualified/imported references, macro token trees, duplicate names, and names with local bindings are omitted. Test exclusions and context byte budgets also apply to these references, with a notice when the budget omits entries.
 
-Resolved `calls` entries include the definition as `name — file:line`, in both approximate and `precise` modes. Ambiguous targets keep their bare names. MCP `read`/`grep` also show `references (same-file constants, approximate)` for direct bare identifiers in the displayed functions. This works with `navigation_store_references = false`: the source tree is checked against indexed constant declarations (including JavaScript/TypeScript `const` bindings). Locations and initializer text are shown without evaluating code; previews longer than 240 characters are shortened. Comments, strings, qualified/imported references, macro token trees, duplicate names, and names with local bindings are omitted. Test exclusions and context byte budgets also apply to these references, with a notice when the budget omits entries.
-
-`output.navigation.scan_limit` is shared across scanned names, with a minimum of 25 hits per name. `output.context.caller_limit` and `output.context.callee_limit` limit each symbol's displayed relationships. `output.context.max_bytes` limits their total output in bytes within `output.search.max_bytes`; source snippets take priority, and omitted relationships are noted.
-
-At `output.context.common_name_threshold` definitions of the same name, approximate relationships carry an ambiguity label. At `output.context.caller_omit_def_threshold`, the approximate caller list is replaced by a note and a `grep` suggestion. This does not suppress callees or prevent a confirmed target from being shown.
+When two or more definitions share the same name, approximate relationships carry an ambiguity label; at five or more definitions, the approximate caller list is replaced by a note and a `grep` suggestion. This does not suppress callees or prevent a confirmed target from being shown.
 
 ### Test-code context
 
@@ -501,9 +470,9 @@ powershell = ["Describe", "Context", "It"]
 
 ### Index freshness
 
-With `watch = true`, file changes refresh the index in the background. `index.refresh.watch_debounce_ms` combines nearby changes into one refresh. Changes in paths hidden by `.gitignore`, `.ignore` or `.codemapignore` are dropped like excluded directories, and a change to one of those files triggers a full walk. When file watching is off or unavailable, `search` requests background refreshes at intervals controlled by `index.refresh.index_staleness_ms` and return the last available results immediately.
+With `watch = true`, file changes refresh the index in the background, batching nearby edits over a 500ms debounce window. Changes in paths hidden by `.gitignore`, `.ignore` or `.codemapignore` are dropped like excluded directories, and a change to one of those files triggers a full walk. When file watching is off or unavailable, `search` requests background refreshes at most once every 5 seconds and returns the last available results immediately.
 
-With `indexer_auto_restart = true`, the next `search` attempts recovery if background indexing stops. Recovery attempts are capped per server run. With it disabled, results remain frozen until restart. Live `read`/`find`/`grep` remains available in either case.
+If background indexing stops unexpectedly, the next `search` automatically attempts recovery (capped per server run). Live `read`/`find`/`grep` remains available in all cases.
 
 When a file's modification time changes but its content does not, as after a checkout that rewrites identical files, the index keeps the file's document and records the new time in `content-mtimes.json` in the index folder. Later passes and server starts then do not read the file again.
 
@@ -512,11 +481,11 @@ When a file's modification time changes but its content does not, as after a che
 The example below is intentionally explicit. In a real file, you can keep only the settings you want to override.
 
 ```toml
-# codemap-config-version: 32
+# codemap-config-version: 34
 # codemap-search settings for this repository. Values here override global settings.
 # Delete or comment out a key to use the global setting or the default.
 # A list here replaces the global list instead of merging with it. [] empties it.
-# Counts, times, and sizes must be integers of 1 or more. Only output.grep.max_columns accepts 0.
+# Counts, times, and sizes must be integers of 1 or more.
 # Byte sizes accept b/kb/mb/gb, e.g. "50mb" (1kb = 1024 bytes).
 # The server reloads this file when you save it. Restart the server if a change does not apply.
 
@@ -545,27 +514,6 @@ pi_max_bytes = 100000
 opencode_max_bytes = 100000
 
 [output.search]
-# Maximum number of top-ranked files shown in detail. Remaining results use a compact list.
-detail_file_limit = 24
-
-# Maximum files in the compact result list.
-overview_file_limit = 80
-
-# Maximum lines of code shown per matched definition (function, class, etc.).
-snippet_max_lines = 500
-
-# Maximum definitions shown per file in detailed results.
-symbol_limit = 100
-
-# Maximum characters shown for a string value from the code that matches the query.
-literal_max_chars = 1200
-
-# Maximum string values shown per file.
-literal_limit = 60
-
-# Maximum definitions per file shown with their full code. The rest show at most 3 lines of their declaration.
-anchor_snippet_limit = 20
-
 # Search response limit.
 max_bytes = "1mb"
 
@@ -577,10 +525,6 @@ max_bytes = "5mb"
 is_outside_callers_enabled = true
 
 [output.grep]
-# Maximum length of a line in grep results, in bytes. 0 disables the limit.
-# Longer lines are replaced with an omission marker such as `[Omitted long matching line]`.
-max_columns = 0
-
 # grep response limit (default: no limit).
 # grep with function bodies uses output.read.max_bytes when neither this nor output.max_bytes is set.
 # max_bytes = "5mb"
@@ -588,32 +532,6 @@ max_columns = 0
 [output.context]
 # Show callers and callees in search results. A caller_context argument passed to search takes priority.
 is_enabled = true
-
-# Maximum callers shown per definition, including non-call references.
-caller_limit = 1000
-
-# Maximum callees shown per definition.
-callee_limit = 1000
-
-# Space in the search response for call relationships. Code goes in first; relationships use the space left.
-max_bytes = "128kb"
-
-# When a name has at least this many definitions, name-based relationships are marked ambiguous.
-common_name_threshold = 2
-
-# When a name has at least this many definitions, suggest grep instead of listing estimated callers.
-caller_omit_def_threshold = 5
-
-[output.navigation]
-# Analyze imports and code structure to find actual call targets. Found targets are marked `precise`.
-# false uses names only.
-is_enabled = false
-
-# After checking this many call sites, fall back to name-based estimates.
-callsite_budget = 1000
-
-# Maximum search hits checked when finding callers.
-scan_limit = 16000
 
 [output.macro_expansion]
 # Expand macros in C/C++/assembly code with the installed Clang/NASM.
@@ -627,20 +545,8 @@ is_enabled = true
 # Clang executable name (found on PATH) or path.
 clang_path = "clang"
 
-# NASM executable name (found on PATH) or path.
-nasm_path = "nasm"
-
 # Additional Clang arguments appended after build settings.
 clang_flags = []
-
-# Additional NASM arguments appended after build settings.
-nasm_flags = []
-
-# Time limit for one preprocessing run, in milliseconds.
-timeout_ms = 5000
-
-# Maximum size of preprocessed output.
-max_output_bytes = "8mb"
 
 [output.event_navigation]
 # Analyze code that sends and receives events and how values flow, and show it in navigation results.
@@ -747,8 +653,8 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# When the MCP server indexes this workspace. "auto" starts on the first search, read or grep,
-# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
+# When the MCP server indexes this workspace. "auto" hydrates an existing current-format index at start
+# or starts on the first search, read or grep, only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
 # Other folders, such as one holding several repositories, are not indexed; search says why.
 # "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
 # Commented so that a global setting applies.
@@ -763,10 +669,6 @@ path = ".codemap/index"
 # Maximum size of an indexed file. Larger files are still available to read/find/grep.
 # Raising it can increase CPU, memory, and disk use.
 max_file_bytes = "1mb"
-
-# Also store reference locations other than function calls.
-# Files already indexed pick up the change only when their content changes.
-store_references = false
 
 [index.exclude]
 # Folders to exclude from indexing and find/grep. Files opened directly with read are not affected.
@@ -783,17 +685,6 @@ use_git_exclude = true
 # Update the index automatically when files change. If false, search refreshes it when called.
 # Restart the server after changing this.
 watch = true
-
-# Time to batch file changes, in milliseconds. Longer means fewer refreshes but slower updates.
-# Restart the server after changing this.
-watch_debounce_ms = 500
-
-# Minimum interval between refreshes when file watching is not used, in milliseconds.
-index_staleness_ms = 5000
-
-# Restart indexing on the next search if it stops (a limited number of times).
-# If false, search results stop updating until the server restarts.
-indexer_auto_restart = true
 
 [index.language_support]
 # Choose which file types to index. read/find/grep still work on files that are not indexed.
@@ -889,7 +780,7 @@ allowed_roots = []
 
 For several known windows, use `read` with `ranges: [{file_path, offset?, limit?}, ...]` (1–20 items), without top-level `file_path` or its aliases. Empty/non-array/oversized batches and conflicting top-level paths are errors. Each item uses the single-read path permissions, extension restrictions, file/output byte caps and alias precedence: `file_path` > `path` > `file` > `query`; explicit `offset`/`limit` > `start_line`/`end_line` > `start`/`end`. Camel/kebab spellings and string numerics work as in a single read. Offsets default to 1; limits default to EOF. Top-level offset/limit are not inherited.
 
-Put common `view`, `expand`, `unresolved`, `include_events`, `debug` and `include_seen` options at the top level; item-local presentation options are ignored. Each result has a path and requested-window heading (expansion may return a wider callable). Item failures appear inline without failing the batch. Duplicate history is shared with single reads, search and grep on the same connection, including earlier items in the batch; `include_seen=true` only bypasses duplicate folding, not Jev or other limits. A truncated batch names the first deferred item with a 1-based range number and 0-based `ranges` index; retry that item and the remaining suffix with fewer or narrower windows.
+Put common `view`, `expand`, `unresolved`, `include_events` and `include_seen` options at the top level; item-local presentation options are ignored. Each result has a path and requested-window heading (expansion may return a wider callable). Item failures appear inline without failing the batch. Duplicate history is shared with single reads, search and grep on the same connection, including earlier items in the batch; `include_seen=true` only bypasses duplicate folding, not Jev or other limits. A truncated batch names the first deferred item with a 1-based range number and 0-based `ranges` index; retry that item and the remaining suffix with fewer or narrower windows.
 
 These are request arguments, not persistent TOML settings. Content-mode `grep` defaults to callable expansion; `read` keeps its requested line window by default. `search.caller_context` retains its independent meaning.
 
@@ -1153,43 +1044,24 @@ Legacy root keys and sections remain readable. A canonical spelling in the same 
 | Legacy path | Canonical path |
 |---|---|
 | `tool_output.is_redact_enabled` | `output.is_redact_enabled` |
-| `search.result_threshold` | `output.search.detail_file_limit` |
-| `search.search_overview_file_limit` | `output.search.overview_file_limit` |
-| `search.search_detail_snippet_max_lines` | `output.search.snippet_max_lines` |
-| `search.search_detail_symbol_limit` | `output.search.symbol_limit` |
 | `search.search_detail_byte_cap` | `output.search.max_bytes` |
-| `search.search_literal_max_len` | `output.search.literal_max_chars` |
-| `search.search_literal_limit` | `output.search.literal_limit` |
-| `search.search_anchor_snippet_limit` | `output.search.anchor_snippet_limit` |
 | `tool_output.read_output_byte_cap` | `output.read.max_bytes` |
-| `tool_output.grep_max_columns` | `output.grep.max_columns` |
 | `caller_context.caller_context_default` | `output.context.is_enabled` |
-| `caller_context.caller_list_cap` | `output.context.caller_limit` |
-| `caller_context.callee_list_cap` | `output.context.callee_limit` |
-| `caller_context.annotation_sub_budget` | `output.context.max_bytes` |
-| `caller_context.common_name_threshold` | `output.context.common_name_threshold` |
-| `caller_context.caller_omit_def_threshold` | `output.context.caller_omit_def_threshold` |
 | `index.index_path` | `index.path` |
 | `index.max_file_size` | `index.max_file_bytes` |
-| `caller_context.navigation_store_references` | `index.store_references` |
 | `refresh.watch` | `index.refresh.watch` |
-| `refresh.watch_debounce_ms` | `index.refresh.watch_debounce_ms` |
-| `refresh.index_staleness_ms` | `index.refresh.index_staleness_ms` |
-| `refresh.indexer_auto_restart` | `index.refresh.indexer_auto_restart` |
 | `language_support.is_document_support_enabled` | `index.language_support.is_document_support_enabled` |
 | `language_support.is_shell_support_enabled` | `index.language_support.is_shell_support_enabled` |
 | `language_support.is_infrastructure_support_enabled` | `index.language_support.is_infrastructure_support_enabled` |
 | `language_support.is_interface_support_enabled` | `index.language_support.is_interface_support_enabled` |
 | `language_support.is_build_support_enabled` | `index.language_support.is_build_support_enabled` |
-| `caller_context.navigation_context_default` | `output.navigation.is_enabled` |
-| `caller_context.navigation_callsite_budget` | `output.navigation.callsite_budget` |
-| `caller_context.scan_cap` | `output.navigation.scan_limit` |
 | `redact.*` | `output.redact.*` |
 | `macro_expansion.*` | `output.macro_expansion.*` |
 | `event_navigation.*` | `output.event_navigation.*` |
-| `analysis.navigation.*` (v18) | `output.navigation.*` |
 | `analysis.macro_expansion.*` (v18) | `output.macro_expansion.*` |
 | `analysis.event_navigation.*` (v18) | `output.event_navigation.*` |
+
+Schema v34 retires internal tuning knobs (`output.search.{detail_file_limit,overview_file_limit,snippet_max_lines,symbol_limit,literal_max_chars,literal_limit,anchor_snippet_limit}`, `output.context.{caller_limit,callee_limit,max_bytes,common_name_threshold,caller_omit_def_threshold}`, `output.navigation.*`, `output.grep.max_columns`, `output.macro_expansion.{nasm_path,nasm_flags,timeout_ms,max_output_bytes}`, `index.store_references`, `index.refresh.{watch_debounce_ms,index_staleness_ms,indexer_auto_restart}`) and removes them from synced repository configs while preserving user notes; unmigrated files containing retired keys warn and use compiled-in defaults.
 
 ### Search display compaction and grouped grep source
 

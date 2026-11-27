@@ -23,6 +23,12 @@ APP = Path(__file__).resolve().parents[1]
 DATA = APP / "validation"
 FIXTURES = APP / "tests/fixtures/public_validation"
 EXCLUDED_PARTS = {"vendor", "vendored", "node_modules", "target", "third_party", "third-party", "dist", "build"}
+# The server folds source it already returned in a session. The checks compare content, so they ask for it again.
+SOURCE_TOOLS = {"search", "read", "grep"}
+RESULTS = "\n### results\n"
+# grep rows as path:line:text, without the declaration context of the default view.
+SOURCE_ROWS = {"expand": "none", "view": "source"}
+DECLARATION = re.compile(r"^\s*- (.+) \[([^\],]+)(?:, ([^\]]*))?\] — L(\d+)-(\d+)$", re.M)
 
 
 def command(args, cwd=None, **kwargs):
@@ -36,6 +42,27 @@ def save_json(path, value):
 
 def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def declarations(text, path):
+    """Rows of read's definitions view as (name, kind, first line, last line, is_local).
+
+    Functions and methods both come back as "fn", the kind the independent parsers report.
+    is_local marks a declaration inside a function body.
+    """
+    rows = {}
+    for signature, kind, labels, start, end in DECLARATION.findall(text):
+        name = signature
+        if kind in {"function", "method"}:
+            if path.endswith(".go"):
+                # Go rows carry the receiver, parameters and result: (*T).Name(args) result.
+                name = re.match(r"(?:\([^)]*\)\.)?([^\s(]+)", signature)[1]
+            kind = "fn"
+        elif kind in {"field", "variable", "const"}:
+            name = signature.split(" ", 1)[0]
+        # A file read in windows repeats the declarations that enclose each window.
+        rows[(name, kind, int(start), int(end), "local" in (labels or "").split(", "))] = None
+    return list(rows)
 
 
 def tracked_files(root):
@@ -94,6 +121,7 @@ class McpClient:
 
     def __init__(self, binary, root, output, timeout=120):
         self.started = time.monotonic()
+        self.root = Path(root)
         output.mkdir(parents=True, exist_ok=True)
         self.log = (output / "mcp.jsonl").open("a")
         self.stderr = (output / "server.stderr.log").open("a")
@@ -149,6 +177,8 @@ class McpClient:
         return response, elapsed
 
     def tool(self, name, arguments):
+        if name in SOURCE_TOOLS:
+            arguments = {"include_seen": True, **arguments}
         response, elapsed = self.request("tools/call", {"name": name, "arguments": arguments})
         if "error" in response:
             return json.dumps(response["error"], ensure_ascii=False), elapsed, True
@@ -156,11 +186,33 @@ class McpClient:
         text = "\n".join(item.get("text", "") for item in result.get("content", []) if item.get("type") == "text")
         return text, elapsed, bool(result.get("isError"))
 
+    def definitions(self, path):
+        """read's definitions view of a whole file, as (text, elapsed ms, is_error).
+
+        The output limit counts the source lines of the requested window, not the rows returned,
+        so a file over the limit is read in windows and the outputs are joined.
+        """
+        text, elapsed, error = self.tool("read", {"file_path": path, "view": "definitions"})
+        limit = re.search(r"exceeds the maximum of (\d+) bytes", text) if error else None
+        if not limit:
+            return text, elapsed, error
+        source = (self.root / path).read_bytes()
+        lines = source.count(b"\n") + 1
+        window = max(1, lines * int(limit[1]) // (2 * len(source)))
+        parts = []
+        for offset in range(1, lines + 1, window):
+            part, spent, error = self.tool("read", {"file_path": path, "view": "definitions", "offset": offset, "limit": window})
+            elapsed += spent
+            if error:
+                return part, elapsed, True
+            parts.append(part)
+        return "\n".join(parts), elapsed, False
+
     def ready(self, path, timeout=300):
         started = time.monotonic()
         while time.monotonic() - started < timeout:
-            text, _, error = self.tool("overview", {"path": path})
-            if not error and text.startswith(f"# Detailed Codemap: {path} ") and "## Symbols" in text:
+            text, _, error = self.definitions(path)
+            if not error and f"## 1. {path}\n" in text and declarations(text, path):
                 return round(time.monotonic() - self.started, 3)
             time.sleep(0.5)
         raise TimeoutError(f"Index did not become ready for {path}: {text[:400]}")
@@ -190,11 +242,14 @@ class McpClient:
         self.close()
 
 
-def write_config(root, profile):
+def write_config(root, profile, include_tests=False):
     config = (DATA / "config.toml").read_text()
     if profile == "structural":
         config = config.replace("navigation_context_default = false", "navigation_context_default = true")
         config = config.replace("navigation_store_references = false", "navigation_store_references = true")
+    if include_tests:
+        # The definitions view leaves out test code unless this is set; the parsers list every function.
+        config = config.replace("should_include_test_code = false", "should_include_test_code = true")
     path = root / ".codemap/config.toml"
     path.parent.mkdir(exist_ok=True)
     path.write_text(config)
@@ -246,18 +301,33 @@ def rust_oracle(path):
     return {"declarations": declarations, "calls": calls}
 
 
-def symbol_context(text, path, start):
-    lines = text.split("\n# results\n", 1)[0].splitlines()
+def symbol_context(text, path, start, relation=None):
+    """The declaration row of `path` that starts at line `start`, with the rows listed under it.
+
+    With `relation` ("callers", "calls", "references"), only the rows under that relation's heading row.
+    """
+    section = re.search(r"^## \d+\. " + re.escape(path) + r"\n(.*?)(?=^## \d+\. |\Z)", text.split(RESULTS, 1)[0], re.M | re.S)
+    lines = section[1].splitlines() if section else []
     for index, line in enumerate(lines):
-        if re.search(r"\[[^\]]+\] — " + re.escape(path) + rf":{start}-\d+", line):
+        if re.search(rf"\[[^\]]+\] — L{start}-\d+$", line):
             indent = len(line) - len(line.lstrip())
             end = index + 1
             while end < len(lines):
                 candidate = lines[end]
-                if len(candidate) - len(candidate.lstrip()) <= indent and re.search(r"\[[^\]]+\] — ", candidate):
+                if candidate.strip() and len(candidate) - len(candidate.lstrip()) <= indent:
                     break
                 end += 1
-            return "\n".join(lines[index:end])
+            if relation is None:
+                return "\n".join(lines[index:end])
+            block = lines[index + 1:end]
+            for first, row in enumerate(block):
+                if row.lstrip().startswith(f"- _{relation} ("):
+                    depth = len(row) - len(row.lstrip())
+                    last = first + 1
+                    while last < len(block) and len(block[last]) - len(block[last].lstrip()) > depth:
+                        last += 1
+                    return "\n".join(block[first:last])
+            return ""
     return ""
 
 
@@ -270,7 +340,7 @@ class Checks:
 
     def query(self, name, tool, arguments, contains=(), excludes=(), category=None, section=None):
         text, elapsed, error = self.client.tool(tool, arguments)
-        checked = text.split("\n# results\n", 1)[0] if section == "symbols" else text
+        checked = text.split(RESULTS, 1)[0] if section == "symbols" else text
         if isinstance(section, tuple):
             checked = symbol_context(text, *section)
         has_section = not isinstance(section, tuple) or bool(checked)
@@ -307,10 +377,11 @@ def validate_file(checks, spec, path, oracle_binary, output, read_live=True):
     source = (checks.root / path).read_bytes()
     oracle = rust_oracle(checks.root / path) if spec["language"] == "Rust" else json.loads(command([str(oracle_binary), str(checks.root / path)]))
     save_json(output / "oracle" / (path.replace("/", "__") + ".json"), {"file_sha256": hashlib.sha256(source).hexdigest(), **oracle})
-    text, elapsed, error = checks.client.tool("overview", {"path": path})
+    text, elapsed, error = checks.client.definitions(path)
     expected = {(item["name"], item["start"], item["end"]) for item in oracle["declarations"]}
-    actual = {(name, int(start), int(end)) for name, start, end in re.findall(r"^- (\S+) \(fn\) \[L(\d+)-(\d+)\]$", text, re.M)}
-    checks.record(f"overview:{path}", "declaration_ranges", not error and expected == actual, {
+    # The parsers list exported declarations and those outside function bodies.
+    actual = {(name, start, end) for name, kind, start, end, is_local in declarations(text, path) if kind == "fn" and not is_local}
+    checks.record(f"definitions:{path}", "declaration_ranges", not error and expected == actual, {
         "file": path, "expected_count": len(expected), "actual_count": len(actual),
         "missing": sorted(expected - actual), "unexpected": sorted(actual - expected), "protocol_error": error,
         "oracle": "rust-analyzer parse --json" if spec["language"] == "Rust" else "go/parser",
@@ -321,7 +392,7 @@ def validate_file(checks, spec, path, oracle_binary, output, read_live=True):
         start, limit = first["start"], min(8, first["end"] - first["start"] + 1)
         text, elapsed, error = checks.client.tool("read", {"file_path": path, "offset": start, "limit": limit})
         expected_lines = list(enumerate(source.decode().splitlines()[start - 1:start - 1 + limit], start))
-        actual_lines = [(int(line), content) for line, content in re.findall(r"^\s*(\d+)→(.*)$", text.split("\n# results\n", 1)[-1], re.M)]
+        actual_lines = [(int(line), content) for line, content in re.findall(r"^\s*(\d+)→(.*)$", text.split(RESULTS, 1)[-1], re.M)]
         checks.record(f"read:{path}", "live_content", not error and actual_lines == expected_lines, {"file": path, "offset": start, "limit": limit, "matches_source": actual_lines == expected_lines}, elapsed)
     return oracle
 
@@ -401,12 +472,12 @@ def validate_probes(checks, probe, language):
     path, directory = probe["file"], probe["directory"]
     target_args = {"file_path": path, "offset": probe["target_line"], "limit": 1}
     checks.query("callers:syntax-and-tests", "read", target_args,
-        contains=[f"{probe['caller']} ({path}:{probe['caller_line']})"],
+        contains=[f"{probe['caller']} (L{probe['caller_line']})"],
         excludes=[f"{probe['string']} (", f"{probe['comment']} (", f"{probe['test']} ("], category="callers", section=(path, probe["target_line"]))
     checks.query("calls:definition-location", "read", {"file_path": path, "offset": probe["caller_line"], "limit": 1},
-        contains=[f"{probe['target']} — {path}:{probe['target_line']}"], category="callees", section=(path, probe["caller_line"]))
+        contains=[f"{probe['target']} — L{probe['target_line']}"], category="callees", section=(path, probe["caller_line"]))
     checks.query("references:same-file-constant", "read", target_args,
-        contains=[f"{probe['constant']}", f"{path}:{probe['constant_line']}"], category="references")
+        contains=[f"{probe['constant']} — L{probe['constant_line']}"], category="references", section=(path, probe["target_line"]))
     checks.query("references:cross-file-constant", "read", {"file_path": path, "offset": probe["imported_line"], "limit": 1},
         contains=[f"CM_VALIDATION_IMPORTED — {directory}/constants{Path(path).suffix}:{1 if language == 'Rust' else 2}"], category="reference_coverage", section=(path, probe["imported_line"]))
     pattern = re.escape(probe["target"]) + r"\("
@@ -414,20 +485,22 @@ def validate_probes(checks, probe, language):
     matches = [(i, line) for i, line in enumerate(source, 1) if re.search(pattern, line)]
     for mode in ("content", "files_with_matches", "count"):
         arguments = {"path": path, "pattern": pattern, "output_mode": mode, "head_limit": 0}
-        text, elapsed, error = checks.client.tool("grep", arguments)
-        raw = text.split("\n# results\n", 1)[-1].strip()
         if mode == "content":
-            actual = [(int(line), value) for line, value in re.findall(re.escape(path) + r":(\d+):(.*)", raw)]
+            arguments.update(SOURCE_ROWS)
+        text, elapsed, error = checks.client.tool("grep", arguments)
+        raw = text.strip()
+        if mode == "content":
+            actual = [(int(line), value) for line, value in re.findall("^" + re.escape(path) + r":(\d+):(.*)", raw, re.M)]
             passed = actual == matches
         elif mode == "files_with_matches":
-            passed = [line for line in raw.splitlines() if line.endswith(Path(path).suffix)] == [path] and "# symbols" not in text
+            passed = [line for line in raw.splitlines() if line.endswith(Path(path).suffix)] == [path] and "\n## " not in text
         else:
-            passed = f"{path}:{len(matches)}" in raw and "# symbols" not in text
+            passed = f"{path}:{len(matches)}" in raw and "\n## " not in text
         checks.record(f"grep:{mode}", "live_content", not error and passed, {"arguments": arguments, "expected_matches": len(matches), "protocol_error": error, "raw_output": raw if mode != "content" else None}, elapsed)
     pages = []
     for offset in range(len(matches)):
-        text, _, error = checks.client.tool("grep", {"path": path, "pattern": pattern, "head_limit": 1, "offset": offset})
-        pages.extend((int(line), value) for line, value in re.findall(re.escape(path) + r":(\d+):(.*)", text.split("\n# results\n", 1)[-1]))
+        text, _, error = checks.client.tool("grep", {"path": path, "pattern": pattern, "head_limit": 1, "offset": offset, **SOURCE_ROWS})
+        pages.extend((int(line), value) for line, value in re.findall("^" + re.escape(path) + r":(\d+):(.*)", text, re.M))
         if error:
             break
     checks.record("grep:pagination", "live_content", pages == matches, {"pages": len(matches), "exact_ordered_matches": pages == matches})
@@ -500,9 +573,10 @@ def validate_refresh(checks, probe):
             file.unlink()
         else:
             file.write_text(source)
-        good, elapsed, text = wait_condition(checks.client, "overview", {"path": path},
-            lambda text, error: (present in text and not error and absent not in text) if present else (absent not in text and not text.startswith("# Detailed Codemap:") and not re.search(r"Total Files\*\*: [1-9]", text)))
-        checks.record(f"refresh:{phase}:overview", "refresh", good, {"path": path, "expected_symbol": present, "removed_symbol": absent, "last_output": text if not good else None}, elapsed)
+        # A deleted file has no declaration outline: read reports that it cannot be read.
+        good, elapsed, text = wait_condition(checks.client, "read", {"file_path": path, "view": "definitions"},
+            lambda text, error: (not error and present in {row[0] for row in declarations(text, path)} and absent not in text) if present else (error and absent not in text))
+        checks.record(f"refresh:{phase}:definitions", "refresh", good, {"path": path, "expected_symbol": present, "removed_symbol": absent, "last_output": text if not good else None}, elapsed)
         expected_name = present or absent
         good, elapsed, text = wait_condition(checks.client, "search", {"query": expected_name, "workspace_scope": "all", "caller_context": False},
             lambda text, error: not error and ((path in text and present in text) if present else path not in text))
@@ -527,6 +601,7 @@ def validate_profile(args, spec, profile, qualification, oracle_binary, output_r
         if cancelled.is_set():
             raise RuntimeError("Validation cancelled")
         print(f"{label}: fresh index, {root}", flush=True)
+        write_config(root, profile, include_tests=True)
         with McpClient(args.binary, root, output) as client:
             result["cold_index_seconds"] = client.ready(spec["files"][0], timeout=args.index_timeout)
             checks = Checks(client, root)
@@ -537,6 +612,10 @@ def validate_profile(args, spec, profile, qualification, oracle_binary, output_r
             result["sample_files"] = sampled_files(root, spec, qualification)
             for path in result["sample_files"]:
                 validate_file(checks, spec, path, oracle_binary, output, read_live=False)
+        write_config(root, profile)
+        with McpClient(args.binary, root, output) as client:
+            client.ready(spec["files"][0], timeout=args.index_timeout)
+            checks.client = client
             for case in spec["cases"]:
                 checks.case(case)
             validate_find(checks, spec)
@@ -642,6 +721,15 @@ def result_has_issues(result):
     return bool(result.get("error") or result.get("tracked_changes") or any(check["status"] != "pass" for check in result["checks"]))
 
 
+def create_regressions(root, language, skip=()):
+    """Copy the language's examples of fixed defects into the worktree and return their checks."""
+    examples = FIXTURES / language
+    if not (examples / "cases.json").is_file():
+        return []
+    shutil.copytree(examples, root / "_codemap_language_regressions", ignore=shutil.ignore_patterns("cases.json", *skip))
+    return json.loads((examples / "cases.json").read_text())
+
+
 def run_regressions(args, output_root):
     results = []
     for language, filename, cases in (
@@ -655,6 +743,7 @@ def run_regressions(args, output_root):
             root = output / "source"
             root.mkdir(parents=True)
             shutil.copy(FIXTURES / language / filename, root / filename)
+            regressions = create_regressions(root, language, skip=(filename,))
             write_config(root, profile)
             with McpClient(args.binary, root, output) as client:
                 client.ready(filename)
@@ -662,7 +751,9 @@ def run_regressions(args, output_root):
                 for name, line, excludes in cases:
                     checks.query(name, "read", {"file_path": filename, "offset": line, "limit": 1}, excludes=excludes, category="wrong_caller" if name == "atomic-caller" else "wrong_callee", section=(filename, line))
                 if language == "go":
-                    checks.query("implicit-constant", "read", {"file_path": filename, "offset": 31, "limit": 3}, contains=["ImplicitValue — probe.go:28"], category="references", section=(filename, 31))
+                    checks.query("implicit-constant", "read", {"file_path": filename, "offset": 31, "limit": 3}, contains=["ImplicitValue — L28"], category="references", section=(filename, 31))
+                for case in regressions:
+                    checks.case(case)
                 results.append({"language": language, "profile": profile, "checks": checks.results})
                 save_json(output / "results.json", results[-1])
     return results
@@ -738,7 +829,7 @@ def main():
     query_parser = sub.add_parser("query", help="Call any navigation tool against an existing validation worktree")
     query_parser.add_argument("--root", type=Path, required=True)
     query_parser.add_argument("--ready-file")
-    query_parser.add_argument("tool", choices=["overview", "search", "read", "grep", "find"])
+    query_parser.add_argument("tool", choices=["search", "read", "grep", "find", "analyze", "initial_instructions"])
     query_parser.add_argument("arguments", type=json.loads)
     args = parser.parse_args()
     args.cache = args.cache.expanduser().resolve()

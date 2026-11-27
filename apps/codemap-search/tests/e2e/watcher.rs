@@ -14,8 +14,6 @@ use std::time::Duration;
 
 /// Repo config that leaves only the watcher able to refresh (see module docs).
 const WATCHER_ONLY_CONFIG: &str = "\
-index_staleness_ms = 3600000
-watch_debounce_ms = 100
 [language_support]
 is_shell_support_enabled = true
 is_infrastructure_support_enabled = true
@@ -605,10 +603,7 @@ async fn test_watch_false_preserves_request_triggered_refresh() {
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn find_me() {}"),
         // Watcher off + near-zero debounce: the pre-watcher lazy behavior, verbatim.
-        (
-            ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
-        ),
+        (".codemap/config.toml", "watch = false\n"),
     ])
     .unwrap();
 
@@ -1045,8 +1040,9 @@ async fn test_lsr_007_watcher_covers_supported_priority_inputs() {
 async fn test_watcher_does_not_index_repo_local_custom_index() {
     let temp = create_mock_repo(&[
         ("source.json", r#"{"value": "watcher_source"}"#),
-        (".codemap/config.toml", "index_path = \"search-index\"\nindex_staleness_ms = 3600000\nwatch_debounce_ms = 100\n"),
-    ]).unwrap();
+        (".codemap/config.toml", "index_path = \"search-index\"\n"),
+    ])
+    .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     client
         .send_tool_until(

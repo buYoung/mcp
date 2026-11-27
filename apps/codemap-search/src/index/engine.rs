@@ -444,6 +444,51 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
     Box::new(policy)
 }
 
+/// Keep one entry per canonical `rel_path`, preferring a real file over a symlink when both
+/// point to the same source. Duplicate paths in one batch would delete an earlier segment's copy
+/// and trigger Tantivy's lossy fieldnorm token-count re-estimation on merge.
+fn dedup_index_entries(entries: &mut Vec<(String, PathBuf, u64)>) {
+    let mut index_by_path: HashMap<String, usize> = HashMap::with_capacity(entries.len());
+    let mut deduped: Vec<(String, PathBuf, u64)> = Vec::with_capacity(entries.len());
+    for entry in entries.drain(..) {
+        if let Some(&existing) = index_by_path.get(&entry.0) {
+            let existing_is_symlink = deduped[existing]
+                .1
+                .symlink_metadata()
+                .is_ok_and(|metadata| metadata.file_type().is_symlink());
+            let candidate_is_symlink = entry
+                .1
+                .symlink_metadata()
+                .is_ok_and(|metadata| metadata.file_type().is_symlink());
+            if existing_is_symlink && !candidate_is_symlink {
+                deduped[existing] = entry;
+            }
+        } else {
+            let pos = deduped.len();
+            index_by_path.insert(entry.0.clone(), pos);
+            deduped.push(entry);
+        }
+    }
+    *entries = deduped;
+}
+
+/// Whether a pass writing `written` files into an index of `stored` documents rewrites most of
+/// it, as a first build or a re-extraction does. Such a pass ends with one segment: how many
+/// segments the writer threads leave otherwise depends on when their buffers filled, and every
+/// search and stored-document read pays for each of them.
+fn is_bulk_pass(written: usize, stored: u64) -> bool {
+    written > 0 && written as u64 >= stored
+}
+
+/// Merge every segment of `index` into one. `writer` must have no merge running.
+fn merge_into_one_segment(index: &Index, writer: &mut tantivy::IndexWriter) -> tantivy::Result<()> {
+    let segments = index.searchable_segment_ids()?;
+    if segments.len() > 1 {
+        writer.merge(&segments).wait()?;
+    }
+    Ok(())
+}
+
 /// Current extraction-format version. Bump whenever the `ExtractedFile` JSON shape changes
 /// in a way that requires re-extracting on-disk source (not just a serde-compatible add).
 /// `v2` introduced `ExtractedSymbol.owner`: the field is serde-default-compatible (old docs
@@ -499,7 +544,13 @@ fn merge_policy() -> Box<dyn tantivy::indexer::MergePolicy> {
 // v43 compresses stored payloads with zstd, stores event source digests instead of their text,
 // drops stored flow summaries and unread stored fields, and adds fast fields for paths, mtimes
 // and content and payload hashes.
-const EXTRACTION_FORMAT_VERSION: &str = "v43-compact-store";
+// v44 re-extracts Kotlin files: a primary constructor that starts on the line after the class
+// name no longer ends the class at its name.
+// v45 re-extracts C#, PHP, Ruby and Lua files: a declaration whose only recovery nodes lie in
+// its body is kept.
+// v48 records which type declarations are parts of one type.
+// v49 records which methods are visible only inside their package or library.
+const EXTRACTION_FORMAT_VERSION: &str = "v55-multi-language-navigation";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -903,83 +954,128 @@ impl TantivySearchEngine {
         let mut loaded = HashMap::new();
 
         // Every live document with no limit, so the mtime map is never silently truncated on
-        // large repos (which would corrupt delete detection).
+        // large repos (which would corrupt delete detection). Decode stored entries in parallel
+        // across cores during initial hydration so warm-up does not stall on one thread.
+        let threads = crate::parallel::threads();
         for segment in searcher.segment_readers() {
-            let columns = DocumentColumns::open(segment)?;
-            let mut store = None;
+            let live_docs: Vec<tantivy::DocId> = (0..segment.max_doc())
+                .filter(|&doc_id| !segment.is_deleted(doc_id))
+                .collect();
             let mut segment_entries = Vec::new();
             if should_load_entries {
                 segment_entries.resize_with(segment.max_doc() as usize, || None);
             }
-            for doc_id in 0..segment.max_doc() {
-                if segment.is_deleted(doc_id) {
-                    continue;
+            if live_docs.is_empty() {
+                if should_load_entries {
+                    loaded.insert(segment.segment_id(), segment_entries);
                 }
-                let path = columns.path(doc_id).filter(|path| !path.is_empty());
-                let is_native = path
-                    .as_deref()
-                    .is_some_and(|path| super::preprocess::is_eligible(Path::new(path)));
-                let doc =
-                    if should_load_entries || is_native {
-                        let store = match &mut store {
-                            Some(store) => store,
-                            None => store.insert(segment.get_store_reader(1).map_err(|error| {
-                                format!("indexed mtime document read failed: {error}")
-                            })?),
-                        };
-                        Some(store.get::<TantivyDocument>(doc_id).map_err(|error| {
-                            format!("indexed mtime document read failed: {error}")
-                        })?)
-                    } else {
-                        None
-                    };
-                let json = doc
-                    .as_ref()
-                    .and_then(|doc| doc.get_first(self.extracted_json_field))
-                    .and_then(|value| value.as_str());
-                let stored = json
-                    .filter(|_| should_load_entries)
-                    .and_then(|json| serde_json::from_str::<StoredExtractedFile>(json).ok());
-                let mtime = columns.mtime(doc_id);
-                if let (Some(path), Some(mtime)) = (path, mtime) {
-                    if is_native {
-                        let inputs =
-                            match &stored {
-                                Some(stored) => stored.extracted.macro_expansion().map(|info| {
-                                    RecordedExpansion {
-                                        inputs: info.inputs.clone(),
-                                        is_expanded: info.is_expanded(),
-                                    }
-                                }),
-                                None => json
-                                    .and_then(|json| {
-                                        serde_json::from_str::<StoredMacroInputs>(json).ok()
-                                    })
-                                    .and_then(|stored| stored.navigation?.macro_expansion)
-                                    .map(|stored| RecordedExpansion {
-                                        inputs: stored.inputs,
-                                        is_expanded: stored.active_lines.is_some(),
-                                    }),
+                continue;
+            }
+            let chunk_size = if should_load_entries {
+                live_docs.len().div_ceil(threads.max(1)).max(1)
+            } else {
+                live_docs.len()
+            };
+            let runs: Vec<&[tantivy::DocId]> = live_docs.chunks(chunk_size).collect();
+            let extracted_json_field = self.extracted_json_field;
+            let path_display = &self.path_display;
+            let run_results = crate::parallel::map_in_order(
+                &runs,
+                if should_load_entries { threads } else { 1 },
+                || (),
+                |(),
+                 docs|
+                 -> Result<
+                    (
+                        Vec<(String, IndexedStamp)>,
+                        Vec<(String, RecordedExpansion)>,
+                        Vec<(tantivy::DocId, DecodedEntry)>,
+                    ),
+                    String,
+                > {
+                    let columns = DocumentColumns::open(segment)?;
+                    let mut store = None;
+                    let mut chunk_stamps = Vec::with_capacity(docs.len());
+                    let mut chunk_macros = Vec::new();
+                    let mut chunk_entries = Vec::new();
+                    for &doc_id in *docs {
+                        let path = columns.path(doc_id).filter(|path| !path.is_empty());
+                        let is_native = path
+                            .as_deref()
+                            .is_some_and(|path| super::preprocess::is_eligible(Path::new(path)));
+                        let doc = if should_load_entries || is_native {
+                            let store = match &mut store {
+                                Some(store) => store,
+                                None => {
+                                    store.insert(segment.get_store_reader(1).map_err(|error| {
+                                        format!("indexed mtime document read failed: {error}")
+                                    })?)
+                                }
                             };
-                        if let Some(inputs) = inputs {
-                            macro_inputs.insert(path.clone(), inputs);
+                            Some(store.get::<TantivyDocument>(doc_id).map_err(|error| {
+                                format!("indexed mtime document read failed: {error}")
+                            })?)
+                        } else {
+                            None
+                        };
+                        let json = doc
+                            .as_ref()
+                            .and_then(|doc| doc.get_first(extracted_json_field))
+                            .and_then(|value| value.as_str());
+                        let stored = json.filter(|_| should_load_entries).and_then(|json| {
+                            serde_json::from_str::<StoredExtractedFile>(json).ok()
+                        });
+                        let mtime = columns.mtime(doc_id);
+                        if let (Some(path), Some(mtime)) = (path, mtime) {
+                            if is_native {
+                                let inputs = match &stored {
+                                    Some(stored) => {
+                                        stored.extracted.macro_expansion().map(|info| {
+                                            RecordedExpansion {
+                                                inputs: info.inputs.clone(),
+                                                is_expanded: info.is_expanded(),
+                                            }
+                                        })
+                                    }
+                                    None => json
+                                        .and_then(|json| {
+                                            serde_json::from_str::<StoredMacroInputs>(json).ok()
+                                        })
+                                        .and_then(|stored| stored.navigation?.macro_expansion)
+                                        .map(|stored| RecordedExpansion {
+                                            inputs: stored.inputs,
+                                            is_expanded: stored.active_lines.is_some(),
+                                        }),
+                                };
+                                if let Some(inputs) = inputs {
+                                    chunk_macros.push((path.clone(), inputs));
+                                }
+                            }
+                            let content_hash = columns.content_hash(doc_id);
+                            chunk_stamps.push((
+                                path,
+                                IndexedStamp {
+                                    mtime,
+                                    content_hash,
+                                },
+                            ));
+                        }
+                        if let Some(stored) = stored {
+                            chunk_entries.push((
+                                doc_id,
+                                DecodedEntry::decoded(columns.stamps(doc_id), stored, path_display),
+                            ));
                         }
                     }
-                    let content_hash = columns.content_hash(doc_id);
-                    map.insert(
-                        path,
-                        IndexedStamp {
-                            mtime,
-                            content_hash,
-                        },
-                    );
-                }
-                if let Some(stored) = stored {
-                    segment_entries[doc_id as usize] = Some(DecodedEntry::decoded(
-                        columns.stamps(doc_id),
-                        stored,
-                        &self.path_display,
-                    ));
+                    Ok((chunk_stamps, chunk_macros, chunk_entries))
+                },
+            );
+            for run in run_results {
+                let (chunk_stamps, chunk_macros, chunk_entries) = run?;
+                map.extend(chunk_stamps);
+                macro_inputs.extend(chunk_macros);
+                for (doc_id, entry) in chunk_entries {
+                    segment_entries[doc_id as usize] = Some(entry);
                 }
             }
             if should_load_entries {
@@ -1158,10 +1254,13 @@ type FileExtraction = std::io::Result<(
     Result<(ExtractedFile, crate::parser::IndexAuxiliary), String>,
 )>;
 
-/// `files` with their extractions, in the order given. Each batch is read and extracted on up
-/// to `threads` threads, so the order of documents in the writer does not depend on timing.
+/// `files` with their extractions, in the order given. Each batch is read, extracted, and
+/// macro-expanded on up to `threads` threads, so the order of documents in the writer does not
+/// depend on timing.
 fn extract_in_order<'a>(
     extractor: &'a crate::parser::TreeSitterExtractor,
+    root: &'a Path,
+    macro_config: &'a crate::config::MacroExpansionConfig,
     files: Vec<(String, PathBuf, u64)>,
     threads: usize,
 ) -> impl Iterator<Item = ((String, PathBuf, u64), FileExtraction)> + 'a {
@@ -1170,7 +1269,7 @@ fn extract_in_order<'a>(
     std::iter::from_fn(move || {
         if extracted.is_empty() {
             let batch: Vec<_> = files.by_ref().take(EXTRACTION_BATCH_FILES).collect();
-            let extractions = extract_batch(extractor, &batch, threads);
+            let extractions = extract_batch(extractor, root, macro_config, &batch, threads);
             extracted.extend(batch.into_iter().zip(extractions));
         }
         extracted.pop_front()
@@ -1179,16 +1278,32 @@ fn extract_in_order<'a>(
 
 fn extract_batch(
     extractor: &crate::parser::TreeSitterExtractor,
+    root: &Path,
+    macro_config: &crate::config::MacroExpansionConfig,
     files: &[(String, PathBuf, u64)],
     threads: usize,
 ) -> Vec<FileExtraction> {
     crate::parallel::map_in_order(
         files,
         threads,
-        || (),
-        |(), (rel_path, disk_path, _)| {
+        || super::MacroExpander::new(root, macro_config.clone()),
+        |macro_expander, (rel_path, disk_path, _)| {
             std::fs::read_to_string(disk_path).map(|content| {
-                let extraction = extractor.extract_for_index(&content, rel_path);
+                let extraction = extractor.extract_for_index(&content, rel_path).map(
+                    |(mut extracted, mut auxiliary)| {
+                        if let Some(expanded_auxiliary) =
+                            macro_expander.expand_for_index(disk_path, &content, &mut extracted)
+                        {
+                            auxiliary = expanded_auxiliary;
+                        }
+                        if extracted.is_macro_expanded() {
+                            auxiliary.static_collection_edges.clear();
+                            auxiliary.event_input = None;
+                            auxiliary.flow_file = None;
+                        }
+                        (extracted, auxiliary)
+                    },
+                );
                 (content, extraction)
             })
         },
@@ -1291,6 +1406,7 @@ impl TantivySearchEngine {
                 }
             }
         }
+        dedup_index_entries(&mut files_to_process);
 
         // Lazily snapshot the on-disk mtime map once, then read from the maintained
         // cache — avoids an `AllQuery` over the whole index on every call, which in MCP
@@ -1448,11 +1564,12 @@ impl TantivySearchEngine {
     /// commit actually landed.
     fn apply_index_updates(
         &mut self,
-        to_index: Vec<(String, PathBuf, u64)>,
+        mut to_index: Vec<(String, PathBuf, u64)>,
         to_delete: Vec<String>,
         should_reload_reader: bool,
     ) -> Result<bool, String> {
         self.is_waiting_for_writer = false;
+        dedup_index_entries(&mut to_index);
         // Return early if no updates (adds or deletes) to avoid touching index and triggering modification
         if to_index.is_empty() && to_delete.is_empty() {
             // A peer's commit may already satisfy the refreshed mtime cache. Direct
@@ -1465,8 +1582,7 @@ impl TantivySearchEngine {
 
         let extractor = crate::parser::TreeSitterExtractor::new();
         let root = crate::workspace::root_dir().unwrap_or_else(|_| PathBuf::from("."));
-        let mut macro_expander =
-            super::MacroExpander::new(&root, crate::config::get().macro_expansion.clone());
+        let macro_config = crate::config::get().macro_expansion.clone();
         let managed_path = Path::new(&self.index_path).join(".managed.json");
         let mut attempts = 0;
         let (write_index, mut writer) = loop {
@@ -1489,10 +1605,22 @@ impl TantivySearchEngine {
             // Another writer may have registered files after the list was read and before the
             // lock was taken. With the lock held the list stays put, so one more open settles it.
             if attempts == 3 || std::fs::read(&managed_path).ok() == managed_before {
-                writer.set_merge_policy(merge_policy());
                 break (write_index, writer);
             }
         };
+        let stored_documents: u64 = write_index
+            .searchable_segment_metas()
+            .map_err(|error| error.to_string())?
+            .iter()
+            .map(|segment| u64::from(segment.num_docs()))
+            .sum();
+        let is_bulk_pass = is_bulk_pass(to_index.len(), stored_documents);
+        if is_bulk_pass {
+            // The single merge after the commit replaces the stepwise ones.
+            writer.set_merge_policy(Box::new(tantivy::indexer::NoMergePolicy));
+        } else {
+            writer.set_merge_policy(merge_policy());
+        }
 
         for rel_path in &to_delete {
             let term = Term::from_field_text(self.file_path_field, rel_path);
@@ -1505,7 +1633,8 @@ impl TantivySearchEngine {
         let mut committed_macro_inputs: Vec<(String, Option<RecordedExpansion>)> = Vec::new();
         let mut encoding_excluded_paths = Vec::new();
         let threads = crate::parallel::threads();
-        for ((rel_path, disk_path, mtime), read) in extract_in_order(&extractor, to_index, threads)
+        for ((rel_path, disk_path, mtime), read) in
+            extract_in_order(&extractor, &root, &macro_config, to_index, threads)
         {
             let (content, extraction) = match read {
                 Ok(read) => read,
@@ -1526,7 +1655,7 @@ impl TantivySearchEngine {
                     continue;
                 }
             };
-            let (mut extracted, mut auxiliary) = match extraction {
+            let (extracted, auxiliary) = match extraction {
                 Ok(extracted_parts) => extracted_parts,
                 Err(e) => {
                     eprintln!(
@@ -1538,19 +1667,10 @@ impl TantivySearchEngine {
                 }
             };
 
-            if let Some(expanded_auxiliary) =
-                macro_expander.expand_for_index(&disk_path, &content, &mut extracted)
-            {
-                auxiliary = expanded_auxiliary;
+            if stored_documents > 0 {
+                let term = Term::from_field_text(self.file_path_field, &rel_path);
+                writer.delete_term(term);
             }
-            if extracted.is_macro_expanded() {
-                auxiliary.static_collection_edges.clear();
-                auxiliary.event_input = None;
-                auxiliary.flow_file = None;
-            }
-
-            let term = Term::from_field_text(self.file_path_field, &rel_path);
-            writer.delete_term(term);
 
             let mut doc = TantivyDocument::default();
             doc.add_text(self.file_path_field, &rel_path);
@@ -1659,6 +1779,11 @@ impl TantivySearchEngine {
         }
 
         writer.commit().map_err(|e| e.to_string())?;
+        if is_bulk_pass {
+            if let Err(error) = merge_into_one_segment(&write_index, &mut writer) {
+                tracing::warn!("index segments were not merged into one: {error}");
+            }
+        }
         // Still the writer, so no other process is creating segment files.
         super::segment_files::remove_orphans(&write_index, Path::new(&self.index_path));
         // Dropping a writer cancels the merges its commit started, which would leave their
@@ -2470,6 +2595,72 @@ mod tests {
     }
 
     #[test]
+    fn test_bulk_pass_covers_first_builds_and_rewrites() {
+        assert!(is_bulk_pass(1, 0));
+        assert!(is_bulk_pass(10, 10));
+        assert!(!is_bulk_pass(9, 10));
+        assert!(!is_bulk_pass(0, 0));
+    }
+
+    #[test]
+    fn test_bulk_pass_leaves_one_segment_and_small_pass_adds_one() {
+        let temp = tempdir().unwrap();
+        let index_dir = temp.path().join("index");
+        let src_dir = temp.path().join("src");
+        fs::create_dir_all(&src_dir).unwrap();
+        let write = |number: usize, name: &str| {
+            let file = src_dir.join(format!("part_{number}.rs"));
+            fs::write(&file, format!("pub fn {name}_{number}() {{}}\n")).unwrap();
+            file
+        };
+        let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        let segments = |engine: &TantivySearchEngine| {
+            engine
+                .open_for_write()
+                .unwrap()
+                .searchable_segment_metas()
+                .unwrap()
+        };
+
+        for number in 0..4 {
+            write(number, "segment_probe");
+        }
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        assert_eq!(segments(&engine).len(), 1);
+
+        // As many new files as the index holds: the second pass is a bulk pass too.
+        for number in 4..10 {
+            write(number, "segment_probe");
+        }
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        let merged = segments(&engine);
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].num_docs(), 10);
+
+        let changed = write(3, "segment_changed");
+        filetime::set_file_mtime(
+            &changed,
+            filetime::FileTime::from_unix_time(2_000_000_000, 0),
+        )
+        .unwrap();
+        engine
+            .index_files(&[&temp.path().to_string_lossy()])
+            .unwrap();
+        let after_small_pass = segments(&engine);
+        assert_eq!(after_small_pass.len(), 2);
+        assert!(after_small_pass
+            .iter()
+            .any(|segment| segment.id() == merged[0].id()));
+        assert_eq!(engine.search("segment_changed_3", 10).unwrap().len(), 1);
+        assert_eq!(engine.search("segment_probe_9", 10).unwrap().len(), 1);
+        assert!(engine.search("segment_probe_3", 10).unwrap().is_empty());
+    }
+
+    #[test]
     fn test_engine_incremental_indexing() {
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
@@ -2564,7 +2755,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v43-compact-store");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v55-multi-language-navigation");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
@@ -2612,6 +2803,39 @@ mod tests {
             1,
             "matching sidecar must not rebuild a second time"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_symlink_target_is_not_indexed_twice_or_marked_deleted() {
+        let temp = tempdir().unwrap();
+        let config = crate::config::ResolvedConfig {
+            workspace_root: Some(temp.path().to_path_buf()),
+            ..crate::config::ResolvedConfig::default()
+        };
+        let _pin = crate::config::pin_test_config(config);
+
+        let index_dir = temp.path().join("index");
+        let real_dir = temp.path().join("real");
+        let link_dir = temp.path().join("link");
+        fs::create_dir_all(&real_dir).unwrap();
+        fs::create_dir_all(&link_dir).unwrap();
+        let target = real_dir.join("target.rs");
+        fs::write(&target, "pub fn symlink_dedup_probe() {}\n").unwrap();
+        std::os::unix::fs::symlink("../real/target.rs", link_dir.join("alias.rs")).unwrap();
+
+        let mut engine = TantivySearchEngine::new(&index_dir.to_string_lossy()).unwrap();
+        engine.index_files(&["."]).unwrap();
+
+        let metas = engine
+            .open_for_write()
+            .unwrap()
+            .searchable_segment_metas()
+            .unwrap();
+        assert_eq!(metas.len(), 1);
+        assert_eq!(metas[0].num_docs(), 1);
+        assert_eq!(metas[0].num_deleted_docs(), 0);
+        assert_eq!(engine.search("symlink_dedup_probe", 10).unwrap().len(), 1);
     }
 
     #[test]

@@ -63,6 +63,7 @@ module.exports = grammar({
     [$.non_nullable_type],
     [$.function_type],
     [$._receiver_type],
+    [$.parenthesized_type],
   ],
 
   extras: $ => [
@@ -221,7 +222,7 @@ module.exports = grammar({
 
     constructor_delegation_call: $ => seq(choice('this', 'super'), $.value_arguments),
 
-    type_parameters: $ => seq('<', commaSep1($.type_parameter), '>'),
+    type_parameters: $ => seq('<', commaSep1($.type_parameter), optional(','), '>'),
 
     type_parameter: $ => seq(
       optional($.type_parameter_modifiers),
@@ -584,7 +585,7 @@ module.exports = grammar({
       ),
     ),
 
-    type_arguments: $ => seq('<', commaSep1($.type_projection), '>'),
+    type_arguments: $ => seq('<', commaSep1($.type_projection), optional(','), '>'),
 
     type_projection: $ => choice(
       seq(repeat($.variance_modifier), $.type),
@@ -605,7 +606,7 @@ module.exports = grammar({
       ')',
     ),
 
-    parenthesized_type: $ => seq('(', $.type, ')'),
+    parenthesized_type: $ => seq(optional($.type_modifiers), '(', $.type, ')'),
 
     assignment: $ => seq(
       field('left', $.expression),
@@ -940,7 +941,7 @@ module.exports = grammar({
     ),
 
     string_literal: $ => seq(
-      '"',
+      choice('"', token(seq(/\$+/, '"'))),
       repeat(choice(
         alias(choice(
           token.immediate(prec(2, seq('\\', /[^bnrt'\"\\\$]/))),
@@ -956,7 +957,7 @@ module.exports = grammar({
     ),
 
     multiline_string_literal: $ => seq(
-      '"""',
+      choice('"""', token(seq(/\$+/, '"""'))),
       repeat(choice(
         alias($._multiline_string_content, $.string_content),
         $.interpolation,

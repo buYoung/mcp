@@ -26,33 +26,40 @@ fn test_auth_diagnostics_never_print_values_or_parser_source() {
 
 #[tokio::test]
 async fn test_config_threshold_override_changes_branching() {
-    // result_threshold = 1 means 2 matches render hybrid: detail for the single top file,
-    // the other as a ranked-tail line — where the default threshold of 5 would render both
-    // in full detail. Proves config drives the detail/tail split.
-    let temp = create_mock_repo(&[
-        (".codemap/config.toml", "result_threshold = 1\n"),
-        ("src/a.rs", "fn shared_branch_fn() {}"),
-        ("src/b.rs", "fn shared_branch_fn() {}"),
-    ])
-    .unwrap();
+    // 25 matches (> built-in detail file limit of 24) render hybrid: 24 detail files plus
+    // 1 ranked-tail row.
+    let owned: Vec<(String, String)> = (0..25)
+        .map(|i| {
+            (
+                format!("src/f{i:02}.rs"),
+                "fn shared_branch_fn() {}".to_string(),
+            )
+        })
+        .collect();
+    let files: Vec<(&str, &str)> = owned
+        .iter()
+        .map(|(p, c)| (p.as_str(), c.as_str()))
+        .collect();
+    let temp = create_mock_repo(&files).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
     let res = client
-        .send_request(
-            "tools/call",
-            serde_json::json!({ "name": "search", "arguments": { "query": "shared_branch_fn" } }),
+        .send_tool_until(
+            "search",
+            serde_json::json!({ "query": "shared_branch_fn" }),
+            |t| t.contains("Other matches — 1 more files"),
         )
         .await
         .unwrap();
     let text = res["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         text.contains("Other matches — 1 more files"),
-        "threshold=1 + 2 matches should push one match into the ranked tail: {text:?}"
+        "25 matches should push one match into the ranked tail: {text:?}"
     );
     assert_eq!(
         text.matches("\n### results\n").count(),
-        1,
-        "exactly one file gets the detail view at threshold=1: {text:?}"
+        24,
+        "24 files get the detail view at the built-in threshold: {text:?}"
     );
 }
 
@@ -149,7 +156,7 @@ async fn test_use_git_exclude_scopes_to_git_info_exclude_only() {
     );
 
     // Override false: the `.git/info/exclude`-hidden file is now indexed...
-    let settings = "[update]\nconfig_auto_update = false\n[refresh]\nindex_staleness_ms = 3600000\n[exclude]\nuse_git_exclude = false\n";
+    let settings = "[update]\nconfig_auto_update = false\n[exclude]\nuse_git_exclude = false\n";
     let Some(override_repo) = make_git_repo_with_excludes(settings) else {
         return;
     };
@@ -401,11 +408,14 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let scaffolded = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            scaffolded.starts_with("# codemap-config-version: 33\n"),
+            scaffolded.starts_with("# codemap-config-version: 34\n"),
             "{scaffolded}"
         );
         assert!(scaffolded.contains("\n[output.jev]\n"), "{scaffolded}");
         assert!(!scaffolded.contains("overview_enabled"));
+        assert!(!scaffolded.contains("detail_file_limit"));
+        assert!(!scaffolded.contains("[output.navigation]"));
+        assert!(!scaffolded.contains("nasm_path"));
         assert!(scaffolded.contains("\nenabled = false\n"));
         assert!(scaffolded.contains("\nscope = [\"search\", \"read\", \"grep\"]\n"));
         assert!(!scaffolded.contains("api_key_env"));
@@ -416,8 +426,8 @@ export function dropMe(input: string): string {
         );
         drop(client);
 
-        // A v23 file gains output.jev without enabling any filter or changing its settings.
-        let original = "# codemap-config-version: 23\n[output.search]\ndetail_file_limit = 7\n\n[analysis]\n# target_os = \"\"\n\n[filesystem_permissions]\nfind = \"workspace\"\n";
+        // A v23 file gains output.jev without enabling any filter, retires v34 keys, and keeps active settings.
+        let original = "# codemap-config-version: 23\n[output.search]\ndetail_file_limit = 7\nmax_bytes = \"2mb\"\n\n[analysis]\n# target_os = \"\"\n\n[filesystem_permissions]\nfind = \"workspace\"\n";
         let temp = create_mock_repo(&[
             (".codemap/config.toml", original),
             ("src/a.rs", "fn migrate_me() {}"),
@@ -427,10 +437,11 @@ export function dropMe(input: string): string {
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let migrated = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
         assert!(
-            migrated.starts_with("# codemap-config-version: 33\n"),
+            migrated.starts_with("# codemap-config-version: 34\n"),
             "{migrated}"
         );
-        assert!(migrated.contains("detail_file_limit = 7\n"), "{migrated}");
+        assert!(!migrated.contains("detail_file_limit"), "{migrated}");
+        assert!(migrated.contains("max_bytes = \"2mb\"\n"), "{migrated}");
         let analysis = migrated.find("[analysis]\n").expect("analysis header kept");
         let jev = migrated
             .find("[output.jev]\n")
@@ -462,7 +473,7 @@ export function dropMe(input: string): string {
         let mut client = McpClient::spawn(temp.path()).await.unwrap();
         client.send_request("initialize", json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "t", "version": "1" } })).await.unwrap();
         let kept = std::fs::read_to_string(temp.path().join(".codemap/config.toml")).unwrap();
-        assert!(kept.starts_with("# codemap-config-version: 33\n"), "{kept}");
+        assert!(kept.starts_with("# codemap-config-version: 34\n"), "{kept}");
         assert!(!kept.contains("_filter_enabled"), "{kept}");
         assert!(!kept.contains("analysis.jev"), "{kept}");
         assert!(!kept.contains("api_key_env"), "{kept}");

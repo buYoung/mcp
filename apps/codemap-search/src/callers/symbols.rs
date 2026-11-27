@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 use crate::parser::{ExtractedFile, ExtractedSymbol, LocalBinding};
 
@@ -13,9 +13,18 @@ use super::scan::ScanHit;
 /// A per-symbol view of where every snapshot symbol of a given name lives, used to
 /// resolve a bare callee name to its qualified form and to count definitions.
 pub(super) struct SymbolIndex<'a> {
-    by_name: HashMap<&'a str, SymbolDefinitions<'a>>,
+    backing: SymbolDefinitionsBacking<'a>,
     test_filter: Option<&'a super::test_code::TestCodeFilter>,
     macro_files: HashMap<&'a str, &'a crate::parser::MacroExpansionInfo>,
+}
+
+enum SymbolDefinitionsBacking<'a> {
+    Owned(HashMap<&'a str, SymbolDefinitions<'a>>),
+    Shared {
+        snapshot: &'a [std::sync::Arc<ExtractedFile>],
+        by_name: &'a CallableSymbolIndex,
+        included: RwLock<HashMap<Box<str>, Vec<usize>>>,
+    },
 }
 
 struct SymbolDefinitions<'a> {
@@ -24,6 +33,22 @@ struct SymbolDefinitions<'a> {
 }
 
 impl<'a> SymbolIndex<'a> {
+    pub(super) fn from_lookup(
+        snapshot: &'a [std::sync::Arc<ExtractedFile>],
+        call_lookup: &'a CallLookup,
+        test_filter: Option<&'a super::test_code::TestCodeFilter>,
+    ) -> Self {
+        Self {
+            backing: SymbolDefinitionsBacking::Shared {
+                snapshot,
+                by_name: call_lookup.callable_symbols(snapshot),
+                included: RwLock::new(HashMap::new()),
+            },
+            test_filter,
+            macro_files: call_lookup.macro_files(snapshot),
+        }
+    }
+
     pub(super) fn is_active_line(&self, path: &str, line: usize) -> bool {
         self.macro_files
             .get(path)
@@ -35,28 +60,86 @@ impl<'a> SymbolIndex<'a> {
     }
 
     pub(super) fn definitions(&self, name: &str) -> Vec<(&'a ExtractedFile, &'a ExtractedSymbol)> {
-        let Some(definitions) = self.by_name.get(name) else {
-            return Vec::new();
-        };
-        if self.test_filter.is_none() {
-            return definitions.candidates.clone();
-        }
-        definitions
-            .included
-            .get_or_init(|| {
+        match &self.backing {
+            SymbolDefinitionsBacking::Owned(by_name) => {
+                let Some(definitions) = by_name.get(name) else {
+                    return Vec::new();
+                };
+                if self.test_filter.is_none() {
+                    return definitions.candidates.clone();
+                }
                 definitions
-                    .candidates
+                    .included
+                    .get_or_init(|| {
+                        definitions
+                            .candidates
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(index, (file, symbol))| {
+                                self.includes(&file.file_path, &symbol.range)
+                                    .then_some(index)
+                            })
+                            .collect()
+                    })
+                    .iter()
+                    .map(|&index| definitions.candidates[index])
+                    .collect()
+            }
+            SymbolDefinitionsBacking::Shared {
+                snapshot,
+                by_name,
+                included,
+            } => {
+                let Some(positions) = by_name.get(name) else {
+                    return Vec::new();
+                };
+                if self.test_filter.is_none() {
+                    return positions
+                        .iter()
+                        .filter_map(|&(file_idx, sym_idx)| {
+                            let file = snapshot.get(file_idx)?;
+                            let symbol = file.symbols.get(sym_idx)?;
+                            Some((&**file, symbol))
+                        })
+                        .collect();
+                }
+                if let Ok(cache) = included.read() {
+                    if let Some(kept) = cache.get(name) {
+                        return kept
+                            .iter()
+                            .filter_map(|&idx| {
+                                let &(file_idx, sym_idx) = positions.get(idx)?;
+                                let file = snapshot.get(file_idx)?;
+                                let symbol = file.symbols.get(sym_idx)?;
+                                Some((&**file, symbol))
+                            })
+                            .collect();
+                    }
+                }
+                let kept: Vec<usize> = positions
                     .iter()
                     .enumerate()
-                    .filter_map(|(index, (file, symbol))| {
-                        self.includes(&file.file_path, &symbol.range)
-                            .then_some(index)
+                    .filter_map(|(idx, &(file_idx, sym_idx))| {
+                        let file = snapshot.get(file_idx)?;
+                        let symbol = file.symbols.get(sym_idx)?;
+                        self.includes(&file.file_path, &symbol.range).then_some(idx)
                     })
-                    .collect()
-            })
-            .iter()
-            .map(|&index| definitions.candidates[index])
-            .collect()
+                    .collect();
+                let resolved = kept
+                    .iter()
+                    .filter_map(|&idx| {
+                        let &(file_idx, sym_idx) = positions.get(idx)?;
+                        let file = snapshot.get(file_idx)?;
+                        let symbol = file.symbols.get(sym_idx)?;
+                        Some((&**file, symbol))
+                    })
+                    .collect();
+                if let Ok(mut cache) = included.write() {
+                    cache.entry(name.into()).or_insert(kept);
+                }
+                resolved
+            }
+        }
     }
 
     pub(super) fn function_definition_count(&self, name: &str) -> usize {
@@ -67,10 +150,63 @@ impl<'a> SymbolIndex<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct CallSiteAddress {
-    pub(super) file_index: usize,
-    pub(super) call_index: usize,
+type ModuleSymbolIndex = HashMap<Box<str>, Vec<(usize, usize)>>;
+type CallableSymbolIndex = HashMap<Box<str>, Vec<(usize, usize)>>;
+type CppMethodIndex = HashMap<(Box<str>, Box<str>), Vec<(usize, usize)>>;
+
+/// Snapshot-level C/C++ and filename lookups built once per generation and reused across
+/// per-request resolvers.
+#[derive(Debug, Default)]
+pub(super) struct CachedCppLookups {
+    pub(super) by_file_name: HashMap<Box<str>, Vec<usize>>,
+    pub(super) functions: HashMap<Box<str>, Vec<(usize, usize)>>,
+    pub(super) cpp_classes: HashMap<Box<str>, Vec<(usize, usize)>>,
+    pub(super) cpp_methods: CppMethodIndex,
+}
+
+impl CachedCppLookups {
+    pub(super) fn build(snapshot: &[std::sync::Arc<ExtractedFile>]) -> Self {
+        let mut lookups = Self::default();
+        for (file_idx, file) in snapshot.iter().enumerate() {
+            if let Some(name) = Path::new(&file.file_path)
+                .file_name()
+                .and_then(|name| name.to_str())
+            {
+                lookups
+                    .by_file_name
+                    .entry(name.into())
+                    .or_default()
+                    .push(file_idx);
+            }
+            if matches!(
+                crate::lang::spec_for_path(Path::new(&file.file_path))
+                    .map(|spec| spec.language_name()),
+                Some("c" | "cpp")
+            ) {
+                for (sym_idx, symbol) in file.symbols.iter().enumerate() {
+                    match (symbol.kind.as_str(), symbol.owner.as_deref()) {
+                        ("fn", None) => lookups
+                            .functions
+                            .entry(symbol.name.as_str().into())
+                            .or_default()
+                            .push((file_idx, sym_idx)),
+                        ("fn", Some(owner)) => lookups
+                            .cpp_methods
+                            .entry((owner.into(), symbol.name.as_str().into()))
+                            .or_default()
+                            .push((file_idx, sym_idx)),
+                        ("class" | "struct", _) => lookups
+                            .cpp_classes
+                            .entry(symbol.name.as_str().into())
+                            .or_default()
+                            .push((file_idx, sym_idx)),
+                        _ => {}
+                    }
+                }
+            }
+        }
+        lookups
+    }
 }
 
 /// Indexed files by the names their recorded calls and imports use. Built once per published
@@ -81,15 +217,44 @@ pub(crate) struct CallLookup {
     files_by_call: HashMap<Box<str>, Vec<usize>>,
     /// Snapshot positions, ascending, of the files importing each declared name.
     files_by_import: HashMap<Box<str>, Vec<usize>>,
-    /// Files without recorded calls, or outside source resolution, which a scan reads by text.
+    /// Caller-scanned files without recorded calls, or outside source resolution, which a scan
+    /// reads by text.
     unrecorded: Vec<usize>,
+    /// Supported files by workspace-relative path, for O(1) per-request lookup.
+    files_by_path: HashMap<Box<str>, usize>,
+    /// Snapshot positions of files with active macro expansion info.
+    macro_file_positions: Vec<usize>,
+    /// Rust/Go symbols by name as `(file_index, symbol_index)`, built on first module lookup.
+    module_symbols: std::sync::Arc<OnceLock<ModuleSymbolIndex>>,
+    /// Callable symbols (`fn`/`method`) by name as `(file_index, symbol_index)`, built lazily.
+    callable_symbols: std::sync::Arc<OnceLock<CallableSymbolIndex>>,
+    /// C/C++ declarations and filename suffix lookups, built lazily on first C/C++ lookup.
+    cpp_lookups: std::sync::Arc<OnceLock<CachedCppLookups>>,
+    /// Names of indexed container/type declarations, built on first receiver-type check.
+    type_names: std::sync::Arc<OnceLock<HashSet<Box<str>>>>,
+    /// Names declared or imported in the snapshot, with whether a trait/interface has the name.
+    declared_names: std::sync::Arc<OnceLock<HashMap<Box<str>, bool>>>,
 }
 
 impl CallLookup {
     pub(crate) fn build(snapshot: &[std::sync::Arc<ExtractedFile>]) -> Self {
         let mut lookup = Self::default();
         for (position, file) in snapshot.iter().enumerate() {
-            if file.navigation.is_none() || !super::resolution::supports(&file.file_path) {
+            let is_supported = super::resolution::supports(&file.file_path);
+            if is_supported {
+                lookup
+                    .files_by_path
+                    .insert(file.file_path.as_str().into(), position);
+            }
+            if file
+                .macro_expansion()
+                .is_some_and(|info| info.is_expanded())
+            {
+                lookup.macro_file_positions.push(position);
+            }
+            if (file.navigation.is_none() || !is_supported)
+                && crate::lang::supports_caller_scan(Path::new(&file.file_path))
+            {
                 lookup.unrecorded.push(position);
             }
             let Some(navigation) = &file.navigation else {
@@ -113,6 +278,116 @@ impl CallLookup {
             }
         }
         lookup
+    }
+
+    pub(crate) fn file_index(&self, path: &str) -> Option<usize> {
+        self.files_by_path.get(path).copied()
+    }
+
+    pub(super) fn has_navigation_calls(&self) -> bool {
+        !self.files_by_call.is_empty()
+    }
+
+    pub(super) fn callable_symbols(
+        &self,
+        snapshot: &[std::sync::Arc<ExtractedFile>],
+    ) -> &CallableSymbolIndex {
+        self.callable_symbols.get_or_init(|| {
+            let mut by_name: CallableSymbolIndex = HashMap::new();
+            for (file_idx, file) in snapshot.iter().enumerate() {
+                for (sym_idx, symbol) in file.symbols.iter().enumerate() {
+                    if is_callable_symbol(symbol) {
+                        by_name
+                            .entry(symbol.name.as_str().into())
+                            .or_default()
+                            .push((file_idx, sym_idx));
+                    }
+                }
+            }
+            by_name
+        })
+    }
+
+    pub(super) fn cpp_lookups(
+        &self,
+        snapshot: &[std::sync::Arc<ExtractedFile>],
+    ) -> &CachedCppLookups {
+        self.cpp_lookups
+            .get_or_init(|| CachedCppLookups::build(snapshot))
+    }
+
+    pub(super) fn macro_files<'a>(
+        &self,
+        snapshot: &'a [std::sync::Arc<ExtractedFile>],
+    ) -> HashMap<&'a str, &'a crate::parser::MacroExpansionInfo> {
+        self.macro_file_positions
+            .iter()
+            .filter_map(|&pos| {
+                let file = snapshot.get(pos)?;
+                let info = file.macro_expansion().filter(|info| info.is_expanded())?;
+                Some((file.file_path.as_str(), info))
+            })
+            .collect()
+    }
+
+    pub(super) fn module_symbols(
+        &self,
+        snapshot: &[std::sync::Arc<ExtractedFile>],
+    ) -> &HashMap<Box<str>, Vec<(usize, usize)>> {
+        self.module_symbols.get_or_init(|| {
+            let mut by_name: HashMap<Box<str>, Vec<(usize, usize)>> = HashMap::new();
+            for (file_idx, file) in snapshot.iter().enumerate() {
+                if !super::resolution::supports_modules(&file.file_path) {
+                    continue;
+                }
+                for (sym_idx, symbol) in file.symbols.iter().enumerate() {
+                    by_name
+                        .entry(symbol.name.as_str().into())
+                        .or_default()
+                        .push((file_idx, sym_idx));
+                }
+            }
+            by_name
+        })
+    }
+
+    pub(super) fn type_names(
+        &self,
+        snapshot: &[std::sync::Arc<ExtractedFile>],
+    ) -> &HashSet<Box<str>> {
+        self.type_names.get_or_init(|| {
+            snapshot
+                .iter()
+                .flat_map(|file| &file.symbols)
+                .filter(|symbol| crate::declarations::container(symbol))
+                .map(|symbol| symbol.name.as_str().into())
+                .collect()
+        })
+    }
+
+    pub(super) fn declared_names(
+        &self,
+        snapshot: &[std::sync::Arc<ExtractedFile>],
+    ) -> &HashMap<Box<str>, bool> {
+        self.declared_names.get_or_init(|| {
+            let mut names: HashMap<Box<str>, bool> = HashMap::new();
+            for file in snapshot {
+                for symbol in &file.symbols {
+                    let is_contract = matches!(symbol.kind.as_str(), "trait" | "interface");
+                    if let Some(existing) = names.get_mut(symbol.name.as_str()) {
+                        *existing |= is_contract;
+                    } else {
+                        names.insert(symbol.name.as_str().into(), is_contract);
+                    }
+                }
+                for import in file.navigation.iter().flat_map(|nav| &nav.imports) {
+                    if !names.contains_key(import.local_name.as_str()) {
+                        names.insert(import.local_name.as_str().into(), false);
+                    }
+                }
+            }
+            names
+        })
     }
 
     /// Ascending snapshot positions of the files whose recorded calls use one of `calls` or that
@@ -148,9 +423,23 @@ impl CallLookup {
 }
 
 #[derive(Default)]
-pub(super) struct NavigationIndex {
-    pub(super) calls_by_name: HashMap<String, Vec<CallSiteAddress>>,
-    pub(super) files_by_path: HashMap<String, usize>,
+pub(super) struct NavigationIndex<'a> {
+    pub(super) has_calls: bool,
+    call_lookup: Option<&'a CallLookup>,
+    files_by_path: Option<HashMap<&'a str, usize>>,
+}
+
+impl<'a> NavigationIndex<'a> {
+    pub(super) fn file_index(&self, path: &str) -> Option<usize> {
+        if let Some(lookup) = self.call_lookup {
+            if let Some(idx) = lookup.file_index(path) {
+                return Some(idx);
+            }
+        }
+        self.files_by_path
+            .as_ref()
+            .and_then(|by_path| by_path.get(path).copied())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -181,7 +470,7 @@ pub(super) fn build_symbol_index<'a>(
         }
     }
     SymbolIndex {
-        by_name,
+        backing: SymbolDefinitionsBacking::Owned(by_name),
         test_filter,
         // Expanded files keep original-source calls on active lines only; scan hits elsewhere
         // in them are discarded through this map.
@@ -197,28 +486,31 @@ pub(super) fn build_symbol_index<'a>(
     }
 }
 
-pub(super) fn build_navigation_index(
-    snapshot: &[std::sync::Arc<ExtractedFile>],
-) -> NavigationIndex {
-    let mut calls_by_name: HashMap<String, Vec<CallSiteAddress>> = HashMap::new();
-    let mut files_by_path = HashMap::new();
-    for (file_index, file) in snapshot.iter().enumerate() {
-        files_by_path.insert(file.file_path.clone(), file_index);
-        if let Some(navigation) = &file.navigation {
-            for (call_index, call) in navigation.calls.iter().enumerate() {
-                calls_by_name
-                    .entry(call.name.clone())
-                    .or_default()
-                    .push(CallSiteAddress {
-                        file_index,
-                        call_index,
-                    });
-            }
-        }
+pub(super) fn build_navigation_index<'a>(
+    snapshot: &'a [std::sync::Arc<ExtractedFile>],
+    call_lookup: Option<&'a CallLookup>,
+) -> NavigationIndex<'a> {
+    if let Some(lookup) = call_lookup {
+        return NavigationIndex {
+            has_calls: lookup.has_navigation_calls(),
+            call_lookup: Some(lookup),
+            files_by_path: None,
+        };
     }
+    let has_calls = snapshot.iter().any(|file| {
+        file.navigation
+            .as_ref()
+            .is_some_and(|navigation| !navigation.calls.is_empty())
+    });
+    let files_by_path = snapshot
+        .iter()
+        .enumerate()
+        .map(|(file_index, file)| (file.file_path.as_str(), file_index))
+        .collect();
     NavigationIndex {
-        calls_by_name,
-        files_by_path,
+        has_calls,
+        call_lookup: None,
+        files_by_path: Some(files_by_path),
     }
 }
 
@@ -248,7 +540,7 @@ pub(super) fn definition_is_compatible(
             && symbol.owner.is_none())
 }
 
-pub(super) fn language_family(path: &Path) -> Option<&'static str> {
+pub(crate) fn language_family(path: &Path) -> Option<&'static str> {
     crate::lang::spec_for_path(path).map(|spec| match spec.language_name() {
         "javascript" | "typescript" | "vue" | "astro" | "svelte" => "ecmascript",
         "c" | "cpp" => "c_family",
@@ -346,12 +638,12 @@ pub(super) fn lookup_source_hint_candidates<'a>(
     importing_file: &str,
     source: &str,
     snapshot: &'a [std::sync::Arc<ExtractedFile>],
-    navigation_index: &NavigationIndex,
+    navigation_index: &NavigationIndex<'_>,
 ) -> Result<Vec<(&'a ExtractedFile, &'a ExtractedSymbol)>, SourceHintResolution> {
     let candidates = source_candidate_paths(importing_file, source)?;
     let matched_files: Vec<usize> = candidates
         .iter()
-        .filter_map(|candidate| navigation_index.files_by_path.get(candidate).copied())
+        .filter_map(|candidate| navigation_index.file_index(candidate))
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();

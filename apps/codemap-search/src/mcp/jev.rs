@@ -372,12 +372,15 @@ pub(super) async fn live(
             copies: Vec::new(),
         });
     }
+    let session_cap = crate::config::session_delivery_byte_cap().map(|cap| cap.saturating_sub(128));
     let cap = if is_read {
-        Some(config.read_output_byte_cap)
+        let base = config.read_output_byte_cap;
+        Some(session_cap.map_or(base, |session| base.min(session)))
+    } else if options.should_expand_callable {
+        let base = config.grep_output_byte_cap;
+        Some(session_cap.map_or(base, |session| base.min(session)))
     } else {
-        options
-            .should_expand_callable
-            .then_some(config.grep_output_byte_cap)
+        session_cap
     };
     let mut prepared = live_symbols::prepare(engine, output, cap, options)?;
     if evaluation.is_some()

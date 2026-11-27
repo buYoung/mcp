@@ -1,0 +1,72 @@
+[
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/Shape.java"},
+    "contains": ["implementation candidate: shapes.impl.Circle.describe — _codemap_language_regressions/signature/impl/Circle.java:7", "implementation candidate: shapes.impl.Circle.scaled — _codemap_language_regressions/signature/impl/Circle.java:12"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:signature-types:other-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/Shape.java"},
+    "contains": ["implementation: unresolved"],
+    "excludes": ["implementation candidate: shapes.impl.Circle.render"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:unproven-implementations",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.java"},
+    "contains": ["implementation candidate: partial.EmailNotifier.send — _codemap_language_regressions/partial/EmailNotifier.java:4", "- not source-proven: 1 same-named method(s) in types naming Notifier as a base; the candidates above may be incomplete."],
+    "excludes": ["SpooledNotifier."],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:package-scoped-member",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/access/Valve.java"},
+    "contains": ["valves.LocalValve.seal", "valves.remote.RemoteValve.vent"],
+    "excludes": ["valves.remote.RemoteValve.seal", "not source-proven"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:inherited-overload",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/overload/Courier.java"},
+    "contains": ["Parcel.weigh — _codemap_language_regressions/overload/Parcel.java:6", "seal (unresolved)"],
+    "excludes": ["Parcel.seal"],
+    "category": "wrong_caller"
+  },
+  {
+    "id": "regression:local-initializer-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/initializer/Ledger.java"},
+    "contains": ["Ledger.balance — L4"],
+    "excludes": ["balance (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:call-inside-if",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/conditional/Guard.java"},
+    "contains": ["Gate.latch — _codemap_language_regressions/conditional/Gate.java:4"],
+    "excludes": ["latch (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:generic-type-implementation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.java"},
+    "contains": ["implementation candidate: partial.BufferedNotifier.send — _codemap_language_regressions/partial/BufferedNotifier.java:10"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/generic/Reader.java"},
+    "contains": ["Codec.width — _codemap_language_regressions/generic/Codec.java:6", "call declaration: generic.Codec.decode — _codemap_language_regressions/generic/Codec.java:4", "implementation candidate: generic.TextCodec.decode — _codemap_language_regressions/generic/TextCodec.java:4"],
+    "excludes": ["width (unresolved)"],
+    "category": "missing_callee"
+  }
+]

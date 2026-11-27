@@ -1,6 +1,23 @@
 --- a/grammar.js
 +++ b/grammar.js
-@@ -264,7 +264,7 @@
+@@ -63,6 +63,7 @@
+     [$.non_nullable_type],
+     [$.function_type],
+     [$._receiver_type],
++    [$.parenthesized_type],
+   ],
+ 
+   extras: $ => [
+@@ -221,7 +222,7 @@
+ 
+     constructor_delegation_call: $ => seq(choice('this', 'super'), $.value_arguments),
+ 
+-    type_parameters: $ => seq('<', commaSep1($.type_parameter), '>'),
++    type_parameters: $ => seq('<', commaSep1($.type_parameter), optional(','), '>'),
+ 
+     type_parameter: $ => seq(
+       optional($.type_parameter_modifiers),
+@@ -264,7 +265,7 @@
  
      constructor_invocation: $ => seq($.type, $.value_arguments),
  
@@ -9,7 +26,7 @@
        optional($.modifiers),
        'fun',
        optional($.type_parameters),
-@@ -274,7 +274,7 @@
+@@ -274,7 +275,7 @@
        optional(seq(':', $.type)),
        optional($.type_constraints),
        optional($.function_body),
@@ -18,3 +35,128 @@
  
      function_value_parameters: $ => seq(
        '(',
+@@ -584,7 +585,7 @@
+       ),
+     ),
+ 
+-    type_arguments: $ => seq('<', commaSep1($.type_projection), '>'),
++    type_arguments: $ => seq('<', commaSep1($.type_projection), optional(','), '>'),
+ 
+     type_projection: $ => choice(
+       seq(repeat($.variance_modifier), $.type),
+@@ -605,7 +606,7 @@
+       ')',
+     ),
+ 
+-    parenthesized_type: $ => seq('(', $.type, ')'),
++    parenthesized_type: $ => seq(optional($.type_modifiers), '(', $.type, ')'),
+ 
+     assignment: $ => seq(
+       field('left', $.expression),
+@@ -940,7 +941,7 @@
+     ),
+ 
+     string_literal: $ => seq(
+-      '"',
++      choice('"', token(seq(/\$+/, '"'))),
+       repeat(choice(
+         alias(choice(
+           token.immediate(prec(2, seq('\\', /[^bnrt'\"\\\$]/))),
+@@ -956,7 +957,7 @@
+     ),
+ 
+     multiline_string_literal: $ => seq(
+-      '"""',
++      choice('"""', token(seq(/\$+/, '"""'))),
+       repeat(choice(
+         alias($._multiline_string_content, $.string_content),
+         $.interpolation,
+--- a/src/scanner.c
++++ b/src/scanner.c
+@@ -59,6 +59,28 @@
+     }
+ 
+     return false;
++}
++
++// Skips one annotation up to the whitespace after it. An argument list may hold whitespace, and a string
++// in it may hold parentheses.
++static void skip_annotation(TSLexer *lexer) {
++    uint32_t depth = 0;
++    while (!lexer->eof(lexer) && (depth > 0 || !iswspace(lexer->lookahead))) {
++        if (lexer->lookahead == '(') {
++            depth++;
++        } else if (lexer->lookahead == ')' && depth > 0) {
++            depth--;
++        } else if (lexer->lookahead == '"') {
++            skip(lexer);
++            while (!lexer->eof(lexer) && lexer->lookahead != '"') {
++                if (lexer->lookahead == '\\') {
++                    skip(lexer);
++                }
++                skip(lexer);
++            }
++        }
++        skip(lexer);
++    }
+ }
+ 
+ void *tree_sitter_kotlin_external_scanner_create() { return NULL; }
+@@ -261,7 +283,12 @@
+                     while (iswspace(lexer->lookahead)) {
+                         skip(lexer);
+                     }
+-                    if (valid_symbols[CLASS_MEMBER_SEMI] || lexer->lookahead == '.' || lexer->lookahead == '=') {
++                    // A nested class header that has no primary constructor yet accepts `constructor` itself, and
++                    // Kotlin gives a constructor on the next line to that class. `SEMI` is valid here only during
++                    // error recovery, which keeps its previous behavior.
++                    bool continues_class_header = valid_symbols[CONSTRUCTOR] && !valid_symbols[SEMI];
++                    if ((valid_symbols[CLASS_MEMBER_SEMI] && !continues_class_header) || lexer->lookahead == '.' ||
++                        lexer->lookahead == '=') {
+                         return true;
+                     }
+                 }
+@@ -314,24 +341,28 @@
+                 return true;
+             case '@':
+                 if (valid_symbols[CONSTRUCTOR]) {
+-                    while (!iswspace(lexer->lookahead)) {
+-                        skip(lexer);
+-                    }
+-                    while (iswspace(lexer->lookahead)) {
+-                        skip(lexer);
+-                    }
+-                    char ctor[12] = "constructor";
+-                    for (uint8_t i = 0; i < 11; i++) {
+-                        if (lexer->lookahead != ctor[i]) {
+-                            return true;
+-                        }
+-                        skip(lexer);
+-                    }
+-                    return false;
++                    // Annotations and modifiers, in any order, may come before the `constructor` of a primary
++                    // constructor that starts on the line after the class header.
++                    for (;;) {
++                        if (lexer->lookahead == '@') {
++                            skip_annotation(lexer);
++                        } else if (scan_words(lexer,
++                                              (const char[16][16]){"public", "private", "protected", "internal"},
++                                              scanned_word, NULL)) {
++                            memset(scanned_word, 0, MAX_WORD_SIZE);
++                        } else {
++                            break;
++                        }
++                        while (iswspace(lexer->lookahead)) {
++                            skip(lexer);
++                        }
++                    }
++                    return strncmp(scanned_word, "constructor", MAX_WORD_SIZE) != 0;
+                 }
+                 if (valid_symbols[GET] || valid_symbols[SET]) {
+                     bool saw_paren = false;
+-                    while ((saw_paren ? lexer->lookahead != '\n' : !iswspace(lexer->lookahead))) {
++                    while (!lexer->eof(lexer) &&
++                           (saw_paren ? lexer->lookahead != '\n' : !iswspace(lexer->lookahead))) {
+                         skip(lexer);
+                         if (lexer->lookahead == '(') {
+                             saw_paren = true;

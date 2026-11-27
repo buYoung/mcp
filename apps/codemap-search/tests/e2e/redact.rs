@@ -9,22 +9,29 @@ mod pii_large_file;
 async fn test_redact_search_literal_hints_preserve_safe_labels() {
     let secret = "fixture::auth::credential";
     let sensitive = "export const password = 'fixture::auth::credential';\n";
-    for threshold in [1, 3] {
-        let config = format!("[search]\nresult_threshold={threshold}\n");
-        let repo = create_mock_repo(&[
-            ("src/first.ts", sensitive),
-            ("src/second.ts", sensitive),
+    for expect_tail in [true, false] {
+        let mut owned: Vec<(String, String)> = vec![
+            ("src/first.ts".into(), sensitive.into()),
+            ("src/second.ts".into(), sensitive.into()),
             (
-                "src/implementation.ts",
-                "export function fixtureAuthCredential() { return 1; }\n",
+                "src/implementation.ts".into(),
+                "export function fixtureAuthCredential() { return 1; }\n".into(),
             ),
             (
-                "src/public.ts",
-                "export const route = 'public::routing::dispatch';\n",
+                "src/public.ts".into(),
+                "export const route = 'public::routing::dispatch';\n".into(),
             ),
-            (".codemap/config.toml", &config),
-        ])
-        .unwrap();
+        ];
+        if expect_tail {
+            for i in 0..24 {
+                owned.push((format!("src/extra_{i:02}.ts"), sensitive.into()));
+            }
+        }
+        let files: Vec<(&str, &str)> = owned
+            .iter()
+            .map(|(p, c)| (p.as_str(), c.as_str()))
+            .collect();
+        let repo = create_mock_repo(&files).unwrap();
         let mut client = McpClient::spawn(repo.path()).await.unwrap();
         let response = call(
             &mut client,
@@ -38,7 +45,7 @@ async fn test_redact_search_literal_hints_preserve_safe_labels() {
             output.contains("matched literal: `[REDACTED]`"),
             "{response}"
         );
-        if threshold == 1 {
+        if expect_tail {
             let (_, tail) = output.split_once("## Other matches").expect("ranked tail");
             assert!(tail.contains("matched literal: `[REDACTED]`"), "{response}");
         } else {
@@ -159,9 +166,16 @@ async fn test_redact_protects_interior_lines_and_search_truncation() {
     let yaml = "password: | # credential\n  interior-yaml-value\npublic: visible\n";
     let json_source = "{\"password\":\n\"interior-json-value\"}\n";
     let repo = create_mock_repo(&[
-        ("secrets.py", &python), ("key.pem", pem), ("settings.yaml", yaml), ("settings.json", json_source),
-        (".codemap/config.toml", "[update]\nconfig_auto_update=false\n[search]\nsearch_literal_max_len=8\nsearch_detail_snippet_max_lines=1\n"),
-    ]).unwrap();
+        ("secrets.py", &python),
+        ("key.pem", pem),
+        ("settings.yaml", yaml),
+        ("settings.json", json_source),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update=false\n",
+        ),
+    ])
+    .unwrap();
     let mut client = McpClient::spawn(repo.path()).await.unwrap();
     for (path, secret) in [
         ("secrets.py", "interior-password-value"),
@@ -262,15 +276,27 @@ async fn test_redact_applies_to_errors_and_can_be_disabled_in_config() {
 
 #[tokio::test]
 async fn test_redact_preserves_grep_original_column_limits() {
+    let long_secret = format!("api_key = '{}-secret'\n", "a".repeat(620));
     let repo = create_mock_repo(&[
-        ("values.py", "api_key = 'abcdefghijklmnopqrstuv-secret'\n"),
+        ("values.py", long_secret.as_str()),
         (
             ".codemap/config.toml",
-            "[update]\nconfig_auto_update=false\n[tool_output]\ngrep_max_columns=25\n",
+            "[update]\nconfig_auto_update=false\n",
         ),
     ])
     .unwrap();
     let mut client = McpClient::spawn(repo.path()).await.unwrap();
+    client
+        .send_request(
+            "initialize",
+            json!({
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": { "name": "antigravity-client", "version": "1.0" }
+            }),
+        )
+        .await
+        .unwrap();
     for expand in ["none", "callable"] {
         let response = call(
             &mut client,
@@ -284,10 +310,7 @@ async fn test_redact_preserves_grep_original_column_limits() {
             text(&response).contains("[Omitted long matching line]"),
             "{response}"
         );
-        assert!(
-            !text(&response).contains("abcdefghijklmnopqrstuv-secret"),
-            "{response}"
-        );
+        assert!(!text(&response).contains("-secret"), "{response}");
     }
 }
 

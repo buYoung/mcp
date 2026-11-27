@@ -524,3 +524,67 @@
 # 질문의 답을 '아니오'로 판단할 최소 확률입니다(0.5 초과 1.0 이하, 기본 0.90).
 # Maximum concurrent requests (1–3, default 3) and minimum gap between requests in milliseconds (300 or more, default 300).
 # 동시에 보낼 최대 요청 수(1~3, 기본 3)와 요청 사이의 최소 간격(밀리초, 300 이상, 기본 300)입니다.
+# Counts, times, and sizes must be integers of 1 or more. Only output.grep.max_columns accepts 0.
+# 개수·시간·크기는 1 이상의 정수로 적습니다. output.grep.max_columns만 0을 쓸 수 있습니다.
+# Maximum number of top-ranked files shown in detail. Remaining results use a compact list.
+# 상세 결과로 표시할 최대 파일 수입니다. 나머지 결과는 간략 목록으로 표시합니다.
+# Maximum files in the compact result list.
+# 간략 결과 목록의 최대 파일 수입니다.
+# Maximum lines of code shown per matched definition (function, class, etc.).
+# 검색된 정의(함수, 클래스 등)마다 표시할 코드의 최대 줄 수입니다.
+# Maximum definitions shown per file in detailed results.
+# 상세 결과에서 파일마다 표시할 최대 정의 수입니다.
+# Maximum characters shown for a string value from the code that matches the query.
+# 코드에서 추출한 문자열 값 중 검색어와 일치한 값을 표시할 최대 문자 수입니다.
+# Maximum string values shown per file.
+# 파일마다 표시할 문자열 값의 최대 개수입니다.
+# Maximum definitions per file shown with their full code. The rest show at most 3 lines of their declaration.
+# 파일마다 코드 전체를 표시할 최대 정의 수입니다. 나머지는 선언부를 3줄까지만 표시합니다.
+# Maximum length of a line in grep results, in bytes. 0 disables the limit.
+# Longer lines are replaced with an omission marker such as `[Omitted long matching line]`.
+# grep 결과에서 한 줄의 최대 길이(바이트)입니다. 0이면 제한이 없습니다.
+# 더 긴 줄은 `[Omitted long matching line]` 같은 생략 표시로 바뀝니다.
+# Maximum callers shown per definition, including non-call references.
+# 정의마다 표시할 최대 호출자 수입니다. 호출이 아닌 참조도 포함합니다.
+# Maximum callees shown per definition.
+# 정의마다 표시할 최대 호출 대상 수입니다.
+# Space in the search response for call relationships. Code goes in first; relationships use the space left.
+# search 응답에서 호출 관계가 차지할 최대 크기입니다. 코드를 먼저 넣고, 호출 관계는 남은 공간에 넣습니다.
+# When a name has at least this many definitions, name-based relationships are marked ambiguous.
+# 같은 이름의 정의가 이 개수 이상이면 이름으로 추정한 호출 관계를 모호하다고 표시합니다.
+# When a name has at least this many definitions, suggest grep instead of listing estimated callers.
+# 같은 이름의 정의가 이 개수 이상이면 추정한 호출자 목록 대신 grep 검색을 안내합니다.
+# Analyze imports and code structure to find actual call targets. Found targets are marked `precise`.
+# false uses names only.
+# import 문과 코드 구조를 분석해 실제 호출 대상을 찾습니다. 찾은 대상에는 `precise`를 붙입니다.
+# false이면 이름만으로 추정합니다.
+# After checking this many call sites, fall back to name-based estimates.
+# 이 개수만큼 호출 위치를 확인한 뒤에는 이름으로 추정합니다.
+# Maximum search hits checked when finding callers.
+# 호출자를 찾을 때 확인할 최대 검색 결과 수입니다.
+# Precise caller/callee attribution. When false, annotations use conservative name matching.
+# Set true to allow tree-sitter navigation data to mark unambiguous lines as precise.
+# 호출자/호출 대상 귀속을 정밀하게 표시합니다. false이면 주석은 보수적인 이름 매칭을 사용합니다.
+# tree-sitter navigation 데이터가 모호하지 않은 줄을 precise로 표시할 수 있게 하려면 true로 설정하세요.
+# NASM executable name (found on PATH) or path.
+# NASM 실행 파일 이름(PATH에서 찾음) 또는 경로입니다.
+# Additional NASM arguments appended after build settings.
+# 빌드 설정 뒤에 추가할 NASM 인자입니다.
+# Time limit for one preprocessing run, in milliseconds.
+# 전처리 한 번에 허용할 최대 시간(밀리초)입니다.
+# Maximum size of preprocessed output.
+# 전처리 결과의 최대 크기입니다.
+# Also store reference locations other than function calls.
+# Files already indexed pick up the change only when their content changes.
+# 함수 호출이 아닌 참조 위치도 색인에 저장합니다.
+# 이미 색인한 파일은 내용이 바뀌어야 반영됩니다.
+# Time to batch file changes, in milliseconds. Longer means fewer refreshes but slower updates.
+# 파일 변경을 모아서 처리할 시간(밀리초)입니다. 길수록 갱신 횟수는 줄고 반영은 늦어집니다.
+# Minimum interval between refreshes when file watching is not used, in milliseconds.
+# 파일 감시를 쓰지 않을 때 색인을 갱신하는 최소 간격(밀리초)입니다.
+# Restart indexing on the next search if it stops (a limited number of times).
+# If false, search results stop updating until the server restarts.
+# 색인 작업이 멈추면 다음 search 때 다시 시작합니다(횟수 제한 있음).
+# false이면 서버를 재시작할 때까지 search 결과가 갱신되지 않습니다.
+# Expand macros in C/C++/assembly code with the installed Clang/NASM.
+# 설치된 Clang/NASM으로 C/C++/어셈블리 코드의 매크로를 펼쳐 분석합니다.

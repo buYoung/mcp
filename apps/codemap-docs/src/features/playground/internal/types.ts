@@ -4,14 +4,9 @@ export type PgLocale = "en" | "ko";
 
 export interface PgState {
     contextEnabled: boolean;
-    navPrecise: boolean;
-    callerLimit: number;
     includeTests: boolean;
     eventsEnabled: boolean;
-    detailFileLimit: number;
-    snippetMaxLines: number;
     outsideCallers: boolean;
-    grepMaxColumns: number;
     includeSeen: boolean;
     redactEnabled: boolean;
     piiEntities: string[];
@@ -21,7 +16,6 @@ export interface PgState {
     jevScope: string[];
     jevModel: string;
     indexMode: "auto" | "on" | "off";
-    storeRefs: boolean;
     exclDirs: "default" | "empty";
     docSupport: boolean;
     fsPerm: "anywhere" | "workspace" | "allowed_roots";
@@ -79,7 +73,6 @@ export interface PgUiLabels {
     docsLink: string;
     docsHref: string;
     presetDefault: string;
-    presetPrecise: string;
     presetJev: string;
     presetSecurity: string;
     presetBroad: string;
@@ -108,14 +101,9 @@ export interface PgUiLabels {
     groupJev: string;
     groupIndex: string;
     lblContextEnabled: string;
-    lblNavPrecise: string;
-    lblCallerLimit: string;
     lblIncludeTests: string;
     lblEvents: string;
-    lblDetailFiles: string;
-    lblSnippetLines: string;
     lblOutsideCallers: string;
-    lblGrepCols: string;
     lblIncludeSeen: string;
     lblRedactMaster: string;
     lblPiiEntities: string;
@@ -125,13 +113,9 @@ export interface PgUiLabels {
     lblJevScope: string;
     lblJevModel: string;
     lblIndexMode: string;
-    lblStoreRefs: string;
     lblExcludedDirs: string;
     optDirsDefault: string;
     optDirsEmpty: string;
-    optUnlimited: string;
-    optCols90: string;
-    optCols60: string;
     optDefaultSuffix: string;
     lblDocSupport: string;
     lblPerms: string;

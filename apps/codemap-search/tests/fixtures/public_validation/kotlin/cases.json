@@ -1,0 +1,100 @@
+[
+  {
+    "id": "regression:ends-with-annotation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/EndsWithAnnotation.kt", "view": "definitions"},
+    "contains": ["EndsWithAnnotation [class", "stays [method"],
+    "category": "parser_termination"
+  },
+  {
+    "id": "regression:ends-with-member-annotation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/EndsWithMemberAnnotation.kt", "view": "definitions"},
+    "contains": ["size [property", "stays ["],
+    "category": "parser_termination"
+  },
+  {
+    "id": "regression:next-line-constructor:nested",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/NextLineConstructor.kt", "view": "definitions"},
+    "contains": ["Builder [class, exported] — L6-13", "build [method, exported] — L12-12", "Cache [class, exported] — L15-21", "capacity [method, exported] — L20-20", "describe [method, exported] — L26-26"],
+    "excludes": ["build [function"],
+    "category": "declarations"
+  },
+  {
+    "id": "regression:next-line-constructor:top-level",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/NextLineConstructor.kt", "view": "definitions"},
+    "contains": ["Session [class, exported] — L29-35", "owner [method, exported] — L34-34", "Audit [class, exported] — L37-42", "afterSession [function, exported] — L44-44"],
+    "category": "declarations"
+  },
+  {
+    "id": "regression:signature-types:same-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/Gateway.kt"},
+    "contains": ["implementation candidate: pay.impl.PaypalGateway.charge — _codemap_language_regressions/signature/impl/PaypalGateway.kt:9", "implementation candidate: pay.impl.PaypalGateway.refund — _codemap_language_regressions/signature/impl/PaypalGateway.kt:11"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:signature-types:other-type",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/signature/Gateway.kt"},
+    "contains": ["implementation: unresolved"],
+    "excludes": ["implementation candidate: pay.impl.PaypalGateway.audit"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:foreign-receiver",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/receiver/Lines.kt"},
+    "contains": ["writeBody (L12)", "writeHeading (L19)"],
+    "excludes": ["writeTitle (L"],
+    "category": "wrong_caller"
+  },
+  {
+    "id": "regression:unproven-implementations",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.kt"},
+    "contains": ["implementation candidate: partial.EmailNotifier.send — _codemap_language_regressions/partial/Notifiers.kt:4", "- not source-proven: 1 same-named method(s) in types naming Notifier as a base; the candidates above may be incomplete."],
+    "excludes": ["SpooledNotifier."],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:generic-type-implementation",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/partial/Notifier.kt"},
+    "contains": ["implementation candidate: partial.BufferedNotifier.send — _codemap_language_regressions/partial/Notifiers.kt:9"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:generic-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Generic.kt"},
+    "contains": ["Codec.width — L6", "call declaration: generic.Codec.decode — L4", "implementation candidate: generic.TextCodec.decode — L10"],
+    "excludes": ["width (unresolved)"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:nullable-receiver-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Nullable.kt"},
+    "contains": ["Gauge.level — L4", "Panel.safe (L20)", "Panel.asserted (L22)", "Panel.stored (L25)", "Panel.local (L30)"],
+    "excludes": ["level (unresolved)", "unconfirmed callers"],
+    "category": "missing_callee"
+  },
+  {
+    "id": "regression:nullable-parameter-signature",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/Nullable.kt"},
+    "contains": ["implementation candidate: nullable.MemorySink.accept — L13"],
+    "category": "implementations"
+  },
+  {
+    "id": "regression:typed-local-call",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/TypedLocal.kt"},
+    "contains": ["Meter.read — L4", "Station.fromProperty (L15)", "Station.fromLocal (L20)"],
+    "excludes": ["Station.hidden (L26)"],
+    "category": "missing_callee"
+  }
+]

@@ -114,6 +114,34 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "Price",
+                "typ": {
+                  "name": "int",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 6,
+                    "startCol": 11,
+                    "endLine": 6,
+                    "endCol": 14
+                  }
+                }
+              },
+              {
+                "name": "Quantity",
+                "typ": {
+                  "name": "int",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 7,
+                    "startCol": 11,
+                    "endLine": 7,
+                    "endCol": 14
+                  }
+                }
+              }
+            ],
             "conditions": []
           },
           {
@@ -140,6 +168,21 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "Total",
+                "typ": {
+                  "name": "int",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 11,
+                    "startCol": 8,
+                    "endLine": 11,
+                    "endCol": 11
+                  }
+                }
+              }
+            ],
             "conditions": []
           },
           {
@@ -318,6 +361,47 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "inventory",
+                "typ": {
+                  "name": "Inventory",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 29,
+                    "startCol": 12,
+                    "endLine": 29,
+                    "endCol": 21
+                  }
+                }
+              },
+              {
+                "name": "mapper",
+                "typ": {
+                  "name": "Mapper",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 27,
+                    "startCol": 12,
+                    "endLine": 27,
+                    "endCol": 18
+                  }
+                }
+              },
+              {
+                "name": "repo",
+                "typ": {
+                  "name": "Repository",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 28,
+                    "startCol": 12,
+                    "endLine": 28,
+                    "endCol": 22
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],
@@ -361,10 +445,104 @@
               }
             ],
             "namespace": "checkout",
-            "conditions": []
+            "conditions": [],
+            "range": {
+              "startLine": 32,
+              "startCol": 1,
+              "endLine": 44,
+              "endCol": 2
+            }
           }
         ],
-        "calls": []
+        "calls": [
+          {
+            "name": "MapOrder",
+            "range": {
+              "startLine": 33,
+              "startCol": 9,
+              "endLine": 33,
+              "endCol": 33
+            },
+            "receiver": {
+              "name": "*Service",
+              "arguments": [],
+              "range": {
+                "startLine": 32,
+                "startCol": 9,
+                "endLine": 32,
+                "endCol": 17
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "mapper"
+              }
+            ],
+            "namespace": "checkout",
+            "enclosingSymbol": "Submit",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "Reserve",
+            "range": {
+              "startLine": 36,
+              "startCol": 12,
+              "endLine": 36,
+              "endCol": 43
+            },
+            "receiver": {
+              "name": "*Service",
+              "arguments": [],
+              "range": {
+                "startLine": 32,
+                "startCol": 9,
+                "endLine": 32,
+                "endCol": 17
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "inventory"
+              }
+            ],
+            "namespace": "checkout",
+            "enclosingSymbol": "Submit",
+            "argumentCount": 2,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "Save",
+            "range": {
+              "startLine": 39,
+              "startCol": 12,
+              "endLine": 39,
+              "endCol": 33
+            },
+            "receiver": {
+              "name": "*Service",
+              "arguments": [],
+              "range": {
+                "startLine": 32,
+                "startCol": 9,
+                "endLine": 32,
+                "endCol": 17
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "repo"
+              }
+            ],
+            "namespace": "checkout",
+            "enclosingSymbol": "Submit",
+            "argumentCount": 2,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

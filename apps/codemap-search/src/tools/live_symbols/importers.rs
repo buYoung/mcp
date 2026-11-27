@@ -25,7 +25,7 @@ const PLACES_PER_FILE: usize = 3;
 const TRAILER_BYTE_CAP: usize = 1536;
 /// Time for scanning the index, resolving the matching imports and finding the uses. Importers
 /// found by then are listed with a note that the lookup stopped.
-const TRAILER_TIME_BUDGET: Duration = Duration::from_millis(100);
+const TRAILER_TIME_BUDGET: Duration = Duration::from_millis(250);
 const PARTIAL_LINE: &str =
     "\n- import lookup stopped at its time limit; more importing files may exist (grep the name)";
 /// Said instead of the trailer when the lookup stopped before finding any importing file, so
@@ -60,7 +60,6 @@ pub(super) fn trailer(
     output: &LiveOutput,
     byte_cap: usize,
 ) -> Option<String> {
-    let started = Instant::now();
     let byte_cap = byte_cap.min(TRAILER_BYTE_CAP);
     if !output.should_list_outside_callers || byte_cap < HEADER.len() + PARTIAL_LINE.len() + 64 {
         return None;
@@ -80,7 +79,9 @@ pub(super) fn trailer(
     }
     let snapshot = engine.published_snapshot();
     let files = snapshot.codemap();
-    let position = files.iter().position(|file| file.file_path == path)?;
+    let position = files
+        .binary_search_by(|file| file.file_path.as_str().cmp(path))
+        .ok()?;
     let file = &files[position];
     // Stale or unindexed files would point at the wrong declarations.
     if super::diagnostics::unavailable(Some(file), anchor, &root, snapshot.flows().digest(path))
@@ -99,6 +100,8 @@ pub(super) fn trailer(
     if declarations.is_empty() {
         return None;
     }
+    let call_lookup = snapshot.call_lookup();
+    let started = Instant::now();
     let deadline = started + TRAILER_TIME_BUDGET;
     let mut is_partial = false;
     let hints = TargetHints::new(path);
@@ -165,7 +168,7 @@ pub(super) fn trailer(
         }
     }
     renames.retain(|(index, ..)| !filter.is_file_excluded(&files[*index].file_path));
-    let resolver = SourceResolver::new(&files, &root);
+    let resolver = SourceResolver::with_lookup(&files, &root, call_lookup);
     let mut aliases: HashMap<&str, Option<usize>> = HashMap::new();
     for (index, export, declaration) in renames {
         let barrel = files[index].file_path.as_str();

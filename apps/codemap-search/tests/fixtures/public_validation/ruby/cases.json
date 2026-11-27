@@ -1,0 +1,9 @@
+[
+  {
+    "id": "regression:recovery-in-body",
+    "tool": "read",
+    "arguments": {"file_path": "_codemap_language_regressions/broken_statement.rb", "view": "definitions"},
+    "contains": ["Demo [mod, exported] — L1-13", "Report [class, exported] — L2-12", "build [method, exported] — L3-7", "size [method, exported] — L9-11"],
+    "category": "declarations"
+  }
+]

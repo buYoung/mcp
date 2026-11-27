@@ -143,6 +143,21 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "service",
+                "typ": {
+                  "name": "CheckoutService",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 7,
+                    "startCol": 41,
+                    "endLine": 7,
+                    "endCol": 56
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],

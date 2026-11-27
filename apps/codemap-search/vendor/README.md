@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Groovy | 메서드와 최상위 함수의 문자열 이름, 세미콜론 없는 `assert`, 안전·전개 멤버 접근, 애너테이션 멤버를 인식한다. 클래스 필드·생성자 위임의 줄바꿈 종료, 메서드의 괄호 없는 호출, 직접 필드 접근과 trait도 처리한다. 정적인 이름의 이스케이프는 복원하고 동적 보간 이름은 확정하지 않는다. | [원본 grammar.js](https://github.com/amaanq/tree-sitter-groovy/blob/70efb0b9b50f95bcbd89dcfd42b275e0304e10cf/grammar.js), Gradle의 Spock 메서드 |
 | Zsh | 패턴의 문자 집합 안에 있는 괄호를 일반 문자로 처리하고, 정규식 스캐너의 길이 0인 토큰과 깊이 카운터 언더플로를 막는다. `:`로 시작하는 함수·명령 이름, 마지막 세미콜론이 없는 조건 목록, `<>`·`>!`·`>>!`·`>>|`, `if [[ … ]] { … }` 형태를 인식한다. 다른 축약 조건문 형태까지 포괄하지 않는다. | [재현 사례 #37](https://github.com/georgeharker/tree-sitter-zsh/issues/37), Zinit `zinit-autoload.zsh` |
-| Kotlin | 애너테이션이 붙은 이름 있는 함수 선언에 동적 우선순위를 주어 중위 표현식으로 오인하지 않게 한다. | Signal Android `ParticipantActionsSheet.kt`의 `AdminPreview` |
+| Kotlin | 애너테이션이 붙은 이름 있는 함수 선언에 동적 우선순위를 주어 중위 표현식으로 오인하지 않게 한다. 스캐너(`scanner.c`)가 애너테이션을 건너뛰는 두 루프를 파일 끝에서 멈추게 한다. 원본은 애너테이션으로 끝나는 파일에서 끝나지 않는다. 클래스 이름 다음 줄에서 시작하는 주 생성자를 그 클래스의 것으로 읽는다. 원본은 중첩 클래스이거나 `constructor` 앞에 애너테이션과 공개 범위 수식어가 함께 있으면 문장을 끊어 바깥 클래스까지 오류로 만든다. | Signal Android `ParticipantActionsSheet.kt`의 `AdminPreview`, `tests/fixtures/public_validation/kotlin/`의 `EndsWith*.kt`, KotlinPoet `TypeSpec.kt`의 `Builder`, Circuit `CircuitContext.kt` |
 
 세 파서는 MIT로 배포된 소스를 사용한다. Zsh의 원본 라이선스와 Groovy가 기반으로 삼은 Java 문법의 라이선스를 각 디렉터리에 보존한다. Kotlin 라이선스도 고정한 원본 커밋에서 가져와 보존한다. Groovy 원본은 `grammar.js`의 저작자·MIT 표기를 유지한다.
 

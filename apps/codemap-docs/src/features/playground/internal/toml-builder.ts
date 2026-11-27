@@ -25,46 +25,19 @@ export function buildTomlConfig(
         push("[output]", [`is_redact_enabled = ${s.redactEnabled}`]);
     }
 
-    const searchLines: string[] = [];
-    if (s.detailFileLimit !== defaultState.detailFileLimit) mod.add("detailFileLimit");
-    if (full || s.detailFileLimit !== defaultState.detailFileLimit) {
-        searchLines.push(`detail_file_limit = ${s.detailFileLimit}`);
-    }
-    if (s.snippetMaxLines !== defaultState.snippetMaxLines) mod.add("snippetMaxLines");
-    if (full || s.snippetMaxLines !== defaultState.snippetMaxLines) {
-        searchLines.push(`snippet_max_lines = ${s.snippetMaxLines}`);
-    }
-    push("[output.search]", searchLines);
-
     if (s.outsideCallers !== defaultState.outsideCallers) mod.add("outsideCallers");
     if (full || s.outsideCallers !== defaultState.outsideCallers) {
         push("[output.read]", [`is_outside_callers_enabled = ${s.outsideCallers}`]);
     }
 
-    if (s.grepMaxColumns !== defaultState.grepMaxColumns) mod.add("grepMaxColumns");
-    if (full || s.grepMaxColumns !== defaultState.grepMaxColumns) {
-        push("[output.grep]", [`max_columns = ${s.grepMaxColumns}`]);
-    }
-
-    const ctxLines: string[] = [];
     if (s.contextEnabled !== defaultState.contextEnabled) mod.add("contextEnabled");
     if (full || s.contextEnabled !== defaultState.contextEnabled) {
-        ctxLines.push(`is_enabled = ${s.contextEnabled}`);
+        push("[output.context]", [`is_enabled = ${s.contextEnabled}`]);
     }
-    if (s.callerLimit !== defaultState.callerLimit) mod.add("callerLimit");
-    if (full || s.callerLimit !== defaultState.callerLimit) {
-        ctxLines.push(`caller_limit = ${s.callerLimit}`);
-    }
-    push("[output.context]", ctxLines);
 
     if (s.includeTests !== defaultState.includeTests) mod.add("includeTests");
     if (full || s.includeTests !== defaultState.includeTests) {
         push("[output.context.exclude]", [`should_include_test_code = ${s.includeTests}`]);
-    }
-
-    if (s.navPrecise !== defaultState.navPrecise) mod.add("navPrecise");
-    if (full || s.navPrecise !== defaultState.navPrecise) {
-        push("[output.navigation]", [`is_enabled = ${s.navPrecise}`]);
     }
 
     if (s.eventsEnabled !== defaultState.eventsEnabled) mod.add("eventsEnabled");
@@ -104,16 +77,10 @@ export function buildTomlConfig(
     }
     push("[output.jev]", jevLines);
 
-    const idxLines: string[] = [];
     if (s.indexMode !== defaultState.indexMode) mod.add("indexMode");
     if (full || s.indexMode !== defaultState.indexMode) {
-        idxLines.push(`mode = "${s.indexMode}"`);
+        push("[index]", [`mode = "${s.indexMode}"`]);
     }
-    if (s.storeRefs !== defaultState.storeRefs) mod.add("storeRefs");
-    if (full || s.storeRefs !== defaultState.storeRefs) {
-        idxLines.push(`store_references = ${s.storeRefs}`);
-    }
-    push("[index]", idxLines);
 
     if (s.exclDirs !== defaultState.exclDirs) mod.add("exclDirs");
     if (full || s.exclDirs !== defaultState.exclDirs) {

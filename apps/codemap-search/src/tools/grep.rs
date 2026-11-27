@@ -18,9 +18,166 @@ use crate::workspace::{
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkContext, SinkMatch};
 use serde_json::Value;
-use std::time::SystemTime;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::time::{Duration, Instant, SystemTime};
 
 const DEFAULT_HEAD_LIMIT: usize = 250;
+/// Hard wall-clock cap for scanning non-test source files outside an extension glob/type filter.
+const OUTSIDE_FILTER_SCAN_BUDGET: Duration = Duration::from_millis(400);
+
+/// Stops searching a file on its very first match so out-of-glob summaries stay fast.
+struct FirstMatchSink {
+    matched: bool,
+}
+
+impl Sink for FirstMatchSink {
+    type Error = std::io::Error;
+
+    fn matched(
+        &mut self,
+        _searcher: &Searcher,
+        _mat: &SinkMatch<'_>,
+    ) -> Result<bool, std::io::Error> {
+        self.matched = true;
+        Ok(false)
+    }
+}
+
+/// True when `glob` contains positive patterns that restrict by file extension across the search
+/// root (e.g. `*.go`, `**/*.ts`, `*.{ts,tsx}`) rather than narrowing to a specific subdirectory.
+fn is_extension_restricted_glob(patterns: &[String]) -> bool {
+    let mut positive_count = 0usize;
+    for raw in patterns {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() || trimmed.starts_with('!') {
+            continue;
+        }
+        positive_count += 1;
+        let normalized = trimmed
+            .strip_prefix("./")
+            .unwrap_or(trimmed)
+            .strip_prefix("**/")
+            .unwrap_or(trimmed.strip_prefix("./").unwrap_or(trimmed));
+        if normalized.contains('/') {
+            return false;
+        }
+        let Some(ext) = normalized.strip_prefix("*.") else {
+            return false;
+        };
+        if ext.is_empty() {
+            return false;
+        }
+    }
+    positive_count > 0
+}
+
+/// Programming/source files only (excluding docs/markup/data formats like `.md`, `.json`, `.yaml`)
+/// so extension-filtered grep notes flag real code in sibling languages without doc/config noise.
+fn is_code_source_file(path: &Path) -> bool {
+    crate::lang::spec_for_path(path).is_some_and(|spec| {
+        !matches!(
+            spec.language_name(),
+            "document" | "json" | "yaml" | "toml" | "xml" | "html" | "css" | "less"
+        )
+    })
+}
+
+fn summarize_outside_matches(
+    candidates: &[PathBuf],
+    matcher: &grep::regex::RegexMatcher,
+    multiline: bool,
+    ext_glob: Option<&str>,
+    type_opt: Option<&str>,
+) -> Option<String> {
+    if candidates.is_empty() {
+        return None;
+    }
+    let deadline = Instant::now() + OUTSIDE_FILTER_SCAN_BUDGET;
+    let next = AtomicUsize::new(0);
+    let timed_out = AtomicBool::new(false);
+    let threads = crate::parallel::threads().min(candidates.len()).max(1);
+    let mut totals: BTreeMap<String, usize> = BTreeMap::new();
+    std::thread::scope(|scope| {
+        let workers: Vec<_> = (0..threads)
+            .map(|_| {
+                scope.spawn(|| {
+                    let mut searcher = SearcherBuilder::new()
+                        .line_number(false)
+                        .multi_line(multiline)
+                        .binary_detection(BinaryDetection::quit(0))
+                        .build();
+                    let mut local: BTreeMap<String, usize> = BTreeMap::new();
+                    let mut checked = 0usize;
+                    loop {
+                        if checked & 15 == 0 && Instant::now() >= deadline {
+                            timed_out.store(true, Ordering::Relaxed);
+                            break;
+                        }
+                        let idx = next.fetch_add(1, Ordering::Relaxed);
+                        let Some(path) = candidates.get(idx) else {
+                            break;
+                        };
+                        checked += 1;
+                        let mut sink = FirstMatchSink { matched: false };
+                        if searcher.search_path(matcher, path, &mut sink).is_ok() && sink.matched {
+                            let key = path
+                                .extension()
+                                .and_then(|e| e.to_str())
+                                .map(|e| format!(".{}", e.to_ascii_lowercase()))
+                                .unwrap_or_else(|| {
+                                    path.file_name()
+                                        .and_then(|n| n.to_str())
+                                        .unwrap_or("other")
+                                        .to_string()
+                                });
+                            *local.entry(key).or_insert(0) += 1;
+                        }
+                    }
+                    local
+                })
+            })
+            .collect();
+        for worker in workers {
+            if let Ok(local) = worker.join() {
+                for (ext, count) in local {
+                    *totals.entry(ext).or_insert(0) += count;
+                }
+            }
+        }
+    });
+    let total: usize = totals.values().sum();
+    if total == 0 {
+        return None;
+    }
+    let mut ranked: Vec<(String, usize)> = totals.into_iter().collect();
+    ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let shown: Vec<String> = ranked
+        .iter()
+        .take(5)
+        .map(|(ext, count)| format!("{ext}: {count}"))
+        .collect();
+    let breakdown = if ranked.len() > 5 {
+        format!("{}, +{} other(s)", shown.join(", "), ranked.len() - 5)
+    } else {
+        shown.join(", ")
+    };
+    let filter_desc = match (ext_glob, type_opt) {
+        (Some(g), Some(t)) => format!("glob \"{g}\" / type \"{t}\""),
+        (Some(g), None) => format!("glob \"{g}\""),
+        (None, Some(t)) => format!("type \"{t}\""),
+        (None, None) => "current filter".to_string(),
+    };
+    let plus = if timed_out.load(Ordering::Relaxed) {
+        "+"
+    } else {
+        ""
+    };
+    Some(format!(
+        "[Note: {total}{plus} source file(s) outside {filter_desc} also matched ({breakdown}) — widen or omit the filter to inspect them.]"
+    ))
+}
 
 struct LineHit {
     line_number: u64,
@@ -231,6 +388,68 @@ fn paginate<T: Clone>(items: &[T], offset: usize, head_limit: usize) -> (Vec<T>,
     (page, footer)
 }
 
+/// Slice `items` under a connection-scoped byte budget (always emitting at least one row so
+/// `next_offset` strictly advances) while preserving grep's native `next_offset` footer.
+fn paginate_bounded<T: Clone, F: FnMut(&T) -> usize>(
+    items: &[T],
+    offset: usize,
+    head_limit: usize,
+    byte_budget: usize,
+    mut item_bytes: F,
+) -> (Vec<T>, Option<String>) {
+    let total = items.len();
+    let start = offset.min(total);
+    let limit = if head_limit == 0 { total } else { head_limit };
+    let max_end = (start + limit).min(total);
+    let mut end = start;
+    let mut used = 0usize;
+    let mut byte_capped = false;
+    while end < max_end {
+        let added = item_bytes(&items[end]) + usize::from(end > start);
+        if end > start && used.saturating_add(added) > byte_budget {
+            byte_capped = true;
+            break;
+        }
+        used = used.saturating_add(added);
+        end += 1;
+    }
+    let page = items[start..end].to_vec();
+    let truncated = start > 0 || end < total;
+    let footer = if !truncated {
+        None
+    } else if page.is_empty() {
+        Some(format!("[No results at offset {offset}; {total} total.]"))
+    } else if end < total {
+        if byte_capped {
+            Some(format!(
+                "[Showing results {}-{} of {} (10 KiB client limit); next_offset={}. Continue with offset={} or narrow path/glob/pattern.]",
+                start + 1,
+                end,
+                total,
+                end,
+                end
+            ))
+        } else {
+            Some(format!(
+                "[Showing results {}-{} of {}; next_offset={}. Continue with offset={} and the same head_limit, or raise head_limit if you want a larger page.]",
+                start + 1,
+                end,
+                total,
+                end,
+                end
+            ))
+        }
+    } else {
+        Some(format!(
+            "[Showing results {}-{} of {}; this is the last page.]",
+            start + 1,
+            end,
+            total
+        ))
+    };
+    (page, footer)
+}
+
 /// Appended to every empty result so the agent knows which narrowing filters were in
 /// effect and what to do next. Observed failure mode without it: agents rerun the same
 /// pattern through a shell grep, or repeat the call unchanged. Names filters only — never
@@ -362,21 +581,34 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
     // Shared gitignore-style glob (child 01's helper): a slash-less glob matches the
     // basename at any depth, identical to `rg --glob`. The glob arg is split on whitespace,
     // then brace-free tokens on commas, yielding multiple patterns (Claude Code behavior).
-    let glob_matcher: Option<GlobMatcher> = match glob_opt {
-        Some(g) => Some(build_glob_matcher(&base, &split_grep_globs(g))?),
+    let glob_patterns = glob_opt.map(split_grep_globs);
+    let is_ext_glob = glob_patterns
+        .as_deref()
+        .is_some_and(is_extension_restricted_glob);
+    let glob_matcher: Option<GlobMatcher> = match glob_patterns.as_deref() {
+        Some(patterns) => Some(build_glob_matcher(&base, patterns)?),
         None => None,
     };
 
-    let mut walker = build_walker(&base, include_ignored);
-    if let Some(t) = type_opt {
-        let mut tb = ignore::types::TypesBuilder::new();
-        tb.add_defaults();
-        tb.select(t);
-        let types = tb
-            .build()
-            .map_err(|e| (-32602, format!("Unknown type filter '{t}': {e}")))?;
-        walker.types(types);
-    }
+    let walker = build_walker(&base, include_ignored);
+    let type_matcher: Option<ignore::types::Types> = match type_opt {
+        Some(t) => {
+            let mut tb = ignore::types::TypesBuilder::new();
+            tb.add_defaults();
+            tb.select(t);
+            Some(
+                tb.build()
+                    .map_err(|e| (-32602, format!("Unknown type filter '{t}': {e}")))?,
+            )
+        }
+        None => None,
+    };
+    let should_scan_outside =
+        base.is_dir() && output_mode != "count" && (type_opt.is_some() || is_ext_glob);
+    let root_for_filter = crate::workspace::root_dir().unwrap_or_else(|_| base.clone());
+    let outside_test_filter = should_scan_outside
+        .then(|| crate::callers::test_code::TestCodeFilter::from_config(&root_for_filter));
+    let mut outside_candidates: Vec<PathBuf> = Vec::new();
 
     let mut files: Vec<FileResult> = Vec::new();
     // ignore::Walk yields an explicitly named root file without running filter_entry.
@@ -398,7 +630,12 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
     } else {
         Box::new(entries)
     };
-    let mut expanded = expansion::ExpansionPage::new(offset, head_limit);
+    let max_columns = if crate::config::session_delivery_byte_cap().is_some() {
+        600
+    } else {
+        0
+    };
+    let mut expanded = expansion::ExpansionPage::new(offset, head_limit, options.view);
     let mut content_row_count = 0usize;
     for result in entries {
         let entry = match result {
@@ -412,14 +649,44 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
         if !include_ignored && crate::workspace::is_default_live_tool_excluded_file(p) {
             continue;
         }
+        let rel = p.strip_prefix(&base).unwrap_or(p);
+        let mut excluded_by_ext_filter = false;
         if let Some(ref gm) = glob_matcher {
-            let rel = p.strip_prefix(&base).unwrap_or(p);
             // 명시적으로 지정된 단일 파일 `path`는 strip 결과가 빈 문자열이다. ripgrep은
             // 명시적으로 지정된 파일을 `-g`와 무관하게 항상 검색하고 글롭은 디렉터리 순회
             // 중에만 적용하므로, 이 경우 글롭 필터를 건너뛴다.
             if !rel.as_os_str().is_empty() && !gm.is_match(rel) {
-                continue;
+                if should_scan_outside && is_ext_glob && gm.is_unmatched_by_whitelist(rel) {
+                    excluded_by_ext_filter = true;
+                } else {
+                    continue;
+                }
             }
+        }
+        if let Some(ref tm) = type_matcher {
+            if !rel.as_os_str().is_empty() && !tm.matched(p, false).is_whitelist() {
+                if should_scan_outside {
+                    excluded_by_ext_filter = true;
+                } else {
+                    continue;
+                }
+            }
+        }
+        if excluded_by_ext_filter {
+            if is_code_source_file(p) {
+                let filter_rel = p
+                    .strip_prefix(&root_for_filter)
+                    .unwrap_or(rel)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                let is_test = outside_test_filter
+                    .as_ref()
+                    .is_some_and(|filter| filter.is_file_excluded(&filter_rel));
+                if !is_test {
+                    outside_candidates.push(p.to_path_buf());
+                }
+            }
+            continue;
         }
         let mut sink = CollectSink {
             hits: Vec::new(),
@@ -465,7 +732,7 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
                     bytes.as_deref(),
                     &sink.hits,
                     show_line_numbers,
-                    crate::config::get().grep_max_columns,
+                    max_columns,
                     should_capture_bodies,
                 );
                 continue;
@@ -501,7 +768,6 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
         }
     }
 
-    let max_columns = crate::config::get().grep_max_columns;
     let no_match_hint = || {
         empty_result_hint(
             path,
@@ -513,10 +779,31 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
         )
     };
 
+    let outside_note = if should_scan_outside {
+        summarize_outside_matches(
+            &outside_candidates,
+            &matcher,
+            multiline,
+            glob_opt.filter(|_| is_ext_glob),
+            type_opt,
+        )
+    } else {
+        None
+    };
+
     if options.should_expand_callable {
         let mut output = expanded.finish();
         if output.text.is_empty() && output.notices.is_empty() {
-            output.text = format!("No matches found\n{}", no_match_hint());
+            output.text = match outside_note {
+                Some(note) => format!("No matches found\n{note}\n{}", no_match_hint()),
+                None => format!("No matches found\n{}", no_match_hint()),
+            };
+        } else if let Some(note) = outside_note {
+            let existing_notices: usize = output.notices.iter().map(|n| n.len() + 1).sum();
+            let cap = crate::config::get().grep_output_byte_cap;
+            if output.text.len() + existing_notices + note.len() < cap {
+                output.notices.push(note);
+            }
         }
         return Ok(output);
     }
@@ -541,7 +828,16 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
                 .iter()
                 .map(|f| (f.path.clone(), f.occurrences))
                 .collect();
-            let (page, footer) = paginate(&rows, offset, head_limit);
+            let (page, footer) = match crate::config::session_delivery_byte_cap() {
+                Some(session_cap) => paginate_bounded(
+                    &rows,
+                    offset,
+                    head_limit,
+                    session_cap.saturating_sub(512),
+                    |(p, _)| p.len() + 12,
+                ),
+                None => paginate(&rows, offset, head_limit),
+            };
             // Summary counts the post-head_limit rows (Claude Code sums the truncated slice).
             let total_occ: usize = page.iter().map(|(_, c)| c).sum();
             let mut out = String::new();
@@ -593,14 +889,62 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
                 }
             }
             if lines.is_empty() {
+                let text = match outside_note {
+                    Some(note) => format!("No matches found\n{note}\n{}", no_match_hint()),
+                    None => format!("No matches found\n{}", no_match_hint()),
+                };
                 return Ok(LiveOutput {
-                    text: format!("No matches found\n{}", no_match_hint()),
+                    text,
                     anchors: Vec::new(),
                     notices: Vec::new(),
                     ..LiveOutput::default()
                 });
             }
-            let (page, footer) = paginate(&lines, offset, head_limit);
+            let outside_reserve = outside_note.as_ref().map_or(0, |n| n.len() + 2);
+            let (page, footer) = match crate::config::session_delivery_byte_cap() {
+                Some(session_cap) => match options.view {
+                    super::live_options::LiveView::SourceGrouped
+                    | super::live_options::LiveView::Full => {
+                        let reserve = if options.view == super::live_options::LiveView::Full {
+                            2_000 + outside_reserve
+                        } else {
+                            320 + outside_reserve
+                        };
+                        let mut last_path: Option<String> = None;
+                        let mut file_count = 0usize;
+                        paginate_bounded(
+                            &lines,
+                            offset,
+                            head_limit,
+                            session_cap.saturating_sub(reserve),
+                            |row| {
+                                let suffix_len = row.text.len().saturating_sub(
+                                    row.path.len() + usize::from(show_line_numbers),
+                                );
+                                let heading_len = if last_path.as_deref() != Some(row.path.as_str())
+                                {
+                                    last_path = Some(row.path.clone());
+                                    file_count += 1;
+                                    let digits =
+                                        file_count.checked_ilog10().map_or(1, |d| d as usize + 1);
+                                    row.path.len() + 12 + digits
+                                } else {
+                                    0
+                                };
+                                heading_len + suffix_len
+                            },
+                        )
+                    }
+                    _ => paginate_bounded(
+                        &lines,
+                        offset,
+                        head_limit,
+                        session_cap.saturating_sub(320 + outside_reserve),
+                        |row| row.text.len(),
+                    ),
+                },
+                None => paginate(&lines, offset, head_limit),
+            };
             let mut output = LiveOutput::default();
             output.jev.judges_enclosing_bodies = true;
             output.jev.files = files
@@ -640,13 +984,20 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
             }
             output.anchors = content_anchors(&page);
             output.footer = footer;
+            if let Some(note) = outside_note {
+                output.notices.push(note);
+            }
             Ok(output)
         }
         // default: files_with_matches
         _ => {
             if files.is_empty() {
+                let text = match outside_note {
+                    Some(note) => format!("No matches found\n{note}\n{}", no_match_hint()),
+                    None => format!("No matches found\n{}", no_match_hint()),
+                };
                 return Ok(LiveOutput {
-                    text: format!("No matches found\n{}", no_match_hint()),
+                    text,
                     anchors: Vec::new(),
                     notices: Vec::new(),
                     ..LiveOutput::default()
@@ -658,12 +1009,26 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
             sorted.sort_by(|a, b| b.mtime.cmp(&a.mtime).then_with(|| a.path.cmp(&b.path)));
             let total = sorted.len();
             let paths: Vec<String> = sorted.iter().map(|f| f.path.clone()).collect();
-            let (page, footer) = paginate(&paths, offset, head_limit);
+            let outside_reserve = outside_note.as_ref().map_or(0, |n| n.len() + 2);
+            let (page, footer) = match crate::config::session_delivery_byte_cap() {
+                Some(session_cap) => paginate_bounded(
+                    &paths,
+                    offset,
+                    head_limit,
+                    session_cap.saturating_sub(512 + outside_reserve),
+                    String::len,
+                ),
+                None => paginate(&paths, offset, head_limit),
+            };
             let mut out = format!("Found {total} file(s)\n");
             out.push_str(&page.join("\n"));
             if let Some(f) = footer {
                 out.push('\n');
                 out.push_str(&f);
+            }
+            if let Some(note) = outside_note {
+                out.push('\n');
+                out.push_str(&note);
             }
             let anchors = page
                 .iter()

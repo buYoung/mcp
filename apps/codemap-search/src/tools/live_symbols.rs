@@ -2,15 +2,20 @@
 pub(crate) mod callable;
 mod context;
 mod diagnostics;
+mod implementations_trailer;
 mod importers;
 pub(crate) mod jev;
 mod locations;
+mod outside_callees;
 mod outside_callers;
 mod references;
-mod shared_keys;
+pub(crate) mod shared_keys;
 
+pub(crate) use implementations_trailer::HEADER as IMPLEMENTATIONS_HEADER;
 pub(crate) use importers::HEADER as IMPORTERS_HEADER;
+pub(crate) use outside_callees::HEADER as OUTSIDE_CALLEES_HEADER;
 pub(crate) use outside_callers::HEADER as OUTSIDE_CALLERS_HEADER;
+pub(crate) use shared_keys::HEADER as SHARED_KEYS_HEADER;
 mod render;
 mod structure;
 
@@ -49,6 +54,10 @@ pub(crate) struct LiveOutput {
     pub jev: jev::Capture,
     /// A read window: source view appends callers from outside it.
     pub should_list_outside_callers: bool,
+    /// Original requested end line when pre-clipped for a connection-scoped delivery cap.
+    pub requested_end: Option<usize>,
+    /// Whether the read requested `expand=callable`, preserved for continuation notices.
+    pub clipped_expand_callable: bool,
 }
 
 impl LiveOutput {
@@ -265,6 +274,86 @@ fn frame(
     text
 }
 
+/// Collect source trailers under a fair-share total budget so an early trailer (e.g. outside
+/// callers) never starves outgoing callees, implementations, shared keys, or importers, while
+/// redistributing any surplus from smaller trailers (water-filling) so budgeted headroom is never
+/// wasted.
+fn collect_fair_trailers(
+    engine: &EngineSupervisor,
+    output: &LiveOutput,
+    caps: [usize; 5],
+    total_budget: usize,
+) -> Vec<String> {
+    if !output.should_list_outside_callers || total_budget < 128 {
+        return Vec::new();
+    }
+    let query = |idx: usize, cap: usize| -> Option<String> {
+        let cap = cap.min(total_budget.saturating_sub(1));
+        match idx {
+            0 => outside_callers::trailer(engine, output, cap),
+            1 => outside_callees::trailer(engine, output, cap),
+            2 => implementations_trailer::trailer(engine, output, cap),
+            3 => shared_keys::trailer(engine, output, cap),
+            _ => importers::trailer(engine, output, cap),
+        }
+    };
+    let mut results: [Option<String>; 5] = [
+        query(0, caps[0]),
+        query(1, caps[1]),
+        query(2, caps[2]),
+        query(3, caps[3]),
+        query(4, caps[4]),
+    ];
+    let total_bytes: usize = results
+        .iter()
+        .flatten()
+        .map(|trailer| trailer.len() + 1)
+        .sum();
+    if total_bytes > total_budget {
+        let mut remaining_budget = total_budget;
+        let mut active: Vec<usize> = (0..5).filter(|&idx| results[idx].is_some()).collect();
+        let mut alloc = [0usize; 5];
+        while !active.is_empty() {
+            let share = remaining_budget / active.len();
+            let mut locked_any = false;
+            let mut next_active = Vec::with_capacity(active.len());
+            for idx in active {
+                let size = results[idx].as_ref().map_or(0, |t| t.len() + 1);
+                if size <= share {
+                    alloc[idx] = size;
+                    remaining_budget = remaining_budget.saturating_sub(size);
+                    locked_any = true;
+                } else {
+                    next_active.push(idx);
+                }
+            }
+            if !locked_any {
+                let extra = remaining_budget % next_active.len();
+                for (pos, idx) in next_active.into_iter().enumerate() {
+                    alloc[idx] = share + usize::from(pos < extra);
+                }
+                break;
+            }
+            active = next_active;
+        }
+        for (idx, slot) in results.iter_mut().enumerate() {
+            if slot.as_ref().is_some_and(|t| t.len() + 1 > alloc[idx]) {
+                let cap = alloc[idx].saturating_sub(1);
+                *slot = if cap >= 128 { query(idx, cap) } else { None };
+            }
+        }
+    }
+    let mut used = 0usize;
+    let mut out = Vec::new();
+    for trailer in results.into_iter().flatten() {
+        if used + trailer.len() < total_budget {
+            used += trailer.len() + 1;
+            out.push(trailer);
+        }
+    }
+    out
+}
+
 /// Source rows stay byte-for-byte compatible; a read window may end with its outside callers.
 /// Rich views reserve every returned source row and file heading before sharing one bounded
 /// context budget across files.
@@ -281,9 +370,9 @@ fn render(
             original: 0..output.text.len(),
             rendered_start: 0,
         });
-        let source = std::mem::take(&mut output.text);
+        let mut source = std::mem::take(&mut output.text);
         let mut text = if output.notices.is_empty() {
-            source
+            source.clone()
         } else {
             format!("{source}\n{}", output.notices.join("\n"))
         };
@@ -294,21 +383,89 @@ fn render(
                     .into(),
             ));
         }
-        // The trailer is auxiliary: it only uses the room left under the cap.
-        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
-        if let Some(trailer) = outside_callers::trailer(engine, &output, room) {
-            text.push('\n');
-            text.push_str(&trailer);
+        if crate::config::session_delivery_byte_cap().is_some() {
+            const CAPPED_CAPS: [usize; 5] = [768, 512, 576, 768, 512];
+            let cap = output_byte_cap.unwrap_or(usize::MAX);
+            let free_room = cap.saturating_sub(text.len());
+            let trailer_budget = if free_room >= 1_600 {
+                free_room.min(2_400)
+            } else {
+                1_600.min(cap / 3)
+            };
+            let mut trailers = collect_fair_trailers(engine, &output, CAPPED_CAPS, trailer_budget);
+            let trailers_bytes: usize = trailers.iter().map(|t| t.len() + 1).sum();
+            if text.len().saturating_add(trailers_bytes) > cap
+                && trailers_bytes > 0
+                && output.anchors.len() == 1
+            {
+                if let Some((start, end)) =
+                    output.anchors[0].start_line.zip(output.anchors[0].end_line)
+                {
+                    let non_clip_notices: Vec<String> = output
+                        .notices
+                        .iter()
+                        .filter(|notice| !notice.starts_with("[Clipped at L"))
+                        .cloned()
+                        .collect();
+                    let non_clip_bytes: usize = non_clip_notices.iter().map(|n| n.len() + 1).sum();
+                    let orig_end = output.requested_end.unwrap_or(end);
+                    let expand_hint = if output.clipped_expand_callable {
+                        "expand=none, "
+                    } else {
+                        ""
+                    };
+                    let clip_notice_reserve = 148usize;
+                    let target_source =
+                        cap.saturating_sub(trailers_bytes + non_clip_bytes + clip_notice_reserve);
+                    let lines: Vec<&str> = source.split('\n').collect();
+                    let mut kept = 0usize;
+                    let mut used = 0usize;
+                    for (i, line) in lines.iter().enumerate() {
+                        let added = line.len() + usize::from(i > 0);
+                        if kept > 0 && used.saturating_add(added) > target_source {
+                            break;
+                        }
+                        used = used.saturating_add(added);
+                        kept += 1;
+                    }
+                    if kept > 0 && kept < lines.len() {
+                        source = lines[..kept].join("\n");
+                        let new_end = start.saturating_add(kept - 1);
+                        output.anchors[0].end_line = Some(new_end);
+                        if let Some(copy) = copies.last_mut() {
+                            copy.original = 0..source.len();
+                        }
+                        let mut notices = non_clip_notices;
+                        notices.push(format!(
+                            "[Clipped at L{new_end} of requested L{start}-L{orig_end} (10 KiB client limit); call read with {expand_hint}offset={} if needed.]",
+                            new_end + 1
+                        ));
+                        text = format!("{source}\n{}", notices.join("\n"));
+                        let remaining = cap.saturating_sub(text.len());
+                        trailers = collect_fair_trailers(engine, &output, CAPPED_CAPS, remaining);
+                    }
+                }
+            }
+            for trailer in trailers {
+                if text.len().saturating_add(1 + trailer.len()) <= cap {
+                    text.push('\n');
+                    text.push_str(&trailer);
+                }
+            }
+            return Ok(text);
         }
-        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
-        if let Some(trailer) = shared_keys::trailer(engine, &output, room) {
-            text.push('\n');
-            text.push_str(&trailer);
-        }
-        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
-        if let Some(trailer) = importers::trailer(engine, &output, room) {
-            text.push('\n');
-            text.push_str(&trailer);
+        // The trailers are auxiliary: use only the room left under the cap, bounded to keep
+        // multi-trailer windows compact while giving every individual trailer its full headroom.
+        const STANDARD_CAPS: [usize; 5] = [1_536, 1_024, 1_024, 1_536, 1_536];
+        const STANDARD_TRAILER_BUDGET: usize = 4_608;
+        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len()));
+        let budget = room.min(STANDARD_TRAILER_BUDGET);
+        for trailer in collect_fair_trailers(engine, &output, STANDARD_CAPS, budget) {
+            if output_byte_cap.is_none_or(|cap| text.len().saturating_add(1 + trailer.len()) <= cap)
+            {
+                text.push('\n');
+                text.push_str(&trailer);
+            }
         }
         return Ok(text);
     }

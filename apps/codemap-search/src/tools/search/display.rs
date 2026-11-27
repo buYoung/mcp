@@ -243,13 +243,15 @@ const POST_RENDER_RESERVE_BYTES: usize = 512;
 /// Resolved `output.client` limits, including built-in defaults, bound this presentation guard.
 /// The Codex estimate is not a tokenizer or a guarantee for an arbitrarily large multi-tool cell.
 pub(super) fn delivery_byte_cap(server_cap: usize) -> usize {
-    crate::config::get()
-        .client_output
-        .delivery_byte_cap()
-        .map_or(server_cap, |client_cap| {
-            let reserve_bytes = POST_RENDER_RESERVE_BYTES.min(client_cap / 8);
-            server_cap.min(client_cap - reserve_bytes)
-        })
+    crate::config::effective_client_delivery_byte_cap().map_or(server_cap, |client_cap| {
+        let base_reserve = if crate::config::session_delivery_byte_cap().is_some() {
+            256
+        } else {
+            POST_RENDER_RESERVE_BYTES
+        };
+        let reserve_bytes = base_reserve.min(client_cap / 8);
+        server_cap.min(client_cap - reserve_bytes)
+    })
 }
 
 #[cfg(test)]

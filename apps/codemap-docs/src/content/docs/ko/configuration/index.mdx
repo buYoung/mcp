@@ -54,34 +54,18 @@ read = "workspace"
 
 | 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
 | --- | --- | --- | --- | --- |
-| `[output.search].detail_file_limit` | 정수 | `>= 1` | `24` | 상세 발췌를 표시할 상위 파일 수 |
-| `[output.search].overview_file_limit` | 정수 | `>= 1` | `80` | 간략 순위 목록에 표시할 최대 파일 수 |
-| `[output.search].snippet_max_lines` | 정수 | `>= 1` | `500` | `search`에서 심볼당 최대 발췌 줄 수 |
-| `[output.search].symbol_limit` | 정수 | `>= 1` | `100` | `search`에서 파일당 표시할 최대 심볼 수 |
 | `[output.search].max_bytes` | 크기 | `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `"1mb"` (`1048576`) | `search` 1회 응답 크기 상한 |
-| `[output.search].literal_max_chars` | 정수(문자) | `>= 1` | `1200` | 일치한 문자열 리터럴의 최대 표시 길이 |
-| `[output.search].literal_limit` | 정수 | `>= 1` | `60` | `search`에서 파일당 최대 리터럴 표시 수 |
-| `[output.search].anchor_snippet_limit` | 정수 | `>= 1` | `20` | 파일당 전체 발췌 최대 심볼 수(나머지는 선언부만 표시) |
 | `[output.read].max_bytes` | 크기 | `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `"5mb"` (`5242880`) | `read` 및 함수 확장 `grep`의 출력 크기 상한 |
 | `[output.read].is_outside_callers_enabled` | bool | `true`, `false` | `true` | `read view="source"` 끝에 범위 밖 호출자·import 파일 표시 |
-| `[output.grep].max_columns` | 정수 | `0` (제한 없음) 또는 `>= 1` | `0` | 본문 모드 `grep`의 줄 길이 상한 |
 | `[output.grep].max_bytes` | 크기 | 미지정, `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `[output].max_bytes` | `grep` 응답 크기 상한 |
 
-### 호출 관계·정밀 탐색·테스트 제외
+### 호출 관계 및 테스트 제외
 
-<div class="cfg-scope-line"><code>[output.context]</code> <code>[output.navigation]</code> <code>[output.context.exclude]</code></div>
+<div class="cfg-scope-line"><code>[output.context]</code> <code>[output.context.exclude]</code></div>
 
 | 키 | 자료형 | 설정 가능한 값 | 기본값 | 설명 |
 | --- | --- | --- | --- | --- |
 | `[output.context].is_enabled` | bool | `true`, `false` | `true` | `search`에서 `caller_context` 생략 시 기본 호출 관계 표시 여부 |
-| `[output.context].caller_limit` | 정수 | `>= 1` | `1000` | 심볼당 최대 호출자·참조 표시 수 |
-| `[output.context].callee_limit` | 정수 | `>= 1` | `1000` | 심볼당 최대 호출 대상 표시 수 |
-| `[output.context].max_bytes` | 크기 | `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `"128kb"` (`131072`) | `[output.search].max_bytes` 안의 호출 관계 표시 예산 |
-| `[output.context].common_name_threshold` | 정수 | `>= 1` | `2` | 이름 기반 관계에 모호함 표시를 붙이는 동명 정의 수 |
-| `[output.context].caller_omit_def_threshold` | 정수 | `>= 1` | `5` | 추정 호출자 목록 대신 `grep` 안내로 전환하는 동명 정의 수 |
-| `[output.navigation].is_enabled` | bool | `true`, `false` | `false` | 호출 위치를 구조적으로 확인해 확정 대상을 `precise`로 표시 |
-| `[output.navigation].callsite_budget` | 정수 | `>= 1` | `1000` | 이름 기반 탐색으로 넘어가기 전 구조적으로 검사할 최대 호출 수 |
-| `[output.navigation].scan_limit` | 정수 | `>= 1` | `16000` | 심볼 이름 간 공유하는 호출자 스캔 상한(이름당 최소 25건) |
 | `[output.context.exclude].should_include_test_code` | bool | `true`, `false` | `false` | 호출 관계 문맥에 테스트 코드 포함 여부 |
 | `[output.context.exclude].test_file_patterns` | 문자열 배열 | `[]` 또는 파일 경로 glob 배열 | [테스트 코드 문맥](#테스트-코드-문맥) 참고 | 테스트 파일 경로 glob 목록 |
 | `[output.context.exclude].test_attributes` | 언어 테이블 | `rust`, `java`, `kotlin`, `csharp`, `swift`, `php` → 문자열 배열 | [테스트 코드 문맥](#테스트-코드-문맥) 참고 | 언어별 테스트 속성·어노테이션 이름 |
@@ -119,18 +103,14 @@ powershell = ["Describe", "Context", "It"]
 <details class="cfg-details" id="매크로-확장과-이벤트-규칙">
 <summary>C/C++/어셈블리 매크로 확장 및 이벤트 버스 규칙 (`[output.macro_expansion]`, `[output.event_navigation]`)</summary>
 
-설치된 `clang` / `nasm` 전처리와 사용자 이벤트 버스 규칙(`typescript`, `javascript`, `rust`) 설정 예시입니다.
+설치된 `clang` 전처리(NASM은 `PATH`의 `nasm`과 내장 한도 사용)와 사용자 이벤트 버스 규칙(`typescript`, `javascript`, `rust`) 설정 예시입니다.
 
 ```toml
 [output.macro_expansion]
 is_enabled = true
 compilation_database = "build/compile_commands.json"
 clang_path = "clang"
-nasm_path = "nasm"
 clang_flags = ["-Iinclude", "-DFEATURE=1"]
-nasm_flags = ["-Iinclude/", "-felf64"]
-timeout_ms = 5000
-max_output_bytes = "8mb"
 
 [output.event_navigation]
 is_enabled = true
@@ -179,11 +159,7 @@ exceptions = [{ rule_id = "custom.acme", value = "ACME_EXAMPLE" }]
 | `[index].auto_max_files` | 정수 | `>= 1` | `50000` | `auto` 모드의 최대 색인 가능 파일 수(재시작 필요) |
 | `[index].path` | 문자열 | 비어 있지 않은 상대·절대 경로 | `".codemap/index"` | 색인 저장 경로(재시작 필요) |
 | `[index].max_file_bytes` | 크기 | `>= 1` 바이트, `"<정수>b/kb/mb/gb"` | `"1mb"` (`1048576`) | 색인 시 건너뛸 파일 크기 기준 |
-| `[index].store_references` | bool | `true`, `false` | `false` | 함수 호출 외 심볼 참조 위치도 색인에 저장 |
 | `[index.refresh].watch` | bool | `true`, `false` | `true` | 백그라운드 파일 변경 감시 사용(재시작 필요) |
-| `[index.refresh].watch_debounce_ms` | 정수(ms) | `>= 1` | `500` | 파일 변경 이벤트 묶음 대기 시간(재시작 필요) |
-| `[index.refresh].index_staleness_ms` | 정수(ms) | `>= 1` | `5000` | `watch = false`일 때 요청 기반 갱신 확인 간격 |
-| `[index.refresh].indexer_auto_restart` | bool | `true`, `false` | `true` | 백그라운드 색인 스레드 중단 시 자동 재시작 |
 | `[index.language_support].is_document_support_enabled` | bool | `true`, `false` | `false` | `.md`, `.mdx` 파일 색인 포함 |
 | `[index.language_support].is_shell_support_enabled` | bool | `true`, `false` | `false` | `.sh`, `.bash`, `.zsh` 스크립트 색인 포함 |
 | `[index.language_support].is_infrastructure_support_enabled` | bool | `true`, `false` | `false` | HCL/Terraform, Dockerfile, Nix 파일 색인 포함 |
@@ -298,10 +274,10 @@ model = "jev-1.14.0"
 <div class="cfg-diff-list">
 
 <ConfigDiffCard
-    title="1. 호출 관계 및 정밀 확인"
-    keys={["[output.context].is_enabled", "[output.navigation].is_enabled"]}
-    defaultLabel="기본값 (context = true, navigation = false)"
-    changedLabel="변경 시 (navigation = true / context = false)"
+    title="1. search 호출 관계 표시"
+    keys={["[output.context].is_enabled"]}
+    defaultLabel="기본값 (true)"
+    changedLabel="변경 시 (false)"
 >
 <Fragment slot="default">
 
@@ -318,11 +294,7 @@ model = "jev-1.14.0"
 <Fragment slot="changed">
 
 ```markdown
-# navigation.is_enabled = true (import·구조 정밀 확인)
-  - _callers (tree-sitter precise; import/source confirmed):_
-    - `pkg/api/dashboard.go:318` (`HTTPServer.PostDashboard`, precise)
-
-# context.is_enabled = false (호출 관계 생략)
+## 1. pkg/services/dashboards/service/dashboard_service.go
 - `method DashboardServiceImpl.SaveDashboard` (L142-153)
 ```
 
@@ -491,49 +463,30 @@ fromAddr := "[REDACTED]"
 이전 키도 계속 인식되며, 같은 파일에 두 키가 함께 있으면 현재 키가 우선합니다.
 
 <details class="cfg-details">
-<summary>이전 설정 키 38개 매핑 표 열기</summary>
+<summary>이전 설정 키 17개 매핑 표 열기</summary>
 
 | 이전 키 | 현재 키 |
 | --- | --- |
 | `tool_output.is_redact_enabled` | `output.is_redact_enabled` |
-| `search.result_threshold` | `output.search.detail_file_limit` |
-| `search.search_overview_file_limit` | `output.search.overview_file_limit` |
-| `search.search_detail_snippet_max_lines` | `output.search.snippet_max_lines` |
-| `search.search_detail_symbol_limit` | `output.search.symbol_limit` |
 | `search.search_detail_byte_cap` | `output.search.max_bytes` |
-| `search.search_literal_max_len` | `output.search.literal_max_chars` |
-| `search.search_literal_limit` | `output.search.literal_limit` |
-| `search.search_anchor_snippet_limit` | `output.search.anchor_snippet_limit` |
 | `tool_output.read_output_byte_cap` | `output.read.max_bytes` |
-| `tool_output.grep_max_columns` | `output.grep.max_columns` |
 | `caller_context.caller_context_default` | `output.context.is_enabled` |
-| `caller_context.caller_list_cap` | `output.context.caller_limit` |
-| `caller_context.callee_list_cap` | `output.context.callee_limit` |
-| `caller_context.annotation_sub_budget` | `output.context.max_bytes` |
-| `caller_context.common_name_threshold` | `output.context.common_name_threshold` |
-| `caller_context.caller_omit_def_threshold` | `output.context.caller_omit_def_threshold` |
 | `index.index_path` | `index.path` |
 | `index.max_file_size` | `index.max_file_bytes` |
-| `caller_context.navigation_store_references` | `index.store_references` |
 | `refresh.watch` | `index.refresh.watch` |
-| `refresh.watch_debounce_ms` | `index.refresh.watch_debounce_ms` |
-| `refresh.index_staleness_ms` | `index.refresh.index_staleness_ms` |
-| `refresh.indexer_auto_restart` | `index.refresh.indexer_auto_restart` |
 | `language_support.is_document_support_enabled` | `index.language_support.is_document_support_enabled` |
 | `language_support.is_shell_support_enabled` | `index.language_support.is_shell_support_enabled` |
 | `language_support.is_infrastructure_support_enabled` | `index.language_support.is_infrastructure_support_enabled` |
 | `language_support.is_interface_support_enabled` | `index.language_support.is_interface_support_enabled` |
 | `language_support.is_build_support_enabled` | `index.language_support.is_build_support_enabled` |
-| `caller_context.navigation_context_default` | `output.navigation.is_enabled` |
-| `caller_context.navigation_callsite_budget` | `output.navigation.callsite_budget` |
-| `caller_context.scan_cap` | `output.navigation.scan_limit` |
 | `redact.*` | `output.redact.*` |
 | `macro_expansion.*` | `output.macro_expansion.*` |
 | `event_navigation.*` | `output.event_navigation.*` |
-| `analysis.navigation.*` | `output.navigation.*` |
 | `analysis.macro_expansion.*` | `output.macro_expansion.*` |
 | `analysis.event_navigation.*` | `output.event_navigation.*` |
 
 </details>
+
+스키마 v34에서는 내부 미세 조정 옵션(`output.search.{detail_file_limit,overview_file_limit,snippet_max_lines,symbol_limit,literal_max_chars,literal_limit,anchor_snippet_limit}`, `output.context.{caller_limit,callee_limit,max_bytes,common_name_threshold,caller_omit_def_threshold}`, `output.navigation.*`, `output.grep.max_columns`, `output.macro_expansion.{nasm_path,nasm_flags,timeout_ms,max_output_bytes}`, `index.store_references`, `index.refresh.{watch_debounce_ms,index_staleness_ms,indexer_auto_restart}`)을 제거해 내장 기본값으로 통합했습니다. 자동 동기화되는 저장소 설정에서는 사용자 주석을 유지한 채 제거된 키를 정리하며, 미동기화 파일에 남아 있으면 경고 후 내장 기본값을 사용합니다.
 
 <ConfigCodeLens locale="ko" />

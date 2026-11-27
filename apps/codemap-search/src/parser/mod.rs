@@ -487,6 +487,7 @@ fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String,
             Some((name, Some(receiver.trim().to_string())))
         }
         "member_expression"
+        | "null_aware_member_expression"
         | "member_access_expression"
         | "field_expression"
         | "selector_expression"
@@ -1043,6 +1044,8 @@ fn import_entries_from_text(text: &str, range: CodeRange) -> Vec<ImportEntry> {
             .unwrap_or(rest)
             .trim()
             .trim_start_matches("type ")
+            .trim()
+            .trim_start_matches("static ")
             .trim();
         if let Some(group_body) = clause
             .strip_prefix('(')
@@ -2221,9 +2224,7 @@ impl TreeSitterExtractor {
 
         let query = spec.query(ext);
         let navigation_enabled = spec.navigation_enabled(ext);
-        let navigation_store_references = navigation_enabled
-            && (spec.always_store_references(ext)
-                || crate::config::get().navigation_store_references);
+        let navigation_store_references = navigation_enabled && spec.always_store_references(ext);
 
         let mut symbols = Vec::new();
         let mut literals = Vec::new();
@@ -3066,6 +3067,21 @@ def standalone() { return 4 }
             })
             .collect();
         assert_eq!(actual, [("first", 1, 5), ("second", 6, 8)]);
+    }
+
+    #[test]
+    fn kotlin_modifier_before_annotated_next_line_constructor_stays_in_class() {
+        let source = "class Holder\nprivate @Inject constructor(val id: Int) {\n  fun inside(): Int = id\n}\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "Holder.kt")
+            .unwrap();
+        let holder = file.symbols.iter().find(|s| s.name == "Holder").unwrap();
+        assert_eq!(holder.range.start_line, 1);
+        assert_eq!(holder.range.end_line_inclusive(), 4);
+        assert_eq!(
+            owner_of(source, "Holder.kt", "inside"),
+            Some("Holder".to_string())
+        );
     }
 
     #[test]

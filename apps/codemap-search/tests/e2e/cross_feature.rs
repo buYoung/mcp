@@ -5,9 +5,8 @@ use std::fs;
 #[tokio::test]
 async fn test_rust_target_reload_and_reexport_identity_reach_all_tool_views() {
     let platform = "#[cfg(target_os=\"macos\")]\npub mod macos;\n#[cfg(not(target_os=\"macos\"))]\npub mod other;\n#[cfg(target_os=\"macos\")]\npub use self::macos::run;\n#[cfg(not(target_os=\"macos\"))]\npub use self::other::run;\n";
-    let config = |os: &str| {
-        format!("[update]\nconfig_auto_update=false\n[analysis]\ntarget_os=\"{os}\"\n[caller_context]\nnavigation_context_default=true\nnavigation_store_references=true\n")
-    };
+    let config =
+        |os: &str| format!("[update]\nconfig_auto_update=false\n[analysis]\ntarget_os=\"{os}\"\n");
     let temp = create_mock_repo(&[
         (
             "Cargo.toml",
@@ -117,28 +116,21 @@ async fn test_rust_target_reload_and_reexport_identity_reach_all_tool_views() {
 
 #[tokio::test]
 async fn test_cross_bm25_mcp_branching() {
-    // 1. Setup repo with 6 matching files
-    let temp = create_mock_repo(&[
-        ("src/a.rs", "fn query_func() {}"),
-        ("src/b.rs", "fn query_func() {}"),
-        ("src/c.rs", "fn query_func() {}"),
-        ("src/d.rs", "fn query_func() {}"),
-        ("src/e.rs", "fn query_func() {}"),
-        ("src/f.rs", "fn query_func() {}"),
-        // This test checks the search renderer's branching threshold, not watcher
-        // behavior. Keep request-triggered refreshes active so delete reflection is
-        // deterministic.
-        (
-            ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n[search]\nresult_threshold = 5\n",
-        ),
-    ])
-    .unwrap();
+    // 1. Setup repo with 25 matching files (> built-in detail file limit of 24)
+    let mut owned: Vec<(String, String)> = (0..25)
+        .map(|i| (format!("src/f{i:02}.rs"), "fn query_func() {}".to_string()))
+        .collect();
+    owned.push((".codemap/config.toml".into(), "watch = false\n".into()));
+    let files: Vec<(&str, &str)> = owned
+        .iter()
+        .map(|(p, c)| (p.as_str(), c.as_str()))
+        .collect();
+    let temp = create_mock_repo(&files).unwrap();
 
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
 
-    // 2. Call search via MCP (6 matches > threshold 5 -> hybrid: 5 detail + 1 ranked tail).
-    //    Poll until the initial index covers all 6 files (the tail line appears).
+    // 2. Call search via MCP (25 matches > threshold 24 -> hybrid: 24 detail + 1 ranked tail).
+    //    Poll until the initial index covers all 25 files (the tail line appears).
     let res_large = client
         .send_tool_until(
             "search",
@@ -149,15 +141,15 @@ async fn test_cross_bm25_mcp_branching() {
         .unwrap();
 
     let text_large = res_large["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(text_large.contains("a.rs"));
-    assert_eq!(text_large.matches("\n### results\n").count(), 5);
+    assert!(text_large.contains("f00.rs"));
+    assert_eq!(text_large.matches("\n### results\n").count(), 24);
     assert!(text_large.contains("fn query_func")); // detail sections carry source
 
-    // 3. Remove files to make < 5 matches.
-    fs::remove_file(temp.path().join("src/e.rs")).unwrap();
-    fs::remove_file(temp.path().join("src/f.rs")).unwrap();
+    // 3. Remove files to make <= 24 matches.
+    fs::remove_file(temp.path().join("src/f23.rs")).unwrap();
+    fs::remove_file(temp.path().join("src/f24.rs")).unwrap();
 
-    // 4. Call search again via MCP (4 matches ≤ threshold -> all-detail, no tail). Poll
+    // 4. Call search again via MCP (23 matches <= threshold -> all-detail, no tail). Poll
     //    until both deletions are reflected by a request-triggered refresh.
     let res_small = client
         .send_tool_until(
@@ -166,7 +158,7 @@ async fn test_cross_bm25_mcp_branching() {
             |t| {
                 !t.contains("Other matches")
                     && t.contains("fn query_func")
-                    && t.matches("\n### results\n").count() == 4
+                    && t.matches("\n### results\n").count() == 23
             },
         )
         .await
@@ -174,7 +166,7 @@ async fn test_cross_bm25_mcp_branching() {
 
     let text_small = res_small["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text_small.contains("fn query_func"));
-    assert_eq!(text_small.matches("\n### results\n").count(), 4);
+    assert_eq!(text_small.matches("\n### results\n").count(), 23);
 }
 
 #[test]
@@ -207,10 +199,7 @@ fn test_cross_extraction_codemaps() {
 async fn test_cross_indexing_mcp_realtime() {
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn find_me() {}"),
-        (
-            ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
-        ),
+        (".codemap/config.toml", "watch = false\n"),
     ])
     .unwrap();
 
@@ -261,10 +250,7 @@ async fn test_cross_mcp_index_reflects_modify() {
     // is gone. (Sub-second mtime resolution ensures a same-second edit still reindexes.)
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn before_symbol() {}"),
-        (
-            ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
-        ),
+        (".codemap/config.toml", "watch = false\n"),
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
@@ -313,10 +299,7 @@ async fn test_cross_mcp_index_reflects_modify() {
 async fn test_cross_mcp_search_read_suggestion_path_is_readable() {
     let temp = create_mock_repo(&[
         ("src/lib.rs", "pub fn searchable_path_symbol() {}\n"),
-        (
-            ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
-        ),
+        (".codemap/config.toml", "watch = false\n"),
     ])
     .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
@@ -437,7 +420,7 @@ async fn test_programming_languages_flow_through_index_and_search() {
         ),
         (
             ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n[caller_context]\nnavigation_context_default = true\n",
+            "watch = false\n",
         ),
     ])
     .unwrap();
@@ -659,7 +642,7 @@ async fn test_programming_languages_flow_through_index_and_search() {
                 |text| {
                     text.contains(qualified_caller)
                         && text.contains(call_site)
-                        && text.contains("tree-sitter precise")
+                        && text.contains("source/import resolution checked")
                 },
             )
             .await
@@ -673,11 +656,11 @@ async fn test_programming_languages_flow_through_index_and_search() {
         );
         assert!(
             target_text.contains(qualified_caller) && target_text.contains(call_site),
-            "{path}: precise caller and call site missing: {target_text}"
+            "{path}: caller and call site missing: {target_text}"
         );
         assert!(
-            target_text.contains("tree-sitter precise"),
-            "{path}: caller attribution was not precise: {target_text}"
+            target_text.contains("source/import resolution checked"),
+            "{path}: caller attribution did not run source resolution: {target_text}"
         );
 
         let caller_response = client
@@ -689,7 +672,7 @@ async fn test_programming_languages_flow_through_index_and_search() {
                 }),
                 |text| {
                     text.contains("calls (depth 1")
-                        && text.contains(&format!("- {qualified_target} — {path}:2 (precise)"))
+                        && text.contains(&format!("- {qualified_target} — {path}:2"))
                 },
             )
             .await
@@ -699,8 +682,8 @@ async fn test_programming_languages_flow_through_index_and_search() {
             .unwrap();
         assert!(
             caller_text.contains("calls (depth 1")
-                && caller_text.contains(&format!("- {qualified_target} — {path}:2 (precise)")),
-            "{path}: precise callee missing from caller symbol: {caller_text}"
+                && caller_text.contains(&format!("- {qualified_target} — {path}:2")),
+            "{path}: resolved callee missing from caller symbol: {caller_text}"
         );
     }
 }
@@ -758,7 +741,7 @@ async fn test_cross_mcp_search_and_read_consume_priority_format_results() {
         ),
         (
             ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n[language_support]\nis_shell_support_enabled = true\nis_infrastructure_support_enabled = true\nis_interface_support_enabled = true\nis_build_support_enabled = true\n",
+            "watch = false\n[language_support]\nis_shell_support_enabled = true\nis_infrastructure_support_enabled = true\nis_interface_support_enabled = true\nis_build_support_enabled = true\n",
         ),
     ])
     .unwrap();
@@ -852,7 +835,7 @@ async fn test_nix_precise_callers_callees_and_local_shadowing_flow_through_mcp()
         ),
         (
             ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n[language_support]\nis_infrastructure_support_enabled = true\n[caller_context]\nnavigation_context_default = true\n",
+            "watch = false\n[language_support]\nis_infrastructure_support_enabled = true\n",
         ),
     ])
     .unwrap();
@@ -862,29 +845,24 @@ async fn test_nix_precise_callers_callees_and_local_shadowing_flow_through_mcp()
         .send_tool_until(
             "search",
             serde_json::json!({ "query": "targetNix", "language_hint": "nix", "caller_context": true }),
-            |text| {
-                text.contains("callerNix")
-                    && text.contains("default.nix:3")
-                    && text.contains("tree-sitter precise")
-            },
+            |text| text.contains("callerNix") && text.contains("default.nix:3"),
         )
         .await
         .unwrap();
     let target_text = target["result"]["content"][0]["text"].as_str().unwrap();
     assert!(target_text.contains("callerNix"));
     assert!(target_text.contains("default.nix:3"));
-    assert!(target_text.contains("tree-sitter precise"));
 
     let caller = client
         .send_tool_until(
             "search",
             serde_json::json!({ "query": "callerNix", "language_hint": "nix", "caller_context": true }),
-            |text| text.contains("- targetNix — default.nix:2 (precise)"),
+            |text| text.contains("- targetNix — default.nix:2"),
         )
         .await
         .unwrap();
     let caller_text = caller["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(caller_text.contains("- targetNix — default.nix:2 (precise)"));
+    assert!(caller_text.contains("- targetNix — default.nix:2"));
 
     let shadowed = client
         .send_tool_until(
@@ -897,7 +875,7 @@ async fn test_nix_precise_callers_callees_and_local_shadowing_flow_through_mcp()
     let shadowed_text = shadowed["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
         !shadowed_text.contains("shadowCaller (default.nix:5)"),
-        "function parameter shadowing must suppress a false precise caller: {shadowed_text}"
+        "function parameter shadowing must suppress a false caller: {shadowed_text}"
     );
 }
 
@@ -931,10 +909,7 @@ fn test_cross_benchmark_indexing() {
 async fn test_cross_mcp_index_reflects_added_files() {
     let temp = create_mock_repo(&[
         ("src/nested/file.rs", "pub fn old_symbol() {}"),
-        (
-            ".codemap/config.toml",
-            "watch = false\nindex_staleness_ms = 1\n",
-        ),
+        (".codemap/config.toml", "watch = false\n"),
     ])
     .unwrap();
 

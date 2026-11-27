@@ -46,11 +46,25 @@ struct Source {
 struct SourceLoader<'r, 'a> {
     root: &'a Path,
     stored_sources: Option<&'a HashMap<String, String>>,
-    files_by_path: &'r HashMap<&'a str, &'a ExtractedFile>,
+    files: &'a [std::sync::Arc<ExtractedFile>],
+    call_lookup: Option<&'a super::CallLookup>,
+    files_by_path: Option<&'r HashMap<&'a str, &'a ExtractedFile>>,
     test_filter: &'r super::test_code::TestCodeFilter,
 }
 
-impl SourceLoader<'_, '_> {
+impl<'a> SourceLoader<'_, 'a> {
+    fn file_by_path(&self, path: &str) -> Option<&'a ExtractedFile> {
+        if let Some(lookup) = self.call_lookup {
+            return lookup
+                .file_index(path)
+                .and_then(|idx| self.files.get(idx))
+                .map(|file| &**file);
+        }
+        self.files_by_path
+            .as_ref()
+            .and_then(|by_path| by_path.get(path).copied())
+    }
+
     fn read_source(&self, file: &str) -> Option<String> {
         match self.stored_sources {
             Some(sources) => sources.get(file).cloned(),
@@ -87,10 +101,7 @@ impl SourceLoader<'_, '_> {
     /// extracting it again for resolution would: no parse is needed. Files the index expanded
     /// or preprocessed differ from their source and are extracted again.
     fn indexed_extraction(&self, file: &str, digest: &str) -> Option<ExtractedFile> {
-        if self.stored_sources.is_some() {
-            return None;
-        }
-        let indexed = self.files_by_path.get(file)?;
+        let indexed = self.file_by_path(file)?;
         let navigation = indexed.navigation.as_ref()?;
         if navigation.macro_expansion.is_some()
             || navigation.implementations.as_ref()?.source_digest != digest
@@ -120,9 +131,10 @@ impl SourceLoader<'_, '_> {
 
 pub(crate) struct SourceResolver<'a> {
     files: &'a [std::sync::Arc<ExtractedFile>],
-    files_by_path: HashMap<&'a str, &'a ExtractedFile>,
+    call_lookup: Option<&'a super::CallLookup>,
+    files_by_path: Option<HashMap<&'a str, &'a ExtractedFile>>,
     root: &'a Path,
-    names: HashMap<&'a str, Vec<Target<'a>>>,
+    names: RefCell<Option<HashMap<&'a str, Vec<Target<'a>>>>>,
     sources: RefCell<HashMap<String, Option<Rc<Source>>>>,
     manifests: RefCell<HashMap<PathBuf, Option<Rc<toml::Value>>>>,
     /// Indexed files by the paths lookups named, since each lookup resolves links on disk.
@@ -140,6 +152,9 @@ pub(crate) struct SourceResolver<'a> {
     module_paths: RefCell<HashMap<PathBuf, Option<Rc<local::ModulePaths>>>>,
     /// Names of indexed type declarations, built on first use.
     type_names: RefCell<Option<Rc<HashSet<&'a str>>>>,
+    /// Names that indexed files declare or import under, each with whether a trait or an
+    /// interface has it, built on first use.
+    declared_names: RefCell<Option<Rc<HashMap<&'a str, bool>>>>,
     /// Indexed Dart libraries by their path below `lib/`, built on first use.
     dart_libraries: RefCell<Option<Rc<crate::implementations::DartLibraries>>>,
     /// Lookups for calls into other files, built on first use.
@@ -152,13 +167,103 @@ pub(crate) struct SourceResolver<'a> {
     implementations: Option<&'a crate::implementations::ImplementationIndex>,
     /// Whether each proof file still holds the indexed source generation.
     indexed_generations: RefCell<HashMap<String, bool>>,
+    /// Canonicalized workspace root, computed once on demand.
+    canonical_root: RefCell<Option<PathBuf>>,
+    /// Nearest directory holding `go.mod` or `go.work` (or `self.root`) per file directory.
+    go_anchor_dirs: RefCell<HashMap<PathBuf, PathBuf>>,
+    /// Parsed `go.mod` info per directory, read at most once per directory.
+    go_mods: RefCell<HashMap<PathBuf, Option<Rc<GoModInfo>>>>,
+    /// Parsed `go.work` `use` `(module, dir)` pairs per directory, read at most once per directory.
+    go_works: RefCell<HashMap<PathBuf, Option<Rc<GoWorkModules>>>>,
+    /// Resolved Go import directory keyed by `(anchor_dir, import_path)`.
+    go_import_paths: RefCell<HashMap<(PathBuf, String), Option<PathBuf>>>,
+    /// Workspace-relative directory resolved for a `(anchor_dir, go_import_path)` pair.
+    go_import_dirs: RefCell<HashMap<(PathBuf, String), Option<String>>>,
+    /// Per-file cached Rust scope index (imports, mod items, local defs, unknown cfg bindings).
+    rust_file_indexes: RefCell<HashMap<String, Rc<rust_files::RustFileIndex>>>,
+    /// Cached `rust_root` results with their proof dependencies.
+    rust_roots: RefCell<HashMap<String, CachedPath>>,
+    /// Cached `rust_dependency` results with their proof dependencies.
+    rust_deps: RefCell<HashMap<(String, String), CachedPath>>,
+    /// Memoized module-scope Rust lookups `(file_path, scope_key, path, kind)` -> `(target, deps)`.
+    rust_scope_lookups: RefCell<RustScopeLookupCache<'a>>,
+    /// Active stack of module-scope Rust lookups (key -> stack index) for SCC-safe cycle breaking.
+    active_rust_lookups: RefCell<ActiveRustLookups>,
+}
+
+/// Parsed `module` and local `replace` prefixes from a single `go.mod` file.
+struct GoModInfo {
+    module: Option<String>,
+    replaces: Vec<(String, PathBuf)>,
+}
+
+/// Workspace-relative directory and manifest lookup caches used during Go import resolution.
+type GoWorkModules = Vec<(String, PathBuf)>;
+type DepRanges = Vec<(String, CodeRange)>;
+type CachedPath = (Option<PathBuf>, DepRanges);
+type RustLookupKey = (String, rust_files::ScopeKey, String, &'static str);
+type RustScopeLookupCache<'a> = HashMap<RustLookupKey, (Option<Target<'a>>, DepRanges)>;
+type ActiveRustLookups = HashMap<RustLookupKey, usize>;
+
+#[derive(Clone, Copy)]
+struct RustLookupStatus {
+    hit_depth: bool,
+    min_cycle_idx: usize,
+}
+
+impl RustLookupStatus {
+    const fn clean() -> Self {
+        Self {
+            hit_depth: false,
+            min_cycle_idx: usize::MAX,
+        }
+    }
+
+    const fn depth_limit() -> Self {
+        Self {
+            hit_depth: true,
+            min_cycle_idx: usize::MAX,
+        }
+    }
+
+    const fn cycle(back_idx: usize) -> Self {
+        Self {
+            hit_depth: false,
+            min_cycle_idx: back_idx,
+        }
+    }
+
+    fn merge(&mut self, other: Self) {
+        self.hit_depth |= other.hit_depth;
+        if other.min_cycle_idx < self.min_cycle_idx {
+            self.min_cycle_idx = other.min_cycle_idx;
+        }
+    }
+}
+
+fn clean_join(base: &Path, rel: &str) -> PathBuf {
+    let trimmed = rel.trim_start_matches("./");
+    if trimmed.is_empty() || trimmed == "." {
+        base.to_path_buf()
+    } else if !trimmed.contains("..") {
+        base.join(trimmed)
+    } else {
+        crate::workspace::canonicalize_path_lenient(&base.join(rel))
+    }
+}
+
+fn strip_go_import_prefix<'a>(import: &'a str, module: &str) -> Option<&'a str> {
+    import
+        .strip_prefix(module)
+        .filter(|suffix| suffix.is_empty() || suffix.starts_with('/'))
+        .map(|suffix| suffix.trim_start_matches('/'))
 }
 
 pub(crate) fn supports(path: &str) -> bool {
     supports_modules(path) || local::supports(path)
 }
 
-fn supports_modules(path: &str) -> bool {
+pub(super) fn supports_modules(path: &str) -> bool {
     matches!(
         Path::new(path).extension().and_then(|ext| ext.to_str()),
         Some("rs" | "go")
@@ -331,28 +436,37 @@ fn unique<'a>(targets: Vec<Target<'a>>) -> Option<Target<'a>> {
 
 impl<'a> SourceResolver<'a> {
     pub(crate) fn new(files: &'a [std::sync::Arc<ExtractedFile>], root: &'a Path) -> Self {
-        let mut names: HashMap<_, Vec<_>> = HashMap::new();
-        for file in files
-            .iter()
-            .filter(|file| supports_modules(&file.file_path))
-        {
-            for symbol in &file.symbols {
-                names.entry(symbol.name.as_str()).or_default().push(Target {
-                    file,
-                    symbol,
-                    is_precise: true,
-                });
-            }
-        }
-        Self {
-            files,
-            files_by_path: files
+        Self::construct(files, root, None)
+    }
+
+    /// Reuse snapshot-level file, module-symbol, type-name, and declared-name maps built once per
+    /// published generation so per-request construction is O(1).
+    pub(crate) fn with_lookup(
+        files: &'a [std::sync::Arc<ExtractedFile>],
+        root: &'a Path,
+        call_lookup: &'a super::CallLookup,
+    ) -> Self {
+        Self::construct(files, root, Some(call_lookup))
+    }
+
+    fn construct(
+        files: &'a [std::sync::Arc<ExtractedFile>],
+        root: &'a Path,
+        call_lookup: Option<&'a super::CallLookup>,
+    ) -> Self {
+        let files_by_path = call_lookup.is_none().then(|| {
+            files
                 .iter()
                 .filter(|file| supports(&file.file_path))
                 .map(|file| (file.file_path.as_str(), &**file))
-                .collect(),
+                .collect()
+        });
+        Self {
+            files,
+            call_lookup,
+            files_by_path,
             root,
-            names,
+            names: RefCell::new(None),
             sources: RefCell::new(HashMap::new()),
             manifests: RefCell::new(HashMap::new()),
             file_lookups: RefCell::new(HashMap::new()),
@@ -365,13 +479,79 @@ impl<'a> SourceResolver<'a> {
             dependency_ranges: RefCell::new(Vec::new()),
             module_paths: RefCell::new(HashMap::new()),
             type_names: RefCell::new(None),
+            declared_names: RefCell::new(None),
             dart_libraries: RefCell::new(None),
             module_lookups: RefCell::new(None),
             export_origins: RefCell::new(HashMap::new()),
             workspace_packages: RefCell::new(None),
             implementations: None,
             indexed_generations: RefCell::new(HashMap::new()),
+            canonical_root: RefCell::new(None),
+            go_anchor_dirs: RefCell::new(HashMap::new()),
+            go_mods: RefCell::new(HashMap::new()),
+            go_works: RefCell::new(HashMap::new()),
+            go_import_paths: RefCell::new(HashMap::new()),
+            go_import_dirs: RefCell::new(HashMap::new()),
+            rust_file_indexes: RefCell::new(HashMap::new()),
+            rust_roots: RefCell::new(HashMap::new()),
+            rust_deps: RefCell::new(HashMap::new()),
+            rust_scope_lookups: RefCell::new(HashMap::new()),
+            active_rust_lookups: RefCell::new(HashMap::new()),
         }
+    }
+
+    fn file_by_path(&self, path: &str) -> Option<&'a ExtractedFile> {
+        if let Some(lookup) = self.call_lookup {
+            return lookup
+                .file_index(path)
+                .and_then(|idx| self.files.get(idx))
+                .map(|file| &**file);
+        }
+        self.files_by_path
+            .as_ref()
+            .and_then(|by_path| by_path.get(path).copied())
+    }
+
+    fn targets_named(&self, name: &str) -> Vec<Target<'a>> {
+        if let Some(lookup) = self.call_lookup {
+            return lookup
+                .module_symbols(self.files)
+                .get(name)
+                .into_iter()
+                .flatten()
+                .filter_map(|&(file_idx, sym_idx)| {
+                    let file = self.files.get(file_idx)?;
+                    let symbol = file.symbols.get(sym_idx)?;
+                    Some(Target {
+                        file,
+                        symbol,
+                        is_precise: true,
+                    })
+                })
+                .collect();
+        }
+        let mut names = self.names.borrow_mut();
+        let map = names.get_or_insert_with(|| {
+            let mut by_name: HashMap<&'a str, Vec<Target<'a>>> = HashMap::new();
+            for file in self
+                .files
+                .iter()
+                .filter(|file| supports_modules(&file.file_path))
+            {
+                for symbol in &file.symbols {
+                    by_name
+                        .entry(symbol.name.as_str())
+                        .or_default()
+                        .push(Target {
+                            file,
+                            symbol,
+                            is_precise: true,
+                        });
+                }
+            }
+            by_name
+        });
+        map.get(name).cloned().unwrap_or_default()
     }
 
     /// Also resolve typed member calls proven by `index`, built from the same `files`.
@@ -421,6 +601,34 @@ impl<'a> SourceResolver<'a> {
         }
     }
 
+    fn with_isolated_deps<T>(&self, f: impl FnOnce() -> T) -> (T, Vec<(String, CodeRange)>) {
+        if self.stored_sources.is_none() {
+            return (f(), Vec::new());
+        }
+        let saved = std::mem::take(&mut *self.dependency_ranges.borrow_mut());
+        let result = f();
+        let captured = std::mem::replace(&mut *self.dependency_ranges.borrow_mut(), saved);
+        (result, captured)
+    }
+
+    fn replay_deps(&self, deps: &[(String, CodeRange)]) {
+        if self.stored_sources.is_none() || deps.is_empty() {
+            return;
+        }
+        let mut dependencies = self.dependency_ranges.borrow_mut();
+        for (file, range) in deps {
+            if dependencies.len() >= 65 {
+                break;
+            }
+            if !dependencies
+                .iter()
+                .any(|(path, existing)| path == file && existing == range)
+            {
+                dependencies.push((file.clone(), range.clone()));
+            }
+        }
+    }
+
     /// Borrow the already parsed Rust source for additional source-grounded facts.
     #[cfg(test)]
     pub(crate) fn inspect_rust<T>(
@@ -444,6 +652,21 @@ impl<'a> SourceResolver<'a> {
             Condition::False => Some(false),
             Condition::Unknown => None,
         }
+    }
+
+    pub(crate) fn preproc_conditions_at(
+        &self,
+        language: &str,
+        file: &str,
+        range: &CodeRange,
+    ) -> Vec<String> {
+        let Some(source) = self.source(file) else {
+            return Vec::new();
+        };
+        let Some(node) = node_at(&source, range) else {
+            return Vec::new();
+        };
+        crate::implementations::preproc_conditions_for_node(language, node, source.text.as_bytes())
     }
 
     pub(crate) fn declared_receiver_type(
@@ -508,7 +731,9 @@ impl<'a> SourceResolver<'a> {
         SourceLoader {
             root: self.root,
             stored_sources: self.stored_sources,
-            files_by_path: &self.files_by_path,
+            files: self.files,
+            call_lookup: self.call_lookup,
+            files_by_path: self.files_by_path.as_ref(),
             test_filter: &self.test_filter,
         }
     }
@@ -530,7 +755,7 @@ impl<'a> SourceResolver<'a> {
             return *found;
         }
         let key = crate::workspace::workspace_relative_key(path, self.root);
-        let found = self.files_by_path.get(key.as_str()).copied();
+        let found = self.file_by_path(key.as_str());
         self.file_lookups
             .borrow_mut()
             .insert(path.to_path_buf(), found);
@@ -597,6 +822,19 @@ impl<'a> SourceResolver<'a> {
     }
 
     fn rust_root(&self, file: &str) -> Option<PathBuf> {
+        if let Some((cached, deps)) = self.rust_roots.borrow().get(file).cloned() {
+            self.replay_deps(&deps);
+            return cached;
+        }
+        let (result, deps) = self.with_isolated_deps(|| self.rust_root_uncached(file));
+        self.replay_deps(&deps);
+        self.rust_roots
+            .borrow_mut()
+            .insert(file.to_string(), (result.clone(), deps));
+        result
+    }
+
+    fn rust_root_uncached(&self, file: &str) -> Option<PathBuf> {
         if let Some(manifest) = self.nearest(file, "Cargo.toml") {
             let directory = manifest.parent()?;
             let source_path = self.root.join(file);
@@ -632,6 +870,20 @@ impl<'a> SourceResolver<'a> {
     }
 
     fn rust_dependency(&self, file: &str, name: &str) -> Option<PathBuf> {
+        let key = (file.to_string(), name.to_string());
+        if let Some((cached, deps)) = self.rust_deps.borrow().get(&key).cloned() {
+            self.replay_deps(&deps);
+            return cached;
+        }
+        let (result, deps) = self.with_isolated_deps(|| self.rust_dependency_uncached(file, name));
+        self.replay_deps(&deps);
+        self.rust_deps
+            .borrow_mut()
+            .insert(key, (result.clone(), deps));
+        result
+    }
+
+    fn rust_dependency_uncached(&self, file: &str, name: &str) -> Option<PathBuf> {
         let manifest = self.nearest(file, "Cargo.toml")?;
         let value = self.manifest(&manifest)?;
         let dependency = ["dependencies", "dev-dependencies"]
@@ -692,58 +944,251 @@ impl<'a> SourceResolver<'a> {
         package
     }
 
-    fn go_import_directory(&self, file: &str, import: &str) -> Option<PathBuf> {
-        let manifest = self.nearest(file, "go.mod")?;
-        let content = std::fs::read_to_string(&manifest).ok()?;
-        let module = content
-            .lines()
-            .find_map(|line| line.trim().strip_prefix("module "))?
-            .trim();
-        if let Some(suffix) = import
-            .strip_prefix(module)
-            .filter(|suffix| suffix.is_empty() || suffix.starts_with('/'))
-        {
-            return Some(manifest.parent()?.join(suffix.trim_start_matches('/')));
+    /// Workspace-relative directory (with `/` separators, `""` for the root) that a Go import
+    /// path maps to via `go.mod`, `replace`, or `go.work`, cached per `(importer_dir, import)`.
+    fn canonical_root_path(&self) -> PathBuf {
+        let mut cached = self.canonical_root.borrow_mut();
+        cached
+            .get_or_insert_with(|| crate::workspace::canonicalize_path_lenient(self.root))
+            .clone()
+    }
+
+    fn is_under_workspace(&self, path: &Path) -> bool {
+        path.starts_with(self.root) || path.starts_with(self.canonical_root_path())
+    }
+
+    fn read_manifest_text(&self, path: &Path) -> Option<String> {
+        if let Some(sources) = self.stored_sources {
+            let key = crate::workspace::workspace_relative_key(path, self.root);
+            if let Some(content) = sources.get(&key) {
+                return Some(content.clone());
+            }
         }
-        // Workspace replacements are explicit source mappings, unlike matching a path suffix.
-        let mut directory = manifest.parent()?.to_path_buf();
-        loop {
-            if let Ok(content) = std::fs::read_to_string(directory.join("go.mod")) {
-                for line in content.lines() {
-                    let line = line.trim().strip_prefix("replace ").unwrap_or(line.trim());
-                    if let Some((module, replacement)) = line.split_once("=>") {
-                        let module = module.split_whitespace().next()?;
-                        let replacement = replacement.split_whitespace().next()?;
-                        if replacement.starts_with('.') {
-                            if let Some(suffix) = import
-                                .strip_prefix(module)
-                                .filter(|suffix| suffix.is_empty() || suffix.starts_with('/'))
-                            {
-                                let path = crate::workspace::canonicalize_path_lenient(
-                                    &directory
-                                        .join(replacement)
-                                        .join(suffix.trim_start_matches('/')),
-                                );
-                                if path.starts_with(self.root) {
-                                    return Some(path);
-                                }
-                            }
+        std::fs::read_to_string(path).ok()
+    }
+
+    fn go_mod_info(&self, dir: &Path) -> Option<Rc<GoModInfo>> {
+        if let Some(cached) = self.go_mods.borrow().get(dir) {
+            return cached.clone();
+        }
+        let info = self.read_manifest_text(&dir.join("go.mod")).map(|content| {
+            let mut module = None;
+            let mut replaces = Vec::new();
+            for raw in content.lines() {
+                let line = raw.split("//").next().unwrap_or("").trim();
+                if line.is_empty() {
+                    continue;
+                }
+                if module.is_none() {
+                    if let Some(rest) = line.strip_prefix("module ") {
+                        let name = rest.trim().trim_matches('"');
+                        if !name.is_empty() {
+                            module = Some(name.to_string());
+                        }
+                        continue;
+                    }
+                }
+                let replace_line = line.strip_prefix("replace ").unwrap_or(line);
+                if let Some((mod_part, target_part)) = replace_line.split_once("=>") {
+                    let Some(mod_name) = mod_part.split_whitespace().next() else {
+                        continue;
+                    };
+                    let Some(replacement) = target_part.split_whitespace().next() else {
+                        continue;
+                    };
+                    if replacement.starts_with('.') {
+                        let target = clean_join(dir, replacement);
+                        if self.is_under_workspace(&target) {
+                            replaces.push((mod_name.to_string(), target));
                         }
                     }
                 }
             }
-            if directory == self.root || !directory.pop() || !directory.starts_with(self.root) {
-                return None;
+            Rc::new(GoModInfo { module, replaces })
+        });
+        self.go_mods
+            .borrow_mut()
+            .insert(dir.to_path_buf(), info.clone());
+        info
+    }
+
+    fn go_work_modules(&self, dir: &Path) -> Option<Rc<GoWorkModules>> {
+        if let Some(cached) = self.go_works.borrow().get(dir) {
+            return cached.clone();
+        }
+        let modules = self
+            .read_manifest_text(&dir.join("go.work"))
+            .map(|content| {
+                let mut entries = Vec::new();
+                let mut in_use = false;
+                for raw in content.lines() {
+                    let line = raw.split("//").next().unwrap_or("").trim();
+                    if line.is_empty() {
+                        continue;
+                    }
+                    let use_dir = if let Some(rest) = line.strip_prefix("use ") {
+                        let rest = rest.trim();
+                        if rest == "(" {
+                            in_use = true;
+                            None
+                        } else {
+                            Some(rest.trim_matches('"'))
+                        }
+                    } else if line == "use(" {
+                        in_use = true;
+                        None
+                    } else if in_use && line == ")" {
+                        in_use = false;
+                        None
+                    } else if in_use {
+                        Some(line.trim_matches('"'))
+                    } else {
+                        None
+                    };
+                    let Some(use_dir) = use_dir.filter(|d| !d.is_empty()) else {
+                        continue;
+                    };
+                    let mod_dir = clean_join(dir, use_dir);
+                    if !self.is_under_workspace(&mod_dir) {
+                        continue;
+                    }
+                    if let Some(info) = self.go_mod_info(&mod_dir) {
+                        if let Some(module) = &info.module {
+                            entries.push((module.clone(), mod_dir));
+                        }
+                    }
+                }
+                Rc::new(entries)
+            });
+        self.go_works
+            .borrow_mut()
+            .insert(dir.to_path_buf(), modules.clone());
+        modules
+    }
+
+    fn go_anchor_dir(&self, file: &str) -> PathBuf {
+        let start = self
+            .root
+            .join(file)
+            .parent()
+            .unwrap_or(self.root)
+            .to_path_buf();
+        if let Some(cached) = self.go_anchor_dirs.borrow().get(&start) {
+            return cached.clone();
+        }
+        let mut visited = Vec::new();
+        let mut dir = start;
+        let anchor = loop {
+            if let Some(cached) = self.go_anchor_dirs.borrow().get(&dir) {
+                break cached.clone();
+            }
+            if self.go_mod_info(&dir).is_some() || self.go_work_modules(&dir).is_some() {
+                break dir;
+            }
+            visited.push(dir.clone());
+            if dir == self.root || !dir.pop() || !dir.starts_with(self.root) {
+                break self.root.to_path_buf();
+            }
+        };
+        let mut cache = self.go_anchor_dirs.borrow_mut();
+        cache.insert(anchor.clone(), anchor.clone());
+        for path in visited {
+            cache.insert(path, anchor.clone());
+        }
+        anchor
+    }
+
+    pub(crate) fn go_import_rel_dir(&self, file: &str, import: &str) -> Option<String> {
+        let anchor = self.go_anchor_dir(file);
+        let key = (anchor, import.to_string());
+        if let Some(cached) = self.go_import_dirs.borrow().get(&key) {
+            return cached.clone();
+        }
+        let resolved = self
+            .go_import_directory_from(&key.0, import)
+            .and_then(|path| {
+                let rel = path
+                    .strip_prefix(self.root)
+                    .ok()
+                    .or_else(|| path.strip_prefix(self.canonical_root_path()).ok())?;
+                Some(
+                    rel.to_string_lossy()
+                        .replace('\\', "/")
+                        .trim_matches('/')
+                        .to_string(),
+                )
+            });
+        self.go_import_dirs
+            .borrow_mut()
+            .insert(key, resolved.clone());
+        resolved
+    }
+
+    fn go_import_directory(&self, file: &str, import: &str) -> Option<PathBuf> {
+        let anchor = self.go_anchor_dir(file);
+        self.go_import_directory_from(&anchor, import)
+    }
+
+    fn go_import_directory_from(&self, anchor: &Path, import: &str) -> Option<PathBuf> {
+        let key = (anchor.to_path_buf(), import.to_string());
+        if let Some(cached) = self.go_import_paths.borrow().get(&key) {
+            return cached.clone();
+        }
+        let mut resolved = None;
+        if let Some(info) = self.go_mod_info(anchor) {
+            if let Some(module) = info.module.as_deref() {
+                if let Some(suffix) = strip_go_import_prefix(import, module) {
+                    resolved = Some(if suffix.is_empty() {
+                        anchor.to_path_buf()
+                    } else {
+                        anchor.join(suffix)
+                    });
+                }
             }
         }
+        if resolved.is_none() {
+            let mut directory = anchor.to_path_buf();
+            loop {
+                if let Some(info) = self.go_mod_info(&directory) {
+                    if let Some((_, target, suffix)) =
+                        info.replaces.iter().find_map(|(m, target)| {
+                            strip_go_import_prefix(import, m).map(|suffix| (m, target, suffix))
+                        })
+                    {
+                        resolved = Some(if suffix.is_empty() {
+                            target.clone()
+                        } else {
+                            target.join(suffix)
+                        });
+                        break;
+                    }
+                }
+                if let Some(modules) = self.go_work_modules(&directory) {
+                    if let Some((_, mod_dir, suffix)) = modules.iter().find_map(|(m, mod_dir)| {
+                        strip_go_import_prefix(import, m).map(|suffix| (m, mod_dir, suffix))
+                    }) {
+                        resolved = Some(if suffix.is_empty() {
+                            mod_dir.clone()
+                        } else {
+                            mod_dir.join(suffix)
+                        });
+                        break;
+                    }
+                }
+                if directory == self.root || !directory.pop() || !directory.starts_with(self.root) {
+                    break;
+                }
+            }
+        }
+        self.go_import_paths
+            .borrow_mut()
+            .insert(key, resolved.clone());
+        resolved
     }
 
     fn candidates(&self, name: &str, kind: &str) -> Vec<Target<'a>> {
-        self.names
-            .get(name)
+        self.targets_named(name)
             .into_iter()
-            .flatten()
-            .copied()
             .filter(|target| supports_modules(&target.file.file_path))
             .filter(|target| match kind {
                 "call" => target.symbol.kind == "fn" && target.symbol.owner.is_none(),
@@ -833,10 +1278,7 @@ impl<'a> SourceResolver<'a> {
         if !supports_modules(&file.file_path) {
             return None;
         }
-        let file = self
-            .files
-            .iter()
-            .find(|candidate| candidate.file_path == file.file_path)?;
+        let file = self.file_by_path(file.file_path.as_str())?;
         self.lookup(file, range, name, kind, 0)
     }
 
@@ -1033,201 +1475,412 @@ impl<'a> SourceResolver<'a> {
         kind: &str,
         depth: usize,
     ) -> Option<Target<'a>> {
+        let static_kind = match kind {
+            "call" => "call",
+            "type" => "type",
+            "const" => "const",
+            "macro" => "macro",
+            _ => return None,
+        };
         let source = self.source(&file.file_path)?;
         let at = node_at(&source, range)?;
+        self.rust_lookup_at(file, &source, at, path, static_kind, depth)
+            .0
+    }
+
+    fn rust_lookup_step(
+        &self,
+        file: &'a ExtractedFile,
+        range: &CodeRange,
+        path: &str,
+        kind: &'static str,
+        depth: usize,
+    ) -> (Option<Target<'a>>, RustLookupStatus) {
+        self.record_dependency(&file.file_path, range);
+        if depth > 16 {
+            return (None, RustLookupStatus::depth_limit());
+        }
+        let Some(source) = self.source(&file.file_path) else {
+            return (None, RustLookupStatus::clean());
+        };
+        let Some(at) = node_at(&source, range) else {
+            return (None, RustLookupStatus::clean());
+        };
+        if self.rust_node_condition(&file.file_path, &source, at) != Condition::True {
+            return (None, RustLookupStatus::clean());
+        }
+        if path
+            .split([':', '.'])
+            .next()
+            .is_some_and(|head| has_generic_parameter(at, &source, head))
+        {
+            return (None, RustLookupStatus::clean());
+        }
+        self.rust_lookup_at(file, &source, at, path, kind, depth)
+    }
+
+    fn rust_lookup_at_root(
+        &self,
+        file: &'a ExtractedFile,
+        path: &str,
+        kind: &'static str,
+        depth: usize,
+    ) -> (Option<Target<'a>>, RustLookupStatus) {
+        let Some(source) = self.source(&file.file_path) else {
+            return (None, RustLookupStatus::clean());
+        };
+        let root = source.syntax.tree.root_node();
+        self.rust_lookup_step(
+            file,
+            &CodeRange {
+                start_line: 1,
+                start_col: 1,
+                end_line: root.end_position().row + 1,
+                end_col: root.end_position().column + 1,
+            },
+            path,
+            kind,
+            depth,
+        )
+    }
+
+    fn rust_lookup_at(
+        &self,
+        file: &'a ExtractedFile,
+        source: &Source,
+        at: Node<'_>,
+        path: &str,
+        kind: &'static str,
+        depth: usize,
+    ) -> (Option<Target<'a>>, RustLookupStatus) {
+        let scopes = lexical_scopes(at);
+        let Some((&mod_scope, inner_blocks)) = scopes.split_last() else {
+            return (None, RustLookupStatus::clean());
+        };
+        if inner_blocks.is_empty() {
+            return self.rust_lookup_module_scope(file, source, mod_scope, path, kind, depth);
+        }
+        let file_index = self.rust_file_index(file, source);
+        let nav_imports = source
+            .extracted
+            .navigation
+            .as_ref()
+            .map(|nav| nav.imports.as_slice())
+            .unwrap_or(&[]);
         if let Some((head, tail)) = path.split_once("::") {
-            if head == "crate" {
-                return self.lookup_at_root(
-                    self.file(&self.rust_root(&file.file_path)?)?,
+            if matches!(head, "crate" | "self" | "super") {
+                return self.rust_lookup_module_scope(file, source, mod_scope, path, kind, depth);
+            }
+            for &lexical in inner_blocks {
+                if let Some(outcome) = self.rust_lookup_qualified_in_scope(
+                    file,
+                    source,
+                    &file_index,
+                    nav_imports,
+                    lexical,
+                    head,
                     tail,
                     kind,
-                    depth + 1,
-                );
+                    depth,
+                ) {
+                    return outcome;
+                }
             }
-            if head == "self" {
-                return self.lookup(file, &node_range(module_body(at)), tail, kind, depth + 1);
+            return self.rust_lookup_module_scope(file, source, mod_scope, path, kind, depth);
+        }
+        for &lexical in inner_blocks {
+            if let Some(outcome) = self.rust_lookup_unqualified_in_scope(
+                file,
+                &file_index,
+                nav_imports,
+                lexical,
+                path,
+                kind,
+                depth,
+            ) {
+                return outcome;
             }
-            if head == "super" {
-                if !module_names(at, &source).is_empty() {
-                    return self.lookup(
+        }
+        self.rust_lookup_module_scope(file, source, mod_scope, path, kind, depth)
+    }
+
+    fn rust_lookup_module_scope(
+        &self,
+        file: &'a ExtractedFile,
+        source: &Source,
+        mod_scope: Node<'_>,
+        path: &str,
+        kind: &'static str,
+        depth: usize,
+    ) -> (Option<Target<'a>>, RustLookupStatus) {
+        let key = (
+            file.file_path.clone(),
+            rust_files::scope_key(mod_scope),
+            path.to_string(),
+            kind,
+        );
+        if let Some((target, deps)) = self.rust_scope_lookups.borrow().get(&key).cloned() {
+            self.replay_deps(&deps);
+            return (target, RustLookupStatus::clean());
+        }
+        let my_idx = {
+            let mut active = self.active_rust_lookups.borrow_mut();
+            if let Some(&back_idx) = active.get(&key) {
+                return (None, RustLookupStatus::cycle(back_idx));
+            }
+            let idx = active.len();
+            active.insert(key.clone(), idx);
+            idx
+        };
+
+        let ((target, status), deps) = self.with_isolated_deps(|| {
+            let file_index = self.rust_file_index(file, source);
+            let nav_imports = source
+                .extracted
+                .navigation
+                .as_ref()
+                .map(|nav| nav.imports.as_slice())
+                .unwrap_or(&[]);
+            if let Some((head, tail)) = path.split_once("::") {
+                if head == "crate" {
+                    let Some(root_path) = self.rust_root(&file.file_path) else {
+                        return (None, RustLookupStatus::clean());
+                    };
+                    let Some(root_file) = self.file(&root_path) else {
+                        return (None, RustLookupStatus::clean());
+                    };
+                    return self.rust_lookup_at_root(root_file, tail, kind, depth + 1);
+                }
+                if head == "self" {
+                    return self.rust_lookup_step(
                         file,
-                        &node_range(module_body(module_body(at).parent()?)),
+                        &node_range(module_body(mod_scope)),
                         tail,
                         kind,
                         depth + 1,
                     );
                 }
-                let current = self.root.join(&file.file_path);
-                let parent = if current.file_name()?.to_str()? == "mod.rs" {
-                    current.parent()?.parent()?
-                } else {
-                    current.parent()?
-                };
-                let destination = self
-                    .module_file(parent)
-                    .or_else(|| self.rust_root(&file.file_path))?;
-                return self.lookup_at_root(self.file(&destination)?, tail, kind, depth + 1);
-            }
-            for lexical in lexical_scopes(at) {
-                if self.has_unknown_rust_binding(&file.file_path, &source, lexical, head) {
-                    return None;
-                }
-                let imports = self.imports_in_scope(&source, lexical, Some(head));
-                if imports.len() > 1
-                    || imports.iter().any(|import| {
-                        self.rust_import_condition(&source, &import.range) != Condition::True
-                    })
-                {
-                    return None;
-                }
-                let mut cursor = lexical.walk();
-                let modules: Vec<_> = lexical
-                    .named_children(&mut cursor)
-                    .filter(|node| {
-                        node.kind() == "mod_item"
-                            && self.rust_node_condition(&file.file_path, &source, *node)
-                                != Condition::False
-                            && node
-                                .child_by_field_name("name")
-                                .and_then(|name| text(name, &source))
-                                == Some(head)
-                    })
-                    .collect();
-                let types = self.candidates(head, "type").into_iter().any(|target| {
-                    target.file.file_path == file.file_path
-                        && node_at(&source, &target.symbol.range)
-                            .is_some_and(|node| scope(node) == lexical)
-                });
-                if imports.is_empty() && modules.is_empty() && !types {
-                    continue;
-                }
-                let mut targets: Vec<_> = imports
-                    .iter()
-                    .filter_map(|import| {
-                        self.lookup(
+                if head == "super" {
+                    if !module_names(mod_scope, source).is_empty() {
+                        let Some(parent) = module_body(mod_scope).parent() else {
+                            return (None, RustLookupStatus::clean());
+                        };
+                        return self.rust_lookup_step(
                             file,
-                            &import.range,
-                            &format!("{}::{tail}", import.source.as_deref()?),
+                            &node_range(module_body(parent)),
+                            tail,
                             kind,
                             depth + 1,
-                        )
-                    })
-                    .collect();
-                for module in modules {
-                    let target = if let Some(body) = module.child_by_field_name("body") {
-                        self.lookup(file, &node_range(body), tail, kind, depth + 1)
+                        );
+                    }
+                    let current = self.root.join(&file.file_path);
+                    let parent = if current.file_name().and_then(|n| n.to_str()) == Some("mod.rs") {
+                        current.parent().and_then(Path::parent)
                     } else {
-                        self.module_destination(file, &source, module)
-                            .and_then(|path| self.file(&path))
-                            .and_then(|file| self.lookup_at_root(file, tail, kind, depth + 1))
+                        current.parent()
                     };
-                    targets.extend(target);
+                    let Some(parent) = parent else {
+                        return (None, RustLookupStatus::clean());
+                    };
+                    let Some(destination) = self
+                        .module_file(parent)
+                        .or_else(|| self.rust_root(&file.file_path))
+                    else {
+                        return (None, RustLookupStatus::clean());
+                    };
+                    let Some(dest_file) = self.file(&destination) else {
+                        return (None, RustLookupStatus::clean());
+                    };
+                    return self.rust_lookup_at_root(dest_file, tail, kind, depth + 1);
                 }
-                // A local type/import/module shadows a crate with the same spelling,
-                // including when its target is absent from the filtered snapshot.
-                return unique(targets);
-            }
-            let dependency = self.rust_dependency(&file.file_path, head)?;
-            return self.lookup_at_root(self.file(&dependency)?, tail, kind, depth + 1);
-        }
-        for lexical in lexical_scopes(at) {
-            if self.has_unknown_rust_binding(&file.file_path, &source, lexical, path) {
-                return None;
-            }
-            let mut targets: Vec<_> = self
-                .candidates(path, kind)
-                .into_iter()
-                .filter(|target| {
-                    target.file.file_path == file.file_path && self.is_current_target(*target)
-                })
-                .filter(|target| {
-                    node_at(&source, &target.symbol.range).is_some_and(|node| {
-                        scope(node) == lexical
-                            && ((kind == "macro") == (node.kind() == "macro_definition"))
-                    })
-                })
-                .collect();
-            let imports = self.imports_in_scope(&source, lexical, Some(path));
-            if imports.len() > 1
-                || imports.iter().any(|import| {
-                    self.rust_import_condition(&source, &import.range) != Condition::True
-                })
-            {
-                return None;
-            }
-            let has_local_name = !targets.is_empty() || !imports.is_empty();
-            for import in imports {
-                targets.extend(self.lookup(
+                if let Some(outcome) = self.rust_lookup_qualified_in_scope(
                     file,
-                    &import.range,
-                    import.source.as_deref()?,
+                    source,
+                    &file_index,
+                    nav_imports,
+                    mod_scope,
+                    head,
+                    tail,
                     kind,
-                    depth + 1,
-                ));
+                    depth,
+                ) {
+                    return outcome;
+                }
+                let Some(dependency) = self.rust_dependency(&file.file_path, head) else {
+                    return (None, RustLookupStatus::clean());
+                };
+                let Some(dep_file) = self.file(&dependency) else {
+                    return (None, RustLookupStatus::clean());
+                };
+                return self.rust_lookup_at_root(dep_file, tail, kind, depth + 1);
             }
-            if has_local_name {
-                return unique(targets);
-            }
-            let globs = self.imports_in_scope(&source, lexical, None);
-            if globs
-                .iter()
-                .any(|import| self.rust_import_condition(&source, &import.range) != Condition::True)
-            {
-                return None;
-            }
-            if !globs.is_empty() {
-                return unique(
-                    globs
-                        .iter()
-                        .filter_map(|import| {
-                            self.lookup(
-                                file,
-                                &import.range,
-                                &format!("{}::{path}", import.source.as_deref()?),
-                                kind,
-                                depth + 1,
-                            )
-                        })
-                        .collect(),
-                );
-            }
+            self.rust_lookup_unqualified_in_scope(
+                file,
+                &file_index,
+                nav_imports,
+                mod_scope,
+                path,
+                kind,
+                depth,
+            )
+            .unwrap_or((None, RustLookupStatus::clean()))
+        });
+
+        self.active_rust_lookups.borrow_mut().remove(&key);
+        self.replay_deps(&deps);
+
+        // Cache whenever the search was not truncated by depth and depended on no strict
+        // ancestor above `my_idx` (closed SCC).
+        if !status.hit_depth && status.min_cycle_idx >= my_idx {
+            self.rust_scope_lookups
+                .borrow_mut()
+                .insert(key, (target, deps));
+            return (target, RustLookupStatus::clean());
         }
-        None
+        (target, status)
     }
 
-    fn imports_in_scope<'f>(
+    #[allow(clippy::too_many_arguments)]
+    fn rust_lookup_qualified_in_scope(
         &self,
-        source: &'f Source,
-        lexical: Node,
-        name: Option<&str>,
-    ) -> Vec<&'f crate::parser::ImportEntry> {
-        source
-            .extracted
-            .navigation
-            .as_ref()
-            .into_iter()
-            .flat_map(|navigation| &navigation.imports)
-            .filter(|import| {
-                if !name
-                    .map(|name| import.local_name == name)
-                    .unwrap_or(import.kind == ImportKind::Glob)
+        file: &'a ExtractedFile,
+        source: &Source,
+        file_index: &rust_files::RustFileIndex,
+        nav_imports: &[crate::parser::ImportEntry],
+        lexical: Node<'_>,
+        head: &str,
+        tail: &str,
+        kind: &'static str,
+        depth: usize,
+    ) -> Option<(Option<Target<'a>>, RustLookupStatus)> {
+        let entry = file_index.scopes.get(&rust_files::scope_key(lexical))?;
+        if entry.unknown_bindings.contains(head) {
+            return Some((None, RustLookupStatus::clean()));
+        }
+        let imports = entry
+            .named_imports
+            .get(head)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        if imports.len() > 1 || imports.iter().any(|&(_, cond)| cond != Condition::True) {
+            return Some((None, RustLookupStatus::clean()));
+        }
+        let modules = entry.mod_items.get(head).map(Vec::as_slice).unwrap_or(&[]);
+        let has_type = entry.type_names_in_scope.contains(head);
+        if imports.is_empty() && modules.is_empty() && !has_type {
+            return None;
+        }
+        let mut status = RustLookupStatus::clean();
+        let mut targets = Vec::new();
+        for &(idx, _) in imports {
+            if let Some(import) = nav_imports.get(idx) {
+                if let Some(src) = import.source.as_deref() {
+                    let (target, child_status) = self.rust_lookup_step(
+                        file,
+                        &import.range,
+                        &format!("{src}::{tail}"),
+                        kind,
+                        depth + 1,
+                    );
+                    status.merge(child_status);
+                    targets.extend(target);
+                }
+            }
+        }
+        for mod_range in modules {
+            if let Some(module) = node_at(source, mod_range) {
+                let (target, child_status) = if let Some(body) = module.child_by_field_name("body")
                 {
-                    return false;
-                }
-                let Some(mut node) = node_at(source, &import.range) else {
-                    return false;
+                    self.rust_lookup_step(file, &node_range(body), tail, kind, depth + 1)
+                } else if let Some(dest_file) = self
+                    .module_destination(file, source, module)
+                    .and_then(|path| self.file(&path))
+                {
+                    self.rust_lookup_at_root(dest_file, tail, kind, depth + 1)
+                } else {
+                    (None, RustLookupStatus::clean())
                 };
-                while node.kind() != "use_declaration" {
-                    let Some(parent) = node.parent() else {
-                        return false;
-                    };
-                    node = parent;
-                }
-                scope(node) == lexical
-                    && rust_cfg::condition(node, &source.text, self.target_os.as_deref())
-                        != Condition::False
+                status.merge(child_status);
+                targets.extend(target);
+            }
+        }
+        // A local type/import/module shadows a crate with the same spelling,
+        // including when its target is absent from the filtered snapshot.
+        Some((unique(targets), status))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn rust_lookup_unqualified_in_scope(
+        &self,
+        file: &'a ExtractedFile,
+        file_index: &rust_files::RustFileIndex,
+        nav_imports: &[crate::parser::ImportEntry],
+        lexical: Node<'_>,
+        path: &str,
+        kind: &'static str,
+        depth: usize,
+    ) -> Option<(Option<Target<'a>>, RustLookupStatus)> {
+        let entry = file_index.scopes.get(&rust_files::scope_key(lexical))?;
+        if entry.unknown_bindings.contains(path) {
+            return Some((None, RustLookupStatus::clean()));
+        }
+        let mut targets: Vec<Target<'a>> = entry
+            .local_defs
+            .get(path)
+            .into_iter()
+            .flatten()
+            .filter(|&&(bucket, _)| bucket == kind)
+            .map(|&(_, sym_idx)| Target {
+                file,
+                symbol: &file.symbols[sym_idx],
+                is_precise: true,
             })
-            .collect()
+            .collect();
+        let imports = entry
+            .named_imports
+            .get(path)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        if imports.len() > 1 || imports.iter().any(|&(_, cond)| cond != Condition::True) {
+            return Some((None, RustLookupStatus::clean()));
+        }
+        let has_local_name = !targets.is_empty() || !imports.is_empty();
+        let mut status = RustLookupStatus::clean();
+        for &(idx, _) in imports {
+            let Some(src) = nav_imports.get(idx).and_then(|i| i.source.as_deref()) else {
+                return Some((None, status));
+            };
+            let (target, child_status) =
+                self.rust_lookup_step(file, &nav_imports[idx].range, src, kind, depth + 1);
+            status.merge(child_status);
+            targets.extend(target);
+        }
+        if has_local_name {
+            return Some((unique(targets), status));
+        }
+        let globs = entry.glob_imports.as_slice();
+        if globs.iter().any(|&(_, cond)| cond != Condition::True) {
+            return Some((None, RustLookupStatus::clean()));
+        }
+        if !globs.is_empty() {
+            for &(idx, _) in globs {
+                if let Some(import) = nav_imports.get(idx) {
+                    if let Some(src) = import.source.as_deref() {
+                        let (target, child_status) = self.rust_lookup_step(
+                            file,
+                            &import.range,
+                            &format!("{src}::{path}"),
+                            kind,
+                            depth + 1,
+                        );
+                        status.merge(child_status);
+                        targets.extend(target);
+                    }
+                }
+            }
+            return Some((unique(targets), status));
+        }
+        None
     }
 
     fn module_destination(
@@ -1307,7 +1960,7 @@ impl<'a> SourceResolver<'a> {
     }
 
     pub(crate) fn resolve_call(&self, file: &ExtractedFile, call: &CallSite) -> Option<Target<'a>> {
-        let file = self.files_by_path.get(file.file_path.as_str()).copied()?;
+        let file = self.file_by_path(file.file_path.as_str())?;
         if local::supports(&file.file_path) {
             // Members of the enclosing type take precedence over functions of other files.
             return self
@@ -1395,11 +2048,8 @@ impl<'a> SourceResolver<'a> {
 
     fn method(&self, owner: Target<'a>, name: &str, is_precise: bool) -> Option<Target<'a>> {
         unique(
-            self.names
-                .get(name)
+            self.targets_named(name)
                 .into_iter()
-                .flatten()
-                .copied()
                 .filter(|target| {
                     target.symbol.kind == "fn"
                         && target.symbol.owner.as_deref() == Some(&owner.symbol.name)

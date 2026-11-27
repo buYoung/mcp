@@ -18,7 +18,7 @@ const CALLERS_PER_FUNCTION: usize = 3;
 const TRAILER_BYTE_CAP: usize = 1536;
 /// Time for looking up one window's callers. Callers found by then are listed with a note
 /// that the lookup stopped, so a slow lookup cannot make the read itself slow.
-const TRAILER_TIME_BUDGET: Duration = Duration::from_millis(250);
+const TRAILER_TIME_BUDGET: Duration = Duration::from_millis(500);
 const PARTIAL_LINE: &str =
     "\n- caller lookup stopped at its time limit; more outside callers may exist (view=relations)";
 const TIME_LIMIT_REASON: &str =
@@ -32,7 +32,6 @@ pub(super) fn trailer(
     output: &LiveOutput,
     byte_cap: usize,
 ) -> Option<String> {
-    let started = Instant::now();
     let byte_cap = byte_cap.min(TRAILER_BYTE_CAP);
     // Room for the closing omission line is kept whenever a function line is added.
     let reserve = omission_line(FUNCTION_LOOKUP_LIMIT).len();
@@ -63,9 +62,11 @@ pub(super) fn trailer(
     }
     let snapshot = engine.published_snapshot();
     let source_files = snapshot.codemap();
-    let indexed = source_files
-        .iter()
-        .find(|file| file.file_path == path)
+    let call_lookup = snapshot.call_lookup();
+    let indexed = call_lookup
+        .file_index(path)
+        .and_then(|pos| source_files.get(pos))
+        .or_else(|| source_files.iter().find(|file| file.file_path == path))
         .map(|file| &**file);
     // Stale or unindexed files would attribute callers to the wrong lines.
     if let Some(reason) =
@@ -73,8 +74,7 @@ pub(super) fn trailer(
     {
         return Some(unavailable_line(&reason));
     }
-    let filtered = filter.filter_snapshot(&source_files, |file| file.file_path == path);
-    let file = filtered.iter().find(|file| file.file_path == path)?;
+    let file = indexed?;
     let functions: Vec<_> = file
         .symbols
         .iter()
@@ -82,14 +82,17 @@ pub(super) fn trailer(
             callable(symbol)
                 && symbol.range.start_line <= end
                 && start <= symbol.range.end_line_inclusive()
+                && !filter.is_excluded(path, &symbol.range)
         })
         .take(FUNCTION_LOOKUP_LIMIT)
         .collect();
     if functions.is_empty() {
         return None;
     }
-    let resolver = crate::callers::resolution::SourceResolver::new(&source_files, &root)
-        .with_implementations(snapshot.implementations());
+    let started = Instant::now();
+    let resolver =
+        crate::callers::resolution::SourceResolver::with_lookup(&source_files, &root, call_lookup)
+            .with_implementations(snapshot.implementations());
     // Calls reach a C/C++ prototype's definition, so its callers are those of the definition.
     let targets: Vec<Target<'_>> = functions
         .iter()
@@ -215,34 +218,70 @@ fn trailer_text(
         ) else {
             continue;
         };
+        let non_call_refs = annotations
+            .non_call_references(
+                function.path,
+                function.target.range.start_line,
+                function.target.range.start_col,
+            )
+            .unwrap_or(&[]);
+        let seen_direct_pos: std::collections::HashSet<(&str, usize)> = callers
+            .iter()
+            .chain(unconfirmed.iter())
+            .filter(is_outside)
+            .map(|site| (site.path.as_str(), site.line))
+            .collect();
         let mut sites: Vec<_> = callers
             .iter()
             .filter(is_outside)
-            .map(|site| (site, false))
+            .map(|site| (site, SiteKind::Direct))
             .chain(
                 unconfirmed
                     .iter()
                     .filter(is_outside)
-                    .map(|site| (site, true)),
+                    .map(|site| (site, SiteKind::Unconfirmed)),
+            )
+            .chain(
+                non_call_refs
+                    .iter()
+                    .filter(is_outside)
+                    .filter(|site| !seen_direct_pos.contains(&(site.path.as_str(), site.line)))
+                    .map(|site| (site, SiteKind::NonCallRef)),
             )
             .collect();
         if sites.is_empty() {
             continue;
         }
-        // Other files first, then by path and line, whatever order the lookup found them in.
-        sites.sort_by(|(left, _), (right, _)| {
-            (left.path == path, &left.path, left.line).cmp(&(
+        // Other files first, then direct callers before unconfirmed/non-call refs, then path/line.
+        sites.sort_by(|(left, left_kind), (right, right_kind)| {
+            (left.path == path, *left_kind, &left.path, left.line).cmp(&(
                 right.path == path,
+                *right_kind,
                 &right.path,
                 right.line,
             ))
         });
         let groups = group_by_caller(&sites);
-        let shown: Vec<_> = groups
-            .iter()
-            .take(CALLERS_PER_FUNCTION)
-            .map(|group| label(group, path))
-            .collect();
+        // Reserve at least one slot for a verified non-call reference (callback / handler /
+        // binding registration) when present so direct calls never crowd out registration sites.
+        let mut selected: Vec<&CallerGroup<'_>> =
+            groups.iter().take(CALLERS_PER_FUNCTION).collect();
+        if groups.len() > CALLERS_PER_FUNCTION
+            && !selected
+                .iter()
+                .any(|group| group.kind == SiteKind::NonCallRef)
+        {
+            if let Some(ref_group) = groups
+                .iter()
+                .skip(CALLERS_PER_FUNCTION)
+                .find(|group| group.kind == SiteKind::NonCallRef)
+            {
+                if let Some(last) = selected.last_mut() {
+                    *last = ref_group;
+                }
+            }
+        }
+        let shown: Vec<_> = selected.iter().map(|group| label(group, path)).collect();
         let name = symbol.name.split_whitespace().collect::<Vec<_>>().join(" ");
         let definition = if std::ptr::eq(function.target, symbol) {
             String::new()
@@ -289,25 +328,30 @@ fn omission_line(count: usize) -> String {
     format!("\n- {count} more function(s) with outside callers (view=relations)")
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum SiteKind {
+    Direct,
+    Unconfirmed,
+    NonCallRef,
+}
+
 /// Call sites of one caller in one file, in discovery order.
 struct CallerGroup<'a> {
     site: &'a CallerSite,
-    is_unconfirmed: bool,
+    kind: SiteKind,
     lines: Vec<usize>,
 }
 
-fn group_by_caller<'a>(sites: &[(&'a CallerSite, bool)]) -> Vec<CallerGroup<'a>> {
+fn group_by_caller<'a>(sites: &[(&'a CallerSite, SiteKind)]) -> Vec<CallerGroup<'a>> {
     let mut groups: Vec<CallerGroup<'a>> = Vec::new();
-    for &(site, is_unconfirmed) in sites {
+    for &(site, kind) in sites {
         match groups.iter_mut().find(|group| {
-            group.is_unconfirmed == is_unconfirmed
-                && group.site.caller == site.caller
-                && group.site.path == site.path
+            group.kind == kind && group.site.caller == site.caller && group.site.path == site.path
         }) {
             Some(group) => group.lines.push(site.line),
             None => groups.push(CallerGroup {
                 site,
-                is_unconfirmed,
+                kind,
                 lines: vec![site.line],
             }),
         }
@@ -327,12 +371,11 @@ fn label(group: &CallerGroup<'_>, path: &str) -> String {
         format!("{}:{}", group.site.path, lines.join(", "))
     };
     let caller = group.site.caller.as_deref().unwrap_or("top-level");
-    let mark = if group.is_unconfirmed {
-        "unconfirmed "
-    } else {
-        ""
-    };
-    format!("{mark}{caller} ({location})")
+    match group.kind {
+        SiteKind::Direct => format!("{caller} ({location})"),
+        SiteKind::Unconfirmed => format!("unconfirmed {caller} ({location})"),
+        SiteKind::NonCallRef => format!("ref in {caller} ({location})"),
+    }
 }
 
 #[cfg(test)]
@@ -342,7 +385,7 @@ mod tests {
 
     #[test]
     fn caller_lookup_stops_at_its_time_limit_and_says_so() {
-        assert_eq!(TRAILER_TIME_BUDGET, Duration::from_millis(250));
+        assert_eq!(TRAILER_TIME_BUDGET, Duration::from_millis(500));
         let path = "src/lib.rs";
         let source = "fn target() {}\nfn caller() {\n    target();\n}\n";
         let temp = tempfile::tempdir().unwrap();

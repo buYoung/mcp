@@ -102,6 +102,34 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "processor",
+                "typ": {
+                  "name": "P",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 5,
+                    "startCol": 16,
+                    "endLine": 5,
+                    "endCol": 17
+                  }
+                }
+              },
+              {
+                "name": "queue",
+                "typ": {
+                  "name": "Q",
+                  "arguments": [],
+                  "range": {
+                    "startLine": 4,
+                    "startCol": 12,
+                    "endLine": 4,
+                    "endCol": 13
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],
@@ -145,10 +173,145 @@
               }
             ],
             "namespace": "",
-            "conditions": []
+            "conditions": [],
+            "range": {
+              "startLine": 8,
+              "startCol": 1,
+              "endLine": 26,
+              "endCol": 2
+            }
           }
         ],
-        "calls": []
+        "calls": [
+          {
+            "name": "next",
+            "range": {
+              "startLine": 14,
+              "startCol": 25,
+              "endLine": 14,
+              "endCol": 42
+            },
+            "receiver": {
+              "name": "Worker",
+              "arguments": [
+                "Q",
+                "P"
+              ],
+              "range": {
+                "startLine": 8,
+                "startCol": 12,
+                "endLine": 8,
+                "endCol": 24
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "queue"
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "tick",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "retry_hint",
+            "range": {
+              "startLine": 19,
+              "startCol": 30,
+              "endLine": 19,
+              "endCol": 53
+            },
+            "receiver": {
+              "name": "Worker",
+              "arguments": [
+                "Q",
+                "P"
+              ],
+              "range": {
+                "startLine": 8,
+                "startCol": 12,
+                "endLine": 8,
+                "endCol": 24
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "queue"
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "tick",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "process",
+            "range": {
+              "startLine": 23,
+              "startCol": 23,
+              "endLine": 23,
+              "endCol": 50
+            },
+            "receiver": {
+              "name": "Worker",
+              "arguments": [
+                "Q",
+                "P"
+              ],
+              "range": {
+                "startLine": 8,
+                "startCol": 12,
+                "endLine": 8,
+                "endCol": 24
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "processor"
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "ack",
+            "range": {
+              "startLine": 24,
+              "startCol": 9,
+              "endLine": 24,
+              "endCol": 35
+            },
+            "receiver": {
+              "name": "Worker",
+              "arguments": [
+                "Q",
+                "P"
+              ],
+              "range": {
+                "startLine": 8,
+                "startCol": 12,
+                "endLine": 8,
+                "endCol": 24
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "queue"
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "tick",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          }
+        ]
       }
     ],
     "omitted": 0

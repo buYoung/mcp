@@ -101,6 +101,23 @@
             "isAbstract": false,
             "isFinal": false,
             "isComplete": true,
+            "fields": [
+              {
+                "name": "rules",
+                "typ": {
+                  "name": "Vec",
+                  "arguments": [
+                    "R"
+                  ],
+                  "range": {
+                    "startLine": 4,
+                    "startCol": 12,
+                    "endLine": 4,
+                    "endCol": 18
+                  }
+                }
+              }
+            ],
             "conditions": []
           }
         ],
@@ -145,10 +162,121 @@
               }
             ],
             "namespace": "",
-            "conditions": []
+            "conditions": [],
+            "range": {
+              "startLine": 7,
+              "startCol": 1,
+              "endLine": 28,
+              "endCol": 2
+            }
           }
         ],
         "calls": [
+          {
+            "name": "collect",
+            "range": {
+              "startLine": 12,
+              "startCol": 32,
+              "endLine": 16,
+              "endCol": 23
+            },
+            "receiver": {
+              "name": "Policy",
+              "arguments": [
+                "R"
+              ],
+              "range": {
+                "startLine": 7,
+                "startCol": 9,
+                "endLine": 7,
+                "endCol": 18
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "rules"
+              },
+              {
+                "call": {
+                  "name": "iter",
+                  "argument_count": null
+                }
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "filter",
+            "range": {
+              "startLine": 12,
+              "startCol": 32,
+              "endLine": 15,
+              "endCol": 47
+            },
+            "receiver": {
+              "name": "Policy",
+              "arguments": [
+                "R"
+              ],
+              "range": {
+                "startLine": 7,
+                "startCol": 9,
+                "endLine": 7,
+                "endCol": 18
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "rules"
+              },
+              {
+                "call": {
+                  "name": "iter",
+                  "argument_count": 0
+                }
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 1,
+            "conditions": [],
+            "receiverKind": "value"
+          },
+          {
+            "name": "iter",
+            "range": {
+              "startLine": 12,
+              "startCol": 32,
+              "endLine": 14,
+              "endCol": 20
+            },
+            "receiver": {
+              "name": "Policy",
+              "arguments": [
+                "R"
+              ],
+              "range": {
+                "startLine": 7,
+                "startCol": 9,
+                "endLine": 7,
+                "endCol": 18
+              }
+            },
+            "receiverSteps": [
+              {
+                "field": "rules"
+              }
+            ],
+            "namespace": "",
+            "enclosingSymbol": "evaluate",
+            "argumentCount": 0,
+            "conditions": [],
+            "receiverKind": "value"
+          },
           {
             "name": "is_empty",
             "range": {
