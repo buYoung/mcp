@@ -186,7 +186,7 @@ impl ExpansionPage {
                 }
             }
             if has_omitted_columns {
-                let note = format!("[Callable source incomplete at {path}:{start}-{end}: grep_max_columns omitted long lines. Use read with expand=none and this line range.]\n");
+                let note = format!("[Callable source incomplete at {path}:{start}-{end}: long lines omitted. Use read with expand=none and this line range.]\n");
                 group_rendered_bytes += note.len();
                 text.push_str(&note);
             }

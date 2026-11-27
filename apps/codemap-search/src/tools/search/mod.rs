@@ -925,8 +925,8 @@ pub(crate) fn prepare_detail(
     // Result-branch threshold: at or below it, return file details;
     // above it, return a codemap overview. Config-driven (Child 05),
     // default 5.
-    let result_branch_threshold = crate::config::get().result_threshold;
-    let tail_file_limit = crate::config::get().search_overview_file_limit;
+    let result_branch_threshold = crate::config::DEFAULT_RESULT_THRESHOLD;
+    let tail_file_limit = crate::config::DEFAULT_SEARCH_OVERVIEW_FILE_LIMIT;
     let (mut results, mut phrase_matches, published_snapshot) = ctx
         .engine
         .search_with_phrase_recall_in_scope(
@@ -1043,11 +1043,11 @@ pub(crate) fn prepare_detail(
         // bounded by config caps so a few large or fallback-matched files
         // can't dump the whole tree into the agent's context.
         let cfg = crate::config::get();
-        let snippet_max_lines = cfg.search_detail_snippet_max_lines;
-        let symbol_limit = cfg.search_detail_symbol_limit;
+        let snippet_max_lines = crate::config::DEFAULT_SEARCH_DETAIL_SNIPPET_MAX_LINES;
+        let symbol_limit = crate::config::DEFAULT_SEARCH_DETAIL_SYMBOL_LIMIT;
         let byte_cap = cfg.search_detail_byte_cap;
-        let literal_max_len = cfg.search_literal_max_len;
-        let literal_limit = cfg.search_literal_limit;
+        let literal_max_len = crate::config::DEFAULT_SEARCH_LITERAL_MAX_LEN;
+        let literal_limit = crate::config::DEFAULT_SEARCH_LITERAL_LIMIT;
 
         // Caller/callee context (default on): one workspace scan across
         // every matched `fn` in the detail view, attributed off the codemap
@@ -1066,18 +1066,7 @@ pub(crate) fn prepare_detail(
                     is_fallback: res.symbol_fallback,
                 })
                 .collect();
-            let caller_cfg = crate::callers::CallerConfig {
-                scan_cap: cfg.scan_cap,
-                caller_list_cap: cfg.caller_list_cap,
-                callee_list_cap: cfg.callee_list_cap,
-                annotation_sub_budget: cfg.annotation_sub_budget,
-                common_name_threshold: cfg.common_name_threshold,
-                caller_omit_def_threshold: cfg.caller_omit_def_threshold,
-                max_file_size: cfg.max_file_size,
-                navigation_context_default: cfg.navigation_context_default,
-                navigation_callsite_budget: cfg.navigation_callsite_budget,
-                navigation_store_references: cfg.navigation_store_references,
-            };
+            let caller_cfg = crate::callers::CallerConfig::runtime(cfg.max_file_size);
             let runtime_state = crate::callers::AnnotationRuntimeState {
                 is_warming,
                 has_refresh_error: ctx.engine.last_error().is_some(),
@@ -1255,7 +1244,7 @@ pub(crate) fn prepare_detail(
                         .collect();
                     let render_caps = render::AnchoredRenderCaps {
                         snippet_max_lines,
-                        anchor_snippet_limit: cfg.search_anchor_snippet_limit,
+                        anchor_snippet_limit: crate::config::DEFAULT_SEARCH_ANCHOR_SNIPPET_LIMIT,
                         byte_cap: file_byte_cap,
                     };
                     let outcome = render::plan_anchored_symbols(
@@ -1322,7 +1311,7 @@ pub(crate) fn prepare_detail(
                         res.matched_symbols.iter().take(symbol_limit).collect();
                     let render_caps = render::AnchoredRenderCaps {
                         snippet_max_lines,
-                        anchor_snippet_limit: cfg.search_anchor_snippet_limit,
+                        anchor_snippet_limit: crate::config::DEFAULT_SEARCH_ANCHOR_SNIPPET_LIMIT,
                         byte_cap: file_byte_cap,
                     };
                     let outcome = render::plan_anchored_symbols(
@@ -1450,8 +1439,7 @@ fn ranked_tail_row(res: &crate::index::SearchResult) -> String {
 /// shows a bare header instead of leaking unrelated symbols. Count-capped by
 /// `search_overview_file_limit`; the caller applies the byte cap.
 fn ranked_tail(remaining_results: &[&crate::index::SearchResult]) -> String {
-    let tail_cfg = crate::config::get();
-    let tail_file_limit = tail_cfg.search_overview_file_limit;
+    let tail_file_limit = crate::config::DEFAULT_SEARCH_OVERVIEW_FILE_LIMIT;
     let mut tail = format!(
         "\n## Other matches — {} more files, ranked by relevance\n",
         remaining_results.len()
@@ -1488,7 +1476,7 @@ fn ranked_tail_bounded(
     if remaining_results.is_empty() {
         return (String::new(), true);
     }
-    let tail_file_limit = crate::config::get().search_overview_file_limit;
+    let tail_file_limit = crate::config::DEFAULT_SEARCH_OVERVIEW_FILE_LIMIT;
     let total = remaining_results.len();
     let mut tail = format!("\n## Other matches — {total} more files, ranked by relevance\n");
     let footer_reserve = format!(
@@ -1795,9 +1783,8 @@ fn finish_detail(
         Vec::new()
     };
     // Tail rows the ranked tail left unused; none once the tail itself is clipped.
-    let free_tail_rows = crate::config::get()
-        .search_overview_file_limit
-        .saturating_sub(remaining_results.len());
+    let free_tail_rows =
+        crate::config::DEFAULT_SEARCH_OVERVIEW_FILE_LIMIT.saturating_sub(remaining_results.len());
     // A partial page loses its tail or source to the cap; it is compacted when the full
     // detail files alone exceed the threshold. Its relations were skipped above, so the
     // compact page plans them over the same files.

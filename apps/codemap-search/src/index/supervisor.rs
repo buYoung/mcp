@@ -52,7 +52,7 @@ pub struct EngineSupervisor {
     // request-triggered refresh below is suppressed entirely. Stays unhealthy forever
     // when `watch = false` or the watch failed to start, which preserves the lazy path.
     watcher_status: Arc<WatcherStatus>,
-    // Instant of the last refresh trigger. Within `config::index_staleness_ms` we skip
+    // Instant of the last refresh trigger. Within `DEFAULT_INDEX_STALENESS_MS` we skip
     // re-triggering so a burst of search calls enqueues at most one refresh; the
     // indexer's own mtime diff keeps each pass incremental. A single field now suffices
     // because every snapshot reader shares one background refresh.
@@ -149,17 +149,14 @@ impl EngineSupervisor {
         matches!(self.state, IndexState::Active)
     }
 
-    /// Auto-recover a dead indexer thread (config `indexer_auto_restart`, default true):
+    /// Auto-recover a dead indexer thread:
     /// rebuild the engine, respawn the indexer, and re-attach the watcher, so one panic
     /// does not freeze results for the rest of the session. Runs at most once per
     /// request, only when death is actually observed, and never past
     /// [`MAX_INDEXER_RESTART_ATTEMPTS`]. `TantivySearchEngine::new` rebuilds a corrupt
     /// index directory, so a crash caused by index corruption heals instead of recurring.
     pub fn ensure_alive(&mut self) {
-        if !self.is_active()
-            || !crate::config::get().indexer_auto_restart
-            || !self.indexer.is_dead()
-        {
+        if !self.is_active() || !self.indexer.is_dead() {
             return;
         }
         if self.indexer_restart_attempts >= MAX_INDEXER_RESTART_ATTEMPTS {
@@ -246,7 +243,7 @@ impl EngineSupervisor {
         if self.watcher_status.is_healthy() && !self.indexer.is_dead() {
             return;
         }
-        let staleness = Duration::from_millis(crate::config::get().index_staleness_ms);
+        let staleness = Duration::from_millis(crate::config::DEFAULT_INDEX_STALENESS_MS);
         let is_fresh = self
             .last_refresh_trigger
             .is_some_and(|t| t.elapsed() < staleness);

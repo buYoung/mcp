@@ -3,7 +3,7 @@ use predicates::prelude::PredicateBooleanExt;
 use serde_json::{json, Value};
 use std::fs;
 
-const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 33";
+const CURRENT_CONFIG_HEADER: &str = "# codemap-config-version: 34";
 
 fn result_text(response: &Value) -> &str {
     response["result"]["content"][0]["text"].as_str().unwrap()
@@ -267,7 +267,7 @@ async fn test_exclusions_generated_common_and_project_globs() {
 #[tokio::test]
 async fn test_exclusions_manual_reload_reconciles_index_without_source_edits() {
     let config_path = ".codemap/config.toml";
-    let original = "# codemap-config-version: 9\n[index]\nindex_path = '.custom-codemap-index'\n[exclude]\nexcluded_directories = []\n[refresh]\nindex_staleness_ms = 3600000\n";
+    let original = "# codemap-config-version: 9\n[index]\nindex_path = '.custom-codemap-index'\n[exclude]\nexcluded_directories = []\n";
     let repo = create_mock_repo(&[
         (config_path, original),
         ("apps/web/build/hidden.rs", "pub fn exclusion_probe() {}"),

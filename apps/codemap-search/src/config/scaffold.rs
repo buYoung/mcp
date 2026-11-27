@@ -264,7 +264,7 @@ mod tests {
             "excluded_directories = []\n",
             "index = { excluded_directories = ['custom'] }\n",
             "[index]\nmax_file_size = 1000\n",
-            "[search]\nresult_threshold = 2\n",
+            "[output.search]\nmax_bytes = \"2mb\"\n",
         ] {
             let updated = migrate_exclusions(source, root.path(), &["inherited".into()]).unwrap();
             assert!(updated.contains("\"node_modules\""), "{updated}");

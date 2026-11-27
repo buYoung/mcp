@@ -630,10 +630,7 @@ fn grep_impl(args: &Value, should_capture_bodies: bool) -> Result<LiveOutput, (i
     } else {
         Box::new(entries)
     };
-    let configured_max_columns = crate::config::get().grep_max_columns;
-    let max_columns = if configured_max_columns > 0 {
-        configured_max_columns
-    } else if crate::config::session_delivery_byte_cap().is_some() {
+    let max_columns = if crate::config::session_delivery_byte_cap().is_some() {
         600
     } else {
         0

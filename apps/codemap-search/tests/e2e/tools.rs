@@ -57,13 +57,13 @@ fn workspace_only_repo() -> tempfile::TempDir {
 #[tokio::test]
 async fn test_value_relationships_stay_removed_across_live_views_and_restart() {
     let source = "const routes = new Map();\nexport function connect(key) { return { on(handler) { return add(key, handler); } }; }\nfunction add(key, handler) { routes.set(key, handler); }\nfunction dispatch(key, payload) { const callback = routes.get(key); callback(payload); }\nexport function notify(payload) {}\nexport function setup() { const handle = connect('changed'); handle.on(notify); }\nexport function publish() { dispatch('changed', 1); }\n";
-    let temp = create_mock_repo(&[("src/bus.ts", source), ("src/plain.ts", "// nothing to compose\n42;\n"), (".codemap/config.toml", "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=false\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n")]).unwrap();
-    for should_debug in [false, true] {
+    let temp = create_mock_repo(&[("src/bus.ts", source), ("src/plain.ts", "// nothing to compose\n42;\n"), (".codemap/config.toml", "[update]\nconfig_auto_update=false\n[event_navigation]\nis_enabled=false\n[refresh]\nwatch=false\n")]).unwrap();
+    for _ in 0..2 {
         let mut client = McpClient::spawn(temp.path()).await.unwrap();
         let response = client
             .send_tool_until(
                 "read",
-                serde_json::json!({"include_seen": true, "file_path":"src/bus.ts","offset":6,"limit":1,"debug":should_debug}),
+                serde_json::json!({"include_seen": true, "file_path":"src/bus.ts","offset":6,"limit":1}),
                 |out| out.contains("setup [function"),
             )
             .await
@@ -74,7 +74,7 @@ async fn test_value_relationships_stay_removed_across_live_views_and_restart() {
             "{output}"
         );
         assert!(output.len() <= 16_384, "{}", output.len());
-        for (tool, mut args, expected) in [
+        for (tool, args, expected) in [
             (
                 "grep",
                 serde_json::json!({"path":"src/bus.ts","pattern":"export function setup"}),
@@ -112,9 +112,6 @@ async fn test_value_relationships_stay_removed_across_live_views_and_restart() {
                 false,
             ),
         ] {
-            if args.get("output_mode").is_none() {
-                args["debug"] = should_debug.into();
-            }
             let output = text(
                 &client
                     .send_request("tools/call", call(tool, args.clone()))
@@ -133,13 +130,24 @@ async fn test_value_relationships_stay_removed_across_live_views_and_restart() {
                 "{tool} {args}: {output}"
             );
         }
+        let rejected = client
+            .send_request(
+                "tools/call",
+                call("search", serde_json::json!({"query":"setup","debug":true})),
+            )
+            .await
+            .unwrap();
+        assert!(
+            is_error(&rejected),
+            "retired debug flag must be rejected: {rejected}"
+        );
         client.kill().await.unwrap();
     }
 }
 
 #[tokio::test]
 async fn test_live_diagnostics_distinguish_empty_excluded_and_stale_source() {
-    let temp=create_mock_repo(&[("src/empty.ts","// comment\n42;\n"),("src/defs.ts","export function beforeChange() {}\n"),("ignored/hidden.ts","export function hidden() {}\n"),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[exclude]\nexcluded_directories=['ignored']\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n")]).unwrap();
+    let temp=create_mock_repo(&[("src/empty.ts","// comment\n42;\n"),("src/defs.ts","export function beforeChange() {}\n"),("ignored/hidden.ts","export function hidden() {}\n"),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[exclude]\nexcluded_directories=['ignored']\n[refresh]\nwatch=false\n")]).unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     client
         .send_tool_until(
@@ -990,7 +998,14 @@ async fn test_read_lists_importers_in_every_supported_language() {
 #[tokio::test]
 async fn test_live_callable_expansion_deduplicates_and_uses_live_boundaries() {
     let source = "#[allow(dead_code)]\nfn first() {\n    let marker = 1;\n    let marker_two = 2;\n}\nfn neighbor() { do_not_include(); }\nfn last() {\n    let marker = 3;\n}\n";
-    let temp = create_mock_repo(&[("src/lib.rs",source),(".codemap/config.toml","[update]\nconfig_auto_update=false\n[refresh]\nwatch=false\nindex_staleness_ms=600000\n")]).unwrap();
+    let temp = create_mock_repo(&[
+        ("src/lib.rs", source),
+        (
+            ".codemap/config.toml",
+            "[update]\nconfig_auto_update=false\n[refresh]\nwatch=false\n",
+        ),
+    ])
+    .unwrap();
     let mut client = McpClient::spawn(temp.path()).await.unwrap();
     client
         .send_tool_until(
@@ -1252,32 +1267,6 @@ async fn test_live_context_includes_callee_locations_and_constant_values() {
         raw.contains("6:    read_layer(CODEMAP_DIR_NAME);") && !raw.contains("src/config.rs:"),
         "{raw}"
     );
-    std::fs::write(
-        temp.path().join(".codemap/config.toml"),
-        "[update]\nconfig_auto_update = false\n[caller_context]\nnavigation_context_default = true\n",
-    ).unwrap();
-    let precise = client
-        .send_tool_until(
-            "read",
-            serde_json::json!({"include_seen": true, "file_path": "src/config.rs", "offset": 5, "limit": 5}),
-            |out| out.contains("callers (tree-sitter precise"),
-        )
-        .await
-        .unwrap();
-    let out = text(&precise);
-    assert!(out.contains("actual_caller (src/noise.rs:5)"), "{out}");
-    for false_caller in [
-        "string_only",
-        "raw_only",
-        "comment_only",
-        "method_only",
-        "foreign_caller",
-    ] {
-        assert!(
-            !out.contains(false_caller),
-            "precise false caller {false_caller}: {out}"
-        );
-    }
 }
 
 #[tokio::test]
@@ -1951,8 +1940,6 @@ async fn test_grep_file_modes_ignore_source_presentation() {
             ("view", serde_json::json!(true)),
             ("unresolved", serde_json::json!("count")),
             ("unresolved", serde_json::json!(true)),
-            ("debug", serde_json::json!(true)),
-            ("debug", serde_json::json!("true")),
             ("expand", serde_json::json!("callable")),
             ("expand", serde_json::json!(true)),
             ("include_events", serde_json::json!(true)),
@@ -2153,7 +2140,7 @@ fn definitions_of_probe() -> serde_json::Value {
 async fn test_macro_expansion_reaches_search_read_and_refreshes_header_changes() {
     let source =
         "#include \"macros.h\"\nDECLARE(chosen);\nint ordinary(void) { return chosen_v1(); }\n";
-    let config = "[update]\nconfig_auto_update = false\n[macro_expansion]\nis_enabled = true\ntimeout_ms = 5000\n[exclude]\nshould_include_test_code = true\n[refresh]\nwatch_debounce_ms = 20\n";
+    let config = "[update]\nconfig_auto_update = false\n[macro_expansion]\nis_enabled = true\n[exclude]\nshould_include_test_code = true\n";
     let temp = create_mock_repo(&[
         ("probe.c", source),
         (

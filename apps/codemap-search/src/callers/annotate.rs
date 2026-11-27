@@ -293,9 +293,7 @@ fn precise_navigation_callers(
     deadline: Option<Instant>,
     is_cut_short: &mut bool,
 ) -> Option<ConfirmedCallers> {
-    if (!cfg.navigation_context_default && !super::resolution::supports(target_file_path))
-        || runtime_state.suppresses_navigation()
-    {
+    if runtime_state.suppresses_navigation() {
         return None;
     }
     if !navigation_index.has_calls && !super::resolution::supports(target_file_path) {
@@ -1526,8 +1524,12 @@ fn annotate_with_presentation(
         Some(lookup) => SymbolIndex::from_lookup(snapshot, lookup, Some(&test_filter)),
         None => build_symbol_index(snapshot, Some(&test_filter)),
     };
-    let should_build_navigation_index =
-        cfg.navigation_context_default && !runtime_state.suppresses_navigation();
+    let has_non_source_resolver_target = requests
+        .iter()
+        .any(|req| !req.is_fallback && !super::resolution::supports(req.file_path));
+    let should_build_navigation_index = (cfg.navigation_context_default
+        || has_non_source_resolver_target)
+        && !runtime_state.suppresses_navigation();
     let navigation_index_started =
         (should_trace_navigation_metrics && should_build_navigation_index).then(Instant::now);
     let navigation_index = if should_build_navigation_index {

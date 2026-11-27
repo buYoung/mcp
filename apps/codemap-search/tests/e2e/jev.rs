@@ -39,22 +39,6 @@ export function dropMe(input: string): string {
 }
 ";
 
-/// `keepMe` (eight lines) plus a three-line callable whose long lines make its body larger
-/// than its omission note.
-const WINDOW_TS: &str = "export function keepMe(remainingBytes: number, footer: string, limit: number): number {
-  const reserve = footer.length + 8;
-  if (remainingBytes <= reserve) {
-    return 0;
-  }
-  const allowed = Math.min(limit, remainingBytes - reserve);
-  return allowed;
-}
-
-export function wideDrop(input: string): string {
-  return input.split(\",\").map((part) => part.trim()).filter((part) => part.length > 0).map((part) => part.replace(/[^a-z0-9]/gi, \"_\")).join(\"|\").toUpperCase().padEnd(160, \"-\").concat(\"--end--\");
-}
-";
-
 /// Rust evidence with a constant, two structs, an impl with a related method and a method
 /// that calls it, and a free function without any link.
 const CHECKOUT_RS: &str = "pub const MAX_LINES: usize = 12;
@@ -346,9 +330,20 @@ async fn test_jev_disabled_stages_ignore_intent_and_an_injected_evaluator() {
 
 #[tokio::test]
 async fn test_jev_search_protects_partial_windows_and_omits_only_complete_bodies() {
+    // `keepMe` exceeds the built-in 500-line snippet cap so it renders as a partial window
+    // and stays protected; `wideDrop` is a complete 3-line callable that Jev omits.
+    let padding: String = (0..505)
+        .map(|i| format!("  const pad{i} = {i};\n"))
+        .collect();
+    let window_ts = format!(
+        "export function keepMe(remainingBytes: number, footer: string, limit: number): number {{\n  const reserve = footer.length + 8;\n  if (remainingBytes <= reserve) {{\n    return 0;\n  }}\n{padding}  const allowed = Math.min(limit, remainingBytes - reserve);\n  return allowed;\n}}\n\nexport function wideDrop(input: string): string {{\n  return input.split(\",\").map((part) => part.trim()).filter((part) => part.length > 0).map((part) => part.replace(/[^a-z0-9]/gi, \"_\")).join(\"|\").toUpperCase().padEnd(160, \"-\").concat(\"--end--\");\n}}\n"
+    );
     let temp = create_mock_repo(&[
-        (".codemap/config.toml", "[analysis.jev]\nsearch_filter_enabled = true\n[output.search]\nsnippet_max_lines = 3\n"),
-        ("src/window.ts", WINDOW_TS),
+        (
+            ".codemap/config.toml",
+            "[analysis.jev]\nsearch_filter_enabled = true\n",
+        ),
+        ("src/window.ts", &window_ts),
     ])
     .unwrap();
     let (capture, _guard) = capture_logs();
@@ -377,7 +372,7 @@ async fn test_jev_search_protects_partial_windows_and_omits_only_complete_bodies
         );
         assert!(
             text.contains(
-                "- _omitted body: L10-12 (fn wideDrop) Jev found no task match in src/window.ts._"
+                "- _omitted body: L515-517 (fn wideDrop) Jev found no task match in src/window.ts._"
             ),
             "{text}"
         );

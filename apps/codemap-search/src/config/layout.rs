@@ -61,50 +61,8 @@ settings![
     ),
     (
         "output.search",
-        "detail_file_limit",
-        "result_threshold",
-        "search"
-    ),
-    (
-        "output.search",
-        "overview_file_limit",
-        "search_overview_file_limit",
-        "search"
-    ),
-    (
-        "output.search",
-        "snippet_max_lines",
-        "search_detail_snippet_max_lines",
-        "search"
-    ),
-    (
-        "output.search",
-        "symbol_limit",
-        "search_detail_symbol_limit",
-        "search"
-    ),
-    (
-        "output.search",
         "max_bytes",
         "search_detail_byte_cap",
-        "search"
-    ),
-    (
-        "output.search",
-        "literal_max_chars",
-        "search_literal_max_len",
-        "search"
-    ),
-    (
-        "output.search",
-        "literal_limit",
-        "search_literal_limit",
-        "search"
-    ),
-    (
-        "output.search",
-        "anchor_snippet_limit",
-        "search_anchor_snippet_limit",
         "search"
     ),
     (
@@ -119,12 +77,6 @@ settings![
         "is_read_outside_callers_enabled",
         ""
     ),
-    (
-        "output.grep",
-        "max_columns",
-        "grep_max_columns",
-        "tool_output"
-    ),
     ("output.grep", "max_bytes", "grep_output_byte_cap", ""),
     (
         "output.context",
@@ -132,66 +84,12 @@ settings![
         "caller_context_default",
         "caller_context"
     ),
-    (
-        "output.context",
-        "caller_limit",
-        "caller_list_cap",
-        "caller_context"
-    ),
-    (
-        "output.context",
-        "callee_limit",
-        "callee_list_cap",
-        "caller_context"
-    ),
-    (
-        "output.context",
-        "max_bytes",
-        "annotation_sub_budget",
-        "caller_context"
-    ),
-    (
-        "output.context",
-        "common_name_threshold",
-        "common_name_threshold",
-        "caller_context"
-    ),
-    (
-        "output.context",
-        "caller_omit_def_threshold",
-        "caller_omit_def_threshold",
-        "caller_context"
-    ),
     ("index", "mode", "index_mode", "index"),
     ("index", "auto_max_files", "index_auto_max_files", "index"),
     ("index", "path", "index_path", "index"),
     ("index", "max_file_bytes", "max_file_size", "index"),
-    (
-        "index",
-        "store_references",
-        "navigation_store_references",
-        "caller_context"
-    ),
     ("index.refresh", "watch", "watch", "refresh"),
     (
-        "index.refresh",
-        "watch_debounce_ms",
-        "watch_debounce_ms",
-        "refresh"
-    ),
-    (
-        "index.refresh",
-        "index_staleness_ms",
-        "index_staleness_ms",
-        "refresh"
-    ),
-    (
-        "index.refresh",
-        "indexer_auto_restart",
-        "indexer_auto_restart",
-        "refresh"
-    ),
-    (
         "index.language_support",
         "is_document_support_enabled",
         "is_document_support_enabled",
@@ -220,24 +118,6 @@ settings![
         "is_build_support_enabled",
         "is_build_support_enabled",
         "language_support"
-    ),
-    (
-        "output.navigation",
-        "is_enabled",
-        "navigation_context_default",
-        "caller_context"
-    ),
-    (
-        "output.navigation",
-        "callsite_budget",
-        "navigation_callsite_budget",
-        "caller_context"
-    ),
-    (
-        "output.navigation",
-        "scan_limit",
-        "scan_cap",
-        "caller_context"
     ),
 ];
 
@@ -248,7 +128,6 @@ const SECTION_MOVES: &[(&str, &str)] = &[
 ];
 
 const SECTION_ALIASES: &[(&str, &str)] = &[
-    ("analysis.navigation", "output.navigation"),
     ("analysis.macro_expansion", "output.macro_expansion"),
     ("analysis.event_navigation", "output.event_navigation"),
     ("analysis.jev", "output.jev"),
@@ -277,9 +156,6 @@ fn value_at<'a>(value: &'a toml::Value, path: &str) -> Option<&'a toml::Value> {
 
 /// The new spelling wins within a file; file precedence is still repo > global.
 pub(super) fn normalize(layer: &mut ConfigLayer, value: &toml::Value, path: &Path) {
-    if let Some(navigation) = value_at(value, "analysis.navigation") {
-        normalize_table(layer, "output.navigation", navigation, path);
-    }
     let mut jev = toml::Table::new();
     for section in ["analysis.jev", "output.jev"] {
         if let Some(value) = value_at(value, section) {
@@ -532,7 +408,6 @@ fn order_tables(table: &mut Table, path: &str, next: &mut isize) {
             "read",
             "grep",
             "context",
-            "navigation",
             "macro_expansion",
             "event_navigation",
             "redact",
@@ -686,6 +561,327 @@ pub(super) fn remove_overview_settings(contents: &str) -> Result<String, String>
     Ok(document.to_string())
 }
 
+/// v34 removes retired internal tuning knobs, dead navigation/reference switches, and
+/// NASM/preprocessor-limit settings from repository configs while preserving user notes.
+pub(super) fn remove_retired_v34_settings(contents: &str) -> Result<String, String> {
+    const RETIRED_SECTIONS: &[(&str, &str, &str)] = &[
+        ("output", "navigation", "output"),
+        ("analysis", "navigation", "analysis"),
+    ];
+    const RETIRED_KEYS: &[(&str, &str, &str)] = &[
+        // [output.search] & legacy [search]
+        ("output.search", "detail_file_limit", "output.search"),
+        ("output.search", "overview_file_limit", "output.search"),
+        ("output.search", "snippet_max_lines", "output.search"),
+        ("output.search", "symbol_limit", "output.search"),
+        ("output.search", "literal_max_chars", "output.search"),
+        ("output.search", "literal_limit", "output.search"),
+        ("output.search", "anchor_snippet_limit", "output.search"),
+        ("search", "result_threshold", "output.search"),
+        ("search", "search_overview_file_limit", "output.search"),
+        ("search", "search_detail_snippet_max_lines", "output.search"),
+        ("search", "search_detail_symbol_limit", "output.search"),
+        ("search", "search_literal_max_len", "output.search"),
+        ("search", "search_literal_limit", "output.search"),
+        ("search", "search_anchor_snippet_limit", "output.search"),
+        // [output.context] & legacy [caller_context]
+        ("output.context", "caller_limit", "output.context"),
+        ("output.context", "callee_limit", "output.context"),
+        ("output.context", "max_bytes", "output.context"),
+        ("output.context", "common_name_threshold", "output.context"),
+        (
+            "output.context",
+            "caller_omit_def_threshold",
+            "output.context",
+        ),
+        ("caller_context", "caller_list_cap", "output.context"),
+        ("caller_context", "callee_list_cap", "output.context"),
+        ("caller_context", "annotation_sub_budget", "output.context"),
+        ("caller_context", "common_name_threshold", "output.context"),
+        (
+            "caller_context",
+            "caller_omit_def_threshold",
+            "output.context",
+        ),
+        (
+            "caller_context",
+            "navigation_context_default",
+            "output.context",
+        ),
+        (
+            "caller_context",
+            "navigation_callsite_budget",
+            "output.context",
+        ),
+        (
+            "caller_context",
+            "navigation_store_references",
+            "output.context",
+        ),
+        ("caller_context", "scan_cap", "output.context"),
+        // [output.grep] & legacy [tool_output]
+        ("output.grep", "max_columns", "output.grep"),
+        ("tool_output", "grep_max_columns", "output.grep"),
+        // [output.macro_expansion] & legacy aliases
+        (
+            "output.macro_expansion",
+            "nasm_path",
+            "output.macro_expansion",
+        ),
+        (
+            "output.macro_expansion",
+            "nasm_flags",
+            "output.macro_expansion",
+        ),
+        (
+            "output.macro_expansion",
+            "timeout_ms",
+            "output.macro_expansion",
+        ),
+        (
+            "output.macro_expansion",
+            "max_output_bytes",
+            "output.macro_expansion",
+        ),
+        ("macro_expansion", "nasm_path", "output.macro_expansion"),
+        ("macro_expansion", "nasm_flags", "output.macro_expansion"),
+        ("macro_expansion", "timeout_ms", "output.macro_expansion"),
+        (
+            "macro_expansion",
+            "max_output_bytes",
+            "output.macro_expansion",
+        ),
+        (
+            "analysis.macro_expansion",
+            "nasm_path",
+            "output.macro_expansion",
+        ),
+        (
+            "analysis.macro_expansion",
+            "nasm_flags",
+            "output.macro_expansion",
+        ),
+        (
+            "analysis.macro_expansion",
+            "timeout_ms",
+            "output.macro_expansion",
+        ),
+        (
+            "analysis.macro_expansion",
+            "max_output_bytes",
+            "output.macro_expansion",
+        ),
+        // [index] & [index.refresh] & legacy [refresh]
+        ("index", "store_references", "index"),
+        ("index", "navigation_store_references", "index"),
+        ("index.refresh", "watch_debounce_ms", "index.refresh"),
+        ("index.refresh", "index_staleness_ms", "index.refresh"),
+        ("index.refresh", "indexer_auto_restart", "index.refresh"),
+        ("refresh", "watch_debounce_ms", "index.refresh"),
+        ("refresh", "index_staleness_ms", "index.refresh"),
+        ("refresh", "indexer_auto_restart", "index.refresh"),
+    ];
+    const RETIRED_TOP_LEVEL: &[(&str, &str)] = &[
+        ("result_threshold", "output.search"),
+        ("search_overview_file_limit", "output.search"),
+        ("search_detail_snippet_max_lines", "output.search"),
+        ("search_detail_symbol_limit", "output.search"),
+        ("search_literal_max_len", "output.search"),
+        ("search_literal_limit", "output.search"),
+        ("search_anchor_snippet_limit", "output.search"),
+        ("grep_max_columns", "output.grep"),
+        ("caller_list_cap", "output.context"),
+        ("callee_list_cap", "output.context"),
+        ("annotation_sub_budget", "output.context"),
+        ("common_name_threshold", "output.context"),
+        ("caller_omit_def_threshold", "output.context"),
+        ("navigation_context_default", "output.context"),
+        ("navigation_callsite_budget", "output.context"),
+        ("navigation_store_references", "index"),
+        ("scan_cap", "output.context"),
+        ("watch_debounce_ms", "index.refresh"),
+        ("index_staleness_ms", "index.refresh"),
+        ("indexer_auto_restart", "index.refresh"),
+    ];
+
+    fn explicit_target(document: &DocumentMut, preferred: &str) -> Option<String> {
+        if section_at(document, preferred)
+            .and_then(Item::as_table)
+            .is_some_and(|table| !table.is_implicit())
+        {
+            return Some(preferred.into());
+        }
+        let parent = section_at(document, preferred).and_then(Item::as_table)?;
+        for (name, item) in parent.iter() {
+            if item.as_table().is_some_and(|table| !table.is_implicit()) {
+                return Some(format!("{preferred}.{name}"));
+            }
+        }
+        None
+    }
+
+    let mut document: DocumentMut = contents
+        .parse()
+        .map_err(|error: toml_edit::TomlError| error.to_string())?;
+    for &(parent, key, target) in RETIRED_SECTIONS {
+        if section_at(&document, parent).is_none() {
+            continue;
+        }
+        let Some((key, item)) = table_at_mut(document.as_table_mut(), parent)?.remove_entry(key)
+        else {
+            continue;
+        };
+        if let Some(dest) = explicit_target(&document, target) {
+            if let Some(entries) = item.as_table_like() {
+                for (name, _) in entries.iter() {
+                    if let Some((inner_key, inner_item)) = entries.get_key_value(name) {
+                        comments::move_section(&mut document, inner_key, inner_item, &dest)?;
+                    }
+                }
+            }
+            comments::move_section(&mut document, &key, &item, &dest)?;
+        }
+    }
+    for &(section, key, target) in RETIRED_KEYS {
+        if section_at(&document, section).is_none() {
+            continue;
+        }
+        let Some((key, item)) = table_at_mut(document.as_table_mut(), section)?.remove_entry(key)
+        else {
+            continue;
+        };
+        if let Some(dest) = explicit_target(&document, target) {
+            comments::move_section(&mut document, &key, &item, &dest)?;
+        }
+    }
+    for &(key, target) in RETIRED_TOP_LEVEL {
+        let Some((key, item)) = document.remove_entry(key) else {
+            continue;
+        };
+        if let Some(dest) = explicit_target(&document, target) {
+            comments::move_section(&mut document, &key, &item, &dest)?;
+        }
+    }
+    for (section, target) in [
+        ("search", "output.search"),
+        ("tool_output", "output"),
+        ("caller_context", "output.context"),
+        ("refresh", "index.refresh"),
+    ] {
+        if document
+            .get(section)
+            .and_then(Item::as_table_like)
+            .is_some_and(|table| table.is_empty())
+        {
+            if let Some((key, item)) = document.remove_entry(section) {
+                if let Some(dest) = explicit_target(&document, target) {
+                    comments::move_section(&mut document, &key, &item, &dest)?;
+                }
+            }
+        }
+    }
+
+    // Also strip single-line commented-out examples for retired keys (e.g. `# scan_limit = 16000`)
+    // and `# [output.navigation]` headers while keeping user notes untouched.
+    const RETIRED_COMMENT_KEYS: &[(&str, &str)] = &[
+        ("output.search", "detail_file_limit"),
+        ("output.search", "overview_file_limit"),
+        ("output.search", "snippet_max_lines"),
+        ("output.search", "symbol_limit"),
+        ("output.search", "literal_max_chars"),
+        ("output.search", "literal_limit"),
+        ("output.search", "anchor_snippet_limit"),
+        ("output.context", "caller_limit"),
+        ("output.context", "callee_limit"),
+        ("output.context", "max_bytes"),
+        ("output.context", "common_name_threshold"),
+        ("output.context", "caller_omit_def_threshold"),
+        ("output.navigation", "is_enabled"),
+        ("output.navigation", "callsite_budget"),
+        ("output.navigation", "scan_limit"),
+        ("analysis.navigation", "is_enabled"),
+        ("analysis.navigation", "callsite_budget"),
+        ("analysis.navigation", "scan_limit"),
+        ("output.grep", "max_columns"),
+        ("output.macro_expansion", "nasm_path"),
+        ("output.macro_expansion", "nasm_flags"),
+        ("output.macro_expansion", "timeout_ms"),
+        ("output.macro_expansion", "max_output_bytes"),
+        ("macro_expansion", "nasm_path"),
+        ("macro_expansion", "nasm_flags"),
+        ("macro_expansion", "timeout_ms"),
+        ("macro_expansion", "max_output_bytes"),
+        ("index", "store_references"),
+        ("index.refresh", "watch_debounce_ms"),
+        ("index.refresh", "index_staleness_ms"),
+        ("index.refresh", "indexer_auto_restart"),
+    ];
+    const RETIRED_UNIQUE_COMMENT_KEYS: &[&str] = &[
+        "result_threshold",
+        "search_overview_file_limit",
+        "search_detail_snippet_max_lines",
+        "search_detail_symbol_limit",
+        "search_literal_max_len",
+        "search_literal_limit",
+        "search_anchor_snippet_limit",
+        "grep_max_columns",
+        "caller_list_cap",
+        "callee_list_cap",
+        "annotation_sub_budget",
+        "common_name_threshold",
+        "caller_omit_def_threshold",
+        "navigation_context_default",
+        "navigation_callsite_budget",
+        "navigation_store_references",
+        "scan_cap",
+        "watch_debounce_ms",
+        "index_staleness_ms",
+        "indexer_auto_restart",
+        "nasm_path",
+        "nasm_flags",
+        "max_output_bytes",
+    ];
+    let rendered = document.to_string();
+    let ranges = super::config_value_ranges(&rendered);
+    let mut section = String::new();
+    let mut cleaned = String::with_capacity(rendered.len());
+    let mut offset = 0usize;
+    for line in rendered.split_inclusive('\n') {
+        let start = offset;
+        offset += line.len();
+        if ranges.iter().any(|range| range.contains(&start)) {
+            cleaned.push_str(line);
+            continue;
+        }
+        let trimmed = line.trim();
+        if !trimmed.starts_with('#') && trimmed.starts_with('[') && !trimmed.starts_with("[[") {
+            if let Some((name, _)) = trimmed[1..].split_once(']') {
+                section = name.trim().to_string();
+            }
+            cleaned.push_str(line);
+            continue;
+        }
+        if let Some(comment) = trimmed.strip_prefix('#').map(str::trim) {
+            if matches!(comment, "[output.navigation]" | "[analysis.navigation]") {
+                section = comment.trim_matches(['[', ']']).to_string();
+                continue;
+            }
+            if let Some((raw_key, _)) = comment.split_once('=') {
+                let key = raw_key.trim().trim_matches(['\'', '"']);
+                if RETIRED_UNIQUE_COMMENT_KEYS.contains(&key)
+                    || RETIRED_COMMENT_KEYS
+                        .iter()
+                        .any(|&(s, k)| s == section.as_str() && k == key)
+                {
+                    continue;
+                }
+            }
+        }
+        cleaned.push_str(line);
+    }
+    Ok(cleaned)
+}
+
 /// Files already past the v29 layout pass still carry the generated prose of their release;
 /// each later sync replaces recognized retired lines with the current descriptions.
 pub(super) fn refresh_comments(contents: &str, path: &Path) -> Result<String, String> {
@@ -767,7 +963,6 @@ pub(super) fn migrate(contents: &str, path: &Path) -> Result<String, String> {
         "output.read",
         "output.grep",
         "output.context",
-        "output.navigation",
         "output.macro_expansion",
         "output.event_navigation",
         "index",

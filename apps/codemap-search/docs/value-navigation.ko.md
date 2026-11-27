@@ -26,7 +26,7 @@
 | `definitions` | 선언 정보 |
 | `relations` | 직접 호출·상수·구현·이벤트 관계와 소스 경로 |
 
-`grep`의 `files_with_matches`와 `count`는 경로 목록과 개수 모드이며 선언·관계 보기를 사용하지 않는다. 인자 조합과 페이지 단위는 [요청별 출력 제어](configuration.ko.md#readgrep-요청별-출력-제어)를 따른다. `debug`는 호환 인수이며 분석이나 출력에 영향을 주지 않는다.
+`grep`의 `files_with_matches`와 `count`는 경로 목록과 개수 모드이며 선언·관계 보기를 사용하지 않는다. 인자 조합과 페이지 단위는 [요청별 출력 제어](configuration.ko.md#readgrep-요청별-출력-제어)를 따른다.
 
 기본 상세 결과는 `# codemap-search` 아래에서 `## 1. src/user.ts`처럼 파일을 묶는다. 각 파일에는 `### fn active`처럼 선언 종류와 이름으로 제목을 만들고 마지막에 `### results`를 한 번 배치한다. 메서드는 소속 impl/class 아래에 둔다.
 

@@ -18,7 +18,7 @@
 | `use_builtin_rules=false`, `rules=[]` | 규칙 기반 이벤트만 제어한다. 소스 경로는 계속 동작한다. |
 | `search`의 `event_key` | 기존 규칙 기반 이벤트 키 조회다. 범용 소스 경로를 이벤트 키로 분류하지 않는다. |
 
-`caller_context`, 작업공간 범위, 테스트·디렉터리·Git 제외 규칙과 원문 출력 계약을 따른다. `debug=true`는 분석 범위를 바꾸지 않는다.
+`caller_context`, 작업공간 범위, 테스트·디렉터리·Git 제외 규칙과 원문 출력 계약을 따른다.
 
 다음 TypeScript 코드는 `register`의 저장과 `dispatch`의 콜백 소비를 잇는 예다.
 

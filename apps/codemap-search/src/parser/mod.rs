@@ -2224,9 +2224,7 @@ impl TreeSitterExtractor {
 
         let query = spec.query(ext);
         let navigation_enabled = spec.navigation_enabled(ext);
-        let navigation_store_references = navigation_enabled
-            && (spec.always_store_references(ext)
-                || crate::config::get().navigation_store_references);
+        let navigation_store_references = navigation_enabled && spec.always_store_references(ext);
 
         let mut symbols = Vec::new();
         let mut literals = Vec::new();

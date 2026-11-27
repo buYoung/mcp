@@ -64,7 +64,6 @@ pub(crate) fn range_arguments(common: &Value, range: &Value) -> Result<Value, (i
         "expand",
         "unresolved",
         "include_events",
-        "debug",
         "include_seen",
     ] {
         if let Some(value) = get_arg(common, key) {

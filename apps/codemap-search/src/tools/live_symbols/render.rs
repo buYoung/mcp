@@ -61,19 +61,7 @@ pub(super) fn annotate(
 }
 
 pub(super) fn caller_config() -> CallerConfig {
-    let cfg = crate::config::get();
-    CallerConfig {
-        scan_cap: cfg.scan_cap,
-        caller_list_cap: cfg.caller_list_cap,
-        callee_list_cap: cfg.callee_list_cap,
-        annotation_sub_budget: cfg.annotation_sub_budget,
-        common_name_threshold: cfg.common_name_threshold,
-        caller_omit_def_threshold: cfg.caller_omit_def_threshold,
-        max_file_size: cfg.max_file_size,
-        navigation_context_default: cfg.navigation_context_default,
-        navigation_callsite_budget: cfg.navigation_callsite_budget,
-        navigation_store_references: cfg.navigation_store_references,
-    }
+    CallerConfig::runtime(crate::config::get().max_file_size)
 }
 
 fn select_chain(

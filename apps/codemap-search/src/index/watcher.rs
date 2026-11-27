@@ -109,7 +109,7 @@ pub fn spawn_watcher(
     // Canonicalize so event paths (which the OS reports against the resolved root) strip
     // cleanly in the path filter, e.g. macOS `/var` → `/private/var`.
     let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
-    let debounce = Duration::from_millis(crate::config::get().watch_debounce_ms);
+    let debounce = Duration::from_millis(crate::config::DEFAULT_WATCH_DEBOUNCE_MS);
 
     let (msg_sender, msg_receiver) = channel::<WatcherMessage>();
     let stop_sender = msg_sender.clone();

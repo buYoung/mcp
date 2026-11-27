@@ -90,6 +90,24 @@ pub struct CallerConfig {
     pub navigation_store_references: bool,
 }
 
+impl CallerConfig {
+    /// Compiled-in production caps for search/read/grep annotation passes.
+    pub(crate) fn runtime(max_file_size: u64) -> Self {
+        Self {
+            scan_cap: 16_000,
+            caller_list_cap: 1000,
+            callee_list_cap: 1000,
+            annotation_sub_budget: 128 * 1024,
+            common_name_threshold: 2,
+            caller_omit_def_threshold: 5,
+            max_file_size,
+            navigation_context_default: false,
+            navigation_callsite_budget: 1000,
+            navigation_store_references: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default)]
 pub struct AnnotationRuntimeState {
     pub is_warming: bool,

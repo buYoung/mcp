@@ -758,55 +758,6 @@ fn test_existing_language_extraction_matrix() {
 }
 
 #[test]
-fn test_fifth_priority_navigation_references_respect_opt_in_config() {
-    let cases = [
-        (
-            "src/ref.cs",
-            "public class Ref { public Demo.Type Value; }\n",
-            "Demo.Type",
-        ),
-        (
-            "src/ref.php",
-            "<?php class Ref extends Demo\\Base { public function run(): void {} }\n",
-            "Demo\\Base",
-        ),
-        ("src/ref.rb", "class Ref < Demo::Base\nend\n", "Demo::Base"),
-        (
-            "src/ref.lua",
-            "local Ref = {}\nfunction Ref.run() Demo.Base.call() end\n",
-            "Demo.Base",
-        ),
-    ];
-
-    for (file, content, expected_reference) in cases {
-        let temp = create_mock_repo(&[
-            (file, content),
-            (
-                ".codemap/config.toml",
-                "[caller_context]\nnavigation_store_references = true\n",
-            ),
-        ])
-        .unwrap();
-        let output = run_cli(&["parse", file], temp.path())
-            .success()
-            .get_output()
-            .stdout
-            .clone();
-        let parsed: Value =
-            serde_json::from_slice(&output).expect("parse must retain its JSON contract");
-        let references = parsed["navigation"]["references"]
-            .as_array()
-            .unwrap_or_else(|| panic!("{file} should expose a references array: {parsed}"));
-        assert!(
-            references
-                .iter()
-                .any(|reference| reference["name"] == expected_reference),
-            "{file} should store static reference {expected_reference:?} when explicitly enabled: {parsed}"
-        );
-    }
-}
-
-#[test]
 fn test_existing_language_cross_language_sentinels_are_not_symbols() {
     // This is a public parse-negative guarantee only. The separately maintained parser unit
     // matrix covers index-auxiliary definitions/references, which are not part of this JSON.

@@ -18,7 +18,6 @@ pub(crate) struct LiveOptions {
     pub should_list_unresolved: bool,
     pub should_expand_callable: bool,
     pub include_events: Option<bool>,
-    pub should_debug: bool,
 }
 
 impl Default for LiveOptions {
@@ -28,7 +27,6 @@ impl Default for LiveOptions {
             should_list_unresolved: true,
             should_expand_callable: false,
             include_events: None,
-            should_debug: false,
         }
     }
 }
@@ -64,7 +62,6 @@ impl LiveOptions {
         };
         Ok(Self {
             view,
-            should_debug: debug_requested(args)?,
             should_list_unresolved: choice(args, "unresolved", "list", &["list", "count"])?
                 == "list",
             should_expand_callable: choice(args, "expand", "none", &["none", "callable"])?
@@ -125,23 +122,14 @@ impl LiveOptions {
         if mode != "content"
             && (self.view != LiveView::Full
                 || !self.should_list_unresolved
-                || self.should_debug
                 || self.should_expand_callable
                 || self.include_events == Some(true))
         {
             return Err((
                 -32602,
-                "view/unresolved/expand/include_events/debug controls require grep output_mode='content'.".into(),
+                "view/unresolved/expand/include_events controls require grep output_mode='content'.".into(),
             ));
         }
         Ok(())
-    }
-}
-
-pub(crate) fn debug_requested(args: &Value) -> Result<bool, (i64, String)> {
-    match get_arg(args, "debug") {
-        None => Ok(false),
-        Some(Value::Bool(value)) => Ok(*value),
-        _ => Err((-32602, "Invalid 'debug': expected a boolean.".into())),
     }
 }

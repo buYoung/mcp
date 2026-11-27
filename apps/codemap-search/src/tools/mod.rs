@@ -400,7 +400,6 @@ pub fn list_tools() -> Value {
     let read_view_description = "full (default) returns source with declarations and relationships; source returns live source, possibly followed by callers from outside the window; definitions returns declarations only; relations returns identities and supported relationships without source.";
     let unresolved_description = "Unresolved call targets in full/relations: list (default) gives bounded names plus a count; count hides the names.";
     let live_events_description = "Add related static event maps and Source routes in full/relations, based on returned lines and supporting definitions. False suppresses both; event_navigation.is_enabled=false disables these analyses.";
-    let debug_description = "Legacy compatibility flag; does not change analysis or output.";
     let include_seen_schema = serde_json::json!({
         "type": "boolean", "default": false,
         "description": "False (default) omits repeated content; true restores it. Other filters and limits still apply."
@@ -461,7 +460,6 @@ pub fn list_tools() -> Value {
         "include_seen": include_seen_schema.clone(),
         "include_events": { "type": "boolean", "default": true, "description": "Add related static event maps and Source routes independently of caller_context. False suppresses both; event_navigation.is_enabled=false disables these analyses." },
         "event_key": { "type": "string", "description": "Exact configured event key (1-256 bytes), not ranked search; query is required. Zero endpoints does not prove no route. Bus identity and qualifiers remain separate." },
-        "debug": { "type": "boolean", "default": false, "description": debug_description },
         "caller_context": { "type": "boolean", "description": "Depth-one callers/callees for detail snippets; defaults to caller_context_default. False also skips callsite implementation lookup, but retains declaration/implementation and static collection links." },
         "language_hint": { "type": "string", "description": "Query language for cross-language ranking, e.g. 'typescript' or 'rust'; omitted means language-agnostic." },
         "extension_hint": { "type": "string", "description": "Query extension for same-extension ranking, e.g. 'ts' or '.rs'; omitted leaves ranking unchanged." }
@@ -508,7 +506,6 @@ pub fn list_tools() -> Value {
                             "properties": {
                                 "include_seen": include_seen_schema.clone(),
                                 "view": { "type": "string", "enum": ["full", "source", "definitions", "relations"], "default": "full", "description": read_view_description },
-                                "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },
                                 "expand": { "type": "string", "enum": ["none", "callable"], "default": "none", "description": "callable reads the smallest supported named callable at offset/start, including attached attributes, and overrides limit/end; none (default) reads a line window." },
@@ -557,7 +554,6 @@ pub fn list_tools() -> Value {
                             "properties": {
                                 "include_seen": include_seen_schema.clone(),
                                 "view": { "type": "string", "enum": ["full", "source", "source_grouped", "definitions", "relations"], "default": "full", "description": format!("{live_view_description} source_grouped keeps all source rows under file headings without declaration/relationship work; prefer it for source inspection.") },
-                                "debug": { "type": "boolean", "default": false, "description": debug_description },
                                 "unresolved": { "type": "string", "enum": ["list", "count"], "default": "list", "description": unresolved_description },
                                 "include_events": { "type": "boolean", "default": true, "description": live_events_description },
                                 "expand": { "type": "string", "enum": ["none", "callable"], "default": "callable", "description": "Content mode defaults to the smallest named callable per match, deduplicated per body, ignoring -A/-B/-C. none returns matching rows with line context. Omitted in file/count modes means no expansion." },
@@ -565,7 +561,7 @@ pub fn list_tools() -> Value {
                                 "path": { "type": "string", "description": search_path_description },
                                 "glob": { "type": "string", "description": format!("File filter using {glob_syntax} Slashed patterns are relative to path. Separate patterns with whitespace/commas outside braces. Aliases: include/file_pattern.") },
                                 "type": { "type": "string", "description": "Filter by ripgrep file type (e.g. 'rust', 'py', 'ts')." },
-                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "content (default): 42:match/43-context rows; view=source adds paths. files_with_matches: paths; count: per-file counts. File/count modes ignore full/source/source_grouped view; other views, unresolved=count, debug=true, expand=callable or include_events=true are errors." },
+                                "output_mode": { "type": "string", "enum": ["content", "files_with_matches", "count"], "description": "content (default): 42:match/43-context rows; view=source adds paths. files_with_matches: paths; count: per-file counts. File/count modes ignore full/source/source_grouped view; other views, unresolved=count, expand=callable or include_events=true are errors." },
                                 "-i": { "type": "boolean", "description": "Case-insensitive (default false)." },
                                 "-n": { "type": "boolean", "description": "Show line numbers in content mode (default true)." },
                                 "-A": { "type": "integer", "description": "Context lines after each match." },

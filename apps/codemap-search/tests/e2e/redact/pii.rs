@@ -4,7 +4,7 @@ use serde_json::json;
 
 #[tokio::test]
 async fn test_pii_live_configuration_and_context_survive_clipped_outputs() {
-    let base = "[update]\nconfig_auto_update=false\n[search]\nsearch_literal_max_len=4\nsearch_detail_snippet_max_lines=1\n";
+    let base = "[update]\nconfig_auto_update=false\n";
     let source = "export const password = 'fixture-live-secret';\nexport const card = '4111111111111111';\nexport const postalCode =\n  '10115';\nexport const timeoutMs = 10000;\nexport const bankAccount = '945456787654';\n";
     let repo =
         create_mock_repo(&[("src/profile.ts", source), (".codemap/config.toml", base)]).unwrap();

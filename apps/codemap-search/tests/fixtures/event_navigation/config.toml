@@ -1,8 +1,5 @@
 [update]
 config_auto_update = false
-[refresh]
-watch_debounce_ms = 100
-index_staleness_ms = 3600000
 [event_navigation]
 is_enabled = true
 use_builtin_rules = true
