@@ -233,8 +233,8 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# When the MCP server indexes this workspace. "auto" starts on the first search, read or grep,
-# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
+# When the MCP server indexes this workspace. "auto" hydrates an existing current-format index at start
+# or starts on the first search, read or grep, only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
 # Other folders, such as one holding several repositories, are not indexed; search says why.
 # "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
 # Commented so that a global setting applies.

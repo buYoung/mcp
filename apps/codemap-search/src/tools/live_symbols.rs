@@ -8,7 +8,7 @@ pub(crate) mod jev;
 mod locations;
 mod outside_callers;
 mod references;
-mod shared_keys;
+pub(crate) mod shared_keys;
 
 pub(crate) use importers::HEADER as IMPORTERS_HEADER;
 pub(crate) use outside_callers::HEADER as OUTSIDE_CALLERS_HEADER;
@@ -270,18 +270,18 @@ fn frame(
     text
 }
 
-/// Collect source trailers under a fair-share total budget for connection-capped clients so
-/// an early trailer (e.g. outside callers) never starves implementations, shared keys, or
-/// importers.
+/// Collect source trailers under a fair-share total budget so an early trailer (e.g. outside
+/// callers) never starves implementations, shared keys, or importers, while redistributing any
+/// surplus from smaller trailers (water-filling) so budgeted headroom is never wasted.
 fn collect_fair_trailers(
     engine: &EngineSupervisor,
     output: &LiveOutput,
+    caps: [usize; 4],
     total_budget: usize,
 ) -> Vec<String> {
     if !output.should_list_outside_callers || total_budget < 128 {
         return Vec::new();
     }
-    const CAPS: [usize; 4] = [768, 576, 768, 512];
     let query = |idx: usize, cap: usize| -> Option<String> {
         let cap = cap.min(total_budget.saturating_sub(1));
         match idx {
@@ -292,10 +292,10 @@ fn collect_fair_trailers(
         }
     };
     let mut results: [Option<String>; 4] = [
-        query(0, CAPS[0]),
-        query(1, CAPS[1]),
-        query(2, CAPS[2]),
-        query(3, CAPS[3]),
+        query(0, caps[0]),
+        query(1, caps[1]),
+        query(2, caps[2]),
+        query(3, caps[3]),
     ];
     let total_bytes: usize = results
         .iter()
@@ -303,11 +303,36 @@ fn collect_fair_trailers(
         .map(|trailer| trailer.len() + 1)
         .sum();
     if total_bytes > total_budget {
-        let count = results.iter().filter(|item| item.is_some()).count().max(1);
-        let fair = (total_budget / count).saturating_sub(1).max(320);
+        let mut remaining_budget = total_budget;
+        let mut active: Vec<usize> = (0..4).filter(|&idx| results[idx].is_some()).collect();
+        let mut alloc = [0usize; 4];
+        while !active.is_empty() {
+            let share = remaining_budget / active.len();
+            let mut locked_any = false;
+            let mut next_active = Vec::with_capacity(active.len());
+            for idx in active {
+                let size = results[idx].as_ref().map_or(0, |t| t.len() + 1);
+                if size <= share {
+                    alloc[idx] = size;
+                    remaining_budget = remaining_budget.saturating_sub(size);
+                    locked_any = true;
+                } else {
+                    next_active.push(idx);
+                }
+            }
+            if !locked_any {
+                let extra = remaining_budget % next_active.len();
+                for (pos, idx) in next_active.into_iter().enumerate() {
+                    alloc[idx] = share + usize::from(pos < extra);
+                }
+                break;
+            }
+            active = next_active;
+        }
         for (idx, slot) in results.iter_mut().enumerate() {
-            if slot.as_ref().is_some_and(|t| t.len() + 1 > fair) {
-                *slot = query(idx, fair);
+            if slot.as_ref().is_some_and(|t| t.len() + 1 > alloc[idx]) {
+                let cap = alloc[idx].saturating_sub(1);
+                *slot = if cap >= 128 { query(idx, cap) } else { None };
             }
         }
     }
@@ -352,6 +377,7 @@ fn render(
             ));
         }
         if crate::config::session_delivery_byte_cap().is_some() {
+            const CAPPED_CAPS: [usize; 4] = [768, 576, 768, 512];
             let cap = output_byte_cap.unwrap_or(usize::MAX);
             let free_room = cap.saturating_sub(text.len());
             let trailer_budget = if free_room >= 1_600 {
@@ -359,7 +385,7 @@ fn render(
             } else {
                 1_600.min(cap / 3)
             };
-            let mut trailers = collect_fair_trailers(engine, &output, trailer_budget);
+            let mut trailers = collect_fair_trailers(engine, &output, CAPPED_CAPS, trailer_budget);
             let trailers_bytes: usize = trailers.iter().map(|t| t.len() + 1).sum();
             if text.len().saturating_add(trailers_bytes) > cap
                 && trailers_bytes > 0
@@ -409,7 +435,7 @@ fn render(
                         ));
                         text = format!("{source}\n{}", notices.join("\n"));
                         let remaining = cap.saturating_sub(text.len());
-                        trailers = collect_fair_trailers(engine, &output, remaining);
+                        trailers = collect_fair_trailers(engine, &output, CAPPED_CAPS, remaining);
                     }
                 }
             }
@@ -421,26 +447,18 @@ fn render(
             }
             return Ok(text);
         }
-        // The trailer is auxiliary: it only uses the room left under the cap.
-        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
-        if let Some(trailer) = outside_callers::trailer(engine, &output, room) {
-            text.push('\n');
-            text.push_str(&trailer);
-        }
-        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
-        if let Some(trailer) = implementations_trailer::trailer(engine, &output, room) {
-            text.push('\n');
-            text.push_str(&trailer);
-        }
-        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
-        if let Some(trailer) = shared_keys::trailer(engine, &output, room) {
-            text.push('\n');
-            text.push_str(&trailer);
-        }
-        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len() + 1));
-        if let Some(trailer) = importers::trailer(engine, &output, room) {
-            text.push('\n');
-            text.push_str(&trailer);
+        // The trailers are auxiliary: use only the room left under the cap, bounded to keep
+        // multi-trailer windows compact while giving every individual trailer its full headroom.
+        const STANDARD_CAPS: [usize; 4] = [1_536, 1_024, 1_536, 1_536];
+        const STANDARD_TRAILER_BUDGET: usize = 3_584;
+        let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len()));
+        let budget = room.min(STANDARD_TRAILER_BUDGET);
+        for trailer in collect_fair_trailers(engine, &output, STANDARD_CAPS, budget) {
+            if output_byte_cap.is_none_or(|cap| text.len().saturating_add(1 + trailer.len()) <= cap)
+            {
+                text.push('\n');
+                text.push_str(&trailer);
+            }
         }
         return Ok(text);
     }

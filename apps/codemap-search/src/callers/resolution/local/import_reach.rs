@@ -324,14 +324,12 @@ impl<'a> SourceResolver<'a> {
         let name = include.rsplit('/').next().unwrap_or(include);
         let suffix = format!("/{include}");
         let matches: Vec<_> = lookups
-            .by_file_name
-            .get(name)
+            .by_file_name(self.files, name)
             .into_iter()
-            .flatten()
             .filter(|file| file.file_path == include || file.file_path.ends_with(&suffix))
             .collect();
         match matches.as_slice() {
-            [only] => Some(**only),
+            [only] => Some(*only),
             _ => None,
         }
     }
@@ -340,10 +338,8 @@ impl<'a> SourceResolver<'a> {
     fn indexed_file(&self, path: &str) -> Option<&'a ExtractedFile> {
         let name = path.rsplit('/').next()?;
         self.module_lookups()
-            .by_file_name
-            .get(name)?
-            .iter()
-            .copied()
+            .by_file_name(self.files, name)
+            .into_iter()
             .find(|file| file.file_path == path)
     }
 

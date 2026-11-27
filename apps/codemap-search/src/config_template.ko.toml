@@ -234,7 +234,7 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, read, grep 호출 때 시작하며,
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 현재 형식의 기존 색인이 있으면 시작 때 불러오고 없으면 첫 search, read, grep 호출 때 시작하며,
 # 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
 # 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search가 이유를 알려 줍니다.
 # "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.

@@ -37,7 +37,7 @@ mod callees;
 pub(crate) mod resolution;
 mod scan;
 mod source;
-mod symbols;
+pub(crate) mod symbols;
 pub(crate) mod test_code;
 
 pub(crate) use annotate::{

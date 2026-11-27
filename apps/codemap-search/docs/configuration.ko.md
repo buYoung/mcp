@@ -308,7 +308,7 @@ MCP는 `[index.refresh].watch`와 별개로 시작 시 존재하는 저장소·�
 
 | 모드 | 동작 |
 |---|---|
-| `"auto"`(기본값) | 서버 시작 때가 아니라 첫 `search`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작합니다. 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
+| `"auto"`(기본값) | 저장소 안이고 현재 형식의 기존 색인이 있으며 색인된 파일이 `[index].auto_max_files`개 이하이면 서버 시작 때 바로 불러옵니다. 그 밖에는 첫 `search`, `read`, `grep` 호출, 또는 `synonyms`나 monorepo의 `initial_instructions` 호출 때 색인을 시작하며, 작업공간이 저장소 안이고 색인 대상 파일이 `[index].auto_max_files`개 이하일 때만 색인합니다. 작업공간이나 상위 폴더에 `.git`, `.hg`, `.jj`가 있으면 저장소로 봅니다. 홈 디렉터리 자체에 있는 것은 세지 않습니다. |
 | `"on"` | 이 확인 없이 서버 시작 때 색인합니다. |
 | `"off"` | 작업공간을 색인하지 않습니다. |
 
@@ -747,7 +747,7 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 첫 search, read, grep 호출 때 시작하며,
+# MCP 서버가 이 작업공간을 색인하는 시점입니다. "auto"는 현재 형식의 기존 색인이 있으면 시작 때 불러오고 없으면 첫 search, read, grep 호출 때 시작하며,
 # 저장소(.git, .hg, .jj) 안이고 색인 대상 파일이 auto_max_files개 이하일 때만 색인합니다.
 # 저장소 여러 개를 담은 폴더처럼 그 밖의 폴더는 색인하지 않고, search가 이유를 알려 줍니다.
 # "on"은 이 확인 없이 서버 시작 때 색인하고, "off"는 색인하지 않습니다. 바꾼 뒤에는 서버를 재시작하세요.

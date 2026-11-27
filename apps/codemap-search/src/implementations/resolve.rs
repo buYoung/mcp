@@ -3,6 +3,7 @@ use crate::callers::resolution::SourceResolver;
 use crate::parser::{CodeRange, ExtractedFile, ImportKind};
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 
 pub(super) fn encloses(outer: &CodeRange, inner: &CodeRange) -> bool {
     (outer.start_line, outer.start_col) <= (inner.start_line, inner.start_col)
@@ -915,7 +916,12 @@ impl ImplementationIndex {
     /// Transitively included C/C++ files reachable from `path` via `#include` directives, mapped
     /// to the chain of `#include` locations traversed to reach each header. Bounded in depth and
     /// total header count so cyclic or deep include graphs stay O(1)-bounded.
-    pub(super) fn cpp_transitive_includes(&self, path: &str) -> HashMap<String, Vec<Location>> {
+    pub(super) fn cpp_transitive_includes(&self, path: &str) -> CppIncludeMap {
+        if let Ok(cache) = self.cpp_includes_cache.read() {
+            if let Some(hit) = cache.get(path) {
+                return Arc::clone(hit);
+            }
+        }
         const MAX_DEPTH: usize = 16;
         const MAX_HEADERS: usize = 256;
         let by_path = self.files_by_path.get_or_init(|| {
@@ -978,7 +984,11 @@ impl ImplementationIndex {
                 }
             }
         }
-        reached
+        let result = Arc::new(reached);
+        if let Ok(mut cache) = self.cpp_includes_cache.write() {
+            cache.insert(path.to_string(), Arc::clone(&result));
+        }
+        result
     }
 
     /// The indexed file a C++ `#include` in `path` names. The file at the include path

@@ -6,7 +6,7 @@ use grep::matcher::Matcher;
 use grep::regex::RegexMatcherBuilder;
 use grep::searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkMatch};
 use std::cell::OnceCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::Path;
 use std::time::{Instant, UNIX_EPOCH};
 
@@ -195,9 +195,10 @@ pub(super) struct ScanResult {
     pub(super) is_past_deadline: bool,
 }
 
-/// Indexed files by path and the nanosecond modification stamp each had when extracted.
+/// Indexed files and the nanosecond modification stamp each had when extracted.
 pub(super) struct IndexedFiles<'a> {
-    pub(super) files: &'a HashMap<&'a str, &'a ExtractedFile>,
+    pub(super) snapshot: &'a [std::sync::Arc<ExtractedFile>],
+    pub(super) call_lookup: &'a super::CallLookup,
     pub(super) mtime: &'a dyn Fn(&str) -> Option<u64>,
 }
 
@@ -232,8 +233,9 @@ fn records_no_scanned_call(
         return false;
     }
     let Some(navigation) = indexed
-        .files
-        .get(display)
+        .call_lookup
+        .file_index(display)
+        .and_then(|pos| indexed.snapshot.get(pos))
         .and_then(|file| file.navigation.as_ref())
     else {
         return false;

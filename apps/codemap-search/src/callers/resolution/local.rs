@@ -768,20 +768,29 @@ impl<'a> SourceResolver<'a> {
                 && text(node, &source) == Some(name)
             {
                 let parent_kind = node.parent().map(|p| p.kind()).unwrap_or("");
-                if !matches!(
-                    parent_kind,
-                    "import_from_statement"
-                        | "import_statement"
-                        | "aliased_import"
-                        | "import_specifier"
-                        | "import_declaration"
-                        | "use_declaration"
-                        | "function_definition"
-                        | "function_declaration"
-                        | "method_definition"
-                        | "method_declaration"
-                        | "function_item"
-                ) {
+                let in_import_or_use =
+                    std::iter::successors(node.parent(), |n| n.parent()).any(|anc| {
+                        matches!(
+                            anc.kind(),
+                            "import_from_statement"
+                                | "import_statement"
+                                | "import_declaration"
+                                | "use_declaration"
+                                | "import"
+                        )
+                    });
+                if !in_import_or_use
+                    && !matches!(
+                        parent_kind,
+                        "aliased_import"
+                            | "import_specifier"
+                            | "function_definition"
+                            | "function_declaration"
+                            | "method_definition"
+                            | "method_declaration"
+                            | "function_item"
+                    )
+                {
                     matched_node = Some(node);
                     break;
                 }
@@ -1407,6 +1416,8 @@ impl<'a> SourceResolver<'a> {
         if !has_explicit_self && callee != call.name {
             return None;
         }
+        let glob_shadows_local =
+            !matches!(language, "kotlin" | "java" | "csharp" | "scala" | "swift");
         if !has_explicit_self
             && source
                 .extracted
@@ -1415,7 +1426,8 @@ impl<'a> SourceResolver<'a> {
                 .imports
                 .iter()
                 .any(|import| {
-                    (import.local_name == call.name || import.kind == ImportKind::Glob)
+                    (import.local_name == call.name
+                        || (glob_shadows_local && import.kind == ImportKind::Glob))
                         && node_at(&source, &import.range).is_some_and(|node| same_tree(node, at))
                 })
         {

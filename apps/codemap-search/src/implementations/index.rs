@@ -87,6 +87,10 @@ pub(crate) struct DirectTarget<'a> {
     pub proof_paths: Vec<&'a str>,
 }
 
+/// Cached C++ transitive `#include` maps per file path (used during `build_at`, cleared afterward).
+pub(super) type CppIncludeMap = Arc<HashMap<String, Vec<Location>>>;
+pub(super) type CppIncludesCache = Arc<std::sync::RwLock<HashMap<String, CppIncludeMap>>>;
+
 /// Coordinates refer to the same published symbol generation. Source text is not duplicated.
 #[derive(Clone, Debug)]
 pub(crate) struct ImplementationIndex {
@@ -128,6 +132,8 @@ pub(crate) struct ImplementationIndex {
     /// C++ template qualified names that have partial or explicit specializations in the
     /// workspace; non-specialized templates are accepted in base resolution.
     pub(super) cpp_specialized_templates: HashSet<String>,
+    /// Memoized C++ transitive `#include` maps during `build_at` (cleared before returning).
+    pub(super) cpp_includes_cache: CppIncludesCache,
 }
 
 impl ImplementationIndex {
@@ -180,6 +186,7 @@ impl ImplementationIndex {
             files_by_path: std::sync::OnceLock::new(),
             go_mismatched_packages: HashSet::new(),
             cpp_specialized_templates: HashSet::new(),
+            cpp_includes_cache: Arc::new(std::sync::RwLock::new(HashMap::new())),
         };
         // The first indexed part of each type that is declared in parts.
         let mut partial: HashMap<(&str, &str, usize, String), usize> = HashMap::new();
@@ -360,7 +367,26 @@ impl ImplementationIndex {
         }
         let resolver =
             crate::callers::resolution::SourceResolver::from_stored_sources(&files, root, sources);
+        let rust_paths: Vec<&str> = files
+            .iter()
+            .filter(|file| {
+                file.file_path.ends_with(".rs")
+                    && file
+                        .navigation
+                        .as_ref()
+                        .and_then(|nav| nav.implementations.as_ref())
+                        .is_some()
+            })
+            .map(|file| file.file_path.as_str())
+            .collect();
+        if !rust_paths.is_empty() {
+            resolver.preload_sources(&rust_paths);
+        }
         index.connect(&resolver, sources);
+        if let Ok(mut cache) = index.cpp_includes_cache.write() {
+            cache.clear();
+            cache.shrink_to_fit();
+        }
         for (id, method) in index.methods.iter().enumerate() {
             index
                 .methods_by_path

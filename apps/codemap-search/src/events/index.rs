@@ -2,7 +2,86 @@ use super::*;
 use crate::parser::ExtractedFile;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+
+const SOURCE_ROUTES_PENDING_NOTICE: &str =
+    "_Source routes are still being analyzed for this snapshot; retry shortly if needed._";
+
+struct CancelOnDrop(Arc<AtomicBool>);
+
+impl Drop for CancelOnDrop {
+    fn drop(&mut self) {
+        self.0.store(true, Ordering::Release);
+    }
+}
+
+#[derive(Clone)]
+struct LazySourceRoutes {
+    ready: Arc<std::sync::OnceLock<source_routes::Snapshot>>,
+    pending: Arc<std::sync::Mutex<Option<Box<source_routes::PreparedBuild>>>>,
+    cancelled: Arc<AtomicBool>,
+    /// Shared drop guard: cancels any background build once the last clone of this snapshot
+    /// generation is dropped (replaced by a newer generation or server shutdown).
+    _cancel_guard: Arc<CancelOnDrop>,
+}
+
+impl std::fmt::Debug for LazySourceRoutes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LazySourceRoutes")
+            .field("is_ready", &self.ready.get().is_some())
+            .finish()
+    }
+}
+
+impl LazySourceRoutes {
+    fn ready(snapshot: source_routes::Snapshot) -> Self {
+        let ready = Arc::new(std::sync::OnceLock::new());
+        let _ = ready.set(snapshot);
+        let cancelled = Arc::new(AtomicBool::new(false));
+        Self {
+            ready,
+            pending: Arc::new(std::sync::Mutex::new(None)),
+            _cancel_guard: Arc::new(CancelOnDrop(Arc::clone(&cancelled))),
+            cancelled,
+        }
+    }
+
+    fn deferred(prepared: Box<source_routes::PreparedBuild>) -> Self {
+        let cancelled = Arc::new(AtomicBool::new(false));
+        Self {
+            ready: Arc::new(std::sync::OnceLock::new()),
+            pending: Arc::new(std::sync::Mutex::new(Some(prepared))),
+            _cancel_guard: Arc::new(CancelOnDrop(Arc::clone(&cancelled))),
+            cancelled,
+        }
+    }
+
+    fn get_or_trigger(&self) -> Option<&source_routes::Snapshot> {
+        if let Some(snapshot) = self.ready.get() {
+            return Some(snapshot);
+        }
+        let prepared = self.pending.lock().unwrap().take();
+        if let Some(prepared) = prepared {
+            let slot = Arc::clone(&self.ready);
+            let cancelled = Arc::clone(&self.cancelled);
+            let root_config = crate::config::thread_root_config();
+            if std::thread::Builder::new()
+                .name("codemap-source-routes".to_string())
+                .spawn(move || {
+                    let _root = root_config.as_ref().map(crate::config::RootConfig::bind);
+                    if let Some(snapshot) = prepared.run(&cancelled) {
+                        let _ = slot.set(snapshot);
+                    }
+                })
+                .is_err()
+            {
+                let _ = self.ready.set(source_routes::Snapshot::default());
+            }
+        }
+        self.ready.get()
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct EventIndex {
@@ -17,7 +96,7 @@ pub(crate) struct EventIndex {
     omitted_endpoints: usize,
     is_enabled: bool,
     has_rust_sources: bool,
-    source_routes: Arc<source_routes::Snapshot>,
+    source_routes: LazySourceRoutes,
 }
 
 fn under_scope(path: &str, scope: Option<&str>) -> bool {
@@ -51,6 +130,8 @@ pub(crate) struct ShownRoutes {
     /// Files whose unavailable event input this response already reported. The reason holds for
     /// the whole file, so it is said once and not under each of its declarations.
     diagnosed_files: BTreeSet<String>,
+    /// True once this response has already noted that deferred source routes are still building.
+    reported_pending_source_routes: bool,
 }
 fn overlaps(location: &EventLocation, anchors: &[(String, usize, usize)]) -> bool {
     anchors.is_empty()
@@ -176,14 +257,22 @@ impl EventIndex {
                 .entry(endpoint.location.file_path.clone())
                 .or_insert(0) += 1;
         }
-        let source_routes = Arc::new(source_routes::Snapshot::build(
+        const SYNC_SOURCE_ROUTES_FILE_LIMIT: usize = 128;
+        let source_routes = match source_routes::Snapshot::prepare(
             files,
-            &sources,
+            Arc::clone(&sources),
             &crate::workspace::root_dir().unwrap_or_default(),
             super::ENDPOINTS_PER_SNAPSHOT.saturating_sub(extraction.endpoints.len()),
-            &configured_endpoints_per_file,
+            configured_endpoints_per_file,
             cache_directory,
-        ));
+        ) {
+            Ok(snapshot) => LazySourceRoutes::ready(snapshot),
+            Err(prepared) if prepared.source_count() <= SYNC_SOURCE_ROUTES_FILE_LIMIT => {
+                let not_cancelled = AtomicBool::new(false);
+                LazySourceRoutes::ready(prepared.run(&not_cancelled).unwrap_or_default())
+            }
+            Err(prepared) => LazySourceRoutes::deferred(prepared),
+        };
         Self {
             stamp,
             sources,
@@ -276,7 +365,8 @@ impl EventIndex {
                 selected.insert(index);
             }
         }
-        let event_cap = if self.source_routes.has_paths(anchors) {
+        let ready_source_routes = self.source_routes.get_or_trigger();
+        let event_cap = if ready_source_routes.is_some_and(|routes| routes.has_paths(anchors)) {
             cap / 2
         } else {
             cap
@@ -297,22 +387,33 @@ impl EventIndex {
                 },
             )
         };
-        let native = self.source_routes.render(
-            anchors,
-            cap.saturating_sub(output.len() + usize::from(!output.is_empty())),
-            &mut shown_routes.source_routes,
-            source_routes::RenderContext {
-                scope,
-                root,
-                current_file,
-                sources: &self.sources,
-            },
-        );
-        if !native.is_empty() {
-            if !output.is_empty() {
-                output.push('\n');
+        if let Some(routes) = ready_source_routes {
+            let native = routes.render(
+                anchors,
+                cap.saturating_sub(output.len() + usize::from(!output.is_empty())),
+                &mut shown_routes.source_routes,
+                source_routes::RenderContext {
+                    scope,
+                    root,
+                    current_file,
+                    sources: &self.sources,
+                },
+            );
+            if !native.is_empty() {
+                if !output.is_empty() {
+                    output.push('\n');
+                }
+                output.push_str(&native);
             }
-            output.push_str(&native);
+        } else if !shown_routes.reported_pending_source_routes {
+            let needed = SOURCE_ROUTES_PENDING_NOTICE.len() + usize::from(!output.is_empty());
+            if output.len().saturating_add(needed) <= cap {
+                if !output.is_empty() {
+                    output.push('\n');
+                }
+                output.push_str(SOURCE_ROUTES_PENDING_NOTICE);
+                shown_routes.reported_pending_source_routes = true;
+            }
         }
         let diagnostics = self.input_diagnostics(
             anchors,

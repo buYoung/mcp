@@ -103,7 +103,7 @@ mod snapshot;
 #[cfg(test)]
 mod tests;
 mod typescript;
-pub(super) use snapshot::Snapshot;
+pub(super) use snapshot::{PreparedBuild, Snapshot};
 mod render;
 pub(super) use render::{Freshness, QueryState, RenderContext};
 mod assembly;

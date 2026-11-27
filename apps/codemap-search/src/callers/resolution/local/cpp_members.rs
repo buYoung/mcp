@@ -80,12 +80,13 @@ impl<'a> SourceResolver<'a> {
         name: &str,
     ) -> Option<Target<'a>> {
         let lookups = self.module_lookups();
-        let members = lookups
-            .cpp_methods
-            .get(&(class.symbol.name.as_str(), name))?;
+        let members = lookups.cpp_methods(self.files, class.symbol.name.as_str(), name);
+        if members.is_empty() {
+            return None;
+        }
         let mut definitions = Vec::new();
         let mut declarations = Vec::new();
-        for &(file, symbol) in members {
+        for &(file, symbol) in &members {
             let Some(source) = self.source(&file.file_path) else {
                 continue;
             };
@@ -236,9 +237,13 @@ impl<'a> SourceResolver<'a> {
         name: &str,
     ) -> Option<CppClass<'a>> {
         let lookups = self.module_lookups();
+        let candidates = lookups.cpp_classes(self.files, name);
+        if candidates.is_empty() {
+            return None;
+        }
         let reachable = self.reachable_headers(&file.file_path);
         let mut classes = Vec::new();
-        for &(declaring, symbol) in lookups.cpp_classes.get(name)? {
+        for &(declaring, symbol) in &candidates {
             if !std::ptr::eq(declaring, file)
                 && !reachable
                     .iter()

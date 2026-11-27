@@ -309,7 +309,7 @@ Byte-size keys accept either an integer byte count or a quoted positive integer 
 
 | Mode | Behavior |
 |---|---|
-| `"auto"` (default) | Indexing starts on the first `search`, `read` or `grep` call, or on `synonyms` or a monorepo `initial_instructions`, not at server start. It runs only when the workspace is inside a repository and has at most `[index].auto_max_files` indexable files. A `.git`, `.hg` or `.jj` in the workspace or a parent folder marks a repository; one in the home directory itself does not. |
+| `"auto"` (default) | Hydrates an existing current-format index at server start when inside a repository and its live file count is at most `[index].auto_max_files`. Otherwise indexing starts on the first `search`, `read` or `grep` call, or on `synonyms` or a monorepo `initial_instructions`, only when the workspace is inside a repository and has at most `[index].auto_max_files` indexable files. A `.git`, `.hg` or `.jj` in the workspace or a parent folder marks a repository; one in the home directory itself does not. |
 | `"on"` | Indexing starts at server start without these checks. |
 | `"off"` | The workspace is never indexed. |
 
@@ -747,8 +747,8 @@ ruby = ["describe", "context", "it", "specify"]
 powershell = ["Describe", "Context", "It"]
 
 [index]
-# When the MCP server indexes this workspace. "auto" starts on the first search, read or grep,
-# only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
+# When the MCP server indexes this workspace. "auto" hydrates an existing current-format index at start
+# or starts on the first search, read or grep, only inside a repository (.git, .hg or .jj) with at most auto_max_files indexable files.
 # Other folders, such as one holding several repositories, are not indexed; search says why.
 # "on" indexes at server start without these checks; "off" never indexes. Restart the server after changing it.
 # Commented so that a global setting applies.

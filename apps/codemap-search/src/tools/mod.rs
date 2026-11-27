@@ -84,6 +84,7 @@ pub(crate) fn split_grep_globs(glob: &str) -> Vec<String> {
 /// observe identical semantics instead of re-deriving them.
 pub struct GlobMatcher {
     overrides: ignore::overrides::Override,
+    explicit_negations: Option<ignore::overrides::Override>,
     has_whitelist: bool,
 }
 
@@ -102,6 +103,16 @@ impl GlobMatcher {
             ignore::Match::None => !self.has_whitelist,
         }
     }
+
+    /// True when `rel_path` was rejected only because it did not match any positive glob
+    /// (and was not explicitly excluded by a `!` negation pattern).
+    pub fn is_unmatched_by_whitelist(&self, rel_path: &Path) -> bool {
+        self.has_whitelist
+            && !self.is_match(rel_path)
+            && !self.explicit_negations.as_ref().is_some_and(|neg| {
+                matches!(neg.matched(rel_path, false), ignore::Match::Whitelist(_))
+            })
+    }
 }
 
 /// Build a [`GlobMatcher`] from one or more patterns rooted at `base`. `./` prefixes are
@@ -109,6 +120,8 @@ impl GlobMatcher {
 /// whitespace/comma-split set from [`split_grep_globs`]. Errors map to JSON-RPC -32602.
 pub fn build_glob_matcher(base: &Path, patterns: &[String]) -> Result<GlobMatcher, (i64, String)> {
     let mut builder = ignore::overrides::OverrideBuilder::new(base);
+    let mut negation_builder = ignore::overrides::OverrideBuilder::new(base);
+    let mut has_negation = false;
     for pattern in patterns {
         let normalized = normalize_glob_prefix(pattern);
         if normalized.is_empty() || normalized == "!" {
@@ -117,13 +130,32 @@ pub fn build_glob_matcher(base: &Path, patterns: &[String]) -> Result<GlobMatche
         builder
             .add(&normalized)
             .map_err(|e| (-32602, format!("Invalid glob pattern '{pattern}': {e}")))?;
+        if let Some(negated) = normalized.strip_prefix('!') {
+            let negated = normalize_glob_prefix(negated);
+            if !negated.is_empty() {
+                negation_builder
+                    .add(&negated)
+                    .map_err(|e| (-32602, format!("Invalid glob pattern '{pattern}': {e}")))?;
+                has_negation = true;
+            }
+        }
     }
     let overrides = builder
         .build()
         .map_err(|e| (-32602, format!("Invalid glob pattern set: {e}")))?;
+    let explicit_negations = if has_negation {
+        Some(
+            negation_builder
+                .build()
+                .map_err(|e| (-32602, format!("Invalid glob pattern set: {e}")))?,
+        )
+    } else {
+        None
+    };
     let has_whitelist = overrides.num_whitelists() > 0;
     Ok(GlobMatcher {
         overrides,
+        explicit_negations,
         has_whitelist,
     })
 }

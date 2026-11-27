@@ -17,11 +17,17 @@ use crate::parser::{
 use command::{CommandCache, Dialect, Invocation};
 use mapping::SourceMap;
 
+/// Stop spawning a preprocessor for the remainder of an indexing pass after this many
+/// consecutive zero-output timeouts (for example, a sandboxed macOS `clang` shim).
+const MAX_CONSECUTIVE_TIMEOUTS: usize = 3;
+
 /// Native preprocessing supplements the source parser by default for supported dialects.
 pub struct MacroExpander {
     root: PathBuf,
     config: MacroExpansionConfig,
     commands: CommandCache,
+    consecutive_timeouts: usize,
+    timed_out_notice: Option<String>,
 }
 
 impl MacroExpander {
@@ -30,6 +36,8 @@ impl MacroExpander {
             root: crate::workspace::canonicalize_path_lenient(root),
             config,
             commands: CommandCache::default(),
+            consecutive_timeouts: 0,
+            timed_out_notice: None,
         }
     }
 
@@ -92,8 +100,30 @@ impl MacroExpander {
         source: &str,
         extracted: &mut ExtractedFile,
     ) -> Result<(MacroExpansionInfo, crate::parser::IndexAuxiliary), String> {
+        if let Some(notice) = &self.timed_out_notice {
+            return Err(notice.clone());
+        }
         let invocation = self.commands.invocation(&self.root, path, &self.config)?;
-        let output = run_bounded(&invocation, &self.config, None)?;
+        let output = match run_bounded(&invocation, &self.config, None) {
+            Ok(out) => {
+                self.consecutive_timeouts = 0;
+                out
+            }
+            Err(err) => {
+                if err.contains("preprocessor exceeded ") {
+                    self.consecutive_timeouts += 1;
+                    if self.consecutive_timeouts >= MAX_CONSECUTIVE_TIMEOUTS {
+                        self.timed_out_notice = Some(format!(
+                            "{} disabled for remaining files after {} consecutive timeouts ({} ms)",
+                            invocation.program, self.consecutive_timeouts, self.config.timeout_ms
+                        ));
+                    }
+                } else {
+                    self.consecutive_timeouts = 0;
+                }
+                return Err(err);
+            }
+        };
         if std::fs::read(path).map_err(|e| e.to_string())? != source.as_bytes() {
             return Err("source changed during preprocessing".into());
         }

@@ -4,8 +4,10 @@ use super::{
 };
 use crate::callers::resolution::SourceResolver;
 use crate::parser::{CodeRange, ExtractedFile};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::Path;
+use std::rc::Rc;
 use tree_sitter::{Node, Point, Tree};
 
 pub(super) struct Extraction {
@@ -19,8 +21,10 @@ struct Context<'a> {
     sources: &'a HashMap<String, String>,
     js: JsGraph<'a>,
     rust: SourceResolver<'a>,
-    rust_trees: HashMap<String, Tree>,
+    rust_trees: RefCell<HashMap<String, Option<Rc<Tree>>>>,
     rules: Vec<EventRule>,
+    scan_rust_files: bool,
+    rust_method_needles: Option<Vec<String>>,
 }
 
 fn node_at<'a>(tree: &'a Tree, range: &CodeRange) -> Option<Node<'a>> {
@@ -120,26 +124,63 @@ impl<'a> Context<'a> {
         sources: &'a HashMap<String, String>,
         root: &'a Path,
     ) -> Self {
-        let mut rust_trees = HashMap::new();
-        for (path, source) in sources.iter().filter(|(path, _)| path.ends_with(".rs")) {
-            let mut parser = tree_sitter::Parser::new();
-            if parser
-                .set_language(&tree_sitter_rust::LANGUAGE.into())
-                .is_ok()
-            {
-                if let Ok(tree) = crate::parser::parse_source(&mut parser, source.as_bytes()) {
-                    rust_trees.insert(path.clone(), tree);
-                }
-            }
-        }
+        let rules = super::rules::effective_rules(&crate::config::get().event_navigation);
+        let rust_rules: Vec<&EventRule> = rules
+            .iter()
+            .filter(|rule| rule.language == "rust")
+            .collect();
+        let scan_rust_files = if rust_rules.is_empty() {
+            false
+        } else if rust_rules.iter().all(|rule| rule.is_builtin) {
+            // Builtin Rust rules only match external `tauri::*` APIs (`rust_type` requires
+            // a `"tauri::"` qualified path), so skip parsing Rust files when none mention `tauri`.
+            sources
+                .iter()
+                .any(|(path, source)| path.ends_with(".rs") && source.contains("tauri"))
+        } else {
+            true
+        };
+        let rust_method_needles =
+            if scan_rust_files && rust_rules.iter().all(|rule| rule.method.is_some()) {
+                let mut needles: Vec<String> = rust_rules
+                    .iter()
+                    .filter_map(|rule| rule.method.clone())
+                    .collect();
+                needles.sort();
+                needles.dedup();
+                Some(needles)
+            } else {
+                None
+            };
         Self {
             files,
             sources,
             js: JsGraph::new(sources),
             rust: SourceResolver::from_stored_sources(files, root, sources),
-            rust_trees,
-            rules: super::rules::effective_rules(&crate::config::get().event_navigation),
+            rust_trees: RefCell::new(HashMap::new()),
+            rules,
+            scan_rust_files,
+            rust_method_needles,
         }
+    }
+
+    fn rust_tree(&self, path: &str) -> Option<Rc<Tree>> {
+        if let Some(cached) = self.rust_trees.borrow().get(path) {
+            return cached.clone();
+        }
+        let parsed = self.sources.get(path).and_then(|source| {
+            let mut parser = tree_sitter::Parser::new();
+            parser
+                .set_language(&tree_sitter_rust::LANGUAGE.into())
+                .ok()?;
+            crate::parser::parse_source(&mut parser, source.as_bytes())
+                .ok()
+                .map(Rc::new)
+        });
+        self.rust_trees
+            .borrow_mut()
+            .insert(path.to_string(), parsed.clone());
+        parsed
     }
     fn rust_type(
         &self,
@@ -237,11 +278,11 @@ impl<'a> Context<'a> {
             let range = javascript::range(node);
             let name = javascript::text(node, source);
             if let Some(target) = self.rust.resolve_name(file, &range, name, "const") {
-                let Some(tree) = self.rust_trees.get(&target.file.file_path) else {
+                let Some(tree) = self.rust_tree(&target.file.file_path) else {
                     return Value::unknown("constant source unavailable");
                 };
-                if let Some(value) =
-                    node_at(tree, &target.symbol.range).and_then(|n| n.child_by_field_name("value"))
+                if let Some(value) = node_at(&tree, &target.symbol.range)
+                    .and_then(|n| n.child_by_field_name("value"))
                 {
                     let mut result = self.eval_rust(target.file, value, depth + 1);
                     result.evidence.push(EventLocation {
@@ -634,11 +675,24 @@ pub(super) fn extract(
         let Some(_) = language(&file.file_path) else {
             continue;
         };
-        if !sources.contains_key(&file.file_path) {
+        let Some(file_source) = sources.get(&file.file_path) else {
             continue;
-        }
+        };
+        let rust_tree_holder;
         let tree = if file.file_path.ends_with(".rs") {
-            context.rust_trees.get(&file.file_path)
+            if !context.scan_rust_files {
+                continue;
+            }
+            if let Some(needles) = &context.rust_method_needles {
+                if !needles
+                    .iter()
+                    .any(|needle| file_source.contains(needle.as_str()))
+                {
+                    continue;
+                }
+            }
+            rust_tree_holder = context.rust_tree(&file.file_path);
+            rust_tree_holder.as_deref()
         } else {
             context.js.files.get(&file.file_path).map(|f| &f.tree)
         };

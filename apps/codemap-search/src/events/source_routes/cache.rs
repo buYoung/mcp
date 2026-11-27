@@ -3,6 +3,7 @@ use super::snapshot::Snapshot;
 use serde::Serialize;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tantivy::directory::{Directory, Lock, MmapDirectory};
 
 const CACHE_FILE: &str = "source-routes.cache";
@@ -44,7 +45,7 @@ impl SnapshotCache {
         })
     }
 
-    fn load(&self) -> Option<Snapshot> {
+    pub(super) fn load(&self) -> Option<Snapshot> {
         let file = std::fs::File::open(&self.path).ok()?;
         if file.metadata().ok()?.len() > CACHE_BYTE_CAP as u64 {
             return None;
@@ -80,15 +81,22 @@ impl SnapshotCache {
 
 pub(super) fn load_or_build(
     cache: Option<SnapshotCache>,
-    build: impl FnOnce() -> Snapshot,
-) -> Snapshot {
+    cancelled: &AtomicBool,
+    build: impl FnOnce() -> Option<Snapshot>,
+) -> Option<Snapshot> {
     let started = std::time::Instant::now();
+    if cancelled.load(Ordering::Acquire) {
+        return None;
+    }
     let Some(cache) = cache else {
         return build();
     };
     if let Some(snapshot) = cache.load() {
         tracing::debug!("reused source route snapshot");
-        return snapshot;
+        return Some(snapshot);
+    }
+    if cancelled.load(Ordering::Acquire) {
+        return None;
     }
     // Independent of the Tantivy writer: one process derives a generation and peers
     // reuse it. OS locks are released on exit, including crashes.
@@ -102,11 +110,17 @@ pub(super) fn load_or_build(
             None
         }
     };
+    if cancelled.load(Ordering::Acquire) {
+        return None;
+    }
     if let Some(snapshot) = cache.load() {
         tracing::debug!("reused source route snapshot after peer analysis");
-        return snapshot;
+        return Some(snapshot);
     }
-    let snapshot = build();
+    let snapshot = build()?;
+    if cancelled.load(Ordering::Acquire) {
+        return None;
+    }
     if let Err(error) = cache.store(&snapshot) {
         tracing::debug!("source route cache write skipped: {error}");
     }
@@ -115,5 +129,5 @@ pub(super) fn load_or_build(
         route_count = snapshot.routes.len(),
         "built source route snapshot"
     );
-    snapshot
+    Some(snapshot)
 }

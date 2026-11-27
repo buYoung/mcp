@@ -32,7 +32,6 @@ pub(super) fn trailer(
     output: &LiveOutput,
     byte_cap: usize,
 ) -> Option<String> {
-    let started = Instant::now();
     let byte_cap = byte_cap.min(TRAILER_BYTE_CAP);
     // Room for the closing omission line is kept whenever a function line is added.
     let reserve = omission_line(FUNCTION_LOOKUP_LIMIT).len();
@@ -63,9 +62,11 @@ pub(super) fn trailer(
     }
     let snapshot = engine.published_snapshot();
     let source_files = snapshot.codemap();
-    let indexed = source_files
-        .iter()
-        .find(|file| file.file_path == path)
+    let call_lookup = snapshot.call_lookup();
+    let indexed = call_lookup
+        .file_index(path)
+        .and_then(|pos| source_files.get(pos))
+        .or_else(|| source_files.iter().find(|file| file.file_path == path))
         .map(|file| &**file);
     // Stale or unindexed files would attribute callers to the wrong lines.
     if let Some(reason) =
@@ -73,8 +74,7 @@ pub(super) fn trailer(
     {
         return Some(unavailable_line(&reason));
     }
-    let filtered = filter.filter_snapshot(&source_files, |file| file.file_path == path);
-    let file = filtered.iter().find(|file| file.file_path == path)?;
+    let file = indexed?;
     let functions: Vec<_> = file
         .symbols
         .iter()
@@ -82,18 +82,17 @@ pub(super) fn trailer(
             callable(symbol)
                 && symbol.range.start_line <= end
                 && start <= symbol.range.end_line_inclusive()
+                && !filter.is_excluded(path, &symbol.range)
         })
         .take(FUNCTION_LOOKUP_LIMIT)
         .collect();
     if functions.is_empty() {
         return None;
     }
-    let resolver = crate::callers::resolution::SourceResolver::with_lookup(
-        &source_files,
-        &root,
-        snapshot.call_lookup(),
-    )
-    .with_implementations(snapshot.implementations());
+    let started = Instant::now();
+    let resolver =
+        crate::callers::resolution::SourceResolver::with_lookup(&source_files, &root, call_lookup)
+            .with_implementations(snapshot.implementations());
     // Calls reach a C/C++ prototype's definition, so its callers are those of the definition.
     let targets: Vec<Target<'_>> = functions
         .iter()

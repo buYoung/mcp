@@ -35,7 +35,7 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{EventKind, RecursiveMode, Watcher};
 
 use super::IndexCommand;
 
@@ -67,34 +67,40 @@ impl WatcherStatus {
     }
 }
 
-/// Owner of the notify watcher and the debounce thread. Drop shuts both down: dropping
-/// the `RecommendedWatcher` disconnects the event channel, the debounce loop's `recv`
-/// observes it and exits (dropping its `IndexCommand` sender clone), then the thread is
-/// joined. The `IndexerHandle` must therefore drop AFTER this handle — guaranteed by
-/// [`super::EngineSupervisor`]'s field declaration order (`watcher` before `indexer`).
+enum WatcherMessage {
+    Event(Result<notify::Event, notify::Error>),
+    Stop,
+}
+
+/// Owner of the notify watcher and the debounce thread. Drop shuts both down: signaling
+/// stop wakes the debounce loop immediately, which drops the `RecommendedWatcher` and its
+/// `IndexCommand` sender clone before exiting, then the thread is joined. The `IndexerHandle`
+/// must therefore drop AFTER this handle — guaranteed by [`super::EngineSupervisor`]'s field
+/// declaration order (`watcher` before `indexer`).
 pub struct WatcherHandle {
-    watcher: Option<RecommendedWatcher>,
+    stop_requested: Arc<AtomicBool>,
+    stop_sender: Option<std::sync::mpsc::Sender<WatcherMessage>>,
     status: Arc<WatcherStatus>,
     join_handle: Option<JoinHandle<()>>,
 }
 
 impl Drop for WatcherHandle {
     fn drop(&mut self) {
+        self.stop_requested.store(true, Ordering::Release);
         self.status.set_healthy(false);
-        // Drop the notify watcher first: its event-channel sender goes with it, so the
-        // debounce thread's recv loop ends and the join below cannot hang. The thread may
-        // be mid-send to the (still running) indexer; that send completes normally.
-        drop(self.watcher.take());
+        if let Some(sender) = self.stop_sender.take() {
+            let _ = sender.send(WatcherMessage::Stop);
+        }
         if let Some(handle) = self.join_handle.take() {
             let _ = handle.join();
         }
     }
 }
 
-/// Register a recursive watch of `root` and start the debounce thread. Flips `status`
-/// healthy on success. Returns `None` — with a stderr warning, never a panic — when the
-/// watch cannot start (e.g. Linux inotify watch limit on a large tree); `status` then
-/// stays unhealthy and the server keeps the request-triggered fallback.
+/// Start the debounce thread and register a recursive watch of `root` on that thread so
+/// startup and activation never block on OS watch registration or `git rev-parse`. Flips
+/// `status` healthy once the watch is registered; if registration fails (e.g. Linux inotify
+/// watch limit), `status` stays unhealthy and the server keeps the request-triggered fallback.
 pub fn spawn_watcher(
     root: &Path,
     command_sender: SyncSender<IndexCommand>,
@@ -103,32 +109,12 @@ pub fn spawn_watcher(
     // Canonicalize so event paths (which the OS reports against the resolved root) strip
     // cleanly in the path filter, e.g. macOS `/var` → `/private/var`.
     let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
-
-    let (event_sender, event_receiver) = channel();
-    // `std::sync::mpsc::Sender` implements notify's EventHandler: events are forwarded to
-    // the unbounded channel, so nothing is lost while the debounce thread is blocked
-    // handing a command to the (capacity-1) indexer channel.
-    let mut watcher = match notify::recommended_watcher(event_sender) {
-        Ok(w) => w,
-        Err(e) => {
-            tracing::warn!("watcher creation failed: {e} — keeping request-triggered refresh");
-            return None;
-        }
-    };
-    if let Err(e) = watcher.watch(&root, RecursiveMode::Recursive) {
-        tracing::warn!("watch registration failed: {e} — keeping request-triggered refresh");
-        return None;
-    }
-
     let debounce = Duration::from_millis(crate::config::get().watch_debounce_ms);
-    // Initial HEAD hash; `None` (no git, no commits yet, no `git` binary) disables the
-    // git hint layer while file events keep working.
-    let initial_head = git_head_hash(&root);
 
-    // Flip healthy BEFORE the thread starts, so the thread's own `set_healthy(false)` on
-    // exit is always the later write — flipping after `spawn` could overwrite a false
-    // recorded by a thread that already died, freezing the gate at healthy forever.
-    status.set_healthy(true);
+    let (msg_sender, msg_receiver) = channel::<WatcherMessage>();
+    let stop_sender = msg_sender.clone();
+    let stop_requested = Arc::new(AtomicBool::new(false));
+    let thread_stop = Arc::clone(&stop_requested);
     let thread_status = Arc::clone(&status);
     let root_config = crate::config::thread_root_config();
     let join_handle = match std::thread::Builder::new()
@@ -144,8 +130,40 @@ pub fn spawn_watcher(
                     self.0.set_healthy(false);
                 }
             }
-            let _guard = HealthOffGuard(thread_status);
-            run_debounce_loop(event_receiver, command_sender, root, debounce, initial_head);
+            let _guard = HealthOffGuard(Arc::clone(&thread_status));
+            if thread_stop.load(Ordering::Acquire) {
+                return;
+            }
+            let event_sender = msg_sender;
+            let mut watcher = match notify::recommended_watcher(move |result| {
+                let _ = event_sender.send(WatcherMessage::Event(result));
+            }) {
+                Ok(w) => w,
+                Err(e) => {
+                    tracing::warn!(
+                        "watcher creation failed: {e} — keeping request-triggered refresh"
+                    );
+                    return;
+                }
+            };
+            if let Err(e) = watcher.watch(&root, RecursiveMode::Recursive) {
+                tracing::warn!(
+                    "watch registration failed: {e} — keeping request-triggered refresh"
+                );
+                return;
+            }
+            if thread_stop.load(Ordering::Acquire) {
+                return;
+            }
+            // Initial HEAD hash; `None` (no git, no commits yet, no `git` binary) disables the
+            // git hint layer while file events keep working.
+            let initial_head = git_head_hash(&root);
+            if thread_stop.load(Ordering::Acquire) {
+                return;
+            }
+            thread_status.set_healthy(true);
+            run_debounce_loop(msg_receiver, command_sender, root, debounce, initial_head);
+            drop(watcher);
         }) {
         Ok(handle) => handle,
         Err(e) => {
@@ -156,7 +174,8 @@ pub fn spawn_watcher(
     };
 
     Some(WatcherHandle {
-        watcher: Some(watcher),
+        stop_requested,
+        stop_sender: Some(stop_sender),
         status,
         join_handle: Some(join_handle),
     })
@@ -175,10 +194,10 @@ struct PendingBatch {
 }
 
 /// The debounce loop: block for the first event, collect everything arriving within the
-/// debounce window, then hand the indexer exactly one command. Exits when the event
-/// channel disconnects (watcher dropped) or the indexer is gone.
+/// debounce window, then hand the indexer exactly one command. Exits when signaled to stop,
+/// when the event channel disconnects, or when the indexer is gone.
 fn run_debounce_loop(
-    events: Receiver<Result<notify::Event, notify::Error>>,
+    events: Receiver<WatcherMessage>,
     commands: SyncSender<IndexCommand>,
     root: PathBuf,
     debounce: Duration,
@@ -186,8 +205,8 @@ fn run_debounce_loop(
 ) {
     loop {
         let first = match events.recv() {
-            Ok(event) => event,
-            Err(_) => return, // watcher dropped — shutdown
+            Ok(WatcherMessage::Event(event)) => event,
+            Ok(WatcherMessage::Stop) | Err(_) => return, // shutdown
         };
         let mut batch = PendingBatch::default();
         accumulate(&mut batch, first, &root);
@@ -199,9 +218,9 @@ fn run_debounce_loop(
                 break;
             }
             match events.recv_timeout(remaining) {
-                Ok(event) => accumulate(&mut batch, event, &root),
+                Ok(WatcherMessage::Event(event)) => accumulate(&mut batch, event, &root),
+                Ok(WatcherMessage::Stop) | Err(RecvTimeoutError::Disconnected) => return, // shutdown — drop the batch
                 Err(RecvTimeoutError::Timeout) => break,
-                Err(RecvTimeoutError::Disconnected) => return, // shutdown — drop the batch
             }
         }
 

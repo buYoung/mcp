@@ -179,7 +179,7 @@ fn resolve_navigation_call<'a>(
     call_file: &'a ExtractedFile,
     snapshot: &'a [std::sync::Arc<ExtractedFile>],
     index: &'a SymbolIndex<'a>,
-    navigation_index: &NavigationIndex,
+    navigation_index: &NavigationIndex<'_>,
     is_member: bool,
 ) -> Option<(&'a ExtractedFile, &'a ExtractedSymbol)> {
     if has_non_function_local_shadow(call, call_file, index) {
@@ -284,7 +284,7 @@ fn precise_navigation_callers(
     target_file_path: &str,
     snapshot: &[std::sync::Arc<ExtractedFile>],
     index: &SymbolIndex<'_>,
-    navigation_index: &NavigationIndex,
+    navigation_index: &NavigationIndex<'_>,
     call_lookup: Option<&super::CallLookup>,
     cfg: &CallerConfig,
     runtime_state: AnnotationRuntimeState,
@@ -298,7 +298,7 @@ fn precise_navigation_callers(
     {
         return None;
     }
-    if navigation_index.calls_by_name.is_empty() && !super::resolution::supports(target_file_path) {
+    if !navigation_index.has_calls && !super::resolution::supports(target_file_path) {
         return Some(ConfirmedCallers {
             entries: Vec::new(),
             is_partial: false,
@@ -312,10 +312,27 @@ fn precise_navigation_callers(
     let mut relevant_names = HashSet::from([target.name.as_str()]);
     let mut is_alias_limited = false;
     if target_file_path.ends_with(".rs") {
+        let mut checked_names: HashSet<&str> = HashSet::new();
         for round in 0..16 {
             let before = relevant_names.len();
-            for import in snapshot
+            let new_names: Vec<&str> = relevant_names
                 .iter()
+                .copied()
+                .filter(|name| checked_names.insert(*name))
+                .collect();
+            if new_names.is_empty() {
+                break;
+            }
+            let import_files: Box<dyn Iterator<Item = &ExtractedFile>> = match call_lookup {
+                Some(lookup) => Box::new(
+                    lookup
+                        .files([], new_names.iter().copied(), false)
+                        .into_iter()
+                        .map(|position| &*snapshot[position]),
+                ),
+                None => Box::new(snapshot.iter().map(|file| &**file)),
+            };
+            for import in import_files
                 .filter(|file| file.file_path.ends_with(".rs"))
                 .filter_map(|file| file.navigation.as_ref())
                 .flat_map(|navigation| &navigation.imports)
@@ -553,7 +570,7 @@ fn render_symbol_annotation(
     scan: &ScanResult,
     snapshot: &[std::sync::Arc<ExtractedFile>],
     index: &SymbolIndex<'_>,
-    navigation_index: &NavigationIndex,
+    navigation_index: &NavigationIndex<'_>,
     call_lookup: Option<&super::CallLookup>,
     cfg: &CallerConfig,
     byte_budget: usize,
@@ -1407,13 +1424,20 @@ fn annotate_with_presentation(
     let annotation_started = should_trace_navigation_metrics.then(Instant::now);
     let test_filter = super::test_code::TestCodeFilter::from_config(root);
     test_filter.retain_snapshot_cache(snapshot);
-    let index = build_symbol_index(snapshot, Some(&test_filter));
+    let call_lookup = limits
+        .as_ref()
+        .map(|limits| limits.call_lookup)
+        .or(call_lookup);
+    let index = match call_lookup {
+        Some(lookup) => SymbolIndex::from_lookup(snapshot, lookup, Some(&test_filter)),
+        None => build_symbol_index(snapshot, Some(&test_filter)),
+    };
     let should_build_navigation_index =
         cfg.navigation_context_default && !runtime_state.suppresses_navigation();
     let navigation_index_started =
         (should_trace_navigation_metrics && should_build_navigation_index).then(Instant::now);
     let navigation_index = if should_build_navigation_index {
-        build_navigation_index(snapshot)
+        build_navigation_index(snapshot, call_lookup)
     } else {
         NavigationIndex::default()
     };
@@ -1460,16 +1484,10 @@ fn annotate_with_presentation(
     }
     names.sort();
     names.dedup();
-    let files_by_path: HashMap<&str, &ExtractedFile> = match &limits {
-        Some(_) => snapshot
-            .iter()
-            .map(|file| (file.file_path.as_str(), &**file))
-            .collect(),
-        None => HashMap::new(),
-    };
     let scan_options = ScanOptions {
         unchanged_calls: limits.as_ref().map(|limits| IndexedFiles {
-            files: &files_by_path,
+            snapshot,
+            call_lookup: limits.call_lookup,
             mtime: limits.indexed_mtime,
         }),
         deadline: limits.as_ref().map(|limits| limits.deadline),
@@ -1478,10 +1496,6 @@ fn annotate_with_presentation(
             .filter(|limits| limits.is_index_current)
             .map(|limits| (snapshot, limits.call_lookup)),
     };
-    let call_lookup = limits
-        .as_ref()
-        .map(|limits| limits.call_lookup)
-        .or(call_lookup);
     let scan = scan_workspace(&names, cfg, root, &index, &scan_options)?;
     let deadline = scan_options.deadline;
     let mut is_partial = scan.is_past_deadline;
