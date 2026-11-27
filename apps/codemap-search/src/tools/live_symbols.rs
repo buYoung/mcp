@@ -6,12 +6,16 @@ mod implementations_trailer;
 mod importers;
 pub(crate) mod jev;
 mod locations;
+mod outside_callees;
 mod outside_callers;
 mod references;
 pub(crate) mod shared_keys;
 
+pub(crate) use implementations_trailer::HEADER as IMPLEMENTATIONS_HEADER;
 pub(crate) use importers::HEADER as IMPORTERS_HEADER;
+pub(crate) use outside_callees::HEADER as OUTSIDE_CALLEES_HEADER;
 pub(crate) use outside_callers::HEADER as OUTSIDE_CALLERS_HEADER;
+pub(crate) use shared_keys::HEADER as SHARED_KEYS_HEADER;
 mod render;
 mod structure;
 
@@ -271,12 +275,13 @@ fn frame(
 }
 
 /// Collect source trailers under a fair-share total budget so an early trailer (e.g. outside
-/// callers) never starves implementations, shared keys, or importers, while redistributing any
-/// surplus from smaller trailers (water-filling) so budgeted headroom is never wasted.
+/// callers) never starves outgoing callees, implementations, shared keys, or importers, while
+/// redistributing any surplus from smaller trailers (water-filling) so budgeted headroom is never
+/// wasted.
 fn collect_fair_trailers(
     engine: &EngineSupervisor,
     output: &LiveOutput,
-    caps: [usize; 4],
+    caps: [usize; 5],
     total_budget: usize,
 ) -> Vec<String> {
     if !output.should_list_outside_callers || total_budget < 128 {
@@ -286,16 +291,18 @@ fn collect_fair_trailers(
         let cap = cap.min(total_budget.saturating_sub(1));
         match idx {
             0 => outside_callers::trailer(engine, output, cap),
-            1 => implementations_trailer::trailer(engine, output, cap),
-            2 => shared_keys::trailer(engine, output, cap),
+            1 => outside_callees::trailer(engine, output, cap),
+            2 => implementations_trailer::trailer(engine, output, cap),
+            3 => shared_keys::trailer(engine, output, cap),
             _ => importers::trailer(engine, output, cap),
         }
     };
-    let mut results: [Option<String>; 4] = [
+    let mut results: [Option<String>; 5] = [
         query(0, caps[0]),
         query(1, caps[1]),
         query(2, caps[2]),
         query(3, caps[3]),
+        query(4, caps[4]),
     ];
     let total_bytes: usize = results
         .iter()
@@ -304,8 +311,8 @@ fn collect_fair_trailers(
         .sum();
     if total_bytes > total_budget {
         let mut remaining_budget = total_budget;
-        let mut active: Vec<usize> = (0..4).filter(|&idx| results[idx].is_some()).collect();
-        let mut alloc = [0usize; 4];
+        let mut active: Vec<usize> = (0..5).filter(|&idx| results[idx].is_some()).collect();
+        let mut alloc = [0usize; 5];
         while !active.is_empty() {
             let share = remaining_budget / active.len();
             let mut locked_any = false;
@@ -377,7 +384,7 @@ fn render(
             ));
         }
         if crate::config::session_delivery_byte_cap().is_some() {
-            const CAPPED_CAPS: [usize; 4] = [768, 576, 768, 512];
+            const CAPPED_CAPS: [usize; 5] = [768, 512, 576, 768, 512];
             let cap = output_byte_cap.unwrap_or(usize::MAX);
             let free_room = cap.saturating_sub(text.len());
             let trailer_budget = if free_room >= 1_600 {
@@ -449,8 +456,8 @@ fn render(
         }
         // The trailers are auxiliary: use only the room left under the cap, bounded to keep
         // multi-trailer windows compact while giving every individual trailer its full headroom.
-        const STANDARD_CAPS: [usize; 4] = [1_536, 1_024, 1_536, 1_536];
-        const STANDARD_TRAILER_BUDGET: usize = 3_584;
+        const STANDARD_CAPS: [usize; 5] = [1_536, 1_024, 1_024, 1_536, 1_536];
+        const STANDARD_TRAILER_BUDGET: usize = 4_608;
         let room = output_byte_cap.map_or(usize::MAX, |cap| cap.saturating_sub(text.len()));
         let budget = room.min(STANDARD_TRAILER_BUDGET);
         for trailer in collect_fair_trailers(engine, &output, STANDARD_CAPS, budget) {

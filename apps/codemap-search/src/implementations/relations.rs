@@ -4,6 +4,66 @@ use crate::callers::resolution::SourceResolver;
 use crate::parser::CodeRange;
 use std::collections::{HashMap, HashSet};
 
+fn specific_preproc_conditions(
+    language: &str,
+    path: &str,
+    range: &CodeRange,
+    recorded: &[String],
+    resolver: &SourceResolver<'_>,
+) -> Vec<String> {
+    if !recorded.is_empty() && !recorded.iter().any(|c| c.starts_with("conditional ")) {
+        return recorded.to_vec();
+    }
+    resolver.preproc_conditions_at(language, path, range)
+}
+
+/// When both a C++/C# base declaration and its override are guarded by the exact same
+/// non-empty preprocessor condition set (e.g. both under `#ifdef DEBUG_ENABLED`), the override
+/// compiles whenever the base compiles. Mismatched or unresolved conditions stay unlinked.
+#[allow(clippy::too_many_arguments)]
+fn matching_preproc_conditions(
+    base_language: &str,
+    impl_language: &str,
+    base_path: &str,
+    base_range: &CodeRange,
+    base_conditions: &[String],
+    impl_path: &str,
+    impl_range: &CodeRange,
+    impl_conditions: &[String],
+    resolver: &SourceResolver<'_>,
+) -> Option<Vec<String>> {
+    if base_language != impl_language
+        || !matches!(base_language, "cpp" | "csharp")
+        || base_conditions.is_empty()
+        || impl_conditions.is_empty()
+    {
+        return None;
+    }
+    let base_labels = specific_preproc_conditions(
+        base_language,
+        base_path,
+        base_range,
+        base_conditions,
+        resolver,
+    );
+    let impl_labels = specific_preproc_conditions(
+        impl_language,
+        impl_path,
+        impl_range,
+        impl_conditions,
+        resolver,
+    );
+    if base_labels.is_empty()
+        || base_labels != impl_labels
+        || base_labels
+            .iter()
+            .any(|label| label == "#else" || label.starts_with("conditional "))
+    {
+        return None;
+    }
+    Some(base_labels)
+}
+
 fn active(
     language: &str,
     path: &str,
@@ -389,20 +449,41 @@ impl ImplementationIndex {
                         continue;
                     }
                     let (base, sig_proof) = candidates.pop().unwrap();
-                    if !active(
-                        &self.unit(parent.owner).language,
+                    let base_language = &self.unit(parent.owner).language;
+                    let base_active = active(
+                        base_language,
                         &self.methods[base].location.path,
                         &self.methods[base].declaration.range,
                         &self.methods[base].declaration.conditions,
                         resolver,
-                    ) || !active(
+                    );
+                    let impl_active = active(
                         owner_language,
                         &implementation.location.path,
                         &implementation.declaration.range,
                         &implementation.declaration.conditions,
                         resolver,
-                    ) {
-                        continue;
+                    );
+                    let mut link_conditions = parent.conditions.clone();
+                    if !base_active || !impl_active {
+                        let Some(shared_conds) = matching_preproc_conditions(
+                            base_language,
+                            owner_language,
+                            &self.methods[base].location.path,
+                            &self.methods[base].declaration.range,
+                            &self.methods[base].declaration.conditions,
+                            &implementation.location.path,
+                            &implementation.declaration.range,
+                            &implementation.declaration.conditions,
+                            resolver,
+                        ) else {
+                            continue;
+                        };
+                        for cond in shared_conds {
+                            if !link_conditions.contains(&cond) {
+                                link_conditions.push(cond);
+                            }
+                        }
                     }
                     if self.links.len() >= METHODS_PER_SNAPSHOT * 2 {
                         self.omitted += 1;
@@ -418,7 +499,7 @@ impl ImplementationIndex {
                         implementation: method,
                         evidence,
                         is_pointer,
-                        conditions: parent.conditions.clone(),
+                        conditions: link_conditions,
                     });
                 }
             }

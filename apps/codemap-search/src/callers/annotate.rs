@@ -377,10 +377,16 @@ fn precise_navigation_callers(
     let candidates: Vec<&ExtractedFile> = candidates
         .filter(|file| file.navigation.is_some())
         .collect();
-    // Without a deadline every call within the budget is resolved, so the sources those calls
-    // resolve in are loaded on all cores first; the walk below finds them loaded.
-    if deadline.is_none() {
+    // Preload candidate sources across all cores before resolution; under a deadline cap the
+    // preload batch so parallel parsing speeds up large C++/Rust lookups without stalling.
+    const DEADLINE_PRELOAD_FILE_CAP: usize = 64;
+    if deadline.is_none_or(|d| Instant::now() < d) {
         let mut remaining = cfg.navigation_callsite_budget;
+        let file_cap = if deadline.is_some() {
+            DEADLINE_PRELOAD_FILE_CAP
+        } else {
+            usize::MAX
+        };
         let mut files = Vec::new();
         'files: for call_file in &candidates {
             let navigation = call_file.navigation.as_ref().unwrap();
@@ -395,6 +401,9 @@ fn precise_navigation_callers(
                 if super::resolution::supports(&call_file.file_path)
                     && files.last() != Some(&call_file.file_path.as_str())
                 {
+                    if files.len() >= file_cap {
+                        break 'files;
+                    }
                     files.push(call_file.file_path.as_str());
                 }
             }
@@ -507,6 +516,8 @@ struct SymbolAnnotation {
     callers: Vec<CallerSite>,
     /// Single-definition matches whose receiver did not resolve, as listed in the block.
     unconfirmed_callers: Vec<CallerSite>,
+    /// Scope-verified non-call references (callbacks / handlers / bindings / system registrations).
+    non_call_references: Vec<CallerSite>,
 }
 
 impl SymbolAnnotation {
@@ -679,6 +690,7 @@ fn render_symbol_annotation(
             suffix: String::new(),
             callers: class_calls,
             unconfirmed_callers: Vec::new(),
+            non_call_references: Vec::new(),
         };
         if annotation.full_len() > byte_budget {
             return None;
@@ -689,6 +701,7 @@ fn render_symbol_annotation(
     let mut live_non_call_block = String::new();
     let mut callers: Vec<CallerSite> = Vec::new();
     let mut unconfirmed_callers: Vec<CallerSite> = Vec::new();
+    let mut non_call_references: Vec<CallerSite> = Vec::new();
     let mut used_precise_callers = false;
     let mut precise_caller_entries: HashSet<String> = HashSet::new();
     if let Some(confirmed) = precise_navigation_callers(
@@ -941,6 +954,72 @@ fn render_symbol_annotation(
         }
         callers.extend(caller_entries);
         unconfirmed_callers = unresolved_entries;
+
+        // Collect scope-verified non-call references (callbacks, system registrations, method
+        // bindings, handler tables) even when direct callers also exist, so `read view=source`
+        // trailers can surface registration/binding sites alongside direct callers.
+        let mut seen_non_call: HashSet<(String, usize)> = HashSet::new();
+        for hit in scan
+            .hits
+            .iter()
+            .filter(|h| h.name == sym.name && !h.is_call)
+        {
+            if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+                *is_cut_short = true;
+                break;
+            }
+            if !definition_is_compatible(&hit.file_path, hit.is_member_access, file_path, sym) {
+                continue;
+            }
+            if is_within_same_named_fn(hit, &sym.name, index) {
+                continue;
+            }
+            let hit_ext = extension_of(&hit.file_path);
+            if is_import_line(&hit.line_text, hit_ext) {
+                continue;
+            }
+            if !super::resolution::supports(&hit.file_path) {
+                continue;
+            }
+            let key = (hit.file_path.clone(), hit.line_number);
+            if seen_non_call.contains(&key) {
+                continue;
+            }
+            if !resolver.is_verified_non_call_reference(
+                &hit.file_path,
+                hit.line_number,
+                &sym.name,
+                file_path,
+                own_def_count,
+            ) {
+                continue;
+            }
+            seen_non_call.insert(key);
+            let file = call_lookup
+                .and_then(|lookup| lookup.file_index(&hit.file_path))
+                .and_then(|pos| snapshot.get(pos))
+                .map(|file| &**file)
+                .or_else(|| {
+                    snapshot
+                        .iter()
+                        .find(|f| f.file_path == hit.file_path)
+                        .map(|file| &**file)
+                });
+            let caller_name = file.and_then(|file| {
+                resolver.caller_name(file, hit.line_number).or_else(|| {
+                    enclosing_fn(file, hit.line_number)
+                        .map(|enclosing| qualified_name(enclosing, &file.file_path))
+                })
+            });
+            non_call_references.push(CallerSite {
+                caller: caller_name,
+                path: hit.file_path.clone(),
+                line: hit.line_number,
+            });
+            if non_call_references.len() >= cfg.caller_list_cap {
+                break;
+            }
+        }
     } // end caller-list branch (skipped when callers are omitted for too-many-defs)
 
     // --- Callees: depth-1, name-match only. Held in the fixed `suffix` part — never deduped,
@@ -1048,6 +1127,7 @@ fn render_symbol_annotation(
         suffix,
         callers,
         unconfirmed_callers,
+        non_call_references,
     };
     // Budget check against the FULL (un-deduped) length: the render-order dedup only ever
     // emits this length or LESS, so reserving the full length keeps the cap safe. Over budget
@@ -1064,6 +1144,7 @@ fn render_symbol_annotation(
                 suffix: String::new(),
                 callers: Vec::new(),
                 unconfirmed_callers: Vec::new(),
+                non_call_references: Vec::new(),
             });
         }
         return None;
@@ -1213,6 +1294,19 @@ impl DetailAnnotations {
                     annotation.unconfirmed_callers.as_slice(),
                 )
             })
+    }
+
+    /// Scope-verified non-call references (callbacks, handler/system registrations, bindings)
+    /// of one annotated symbol. `None` when the symbol was not annotated.
+    pub(crate) fn non_call_references(
+        &self,
+        file_path: &str,
+        start_line: usize,
+        start_col: usize,
+    ) -> Option<&[CallerSite]> {
+        self.exact_annotations
+            .get(&(file_path.to_string(), start_line, start_col))
+            .map(|annotation| annotation.non_call_references.as_slice())
     }
 
     /// Attributed and unconfirmed caller sites of the symbol starting at `start_line`, as
@@ -1470,6 +1564,7 @@ fn annotate_with_presentation(
     };
     // Union of every non-fallback matched `fn` name across all detail files → one scan.
     let mut names: Vec<String> = Vec::new();
+    let mut extra_files: HashSet<String> = HashSet::new();
     for req in requests {
         if req.is_fallback {
             continue;
@@ -1480,6 +1575,7 @@ fn annotate_with_presentation(
             .filter(|s| s.kind == "fn" && is_annotated(req.file_path, s))
         {
             names.push(sym.name.clone());
+            extra_files.insert(req.file_path.to_string());
         }
     }
     names.sort();
@@ -1489,6 +1585,7 @@ fn annotate_with_presentation(
             snapshot,
             call_lookup: limits.call_lookup,
             mtime: limits.indexed_mtime,
+            extra_files: &extra_files,
         }),
         deadline: limits.as_ref().map(|limits| limits.deadline),
         indexed_walk: limits
@@ -1508,57 +1605,78 @@ fn annotate_with_presentation(
     // less, so the reserved cap is never exceeded at emission time.
     let mut sub_remaining = cfg.annotation_sub_budget;
     let mut overall_remaining = available_bytes;
-    'requests: for req in requests {
-        if req.is_fallback {
-            continue;
+    let work_items: Vec<(&str, &ExtractedSymbol)> = requests
+        .iter()
+        .filter(|req| !req.is_fallback)
+        .flat_map(|req| {
+            req.symbols
+                .iter()
+                .filter(|s| is_annotated(req.file_path, s))
+                .map(|s| (req.file_path, s))
+        })
+        .collect();
+    let total_items = work_items.len();
+    for (idx, (req_file_path, sym)) in work_items.into_iter().enumerate() {
+        let budget = sub_remaining.min(overall_remaining);
+        if budget == 0 {
+            break;
         }
-        for sym in req
-            .symbols
-            .iter()
-            .filter(|s| is_annotated(req.file_path, s))
-        {
-            let budget = sub_remaining.min(overall_remaining);
-            if budget == 0 {
-                break;
+        let now = Instant::now();
+        if deadline.is_some_and(|total| now >= total) {
+            is_partial = true;
+            break;
+        }
+        // Fair per-function time slice when multiple functions share a deadline so one
+        // high-fan-in function cannot starve every remaining function in the read window.
+        let sym_deadline = deadline.map(|total| {
+            let remaining = total.saturating_duration_since(now);
+            let remaining_fns = (total_items - idx) as u32;
+            if remaining_fns <= 1 {
+                total
+            } else {
+                let slice = (remaining / remaining_fns)
+                    .max(std::time::Duration::from_millis(80))
+                    .min(remaining);
+                now + slice
             }
-            if is_partial || deadline.is_some_and(|deadline| Instant::now() >= deadline) {
-                is_partial = true;
-                break 'requests;
-            }
-            if let Some(annotation) = render_symbol_annotation(
-                sym,
-                req.file_path,
-                &scan,
-                snapshot,
-                &index,
-                &navigation_index,
-                call_lookup,
-                cfg,
-                budget,
-                root,
-                runtime_state,
-                resolver,
-                should_list_unresolved,
-                should_discover_callees,
-                deadline,
-                &mut is_partial,
-            ) {
-                let reserved = annotation.full_len();
-                sub_remaining = sub_remaining.saturating_sub(reserved);
-                overall_remaining = overall_remaining.saturating_sub(reserved);
-                exact_annotations.insert(
-                    (
-                        req.file_path.to_string(),
-                        sym.range.start_line,
-                        sym.range.start_col,
-                    ),
-                    annotation.clone(),
-                );
-                annotations.insert(
-                    (req.file_path.to_string(), sym.range.start_line),
-                    annotation,
-                );
-            }
+        });
+        let mut sym_partial = false;
+        if let Some(annotation) = render_symbol_annotation(
+            sym,
+            req_file_path,
+            &scan,
+            snapshot,
+            &index,
+            &navigation_index,
+            call_lookup,
+            cfg,
+            budget,
+            root,
+            runtime_state,
+            resolver,
+            should_list_unresolved,
+            should_discover_callees,
+            sym_deadline,
+            &mut sym_partial,
+        ) {
+            let reserved = annotation.full_len();
+            sub_remaining = sub_remaining.saturating_sub(reserved);
+            overall_remaining = overall_remaining.saturating_sub(reserved);
+            exact_annotations.insert(
+                (
+                    req_file_path.to_string(),
+                    sym.range.start_line,
+                    sym.range.start_col,
+                ),
+                annotation.clone(),
+            );
+            annotations.insert(
+                (req_file_path.to_string(), sym.range.start_line),
+                annotation,
+            );
+        }
+        if sym_partial {
+            is_partial = true;
         }
     }
     if let Some(metrics) = &mut navigation_metrics {
@@ -1669,7 +1787,7 @@ mod tests {
             name: "tick".to_string(), prefix: String::new(), suffix: String::new(),
             caller_block: "  - _callers (approximate; `tick` has 3 definitions):_\n    - driver (t.rs:5)\n".to_string(),
             live_non_call_block: String::new(),
-            callers: Vec::new(), unconfirmed_callers: Vec::new(),
+            callers: Vec::new(), unconfirmed_callers: Vec::new(), non_call_references: Vec::new(),
         })).collect();
         DetailAnnotations {
             annotations,

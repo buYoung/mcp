@@ -282,10 +282,14 @@ impl SourceHistory {
             .then(|| {
                 [
                     crate::tools::live_symbols::OUTSIDE_CALLERS_HEADER,
+                    crate::tools::live_symbols::OUTSIDE_CALLEES_HEADER,
+                    crate::tools::live_symbols::IMPLEMENTATIONS_HEADER,
+                    crate::tools::live_symbols::SHARED_KEYS_HEADER,
                     crate::tools::live_symbols::IMPORTERS_HEADER,
                 ]
                 .iter()
-                .find_map(|header| text.find(&format!("\n{header}")))
+                .filter_map(|header| text.find(&format!("\n{header}")))
+                .min()
             })
             .flatten()
             .map(|newline| newline + 1);

@@ -654,6 +654,21 @@ impl<'a> SourceResolver<'a> {
         }
     }
 
+    pub(crate) fn preproc_conditions_at(
+        &self,
+        language: &str,
+        file: &str,
+        range: &CodeRange,
+    ) -> Vec<String> {
+        let Some(source) = self.source(file) else {
+            return Vec::new();
+        };
+        let Some(node) = node_at(&source, range) else {
+            return Vec::new();
+        };
+        crate::implementations::preproc_conditions_for_node(language, node, source.text.as_bytes())
+    }
+
     pub(crate) fn declared_receiver_type(
         &self,
         file: &ExtractedFile,

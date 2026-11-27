@@ -15,6 +15,18 @@ pub(in crate::callers::resolution) struct CppClass<'a> {
     pub symbol: &'a ExtractedSymbol,
 }
 
+/// A class or inline struct body whose fields can be resolved during member-access traversal.
+#[derive(Clone)]
+enum CppMemberScope<'a> {
+    Class(CppClass<'a>),
+    InlineStruct {
+        file: &'a ExtractedFile,
+        range: crate::parser::CodeRange,
+    },
+}
+
+const MAX_FIELD_CHAIN_DEPTH: usize = 4;
+
 impl<'a> SourceResolver<'a> {
     pub(in crate::callers::resolution) fn cpp_member_call(
         &self,
@@ -48,7 +60,10 @@ impl<'a> SourceResolver<'a> {
                     .child_by_field_name("operator")
                     .is_some_and(|operator| operator.kind() == "->");
                 let argument = function.child_by_field_name("argument")?;
-                self.receiver_class(file, &source, at, argument, is_arrow)?
+                match self.receiver_scope(file, &source, at, argument, is_arrow, 0)? {
+                    CppMemberScope::Class(class) => class,
+                    CppMemberScope::InlineStruct { .. } => return None,
+                }
             }
             "qualified_identifier" => {
                 // `Class::method()` or `ns::Class::method()`; a namespace scope is left to
@@ -160,55 +175,77 @@ impl<'a> SourceResolver<'a> {
         None
     }
 
-    /// The class of the object a call is made on: `this`, or a parameter, local variable or
-    /// field of the enclosing class whose declared type names the class.
-    fn receiver_class(
+    /// The class or inline struct body of the object a call or member access is made on: `this`,
+    /// a parameter, local variable or field, or a chained field expression (`a.b->m()`,
+    /// `this->data.owner->m()`).
+    fn receiver_scope(
         &self,
         file: &'a ExtractedFile,
         source: &Source,
         at: Node,
         argument: Node,
         is_arrow: bool,
-    ) -> Option<CppClass<'a>> {
+        depth: usize,
+    ) -> Option<CppMemberScope<'a>> {
+        if depth >= MAX_FIELD_CHAIN_DEPTH {
+            return None;
+        }
         match argument.kind() {
-            "this" if is_arrow => self.enclosing_class(file, source, at),
+            "this" if is_arrow => self
+                .enclosing_class(file, source, at)
+                .map(CppMemberScope::Class),
             "identifier" => {
                 let name = text(argument, source)?;
                 if let Some((declaration, declarator)) = local_declaration(source, at, name) {
-                    let class_name = declared_class(source, declaration, declarator, is_arrow)?;
-                    return self.visible_class(file, &class_name);
+                    return self.scope_from_declaration(
+                        file,
+                        file,
+                        source,
+                        None,
+                        declaration,
+                        declarator,
+                        is_arrow,
+                    );
                 }
-                self.field_class(file, source, at, name, is_arrow)
+                let owner = self.enclosing_class(file, source, at)?;
+                self.field_scope(file, &CppMemberScope::Class(owner), name, is_arrow)
             }
             "field_expression" => {
-                // `this->field`
                 let object = argument.child_by_field_name("argument")?;
-                let is_this_arrow = argument
+                let object_is_arrow = argument
                     .child_by_field_name("operator")
                     .is_some_and(|operator| operator.kind() == "->");
                 let field = argument.child_by_field_name("field")?;
-                if object.kind() != "this" || !is_this_arrow || field.kind() != "field_identifier" {
+                if field.kind() != "field_identifier" {
                     return None;
                 }
-                self.field_class(file, source, at, text(field, source)?, is_arrow)
+                let parent =
+                    self.receiver_scope(file, source, at, object, object_is_arrow, depth + 1)?;
+                self.field_scope(file, &parent, text(field, source)?, is_arrow)
+            }
+            "parenthesized_expression" => {
+                let inner = argument.named_child(0)?;
+                self.receiver_scope(file, source, at, inner, is_arrow, depth + 1)
             }
             _ => None,
         }
     }
 
-    /// The class named by the declared type of field `name` of the class around `at`.
-    fn field_class(
+    /// The class or inline struct body named by field `name` inside `owner`.
+    fn field_scope(
         &self,
-        file: &'a ExtractedFile,
-        source: &Source,
-        at: Node,
+        calling_file: &'a ExtractedFile,
+        owner: &CppMemberScope<'a>,
         name: &str,
         is_arrow: bool,
-    ) -> Option<CppClass<'a>> {
-        let owner = self.enclosing_class(file, source, at)?;
-        let owner_source = self.source(&owner.file.file_path)?;
-        let class_node = node_at(&owner_source, &owner.symbol.range)?;
-        let body = class_node.child_by_field_name("body")?;
+    ) -> Option<CppMemberScope<'a>> {
+        let (owner_file, owner_range) = match owner {
+            CppMemberScope::Class(class) => (class.file, &class.symbol.range),
+            CppMemberScope::InlineStruct { file, range } => (*file, range),
+        };
+        let owner_source = self.source(&owner_file.file_path)?;
+        let container_node = node_at(&owner_source, owner_range)?;
+        let body = container_node.child_by_field_name("body")?;
         let mut cursor = body.walk();
         let mut found = None;
         for member in body.named_children(&mut cursor) {
@@ -226,8 +263,64 @@ impl<'a> SourceResolver<'a> {
             }
         }
         let (member, declarator) = found?;
-        let class_name = declared_class(&owner_source, member, declarator, is_arrow)?;
-        self.visible_class(owner.file, &class_name)
+        self.scope_from_declaration(
+            calling_file,
+            owner_file,
+            &owner_source,
+            Some(body),
+            member,
+            declarator,
+            is_arrow,
+        )
+    }
+
+    /// Resolves a variable/field declaration to either a visible class (checking both the
+    /// calling translation unit's reachable headers — for forward-declared pointer fields —
+    /// and the declaring file's headers) or an inline/nested struct body.
+    #[allow(clippy::too_many_arguments)]
+    fn scope_from_declaration(
+        &self,
+        calling_file: &'a ExtractedFile,
+        decl_file: &'a ExtractedFile,
+        decl_source: &Source,
+        enclosing_body: Option<Node>,
+        declaration: Node,
+        declarator: Node,
+        is_arrow: bool,
+    ) -> Option<CppMemberScope<'a>> {
+        if let Some(typ) = declaration.child_by_field_name("type") {
+            let pointers = declarator_pointer_depth(declarator);
+            if matches!(typ.kind(), "struct_specifier" | "class_specifier")
+                && typ.child_by_field_name("body").is_some()
+                && ((is_arrow && pointers == 1) || (!is_arrow && pointers == 0))
+            {
+                return Some(CppMemberScope::InlineStruct {
+                    file: decl_file,
+                    range: node_code_range(typ),
+                });
+            }
+        }
+        let class_name = declared_class(decl_source, declaration, declarator, is_arrow)?;
+        // Check a nested `struct Name { ... };` inside the same class body first so
+        // class-local helper structs (like `struct Data`) are never confused with siblings.
+        if let Some(body) = enclosing_body {
+            if let Some(nested) = find_nested_struct(body, decl_source, &class_name) {
+                return Some(CppMemberScope::InlineStruct {
+                    file: decl_file,
+                    range: node_code_range(nested),
+                });
+            }
+        }
+        // In C++, headers routinely forward-declare pointer fields (`class Foo; Foo *f;`)
+        // while the `.cpp` calling `f->m()` includes `foo.h`. Check the calling file's
+        // reachable headers as well as the declaring header's.
+        self.visible_class(calling_file, &class_name)
+            .or_else(|| {
+                (!std::ptr::eq(calling_file, decl_file))
+                    .then(|| self.visible_class(decl_file, &class_name))
+                    .flatten()
+            })
+            .map(CppMemberScope::Class)
     }
 
     /// The one class named `name` declared with a body in `file` or a header it reaches.
@@ -453,4 +546,64 @@ fn scope_name<'t>(scope: Node, source: &'t Source) -> Option<&'t str> {
         "template_type" => text(scope.child_by_field_name("name")?, source),
         _ => None,
     }
+}
+
+fn declarator_pointer_depth(mut declarator: Node) -> usize {
+    let mut pointers = 0;
+    loop {
+        match declarator.kind() {
+            "init_declarator" => match declarator.child_by_field_name("declarator") {
+                Some(inner) => declarator = inner,
+                None => break,
+            },
+            "pointer_declarator" => {
+                pointers += 1;
+                match declarator.child_by_field_name("declarator") {
+                    Some(inner) => declarator = inner,
+                    None => break,
+                }
+            }
+            "reference_declarator" => match declarator.named_child(0) {
+                Some(inner) => declarator = inner,
+                None => break,
+            },
+            _ => break,
+        }
+    }
+    pointers
+}
+
+fn node_code_range(node: Node) -> crate::parser::CodeRange {
+    let start = node.start_position();
+    let end = node.end_position();
+    crate::parser::CodeRange {
+        start_line: start.row + 1,
+        start_col: start.column + 1,
+        end_line: end.row + 1,
+        end_col: end.column + 1,
+    }
+}
+
+fn find_nested_struct<'t>(body: Node<'t>, source: &Source, name: &str) -> Option<Node<'t>> {
+    let mut cursor = body.walk();
+    for member in body.named_children(&mut cursor) {
+        let candidate = match member.kind() {
+            "struct_specifier" | "class_specifier" => Some(member),
+            "field_declaration" => member
+                .child_by_field_name("type")
+                .filter(|t| matches!(t.kind(), "struct_specifier" | "class_specifier")),
+            _ => None,
+        };
+        if let Some(spec) = candidate {
+            if spec.child_by_field_name("body").is_some()
+                && spec
+                    .child_by_field_name("name")
+                    .and_then(|n| text(n, source))
+                    == Some(name)
+            {
+                return Some(spec);
+            }
+        }
+    }
+    None
 }

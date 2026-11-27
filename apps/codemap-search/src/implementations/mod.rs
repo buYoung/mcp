@@ -9,7 +9,9 @@ mod signature;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use extract::{collect, dart_library_exports, dart_library_imports};
+pub(crate) use extract::{
+    collect, dart_library_exports, dart_library_imports, preproc_conditions_for_node,
+};
 pub(crate) use index::ImplementationIndex;
 use index::*;
 pub use model::ImplementationFile;

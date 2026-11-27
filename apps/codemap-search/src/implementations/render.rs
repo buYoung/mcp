@@ -613,6 +613,7 @@ impl ImplementationIndex {
         });
         matched_methods.dedup();
         let mut emitted_explicit_contracts = std::collections::HashSet::new();
+        let mut emitted_forward_decls = std::collections::HashSet::new();
         for id in matched_methods {
             if !eligibility.method(id) {
                 continue;
@@ -641,6 +642,9 @@ impl ImplementationIndex {
                         link_tags(link)
                     ));
                 }
+            }
+            if !forward_items.is_empty() {
+                emitted_forward_decls.insert(id);
             }
             if !forward_items.is_empty() {
                 let total = forward_items.len();
@@ -873,6 +877,85 @@ impl ImplementationIndex {
                     shown.join(", ")
                 ));
             }
+        }
+        // Polymorphic/interface/virtual call sites inside this window whose concrete
+        // implementations live outside the window.
+        let mut window_calls: Vec<usize> = self
+            .calls_by_path
+            .get(path)
+            .into_iter()
+            .flatten()
+            .copied()
+            .filter(|&call_id| overlaps(&self.calls[call_id].location, &anchors))
+            .collect();
+        window_calls.sort_by_key(|&call_id| {
+            let loc = &self.calls[call_id].location.range;
+            (loc.start_line, loc.start_col, call_id)
+        });
+        let mut seen_call_decls = std::collections::HashSet::new();
+        for call_id in window_calls {
+            let call = &self.calls[call_id];
+            if !eligibility.call(call)
+                || emitted_forward_decls.contains(&call.declaration)
+                || !seen_call_decls.insert(call.declaration)
+            {
+                continue;
+            }
+            let decl = &self.methods[call.declaration];
+            let mut impl_items = Vec::new();
+            for &link_id in self.forward.get(&call.declaration).into_iter().flatten() {
+                let link = &self.links[link_id];
+                if is_outside(&self.methods[link.implementation].location) && eligibility.link(link)
+                {
+                    let target = &self.methods[link.implementation];
+                    let loc = crate::locations::display(
+                        &target.location.path,
+                        target.location.range.start_line,
+                        Some(path),
+                    );
+                    impl_items.push(format!(
+                        "{}.{} ({loc}){}",
+                        self.typ(target.owner).qualified_name,
+                        target.declaration.name,
+                        link_tags(link)
+                    ));
+                }
+            }
+            if impl_items.is_empty() {
+                continue;
+            }
+            let decl_label = format!(
+                "{}.{}",
+                self.typ(decl.owner).qualified_name,
+                decl.declaration.name
+            );
+            let decl_loc = if is_outside(&decl.location) {
+                format!(
+                    " ({})",
+                    crate::locations::display(
+                        &decl.location.path,
+                        decl.location.range.start_line,
+                        Some(path),
+                    )
+                )
+            } else {
+                String::new()
+            };
+            let total = impl_items.len();
+            let shown = impl_items
+                .iter()
+                .take(ITEMS_PER_ROW)
+                .cloned()
+                .collect::<Vec<_>>();
+            let suffix = if total > ITEMS_PER_ROW {
+                format!(", +{} more", total - ITEMS_PER_ROW)
+            } else {
+                String::new()
+            };
+            lines.push(format!(
+                "- {decl_label}{decl_loc} implemented by: {}{suffix}",
+                shown.join(", ")
+            ));
         }
         if lines.is_empty() {
             return None;

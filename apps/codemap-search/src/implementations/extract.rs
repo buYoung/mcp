@@ -369,6 +369,14 @@ pub(super) fn conditions_for(language: &str, node: Node<'_>, source: &[u8]) -> V
     conditions_around(language, node, source, true)
 }
 
+pub(crate) fn preproc_conditions_for_node(
+    language: &str,
+    node: Node<'_>,
+    source: &[u8],
+) -> Vec<String> {
+    conditions_around(language, node, source, true)
+}
+
 /// The conditions under which a call is compiled. A runtime `if` around a call is not one of
 /// them: whenever the call runs, it names the same declaration.
 pub(super) fn call_conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
@@ -376,33 +384,56 @@ pub(super) fn call_conditions(node: Node<'_>, source: &[u8]) -> Vec<String> {
 }
 
 fn preproc_condition_label(node: Node<'_>, source: &[u8]) -> Option<String> {
-    let raw = text(node, source);
-    let first_line = raw.lines().next().unwrap_or("").trim();
-    if let Some(expr) = first_line
-        .strip_prefix("#if")
-        .or_else(|| first_line.strip_prefix("#elif"))
-    {
-        let expr = expr
-            .split("//")
+    fn strip_comment(s: &str) -> &str {
+        s.split("//")
             .next()
             .unwrap_or("")
             .split("/*")
             .next()
             .unwrap_or("")
-            .trim();
-        if !expr.is_empty() && expr.len() <= 160 {
-            return Some(format!("#if {expr}"));
+            .trim()
+    }
+    let raw = text(node, source);
+    let first_line = raw.lines().next().unwrap_or("").trim();
+    for (prefix, canonical) in [
+        ("#ifdef", "#ifdef"),
+        ("#ifndef", "#ifndef"),
+        ("#elif", "#if"),
+        ("#if", "#if"),
+    ] {
+        if let Some(rest) = first_line.strip_prefix(prefix) {
+            if rest.is_empty() || rest.starts_with(char::is_whitespace) || rest.starts_with('(') {
+                let expr = strip_comment(rest);
+                if !expr.is_empty() && expr.len() <= 160 {
+                    return Some(format!("{canonical} {expr}"));
+                }
+            }
         }
     }
     if first_line.starts_with("#else") {
-        // Derive the negated condition from the enclosing `#if` when available.
+        // Derive the negated condition from the enclosing `#if`/`#ifdef`/`#ifndef` when available.
         for ancestor in crate::parser::ancestors(node) {
-            if ancestor.kind() == "preproc_if" {
+            if matches!(ancestor.kind(), "preproc_if" | "preproc_ifdef") {
                 let parent_line = text(ancestor, source).lines().next().unwrap_or("").trim();
-                if let Some(expr) = parent_line.strip_prefix("#if") {
-                    let expr = expr.split("//").next().unwrap_or("").trim();
-                    if !expr.is_empty() && expr.len() <= 140 {
-                        return Some(format!("#if !({expr})"));
+                for (prefix, negated) in [
+                    ("#ifdef", "#ifndef"),
+                    ("#ifndef", "#ifdef"),
+                    ("#if", "#if !"),
+                ] {
+                    if let Some(rest) = parent_line.strip_prefix(prefix) {
+                        if rest.is_empty()
+                            || rest.starts_with(char::is_whitespace)
+                            || rest.starts_with('(')
+                        {
+                            let expr = strip_comment(rest);
+                            if !expr.is_empty() && expr.len() <= 140 {
+                                return Some(if negated == "#if !" {
+                                    format!("#if !({expr})")
+                                } else {
+                                    format!("{negated} {expr}")
+                                });
+                            }
+                        }
                     }
                 }
                 break;
@@ -431,7 +462,7 @@ fn conditions_around(
         ) || counts_runtime_if && node.kind() == "if_statement")
             && !is_include_guard(node, source)
         {
-            if language == "csharp" {
+            if matches!(language, "csharp" | "cpp") {
                 if let Some(label) = preproc_condition_label(node, source) {
                     result.push(label);
                 } else {

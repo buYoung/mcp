@@ -779,7 +779,14 @@ impl<'a> SourceResolver<'a> {
                                 | "import"
                         )
                     });
+                let in_cpp_fn_declarator = parent_kind == "function_declarator"
+                    || (parent_kind == "qualified_identifier"
+                        && node
+                            .parent()
+                            .and_then(|p| p.parent())
+                            .is_some_and(|gp| gp.kind() == "function_declarator"));
                 if !in_import_or_use
+                    && !in_cpp_fn_declarator
                     && !matches!(
                         parent_kind,
                         "aliased_import"
@@ -828,7 +835,11 @@ impl<'a> SourceResolver<'a> {
         if let Some(parent) = at.parent().filter(|p| {
             matches!(
                 p.kind(),
-                "attribute" | "member_expression" | "field_expression" | "scoped_identifier"
+                "attribute"
+                    | "member_expression"
+                    | "field_expression"
+                    | "scoped_identifier"
+                    | "qualified_identifier"
             )
         }) {
             if let Some(obj) = parent.named_child(0).and_then(|o| text(o, &source)) {
