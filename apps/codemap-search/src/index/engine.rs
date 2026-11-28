@@ -553,7 +553,8 @@ fn merge_into_one_segment(index: &Index, writer: &mut tantivy::IndexWriter) -> t
 // v56 re-extracts with tree-sitter 0.27 and newer C#, Dart, PowerShell, Scala and Swift grammars,
 // whose parse trees differ in some files: mostly where macros or `#if` blocks split a C, C++ or C#
 // declaration, and in Dart calls, typedefs and lambda bodies.
-const EXTRACTION_FORMAT_VERSION: &str = "v56-tree-sitter-0.27-grammars";
+// v57 records Swift calls that follow a prefix or binary operator, such as `!a.b(x)`.
+const EXTRACTION_FORMAT_VERSION: &str = "v57-swift-operator-callee";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -2753,7 +2754,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v56-tree-sitter-0.27-grammars");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v57-swift-operator-callee");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");
