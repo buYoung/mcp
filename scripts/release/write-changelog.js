@@ -4,9 +4,9 @@
 // codex CLI and insert it under [Unreleased] in apps/codemap-search/CHANGELOG*.
 // Runs in release-it's `after:bump` hook, before the release commit, so the
 // changelog is part of the same commit the user confirms. Commits are scoped to
-// apps/codemap-search so unrelated acp-bridge/scout work never leaks into the
-// per-crate changelog. If codex is unavailable or fails, the script exits
-// non-zero before any file is written, aborting the release before commit/tag.
+// apps/codemap-search so unrelated work never leaks into the per-crate changelog.
+// If codex is unavailable or fails, the script exits non-zero before any file is
+// written, aborting the release before commit/tag.
 
 const { spawnSync, execFileSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -56,7 +56,7 @@ function collectCommits(previousTag) {
     const args = ["log", "--no-merges", "--reverse", "--pretty=format:- %s%n%b%n----COMMIT-END----"];
     if (range) args.push(range);
     // Limit to the codemap-search crate so a monorepo release of one app does not
-    // pull in commits that only touched acp-bridge, scout, docs, or tooling.
+    // pull in commits that only touched docs or tooling.
     args.push("--", CRATE_PATHSPEC);
     const raw = git(args);
     const trimmed = raw

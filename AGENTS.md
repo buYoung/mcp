@@ -2,16 +2,13 @@
 
 ## 1. Overview
 
-This monorepo contains independent local stdio MCP servers for coding-agent workflows plus shared TypeScript compiler presets. Each app owns its runtime and user-facing tool contract; root tooling only coordinates workspace tasks and shared policy.
+This monorepo contains independent local stdio MCP servers for coding-agent workflows. Each app owns its runtime and user-facing tool contract; root tooling only coordinates workspace tasks and shared policy.
 
 ## 2. Ownership Map
 
 ### Stable Ownership Boundaries
 
-- **ACP pair-review app**: Start in `apps/mcp-server/src/index.ts` and `apps/mcp-server/src/tools/index.ts` when changing read-only pair consultation behavior. The app owns the MCP tools that launch ACP child agents, preserve consent and `main_agent_position` guardrails, and return the shared JSON text envelope; verify through the package type-check and the existing pair/session tests.
-- **Scout navigation app**: Start in `apps/scout/src/index.ts` and `apps/scout/src/tools/index.ts` when changing zoekt/ctags navigation behavior. The app owns degraded startup, managed binary recovery, direct filesystem reads, and strict MCP schemas; preserve the tool semantics documented in `apps/scout/DESIGN.md` and verify through its package type-check.
 - **codemap-search Rust app**: Start in `apps/codemap-search/src/main.rs`, `apps/codemap-search/src/mcp/mod.rs`, and `apps/codemap-search/src/tools/` when changing the self-contained code-navigation server. It owns the MCP/CLI contract, embedded read/find/grep tools, Tantivy-backed search, codemap views, and configuration docs; verify with `cargo check --manifest-path apps/codemap-search/Cargo.toml` and the relevant e2e area.
-- **Shared TypeScript presets**: Start in `packages/typescript-config/base.json` or `node.json` when changing TypeScript compiler defaults. These presets are consumed by both TypeScript apps through `@repo/typescript-config/node.json`; preserve broad NodeNext/strict defaults and verify by running the root type-check.
 
 ### Active Change Routes
 
