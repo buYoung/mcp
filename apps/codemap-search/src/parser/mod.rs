@@ -540,6 +540,32 @@ fn call_name_and_receiver(function_node: Node, source: &[u8]) -> Option<(String,
             }
             base_name_from_text(&text).map(|name| (name, None))
         }
+        // tree-sitter-swift 0.7.4 gives a prefix or binary operator the callee of the call after
+        // it: `!a.b(x)` and `s + a.b(x)` parse as calls of `!a.b` and `s + a.b`. Swift binds the
+        // call tighter, so the callee is the operand next to the arguments. An implicit member
+        // such as `.init(x)` is a `prefix_expression` with the operation `.` and stays as before.
+        "prefix_expression"
+            if function_node
+                .child_by_field_name("operation")
+                .is_some_and(|operation| operation.kind() == ".") =>
+        {
+            find_name(function_node, source).map(|name| (name, None))
+        }
+        "prefix_expression"
+        | "additive_expression"
+        | "multiplicative_expression"
+        | "comparison_expression"
+        | "equality_expression"
+        | "conjunction_expression"
+        | "disjunction_expression"
+        | "bitwise_operation"
+        | "infix_expression" => match function_node
+            .child_by_field_name("target")
+            .or_else(|| function_node.child_by_field_name("rhs"))
+        {
+            Some(operand) => call_name_and_receiver(operand, source),
+            None => find_name(function_node, source).map(|name| (name, None)),
+        },
         "parenthesized_expression" | "parenthesized_declarator" => {
             for child_index in 0..function_node.child_count() {
                 let child = function_node.child(child_index).unwrap();
@@ -4467,5 +4493,23 @@ sourceSets { customThing 'not:a:dependency' }
             calls.iter().any(|call| call.name == "targetSwift"),
             "{calls:?}"
         );
+    }
+
+    #[test]
+    fn swift_calls_after_operators_keep_their_callee() {
+        let source = "func check(flags: [String], total: Double, count: Int) -> Bool {\n  let mean = total / Double(count)\n  return !flags.contains(\"x\")\n}\n";
+        let file = TreeSitterExtractor::new()
+            .extract(source, "Check.swift")
+            .unwrap();
+        let calls: Vec<_> = file
+            .navigation
+            .as_ref()
+            .unwrap()
+            .calls
+            .iter()
+            .map(|call| (call.name.as_str(), call.receiver.as_deref()))
+            .collect();
+        assert!(calls.contains(&("Double", None)), "{calls:?}");
+        assert!(calls.contains(&("contains", Some("flags"))), "{calls:?}");
     }
 }
