@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.99.1
+          toolchain: 1.100.1
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/codemap-search
@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.99.1
+          toolchain: 1.100.1
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/codemap-search
