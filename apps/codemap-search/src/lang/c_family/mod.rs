@@ -91,7 +91,7 @@ pub(crate) fn c_declarator_name(node: Node, source: &[u8]) -> Option<String> {
             // confirmed: `reference_declarator` fields {}, `parenthesized_declarator` fields {}).
             // The inner declarator is a positional named child. Walk named children to find it.
             for i in 0..node.child_count() {
-                let child = node.child(i as u32).unwrap();
+                let child = node.child(i).unwrap();
                 if child.is_named() {
                     if let Some(name) = c_declarator_name(child, source) {
                         return Some(name);
@@ -130,7 +130,7 @@ pub(crate) fn c_declarator_name(node: Node, source: &[u8]) -> Option<String> {
         "template_function" | "template_method" => {
             // Template specialization name: `foo<T>` — extract the base `name` child.
             for i in 0..node.child_count() {
-                let child = node.child(i as u32).unwrap();
+                let child = node.child(i).unwrap();
                 if child.kind() == "identifier" || child.kind() == "field_identifier" {
                     return child.utf8_text(source).ok().map(|t| t.to_string());
                 }
@@ -145,7 +145,7 @@ pub(crate) fn c_declarator_name(node: Node, source: &[u8]) -> Option<String> {
 /// (not exported) iff it has a `storage_class_specifier` direct child with text "static".
 pub(crate) fn c_has_static_storage(node: Node, source: &[u8]) -> bool {
     for i in 0..node.child_count() {
-        let child = node.child(i as u32).unwrap();
+        let child = node.child(i).unwrap();
         if child.kind() == "storage_class_specifier" {
             if let Ok(text) = child.utf8_text(source) {
                 if text.trim() == "static" {

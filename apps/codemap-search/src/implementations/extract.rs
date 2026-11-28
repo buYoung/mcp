@@ -141,7 +141,7 @@ pub(super) fn body(node: Node<'_>) -> Option<Node<'_>> {
             node,
             &[
                 "class_body",
-                "class_member",
+                "member_declaration",
                 "function_body",
                 "protocol_body",
                 "template_body",

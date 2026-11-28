@@ -554,7 +554,7 @@ impl Program {
                 if let Some(ancestor) = node.parent {
                     if matches!(
                         source.nodes[ancestor].kind.as_str(),
-                        "variable_declarator" | "pair" | "public_field_definition"
+                        "variable_declarator" | "pair" | "map_element" | "public_field_definition"
                     ) {
                         name = source.text(source.child(ancestor, &["name", "key"])).into();
                     }
@@ -1110,7 +1110,11 @@ pub(crate) fn parameter_names(source: &Source, params: Option<NodeId>) -> Vec<(S
     for part in parts {
         if matches!(
             source.nodes[part].kind.as_str(),
-            "comment" | "line_comment" | "type_parameter" | "self_parameter"
+            "comment"
+                | "line_comment"
+                | "documentation_comment"
+                | "type_parameter"
+                | "self_parameter"
         ) {
             continue;
         }

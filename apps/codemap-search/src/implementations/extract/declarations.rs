@@ -418,7 +418,7 @@ pub(super) fn parameter_nodes(node: Node<'_>) -> Vec<Node<'_>> {
             .filter(|node| {
                 !matches!(
                     node.kind(),
-                    "comment" | "type_parameters" | "type_parameter_list"
+                    "comment" | "documentation_comment" | "type_parameters" | "type_parameter_list"
                 )
             })
             .collect();
@@ -570,7 +570,10 @@ pub(super) fn method(
             has_self = true;
             continue;
         }
-        if matches!(parameter.kind(), "comment" | "/" | "*") {
+        if matches!(
+            parameter.kind(),
+            "comment" | "documentation_comment" | "/" | "*"
+        ) {
             continue;
         }
         let value = parameter_text(parameter, source, language);

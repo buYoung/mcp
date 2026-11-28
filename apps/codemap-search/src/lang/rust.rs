@@ -44,7 +44,7 @@ fn get_rust_static_collection_query() -> &'static Query {
 
 fn has_rust_attribute_containing(node: Node, sub: &str, source: &[u8]) -> bool {
     for i in 0..node.child_count() {
-        let child = node.child(i as u32).unwrap();
+        let child = node.child(i).unwrap();
         if child.kind() == "attribute_item" {
             if let Ok(text) = child.utf8_text(source) {
                 if text.contains(sub) {
@@ -160,7 +160,7 @@ impl LanguageSpec for RustSpec {
     ) -> bool {
         let mut found = false;
         for i in 0..node.child_count() {
-            if node.child(i as u32).unwrap().kind() == "visibility_modifier" {
+            if node.child(i).unwrap().kind() == "visibility_modifier" {
                 found = true;
                 break;
             }

@@ -24,8 +24,14 @@ fn name_matches(node: Option<Node<'_>>, name: &str, source: &str) -> bool {
 }
 
 fn next_non_comment_sibling(node: Node<'_>) -> Option<Node<'_>> {
-    std::iter::successors(node.next_named_sibling(), |node| node.next_named_sibling())
-        .find(|node| !matches!(node.kind(), "comment" | "line_comment" | "block_comment"))
+    std::iter::successors(node.next_named_sibling(), |node| node.next_named_sibling()).find(
+        |node| {
+            !matches!(
+                node.kind(),
+                "comment" | "line_comment" | "block_comment" | "documentation_comment"
+            )
+        },
+    )
 }
 
 /// Returns the binding node and its initializer. This never searches initializer

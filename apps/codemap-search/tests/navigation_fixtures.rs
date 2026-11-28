@@ -1324,7 +1324,7 @@ fn actual_tags_json(fixture: &NavigationFixture, source: &str) -> String {
     let mut matches = cursor.matches(&query, tree.root_node(), source_bytes);
     let mut captures = Vec::new();
     while let Some(query_match) = matches.next() {
-        for capture in query_match.captures {
+        for capture in query_match.captures() {
             let capture_name = query.capture_names()[capture.index as usize];
             let text = capture
                 .node

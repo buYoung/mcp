@@ -189,7 +189,7 @@ impl LanguageSpec for DartSpec {
     fn owner_passthrough_kinds(&self, _ext: &str) -> &'static [&'static str] {
         &[
             "method_declaration",
-            "class_member",
+            "member_declaration",
             "class_body",
             "extension_body",
             "enum_body",

@@ -69,7 +69,7 @@ impl Interpreter<'_, '_> {
             kind,
             "property_declaration"
                 | "local_variable_declaration"
-                | "initialized_variable_definition"
+                | "initialized_variable_declaration"
         ) {
             let declaration = self.source.first(id, &["variable_declaration"]);
             let pattern = self
@@ -166,6 +166,7 @@ impl Interpreter<'_, '_> {
                 | "comment"
                 | "line_comment"
                 | "block_comment"
+                | "documentation_comment"
                 | "attribute_item"
         ) {
             return;
@@ -177,7 +178,7 @@ impl Interpreter<'_, '_> {
             .filter(|p| {
                 !matches!(
                     self.source.nodes[*p].kind.as_str(),
-                    "comment" | "line_comment" | "block_comment"
+                    "comment" | "line_comment" | "block_comment" | "documentation_comment"
                 )
             })
             .collect();

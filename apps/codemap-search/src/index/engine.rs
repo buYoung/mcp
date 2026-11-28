@@ -550,7 +550,10 @@ fn merge_into_one_segment(index: &Index, writer: &mut tantivy::IndexWriter) -> t
 // its body is kept.
 // v48 records which type declarations are parts of one type.
 // v49 records which methods are visible only inside their package or library.
-const EXTRACTION_FORMAT_VERSION: &str = "v55-multi-language-navigation";
+// v56 re-extracts with tree-sitter 0.27 and newer C#, Dart, PowerShell, Scala and Swift grammars,
+// whose parse trees differ in some files: mostly where macros or `#if` blocks split a C, C++ or C#
+// declaration, and in Dart calls, typedefs and lambda bodies.
+const EXTRACTION_FORMAT_VERSION: &str = "v56-tree-sitter-0.27-grammars";
 
 /// Whether the index at `index` carries the current extraction format stamp.
 pub(super) fn has_current_format(index: &Path) -> bool {
@@ -2375,8 +2378,8 @@ mod tests {
         engine.index_files(&[file.to_str().unwrap()]).unwrap();
         assert_eq!(engine.search("encoding_probe", 10).unwrap().len(), 1);
         fs::write(&file, b"// invalid \xff\npub fn encoding_probe() {}\n").unwrap();
-        filetime::set_file_mtime(&file, filetime::FileTime::from_unix_time(1_000_000_001, 0))
-            .unwrap();
+        let modified = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_000_000_001);
+        fs::set_times(&file, fs::FileTimes::new().set_modified(modified)).unwrap();
         engine.index_files(&[file.to_str().unwrap()]).unwrap();
         assert!(engine.search("encoding_probe", 10).unwrap().is_empty());
         assert!(engine
@@ -2385,8 +2388,8 @@ mod tests {
             .codemap()
             .is_empty());
         fs::write(&file, "pub fn encoding_probe() {}\n").unwrap();
-        filetime::set_file_mtime(&file, filetime::FileTime::from_unix_time(1_000_000_002, 0))
-            .unwrap();
+        let modified = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_000_000_002);
+        fs::set_times(&file, fs::FileTimes::new().set_modified(modified)).unwrap();
         engine.index_files(&[file.to_str().unwrap()]).unwrap();
         assert_eq!(engine.search("encoding_probe", 10).unwrap().len(), 1);
         assert_eq!(engine.load_published_snapshot().unwrap().codemap().len(), 1);
@@ -2642,11 +2645,8 @@ mod tests {
         assert_eq!(merged[0].num_docs(), 10);
 
         let changed = write(3, "segment_changed");
-        filetime::set_file_mtime(
-            &changed,
-            filetime::FileTime::from_unix_time(2_000_000_000, 0),
-        )
-        .unwrap();
+        let modified = std::time::UNIX_EPOCH + std::time::Duration::from_secs(2_000_000_000);
+        fs::set_times(&changed, fs::FileTimes::new().set_modified(modified)).unwrap();
         engine
             .index_files(&[&temp.path().to_string_lossy()])
             .unwrap();
@@ -2691,10 +2691,8 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(50));
         fs::write(&file1, "pub fn first_func_modified() {}").unwrap();
         // Force update the mtime of the file
-        let new_mtime = filetime::FileTime::from_system_time(
-            std::time::SystemTime::now() + std::time::Duration::from_secs(10),
-        );
-        filetime::set_file_mtime(&file1, new_mtime).unwrap();
+        let new_mtime = std::time::SystemTime::now() + std::time::Duration::from_secs(10);
+        fs::set_times(&file1, fs::FileTimes::new().set_modified(new_mtime)).unwrap();
 
         engine
             .index_files(&[&temp.path().to_string_lossy()])
@@ -2755,7 +2753,7 @@ mod tests {
 
     #[test]
     fn test_format_version_mismatch_rebuilds_exactly_once() {
-        assert_eq!(EXTRACTION_FORMAT_VERSION, "v55-multi-language-navigation");
+        assert_eq!(EXTRACTION_FORMAT_VERSION, "v56-tree-sitter-0.27-grammars");
         let temp = tempdir().unwrap();
         let index_dir = temp.path().join("index");
         let src_dir = temp.path().join("src");

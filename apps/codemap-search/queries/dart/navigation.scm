@@ -1,5 +1,6 @@
 (call_expression) @nav.call
 (cascade_call_expression) @nav.call
+(constructor_invocation) @nav.call
 (library_import) @nav.import
 (library_export) @nav.import
 (part_directive) @nav.import

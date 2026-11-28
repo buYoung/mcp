@@ -1,5 +1,4 @@
 use crate::e2e::helpers::{create_mock_repo, run_cli, OPTIONAL_LANGUAGE_SUPPORT_CONFIG};
-use filetime::{set_file_mtime, FileTime};
 use predicates::prelude::*;
 use std::fs;
 use std::thread::sleep;
@@ -986,9 +985,8 @@ fn test_bm25_incremental_update() {
     fs::write(&file_path, "pub fn hello_world() {}").unwrap();
 
     // Set a newer mtime
-    let new_time =
-        FileTime::from_system_time(std::time::SystemTime::now() + Duration::from_secs(10));
-    set_file_mtime(&file_path, new_time).unwrap();
+    let new_time = std::time::SystemTime::now() + Duration::from_secs(10);
+    fs::set_times(&file_path, fs::FileTimes::new().set_modified(new_time)).unwrap();
 
     // Re-index
     let _ = run_cli(&["index"], temp.path());
@@ -1087,9 +1085,8 @@ fn test_bm25_mtime_oscillation() {
     let _ = run_cli(&["index"], temp.path());
 
     // Set mtime backwards (oscillation)
-    let past_time =
-        FileTime::from_system_time(std::time::SystemTime::now() - Duration::from_secs(3600));
-    set_file_mtime(&file_path, past_time).unwrap();
+    let past_time = std::time::SystemTime::now() - Duration::from_secs(3600);
+    fs::set_times(&file_path, fs::FileTimes::new().set_modified(past_time)).unwrap();
 
     let _ = run_cli(&["index"], temp.path());
 

@@ -10,9 +10,8 @@
             "groupName": "{{manager}} non-major dependencies"
         },
         {
-            "description": "Keep find-msvc-tools pinned: cc 1.2.x on Windows expects the u32 FILE_ATTRIBUTE_TEMPORARY that 0.1.13 changed to i32 (see apps/codemap-search/Cargo.toml)",
-            "matchManagers": ["cargo"],
-            "matchPackageNames": ["find-msvc-tools"],
+            "description": "Skip dependencies used only by codemap-search PoC experiments",
+            "matchFileNames": ["apps/codemap-search/experiments/**"],
             "enabled": false
         }
     ]

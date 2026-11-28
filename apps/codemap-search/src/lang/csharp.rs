@@ -52,7 +52,7 @@ fn simple_name(value: &str) -> Option<String> {
 
 fn has_modifier(node: Node<'_>, modifier: &str, source: &[u8]) -> bool {
     (0..node.child_count()).any(|index| {
-        let child = node.child(index as u32).expect("child index is in bounds");
+        let child = node.child(index).expect("child index is in bounds");
         child.kind() == "modifier" && child.utf8_text(source).is_ok_and(|text| text == modifier)
     })
 }
@@ -75,7 +75,7 @@ fn is_interface_member(mut node: Node<'_>) -> bool {
 
 fn has_attribute(node: Node<'_>, target: &str, source: &[u8]) -> bool {
     (0..node.child_count()).any(|index| {
-        let child = node.child(index as u32).expect("child index is in bounds");
+        let child = node.child(index).expect("child index is in bounds");
         child.kind() == "attribute_list"
             && child.utf8_text(source).is_ok_and(|text| {
                 text.split(['[', ']', ',', '(', ')'])

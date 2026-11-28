@@ -45,7 +45,7 @@ fn is_type(node: Node<'_>) -> bool {
 
 fn binding(node: Node<'_>) -> Option<(Node<'_>, Option<Node<'_>>)> {
     match node.kind() {
-        "pair" | "block_mapping_pair" | "flow_pair" | "attribute" => Some((
+        "pair" | "map_element" | "block_mapping_pair" | "flow_pair" | "attribute" => Some((
             node.child_by_field_name("key")
                 .or_else(|| node.child_by_field_name("name"))?,
             node.child_by_field_name("value"),
