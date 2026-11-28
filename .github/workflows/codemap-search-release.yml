@@ -200,7 +200,7 @@ jobs:
           "$hash  $name.zip" | Out-File -FilePath "$name.zip.sha256" -Encoding utf8NoBOM
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codemap-search-${{ matrix.target }}
           path: codemap-search-${{ matrix.target }}.*
@@ -220,12 +220,12 @@ jobs:
       # flattens them into one directory) and attach them to the tag's release in a
       # single upload. A best-effort leg that failed simply has no artifact here.
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
       - name: Attach binaries to the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: false
           prerelease: false
