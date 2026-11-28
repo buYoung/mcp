@@ -19,12 +19,12 @@
         "husky": "^9.1.7",
         "lint-staged": "^17.6.0",
         "release-it": "^20.2.1",
-        "semver": "7.7.4",
+        "semver": "7.8.6",
         "turbo": "^2.11.7",
         "typescript": "6.0.3",
-        "@inquirer/prompts": "8.4.2"
+        "@inquirer/prompts": "8.8.1"
     },
-    "packageManager": "pnpm@11.1.1",
+    "packageManager": "pnpm@11.29.0",
     "engines": {
         "node": ">=18"
     }
