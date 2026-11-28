@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-28
+
 ### Improved
 
 - A declaration and its implementation in different files are now linked when their parameters use types other than built-in ones. Before, they were linked only when every parameter type was a built-in such as `int` or `string`, so most interfaces showed `implementation: unresolved`. A type name now counts as one type in both files when both lead to the same declaration in the repository, both import it from the same module, or the language gives it one meaning everywhere, for example `String` in Java, `Int` in Kotlin, `std::string` in C++ and `object` in C#. A name the two files resolve differently stays unlinked, and so does one reached only through a wildcard import, a type alias or a C++ template. This applies to Go, TypeScript, Java, Kotlin, C#, C++, Dart, PHP, Rust, Scala and Swift. A relationship block that grows past its size limit ends with its truncation note, as before.
