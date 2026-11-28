@@ -1,0 +1,116 @@
+---
+import "./benchmark-rubric.css";
+import { getRubricEntries } from "./rubric-data";
+import { splitInlineCode } from "./rubric-types";
+
+interface Props {
+    locale: "en" | "ko";
+}
+
+const { locale } = Astro.props;
+const entries = Object.values(getRubricEntries(locale));
+---
+
+<codemap-bench-rubric class="not-content">
+    {
+        entries.map((entry) => (
+            <div
+                id={entry.popoverId}
+                class="bench-rubric-popover not-content"
+                popover="auto"
+                role="region"
+                aria-labelledby={entry.titleId}
+                data-rubric-popover={entry.id}
+                data-rubric-scope="all"
+            >
+                <div class="bench-rubric-popover-hdr">
+                    <p
+                        id={entry.titleId}
+                        class="bench-rubric-popover-title"
+                        data-default-title={entry.title}
+                    >
+                        {entry.title}
+                    </p>
+                    <button
+                        type="button"
+                        class="bench-rubric-popover-close"
+                        popovertarget={entry.popoverId}
+                        popovertargetaction="hide"
+                        aria-label={entry.closeLabel}
+                    >
+                        ×
+                    </button>
+                </div>
+                <div class="bench-rubric-popover-body">
+                    <p class="bench-rubric-criteria">
+                        {splitInlineCode(entry.criteria).map((seg) =>
+                            seg.code ? <code>{seg.text}</code> : seg.text,
+                        )}
+                    </p>
+                    <div class="bench-rubric-tablist" role="tablist" aria-label={entry.tablistLabel}>
+                        {entry.questions.map((question, idx) => (
+                            <button
+                                type="button"
+                                id={`${entry.popoverId}-tab-${question.id}`}
+                                class="bench-rubric-tab"
+                                role="tab"
+                                aria-selected={idx === 0 ? "true" : "false"}
+                                aria-controls={`${entry.popoverId}-panel-${question.id}`}
+                                tabindex={idx === 0 ? 0 : -1}
+                                data-rubric-tab={question.id}
+                                title={question.id}
+                            >
+                                {question.tabLabel}
+                            </button>
+                        ))}
+                    </div>
+                    {entry.questions.map((question, idx) => (
+                        <div
+                            id={`${entry.popoverId}-panel-${question.id}`}
+                            class="bench-rubric-panel"
+                            role="tabpanel"
+                            aria-labelledby={`${entry.popoverId}-tab-${question.id}`}
+                            data-rubric-panel={question.id}
+                            data-single-title={question.singleTitle}
+                            hidden={idx !== 0}
+                        >
+                            <ol class="bench-rubric-ol">
+                                {question.items.map((item) => (
+                                    <li>
+                                        <span
+                                            class="bench-rubric-lang-tag"
+                                            data-lang={
+                                                item.lang === "TS ↔ Go"
+                                                    ? "ts-go"
+                                                    : item.lang.toLowerCase()
+                                            }
+                                        >
+                                            {item.lang}
+                                        </span>{" "}
+                                        {splitInlineCode(item.text).map((seg) =>
+                                            seg.code ? <code>{seg.text}</code> : seg.text,
+                                        )}
+                                        {item.hasSideEffect && (
+                                            <>
+                                                {" "}
+                                                <span class="bench-rubric-se-tag">
+                                                    {entry.sideEffectLabel}
+                                                </span>
+                                            </>
+                                        )}
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        ))
+    }
+</codemap-bench-rubric>
+
+<script>
+    import { mountBenchmarkRubric } from "./rubric-element";
+
+    mountBenchmarkRubric();
+</script>

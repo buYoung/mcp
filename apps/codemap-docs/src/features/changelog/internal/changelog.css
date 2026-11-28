@@ -1,0 +1,61 @@
+.cl-release-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cm-gap-sm);
+    margin-block: 0.25rem 0.75rem;
+    color: var(--cm-fg-faint);
+    font-size: var(--cm-fs-xs);
+    line-height: 1.4;
+}
+
+.cl-release-date {
+    font-variant-numeric: tabular-nums;
+}
+
+.cl-release-link {
+    color: var(--cm-fg-muted);
+    text-decoration: none;
+    transition: color var(--cm-transition-fast);
+}
+
+.cl-release-link:hover,
+.cl-release-link:focus-visible {
+    color: var(--cm-accent-fg);
+    text-decoration: underline;
+}
+
+.sl-markdown-content:has(.cl-release-meta) > .sl-heading-wrapper.level-h2 {
+    margin-block: 2rem 0;
+    padding-block-start: 1.5rem;
+    border-block-start: 1px solid var(--cm-border-subtle);
+}
+
+.sl-markdown-content:has(.cl-release-meta) > .sl-heading-wrapper.level-h2:first-child {
+    margin-block-start: 0;
+    padding-block-start: 0;
+    border-block-start: 0;
+}
+
+.sl-markdown-content:has(.cl-release-meta) > .sl-heading-wrapper.level-h2 h2 {
+    font-variant-numeric: tabular-nums;
+}
+
+.sl-markdown-content:has(.cl-release-meta) > .sl-heading-wrapper.level-h3 {
+    margin-block: 1.125rem 0.375rem;
+    font-size: var(--sl-text-base);
+}
+
+.sl-markdown-content:has(.cl-release-meta) > .cl-release-meta + .sl-heading-wrapper.level-h3 {
+    margin-block-start: 0.75rem;
+}
+
+.sl-markdown-content:has(.cl-release-meta) > .sl-heading-wrapper.level-h3 h3 {
+    font-size: inherit;
+    font-weight: 600;
+    color: var(--cm-fg);
+}
+
+.sl-markdown-content:has(.cl-release-meta) > ul {
+    margin-block-start: 0.375rem;
+}

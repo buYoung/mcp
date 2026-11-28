@@ -1,0 +1,444 @@
+---
+title: Changelog
+description: Release history for codemap-search.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import { ReleaseMeta } from "@features/changelog";
+
+## v1.1.0
+
+<ReleaseMeta version="1.1.0" date="2026-11-28" />
+
+### Improved
+
+- Linked declarations and implementations across files when parameters use repository-declared, imported, or standard language types in Go, TypeScript, Java, Kotlin, C#, C++, Dart, PHP, Rust, Scala, and Swift (wildcard imports, type aliases, and C++ templates remain unlinked).
+- Resolved C++ virtual method overrides across files when a derived class directly includes the base header, including files with include guards or macro expansion.
+- Showed the macro-expanded C/C++ event-input unavailability notice once per `read` or `search` response instead of under every declaration.
+- Appended a `not source-proven` count row below implementation candidates in `read` and `search` when subtypes contain same-named methods that could not be linked (excluding Go and Rust).
+- Added generic type support to call and implementation navigation in Java, Kotlin, C#, TypeScript, Dart, and Swift for receivers with type arguments (such as `Codec<String>`) and generic bases; methods whose parameters use type parameters remain unlinked.
+- Linked calls on nullable receivers (`Tool?`, `?Tool`, `Tool | null`, `Tool | undefined`, `Tool | None`, `Optional[Tool]`), including `?.`, `!!.`, and `!.`, across Kotlin, Swift, C#, Dart, PHP, TypeScript, and Python.
+- Linked calls on explicitly typed local variables in Kotlin and C# (and typed class-body properties in Kotlin) to their declared type's methods.
+- Consolidated initial full builds and full-index refreshes into a single search segment.
+
+### Changed
+
+- Upgraded parsing to tree-sitter 0.27 with updated grammars (including C#, Dart, PowerShell, Scala, and Swift), recovering previously missed Swift top-level functions and PowerShell commands such as Pester `It` blocks.
+- Updated C# parsing to `tree-sitter-c-sharp` 0.24.0 so more files parse without errors. Two new regressions exist: an `#if` block containing `typeof(...)` inside an `&&` condition followed by a `!`-prefixed operand turns the whole file into a parse error (losing most declarations), and calls inside dereferenced pointer casts are missed.
+- Existing indexes rebuild once automatically on upgrade.
+
+### Fixed
+
+- Preserved the correct callee and receiver for Swift calls immediately after prefix or binary operators (such as `!flags.contains(x)` and `total / Double(count)`).
+- Recorded the correct callee and receiver for Dart `=>` body calls and null-aware calls (`gauge?.level()`), and listed function-type `typedef` declarations as types instead of fields or calls.
+- Fixed Dart implementation navigation skipping classes with generic bases (`extends Codec<String>`) and listing `static` methods as implementations of supertype static methods.
+- Fixed Kotlin files ending with an annotation and no trailing newline hanging the server and indexing loop.
+- Fixed Kotlin classes whose primary constructor starts on the next line (nested classes and constructors preceded by annotations and a visibility modifier) splitting into broken declarations, and linked Kotlin methods with nullable parameters (`String?`) to their base declarations.
+- Kept enclosing methods, classes, and namespaces in C#, PHP, Ruby, and Lua when the parser fails on a single statement inside the body (such as a C# `#if` splitting an `else` branch).
+- Excluded calls targeting external types (`String::from`, `std::max`, `\DateTimeImmutable::createFromFormat`, and receiver calls on external types that happen to share a free function's name) from `unconfirmed callers`, while keeping extension-method calls on external types and checking Kotlin parameter types.
+- Connected C# `partial` class member calls across indexed parts in the same `.csproj` or folder (excluding multi-`.csproj` folders and `#if` parts), and distinguished generic from non-generic C# types of the same name (`Outcome<T>` vs `Outcome`).
+- Stopped linking package-private Java methods and library-private (`_`-prefixed) Dart methods to same-named methods in other packages or libraries.
+- Scoped function-local Python bare-name and module-alias imports to their enclosing function, and linked top-level imports declared after `from ... import *`.
+- Left calls unlinked in Java, Kotlin, Scala, Groovy, and Swift when a parent type declares another overload with the same parameter count instead of always picking the receiver's type.
+- Reported workspace-relative paths instead of absolute paths in C, C++, and assembly macro-expansion notices.
+- Linked local-variable initializer calls in C, C++, Java, and Groovy (such as `int total = sum();`) and recursive calls in C and C++.
+- Resolved receiver-typed calls inside `if` conditions and bodies.
+- Stopped compact `search` `Connected locations` from printing dangling method headings without a relation row, and included headings alongside every relation row.
+
+## v1.0.0
+
+<ReleaseMeta version="1.0.0" date="2026-11-17" />
+
+### Added
+
+- Added cross-repository `search` via `workspace_scope`: pass an external directory or linked worktree path (within the session's `read` policy) to index and search that repository, with `read` and `grep` reusing that index.
+- Added an importer trailer to `read view=source` listing files that import exported values, classes, or constants in the read window across supported languages; disabled alongside callers by `output.read.is_outside_callers_enabled = false`.
+
+### Improved
+
+- Seeded new git worktrees without an index from the most recently updated compatible worktree index of the same repository, re-extracting only changed and native macro-expanded files, and skipped re-reading files whose content matches despite a newer modification time.
+- Parallelized indexing and `search` across CPU cores, cutting fresh indexing and default `search` times by more than 3× on large repositories (over 4× with `caller_context: false`).
+- Compressed stored index documents with zstd and removed duplicate stored metadata, cutting index disk size by more than half.
+- Lowered peak memory at startup and across incremental refreshes by decoding only changed documents and reusing unchanged index data.
+- Appended `Exact phrase matches outside the ranking` in `search` for unranked files whose docstrings or string literals match a quoted phrase or adjacent query words, using only remaining output budget.
+- Shared repeated deferred-body notes and callee headers in `search` output, removed the redundant header line from `grep` `view=source_grouped`, and dropped repository statistics from `initial_instructions`.
+- Expanded Jev filtering to judge partial functions, top-level blocks in `read` and `grep`, and up to 8 follow-up call candidates in `search` (marked `(Jev: related)`), while skipping re-judgment when re-reading an exact omitted range or single-function window.
+- Tailored Jev request layouts by provider—plain-text batches for TypeSafe (`typesafe/*`), one request per candidate for OpenRouter `openai/*`, and JSON for other OpenRouter models—and kept standard tool descriptions with one omission-note sentence when Jev is enabled.
+- Updated server instructions and tool descriptions to search repo-wide before narrowing, trace shared literals across language and client/server boundaries, cite lines as `path:start-end` or `path:line`, follow only task-relevant callers or importers, and skip test or generated files unless requested.
+
+### Changed
+
+- Updated Jev request limits: `output.jev.max_in_flight_requests` now accepts `1–8` (default `8`, was `3`) and `output.jev.request_spacing_ms` accepts `>= 100` (default `100`, was `300`).
+- Existing indexes rebuild once automatically on upgrade.
+
+### Removed
+
+- **Breaking:** Removed the `overview` tool. Use `find` for directory listings, `read` with `view=definitions` for file outlines, and `initial_instructions` for monorepo scopes; `search` no longer persists `workspace_scope` across calls, and config schema v33 removes `[output.overview]`, `tool_output.is_overview_stats_enabled`, `output.jev.overview_filter_enabled`, and `"overview"` from `output.jev.scope`.
+- **Breaking:** Removed the `register_task` tool. When Jev filtering is enabled, pass the user's request directly as the required `task` argument to `initial_instructions`.
+- Stopped sending caller/callee source, relationship summaries, and event evidence to Jev; each unit is judged from its own source, path, kind, and name.
+
+### Fixed
+
+- Skipped git linked worktrees inside the workspace root during indexing, watching, and caller scans so duplicate checkouts do not appear twice in `search` (submodules and nested repositories remain indexed).
+- Stopped index bloat across repeated edits by letting index compaction finish and reclaiming deleted entries during updates.
+- Fixed import and export tracking for TypeScript/JavaScript re-exports (`export { default as Name } from`, `export * as name from`), TypeScript `import { type Name }` specifiers, `.vue`/`.svelte`/`.astro` component imports, and Groovy/Scala declarations containing private members or private constructors.
+- Fixed Assembly `#include` and `%include` import tracking, Bash function declaration ranges covering full bodies, and computed-directory script imports in Bash, Zsh, and PowerShell (`$(dirname "$0")`, `$PSScriptRoot`).
+- Prevented most `read view=source` caller trailer timeouts on large workspaces by reading only indexed files referencing the target name and reusing cached extractions.
+- Stopped exact `event_key` searches with no matches from silently falling back to ranked search; they now report the lookup scope and how to run a ranked search.
+- Accepted `view=source` and `view=source_grouped` as presentation-only options in `grep` file-list and count modes, and fixed `read view=definitions` rejecting indexed Sass files.
+
+## v0.14.2
+
+<ReleaseMeta version="0.14.2" date="2026-10-29" />
+
+### Added
+
+- Advertised `output.client.pi_max_bytes` as `_meta["pi/maxOutputBytes"]` in `tools/list` so `@buyong/pi-mcp-adapter` applies `codemap-search`'s delivery limit without duplicating it in `mcp.json` (`pi`'s built-in MCP still truncates at 20 KB).
+
+## v0.14.1
+
+<ReleaseMeta version="0.14.1" date="2026-10-28" />
+
+### Improved
+
+- Updated server instructions to batch independent tool calls in one response and start with several narrow lookups instead of one broad search.
+
+## v0.14.0
+
+<ReleaseMeta version="0.14.0" date="2026-10-26" />
+
+### Added
+
+- Added `ranges` to `read` to fetch 1–20 known file windows in one MCP call, with shared view options, per-item errors, session deduplication, and continuation under existing byte budgets.
+- Added OpenRouter decision-model support for Jev filtering with provider-specific credentials and strict response validation.
+
+### Changed
+
+- Updated the default TypeSafe decision model to `jev-1.14.0`.
+
+## v0.13.0
+
+<ReleaseMeta version="0.13.0" date="2026-10-23" />
+
+### Added
+
+- Added up to three workspace path suggestions when `read`, `grep`, or `find` targets a missing path.
+- Added cross-file usage matches for string keys and uppercase constants passed as call arguments in `read view=source`.
+- Added `auto`, `on`, and `off` indexing modes (`auto` starts on demand and skips non-repository folders or workspaces over the configured file-count limit).
+
+### Improved
+
+- Linked C/C++ header declarations to unique definitions and callers (including indirect includes), resolved C++ member calls via `this`, typed variables, and class names, and limited C/C++ macro reprocessing to files whose inputs changed.
+- Reduced type and dependency analysis time during initial indexing of large repositories.
+- Reported index status, file status, or timeout reasons when `read` omits caller summaries, and backed off failed background index retries up to 30 seconds with fewer repeated warnings.
+
+### Changed
+
+- Changed default `read`, `grep`, and `find` access from `workspace` to `anywhere` for new configs while keeping existing settings unchanged.
+- Hid `register_task` from the tool list when all Jev filters are disabled.
+- Existing indexes rebuild once automatically on upgrade.
+
+### Fixed
+
+- Ignored legacy arguments passed to `initial_instructions` by older clients, and fell back to plain-term search when queries like `symbol:*` error.
+- Cleaned up obsolete index segment files after updates, and fixed missing caller summaries and false stale-result warnings during concurrent writes to a shared index.
+- Restored caller info in macro-expanded C/C++ files, stopped ignored file changes from triggering unnecessary refreshes, and prevented parent-repository ignore rules from dropping nested-repository files.
+- Updated outdated auto-generated `config.toml` comments during upgrades while preserving the comment language and user settings.
+
+## v0.12.0
+
+<ReleaseMeta version="0.12.0" date="2026-10-21" />
+
+### Added
+
+- Added the opt-in `synonyms` tool with a local dictionary that ranks related terms by usage in the repository.
+- Added outside-window caller summaries to `read view=source`, toggled via `[output.read].is_outside_callers_enabled`.
+- Added client-wide navigation instructions management with injected English guidance.
+
+### Improved
+
+- Improved caller and callee resolution for typed method calls, imported functions, re-exports (TypeScript, JavaScript, Python, Dart), and JS/TS workspace package `exports` subpaths.
+- Capped `read` outside-caller lookups at 250 ms per read, returning partial matches with a timeout note when reached.
+- Compacted data-file search output by counting unmatched keys and trimming raw source text.
+
+### Changed
+
+- Moved task registration from `initial_instructions` to `register_task`; `initial_instructions` now takes no arguments.
+- Existing indexes rebuild once automatically on upgrade.
+
+### Fixed
+
+- Fixed long `else if` chains preventing repository index updates.
+- Fixed secret masking hiding code after operators and missing values in short variable declarations.
+
+## v0.11.0
+
+<ReleaseMeta version="0.11.0" date="2026-09-28" />
+
+### Added
+
+- Added Jev task-based relevance filtering for `search`, `read`, `grep`, and non-root `overview`, plus index-based file recommendations in root overviews.
+- Added repository and global Jev credential files with automatic reload and environment-variable fallback.
+- Added output limits for `pi` and OpenCode; oversized `search` responses return source ranges while other tools instruct narrowing the query.
+
+### Improved
+
+- Folded repeated source text already returned in the same session across tools, with an option to request the original text again.
+- Preserved source bodies when Jev lacks enough context to judge relevance.
+- Reduced processing overhead for large MCP inputs, sensitive-data masking, and source relationship analysis.
+
+### Changed
+
+- Enabled per-client output limits by default and unified their default value at `100000`.
+- Simplified Jev filter settings to an on/off toggle and tool list, with automatic migration of existing configs.
+
+### Removed
+
+- Removed configurable environment-variable names for Jev authentication.
+
+### Fixed
+
+- Returned tool execution errors as MCP error-marked tool results instead of JSON-RPC errors.
+- Fixed Codex-specific output-budget guidance appearing in other clients.
+- Fixed Windows source build failures caused by build-tool type mismatches.
+
+## v0.10.0
+
+<ReleaseMeta version="0.10.0" date="2026-09-21" />
+
+### Added
+
+- Added opt-in masking for 9 common PII types and 81 national identifier types across 18 countries.
+- Added `fd` file discovery and per-root `tokei` code statistics.
+- Added shared and per-tool output limits and Codex configuration output (`codex-config`).
+- Added CLI and MCP `analyze` tooling for index status and 30-day read activity with pagination and automatic cleanup.
+
+### Improved
+
+- Cached relationship analysis results and avoided duplicate work across concurrent runs.
+- Reduced release archive size from 33.4 MiB to 3.4 MiB.
+
+### Changed
+
+- Reorganized output, indexing, and exclusion settings into role-based sections while preserving values, comments, inheritance, and legacy key compatibility.
+
+### Fixed
+
+- Fixed reindexing expanding beyond caller-specified paths.
+- Fixed index readiness checks and retries when multiple processes compete for the same index.
+- Fixed `search` output budgeting to preserve later results and flag partial output.
+
+## v0.9.1
+
+<ReleaseMeta version="0.9.1" date="2026-09-17" />
+
+### Added
+
+- Added custom sensitive-field and regex masking rules with exact-value exceptions.
+
+### Security
+
+- Applied syntax-aware secret masking across MCP output while preserving variable references and safe literals.
+- Stopped echoing search queries in empty results when masking context is unavailable.
+
+## v0.9.0
+
+<ReleaseMeta version="0.9.0" date="2026-09-17" />
+
+### Added
+
+- Added free-function scope, callee locations, and same-file constant initializers to `read` and `grep` context.
+- Added automatic links between abstract declarations and their implementations.
+- Added event relationship navigation, source-path tracing across 18 languages, and conditional value-flow and error-return summaries.
+- Added output controls and size-unit strings (such as `"1mb"`, `"5mb"`).
+
+### Improved
+
+- Grouped `read` and `grep` results by file with declaration hierarchies, and expanded default `grep` context to include enclosing function bodies.
+- Reduced unnecessary parsing and repeated analysis during call lookups.
+
+### Changed
+
+- Enabled event analysis by default and excluded test code from automatic context by default (customizable or toggleable per language).
+- Consolidated exclusion settings under `exclude` while preserving values, comments, and legacy key compatibility.
+- Raised default output limits to 5 MiB for `read` and 1 MiB for `search`, with larger caller/callee and relationship budgets.
+
+### Fixed
+
+- Applied recursive exclusion rules and exclusions for files passed directly to `grep`.
+- Fixed false call links from strings, comments, cross-language matches, and object members, and fixed parsing errors in large repositories.
+- Stopped `grep` `files_with_matches` and `count` modes from returning symbol context, and stopped `search` from losing source text or showing out-of-range relationships.
+- Fixed `cm find` command routing and inconsistent readiness checks during initial indexing.
+
+## v0.8.1
+
+<ReleaseMeta version="0.8.1" date="2026-09-12" />
+
+### Added
+
+- Added per-project exclusion rules and configuration switching.
+
+## v0.8.0
+
+<ReleaseMeta version="0.8.0" date="2026-09-11" />
+
+### Added
+
+- Added file members and caller/callee context under `# symbols` in `read` and `grep`, separating source text under `# results`.
+
+### Improved
+
+- Applied workspace scope filters before collecting search candidates, adjusted ranking for generated/translated files and implementation candidates, and clarified regex escaping and empty-search next steps.
+
+### Fixed
+
+- Fixed `search` losing its subfolder scope.
+
+## v0.7.0
+
+<ReleaseMeta version="0.7.0" date="2026-09-04" />
+
+### Improved
+
+- Added active filters and next-step guidance to empty `grep` responses.
+- Clarified `output_mode` options and navigation guidance in `search` and `grep` descriptions.
+- Improved unsupported file-type handling in `overview` and `read`.
+
+## v0.6.0
+
+<ReleaseMeta version="0.6.0" date="2026-08-28" />
+
+### Added
+
+- Added navigation for Vue, Astro, and Svelte components across markup, scripts, and styles.
+- Added support for C#, PHP, Ruby, Lua, Swift, Dart, Scala, Groovy/Gradle, PowerShell, Nix, Bash, CMake, Containerfile, Dockerfile, Makefile, CSS, Less, HTML, XML, GraphQL, HCL, JSON, TOML, and YAML.
+- Added opt-in Markdown and MDX indexing (`is_document_support_enabled`) and opt-in language groups for shell, infrastructure, interface, and build files.
+
+### Improved
+
+- Skipped `.txt`, lockfiles, source maps, minified files, and bundles by default, and refused to index the user's home directory as a workspace root.
+- Improved caller/callee tracking for receiver calls, relative and dynamic imports, local shadowing, and live index updates on file or language-setting changes.
+
+### Changed
+
+- Changed shell, infrastructure, interface, and build language groups to opt-in (`find`, `grep`, and `read` continue to work on these files).
+- Existing indexes rebuild once automatically to store the expanded language and symbol data.
+
+### Fixed
+
+- Stopped standalone SCSS files from being indexed as a supported language.
+
+## v0.5.0
+
+<ReleaseMeta version="0.5.0" date="2026-07-20" />
+
+### Added
+
+- Added static collection read/write tracking for TypeScript, JavaScript, Python, Java, Kotlin, Go, Rust, C, and C++.
+- Added code-section relationship extraction for Vue, Astro, and Svelte components and SQL syntax support.
+
+### Improved
+
+- Included monorepo workspace scopes and source roots in `initial_instructions`, rejected duplicate or ambiguous workspace paths, and improved relationship extraction across supported languages.
+
+## v0.4.0
+
+<ReleaseMeta version="0.4.0" date="2026-07-01" />
+
+### Added
+
+- Added live `config.toml` watching with debounced syncing so config changes apply without restarting.
+- Added Korean and English `config.toml` comments selected automatically from the OS locale.
+- Added active filesystem access policy details to `find`, `grep`, and `read` tool descriptions.
+
+## v0.3.0
+
+<ReleaseMeta version="0.3.0" date="2026-06-30" />
+
+### Added
+
+- Added monorepo workspace detection and workspace-scoped MCP `search`.
+- Added `[update].config_auto_update` to control automatic `config.toml` creation and syncing.
+
+### Improved
+
+- Showed the active workspace scope in `search` results and improved file discovery filters and parent-child path handling.
+
+### Fixed
+
+- Fixed repository `config.toml` syncing overriding global settings.
+
+## v0.2.0
+
+<ReleaseMeta version="0.2.0" date="2026-06-26" />
+
+### Added
+
+- Added Tree-sitter-based caller and callee tracking with `navigation_context_default` and `navigation_callsite_budget` settings.
+
+### Improved
+
+- Ranked `search` results using language and file-extension hints and Tree-sitter `tags.scm` definition and reference tagging.
+
+## v0.1.6
+
+<ReleaseMeta version="0.1.6" date="2026-06-22" />
+
+- No user-facing changes.
+
+## v0.1.5
+
+<ReleaseMeta version="0.1.5" date="2026-06-22" />
+
+- No user-facing changes.
+
+## v0.1.4
+
+<ReleaseMeta version="0.1.4" date="2026-06-21" />
+
+- No user-facing changes.
+
+## v0.1.3
+
+<ReleaseMeta version="0.1.3" date="2026-06-21" />
+
+- No user-facing changes.
+
+## v0.1.2
+
+<ReleaseMeta version="0.1.2" date="2026-06-21" />
+
+- No user-facing changes.
+
+## v0.1.1
+
+<ReleaseMeta version="0.1.1" date="2026-06-21" />
+
+- No user-facing changes.
+
+## v0.1.0
+
+<ReleaseMeta version="0.1.0" date="2026-06-21" />
+
+### Added
+
+- Initial release of `codemap-search`, a local MCP stdio server and CLI for code navigation.
+- Added `overview`, `search`, `read`, `grep`, `find`, and `initial_instructions` tools with BM25 search across symbols, docstrings, string literals, and error messages, plus caller/callee context in detailed `search` results.
+- Added automatic background indexing with a `warming up` state, filesystem watching, and repo-local `.codemap/config.toml` creation and schema migration.
+- Added ripgrep-style include/exclude glob patterns in `find` and `grep`, and parameter aliases (`path`, `file`, `query`, `start_line`, `end_line`) in `read` and `grep`.
+- Added language support for Rust, Python, TypeScript, JavaScript, Go, Java, Kotlin, C, C++, and Assembly.
+- Published Linux (GNU and musl, Ubuntu 22.04+), macOS, and Windows release archives with SHA-256 checksums, plus POSIX install script, Homebrew, WinGet, and crates.io distribution.
+
+### Changed
+
+- Renamed `get_codemap` to `overview`, formatted default `grep` output as `file:line:text`, replaced `register_git_exclude` and `respect_git_exclude` with `use_git_ignore`, and stopped modifying `.git/info/exclude` automatically.
+
+### Fixed
+
+- Reported the Cargo package version in MCP `serverInfo.version` instead of a hardcoded version.
+
+### Security
+
+- Added repo-confined default filesystem permissions and path-boundary checks for `find`, `grep`, and `read`, and hardened the POSIX install script with atomic installs and symlink rejection.
