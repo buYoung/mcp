@@ -1,0 +1,25 @@
+---
+import "./changelog.css";
+
+interface Props {
+    version: string;
+    date: string;
+    tag?: string;
+}
+
+const { version, date, tag = `codemap-v${version}` } = Astro.props;
+const releaseUrl = `https://github.com/buYoung/mcp/releases/tag/${tag}`;
+---
+
+<div class="cl-release-meta not-content">
+    <time class="cl-release-date" datetime={date}>{date}</time>
+    <span class="cl-release-sep" aria-hidden="true">·</span>
+    <a
+        class="cl-release-link cm-mono"
+        href={releaseUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+    >
+        {tag}
+    </a>
+</div>

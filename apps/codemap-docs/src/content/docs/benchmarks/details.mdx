@@ -1,28 +1,30 @@
 ---
-title: 벤치마크 상세 결과
-description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별 충족 결과, 하위 도구 호출 통계를 정리합니다.
+title: Detailed Benchmark Results
+description: Per-environment token distributions, pairwise p-values, per-question and per-fact rubric tables, and subtool call breakdowns.
 ---
 
-측정 조건, 고정 버전, 요약 그래프는 [벤치마크 요약](/ko/benchmarks/)을 참고하세요.
+import { BenchmarkRubricPopover } from "@features/benchmarks";
 
-## 지표 안내
+For test setup, tool versions, and summary charts, see [Benchmarks Summary](/benchmarks/).
 
-- **충족 (`Core` + `Extended`)**:
-  - 답변당 필수 사실 `12`개(`Core` 핵심 경로 `7` + `Extended` 분기·설정 `5`) 중 설명과 코드 근거가 모두 확인된 건수입니다.
-  - `내용 맞음`은 `내용 맞음·인용 부족`을 포함합니다.
-  - `Core 완결 (7/7)`은 `Core` `7`개를 모두 충족한 답변 수입니다.
-- **토큰 (`k` = `1,000`토큰)**:
-  - `총 토큰`은 턴마다 재전송되는 캐시 입력을 포함한 합계입니다.
-  - `비캐시 합계`는 신규 입력과 출력 토큰만의 합계입니다.
-- **쌍별 검정과 인용**:
-  - 쌍별 `p` 값은 문항 층화 순열 검정 결과(`p < 0.05`, `단측 p`는 `A > B` 검정)입니다.
-  - `테스트·생성 인용`은 테스트나 생성 파일을 1회 이상 인용한 답변 수입니다.
+## Column guide
 
-## 환경별 결과
+- **Fulfilled (`Core` + `Extended`)**:
+  - Counts facts out of `12` per answer (`7` `Core` architecture hops + `5` `Extended` branch/config facts) proven by both explanation and cited source lines.
+  - `Factually correct` also includes `Correct, weak citation`.
+  - `All-core (7/7)` counts answers fulfilling all `7` `Core` facts.
+- **Tokens (`k` = `1,000` tokens)**:
+  - `Total tokens` includes cached input re-sent across turns.
+  - `Uncached total` counts only cache-miss input plus output.
+- **Pairwise tests & citations**:
+  - Pairwise `p`-values use a question-stratified permutation test (`p < 0.05`; `One-sided p` tests `A > B`).
+  - `Cited test/gen` counts answers citing a test or generated file at least once.
+
+## Results by Environment
 
 ### `pi direct`
 
-| 도구 | 답변 | 충족 | 충족률 | Core | Extended | Core 완결 (7/7) | 내용 맞음 | 내용 맞음·인용 부족 | 오답·누락 | 테스트·생성 인용 |
+| Tool | Answers | Fulfilled | Fulfilled % | Core | Extended | All-core (7/7) | Factually correct | Correct, weak citation | Incorrect / missed | Cited test/gen |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` | 9 | 96/108 | 88.9% | 59/63 | 37/45 | 5/9 | 98 | 2 | 10 | 0 |
 | `Graphify 0.9.95` | 9 | 93/108 | 86.1% | 56/63 | 37/45 | 3/9 | 96 | 3 | 12 | 8 |
@@ -31,7 +33,7 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 | `rg 15.2.0` | 9 | 86/108 | 79.6% | 53/63 | 33/45 | 3/9 | 90 | 4 | 18 | 6 |
 | `CodeGraph 1.6.2` | 9 | 78/108 | 72.2% | 50/63 | 28/45 | 2/9 | 80 | 2 | 28 | 5 |
 
-| 도구 | 총 토큰 (평균) | 중앙값 | 최소–최대 | 입력 토큰 (평균) | 캐시 입력 (평균, %) | 비캐시 입력 (평균) | 출력 토큰 (평균) | 비캐시 합계 (평균) | 턴 수 (평균, 최소–최대) |
+| Tool | Total tokens (mean) | Median | Min–Max | Input tokens (mean) | Cached input (mean, %) | Uncached input (mean) | Output tokens (mean) | Uncached total (mean) | Turns (mean, min–max) |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | `codemap-search 0.14.2` | 946k | 967k | 574k–1,255k | 938k | 848k (90.3%) | 91k | 7.2k | 98k | 18.4 (13–25) |
 | `Graphify 0.9.95` | 1,008k | 780k | 540k–2,506k | 1,002k | 914k (91.3%) | 88k | 6.0k | 93k | 25.7 (18–45) |
@@ -40,7 +42,7 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 | `rg 15.2.0` | 555k | 411k | 321k–1,337k | 549k | 487k (88.7%) | 62k | 5.5k | 68k | 20.9 (14–35) |
 | `CodeGraph 1.6.2` | 1,727k | 1,610k | 741k–2,655k | 1,723k | 1,595k (92.6%) | 127k | 4.4k | 132k | 25.4 (16–33) |
 
-| 쌍별 비교 | 답변당 충족 차이 | 양측 `p` | 단측 `p` | 총 토큰 비율 | 비캐시 합계 비율 |
+| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached total ratio |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` − `Graphify 0.9.95` | +0.33 | 0.5400 | 0.2700 | ×0.94 | ×1.05 |
 | `codemap-search 0.14.2` − `zvec-grep 0.2.2` | +0.78 | 0.1600 | 0.0800 | ×1.21 | ×1.28 |
@@ -54,7 +56,7 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 
 ### `pi codemode`
 
-| 도구 | 답변 | 충족 | 충족률 | Core | Extended | Core 완결 (7/7) | 내용 맞음 | 내용 맞음·인용 부족 | 오답·누락 | 테스트·생성 인용 |
+| Tool | Answers | Fulfilled | Fulfilled % | Core | Extended | All-core (7/7) | Factually correct | Correct, weak citation | Incorrect / missed | Cited test/gen |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` | 9 | 97/108 | 89.8% | 60/63 | 37/45 | 6/9 | 100 | 3 | 8 | 0 |
 | `zvec-grep 0.2.2` | 7 | 71/84 | 84.5% | 44/49 | 27/35 | 3/7 | 72 | 1 | 12 | 2 |
@@ -63,7 +65,7 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 | `CodeGraph 1.6.2` | 9 | 85/108 | 78.7% | 51/63 | 34/45 | 3/9 | 87 | 2 | 21 | 5 |
 | `codebase-memory-mcp 0.12.1` | 9 | 84/108 | 77.8% | 55/63 | 29/45 | 3/9 | 87 | 3 | 21 | 9 |
 
-| 도구 | 총 토큰 (평균) | 중앙값 | 최소–최대 | 입력 토큰 (평균) | 캐시 입력 (평균, %) | 비캐시 입력 (평균) | 출력 토큰 (평균) | 비캐시 합계 (평균) | 턴 수 (평균, 최소–최대) |
+| Tool | Total tokens (mean) | Median | Min–Max | Input tokens (mean) | Cached input (mean, %) | Uncached input (mean) | Output tokens (mean) | Uncached total (mean) | Turns (mean, min–max) |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | `codemap-search 0.14.2` | 829k | 761k | 599k–1,361k | 822k | 728k (88.5%) | 95k | 6.5k | 101k | 16.1 (14–24) |
 | `zvec-grep 0.2.2` | 608k | 679k | 420k–800k | 602k | 528k (87.8%) | 73k | 5.9k | 79k | 15.9 (13–19) |
@@ -72,7 +74,7 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 | `CodeGraph 1.6.2` | 1,724k | 1,477k | 757k–3,148k | 1,719k | 1,582k (92.0%) | 137k | 4.5k | 142k | 22.6 (15–32) |
 | `codebase-memory-mcp 0.12.1` | 1,190k | 1,186k | 774k–1,608k | 1,182k | 1,077k (91.1%) | 105k | 7.7k | 113k | 22.6 (18–26) |
 
-| 쌍별 비교 | 답변당 충족 차이 | 양측 `p` | 단측 `p` | 총 토큰 비율 | 비캐시 합계 비율 |
+| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached total ratio |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` − `zvec-grep 0.2.2` | +0.63 | 0.2250 | 0.1125 | ×1.36 | ×1.28 |
 | `codemap-search 0.14.2` − `Graphify 0.9.95` | +1.00 | 0.0180 | 0.0090 | ×1.11 | ×1.09 |
@@ -86,7 +88,7 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 
 ### `Codex code mode`
 
-| 도구 | 답변 | 충족 | 충족률 | Core | Extended | Core 완결 (7/7) | 내용 맞음 | 내용 맞음·인용 부족 | 오답·누락 | 테스트·생성 인용 |
+| Tool | Answers | Fulfilled | Fulfilled % | Core | Extended | All-core (7/7) | Factually correct | Correct, weak citation | Incorrect / missed | Cited test/gen |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` | 9 | 98/108 | 90.7% | 59/63 | 39/45 | 6/9 | 99 | 1 | 9 | 0 |
 | `Graphify 0.9.95` | 9 | 94/108 | 87.0% | 58/63 | 36/45 | 5/9 | 95 | 1 | 13 | 8 |
@@ -95,7 +97,7 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 | `CodeGraph 1.6.2` | 9 | 86/108 | 79.6% | 54/63 | 32/45 | 3/9 | 89 | 3 | 19 | 4 |
 | `codebase-memory-mcp 0.12.1` | 9 | 85/108 | 78.7% | 53/63 | 32/45 | 2/9 | 88 | 3 | 20 | 6 |
 
-| 도구 | 총 토큰 (평균) | 중앙값 | 최소–최대 | 입력 토큰 (평균) | 캐시 입력 (평균, %) | 비캐시 입력 (평균) | 출력 토큰 (평균) | 비캐시 합계 (평균) | 턴 수 (평균, 최소–최대) |
+| Tool | Total tokens (mean) | Median | Min–Max | Input tokens (mean) | Cached input (mean, %) | Uncached input (mean) | Output tokens (mean) | Uncached total (mean) | Turns (mean, min–max) |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | `codemap-search 0.14.2` | 1,333k | 1,294k | 877k–1,857k | 1,324k | 1,200k (90.6%) | 124k | 8.5k | 133k | 18.9 (15–23) |
 | `Graphify 0.9.95` | 1,183k | 995k | 767k–1,622k | 1,176k | 1,075k (91.4%) | 101k | 7.0k | 108k | 19.9 (16–26) |
@@ -104,7 +106,7 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 | `CodeGraph 1.6.2` | 3,309k | 3,220k | 1,651k–5,496k | 3,302k | 3,115k (94.3%) | 187k | 6.5k | 194k | 31.3 (21–43) |
 | `codebase-memory-mcp 0.12.1` | 1,827k | 1,687k | 1,266k–3,294k | 1,818k | 1,684k (92.6%) | 135k | 9.0k | 144k | 29.9 (25–40) |
 
-| 쌍별 비교 | 답변당 충족 차이 | 양측 `p` | 단측 `p` | 총 토큰 비율 | 비캐시 합계 비율 |
+| Pairwise comparison | Fulfilled diff / ans | Two-sided `p` | One-sided `p` | Total token ratio | Uncached total ratio |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `codemap-search 0.14.2` − `Graphify 0.9.95` | +0.44 | 0.2600 | 0.1300 | ×1.13 | ×1.22 |
 | `codemap-search 0.14.2` − `rg 15.2.0` | +1.00 | 0.0280 | 0.0140 | ×1.54 | ×1.27 |
@@ -116,15 +118,15 @@ description: 환경별 토큰 분포, 쌍별 유의성 검정, 문항·항목별
 | `CodeGraph 1.6.2` − `rg 15.2.0` | -0.33 | 0.6080 | 0.8420 | ×3.82 | ×1.85 |
 | `codebase-memory-mcp 0.12.1` − `rg 15.2.0` | -0.44 | 0.3520 | 0.9500 | ×2.11 | ×1.38 |
 
-## 문항별·회차별 결과
+## Results by Question and Repetition
 
-환경·도구별로 문항당 `3`회(합계 `36`개 사실) 측정한 결과입니다.
+Each tool and environment ran `3` times per question (`36` facts total).
 
 ### `alertmanager-config-autosync`
 
-Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이어지는 구간을 추적합니다.
+Traces how the Kubernetes-style API connects to automatic syncing of external Alertmanager configurations.
 
-| 환경 | 도구 | 충족 | Core | Extended | 내용 맞음 | 1·2·3회차 (Core+Ext) | 평균 총 토큰 | 평균 비캐시 합계 | 평균 호출 |
+| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached total | Mean calls |
 | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
 | `pi direct` | `codemap-search 0.14.2` | 30/36 | 18/21 | 12/15 | 31 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 930k | 94k | 34.7 |
 |  | `Graphify 0.9.95` | 30/36 | 18/21 | 12/15 | 31 | 10 (6+4) · 10 (6+4) · 10 (6+4) | 874k | 98k | 57.3 |
@@ -147,9 +149,9 @@ Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이�
 
 ### `git-sync-job-dispatch`
 
-메시지 버스로 Git 저장소 동기화 작업이 실행 처리기까지 전달되는 구간을 추적합니다.
+Traces how Git repository sync jobs are dispatched across the message bus to the executing job handler.
 
-| 환경 | 도구 | 충족 | Core | Extended | 내용 맞음 | 1·2·3회차 (Core+Ext) | 평균 총 토큰 | 평균 비캐시 합계 | 평균 호출 |
+| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached total | Mean calls |
 | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
 | `pi direct` | `codemap-search 0.14.2` | 33/36 | 20/21 | 13/15 | 34 | 12 (7+5) · 11 (7+4) · 10 (6+4) | 1,027k | 107k | 52.3 |
 |  | `Graphify 0.9.95` | 32/36 | 19/21 | 13/15 | 34 | 12 (7+5) · 11 (7+4) · 9 (5+4) | 1,553k | 100k | 59.3 |
@@ -172,9 +174,9 @@ Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이�
 
 ### `scope-annotation-filter`
 
-대시보드 스코프 필터가 애노테이션 저장·조회와 연결되는 구간을 추적합니다.
+Traces how dashboard scope filters connect to annotation storage and querying.
 
-| 환경 | 도구 | 충족 | Core | Extended | 내용 맞음 | 1·2·3회차 (Core+Ext) | 평균 총 토큰 | 평균 비캐시 합계 | 평균 호출 |
+| Environment | Tool | Fulfilled | Core | Extended | Factually correct | Run 1 · Run 2 · Run 3 (Core+Ext) | Mean total tokens | Mean uncached total | Mean calls |
 | --- | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: |
 | `pi direct` | `codemap-search 0.14.2` | 33/36 | 21/21 | 12/15 | 33 | 11 (7+4) · 11 (7+4) · 11 (7+4) | 880k | 94k | 48.3 |
 |  | `Graphify 0.9.95` | 31/36 | 19/21 | 12/15 | 31 | 10 (6+4) · 11 (7+4) · 10 (6+4) | 596k | 82k | 50.7 |
@@ -183,7 +185,7 @@ Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이�
 |  | `rg 15.2.0` | 26/36 | 15/21 | 11/15 | 27 | 8 (5+3) · 9 (5+4) · 9 (5+4) | 377k | 55k | 60.7 |
 |  | `CodeGraph 1.6.2` | 24/36 | 16/21 | 8/15 | 25 | 8 (6+2) · 8 (5+3) · 8 (5+3) | 1,658k | 125k | 25.7 |
 | `pi codemode` | `codemap-search 0.14.2` | 32/36 | 21/21 | 11/15 | 33 | 11 (7+4) · 10 (7+3) · 11 (7+4) | 690k | 88k | 37.7 |
-|  | `zvec-grep 0.2.2` | 10/12 | 6/7 | 4/5 | 10 | 없음 · 없음 · 10 (6+4) | 800k | 89k | 71.0 |
+|  | `zvec-grep 0.2.2` | 10/12 | 6/7 | 4/5 | 10 | — · — · 10 (6+4) | 800k | 89k | 71.0 |
 |  | `Graphify 0.9.95` | 28/36 | 18/21 | 10/15 | 29 | 9 (6+3) · 9 (6+3) · 10 (6+4) | 474k | 69k | 55.0 |
 |  | `rg 15.2.0` | 25/36 | 16/21 | 9/15 | 26 | 10 (6+4) · 8 (5+3) · 7 (5+2) | 310k | 60k | 62.0 |
 |  | `CodeGraph 1.6.2` | 22/36 | 14/21 | 8/15 | 23 | 8 (5+3) · 7 (5+2) · 7 (4+3) | 1,389k | 130k | 29.0 |
@@ -195,13 +197,13 @@ Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이�
 |  | `CodeGraph 1.6.2` | 26/36 | 16/21 | 10/15 | 27 | 8 (5+3) · 10 (6+4) · 8 (5+3) | 2,314k | 158k | 34.7 |
 |  | `codebase-memory-mcp 0.12.1` | 27/36 | 16/21 | 11/15 | 28 | 10 (6+4) · 8 (5+3) · 9 (5+4) | 1,552k | 172k | 83.0 |
 
-### 세부 채점 항목별 충족 (`36`개)
+### Per-fact fulfillment (`36` rubric items)
 
-각 칸은 항목별 `pi direct · pi codemode · Codex code mode` 충족 횟수와 합계(`sum/9`)입니다. `zvec-grep 0.2.2`의 `B1–BE5`는 `pi codemode`에서 `1`회만 완료되어 `1/1` 또는 `0/1`(`sum/7`)로 표시합니다.
+Each cell shows fulfilled runs for `pi direct · pi codemode · Codex code mode` (`sum/9` total). For `zvec-grep 0.2.2` on `B1–BE5`, `pi codemode` completed `1` run (`1/1` or `0/1`, `sum/7` total).
 
 #### `alertmanager-config-autosync` (`A1–AE5`)
 
-| 항목 ID | 구분 | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
+| Fact ID | Level | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `A1` | Core | 3·3·2 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 2·3·3 (8/9) | 0·1·2 (3/9) |
 | `A2` | Core | 3·3·3 (9/9) | 3·1·2 (6/9) | 3·2·2 (7/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 2·3·3 (8/9) |
@@ -218,7 +220,7 @@ Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이�
 
 #### `git-sync-job-dispatch` (`G1–GE5`)
 
-| 항목 ID | 구분 | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
+| Fact ID | Level | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `G1` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
 | `G2` | Core | 3·3·3 (9/9) | 2·3·3 (8/9) | 3·3·3 (9/9) | 3·3·2 (8/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
@@ -235,7 +237,7 @@ Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이�
 
 #### `scope-annotation-filter` (`B1–BE5`)
 
-| 항목 ID | 구분 | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
+| Fact ID | Level | `codemap-search 0.14.2` | `Graphify 0.9.95` | `zvec-grep 0.2.2` | `codebase-memory-mcp 0.12.1` | `rg 15.2.0` | `CodeGraph 1.6.2` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `B1` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 2·3·3 (8/9) |
 | `B2` | Core | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
@@ -250,41 +252,41 @@ Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이�
 | `BE4` | Extended | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·1/1·3 (7/7) | 3·3·3 (9/9) | 3·3·3 (9/9) | 3·3·3 (9/9) |
 | `BE5` | Extended | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0/1·0 (0/7) | 0·0·0 (0/9) | 0·0·0 (0/9) | 0·0·0 (0/9) |
 
-## 하위 도구 호출, 인용 및 출력 잘림
+## Tool Calls, Citations, and Output Caps
 
-- **호출 결과**:
-  - `거절`은 읽기 전용 경로 샌드박스가 실행 전에 차단한 호출이고, `오류`는 실행 후 실패한 호출입니다.
-  - `기본·보조 도구 호출`은 MCP 서버 외 내장 도구·셸의 답변당 평균 호출 수(`0.0`이면 MCP 도구만 사용)입니다.
-- **인용 및 출력 상한**:
-  - `범위 인용`은 여러 줄 범위 인용이고, `한 줄 인용`은 단일 줄 인용입니다.
-  - `기본·CLI 한도 도달`, `스크립트 잘림`, `어댑터 잘림`은 각 클라이언트 계층 출력 상한에 걸린 횟수입니다.
+- **Call outcomes**:
+  - `Rejected` counts calls blocked before execution by the read-only path sandbox; `Errors` counts failed calls after dispatch.
+  - `Built-in / fallback calls` counts calls per answer outside the MCP server (`0.0` = MCP tools only).
+- **Citations & output caps**:
+  - `Range citations` counts multi-line source citations; `Single-line` counts single-line citations.
+  - `Built-in/CLI cap hits`, `Script truncations`, and `Adapter truncations` count outputs clipped at each client layer.
 
-### 호출 결과 및 하위 도구별 평균 호출 수 (답변당)
+### Call outcomes and per-subtool calls (per answer)
 
-| 환경 | 도구 | 답변당 총 호출 | 답변당 전달 호출 | 거절 합계 | 오류 합계 | 답변당 기본·보조 도구 호출 | 하위 도구별 평균 호출 |
+| Environment | Tool | Total calls / ans | Dispatched / ans | Rejected (sum) | Errors (sum) | Built-in / fallback calls / ans | Per-subtool calls / ans |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | `pi direct` | `codemap-search 0.14.2` | 45.1 | 44.6 | 5 | 0 | 0.0 | `read` 20.7, `grep` 17.6, `find` 3.6, `search` 1.8, `initial_instructions` 1.0 |
-|  | `Graphify 0.9.95` | 55.8 | 54.2 | 14 | 7 | 16.8 | 보조 `read` 30.6, 기본 `grep` 14.9, `query_graph` 4.7, 기본 `find` 1.4, `get_neighbors` 1.1, `get_node` 1.0, 기본 `ls` 0.4, `graph_stats` 0.1 |
-|  | `zvec-grep 0.2.2` | 45.6 | 45.6 | 0 | 2 | 38.6 | 기본 `read` 28.2, 기본 `grep` 9.8, `zvec_grep_search` 7.0, 기본 `find` 0.3, 기본 `ls` 0.2 |
-|  | `codebase-memory-mcp 0.12.1` | 73.9 | 73.1 | 7 | 12 | 5.0 | `get_code_snippet` 32.6, `search_code` 19.1, `search_graph` 8.1, 기본 `read` 5.0, `get_file_outline` 4.1, `trace_path` 1.7, `check_index_coverage` 1.6, `list_projects` 1.0 |
+|  | `Graphify 0.9.95` | 55.8 | 54.2 | 14 | 7 | 16.8 | helper `read` 30.6, grep (built-in) 14.9, `query_graph` 4.7, find (built-in) 1.4, `get_neighbors` 1.1, `get_node` 1.0, ls (built-in) 0.4, `graph_stats` 0.1 |
+|  | `zvec-grep 0.2.2` | 45.6 | 45.6 | 0 | 2 | 38.6 | read (built-in) 28.2, grep (built-in) 9.8, `zvec_grep_search` 7.0, find (built-in) 0.3, ls (built-in) 0.2 |
+|  | `codebase-memory-mcp 0.12.1` | 73.9 | 73.1 | 7 | 12 | 5.0 | `get_code_snippet` 32.6, `search_code` 19.1, `search_graph` 8.1, read (built-in) 5.0, `get_file_outline` 4.1, `trace_path` 1.7, `check_index_coverage` 1.6, `list_projects` 1.0 |
 |  | `rg 15.2.0` | 63.7 | 63.7 | 0 | 11 | 63.7 | `read` 36.7, `grep` 18.8, `ls` 4.2, `find` 4.0 |
-|  | `CodeGraph 1.6.2` | 24.7 | 24.7 | 0 | 0 | 2.8 | `codegraph_explore` 21.9, 기본 `grep` 1.0, 기본 `find` 0.8, 기본 `ls` 0.6, 기본 `read` 0.4 |
+|  | `CodeGraph 1.6.2` | 24.7 | 24.7 | 0 | 0 | 2.8 | `codegraph_explore` 21.9, grep (built-in) 1.0, find (built-in) 0.8, ls (built-in) 0.6, read (built-in) 0.4 |
 | `pi codemode` | `codemap-search 0.14.2` | 39.2 | 38.6 | 6 | 0 | 0.0 | `grep` 17.9, `read` 13.6, `find` 4.4, `search` 1.7, `initial_instructions` 1.0 |
-|  | `zvec-grep 0.2.2` | 55.6 | 55.6 | 0 | 3 | 48.4 | 기본 `read` 33.4, 기본 `grep` 13.6, `zvec_grep_search` 7.1, 기본 `find` 0.7, 기본 `ls` 0.7 |
-|  | `Graphify 0.9.95` | 66.0 | 65.8 | 2 | 7 | 22.9 | 보조 `read` 36.1, 기본 `grep` 19.0, `query_graph` 5.6, 기본 `find` 2.3, 기본 `ls` 1.6, `get_neighbors` 0.7, `get_node` 0.6 |
+|  | `zvec-grep 0.2.2` | 55.6 | 55.6 | 0 | 3 | 48.4 | read (built-in) 33.4, grep (built-in) 13.6, `zvec_grep_search` 7.1, find (built-in) 0.7, ls (built-in) 0.7 |
+|  | `Graphify 0.9.95` | 66.0 | 65.8 | 2 | 7 | 22.9 | helper `read` 36.1, grep (built-in) 19.0, `query_graph` 5.6, find (built-in) 2.3, ls (built-in) 1.6, `get_neighbors` 0.7, `get_node` 0.6 |
 |  | `rg 15.2.0` | 66.6 | 66.6 | 0 | 12 | 66.6 | `read` 39.8, `grep` 19.4, `ls` 4.1, `find` 3.2 |
-|  | `CodeGraph 1.6.2` | 26.3 | 26.3 | 0 | 0 | 4.6 | `codegraph_explore` 21.8, 기본 `grep` 2.6, 기본 `ls` 0.8, 기본 `read` 0.8, 기본 `find` 0.4 |
-|  | `codebase-memory-mcp 0.12.1` | 94.1 | 92.3 | 16 | 23 | 6.3 | `get_code_snippet` 40.2, `search_code` 22.1, `search_graph` 10.6, `get_file_outline` 7.8, 기본 `read` 6.3, `check_index_coverage` 2.3, `trace_path` 1.7, `list_projects` 1.0, `get_architecture` 0.3 |
+|  | `CodeGraph 1.6.2` | 26.3 | 26.3 | 0 | 0 | 4.6 | `codegraph_explore` 21.8, grep (built-in) 2.6, ls (built-in) 0.8, read (built-in) 0.8, find (built-in) 0.4 |
+|  | `codebase-memory-mcp 0.12.1` | 94.1 | 92.3 | 16 | 23 | 6.3 | `get_code_snippet` 40.2, `search_code` 22.1, `search_graph` 10.6, `get_file_outline` 7.8, read (built-in) 6.3, `check_index_coverage` 2.3, `trace_path` 1.7, `list_projects` 1.0, `get_architecture` 0.3 |
 | `Codex code mode` | `codemap-search 0.14.2` | 50.4 | 49.9 | 5 | 5 | 0.0 | `grep` 24.8, `read` 17.3, `find` 5.8, `initial_instructions` 1.0, `search` 1.0 |
-|  | `Graphify 0.9.95` | 70.6 | 70.0 | 5 | 20 | 11.2 | 보조 `read` 51.7, 기본 셸 11.2, `query_graph` 6.7, `get_neighbors` 0.4 |
-|  | `rg 15.2.0` | 20.3 | 20.3 | 0 | 14 | 20.3 | 기본 셸 20.3 |
-|  | `zvec-grep 0.2.2` | 20.9 | 20.9 | 0 | 18 | 15.7 | 기본 셸 15.7, `zvec_grep_search` 5.2 |
-|  | `CodeGraph 1.6.2` | 36.3 | 36.3 | 0 | 3 | 3.4 | `codegraph_explore` 32.9, 기본 셸 3.4 |
-|  | `codebase-memory-mcp 0.12.1` | 103.1 | 100.3 | 25 | 24 | 2.1 | `get_code_snippet` 48.9, `search_code` 22.1, `search_graph` 18.9, `get_file_outline` 2.7, 기본 셸 2.1, `trace_path` 1.9, `check_index_coverage` 1.2, `list_projects` 1.0, `query_graph` 0.8, `get_architecture` 0.4, `get_graph_schema` 0.3 |
+|  | `Graphify 0.9.95` | 70.6 | 70.0 | 5 | 20 | 11.2 | helper `read` 51.7, shell (built-in) 11.2, `query_graph` 6.7, `get_neighbors` 0.4 |
+|  | `rg 15.2.0` | 20.3 | 20.3 | 0 | 14 | 20.3 | shell (built-in) 20.3 |
+|  | `zvec-grep 0.2.2` | 20.9 | 20.9 | 0 | 18 | 15.7 | shell (built-in) 15.7, `zvec_grep_search` 5.2 |
+|  | `CodeGraph 1.6.2` | 36.3 | 36.3 | 0 | 3 | 3.4 | `codegraph_explore` 32.9, shell (built-in) 3.4 |
+|  | `codebase-memory-mcp 0.12.1` | 103.1 | 100.3 | 25 | 24 | 2.1 | `get_code_snippet` 48.9, `search_code` 22.1, `search_graph` 18.9, `get_file_outline` 2.7, shell (built-in) 2.1, `trace_path` 1.9, `check_index_coverage` 1.2, `list_projects` 1.0, `query_graph` 0.8, `get_architecture` 0.4, `get_graph_schema` 0.3 |
 
-### 인용 형식, 답변 길이, 출력 한도 도달 수
+### Citations, answer length, and client output-cap hits
 
-| 환경 | 도구 | 답변당 범위 인용 (합계) | 인용당 평균 줄 수 | 답변당 한 줄 인용 (합계) | 평균 답변 길이(자) | 테스트·생성 인용 | 기본·CLI 한도 도달 (답변 수) | 스크립트 잘림 | 어댑터 잘림 |
+| Environment | Tool | Range citations / ans (sum) | Mean lines / range | Single-line / ans (sum) | Mean answer chars | Cited test/gen | Built-in/CLI cap hits (answers) | Script truncations | Adapter truncations |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `pi direct` | `codemap-search 0.14.2` | 73.7 (663) | 19.1 | 1.7 (15) | 10,109 | 0 | 0 (0) | — | 0 |
 |  | `Graphify 0.9.95` | 58.3 (525) | 19.1 | 1.1 (10) | 8,821 | 8 | 18 (8) | — | 0 |
@@ -304,3 +306,5 @@ Kubernetes 스타일 API가 외부 Alertmanager 설정 자동 동기화로 이�
 |  | `zvec-grep 0.2.2` | 63.4 (571) | 15.9 | 1.3 (12) | 9,314 | 4 | 17 (5) | — | — |
 |  | `CodeGraph 1.6.2` | 61.0 (549) | 16.9 | 0.8 (7) | 9,338 | 4 | 17 (9) | — | — |
 |  | `codebase-memory-mcp 0.12.1` | 54.9 (494) | 19.4 | 1.9 (17) | 8,366 | 6 | 5 (5) | — | — |
+
+<BenchmarkRubricPopover locale="en" />

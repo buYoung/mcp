@@ -44,11 +44,27 @@
     background: var(--cm-bg-surface);
 }
 
+.bench-chart-hdr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cm-gap-sm);
+    min-block-size: var(--cm-h-xs);
+    margin-block-end: 0.5rem;
+}
+
 .bench-chart-title {
-    margin: 0 0 0.5rem;
+    margin: 0;
     font-size: var(--cm-fs-sm);
     font-weight: 600;
     color: var(--cm-fg);
+}
+
+.bench-chart-terms {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cm-gap-xs);
 }
 
 .bench-svg-stage {

@@ -1,9 +1,12 @@
 ---
+import RubricTerm from "./RubricTerm.astro";
 import { CHART_GEOMETRY, computePlotY } from "./series-data";
 import type { BenchmarkSeries } from "./types";
 
 interface Props {
     panelId: "acc" | "tok";
+    locale?: "en" | "ko";
+    showRubricTerms?: boolean;
     title: string;
     ticks: number[];
     minV: number;
@@ -13,13 +16,34 @@ interface Props {
     series: BenchmarkSeries[];
 }
 
-const { panelId, title, ticks, minV, maxV, envs, xCoords, series } = Astro.props;
+const {
+    panelId,
+    locale = "en",
+    showRubricTerms = false,
+    title,
+    ticks,
+    minV,
+    maxV,
+    envs,
+    xCoords,
+    series,
+} = Astro.props;
 const { svgW, svgH, padLeft, padRight, padTop, padBottom } = CHART_GEOMETRY;
 const plotH = svgH - padTop - padBottom;
 ---
 
 <div class="bench-chart-card" data-chart-panel={panelId}>
-    <p class="bench-chart-title">{title}</p>
+    <div class="bench-chart-hdr">
+        <p class="bench-chart-title">{title}</p>
+        {
+            showRubricTerms && (
+                <div class="bench-chart-terms">
+                    <RubricTerm term="core" locale={locale} variant="chip" />
+                    <RubricTerm term="extended" locale={locale} variant="chip" />
+                </div>
+            )
+        }
+    </div>
     <div class="bench-svg-stage">
         <svg class="bench-chart-svg" viewBox={`0 0 ${svgW} ${svgH}`} aria-hidden="true">
             <g data-grid-group={panelId}>

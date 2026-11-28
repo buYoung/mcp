@@ -1,0 +1,27 @@
+---
+import "./benchmark-rubric.css";
+import { getRubricEntries, type RubricTermId } from "./rubric-data";
+
+interface Props {
+    term: RubricTermId;
+    locale?: "en" | "ko";
+    label?: string;
+    variant?: "chip" | "inline";
+    class?: string;
+}
+
+const { term, locale = "en", label, variant = "inline", class: className } = Astro.props;
+const entry = getRubricEntries(locale)[term];
+const text = label ?? (variant === "chip" ? entry.chipLabel : entry.label);
+---
+
+<button
+    type="button"
+    class:list={["bench-rubric-trigger", `bench-rubric-trigger--${variant}`, className]}
+    data-rubric-trigger={term}
+    popovertarget={entry.popoverId}
+    aria-controls={entry.popoverId}
+    aria-expanded="false"
+>
+    {text}
+</button>

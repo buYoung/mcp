@@ -98,6 +98,11 @@ export default defineConfig({
                         },
                     ],
                 },
+                {
+                    slug: "changelog",
+                    label: "Changelog",
+                    translations: { ko: "변경 이력" },
+                },
             ],
         }),
     ],
